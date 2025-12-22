@@ -8,63 +8,66 @@
   }
 
   body {
-    @apply bg-background text-gray-100 antialiased overflow-hidden;
+    @apply bg-background text-gray-100 antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Improved input styling */
   input,
   textarea,
   select {
     @apply bg-background-secondary border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all;
   }
 
+  input:disabled,
+  textarea:disabled,
+  select:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
   button {
     @apply transition-all duration-200 font-medium;
   }
 
-  /* Scrollbar */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  button:disabled {
+    @apply cursor-not-allowed;
   }
 
-  ::-webkit-scrollbar-track {
-    @apply bg-background-secondary;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    @apply bg-gray-600 rounded-full;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-500;
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
   }
 }
 
 @layer components {
+  /* Button Variants */
   .btn {
-    @apply px-6 py-2.5 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-6 py-2.5 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95;
   }
 
   .btn-primary {
-    @apply bg-primary hover:bg-primary-dark text-white;
+    @apply bg-primary hover:bg-primary-dark text-white shadow-lg hover:shadow-xl;
   }
 
   .btn-success {
-    @apply bg-success hover:bg-success-dark text-white;
+    @apply bg-success hover:bg-success-dark text-white shadow-lg hover:shadow-xl;
   }
 
   .btn-danger {
-    @apply bg-danger hover:bg-danger-dark text-white;
+    @apply bg-danger hover:bg-danger-dark text-white shadow-lg hover:shadow-xl;
   }
 
   .btn-secondary {
-    @apply bg-background-secondary hover:bg-background-tertiary text-gray-100 border border-gray-700;
+    @apply bg-background-secondary hover:bg-background-tertiary text-gray-100 border border-gray-700 hover:border-gray-600;
   }
 
+  /* Card Component */
   .card {
-    @apply bg-background-secondary border border-gray-700 rounded-xl p-6;
+    @apply bg-background-secondary border border-gray-700 rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow;
   }
 
+  /* Input Group */
   .input-group {
     @apply flex flex-col gap-2;
   }
@@ -73,16 +76,131 @@
     @apply text-sm font-medium text-gray-300;
   }
 
+  /* Price Animations */
   .price-up {
-    @apply animate-price-up;
+    animation: priceUp 0.5s ease-out;
   }
 
   .price-down {
-    @apply animate-price-down;
+    animation: priceDown 0.5s ease-out;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply bg-success/20 text-success border border-success/30;
+  }
+
+  .badge-danger {
+    @apply bg-danger/20 text-danger border border-danger/30;
+  }
+
+  .badge-primary {
+    @apply bg-primary/20 text-primary border border-primary/30;
+  }
+
+  .badge-warning {
+    @apply bg-yellow-500/20 text-yellow-400 border border-yellow-500/30;
   }
 }
 
-/* Number inputs */
+@layer utilities {
+  /* Custom Animations */
+  @keyframes priceUp {
+    0% {
+      background-color: rgba(16, 185, 129, 0.3);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  @keyframes priceDown {
+    0% {
+      background-color: rgba(239, 68, 68, 0.3);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+    }
+    50% {
+      box-shadow: 0 0 30px rgba(59, 130, 246, 0.8);
+    }
+  }
+
+  /* Utility Classes */
+  .animate-shimmer {
+    animation: shimmer 2s infinite linear;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 100%
+    );
+    background-size: 1000px 100%;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  /* Text Gradient */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600;
+  }
+
+  /* Glass Effect */
+  .glass {
+    @apply bg-background/80 backdrop-blur-md border border-gray-700/50;
+  }
+
+  /* Scrollbar Hide */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-background-secondary;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500;
+}
+
+/* Number Input - Remove Spinners */
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
@@ -93,75 +211,90 @@ input[type='number'] {
   -moz-appearance: textfield;
 }
 
-/* Loading skeleton */
+/* Loading Skeleton */
 .skeleton {
   @apply bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700 animate-pulse;
   background-size: 200% 100%;
 }
 
-/* Custom animations */
-@keyframes priceUp {
-  0% {
-    background-color: rgba(16, 185, 129, 0.3);
-  }
-  100% {
-    background-color: transparent;
-  }
-}
-
-@keyframes priceDown {
-  0% {
-    background-color: rgba(239, 68, 68, 0.3);
-  }
-  100% {
-    background-color: transparent;
-  }
-}
-
-/* Smooth transitions */
-* {
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-
-button,
-a,
-input,
-select,
-textarea {
-  transition-duration: 200ms;
-}
-
-/* Focus styles */
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
+/* Focus visible for accessibility */
+*:focus-visible {
   @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
-}
-
-/* Mobile tap highlight */
-* {
-  -webkit-tap-highlight-color: transparent;
 }
 
 /* Selection */
 ::selection {
-  @apply bg-primary text-white;
+  @apply bg-primary/30 text-white;
 }
 
-/* Backdrop blur support */
-@supports (backdrop-filter: blur(10px)) {
-  .backdrop-blur-sm {
-    backdrop-filter: blur(4px);
+::-moz-selection {
+  @apply bg-primary/30 text-white;
+}
+
+/* Responsive Typography */
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
   }
 }
 
-/* Print styles */
+@media (min-width: 641px) and (max-width: 1024px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+@media (min-width: 1025px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+/* Print Styles */
 @media print {
   body {
     @apply bg-white text-black;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Dark mode enhancements */
+@media (prefers-color-scheme: dark) {
+  /* Already dark by default */
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  button,
+  input,
+  select,
+  textarea {
+    border-width: 2px;
+  }
+}
+
+/* Touch device improvements */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger touch targets for mobile */
+  button,
+  a,
+  input,
+  select {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
