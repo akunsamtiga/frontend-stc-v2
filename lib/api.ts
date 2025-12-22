@@ -31,18 +31,29 @@ class ApiClient {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
         }
+        console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`)
         return config
       },
       (error) => {
+        console.error('Request interceptor error:', error)
         return Promise.reject(error)
       }
     )
 
     // Response interceptor - return full response.data
     this.client.interceptors.response.use(
-      (response) => response.data,
+      (response) => {
+        console.log(`API Response [${response.status}]:`, response.data)
+        return response.data
+      },
       (error: AxiosError<any>) => {
-        const message = error.response?.data?.error || error.message || 'An error occurred'
+        console.error('API Error:', error.response?.data || error.message)
+        
+        const message = 
+          error.response?.data?.error || 
+          error.response?.data?.message ||
+          error.message || 
+          'An error occurred'
         
         // Don't show toast for silent requests
         if (!error.config?.headers?.['X-Silent-Error']) {
@@ -56,27 +67,33 @@ class ApiClient {
 
   private getToken(): string | null {
     if (typeof window === 'undefined') return null
-    return localStorage.getItem('token')
+    const token = localStorage.getItem('token')
+    console.log('Getting token:', token ? 'Token exists' : 'No token')
+    return token
   }
 
   setToken(token: string) {
     if (typeof window !== 'undefined') {
+      console.log('Setting token in localStorage')
       localStorage.setItem('token', token)
     }
   }
 
   removeToken() {
     if (typeof window !== 'undefined') {
+      console.log('Removing token from localStorage')
       localStorage.removeItem('token')
     }
   }
 
   // Auth
   async login(email: string, password: string): Promise<ApiResponse> {
+    console.log('Calling login API...')
     return this.client.post('/auth/login', { email, password })
   }
 
   async register(email: string, password: string): Promise<ApiResponse> {
+    console.log('Calling register API...')
     return this.client.post('/auth/register', { email, password })
   }
 

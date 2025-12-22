@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
@@ -9,30 +9,89 @@ import { TrendingUp, Zap, Shield, Clock } from 'lucide-react'
 
 export default function LandingPage() {
   const router = useRouter()
-  const setAuth = useAuthStore((state) => state.setAuth)
+  const { user, setAuth } = useAuthStore()
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      console.log('User already logged in, redirecting to /trading')
+      router.push('/trading')
+    }
+  }, [user, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
+      console.log('Attempting login with:', email)
+      
       const response = isLogin
         ? await api.login(email, password)
         : await api.register(email, password)
 
-      setAuth(response.user, response.token)
-      api.setToken(response.token)
-      toast.success(response.message)
-      router.push('/trading')
+      console.log('Auth response:', response)
+
+      // Handle different response structures
+      const userData = response.user || response.data?.user
+      const token = response.token || response.data?.token
+
+      if (!userData || !token) {
+        console.error('Invalid response structure:', response)
+        toast.error('Invalid response from server')
+        return
+      }
+
+      console.log('Setting auth with user:', userData)
+      console.log('Setting auth with token:', token)
+
+      // Set authentication
+      setAuth(userData, token)
+      api.setToken(token)
+
+      toast.success(response.message || 'Login successful!')
+      
+      console.log('Redirecting to /trading...')
+      
+      // Force redirect with replace
+      router.replace('/trading')
+      
+      // Backup redirect after short delay
+      setTimeout(() => {
+        console.log('Backup redirect to /trading')
+        router.push('/trading')
+      }, 100)
+
     } catch (error: any) {
       console.error('Auth error:', error)
+      console.error('Error response:', error.response?.data)
+      
+      const errorMessage = 
+        error.response?.data?.error || 
+        error.response?.data?.message ||
+        error.message || 
+        'Authentication failed'
+      
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
+  }
+
+  // Don't render form if user is logged in
+  if (user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="text-xl mb-4">Redirecting to trading...</div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -121,6 +180,8 @@ export default function LandingPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
+                disabled={loading}
+                autoComplete="email"
               />
             </div>
 
@@ -132,6 +193,8 @@ export default function LandingPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
+                disabled={loading}
+                autoComplete="current-password"
               />
             </div>
 
@@ -140,14 +203,22 @@ export default function LandingPage() {
               disabled={loading}
               className="btn btn-primary w-full py-3 text-lg"
             >
-              {loading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  Processing...
+                </span>
+              ) : (
+                isLogin ? 'Sign In' : 'Create Account'
+              )}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <button
               onClick={() => setIsLogin(!isLogin)}
-              className="text-primary hover:text-primary-dark transition-colors"
+              disabled={loading}
+              className="text-primary hover:text-primary-dark transition-colors disabled:opacity-50"
             >
               {isLogin
                 ? "Don't have an account? Sign up"
@@ -158,7 +229,7 @@ export default function LandingPage() {
           {isLogin && (
             <div className="mt-8 p-4 bg-background rounded-lg border border-gray-700">
               <div className="text-sm text-gray-400 mb-2">Demo Credentials:</div>
-              <div className="text-xs font-mono">
+              <div className="text-xs font-mono space-y-1">
                 <div>Email: superadmin@trading.com</div>
                 <div>Pass: SuperAdmin123!</div>
               </div>
