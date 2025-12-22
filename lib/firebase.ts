@@ -17,151 +17,223 @@ let database: Database
 if (typeof window !== 'undefined' && !getApps().length) {
   app = initializeApp(firebaseConfig)
   database = getDatabase(app)
-  console.log('🔥 Firebase initialized')
+  console.log('🔥 Firebase initialized with URL:', process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL)
 }
 
 export { database, ref, onValue, off }
 
-// ✅ Timeframe configuration - OPTIMIZED
+// ✅ Timeframe mapping
 type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
 
-const TIMEFRAME_CONFIG: Record<Timeframe, { path: string; barsToFetch: number; updateInterval: number }> = {
-  '1m': { path: 'ohlc_1m', barsToFetch: 100, updateInterval: 60000 }, // 1 min
-  '5m': { path: 'ohlc_5m', barsToFetch: 100, updateInterval: 300000 }, // 5 min
-  '15m': { path: 'ohlc_15m', barsToFetch: 100, updateInterval: 900000 }, // 15 min
-  '1h': { path: 'ohlc_1h', barsToFetch: 80, updateInterval: 3600000 }, // 1 hour
-  '4h': { path: 'ohlc_4h', barsToFetch: 60, updateInterval: 14400000 }, // 4 hours
-  '1d': { path: 'ohlc_1d', barsToFetch: 50, updateInterval: 86400000 } // 1 day
+const TIMEFRAME_CONFIG = {
+  '1m': { path: 'ohlc_1m', barsToFetch: 200 },
+  '5m': { path: 'ohlc_5m', barsToFetch: 200 },
+  '15m': { path: 'ohlc_15m', barsToFetch: 200 },
+  '1h': { path: 'ohlc_1h', barsToFetch: 200 },
+  '4h': { path: 'ohlc_4h', barsToFetch: 150 },
+  '1d': { path: 'ohlc_1d', barsToFetch: 100 }
 }
 
-// ✅ Cache untuk data
-const dataCache = new Map<string, { data: any[], timestamp: number }>()
-const CACHE_DURATION = 30000 // 30 seconds
-
-// ✅ Fetch historical data - OPTIMIZED with cache
-export async function fetchHistoricalData(
-  assetPath: string,
-  timeframe: Timeframe = '1m'
-): Promise<any[]> {
-  if (typeof window === 'undefined') return []
-
-  const config = TIMEFRAME_CONFIG[timeframe]
-  if (!config) {
-    console.error(`❌ Invalid timeframe: ${timeframe}`)
-    return []
-  }
-
-  // Check cache first
-  const cacheKey = `${assetPath}_${timeframe}`
-  const cached = dataCache.get(cacheKey)
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    console.log(`📦 Using cached data for ${timeframe}`)
-    return cached.data
-  }
-
-  try {
-    const pathsToTry = [
-      `${assetPath}/${config.path}`,
-      `/${config.path}`,
-      `/idx_stc/${config.path}`,
-    ]
-
-    console.log(`📊 Fetching ${timeframe} data (${config.barsToFetch} bars)...`)
-
-    for (const testPath of pathsToTry) {
-      try {
-        const ohlcRef = ref(database, testPath)
-        const historyQuery = query(ohlcRef, orderByKey(), limitToLast(config.barsToFetch))
-        const snapshot = await get(historyQuery)
-
-        if (snapshot.exists()) {
-          const data = snapshot.val()
-          const processed = processHistoricalData(data, config.barsToFetch)
-
-          if (processed.length > 0) {
-            console.log(`✅ Loaded ${processed.length} bars from ${testPath}`)
-            
-            // Cache the result
-            dataCache.set(cacheKey, { data: processed, timestamp: Date.now() })
-            
-            return processed
-          }
-        }
-      } catch (err) {
-        console.log(`⚠️ Path ${testPath} failed, trying next...`)
-      }
-    }
-
-    console.error('❌ No data found in any path')
-    return []
-
-  } catch (error) {
-    console.error('❌ Error fetching data:', error)
-    return []
-  }
-}
-
-// ✅ Process historical data - OPTIMIZED
-function processHistoricalData(data: any, limit: number): any[] {
-  if (!data || typeof data !== 'object') return []
-
-  const historicalData: any[] = []
-  const keys = Object.keys(data).sort((a, b) => parseInt(a) - parseInt(b))
-
-  // Process only the most recent bars
-  const startIndex = Math.max(0, keys.length - limit)
-  
-  for (let i = startIndex; i < keys.length; i++) {
-    const key = keys[i]
-    const item = data[key]
-
-    if (!item || typeof item !== 'object') continue
-
-    const timestamp = item.timestamp || parseInt(key)
-    if (!timestamp || !item.close) continue
-
-    historicalData.push({
-      timestamp: timestamp,
-      datetime: item.datetime || new Date(timestamp * 1000).toISOString(),
-      open: parseFloat(item.open) || parseFloat(item.close),
-      high: parseFloat(item.high) || parseFloat(item.close),
-      low: parseFloat(item.low) || parseFloat(item.close),
-      close: parseFloat(item.close),
-      volume: parseInt(item.volume) || 0
-    })
-  }
-
-  return historicalData
-}
-
-// ✅ Subscribe to real-time price updates
+// Subscribe to real-time price updates
 export function subscribeToPriceUpdates(
   path: string,
   callback: (data: any) => void
 ) {
   if (typeof window === 'undefined') return () => {}
 
-  console.log('🔔 Subscribing to price updates:', path)
+  console.log('🔔 Subscribing to price updates at:', path)
   const priceRef = ref(database, path)
-  
   const unsubscribe = onValue(priceRef, (snapshot) => {
     const data = snapshot.val()
     if (data) {
+      console.log('📈 Price update received:', data.price)
       callback(data)
     }
   }, (error) => {
-    console.error('❌ Price subscription error:', error)
+    console.error('❌ Error subscribing to price:', error)
   })
 
   return () => {
-    console.log('🔕 Unsubscribing from price updates')
+    console.log('🔕 Unsubscribing from:', path)
     off(priceRef)
   }
 }
 
-// ✅ Subscribe to OHLC updates - OPTIMIZED with debounce
-let updateTimeout: NodeJS.Timeout | null = null
+// ✅ Fetch historical data from pre-aggregated timeframe
+export async function fetchHistoricalData(
+  assetPath: string,
+  timeframe: Timeframe = '1m'
+): Promise<any[]> {
+  if (typeof window === 'undefined') return []
 
+  try {
+    const config = TIMEFRAME_CONFIG[timeframe]
+    
+    if (!config) {
+      console.error(`❌ Invalid timeframe: ${timeframe}`)
+      return []
+    }
+
+    // Try multiple path variations
+    const pathsToTry = [
+      `${assetPath}/${config.path}`, // /idx_stc/ohlc_1m
+      `/${config.path}`, // /ohlc_1m
+      `/idx_stc/${config.path}`, // Explicit path
+    ]
+
+    console.log(`📊 Fetching ${timeframe} data:`)
+    console.log(`   Asset Path: ${assetPath}`)
+    console.log(`   Timeframe: ${timeframe}`)
+    console.log(`   Config Path: ${config.path}`)
+    console.log(`   Bars needed: ${config.barsToFetch}`)
+    
+    for (const testPath of pathsToTry) {
+      console.log(`🔍 Trying path: ${testPath}`)
+      
+      try {
+        const ohlcRef = ref(database, testPath)
+        const historyQuery = query(ohlcRef, orderByKey(), limitToLast(config.barsToFetch))
+        const snapshot = await get(historyQuery)
+        
+        if (snapshot.exists()) {
+          const data = snapshot.val()
+          const dataKeys = Object.keys(data)
+          console.log(`✅ Found data at: ${testPath}`)
+          console.log(`   Bars found: ${dataKeys.length}`)
+          
+          if (dataKeys.length > 0) {
+            // Show sample
+            const firstKey = dataKeys[0]
+            const lastKey = dataKeys[dataKeys.length - 1]
+            console.log(`   First bar timestamp: ${firstKey} (${data[firstKey]?.datetime})`)
+            console.log(`   Last bar timestamp: ${lastKey} (${data[lastKey]?.datetime})`)
+            console.log(`   Sample data:`, data[firstKey])
+            
+            const result = processHistoricalData(data, config.barsToFetch)
+            
+            if (result.length > 0) {
+              return result
+            }
+          }
+        } else {
+          console.log(`   ⚠️ No data at: ${testPath}`)
+        }
+      } catch (err) {
+        console.log(`   ❌ Error at ${testPath}:`, err)
+      }
+    }
+    
+    // If we get here, no path worked
+    console.error('❌ No data found in any path')
+    console.log('💡 Debugging tips:')
+    console.log('   1. Check Firebase Console: https://console.firebase.google.com')
+    console.log('   2. Verify simulator is running: check simulator.log')
+    console.log('   3. Check Firebase Database rules allow read access')
+    console.log('   4. Expected structure: /idx_stc/ohlc_1m/{timestamp}/')
+    
+    // Try to check root structure
+    await debugFirebaseStructure()
+    
+    return []
+
+  } catch (error) {
+    console.error('❌ Error fetching historical data:', error)
+    return []
+  }
+}
+
+// Debug function to inspect Firebase structure
+async function debugFirebaseStructure() {
+  try {
+    console.log('🔍 Debugging Firebase structure...')
+    
+    // Check root
+    const rootRef = ref(database, '/')
+    const rootSnapshot = await get(rootRef)
+    
+    if (rootSnapshot.exists()) {
+      const rootKeys = Object.keys(rootSnapshot.val())
+      console.log('📁 Root level keys:', rootKeys)
+      
+      // Check idx_stc
+      if (rootKeys.includes('idx_stc')) {
+        const idxRef = ref(database, '/idx_stc')
+        const idxSnapshot = await get(idxRef)
+        
+        if (idxSnapshot.exists()) {
+          const idxKeys = Object.keys(idxSnapshot.val())
+          console.log('📁 /idx_stc keys:', idxKeys)
+          
+          // Check for ohlc paths
+          const ohlcKeys = idxKeys.filter(k => k.startsWith('ohlc_'))
+          console.log('📊 OHLC timeframes found:', ohlcKeys)
+          
+          // Check first ohlc path
+          if (ohlcKeys.length > 0) {
+            const firstOhlc = ohlcKeys[0]
+            const ohlcRef = ref(database, `/idx_stc/${firstOhlc}`)
+            const ohlcSnapshot = await get(query(ohlcRef, limitToLast(1)))
+            
+            if (ohlcSnapshot.exists()) {
+              console.log(`📋 Sample from /idx_stc/${firstOhlc}:`, ohlcSnapshot.val())
+            }
+          }
+        }
+      }
+    } else {
+      console.error('❌ Firebase root is empty!')
+    }
+  } catch (error) {
+    console.error('❌ Debug error:', error)
+  }
+}
+
+// Process and validate historical data
+function processHistoricalData(data: any, limit: number): any[] {
+  const historicalData: any[] = []
+
+  // Convert object to array
+  Object.keys(data).forEach(key => {
+    const item = data[key]
+    
+    if (!item || typeof item !== 'object') {
+      console.warn(`⚠️ Invalid item at key ${key}:`, item)
+      return
+    }
+
+    const timestamp = item.timestamp || parseInt(key)
+    
+    if (!timestamp || !item.close) {
+      console.warn(`⚠️ Missing required fields at key ${key}:`, item)
+      return
+    }
+
+    historicalData.push({
+      timestamp: timestamp,
+      datetime: item.datetime || new Date(timestamp * 1000).toISOString(),
+      open: item.open || item.close,
+      high: item.high || item.close,
+      low: item.low || item.close,
+      close: item.close,
+      volume: item.volume || 0
+    })
+  })
+
+  // Sort by timestamp ascending
+  historicalData.sort((a, b) => a.timestamp - b.timestamp)
+
+  // Take last N bars
+  const result = historicalData.slice(-limit)
+
+  console.log(`✅ Processed ${result.length} bars`)
+  if (result.length > 0) {
+    console.log(`   Date range: ${result[0]?.datetime} to ${result[result.length - 1]?.datetime}`)
+  }
+
+  return result
+}
+
+// ✅ Subscribe to timeframe-specific OHLC updates
 export function subscribeToOHLCUpdates(
   assetPath: string,
   timeframe: Timeframe,
@@ -177,45 +249,41 @@ export function subscribeToOHLCUpdates(
 
   const ohlcPath = `${assetPath}/${config.path}`
   const ohlcRef = ref(database, ohlcPath)
-
+  
   console.log(`🔔 Subscribing to ${timeframe} updates at: ${ohlcPath}`)
-
+  
   const unsubscribe = onValue(ohlcRef, (snapshot) => {
     const data = snapshot.val()
-    if (!data) return
-
-    // Debounce updates untuk performa
-    if (updateTimeout) clearTimeout(updateTimeout)
-    
-    updateTimeout = setTimeout(() => {
+    if (data) {
+      // Get the latest entry
       const keys = Object.keys(data).sort()
       const latestKey = keys[keys.length - 1]
       const latestData = data[latestKey]
-
+      
       if (latestData) {
+        console.log(`📊 New ${timeframe} bar:`, latestData.close)
         callback({
           timestamp: latestData.timestamp || parseInt(latestKey),
           datetime: latestData.datetime,
-          open: parseFloat(latestData.open),
-          high: parseFloat(latestData.high),
-          low: parseFloat(latestData.low),
-          close: parseFloat(latestData.close),
-          volume: parseInt(latestData.volume) || 0
+          open: latestData.open,
+          high: latestData.high,
+          low: latestData.low,
+          close: latestData.close,
+          volume: latestData.volume || 0
         })
       }
-    }, 500) // 500ms debounce
+    }
   }, (error) => {
-    console.error(`❌ ${timeframe} subscription error:`, error)
+    console.error(`❌ Error subscribing to ${timeframe}:`, error)
   })
 
   return () => {
-    if (updateTimeout) clearTimeout(updateTimeout)
     console.log(`🔕 Unsubscribing from ${timeframe} updates`)
     off(ohlcRef)
   }
 }
 
-// ✅ Get latest bar - OPTIMIZED
+// ✅ Get latest bar from specific timeframe (for real-time updates)
 export async function getLatestBar(
   assetPath: string,
   timeframe: Timeframe
@@ -229,8 +297,9 @@ export async function getLatestBar(
     const ohlcPath = `${assetPath}/${config.path}`
     const ohlcRef = ref(database, ohlcPath)
     const latestQuery = query(ohlcRef, orderByKey(), limitToLast(1))
-
+    
     const snapshot = await get(latestQuery)
+    
     if (!snapshot.exists()) return null
 
     const data = snapshot.val()
@@ -238,15 +307,15 @@ export async function getLatestBar(
     if (keys.length === 0) return null
 
     const latestData = data[keys[0]]
-
+    
     return {
       timestamp: latestData.timestamp || parseInt(keys[0]),
       datetime: latestData.datetime,
-      open: parseFloat(latestData.open),
-      high: parseFloat(latestData.high),
-      low: parseFloat(latestData.low),
-      close: parseFloat(latestData.close),
-      volume: parseInt(latestData.volume) || 0
+      open: latestData.open,
+      high: latestData.high,
+      low: latestData.low,
+      close: latestData.close,
+      volume: latestData.volume || 0
     }
   } catch (error) {
     console.error('❌ Error getting latest bar:', error)
@@ -254,20 +323,38 @@ export async function getLatestBar(
   }
 }
 
-// ✅ Clear cache
-export function clearCache() {
-  dataCache.clear()
-  console.log('🗑️ Cache cleared')
+// Debug helper
+export async function checkAvailableTimeframes(assetPath: string): Promise<string[]> {
+  if (typeof window === 'undefined') return []
+
+  const available: string[] = []
+  
+  for (const [tf, config] of Object.entries(TIMEFRAME_CONFIG)) {
+    try {
+      const path = `${assetPath}/${config.path}`
+      const testRef = ref(database, path)
+      const snapshot = await get(query(testRef, limitToLast(1)))
+      
+      if (snapshot.exists()) {
+        available.push(tf)
+      }
+    } catch (error) {
+      // Path doesn't exist
+    }
+  }
+  
+  console.log('📊 Available timeframes:', available.join(', '))
+  return available
 }
 
-// ✅ Test connection
+// Test Firebase connection
 export async function testFirebaseConnection(): Promise<boolean> {
   if (typeof window === 'undefined') return false
-
+  
   try {
     console.log('🔍 Testing Firebase connection...')
     const testRef = ref(database, '/test')
-    await get(testRef)
+    const snapshot = await get(testRef)
     console.log('✅ Firebase connection successful')
     return true
   } catch (error) {
