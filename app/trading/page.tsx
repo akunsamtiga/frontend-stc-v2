@@ -57,9 +57,9 @@ export default function TradingPage() {
         api.getCurrentBalance(),
       ])
 
-      // Fix: Handle response structure correctly
+      // ✅ FIX: Access from correct nested structure
       const assetsList = assetsRes?.data?.assets || assetsRes?.assets || []
-      const currentBalance = balanceRes?.balance || 0
+      const currentBalance = balanceRes?.data?.balance || balanceRes?.balance || 0
 
       setAssets(assetsList)
       setBalance(currentBalance)

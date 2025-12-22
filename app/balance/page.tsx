@@ -36,8 +36,8 @@ export default function BalancePage() {
         api.getBalanceHistory(),
       ])
       
-      // Fix: Handle response structure correctly
-      setBalance(balanceRes?.balance || 0)
+      // ✅ FIX: Access balance from nested data object
+      setBalance(balanceRes?.data?.balance || balanceRes?.balance || 0)
       setTransactions(historyRes?.data?.transactions || historyRes?.transactions || [])
     } catch (error) {
       console.error('Failed to load balance:', error)
