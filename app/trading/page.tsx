@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { useTradingStore } from '@/store/trading'
@@ -30,7 +30,7 @@ export default function TradingPage() {
   const router = useRouter()
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
-  const { selectedAsset, currentPrice, setSelectedAsset, setCurrentPrice, addPriceToHistory } = useTradingStore()
+  const { selectedAsset, currentPrice, setSelectedAsset, setCurrentPrice } = useTradingStore()
 
   const [assets, setAssets] = useState<Asset[]>([])
   const [balance, setBalance] = useState(0)
@@ -42,6 +42,7 @@ export default function TradingPage() {
   const [showHistorySidebar, setShowHistorySidebar] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
 
+  // ✅ Redirect if not logged in
   useEffect(() => {
     if (!user) {
       router.push('/')
@@ -50,24 +51,36 @@ export default function TradingPage() {
     loadData()
   }, [user, router])
 
+  // ✅ Subscribe to current price ONLY (tidak untuk OHLC)
   useEffect(() => {
-    if (!selectedAsset) return
+    if (!selectedAsset || !selectedAsset.realtimeDbPath) return
 
     let unsubscribe: (() => void) | undefined
+    let lastUpdate = 0
 
-    if (selectedAsset.dataSource === 'realtime_db' && selectedAsset.realtimeDbPath) {
+    if (selectedAsset.dataSource === 'realtime_db') {
+      console.log('🔔 Subscribing to current price updates')
+      
       unsubscribe = subscribeToPriceUpdates(selectedAsset.realtimeDbPath, (data) => {
+        // Throttle updates untuk performa (max 1 update per second)
+        const now = Date.now()
+        if (now - lastUpdate < 1000) return
+        lastUpdate = now
+        
+        console.log('📈 Price update:', data.price)
         setCurrentPrice(data)
-        addPriceToHistory(data)
       })
     }
 
     return () => {
-      if (unsubscribe) unsubscribe()
+      if (unsubscribe) {
+        console.log('🔕 Unsubscribing from price updates')
+        unsubscribe()
+      }
     }
-  }, [selectedAsset])
+  }, [selectedAsset, setCurrentPrice])
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [assetsRes, balanceRes] = await Promise.all([
         api.getAssets(true),
@@ -88,9 +101,9 @@ export default function TradingPage() {
       setAssets([])
       setBalance(0)
     }
-  }
+  }, [selectedAsset, setSelectedAsset])
 
-  const handlePlaceOrder = async (direction: 'CALL' | 'PUT') => {
+  const handlePlaceOrder = useCallback(async (direction: 'CALL' | 'PUT') => {
     if (!selectedAsset) {
       toast.error('Please select an asset')
       return
@@ -125,10 +138,16 @@ export default function TradingPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedAsset, amount, balance, duration, loadData])
 
-  const potentialProfit = selectedAsset ? (amount * selectedAsset.profitRate) / 100 : 0
-  const potentialPayout = amount + potentialProfit
+  // ✅ Memoized calculations
+  const potentialProfit = useMemo(() => 
+    selectedAsset ? (amount * selectedAsset.profitRate) / 100 : 0
+  , [selectedAsset, amount])
+
+  const potentialPayout = useMemo(() => 
+    amount + potentialProfit
+  , [amount, potentialProfit])
 
   if (!user) return null
 
@@ -138,7 +157,7 @@ export default function TradingPage() {
       <div className="h-14 bg-[#0f1419] border-b border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">
         {/* Desktop Layout */}
         <div className="hidden lg:flex items-center gap-4 w-full">
-          {/* Logo & Title */}
+          {/* Logo */}
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
               <TrendingUp className="w-4 h-4" />
@@ -163,7 +182,6 @@ export default function TradingPage() {
               <ChevronDown className="w-4 h-4 text-gray-400" />
             </button>
 
-            {/* Asset Dropdown */}
             {showAssetMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowAssetMenu(false)} />
@@ -191,36 +209,33 @@ export default function TradingPage() {
             )}
           </div>
 
-          {/* Spacer */}
           <div className="flex-1"></div>
 
-          {/* Balance Display */}
+          {/* Balance */}
           <div className="flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
             <Wallet className="w-4 h-4 text-blue-400" />
             <span className="text-sm font-mono font-bold">{formatCurrency(balance)}</span>
           </div>
 
-          {/* Deposit Button */}
+          {/* Deposit */}
           <button
             onClick={() => router.push('/balance')}
             className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded-lg transition-colors group"
-            title="Deposit"
           >
             <Plus className="w-4 h-4 text-green-400 group-hover:text-green-300" />
             <span className="text-sm font-medium text-green-400 group-hover:text-green-300">Deposit</span>
           </button>
 
-          {/* Withdraw Button */}
+          {/* Withdraw */}
           <button
             onClick={() => router.push('/balance')}
             className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-lg transition-colors group"
-            title="Withdraw"
           >
             <Minus className="w-4 h-4 text-red-400 group-hover:text-red-300" />
             <span className="text-sm font-medium text-red-400 group-hover:text-red-300">Withdraw</span>
           </button>
 
-          {/* History Button */}
+          {/* History */}
           <button
             onClick={() => setShowHistorySidebar(true)}
             className="flex items-center gap-2 px-3 py-1.5 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors border border-gray-800/50"
@@ -280,29 +295,24 @@ export default function TradingPage() {
 
         {/* Mobile Layout */}
         <div className="flex lg:hidden items-center justify-between w-full">
-          {/* Logo */}
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
 
-          {/* Balance */}
           <div className="flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
             <Wallet className="w-3 h-3 text-blue-400" />
             <span className="text-xs font-mono font-bold">{formatCurrency(balance)}</span>
           </div>
 
-          {/* Wallet Button */}
           <button
             onClick={() => router.push('/balance')}
             className="p-2 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors border border-gray-800/50"
-            title="Balance"
           >
             <Wallet className="w-4 h-4 text-blue-400" />
           </button>
 
-          {/* Mobile Menu Toggle */}
           <button
             onClick={() => setShowMobileMenu(!showMobileMenu)}
             className="p-2 hover:bg-[#1a1f2e] rounded-lg transition-colors"
@@ -334,8 +344,7 @@ export default function TradingPage() {
                       <TrendingDown className="w-4 h-4" />
                     )}
                     <span>
-                      {currentPrice.change >= 0 ? '+' : ''}{currentPrice.change.toFixed(3)}
-                      {' '}({currentPrice.change >= 0 ? '+' : ''}{((currentPrice.change / currentPrice.price) * 100).toFixed(2)}%)
+                      {currentPrice.change >= 0 ? '+' : ''}{currentPrice.change.toFixed(3)}%
                     </span>
                   </div>
                 )}
@@ -352,10 +361,10 @@ export default function TradingPage() {
           </div>
         </div>
 
-        {/* Trading Panel - Desktop (COMPACT VERSION) */}
+        {/* Trading Panel - Desktop */}
         <div className="hidden lg:block w-72 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
           <div className="h-full flex flex-col p-4 space-y-3">
-            {/* Panel Header */}
+            {/* Header */}
             <div className="pb-3 border-b border-gray-800/50">
               <h3 className="text-xs font-semibold text-gray-400">Quick Trade</h3>
               {selectedAsset && (
@@ -365,9 +374,8 @@ export default function TradingPage() {
               )}
             </div>
 
-            {/* Amount & Duration - 2 Columns */}
+            {/* Amount & Duration */}
             <div className="grid grid-cols-2 gap-3">
-              {/* Amount Column */}
               <div>
                 <label className="text-xs text-gray-400 mb-1.5 block font-medium">Amount</label>
                 <div className="relative">
@@ -396,7 +404,6 @@ export default function TradingPage() {
                 </div>
               </div>
 
-              {/* Duration Column */}
               <div>
                 <label className="text-xs text-gray-400 mb-1.5 block font-medium flex items-center gap-1">
                   <Clock className="w-3 h-3" />
@@ -414,7 +421,7 @@ export default function TradingPage() {
               </div>
             </div>
 
-            {/* Quick Amount Presets */}
+            {/* Quick Presets */}
             <div className="grid grid-cols-3 gap-2">
               {[10000, 50000, 100000].map((preset) => (
                 <button
@@ -431,7 +438,7 @@ export default function TradingPage() {
               ))}
             </div>
 
-            {/* Profit Info - Single Line */}
+            {/* Profit Info */}
             {selectedAsset && (
               <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg px-3 py-2">
                 <div className="flex items-center justify-between text-xs">
@@ -445,17 +452,15 @@ export default function TradingPage() {
               </div>
             )}
 
-            {/* Spacer */}
             <div className="flex-1"></div>
 
-            {/* Action Buttons - Icon Only (Horizontal) */}
+            {/* Action Buttons */}
             <div>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => handlePlaceOrder('CALL')}
                   disabled={loading || !selectedAsset}
                   className="bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-green-500/20"
-                  title="Buy (Higher)"
                 >
                   <TrendingUp className="w-6 h-6" />
                 </button>
@@ -464,7 +469,6 @@ export default function TradingPage() {
                   onClick={() => handlePlaceOrder('PUT')}
                   disabled={loading || !selectedAsset}
                   className="bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-red-500/20"
-                  title="Sell (Lower)"
                 >
                   <TrendingDown className="w-6 h-6" />
                 </button>
@@ -484,7 +488,6 @@ export default function TradingPage() {
       {/* Mobile Trading Panel */}
       <div className="lg:hidden bg-[#0f1419] border-t border-gray-800/50 p-4">
         <div className="space-y-3">
-          {/* Quick Stats */}
           <div className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
               <Wallet className="w-4 h-4 text-blue-400" />
@@ -496,7 +499,6 @@ export default function TradingPage() {
             )}
           </div>
 
-          {/* Amount & Duration */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-400 mb-1 block">Amount</label>
@@ -504,7 +506,7 @@ export default function TradingPage() {
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(Number(e.target.value))}
-                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-center text-sm font-mono font-bold focus:outline-none focus:border-blue-500/50"
+                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-center text-sm font-mono font-bold"
                 min="1000"
                 step="1000"
               />
@@ -514,7 +516,7 @@ export default function TradingPage() {
               <select
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-center text-sm font-bold focus:outline-none focus:border-blue-500/50"
+                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-center text-sm font-bold"
               >
                 {DURATIONS.map((d) => (
                   <option key={d} value={d}>{d}m</option>
@@ -523,41 +525,39 @@ export default function TradingPage() {
             </div>
           </div>
 
-          {/* Profit Display */}
           {selectedAsset && (
             <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-2 flex justify-between items-center">
-              <span className="text-xs text-gray-400">Potential Payout:</span>
+              <span className="text-xs text-gray-400">Potential:</span>
               <span className="text-sm font-mono font-bold text-green-400">{formatCurrency(potentialPayout)}</span>
             </div>
           )}
 
-          {/* Buy/Sell Buttons */}
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => handlePlaceOrder('CALL')}
               disabled={loading || !selectedAsset}
-              className="bg-green-500 hover:bg-green-600 disabled:opacity-50 py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2"
+              className="bg-green-500 hover:bg-green-600 disabled:opacity-50 py-3 rounded-lg font-bold text-white flex items-center justify-center gap-2"
             >
               <TrendingUp className="w-4 h-4" />
-              <span>BUY</span>
+              BUY
             </button>
             <button
               onClick={() => handlePlaceOrder('PUT')}
               disabled={loading || !selectedAsset}
-              className="bg-red-500 hover:bg-red-600 disabled:opacity-50 py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2"
+              className="bg-red-500 hover:bg-red-600 disabled:opacity-50 py-3 rounded-lg font-bold text-white flex items-center justify-center gap-2"
             >
               <TrendingDown className="w-4 h-4" />
-              <span>SELL</span>
+              SELL
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Menu */}
       {showMobileMenu && (
         <>
           <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setShowMobileMenu(false)} />
-          <div className="fixed top-0 right-0 bottom-0 w-64 bg-[#0f1419] border-l border-gray-800/50 z-50 p-4 animate-slide-in-right">
+          <div className="fixed top-0 right-0 bottom-0 w-64 bg-[#0f1419] border-l border-gray-800/50 z-50 p-4">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-bold">Menu</h3>
               <button onClick={() => setShowMobileMenu(false)}>
@@ -566,7 +566,6 @@ export default function TradingPage() {
             </div>
             
             <div className="space-y-2">
-              {/* Asset Selector - Mobile */}
               <div className="mb-4">
                 <label className="text-xs text-gray-400 mb-2 block">Select Asset</label>
                 <select
@@ -578,7 +577,7 @@ export default function TradingPage() {
                       setShowMobileMenu(false)
                     }
                   }}
-                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500/50"
+                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-sm"
                 >
                   {assets.map((asset) => (
                     <option key={asset.id} value={asset.id}>
@@ -593,18 +592,18 @@ export default function TradingPage() {
                   setShowHistorySidebar(true)
                   setShowMobileMenu(false)
                 }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg"
               >
                 <History className="w-4 h-4" />
-                <span>History</span>
+                History
               </button>
               
               <button
                 onClick={() => router.push('/profile')}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg"
               >
                 <Settings className="w-4 h-4" />
-                <span>Settings</span>
+                Settings
               </button>
 
               <button
@@ -612,10 +611,10 @@ export default function TradingPage() {
                   logout()
                   router.push('/')
                 }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
+                className="w-full flex items-center gap-3 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 rounded-lg text-red-400"
               >
                 <LogOut className="w-4 h-4" />
-                <span>Logout</span>
+                Logout
               </button>
             </div>
           </div>
@@ -627,21 +626,6 @@ export default function TradingPage() {
         isOpen={showHistorySidebar} 
         onClose={() => setShowHistorySidebar(false)} 
       />
-
-      <style jsx>{`
-        @keyframes slide-in-right {
-          from {
-            transform: translateX(100%);
-          }
-          to {
-            transform: translateX(0);
-          }
-        }
-
-        .animate-slide-in-right {
-          animation: slide-in-right 0.3s ease-out;
-        }
-      `}</style>
     </div>
   )
 }
