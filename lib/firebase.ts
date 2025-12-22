@@ -21,6 +21,16 @@ if (typeof window !== 'undefined' && !getApps().length) {
 
 export { database, ref, onValue, off }
 
+// ✅ SMART: Calculate how many raw bars needed based on timeframe
+const TIMEFRAME_REQUIREMENTS = {
+  '1m': { seconds: 60, barsNeeded: 200, rawBarsNeeded: 200 * 60 },      // 200 bars x 60s = 12,000 raw
+  '5m': { seconds: 300, barsNeeded: 200, rawBarsNeeded: 200 * 300 },    // 200 bars x 300s = 60,000 raw
+  '15m': { seconds: 900, barsNeeded: 200, rawBarsNeeded: 200 * 900 },   // 200 bars x 900s = 180,000 raw
+  '1h': { seconds: 3600, barsNeeded: 200, rawBarsNeeded: 200 * 3600 },  // 200 bars x 3600s = 720,000 raw
+  '4h': { seconds: 14400, barsNeeded: 200, rawBarsNeeded: 200 * 14400 },// 200 bars x 14400s = 2,880,000 raw
+  '1d': { seconds: 86400, barsNeeded: 200, rawBarsNeeded: 200 * 86400 } // 200 bars x 86400s = 17,280,000 raw
+}
+
 // Subscribe to real-time price updates
 export function subscribeToPriceUpdates(
   path: string,
@@ -39,47 +49,54 @@ export function subscribeToPriceUpdates(
   return () => off(priceRef)
 }
 
-// ✅ FIXED: Fetch historical OHLC data with better error handling and logging
+// ✅ SMART: Fetch appropriate amount of data based on timeframe
 export async function fetchHistoricalData(
   assetPath: string,
-  limit: number = 1000 // Increased default limit
+  timeframe: '1m' | '5m' | '15m' | '1h' | '4h' | '1d' = '1m'
 ): Promise<any[]> {
   if (typeof window === 'undefined') return []
 
   try {
-    console.log(`📊 Fetching historical data from: ${assetPath}`)
-    console.log(`   Limit: ${limit} bars`)
+    const requirements = TIMEFRAME_REQUIREMENTS[timeframe]
+    
+    // Cap to reasonable limits to prevent memory issues
+    const maxLimit = 50000 // Firebase limit per query
+    const limitToFetch = Math.min(requirements.rawBarsNeeded, maxLimit)
+    
+    console.log(`📊 Fetching for ${timeframe} timeframe:`)
+    console.log(`   Need: ${requirements.barsNeeded} bars`)
+    console.log(`   Fetching: ${limitToFetch} raw bars`)
+    console.log(`   Time covered: ${(limitToFetch / 60).toFixed(0)} minutes`)
     
     const ohlcPath = `${assetPath}/ohlc`
     const ohlcRef = ref(database, ohlcPath)
     
-    // Query last N records
-    const historyQuery = query(ohlcRef, orderByKey(), limitToLast(limit))
+    // Query with appropriate limit
+    const historyQuery = query(ohlcRef, orderByKey(), limitToLast(limitToFetch))
     const snapshot = await get(historyQuery)
     
     if (!snapshot.exists()) {
       console.warn('⚠️ No historical data found at path:', ohlcPath)
       
-      // Try alternative path without /ohlc
+      // Try alternative path
       console.log('🔄 Trying alternative path:', assetPath)
       const altRef = ref(database, assetPath)
-      const altSnapshot = await get(query(altRef, orderByKey(), limitToLast(limit)))
+      const altSnapshot = await get(query(altRef, orderByKey(), limitToLast(limitToFetch)))
       
       if (!altSnapshot.exists()) {
         console.error('❌ No data found at alternative path either')
         return []
       }
       
-      // Use alternative snapshot
       const data = altSnapshot.val()
       console.log('✅ Found data at alternative path')
-      return processHistoricalData(data, limit)
+      return processHistoricalData(data, limitToFetch)
     }
 
     const data = snapshot.val()
     console.log(`✅ Raw data fetched. Keys count: ${Object.keys(data).length}`)
     
-    return processHistoricalData(data, limit)
+    return processHistoricalData(data, limitToFetch)
 
   } catch (error) {
     console.error('❌ Error fetching historical data:', error)
@@ -95,18 +112,13 @@ function processHistoricalData(data: any, limit: number): any[] {
   Object.keys(data).forEach(key => {
     const item = data[key]
     
-    // Validate data structure
     if (!item || typeof item !== 'object') {
-      console.warn('⚠️ Invalid data item:', key)
       return
     }
 
-    // Handle both timestamp formats
     const timestamp = item.timestamp || parseInt(key)
     
-    // Validate required fields
     if (!timestamp || !item.close) {
-      console.warn('⚠️ Missing required fields:', { timestamp, close: item.close })
       return
     }
 
@@ -128,7 +140,9 @@ function processHistoricalData(data: any, limit: number): any[] {
   const result = historicalData.slice(-limit)
 
   console.log(`✅ Processed ${result.length} historical bars`)
-  console.log(`   Date range: ${result[0]?.datetime} to ${result[result.length - 1]?.datetime}`)
+  if (result.length > 0) {
+    console.log(`   Date range: ${result[0]?.datetime} to ${result[result.length - 1]?.datetime}`)
+  }
 
   return result
 }
@@ -143,7 +157,6 @@ export function subscribeToOHLCUpdates(
   const ohlcPath = `${assetPath}/ohlc`
   const ohlcRef = ref(database, ohlcPath)
   
-  // Listen for new data
   const unsubscribe = onValue(ohlcRef, (snapshot) => {
     const data = snapshot.val()
     if (data) {
@@ -169,7 +182,7 @@ export function subscribeToOHLCUpdates(
   return () => off(ohlcRef)
 }
 
-// ✅ NEW: Get all available data (for debugging)
+// Get all available data (for debugging)
 export async function getAllData(assetPath: string): Promise<any> {
   if (typeof window === 'undefined') return null
 

@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useTradingStore } from '@/store/trading'
-import { fetchHistoricalData, subscribeToPriceUpdates, getAllData } from '@/lib/firebase'
-import { Activity, ZoomIn, ZoomOut, Maximize2, Minimize2, RefreshCw } from 'lucide-react'
+import { fetchHistoricalData, subscribeToPriceUpdates } from '@/lib/firebase'
+import { Activity, ZoomIn, ZoomOut, Maximize2, Minimize2, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface PricePoint {
   timestamp: number
@@ -37,6 +37,10 @@ const TIMEFRAME_SECONDS: Record<Timeframe, number> = {
   '1d': 86400
 }
 
+// ✅ Display settings
+const MAX_VISIBLE_BARS = 150  // Show max 150 bars on screen
+const MIN_VISIBLE_BARS = 50   // Minimum 50 bars
+
 export default function TradingChart() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -46,6 +50,7 @@ export default function TradingChart() {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
   const [rawPriceData, setRawPriceData] = useState<PricePoint[]>([])
   const [aggregatedData, setAggregatedData] = useState<AggregatedBar[]>([])
+  const [visibleData, setVisibleData] = useState<AggregatedBar[]>([])
   const [chartType, setChartType] = useState<ChartType>('line')
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
   const [zoom, setZoom] = useState(1)
@@ -57,9 +62,14 @@ export default function TradingChart() {
   const [historicalLoaded, setHistoricalLoaded] = useState(false)
   const [dataLoadError, setDataLoadError] = useState<string | null>(null)
   
-  const maxDataPoints = Math.floor(100 / zoom)
+  // ✅ Panning state
+  const [panOffset, setPanOffset] = useState(0) // How many bars to shift view
+  const [canPanLeft, setCanPanLeft] = useState(false)
+  const [canPanRight, setCanPanRight] = useState(false)
   
-  // ✅ FIXED: Load historical data with better error handling and logging
+  const visibleBars = Math.floor(MAX_VISIBLE_BARS / zoom)
+  
+  // ✅ Load historical data when asset or timeframe changes
   useEffect(() => {
     if (!selectedAsset) return
 
@@ -67,56 +77,30 @@ export default function TradingChart() {
       setIsLoading(true)
       setHistoricalLoaded(false)
       setDataLoadError(null)
+      setPanOffset(0) // Reset pan when changing timeframe
       
       try {
-        console.log('📊 Loading historical data for:', selectedAsset.symbol)
+        console.log('📊 Loading historical data for:', selectedAsset.symbol, 'Timeframe:', timeframe)
         
-        // Determine the data path based on asset
         let assetPath = ''
         
         if (selectedAsset.dataSource === 'realtime_db' && selectedAsset.realtimeDbPath) {
-          // Extract base path (remove /current_price or similar)
           const pathParts = selectedAsset.realtimeDbPath.split('/')
           assetPath = pathParts.slice(0, -1).join('/')
           console.log('🔗 Using realtimeDbPath:', assetPath)
         } else {
-          // Default to lowercase asset symbol
           assetPath = `/${selectedAsset.symbol.toLowerCase()}`
           console.log('🔗 Using default path:', assetPath)
         }
 
-        // ✅ First, check what data is available
-        console.log('🔍 Checking available data structure...')
-        const allData = await getAllData(assetPath)
-        
-        if (allData) {
-          console.log('📦 Available data keys:', Object.keys(allData))
-          
-          // Check for ohlc data
-          if (allData.ohlc) {
-            console.log('✅ Found OHLC data, count:', Object.keys(allData.ohlc).length)
-          } else {
-            console.log('⚠️ No OHLC data found, checking for direct timestamp keys...')
-            
-            // Check if data is stored directly without /ohlc path
-            const timestamps = Object.keys(allData).filter(key => !isNaN(parseInt(key)))
-            if (timestamps.length > 0) {
-              console.log('✅ Found direct timestamp data, count:', timestamps.length)
-            }
-          }
-        }
-
-        // ✅ Fetch historical data with increased limit
-        console.log(`📥 Fetching last 2000 bars from: ${assetPath}`)
-        const historical = await fetchHistoricalData(assetPath, 2000)
+        // ✅ Fetch data with timeframe parameter
+        const historical = await fetchHistoricalData(assetPath, timeframe)
         
         if (historical.length > 0) {
           console.log(`✅ Loaded ${historical.length} historical bars`)
           console.log(`   First bar: ${historical[0].datetime}`)
           console.log(`   Last bar: ${historical[historical.length - 1].datetime}`)
-          console.log(`   Sample data:`, historical[historical.length - 1])
           
-          // Convert to PricePoint format
           const pricePoints: PricePoint[] = historical.map(bar => ({
             timestamp: bar.timestamp,
             price: bar.close,
@@ -146,7 +130,7 @@ export default function TradingChart() {
     }
 
     loadHistoricalData()
-  }, [selectedAsset])
+  }, [selectedAsset, timeframe])
 
   // Handle resize
   useEffect(() => {
@@ -182,7 +166,6 @@ export default function TradingChart() {
     if (selectedAsset.dataSource === 'realtime_db' && selectedAsset.realtimeDbPath) {
       console.log('🔴 Subscribing to real-time updates:', selectedAsset.realtimeDbPath)
       
-      // Subscribe to current_price for real-time updates
       unsubscribe = subscribeToPriceUpdates(selectedAsset.realtimeDbPath, (data) => {
         console.log('📡 Real-time update received:', data)
         setCurrentPrice(data)
@@ -204,22 +187,21 @@ export default function TradingChart() {
       const newPoint: PricePoint = {
         timestamp: currentPrice.timestamp || Math.floor(Date.now() / 1000),
         price: currentPrice.price,
-        volume: Math.random() * 1000000 // Mock volume for real-time data
+        volume: Math.random() * 1000000
       }
 
       setRawPriceData(prev => {
-        // Check if this timestamp already exists (avoid duplicates)
         const exists = prev.some(p => p.timestamp === newPoint.timestamp)
         if (exists) return prev
         
+        // Keep reasonable amount
         const updated = [...prev, newPoint]
-        // Keep last 2000 points for performance
-        return updated.slice(-2000)
+        return updated.slice(-100000) // Keep last 100k points
       })
     }
   }, [currentPrice, historicalLoaded])
 
-  // ✅ FIXED: Aggregate data based on timeframe with better handling
+  // ✅ Aggregate data based on timeframe
   useEffect(() => {
     if (rawPriceData.length === 0) {
       console.log('⚠️ No raw price data to aggregate')
@@ -237,7 +219,6 @@ export default function TradingChart() {
       const barTimestamp = Math.floor(point.timestamp / timeframeSeconds) * timeframeSeconds
 
       if (!bars.has(barTimestamp)) {
-        // Create new bar
         bars.set(barTimestamp, {
           timestamp: barTimestamp,
           open: point.open || point.price,
@@ -247,18 +228,14 @@ export default function TradingChart() {
           volume: point.volume || 0
         })
       } else {
-        // Update existing bar
         const bar = bars.get(barTimestamp)!
         
-        // If point has OHLC data, use it
         if (point.open !== undefined) {
-          // This is already an OHLC bar, just update close
           bar.close = point.close || point.price
           bar.high = Math.max(bar.high, point.high || point.price)
           bar.low = Math.min(bar.low, point.low || point.price)
           bar.volume += point.volume || 0
         } else {
-          // This is a single price point, update OHLC
           bar.high = Math.max(bar.high, point.price)
           bar.low = Math.min(bar.low, point.price)
           bar.close = point.price
@@ -267,16 +244,53 @@ export default function TradingChart() {
       }
     })
 
-    // Convert to array and sort by timestamp
+    // Convert to array and sort
     const aggregated = Array.from(bars.values())
       .sort((a, b) => a.timestamp - b.timestamp)
-      .slice(-maxDataPoints)
 
     console.log(`✅ Aggregated to ${aggregated.length} ${timeframe} bars`)
-    console.log(`   Showing last ${maxDataPoints} bars (zoom: ${zoom}x)`)
 
     setAggregatedData(aggregated)
-  }, [rawPriceData, timeframe, maxDataPoints, zoom])
+  }, [rawPriceData, timeframe])
+
+  // ✅ Set visible data based on pan offset and zoom
+  useEffect(() => {
+    if (aggregatedData.length === 0) return
+
+    const totalBars = aggregatedData.length
+    const barsToShow = Math.min(visibleBars, totalBars)
+    
+    // Calculate start and end indices
+    const endIndex = totalBars - panOffset
+    const startIndex = Math.max(0, endIndex - barsToShow)
+    
+    const visible = aggregatedData.slice(startIndex, endIndex)
+    
+    setVisibleData(visible)
+    
+    // Update pan button states
+    setCanPanLeft(endIndex < totalBars)
+    setCanPanRight(panOffset > 0)
+    
+    console.log(`👁️ Showing ${visible.length} bars (offset: ${panOffset}, total: ${totalBars})`)
+  }, [aggregatedData, panOffset, visibleBars])
+
+  // Pan controls
+  const panLeft = () => {
+    if (canPanLeft) {
+      setPanOffset(prev => Math.min(prev + 20, aggregatedData.length - visibleBars))
+    }
+  }
+
+  const panRight = () => {
+    if (canPanRight) {
+      setPanOffset(prev => Math.max(prev - 20, 0))
+    }
+  }
+
+  const resetPan = () => {
+    setPanOffset(0)
+  }
 
   // Mouse handlers
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -299,8 +313,8 @@ export default function TradingChart() {
     setIsLoading(true)
     setRawPriceData([])
     setAggregatedData([])
+    setPanOffset(0)
     
-    // Trigger reload by updating selected asset
     const asset = selectedAsset
     useTradingStore.setState({ selectedAsset: null })
     setTimeout(() => {
@@ -308,15 +322,14 @@ export default function TradingChart() {
     }, 100)
   }
 
-  // Draw chart (same as before, no changes needed)
+  // Draw chart
   useEffect(() => {
-    if (!canvasRef.current || aggregatedData.length === 0 || dimensions.width === 0) return
+    if (!canvasRef.current || visibleData.length === 0 || dimensions.width === 0) return
 
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d', { alpha: false })
     if (!ctx) return
 
-    // Setup canvas
     const dpr = Math.min(window.devicePixelRatio || 1, 2)
     canvas.width = dimensions.width * dpr
     canvas.height = dimensions.height * dpr
@@ -324,7 +337,6 @@ export default function TradingChart() {
     canvas.style.height = `${dimensions.height}px`
     ctx.scale(dpr, dpr)
 
-    // Clear
     ctx.fillStyle = '#0a0e17'
     ctx.fillRect(0, 0, dimensions.width, dimensions.height)
 
@@ -338,8 +350,7 @@ export default function TradingChart() {
     const chartWidth = dimensions.width - padding.left - padding.right
     const chartHeight = (dimensions.height - padding.top - padding.bottom) * (showVolume ? 0.7 : 1)
 
-    // Get price range
-    const prices = aggregatedData.flatMap(d => [d.high, d.low])
+    const prices = visibleData.flatMap(d => [d.high, d.low])
     const minPrice = Math.min(...prices)
     const maxPrice = Math.max(...prices)
     const priceRange = maxPrice - minPrice || 1
@@ -349,12 +360,11 @@ export default function TradingChart() {
     const maxY = maxPrice + pricePadding
     const adjustedRange = maxY - minY
 
-    // Helper functions
     const getX = (index: number) => {
-      if (aggregatedData.length === 1) {
+      if (visibleData.length === 1) {
         return padding.left + chartWidth / 2
       }
-      return padding.left + (index / (aggregatedData.length - 1)) * chartWidth
+      return padding.left + (index / (visibleData.length - 1)) * chartWidth
     }
 
     const getY = (price: number) => {
@@ -397,9 +407,8 @@ export default function TradingChart() {
       }
     }
 
-    // Determine overall trend
-    const firstBar = aggregatedData[0]
-    const lastBar = aggregatedData[aggregatedData.length - 1]
+    const firstBar = visibleData[0]
+    const lastBar = visibleData[visibleData.length - 1]
     const isUptrend = lastBar.close >= firstBar.open
 
     const lineColor = isUptrend ? '#10b981' : '#ef4444'
@@ -407,32 +416,29 @@ export default function TradingChart() {
     const gradientColor2 = isUptrend ? 'rgba(16, 185, 129, 0)' : 'rgba(239, 68, 68, 0)'
 
     if (chartType === 'line') {
-      // Draw line chart using CLOSE prices
       const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight)
       gradient.addColorStop(0, gradientColor1)
       gradient.addColorStop(1, gradientColor2)
 
-      // Fill area
       ctx.beginPath()
       ctx.moveTo(getX(0), padding.top + chartHeight)
       
-      aggregatedData.forEach((bar, index) => {
+      visibleData.forEach((bar, index) => {
         ctx.lineTo(getX(index), getY(bar.close))
       })
       
-      ctx.lineTo(getX(aggregatedData.length - 1), padding.top + chartHeight)
+      ctx.lineTo(getX(visibleData.length - 1), padding.top + chartHeight)
       ctx.closePath()
       ctx.fillStyle = gradient
       ctx.fill()
 
-      // Draw line
       ctx.beginPath()
       ctx.strokeStyle = lineColor
       ctx.lineWidth = 2
       ctx.lineJoin = 'round'
       ctx.lineCap = 'round'
 
-      aggregatedData.forEach((bar, index) => {
+      visibleData.forEach((bar, index) => {
         const x = getX(index)
         const y = getY(bar.close)
         
@@ -446,21 +452,18 @@ export default function TradingChart() {
       ctx.stroke()
 
     } else {
-      // Draw candlestick chart
-      const candleWidth = Math.max(1, Math.min(20, chartWidth / aggregatedData.length * 0.8))
+      const candleWidth = Math.max(1, Math.min(20, chartWidth / visibleData.length * 0.8))
       
-      aggregatedData.forEach((bar, index) => {
+      visibleData.forEach((bar, index) => {
         const x = getX(index)
         const open = getY(bar.open)
         const close = getY(bar.close)
         const high = getY(bar.high)
         const low = getY(bar.low)
         
-        // Determine if bullish or bearish
         const isBullish = bar.close >= bar.open
         const color = isBullish ? '#10b981' : '#ef4444'
         
-        // Draw wick (high-low line)
         ctx.strokeStyle = color
         ctx.lineWidth = Math.max(1, candleWidth * 0.1)
         ctx.beginPath()
@@ -468,22 +471,13 @@ export default function TradingChart() {
         ctx.lineTo(x, low)
         ctx.stroke()
         
-        // Draw body (open-close rectangle)
         const bodyTop = Math.min(open, close)
         const bodyBottom = Math.max(open, close)
         const bodyHeight = Math.max(1, bodyBottom - bodyTop)
         
-        if (isBullish) {
-          // Bullish candle - filled
-          ctx.fillStyle = color
-          ctx.fillRect(x - candleWidth/2, bodyTop, candleWidth, bodyHeight)
-        } else {
-          // Bearish candle - filled
-          ctx.fillStyle = color
-          ctx.fillRect(x - candleWidth/2, bodyTop, candleWidth, bodyHeight)
-        }
+        ctx.fillStyle = color
+        ctx.fillRect(x - candleWidth/2, bodyTop, candleWidth, bodyHeight)
         
-        // Add border for clarity
         ctx.strokeStyle = color
         ctx.lineWidth = 1
         ctx.strokeRect(x - candleWidth/2, bodyTop, candleWidth, bodyHeight)
@@ -491,12 +485,11 @@ export default function TradingChart() {
     }
 
     // Draw current price indicator
-    if (aggregatedData.length > 0) {
-      const lastBar = aggregatedData[aggregatedData.length - 1]
-      const lastX = getX(aggregatedData.length - 1)
+    if (visibleData.length > 0) {
+      const lastBar = visibleData[visibleData.length - 1]
+      const lastX = getX(visibleData.length - 1)
       const lastY = getY(lastBar.close)
 
-      // Glow effect
       ctx.shadowColor = lineColor
       ctx.shadowBlur = 20
       
@@ -513,7 +506,6 @@ export default function TradingChart() {
 
       ctx.shadowBlur = 0
 
-      // Horizontal price line
       ctx.beginPath()
       ctx.setLineDash([5, 5])
       ctx.strokeStyle = lineColor + '60'
@@ -523,7 +515,6 @@ export default function TradingChart() {
       ctx.stroke()
       ctx.setLineDash([])
 
-      // Price label
       ctx.fillStyle = lineColor
       ctx.fillRect(dimensions.width - padding.right + 5, lastY - 10, padding.right - 10, 20)
       ctx.fillStyle = '#0a0e17'
@@ -537,15 +528,15 @@ export default function TradingChart() {
     }
 
     // Draw volume bars
-    if (showVolume && aggregatedData.some(b => b.volume)) {
+    if (showVolume && visibleData.some(b => b.volume)) {
       const volumeHeight = dimensions.height - padding.top - chartHeight - 40
-      const volumes = aggregatedData.map(b => b.volume)
+      const volumes = visibleData.map(b => b.volume)
       const maxVolume = Math.max(...volumes) || 1
 
-      aggregatedData.forEach((bar, index) => {
+      visibleData.forEach((bar, index) => {
         const x = getX(index)
         const barHeight = (bar.volume / maxVolume) * volumeHeight
-        const barWidth = Math.max(2, chartWidth / aggregatedData.length * 0.6)
+        const barWidth = Math.max(2, chartWidth / visibleData.length * 0.6)
 
         const isBullish = bar.close >= bar.open
         ctx.fillStyle = isBullish ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'
@@ -592,7 +583,7 @@ export default function TradingChart() {
       }
     }
 
-  }, [aggregatedData, dimensions, chartType, showGrid, showVolume, mousePos, isFullscreen])
+  }, [visibleData, dimensions, chartType, showGrid, showVolume, mousePos, isFullscreen])
 
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen)
@@ -678,6 +669,34 @@ export default function TradingChart() {
           </button>
         </div>
 
+        {/* ✅ Pan Controls */}
+        <div className="flex items-center gap-1 bg-[#0f1419]/80 backdrop-blur-sm border border-gray-800/50 rounded-lg p-1">
+          <button
+            onClick={panLeft}
+            disabled={!canPanLeft}
+            className="p-1.5 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            title="Pan Left (History)"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={resetPan}
+            disabled={panOffset === 0}
+            className="px-2 py-1 text-xs font-medium text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            title="Reset View"
+          >
+            Latest
+          </button>
+          <button
+            onClick={panRight}
+            disabled={!canPanRight}
+            className="p-1.5 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            title="Pan Right (Recent)"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
         {/* Toggle Buttons */}
         <div className="flex items-center gap-1 bg-[#0f1419]/80 backdrop-blur-sm border border-gray-800/50 rounded-lg p-1">
           <button
@@ -730,8 +749,15 @@ export default function TradingChart() {
           {selectedAsset.symbol} • {timeframe} • {chartType === 'line' ? 'Line' : 'Candle'}
         </div>
         {aggregatedData.length > 0 && (
-          <div className="text-xs text-gray-500 mt-1">
-            {aggregatedData.length} bars • {rawPriceData.length} raw
+          <div className="text-xs font-bold mt-1">
+            <span className="text-green-400">{visibleData.length}</span>
+            <span className="text-gray-500"> / </span>
+            <span className="text-gray-400">{aggregatedData.length} bars</span>
+          </div>
+        )}
+        {panOffset > 0 && (
+          <div className="text-xs text-yellow-400 mt-1">
+            📜 Viewing history
           </div>
         )}
       </div>
@@ -749,7 +775,7 @@ export default function TradingChart() {
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-gray-500 text-sm flex flex-col items-center gap-3">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
-            <div>Loading historical data...</div>
+            <div>Loading {timeframe} data...</div>
           </div>
         </div>
       ) : dataLoadError ? (
@@ -780,10 +806,6 @@ export default function TradingChart() {
               Refresh
             </button>
           </div>
-        </div>
-      ) : !historicalLoaded && aggregatedData.length < 20 ? (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-blue-500/10 border border-blue-500/30 rounded-lg px-4 py-2 text-xs text-blue-400 animate-pulse">
-          📊 Building chart... ({aggregatedData.length} bars loaded)
         </div>
       ) : null}
 
