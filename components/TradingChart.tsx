@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useTradingStore } from '@/store/trading'
 import { Activity, ZoomIn, ZoomOut, Maximize2, Minimize2 } from 'lucide-react'
 
@@ -14,17 +14,36 @@ interface PricePoint {
   volume?: number
 }
 
+interface AggregatedCandle {
+  timestamp: number
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+}
+
 type ChartType = 'line' | 'candle'
 type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
+
+// Timeframe in seconds
+const TIMEFRAME_SECONDS: Record<Timeframe, number> = {
+  '1m': 60,
+  '5m': 300,
+  '15m': 900,
+  '1h': 3600,
+  '4h': 14400,
+  '1d': 86400
+}
 
 export default function TradingChart() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const animationRef = useRef<number | null>(null)
   
   const { selectedAsset, currentPrice } = useTradingStore()
   
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
-  const [rawPriceData, setRawPriceData] = useState<PricePoint[]>([])
   const [priceData, setPriceData] = useState<PricePoint[]>([])
   const [chartType, setChartType] = useState<ChartType>('line')
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
@@ -33,32 +52,6 @@ export default function TradingChart() {
   const [showVolume, setShowVolume] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null)
-
-  // Get timeframe in seconds
-  function getTimeframeSeconds(tf: Timeframe): number {
-    const map = {
-      '1m': 60,
-      '5m': 300,
-      '15m': 900,
-      '1h': 3600,
-      '4h': 14400,
-      '1d': 86400
-    }
-    return map[tf]
-  }
-
-  // Get max data points based on timeframe and zoom
-  function getMaxDataPoints(tf: Timeframe, z: number): number {
-    const base = {
-      '1m': 100,
-      '5m': 80,
-      '15m': 60,
-      '1h': 48,
-      '4h': 36,
-      '1d': 30
-    }[tf]
-    return Math.floor(base / z)
-  }
 
   // Handle resize with debounce
   useEffect(() => {
@@ -85,81 +78,68 @@ export default function TradingChart() {
     }
   }, [isFullscreen])
 
+  // Update price data
+  useEffect(() => {
+    if (currentPrice) {
+      const newPoint: PricePoint = {
+        timestamp: currentPrice.timestamp || Date.now() / 1000,
+        price: currentPrice.price,
+        open: currentPrice.price,
+        close: currentPrice.price,
+        high: currentPrice.price,
+        low: currentPrice.price,
+        volume: Math.random() * 1000000
+      }
+
+      setPriceData(prev => {
+        // Keep last 500 points for aggregation
+        const updated = [...prev, newPoint]
+        return updated.slice(-500)
+      })
+    }
+  }, [currentPrice])
+
   // Aggregate data based on timeframe
-  const aggregateData = useCallback((data: PricePoint[], tf: Timeframe): PricePoint[] => {
-    if (data.length === 0) return []
+  const aggregatedData = useMemo(() => {
+    if (priceData.length < 2) return []
+
+    const interval = TIMEFRAME_SECONDS[timeframe]
+    const candles: AggregatedCandle[] = []
     
-    const intervalSeconds = getTimeframeSeconds(tf)
-    const aggregated: PricePoint[] = []
-    
-    // Group data by timeframe intervals
+    // Group prices by timeframe
     const grouped = new Map<number, PricePoint[]>()
     
-    data.forEach(point => {
-      const bucketTime = Math.floor(point.timestamp / intervalSeconds) * intervalSeconds
+    priceData.forEach(point => {
+      const bucketTime = Math.floor(point.timestamp / interval) * interval
       if (!grouped.has(bucketTime)) {
         grouped.set(bucketTime, [])
       }
       grouped.get(bucketTime)!.push(point)
     })
-    
-    // Create OHLC for each bucket
-    grouped.forEach((points, bucketTime) => {
-      if (points.length === 0) return
-      
-      const sorted = [...points].sort((a, b) => a.timestamp - b.timestamp)
-      const open = sorted[0].price
-      const close = sorted[sorted.length - 1].price
-      const high = Math.max(...sorted.map(p => p.high || p.price))
-      const low = Math.min(...sorted.map(p => p.low || p.price))
-      const volume = sorted.reduce((sum, p) => sum + (p.volume || 0), 0)
-      
-      aggregated.push({
-        timestamp: bucketTime,
-        price: close,
-        open,
-        close,
-        high,
-        low,
-        volume
-      })
-    })
-    
-    return aggregated.sort((a, b) => a.timestamp - b.timestamp)
-  }, [])
 
-  // Store raw data
-  useEffect(() => {
-    if (currentPrice) {
-      setRawPriceData(prev => {
-        const newPoint: PricePoint = {
-          timestamp: currentPrice.timestamp || Date.now() / 1000,
-          price: currentPrice.price,
-          open: currentPrice.price,
-          close: currentPrice.price,
-          high: currentPrice.price,
-          low: currentPrice.price,
-          volume: Math.random() * 1000000
-        }
+    // Create candles from grouped data
+    Array.from(grouped.entries())
+      .sort((a, b) => a[0] - b[0])
+      .forEach(([bucketTime, points]) => {
+        if (points.length === 0) return
+
+        const prices = points.map(p => p.price)
+        const volumes = points.map(p => p.volume || 0)
         
-        // Keep last 5000 raw points for aggregation
-        const updated = [...prev, newPoint]
-        return updated.slice(-5000)
+        candles.push({
+          timestamp: bucketTime,
+          open: points[0].price,
+          high: Math.max(...prices),
+          low: Math.min(...prices),
+          close: points[points.length - 1].price,
+          volume: volumes.reduce((sum, v) => sum + v, 0)
+        })
       })
-    }
-  }, [currentPrice])
 
-  // Aggregate data when timeframe or raw data changes
-  useEffect(() => {
-    if (rawPriceData.length === 0) {
-      setPriceData([])
-      return
-    }
-    
-    const aggregated = aggregateData(rawPriceData, timeframe)
-    const maxPoints = getMaxDataPoints(timeframe, zoom)
-    setPriceData(aggregated.slice(-maxPoints))
-  }, [rawPriceData, timeframe, zoom, aggregateData])
+    // Apply zoom - show fewer candles when zoomed in
+    const maxCandles = Math.floor(60 / zoom)
+    return candles.slice(-maxCandles)
+  }, [priceData, timeframe, zoom])
 
   // Mouse move handler for crosshair
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -177,7 +157,7 @@ export default function TradingChart() {
 
   // Draw chart
   useEffect(() => {
-    if (!canvasRef.current || priceData.length < 2 || dimensions.width === 0) return
+    if (!canvasRef.current || aggregatedData.length < 2 || dimensions.width === 0) return
 
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d', { alpha: false })
@@ -206,13 +186,13 @@ export default function TradingChart() {
     const chartHeight = (dimensions.height - padding.top - padding.bottom) * (showVolume ? 0.7 : 1)
 
     // Get price range
-    const prices = priceData.flatMap(d => [
-      d.price,
-      d.high || d.price,
-      d.low || d.price,
-      d.open || d.price,
-      d.close || d.price
-    ])
+    let prices: number[]
+    if (chartType === 'line') {
+      prices = aggregatedData.map(d => d.close)
+    } else {
+      prices = aggregatedData.flatMap(d => [d.high, d.low])
+    }
+    
     const minPrice = Math.min(...prices)
     const maxPrice = Math.max(...prices)
     const priceRange = maxPrice - minPrice || 1
@@ -224,7 +204,7 @@ export default function TradingChart() {
 
     // Helper functions
     const getX = (index: number) => {
-      return padding.left + (index / (priceData.length - 1)) * chartWidth
+      return padding.left + (index / (aggregatedData.length - 1)) * chartWidth
     }
 
     const getY = (price: number) => {
@@ -271,8 +251,8 @@ export default function TradingChart() {
     }
 
     // Determine trend
-    const firstPrice = priceData[0].close || priceData[0].price
-    const lastPrice = priceData[priceData.length - 1].close || priceData[priceData.length - 1].price
+    const firstPrice = aggregatedData[0].close
+    const lastPrice = aggregatedData[aggregatedData.length - 1].close
     const isUptrend = lastPrice >= firstPrice
 
     // Colors
@@ -290,12 +270,11 @@ export default function TradingChart() {
       ctx.beginPath()
       ctx.moveTo(getX(0), padding.top + chartHeight)
       
-      priceData.forEach((point, index) => {
-        const price = point.close !== undefined ? point.close : point.price
-        ctx.lineTo(getX(index), getY(price))
+      aggregatedData.forEach((candle, index) => {
+        ctx.lineTo(getX(index), getY(candle.close))
       })
       
-      ctx.lineTo(getX(priceData.length - 1), padding.top + chartHeight)
+      ctx.lineTo(getX(aggregatedData.length - 1), padding.top + chartHeight)
       ctx.closePath()
       ctx.fillStyle = gradient
       ctx.fill()
@@ -307,10 +286,9 @@ export default function TradingChart() {
       ctx.lineJoin = 'round'
       ctx.lineCap = 'round'
 
-      priceData.forEach((point, index) => {
+      aggregatedData.forEach((candle, index) => {
         const x = getX(index)
-        const price = point.close !== undefined ? point.close : point.price
-        const y = getY(price)
+        const y = getY(candle.close)
         
         if (index === 0) {
           ctx.moveTo(x, y)
@@ -322,66 +300,45 @@ export default function TradingChart() {
       ctx.stroke()
     } else {
       // Draw candlestick chart
-      const candleWidth = Math.max(3, Math.min(chartWidth / priceData.length * 0.7, 15))
+      const candleWidth = Math.max(3, (chartWidth / aggregatedData.length) * 0.7)
       
-      priceData.forEach((point, index) => {
+      aggregatedData.forEach((candle, index) => {
         const x = getX(index)
+        const open = getY(candle.open)
+        const close = getY(candle.close)
+        const high = getY(candle.high)
+        const low = getY(candle.low)
         
-        // Use OHLC data or fallback to price
-        const open = point.open !== undefined ? point.open : point.price
-        const close = point.close !== undefined ? point.close : point.price
-        const high = point.high !== undefined ? point.high : point.price
-        const low = point.low !== undefined ? point.low : point.price
-        
-        const openY = getY(open)
-        const closeY = getY(close)
-        const highY = getY(high)
-        const lowY = getY(low)
-        
-        const isBullish = close >= open
+        const isBullish = candle.close >= candle.open
         const color = isBullish ? '#10b981' : '#ef4444'
         
-        // Draw wick (high-low line)
+        // Draw wick
         ctx.strokeStyle = color
-        ctx.lineWidth = Math.max(1, candleWidth * 0.1)
+        ctx.lineWidth = 1
         ctx.beginPath()
-        ctx.moveTo(x, highY)
-        ctx.lineTo(x, lowY)
+        ctx.moveTo(x, high)
+        ctx.lineTo(x, low)
         ctx.stroke()
         
-        // Draw body (open-close rectangle)
-        const bodyTop = Math.min(openY, closeY)
-        const bodyBottom = Math.max(openY, closeY)
-        const bodyHeight = Math.max(1, bodyBottom - bodyTop) // Minimum 1px height
+        // Draw body
+        const bodyTop = Math.min(open, close)
+        const bodyHeight = Math.max(Math.abs(close - open), 1) // Minimum 1px height
         
         ctx.fillStyle = color
-        ctx.fillRect(
-          x - candleWidth / 2,
-          bodyTop,
-          candleWidth,
-          bodyHeight
-        )
+        ctx.fillRect(x - candleWidth/2, bodyTop, candleWidth, bodyHeight)
         
-        // Draw border for hollow candles when open = close
-        if (Math.abs(open - close) < 0.001) {
-          ctx.strokeStyle = color
-          ctx.lineWidth = 1
-          ctx.strokeRect(
-            x - candleWidth / 2,
-            bodyTop,
-            candleWidth,
-            Math.max(2, bodyHeight)
-          )
-        }
+        // Add border for hollow candles (optional)
+        ctx.strokeStyle = color
+        ctx.lineWidth = 1
+        ctx.strokeRect(x - candleWidth/2, bodyTop, candleWidth, bodyHeight)
       })
     }
 
     // Draw current price indicator
-    if (priceData.length > 0) {
-      const lastPoint = priceData[priceData.length - 1]
-      const lastPrice = lastPoint.close !== undefined ? lastPoint.close : lastPoint.price
-      const lastX = getX(priceData.length - 1)
-      const lastY = getY(lastPrice)
+    if (aggregatedData.length > 0) {
+      const lastCandle = aggregatedData[aggregatedData.length - 1]
+      const lastX = getX(aggregatedData.length - 1)
+      const lastY = getY(lastCandle.close)
 
       // Glow effect
       ctx.shadowColor = lineColor
@@ -417,27 +374,24 @@ export default function TradingChart() {
       ctx.font = 'bold 11px ui-monospace, monospace'
       ctx.textAlign = 'center'
       ctx.fillText(
-        lastPrice.toFixed(3),
+        lastCandle.close.toFixed(3),
         dimensions.width - padding.right / 2,
         lastY + 4
       )
     }
 
     // Draw volume bars
-    if (showVolume && priceData.some(p => p.volume)) {
+    if (showVolume && aggregatedData.some(c => c.volume)) {
       const volumeHeight = dimensions.height - padding.top - chartHeight - 40
-      const volumes = priceData.map(d => d.volume || 0)
+      const volumes = aggregatedData.map(c => c.volume)
       const maxVolume = Math.max(...volumes) || 1
 
-      priceData.forEach((point, index) => {
+      aggregatedData.forEach((candle, index) => {
         const x = getX(index)
-        const volume = point.volume || 0
-        const barHeight = (volume / maxVolume) * volumeHeight
-        const barWidth = Math.max(2, chartWidth / priceData.length * 0.6)
+        const barHeight = (candle.volume / maxVolume) * volumeHeight
+        const barWidth = Math.max(2, (chartWidth / aggregatedData.length) * 0.6)
 
-        const open = point.open !== undefined ? point.open : point.price
-        const close = point.close !== undefined ? point.close : point.price
-        const isBullish = close >= open
+        const isBullish = candle.close >= candle.open
         ctx.fillStyle = isBullish ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'
         
         ctx.fillRect(
@@ -485,7 +439,7 @@ export default function TradingChart() {
       }
     }
 
-  }, [priceData, dimensions, chartType, showGrid, showVolume, mousePos, isFullscreen])
+  }, [aggregatedData, dimensions, chartType, showGrid, showVolume, mousePos, isFullscreen])
 
   // Toggle fullscreen
   const toggleFullscreen = () => {
@@ -608,6 +562,18 @@ export default function TradingChart() {
         </button>
       </div>
 
+      {/* Chart Info */}
+      {aggregatedData.length > 0 && (
+        <div className="absolute top-3 right-3 z-10 bg-[#0f1419]/80 backdrop-blur-sm border border-gray-800/50 rounded-lg px-3 py-2">
+          <div className="text-xs text-gray-400 space-y-1">
+            <div className="flex items-center gap-3">
+              <span>Candles: {aggregatedData.length}</span>
+              <span>TF: {timeframe}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Chart Canvas */}
       <canvas 
         ref={canvasRef} 
@@ -617,18 +583,18 @@ export default function TradingChart() {
       />
 
       {/* Loading indicator */}
-      {priceData.length === 0 && currentPrice && (
+      {aggregatedData.length === 0 && currentPrice && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-gray-500 text-sm flex items-center gap-2">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
-            Loading chart data...
+            Aggregating chart data...
           </div>
         </div>
       )}
 
       {/* Watermark */}
       <div className="absolute bottom-4 left-4 text-xs text-gray-700 font-mono">
-        BinaryTrade • {selectedAsset.symbol} • {timeframe}
+        BinaryTrade • {selectedAsset.symbol} • {timeframe} • {chartType.toUpperCase()}
       </div>
     </div>
   )
