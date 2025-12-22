@@ -61,7 +61,6 @@ export default function TradingChart() {
       },
       timeScale: {
         borderColor: '#1e293b',
-        textColor: '#9ca3af',
         timeVisible: true,
         secondsVisible: timeframe === '1m',
       },
