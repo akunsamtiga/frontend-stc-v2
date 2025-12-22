@@ -10,24 +10,19 @@ import { toast } from 'sonner'
 import { Asset } from '@/types'
 import { formatCurrency, DURATIONS } from '@/lib/utils'
 import TradingChart from '../../components/TradingChart'
-import HistorySidebar from '../../components/HistorySidebar'
 import { 
-  ArrowUpCircle, 
-  ArrowDownCircle, 
-  Clock, 
-  Wallet,
   TrendingUp,
-  RefreshCw,
+  TrendingDown,
+  Clock,
+  Wallet,
   History,
-  Plus,
-  Minus,
+  Settings,
   LogOut,
-  User,
   ChevronDown,
-  BarChart3,
-  Activity,
+  X,
   Menu,
-  X
+  Minus,
+  Plus
 } from 'lucide-react'
 
 export default function TradingPage() {
@@ -41,14 +36,9 @@ export default function TradingPage() {
   const [amount, setAmount] = useState(10000)
   const [duration, setDuration] = useState(1)
   const [loading, setLoading] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
-  const [showHistorySidebar, setShowHistorySidebar] = useState(false)
-  const [showDepositModal, setShowDepositModal] = useState(false)
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false)
-  const [transactionAmount, setTransactionAmount] = useState('')
+  const [showAssetMenu, setShowAssetMenu] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
-  const [showAssetSelector, setShowAssetSelector] = useState(false)
-  const [mobileView, setMobileView] = useState<'chart' | 'trade'>('chart')
+  const [showHistorySidebar, setShowHistorySidebar] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
 
   useEffect(() => {
@@ -99,66 +89,6 @@ export default function TradingPage() {
     }
   }
 
-  const handleRefresh = async () => {
-    setRefreshing(true)
-    await loadData()
-    setTimeout(() => setRefreshing(false), 500)
-  }
-
-  const handleDeposit = async () => {
-    const amt = parseFloat(transactionAmount)
-    if (isNaN(amt) || amt <= 0) {
-      toast.error('Invalid amount')
-      return
-    }
-
-    setLoading(true)
-    try {
-      await api.createBalanceEntry({
-        type: 'deposit',
-        amount: amt,
-        description: 'Deposit',
-      })
-      toast.success('Deposit successful!')
-      setShowDepositModal(false)
-      setTransactionAmount('')
-      loadData()
-    } catch (error) {
-      toast.error('Deposit failed')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleWithdraw = async () => {
-    const amt = parseFloat(transactionAmount)
-    if (isNaN(amt) || amt <= 0) {
-      toast.error('Invalid amount')
-      return
-    }
-    if (amt > balance) {
-      toast.error('Insufficient balance')
-      return
-    }
-
-    setLoading(true)
-    try {
-      await api.createBalanceEntry({
-        type: 'withdrawal',
-        amount: amt,
-        description: 'Withdrawal',
-      })
-      toast.success('Withdrawal successful!')
-      setShowWithdrawModal(false)
-      setTransactionAmount('')
-      loadData()
-    } catch (error) {
-      toast.error('Withdrawal failed')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handlePlaceOrder = async (direction: 'CALL' | 'PUT') => {
     if (!selectedAsset) {
       toast.error('Please select an asset')
@@ -182,7 +112,7 @@ export default function TradingPage() {
         duration,
       })
 
-      toast.success(`${direction} order placed!`)
+      toast.success(`${direction} order placed successfully!`)
       setBalance((prev) => prev - amount)
       
       setTimeout(() => {
@@ -197,348 +127,235 @@ export default function TradingPage() {
   }
 
   const potentialProfit = selectedAsset ? (amount * selectedAsset.profitRate) / 100 : 0
+  const potentialPayout = amount + potentialProfit
 
   if (!user) return null
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
-      {/* ========== TOP NAVBAR ========== */}
-      <nav className="h-14 sm:h-16 border-b border-gray-700 bg-background-secondary flex items-center px-3 sm:px-4 flex-shrink-0 z-30">
-        <div className="flex items-center gap-2 sm:gap-4 flex-1">
-          {/* Logo */}
+    <div className="h-screen flex flex-col bg-[#0a0e17] text-white overflow-hidden">
+      {/* Top Bar */}
+      <div className="h-14 bg-[#0f1419] border-b border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">
+        {/* Left - Logo & Asset */}
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-primary to-purple-600 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+            <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <TrendingUp className="w-4 h-4" />
             </div>
-            <span className="font-bold text-base sm:text-lg hidden sm:block">BinaryTrade</span>
+            <span className="font-bold text-sm hidden sm:block">BinaryTrade</span>
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setShowMobileMenu(!showMobileMenu)}
-            className="lg:hidden p-2 hover:bg-background-tertiary rounded-lg transition-colors"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-
-          {/* Asset Selector - Desktop */}
-          <div className="hidden lg:flex items-center gap-2">
-            <span className="text-sm text-gray-400">Asset:</span>
-            <div className="relative">
-              <button
-                onClick={() => setShowAssetSelector(!showAssetSelector)}
-                className="flex items-center gap-2 bg-background-tertiary hover:bg-gray-700 border border-gray-600 px-3 py-2 rounded-lg transition-colors min-w-[200px]"
-                disabled={assets.length === 0}
-              >
-                {selectedAsset ? (
-                  <div className="flex items-center gap-2 flex-1">
-                    <Activity className="w-4 h-4 text-primary" />
-                    <div className="text-left flex-1">
-                      <div className="text-sm font-medium">{selectedAsset.name}</div>
-                      <div className="text-xs text-gray-400">{selectedAsset.symbol} • {selectedAsset.profitRate}%</div>
-                    </div>
-                  </div>
-                ) : (
-                  <span className="text-sm text-gray-400">No assets</span>
-                )}
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              </button>
-
-              {showAssetSelector && assets.length > 0 && (
+          {/* Asset Selector */}
+          <div className="relative">
+            <button
+              onClick={() => setShowAssetMenu(!showAssetMenu)}
+              className="flex items-center gap-2 bg-[#1a1f2e] hover:bg-[#232936] px-3 py-1.5 rounded-lg transition-colors border border-gray-800/50"
+            >
+              {selectedAsset ? (
                 <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setShowAssetSelector(false)}
-                  />
-                  <div className="absolute top-full left-0 mt-2 w-full bg-background-secondary border border-gray-700 rounded-lg shadow-2xl z-50 max-h-80 overflow-y-auto">
-                    {assets.map((asset) => (
-                      <button
-                        key={asset.id}
-                        onClick={() => {
-                          setSelectedAsset(asset)
-                          setShowAssetSelector(false)
-                        }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-background-tertiary transition-colors border-b border-gray-700 last:border-0 ${
-                          selectedAsset?.id === asset.id ? 'bg-primary/10' : ''
-                        }`}
-                      >
-                        <Activity className={`w-4 h-4 ${selectedAsset?.id === asset.id ? 'text-primary' : 'text-gray-400'}`} />
-                        <div className="text-left flex-1">
-                          <div className="text-sm font-medium">{asset.name}</div>
-                          <div className="text-xs text-gray-400">{asset.symbol}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm font-bold text-success">{asset.profitRate}%</div>
-                          <div className="text-xs text-gray-400">Profit</div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                  <span className="text-sm font-medium">{selectedAsset.symbol}</span>
+                  <span className="text-xs text-gray-400 hidden sm:inline">{selectedAsset.name}</span>
                 </>
+              ) : (
+                <span className="text-sm text-gray-400">Select Asset</span>
               )}
-            </div>
+              <ChevronDown className="w-4 h-4 text-gray-400" />
+            </button>
+
+            {/* Asset Dropdown */}
+            {showAssetMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowAssetMenu(false)} />
+                <div className="absolute top-full left-0 mt-2 w-64 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 max-h-80 overflow-y-auto">
+                  {assets.map((asset) => (
+                    <button
+                      key={asset.id}
+                      onClick={() => {
+                        setSelectedAsset(asset)
+                        setShowAssetMenu(false)
+                      }}
+                      className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#232936] transition-colors border-b border-gray-800/30 last:border-0 ${
+                        selectedAsset?.id === asset.id ? 'bg-[#232936]' : ''
+                      }`}
+                    >
+                      <div className="text-left">
+                        <div className="text-sm font-medium">{asset.symbol}</div>
+                        <div className="text-xs text-gray-400">{asset.name}</div>
+                      </div>
+                      <div className="text-xs font-bold text-green-400">+{asset.profitRate}%</div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Right - Balance & User */}
+        <div className="flex items-center gap-3">
+          {/* Balance */}
+          <div className="hidden sm:flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
+            <Wallet className="w-4 h-4 text-blue-400" />
+            <span className="text-sm font-mono font-bold">{formatCurrency(balance)}</span>
           </div>
 
-          {/* Refresh Button - Desktop */}
+          {/* History Button - Desktop */}
           <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="hidden lg:flex p-2 hover:bg-background-tertiary rounded-lg transition-colors"
-            title="Refresh"
+            onClick={() => setShowHistorySidebar(true)}
+            className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors border border-gray-800/50"
           >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <History className="w-4 h-4" />
+            <span className="text-sm">History</span>
           </button>
 
-          <div className="flex-1" />
-
-          {/* Balance & Actions - Desktop */}
-          <div className="hidden lg:flex items-center gap-3">
-            <div className="flex items-center gap-2 px-4 py-2 bg-background-tertiary rounded-lg border border-gray-700">
-              <Wallet className="w-4 h-4 text-primary" />
-              <div className="text-right">
-                <div className="text-xs text-gray-400">Balance</div>
-                <div className="text-sm font-mono font-bold">{formatCurrency(balance)}</div>
-              </div>
-            </div>
-            
+          {/* User Menu */}
+          <div className="relative">
             <button
-              onClick={() => setShowDepositModal(true)}
-              className="px-3 py-2 bg-success hover:bg-success-dark rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity"
             >
-              <Plus className="w-4 h-4" />
-              <span className="hidden xl:inline">Deposit</span>
-            </button>
-            
-            <button
-              onClick={() => setShowWithdrawModal(true)}
-              className="px-3 py-2 bg-danger hover:bg-danger-dark rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
-            >
-              <Minus className="w-4 h-4" />
-              <span className="hidden xl:inline">Withdraw</span>
+              <span className="text-xs font-bold">{user.email[0].toUpperCase()}</span>
             </button>
 
-            {/* User Menu */}
-            <div className="relative">
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="w-9 h-9 bg-primary rounded-full flex items-center justify-center hover:bg-primary-dark transition-colors"
-              >
-                <User className="w-5 h-5" />
-              </button>
-
-              {showUserMenu && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setShowUserMenu(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-56 bg-background-secondary border border-gray-700 rounded-lg shadow-2xl py-2 z-50">
-                    <div className="px-4 py-3 border-b border-gray-700">
-                      <div className="text-xs text-gray-400 mb-1">Logged in as</div>
-                      <div className="text-sm font-medium truncate">{user.email}</div>
-                      <div className="text-xs text-primary mt-1 capitalize">{user.role.replace('_', ' ')}</div>
-                    </div>
+            {showUserMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+                <div className="absolute top-full right-0 mt-2 w-56 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50">
+                  <div className="px-4 py-3 border-b border-gray-800/30">
+                    <div className="text-sm font-medium truncate">{user.email}</div>
+                    <div className="text-xs text-gray-400 mt-1">{user.role}</div>
+                  </div>
+                  <button
+                    onClick={() => router.push('/balance')}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#232936] transition-colors text-left"
+                  >
+                    <Wallet className="w-4 h-4" />
+                    <span className="text-sm">Balance</span>
+                  </button>
+                  <button
+                    onClick={() => router.push('/profile')}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#232936] transition-colors text-left"
+                  >
+                    <Settings className="w-4 h-4" />
+                    <span className="text-sm">Settings</span>
+                  </button>
+                  <div className="border-t border-gray-800/30">
                     <button
                       onClick={() => {
                         logout()
                         router.push('/')
                       }}
-                      className="flex items-center gap-2 px-4 py-2 hover:bg-background-tertiary transition-all w-full text-left text-danger mt-1"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors text-left text-red-400"
                     >
                       <LogOut className="w-4 h-4" />
-                      <span>Logout</span>
+                      <span className="text-sm">Logout</span>
                     </button>
                   </div>
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Balance - Mobile/Tablet */}
-          <div className="lg:hidden flex items-center gap-2">
-            <div className="flex items-center gap-1 px-2 py-1.5 bg-background-tertiary rounded-lg border border-gray-700">
-              <Wallet className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
-              <span className="text-xs sm:text-sm font-mono font-semibold">{formatCurrency(balance)}</span>
-            </div>
-          </div>
+          {/* Mobile Menu Toggle */}
+          <button
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+            className="lg:hidden p-2 hover:bg-[#1a1f2e] rounded-lg transition-colors"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
         </div>
-      </nav>
+      </div>
 
-      {/* ========== MOBILE MENU OVERLAY ========== */}
-      {showMobileMenu && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black/60 z-40 lg:hidden" 
-            onClick={() => setShowMobileMenu(false)}
-          />
-          <div className="fixed top-14 left-0 right-0 bg-background-secondary border-b border-gray-700 z-50 lg:hidden animate-slide-down">
-            <div className="p-4 space-y-3">
-              {/* Asset Selector - Mobile */}
-              <div>
-                <label className="text-xs text-gray-400 mb-2 block">Select Asset</label>
-                <select
-                  value={selectedAsset?.id || ''}
-                  onChange={(e) => {
-                    const asset = assets.find((a) => a.id === e.target.value)
-                    if (asset) {
-                      setSelectedAsset(asset)
-                      setShowMobileMenu(false)
-                    }
-                  }}
-                  className="w-full bg-background-tertiary border-gray-600 px-3 py-2.5 rounded-lg"
-                  disabled={assets.length === 0}
-                >
-                  {assets.length === 0 ? (
-                    <option value="">No assets</option>
-                  ) : (
-                    assets.map((asset) => (
-                      <option key={asset.id} value={asset.id}>
-                        {asset.name} ({asset.symbol}) - {asset.profitRate}% profit
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-
-              {/* Quick Actions */}
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => {
-                    setShowDepositModal(true)
-                    setShowMobileMenu(false)
-                  }}
-                  className="btn btn-success py-2.5 flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Deposit
-                </button>
-                <button
-                  onClick={() => {
-                    setShowWithdrawModal(true)
-                    setShowMobileMenu(false)
-                  }}
-                  className="btn btn-danger py-2.5 flex items-center justify-center gap-2"
-                >
-                  <Minus className="w-4 h-4" />
-                  Withdraw
-                </button>
-              </div>
-
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="w-full btn btn-secondary py-2.5 flex items-center justify-center gap-2"
-              >
-                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                Refresh Data
-              </button>
-
-              <button
-                onClick={() => {
-                  logout()
-                  router.push('/')
-                }}
-                className="w-full btn bg-red-600 hover:bg-red-700 py-2.5 flex items-center justify-center gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-                Logout
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* ========== MAIN CONTENT ========== */}
+      {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Desktop Only */}
-        <div className="hidden lg:flex w-16 border-r border-gray-700 bg-background-secondary flex-col items-center py-4 gap-4">
-          <button
-            onClick={() => setShowHistorySidebar(true)}
-            className="p-3 hover:bg-background-tertiary rounded-lg transition-colors group relative"
-            title="History"
-          >
-            <History className="w-5 h-5" />
-            <span className="absolute left-full ml-2 px-2 py-1 bg-background text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              History
-            </span>
-          </button>
-          
-          <button
-            onClick={() => router.push('/balance')}
-            className="p-3 hover:bg-background-tertiary rounded-lg transition-colors group relative"
-            title="Balance"
-          >
-            <Wallet className="w-5 h-5" />
-            <span className="absolute left-full ml-2 px-2 py-1 bg-background text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              Balance
-            </span>
-          </button>
-        </div>
-
-        {/* Chart + Trading Panel Area */}
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-          {/* Chart Area */}
-          <div className={`flex-1 flex flex-col ${mobileView === 'chart' ? 'flex' : 'hidden'} lg:flex`}>
-            <TradingChart />
-          </div>
-
-          {/* Trading Panel - Desktop: Sidebar, Mobile: Full view */}
-          <div className={`
-            lg:w-96 lg:border-l border-gray-700 bg-background-secondary 
-            flex flex-col
-            ${mobileView === 'trade' ? 'flex' : 'hidden'} lg:flex
-          `}>
-            {/* Panel Header */}
-            <div className="p-4 border-b border-gray-700">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-400 flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4" />
-                  Trading Panel
-                </h3>
-                {selectedAsset && (
-                  <div className="text-right">
-                    <div className="text-xs text-gray-400">Profit Rate</div>
-                    <div className="text-sm font-bold text-success">{selectedAsset.profitRate}%</div>
-                  </div>
-                )}
-              </div>
-
-              {/* Current Price Display */}
-              {currentPrice && selectedAsset && (
-                <div className="bg-background-tertiary rounded-lg p-3 border border-gray-700">
+        {/* Chart Area */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Price Ticker */}
+          {selectedAsset && currentPrice && (
+            <div className="h-16 bg-[#0f1419] border-b border-gray-800/50 flex items-center px-6 flex-shrink-0">
+              <div className="flex items-center gap-6">
+                <div>
                   <div className="text-xs text-gray-400 mb-1">{selectedAsset.name}</div>
                   <div className="text-2xl font-bold font-mono">{currentPrice.price.toFixed(3)}</div>
-                  <div className="text-xs text-gray-400 mt-1">
-                    {new Date(currentPrice.datetime).toLocaleTimeString()}
+                </div>
+                {currentPrice.change !== undefined && (
+                  <div className={`flex items-center gap-1 text-sm font-semibold ${
+                    currentPrice.change >= 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {currentPrice.change >= 0 ? (
+                      <TrendingUp className="w-4 h-4" />
+                    ) : (
+                      <TrendingDown className="w-4 h-4" />
+                    )}
+                    <span>
+                      {currentPrice.change >= 0 ? '+' : ''}{currentPrice.change.toFixed(3)}
+                      {' '}({currentPrice.change >= 0 ? '+' : ''}{((currentPrice.change / currentPrice.price) * 100).toFixed(2)}%)
+                    </span>
                   </div>
+                )}
+                <div className="text-xs text-gray-400">
+                  {new Date(currentPrice.datetime).toLocaleTimeString()}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Chart */}
+          <div className="flex-1 bg-[#0a0e17]">
+            <TradingChart />
+          </div>
+        </div>
+
+        {/* Trading Panel - Desktop */}
+        <div className="hidden lg:block w-80 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
+          <div className="h-full flex flex-col">
+            {/* Panel Header */}
+            <div className="p-4 border-b border-gray-800/50">
+              <h3 className="text-sm font-semibold text-gray-400 mb-1">Trading Panel</h3>
+              {selectedAsset && (
+                <div className="text-xs text-gray-500">
+                  Profit Rate: <span className="text-green-400 font-bold">{selectedAsset.profitRate}%</span>
                 </div>
               )}
             </div>
 
-            {/* Trading Controls */}
+            {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {/* Amount Input */}
+              {/* Amount */}
               <div>
-                <label className="text-xs text-gray-400 mb-2 block font-medium">
-                  Investment Amount
-                </label>
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(Number(e.target.value))}
-                  className="w-full bg-background-tertiary border-gray-600 px-4 py-3 rounded-lg text-center font-mono text-xl font-bold focus:ring-2 focus:ring-primary"
-                  min="1000"
-                  step="1000"
-                />
+                <label className="text-xs text-gray-400 mb-2 block font-medium">Investment Amount</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(Number(e.target.value))}
+                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-4 py-3 text-center text-lg font-mono font-bold focus:outline-none focus:border-blue-500/50 transition-colors"
+                    min="1000"
+                    step="1000"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-1">
+                    <button
+                      onClick={() => setAmount((prev) => prev + 1000)}
+                      className="p-0.5 bg-[#232936] hover:bg-[#2d3442] rounded transition-colors"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => setAmount((prev) => Math.max(1000, prev - 1000))}
+                      className="p-0.5 bg-[#232936] hover:bg-[#2d3442] rounded transition-colors"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
                 <div className="grid grid-cols-3 gap-2 mt-2">
                   {[10000, 50000, 100000].map((preset) => (
                     <button
                       key={preset}
                       onClick={() => setAmount(preset)}
-                      className={`px-2 py-2 rounded-lg text-xs font-medium transition-all ${
+                      className={`py-1.5 rounded-lg text-xs font-medium transition-all ${
                         amount === preset
-                          ? 'bg-primary text-white'
-                          : 'bg-background-tertiary hover:bg-gray-600 text-gray-300'
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
                       }`}
                     >
                       {preset >= 1000000 ? `${preset/1000000}M` : `${preset/1000}K`}
@@ -547,21 +364,21 @@ export default function TradingPage() {
                 </div>
               </div>
 
-              {/* Duration Selector */}
+              {/* Duration */}
               <div>
                 <label className="text-xs text-gray-400 mb-2 block font-medium flex items-center gap-1">
                   <Clock className="w-3 h-3" />
-                  Duration
+                  Duration (Minutes)
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {DURATIONS.map((d) => (
                     <button
                       key={d}
                       onClick={() => setDuration(d)}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                      className={`py-2 rounded-lg text-sm font-medium transition-all ${
                         duration === d
-                          ? 'bg-primary text-white'
-                          : 'bg-background-tertiary hover:bg-gray-600 text-gray-300'
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
                       }`}
                     >
                       {d}m
@@ -570,48 +387,53 @@ export default function TradingPage() {
                 </div>
               </div>
 
-              {/* Profit Calculation */}
+              {/* Profit Info */}
               {selectedAsset && (
-                <div className="bg-gradient-to-br from-primary/10 to-purple-600/10 border border-primary/30 rounded-lg p-4">
-                  <div className="text-center">
-                    <div className="text-xs text-gray-400 mb-1">Potential Profit</div>
-                    <div className="text-3xl font-bold text-success mb-2 font-mono">
-                      +{formatCurrency(potentialProfit)}
+                <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg p-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-400">Investment:</span>
+                      <span className="font-mono font-bold">{formatCurrency(amount)}</span>
                     </div>
-                    <div className="text-xs text-gray-400">
-                      {selectedAsset.profitRate}% return on investment
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-400">Profit:</span>
+                      <span className="font-mono font-bold text-green-400">+{formatCurrency(potentialProfit)}</span>
+                    </div>
+                    <div className="border-t border-green-500/20 pt-2 mt-2">
+                      <div className="flex justify-between">
+                        <span className="text-xs text-gray-400">Total Payout:</span>
+                        <span className="font-mono font-bold text-green-400">{formatCurrency(potentialPayout)}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Order Buttons */}
-            <div className="p-4 border-t border-gray-700 space-y-3">
+            {/* Action Buttons */}
+            <div className="p-4 border-t border-gray-800/50 space-y-2">
               <button
                 onClick={() => handlePlaceOrder('CALL')}
                 disabled={loading || !selectedAsset}
-                className="btn bg-success hover:bg-success-dark w-full py-4 flex flex-col items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group"
+                className="w-full bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-500/20"
               >
-                <ArrowUpCircle className="w-7 h-7 group-hover:scale-110 transition-transform" />
-                <span className="font-bold text-lg">BUY (CALL)</span>
-                <span className="text-xs opacity-80">Price will rise</span>
+                <TrendingUp className="w-5 h-5" />
+                <span>BUY (Higher)</span>
               </button>
 
               <button
                 onClick={() => handlePlaceOrder('PUT')}
                 disabled={loading || !selectedAsset}
-                className="btn bg-danger hover:bg-danger-dark w-full py-4 flex flex-col items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group"
+                className="w-full bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/20"
               >
-                <ArrowDownCircle className="w-7 h-7 group-hover:scale-110 transition-transform" />
-                <span className="font-bold text-lg">SELL (PUT)</span>
-                <span className="text-xs opacity-80">Price will fall</span>
+                <TrendingDown className="w-5 h-5" />
+                <span>SELL (Lower)</span>
               </button>
 
               {loading && (
-                <div className="text-center text-sm text-gray-400 flex items-center justify-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                  Processing order...
+                <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-400"></div>
+                  Processing...
                 </div>
               )}
             </div>
@@ -619,170 +441,131 @@ export default function TradingPage() {
         </div>
       </div>
 
-      {/* ========== MOBILE TAB NAVIGATION ========== */}
-      <div className="lg:hidden h-16 border-t border-gray-700 bg-background-secondary flex items-center justify-around px-4">
-        <button
-          onClick={() => setMobileView('chart')}
-          className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg transition-colors ${
-            mobileView === 'chart' ? 'text-primary bg-primary/10' : 'text-gray-400'
-          }`}
-        >
-          <BarChart3 className="w-5 h-5" />
-          <span className="text-xs font-medium">Chart</span>
-        </button>
+      {/* Mobile Trading Panel */}
+      <div className="lg:hidden bg-[#0f1419] border-t border-gray-800/50 p-4">
+        <div className="space-y-3">
+          {/* Quick Stats */}
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <Wallet className="w-4 h-4 text-blue-400" />
+              <span className="text-gray-400">Balance:</span>
+              <span className="font-mono font-bold">{formatCurrency(balance)}</span>
+            </div>
+            {selectedAsset && (
+              <div className="text-green-400 font-bold">+{selectedAsset.profitRate}%</div>
+            )}
+          </div>
 
-        <button
-          onClick={() => setMobileView('trade')}
-          className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg transition-colors ${
-            mobileView === 'trade' ? 'text-primary bg-primary/10' : 'text-gray-400'
-          }`}
-        >
-          <Activity className="w-5 h-5" />
-          <span className="text-xs font-medium">Trade</span>
-        </button>
+          {/* Amount & Duration */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Amount</label>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(Number(e.target.value))}
+                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-center text-sm font-mono font-bold focus:outline-none focus:border-blue-500/50"
+                min="1000"
+                step="1000"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Duration</label>
+              <select
+                value={duration}
+                onChange={(e) => setDuration(Number(e.target.value))}
+                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-center text-sm font-bold focus:outline-none focus:border-blue-500/50"
+              >
+                {DURATIONS.map((d) => (
+                  <option key={d} value={d}>{d}m</option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-        <button
-          onClick={() => setShowHistorySidebar(true)}
-          className="flex-1 flex flex-col items-center gap-1 py-2 text-gray-400 hover:text-primary transition-colors rounded-lg"
-        >
-          <History className="w-5 h-5" />
-          <span className="text-xs font-medium">History</span>
-        </button>
+          {/* Profit Display */}
+          {selectedAsset && (
+            <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-2 flex justify-between items-center">
+              <span className="text-xs text-gray-400">Potential Payout:</span>
+              <span className="text-sm font-mono font-bold text-green-400">{formatCurrency(potentialPayout)}</span>
+            </div>
+          )}
 
-        <button
-          onClick={() => router.push('/balance')}
-          className="flex-1 flex flex-col items-center gap-1 py-2 text-gray-400 hover:text-primary transition-colors rounded-lg"
-        >
-          <Wallet className="w-5 h-5" />
-          <span className="text-xs font-medium">Balance</span>
-        </button>
+          {/* Buy/Sell Buttons */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => handlePlaceOrder('CALL')}
+              disabled={loading || !selectedAsset}
+              className="bg-green-500 hover:bg-green-600 disabled:opacity-50 py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2"
+            >
+              <TrendingUp className="w-4 h-4" />
+              <span>BUY</span>
+            </button>
+            <button
+              onClick={() => handlePlaceOrder('PUT')}
+              disabled={loading || !selectedAsset}
+              className="bg-red-500 hover:bg-red-600 disabled:opacity-50 py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2"
+            >
+              <TrendingDown className="w-4 h-4" />
+              <span>SELL</span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* ========== MODALS ========== */}
-      
-      {/* Deposit Modal */}
-      {showDepositModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="card max-w-md w-full animate-scale-in">
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-              <Plus className="w-6 h-6 text-success" />
-              Deposit Funds
-            </h2>
-            <div className="input-group mb-6">
-              <label className="input-label">Amount (IDR)</label>
-              <input
-                type="number"
-                value={transactionAmount}
-                onChange={(e) => setTransactionAmount(e.target.value)}
-                placeholder="Enter amount"
-                className="text-center text-xl font-mono font-bold"
-                autoFocus
-              />
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={handleDeposit}
-                disabled={loading}
-                className="btn btn-success flex-1 py-3"
-              >
-                {loading ? 'Processing...' : 'Confirm Deposit'}
+      {/* Mobile Menu Overlay */}
+      {showMobileMenu && (
+        <>
+          <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setShowMobileMenu(false)} />
+          <div className="fixed top-0 right-0 bottom-0 w-64 bg-[#0f1419] border-l border-gray-800/50 z-50 p-4 animate-slide-in-right">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-bold">Menu</h3>
+              <button onClick={() => setShowMobileMenu(false)}>
+                <X className="w-5 h-5" />
               </button>
+            </div>
+            <div className="space-y-2">
               <button
                 onClick={() => {
-                  setShowDepositModal(false)
-                  setTransactionAmount('')
+                  setShowHistorySidebar(true)
+                  setShowMobileMenu(false)
                 }}
-                className="btn btn-secondary py-3"
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
-                Cancel
+                <History className="w-4 h-4" />
+                <span>History</span>
+              </button>
+              <button
+                onClick={() => router.push('/balance')}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <Wallet className="w-4 h-4" />
+                <span>Balance</span>
+              </button>
+              <button
+                onClick={() => router.push('/profile')}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <Settings className="w-4 h-4" />
+                <span>Settings</span>
               </button>
             </div>
           </div>
-        </div>
+        </>
       )}
 
-      {/* Withdraw Modal */}
-      {showWithdrawModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="card max-w-md w-full animate-scale-in">
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-              <Minus className="w-6 h-6 text-danger" />
-              Withdraw Funds
-            </h2>
-            <div className="bg-background-tertiary rounded-lg p-3 mb-4">
-              <div className="text-xs text-gray-400">Available Balance</div>
-              <div className="text-lg font-bold font-mono">{formatCurrency(balance)}</div>
-            </div>
-            <div className="input-group mb-6">
-              <label className="input-label">Amount (IDR)</label>
-              <input
-                type="number"
-                value={transactionAmount}
-                onChange={(e) => setTransactionAmount(e.target.value)}
-                placeholder="Enter amount"
-                max={balance}
-                className="text-center text-xl font-mono font-bold"
-                autoFocus
-              />
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={handleWithdraw}
-                disabled={loading}
-                className="btn btn-danger flex-1 py-3"
-              >
-                {loading ? 'Processing...' : 'Confirm Withdrawal'}
-              </button>
-              <button
-                onClick={() => {
-                  setShowWithdrawModal(false)
-                  setTransactionAmount('')
-                }}
-                className="btn btn-secondary py-3"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* History Sidebar */}
-      <HistorySidebar
-        isOpen={showHistorySidebar}
-        onClose={() => setShowHistorySidebar(false)}
-      />
-
-      {/* Custom Animations */}
       <style jsx>{`
-        @keyframes slide-down {
+        @keyframes slide-in-right {
           from {
-            opacity: 0;
-            transform: translateY(-10px);
+            transform: translateX(100%);
           }
           to {
-            opacity: 1;
-            transform: translateY(0);
+            transform: translateX(0);
           }
         }
 
-        @keyframes scale-in {
-          from {
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        .animate-slide-down {
-          animation: slide-down 0.2s ease-out;
-        }
-
-        .animate-scale-in {
-          animation: scale-in 0.2s ease-out;
+        .animate-slide-in-right {
+          animation: slide-in-right 0.3s ease-out;
         }
       `}</style>
     </div>
