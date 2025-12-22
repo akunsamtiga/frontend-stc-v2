@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useTradingStore } from '@/store/trading'
-import { Activity, ZoomIn, ZoomOut, Maximize2, Minimize2, TrendingUp } from 'lucide-react'
+import { fetchHistoricalData, subscribeToPriceUpdates } from '@/lib/firebase'
+import { Activity, ZoomIn, ZoomOut, Maximize2, Minimize2 } from 'lucide-react'
 
 interface PricePoint {
   timestamp: number
@@ -39,9 +40,8 @@ const TIMEFRAME_SECONDS: Record<Timeframe, number> = {
 export default function TradingChart() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const animationRef = useRef<number | null>(null)
   
-  const { selectedAsset, currentPrice } = useTradingStore()
+  const { selectedAsset, currentPrice, setCurrentPrice, addPriceToHistory } = useTradingStore()
   
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
   const [rawPriceData, setRawPriceData] = useState<PricePoint[]>([])
@@ -53,8 +53,67 @@ export default function TradingChart() {
   const [showVolume, setShowVolume] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [historicalLoaded, setHistoricalLoaded] = useState(false)
   
   const maxDataPoints = Math.floor(100 / zoom)
+  
+  // Load historical data when asset is selected
+  useEffect(() => {
+    if (!selectedAsset) return
+
+    const loadHistoricalData = async () => {
+      setIsLoading(true)
+      setHistoricalLoaded(false)
+      
+      try {
+        // Determine the data path based on asset
+        let assetPath = ''
+        
+        if (selectedAsset.dataSource === 'realtime_db' && selectedAsset.realtimeDbPath) {
+          // Extract base path (remove /current_price or similar)
+          const pathParts = selectedAsset.realtimeDbPath.split('/')
+          assetPath = pathParts.slice(0, -1).join('/')
+        } else {
+          // Default to lowercase asset symbol
+          assetPath = `/${selectedAsset.symbol.toLowerCase()}`
+        }
+
+        console.log(`📊 Loading historical data from: ${assetPath}`)
+        
+        // Fetch last 500 bars
+        const historical = await fetchHistoricalData(assetPath, 500)
+        
+        if (historical.length > 0) {
+          // Convert to PricePoint format
+          const pricePoints: PricePoint[] = historical.map(bar => ({
+            timestamp: bar.timestamp,
+            price: bar.close,
+            open: bar.open,
+            high: bar.high,
+            low: bar.low,
+            close: bar.close,
+            volume: bar.volume
+          }))
+          
+          setRawPriceData(pricePoints)
+          setHistoricalLoaded(true)
+          console.log(`✅ Loaded ${pricePoints.length} historical price points`)
+        } else {
+          console.log('⚠️ No historical data available, waiting for real-time data...')
+          setRawPriceData([])
+        }
+        
+      } catch (error) {
+        console.error('Error loading historical data:', error)
+        setRawPriceData([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadHistoricalData()
+  }, [selectedAsset])
 
   // Handle resize
   useEffect(() => {
@@ -81,24 +140,47 @@ export default function TradingChart() {
     }
   }, [isFullscreen])
 
-  // Collect raw price data
+  // Subscribe to real-time updates
   useEffect(() => {
-    if (currentPrice) {
+    if (!selectedAsset) return
+
+    let unsubscribe: (() => void) | undefined
+
+    if (selectedAsset.dataSource === 'realtime_db' && selectedAsset.realtimeDbPath) {
+      // Subscribe to current_price for real-time updates
+      unsubscribe = subscribeToPriceUpdates(selectedAsset.realtimeDbPath, (data) => {
+        setCurrentPrice(data)
+        addPriceToHistory(data)
+      })
+    }
+
+    return () => {
+      if (unsubscribe) unsubscribe()
+    }
+  }, [selectedAsset, setCurrentPrice, addPriceToHistory])
+
+  // Add real-time price to raw data
+  useEffect(() => {
+    if (currentPrice && historicalLoaded) {
       const newPoint: PricePoint = {
         timestamp: currentPrice.timestamp || Date.now() / 1000,
         price: currentPrice.price,
-        volume: Math.random() * 1000000 // Mock volume
+        volume: Math.random() * 1000000 // Mock volume for real-time data
       }
 
       setRawPriceData(prev => {
+        // Check if this timestamp already exists (avoid duplicates)
+        const exists = prev.some(p => p.timestamp === newPoint.timestamp)
+        if (exists) return prev
+        
         const updated = [...prev, newPoint]
-        // Keep max 1000 raw points for aggregation
-        return updated.slice(-1000)
+        // Keep last 500 points for performance
+        return updated.slice(-500)
       })
     }
-  }, [currentPrice])
+  }, [currentPrice, historicalLoaded])
 
-  // Aggregate data based on timeframe
+  // Aggregate data based on timeframe (optimized for performance)
   useEffect(() => {
     if (rawPriceData.length === 0) return
 
@@ -114,19 +196,28 @@ export default function TradingChart() {
         // Create new bar
         bars.set(barTimestamp, {
           timestamp: barTimestamp,
-          open: point.price,
-          high: point.price,
-          low: point.price,
-          close: point.price,
+          open: point.open || point.price,
+          high: point.high || point.price,
+          low: point.low || point.price,
+          close: point.close || point.price,
           volume: point.volume || 0
         })
       } else {
         // Update existing bar
         const bar = bars.get(barTimestamp)!
-        bar.high = Math.max(bar.high, point.price)
-        bar.low = Math.min(bar.low, point.price)
-        bar.close = point.price // Last price in the bar
-        bar.volume += point.volume || 0
+        
+        // If point has OHLC data, use it
+        if (point.open !== undefined) {
+          // This is already an OHLC bar, just update close
+          bar.close = point.close || point.price
+          bar.volume += point.volume || 0
+        } else {
+          // This is a single price point, update OHLC
+          bar.high = Math.max(bar.high, point.price)
+          bar.low = Math.min(bar.low, point.price)
+          bar.close = point.price
+          bar.volume += point.volume || 0
+        }
       }
     })
 
@@ -154,7 +245,7 @@ export default function TradingChart() {
 
   // Draw chart
   useEffect(() => {
-    if (!canvasRef.current || aggregatedData.length < 2 || dimensions.width === 0) return
+    if (!canvasRef.current || aggregatedData.length === 0 || dimensions.width === 0) return
 
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d', { alpha: false })
@@ -195,6 +286,9 @@ export default function TradingChart() {
 
     // Helper functions
     const getX = (index: number) => {
+      if (aggregatedData.length === 1) {
+        return padding.left + chartWidth / 2
+      }
       return padding.left + (index / (aggregatedData.length - 1)) * chartWidth
     }
 
@@ -575,15 +669,29 @@ export default function TradingChart() {
         onMouseLeave={handleMouseLeave}
       />
 
-      {/* Loading indicator */}
-      {aggregatedData.length === 0 && currentPrice && (
+      {/* Loading/Info indicator */}
+      {isLoading ? (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-gray-500 text-sm flex items-center gap-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
-            Loading chart data...
+          <div className="text-gray-500 text-sm flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
+            <div>Loading historical data...</div>
           </div>
         </div>
-      )}
+      ) : aggregatedData.length === 0 ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-gray-500 text-sm flex flex-col items-center gap-3">
+            <div className="animate-pulse">
+              <Activity className="w-12 h-12 opacity-20" />
+            </div>
+            <div>Waiting for data...</div>
+            <div className="text-xs text-gray-600">Make sure simulator is running</div>
+          </div>
+        </div>
+      ) : !historicalLoaded && aggregatedData.length < 20 ? (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-blue-500/10 border border-blue-500/30 rounded-lg px-4 py-2 text-xs text-blue-400 animate-pulse">
+          📊 Building chart... ({aggregatedData.length} bars loaded)
+        </div>
+      ) : null}
 
       {/* Watermark */}
       <div className="absolute bottom-4 left-4 text-xs text-gray-700 font-mono">
