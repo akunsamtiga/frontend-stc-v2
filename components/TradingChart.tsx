@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useTradingStore } from '@/store/trading'
-import { fetchHistoricalData, subscribeToPriceUpdates, subscribeToOHLCUpdates } from '@/lib/firebase'
-import { Activity, ZoomIn, ZoomOut, Maximize2, Minimize2, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
+import { fetchHistoricalData, subscribeToPriceUpdates, subscribeToOHLCUpdates, testFirebaseConnection } from '@/lib/firebase'
+import { Activity, ZoomIn, ZoomOut, Maximize2, Minimize2, RefreshCw, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react'
 
 interface BarData {
   timestamp: number
@@ -27,7 +27,7 @@ export default function TradingChart() {
   const { selectedAsset, currentPrice, setCurrentPrice, addPriceToHistory } = useTradingStore()
   
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
-  const [barData, setBarData] = useState<BarData[]>([]) // ✅ Direct bars, no aggregation
+  const [barData, setBarData] = useState<BarData[]>([])
   const [visibleData, setVisibleData] = useState<BarData[]>([])
   const [chartType, setChartType] = useState<ChartType>('line')
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
@@ -38,52 +38,122 @@ export default function TradingChart() {
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [dataLoadError, setDataLoadError] = useState<string | null>(null)
+  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking')
   
   const [panOffset, setPanOffset] = useState(0)
   const [canPanLeft, setCanPanLeft] = useState(false)
   const [canPanRight, setCanPanRight] = useState(false)
   
   const visibleBars = Math.floor(MAX_VISIBLE_BARS / zoom)
+
+  // Test Firebase connection on mount
+  useEffect(() => {
+    const checkConnection = async () => {
+      console.log('🔍 Checking Firebase connection...')
+      setConnectionStatus('checking')
+      const isConnected = await testFirebaseConnection()
+      setConnectionStatus(isConnected ? 'connected' : 'error')
+      
+      if (!isConnected) {
+        setDataLoadError('Cannot connect to Firebase. Please check:\n1. Firebase URL in .env\n2. Network connection\n3. Firebase rules')
+      }
+    }
+    
+    checkConnection()
+  }, [])
   
   // ✅ Load data when asset or timeframe changes
   useEffect(() => {
-    if (!selectedAsset) return
+    if (!selectedAsset) {
+      console.log('⚠️ No asset selected')
+      return
+    }
 
     const loadData = async () => {
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+      console.log('📊 LOADING CHART DATA')
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+      
       setIsLoading(true)
       setDataLoadError(null)
       setPanOffset(0)
       
       try {
-        console.log(`📊 Loading ${timeframe} data for ${selectedAsset.symbol}`)
+        console.log('📋 Asset Info:', {
+          name: selectedAsset.name,
+          symbol: selectedAsset.symbol,
+          dataSource: selectedAsset.dataSource,
+          realtimeDbPath: selectedAsset.realtimeDbPath
+        })
         
         let assetPath = ''
         
         if (selectedAsset.dataSource === 'realtime_db' && selectedAsset.realtimeDbPath) {
           const pathParts = selectedAsset.realtimeDbPath.split('/')
           assetPath = pathParts.slice(0, -1).join('/')
+          console.log('✅ Using realtimeDbPath:', assetPath)
         } else {
           assetPath = `/${selectedAsset.symbol.toLowerCase()}`
+          console.log('✅ Using symbol path:', assetPath)
         }
 
-        // ✅ Fetch directly from pre-aggregated timeframe - NO CLIENT AGGREGATION!
+        console.log(`🔍 Fetching ${timeframe} timeframe data...`)
+        
+        // ✅ Fetch directly from pre-aggregated timeframe
         const data = await fetchHistoricalData(assetPath, timeframe)
         
+        console.log(`📊 Data Fetch Result:`, {
+          barsReceived: data.length,
+          timeframe: timeframe,
+          path: `${assetPath}/ohlc_${timeframe}`
+        })
+        
         if (data.length > 0) {
-          console.log(`✅ Loaded ${data.length} ${timeframe} bars (pre-aggregated)`)
+          console.log('✅ Data loaded successfully!')
+          console.log('   First bar:', {
+            timestamp: data[0].timestamp,
+            datetime: data[0].datetime,
+            close: data[0].close
+          })
+          console.log('   Last bar:', {
+            timestamp: data[data.length - 1].timestamp,
+            datetime: data[data.length - 1].datetime,
+            close: data[data.length - 1].close
+          })
+          
           setBarData(data)
+          setDataLoadError(null)
         } else {
-          console.warn('⚠️ No data available')
-          setDataLoadError('No data available. Ensure simulator is running with multi-timeframe mode.')
+          console.error('❌ No data received!')
+          console.log('💡 Troubleshooting:')
+          console.log('   1. Check simulator is running: tail -f simulator.log')
+          console.log('   2. Check Firebase Console for data')
+          console.log('   3. Expected path:', `${assetPath}/ohlc_${timeframe}`)
+          console.log('   4. Check asset configuration in database')
+          
+          const errorMsg = '⚠️ No data available\n\n' +
+            'Please check:\n' +
+            '1. Simulator is running\n' +
+            '2. Data exists in Firebase Console\n' +
+            `3. Path: ${assetPath}/ohlc_${timeframe}\n` +
+            '4. Asset realtimeDbPath is correct'
+          
+          setDataLoadError(errorMsg)
           setBarData([])
         }
         
-      } catch (error) {
-        console.error('❌ Error loading data:', error)
-        setDataLoadError(`Error: ${error}`)
+      } catch (error: any) {
+        console.error('❌ ERROR loading data:', error)
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack
+        })
+        
+        setDataLoadError(`Error: ${error.message}\n\nCheck console for details`)
         setBarData([])
       } finally {
         setIsLoading(false)
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
       }
     }
 
@@ -115,7 +185,7 @@ export default function TradingChart() {
     }
   }, [isFullscreen])
 
-  // ✅ Subscribe to real-time updates for CURRENT price (from current_price path)
+  // ✅ Subscribe to real-time updates for CURRENT price
   useEffect(() => {
     if (!selectedAsset || isLoading) return
 
@@ -123,8 +193,10 @@ export default function TradingChart() {
 
     if (selectedAsset.dataSource === 'realtime_db' && selectedAsset.realtimeDbPath) {
       console.log('🔔 Subscribing to current price updates')
+      console.log('   Path:', selectedAsset.realtimeDbPath)
       
       unsubscribe = subscribeToPriceUpdates(selectedAsset.realtimeDbPath, (data) => {
+        console.log('📈 Price update:', data.price)
         setCurrentPrice(data)
         addPriceToHistory(data)
       })
@@ -138,7 +210,7 @@ export default function TradingChart() {
     }
   }, [selectedAsset, isLoading])
 
-  // ✅ Subscribe to timeframe-specific OHLC updates (for new completed bars)
+  // ✅ Subscribe to timeframe-specific OHLC updates
   useEffect(() => {
     if (!selectedAsset || isLoading || barData.length === 0) return
 
@@ -149,23 +221,20 @@ export default function TradingChart() {
       const assetPath = pathParts.slice(0, -1).join('/')
       
       console.log(`🔔 Subscribing to ${timeframe} OHLC updates`)
+      console.log('   Path:', `${assetPath}/ohlc_${timeframe}`)
       
       unsubscribe = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
-        console.log(`📊 New ${timeframe} bar received:`, newBar.close)
+        console.log(`📊 New ${timeframe} bar:`, newBar.close)
         
         setBarData(prev => {
-          // Check if bar already exists
           const existingIndex = prev.findIndex(b => b.timestamp === newBar.timestamp)
           
           if (existingIndex >= 0) {
-            // Update existing bar
             const updated = [...prev]
             updated[existingIndex] = newBar
             return updated
           } else {
-            // Add new bar
             const updated = [...prev, newBar]
-            // Keep reasonable amount
             return updated.slice(-1000)
           }
         })
@@ -233,6 +302,8 @@ export default function TradingChart() {
   const handleRefresh = () => {
     if (!selectedAsset) return
     
+    console.log('🔄 Manual refresh triggered')
+    
     setIsLoading(true)
     setBarData([])
     setPanOffset(0)
@@ -244,7 +315,7 @@ export default function TradingChart() {
     }, 100)
   }
 
-  // Draw chart (same as before, but simplified because no aggregation needed)
+  // Draw chart
   useEffect(() => {
     if (!canvasRef.current || visibleData.length === 0 || dimensions.width === 0) return
 
@@ -503,6 +574,23 @@ export default function TradingChart() {
       ref={containerRef} 
       className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : 'h-full'}`}
     >
+      {/* Connection Status */}
+      {connectionStatus !== 'connected' && (
+        <div className="absolute top-3 right-3 z-20 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2 flex items-center gap-2">
+          {connectionStatus === 'checking' ? (
+            <>
+              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-400"></div>
+              <span className="text-xs text-yellow-400">Checking connection...</span>
+            </>
+          ) : (
+            <>
+              <AlertCircle className="w-3 h-3 text-red-400" />
+              <span className="text-xs text-red-400">Connection error</span>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Chart Controls */}
       <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
         {/* Timeframe Selector */}
@@ -661,36 +749,49 @@ export default function TradingChart() {
 
       {/* Loading/Error States */}
       {isLoading ? (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center bg-[#0a0e17]/80">
           <div className="text-gray-500 text-sm flex flex-col items-center gap-3">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
             <div>Loading {timeframe} data...</div>
+            <div className="text-xs text-gray-600">This may take a few seconds</div>
           </div>
         </div>
       ) : dataLoadError ? (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-red-400 text-sm flex flex-col items-center gap-3 text-center max-w-md">
-            <Activity className="w-12 h-12 opacity-20" />
-            <div>{dataLoadError}</div>
-            <button 
-              onClick={handleRefresh}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white text-xs transition-colors"
-            >
-              Try Again
-            </button>
+        <div className="absolute inset-0 flex items-center justify-center bg-[#0a0e17]/80">
+          <div className="text-red-400 text-sm flex flex-col items-center gap-3 text-center max-w-md p-6">
+            <AlertCircle className="w-12 h-12 opacity-20" />
+            <div className="font-medium text-base">Unable to Load Chart Data</div>
+            <div className="text-xs text-gray-400 whitespace-pre-line">{dataLoadError}</div>
+            <div className="flex gap-2 mt-2">
+              <button 
+                onClick={handleRefresh}
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white text-xs transition-colors"
+              >
+                Try Again
+              </button>
+              <button 
+                onClick={() => window.open('https://console.firebase.google.com', '_blank')}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white text-xs transition-colors"
+              >
+                Open Firebase Console
+              </button>
+            </div>
+            <div className="text-xs text-gray-600 mt-4">
+              💡 Check browser console (F12) for detailed logs
+            </div>
           </div>
         </div>
       ) : barData.length === 0 ? (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center bg-[#0a0e17]/80">
           <div className="text-gray-500 text-sm flex flex-col items-center gap-3">
             <div className="animate-pulse">
               <Activity className="w-12 h-12 opacity-20" />
             </div>
             <div>Waiting for {timeframe} data...</div>
-            <div className="text-xs text-gray-600">Ensure simulator is running with multi-timeframe mode</div>
+            <div className="text-xs text-gray-600">Simulator may need to generate first bars</div>
             <button 
               onClick={handleRefresh}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white text-xs transition-colors"
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white text-xs transition-colors mt-2"
             >
               Refresh
             </button>
@@ -700,7 +801,7 @@ export default function TradingChart() {
 
       {/* Watermark */}
       <div className="absolute bottom-4 left-4 text-xs text-gray-700 font-mono">
-        BinaryTrade • {selectedAsset.symbol} • {timeframe} • Direct Fetch
+        BinaryTrade • {selectedAsset.symbol} • {timeframe} • {barData.length} bars loaded
       </div>
     </div>
   )

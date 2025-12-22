@@ -17,6 +17,7 @@ let database: Database
 if (typeof window !== 'undefined' && !getApps().length) {
   app = initializeApp(firebaseConfig)
   database = getDatabase(app)
+  console.log('🔥 Firebase initialized with URL:', process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL)
 }
 
 export { database, ref, onValue, off }
@@ -40,15 +41,22 @@ export function subscribeToPriceUpdates(
 ) {
   if (typeof window === 'undefined') return () => {}
 
+  console.log('🔔 Subscribing to price updates at:', path)
   const priceRef = ref(database, path)
   const unsubscribe = onValue(priceRef, (snapshot) => {
     const data = snapshot.val()
     if (data) {
+      console.log('📈 Price update received:', data.price)
       callback(data)
     }
+  }, (error) => {
+    console.error('❌ Error subscribing to price:', error)
   })
 
-  return () => off(priceRef)
+  return () => {
+    console.log('🔕 Unsubscribing from:', path)
+    off(priceRef)
+  }
 }
 
 // ✅ Fetch historical data from pre-aggregated timeframe
@@ -66,47 +74,117 @@ export async function fetchHistoricalData(
       return []
     }
 
-    console.log(`📊 Fetching ${timeframe} data from pre-aggregated path`)
-    console.log(`   Path: ${assetPath}/${config.path}`)
+    // Try multiple path variations
+    const pathsToTry = [
+      `${assetPath}/${config.path}`, // /idx_stc/ohlc_1m
+      `/${config.path}`, // /ohlc_1m
+      `/idx_stc/${config.path}`, // Explicit path
+    ]
+
+    console.log(`📊 Fetching ${timeframe} data:`)
+    console.log(`   Asset Path: ${assetPath}`)
+    console.log(`   Timeframe: ${timeframe}`)
+    console.log(`   Config Path: ${config.path}`)
     console.log(`   Bars needed: ${config.barsToFetch}`)
     
-    const ohlcPath = `${assetPath}/${config.path}`
-    const ohlcRef = ref(database, ohlcPath)
-    
-    // Query with appropriate limit
-    const historyQuery = query(ohlcRef, orderByKey(), limitToLast(config.barsToFetch))
-    const snapshot = await get(historyQuery)
-    
-    if (!snapshot.exists()) {
-      console.warn('⚠️ No data found at path:', ohlcPath)
+    for (const testPath of pathsToTry) {
+      console.log(`🔍 Trying path: ${testPath}`)
       
-      // Try alternative paths
-      console.log('🔄 Trying alternative paths...')
-      
-      // Try without asset prefix
-      const altPath = `/${config.path}`
-      const altRef = ref(database, altPath)
-      const altSnapshot = await get(query(altRef, orderByKey(), limitToLast(config.barsToFetch)))
-      
-      if (!altSnapshot.exists()) {
-        console.error('❌ No data found in alternative paths')
-        console.log('💡 Make sure simulator is running with multi-timeframe mode')
-        return []
+      try {
+        const ohlcRef = ref(database, testPath)
+        const historyQuery = query(ohlcRef, orderByKey(), limitToLast(config.barsToFetch))
+        const snapshot = await get(historyQuery)
+        
+        if (snapshot.exists()) {
+          const data = snapshot.val()
+          const dataKeys = Object.keys(data)
+          console.log(`✅ Found data at: ${testPath}`)
+          console.log(`   Bars found: ${dataKeys.length}`)
+          
+          if (dataKeys.length > 0) {
+            // Show sample
+            const firstKey = dataKeys[0]
+            const lastKey = dataKeys[dataKeys.length - 1]
+            console.log(`   First bar timestamp: ${firstKey} (${data[firstKey]?.datetime})`)
+            console.log(`   Last bar timestamp: ${lastKey} (${data[lastKey]?.datetime})`)
+            console.log(`   Sample data:`, data[firstKey])
+            
+            const result = processHistoricalData(data, config.barsToFetch)
+            
+            if (result.length > 0) {
+              return result
+            }
+          }
+        } else {
+          console.log(`   ⚠️ No data at: ${testPath}`)
+        }
+      } catch (err) {
+        console.log(`   ❌ Error at ${testPath}:`, err)
       }
-      
-      const data = altSnapshot.val()
-      console.log('✅ Found data at alternative path')
-      return processHistoricalData(data, config.barsToFetch)
     }
-
-    const data = snapshot.val()
-    console.log(`✅ Fetched ${Object.keys(data).length} bars from ${timeframe} timeframe`)
     
-    return processHistoricalData(data, config.barsToFetch)
+    // If we get here, no path worked
+    console.error('❌ No data found in any path')
+    console.log('💡 Debugging tips:')
+    console.log('   1. Check Firebase Console: https://console.firebase.google.com')
+    console.log('   2. Verify simulator is running: check simulator.log')
+    console.log('   3. Check Firebase Database rules allow read access')
+    console.log('   4. Expected structure: /idx_stc/ohlc_1m/{timestamp}/')
+    
+    // Try to check root structure
+    await debugFirebaseStructure()
+    
+    return []
 
   } catch (error) {
     console.error('❌ Error fetching historical data:', error)
     return []
+  }
+}
+
+// Debug function to inspect Firebase structure
+async function debugFirebaseStructure() {
+  try {
+    console.log('🔍 Debugging Firebase structure...')
+    
+    // Check root
+    const rootRef = ref(database, '/')
+    const rootSnapshot = await get(rootRef)
+    
+    if (rootSnapshot.exists()) {
+      const rootKeys = Object.keys(rootSnapshot.val())
+      console.log('📁 Root level keys:', rootKeys)
+      
+      // Check idx_stc
+      if (rootKeys.includes('idx_stc')) {
+        const idxRef = ref(database, '/idx_stc')
+        const idxSnapshot = await get(idxRef)
+        
+        if (idxSnapshot.exists()) {
+          const idxKeys = Object.keys(idxSnapshot.val())
+          console.log('📁 /idx_stc keys:', idxKeys)
+          
+          // Check for ohlc paths
+          const ohlcKeys = idxKeys.filter(k => k.startsWith('ohlc_'))
+          console.log('📊 OHLC timeframes found:', ohlcKeys)
+          
+          // Check first ohlc path
+          if (ohlcKeys.length > 0) {
+            const firstOhlc = ohlcKeys[0]
+            const ohlcRef = ref(database, `/idx_stc/${firstOhlc}`)
+            const ohlcSnapshot = await get(query(ohlcRef, limitToLast(1)))
+            
+            if (ohlcSnapshot.exists()) {
+              console.log(`📋 Sample from /idx_stc/${firstOhlc}:`, ohlcSnapshot.val())
+            }
+          }
+        }
+      }
+    } else {
+      console.error('❌ Firebase root is empty!')
+    }
+  } catch (error) {
+    console.error('❌ Debug error:', error)
   }
 }
 
@@ -119,12 +197,14 @@ function processHistoricalData(data: any, limit: number): any[] {
     const item = data[key]
     
     if (!item || typeof item !== 'object') {
+      console.warn(`⚠️ Invalid item at key ${key}:`, item)
       return
     }
 
     const timestamp = item.timestamp || parseInt(key)
     
     if (!timestamp || !item.close) {
+      console.warn(`⚠️ Missing required fields at key ${key}:`, item)
       return
     }
 
@@ -181,6 +261,7 @@ export function subscribeToOHLCUpdates(
       const latestData = data[latestKey]
       
       if (latestData) {
+        console.log(`📊 New ${timeframe} bar:`, latestData.close)
         callback({
           timestamp: latestData.timestamp || parseInt(latestKey),
           datetime: latestData.datetime,
@@ -192,9 +273,14 @@ export function subscribeToOHLCUpdates(
         })
       }
     }
+  }, (error) => {
+    console.error(`❌ Error subscribing to ${timeframe}:`, error)
   })
 
-  return () => off(ohlcRef)
+  return () => {
+    console.log(`🔕 Unsubscribing from ${timeframe} updates`)
+    off(ohlcRef)
+  }
 }
 
 // ✅ Get latest bar from specific timeframe (for real-time updates)
@@ -259,4 +345,20 @@ export async function checkAvailableTimeframes(assetPath: string): Promise<strin
   
   console.log('📊 Available timeframes:', available.join(', '))
   return available
+}
+
+// Test Firebase connection
+export async function testFirebaseConnection(): Promise<boolean> {
+  if (typeof window === 'undefined') return false
+  
+  try {
+    console.log('🔍 Testing Firebase connection...')
+    const testRef = ref(database, '/test')
+    const snapshot = await get(testRef)
+    console.log('✅ Firebase connection successful')
+    return true
+  } catch (error) {
+    console.error('❌ Firebase connection failed:', error)
+    return false
+  }
 }
