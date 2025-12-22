@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useTradingStore } from '@/store/trading'
-import { fetchHistoricalData, subscribeToPriceUpdates } from '@/lib/firebase'
-import { Activity, ZoomIn, ZoomOut, Maximize2, Minimize2 } from 'lucide-react'
+import { fetchHistoricalData, subscribeToPriceUpdates, getAllData } from '@/lib/firebase'
+import { Activity, ZoomIn, ZoomOut, Maximize2, Minimize2, RefreshCw } from 'lucide-react'
 
 interface PricePoint {
   timestamp: number
@@ -55,18 +55,22 @@ export default function TradingChart() {
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [historicalLoaded, setHistoricalLoaded] = useState(false)
+  const [dataLoadError, setDataLoadError] = useState<string | null>(null)
   
   const maxDataPoints = Math.floor(100 / zoom)
   
-  // Load historical data when asset is selected
+  // ✅ FIXED: Load historical data with better error handling and logging
   useEffect(() => {
     if (!selectedAsset) return
 
     const loadHistoricalData = async () => {
       setIsLoading(true)
       setHistoricalLoaded(false)
+      setDataLoadError(null)
       
       try {
+        console.log('📊 Loading historical data for:', selectedAsset.symbol)
+        
         // Determine the data path based on asset
         let assetPath = ''
         
@@ -74,17 +78,44 @@ export default function TradingChart() {
           // Extract base path (remove /current_price or similar)
           const pathParts = selectedAsset.realtimeDbPath.split('/')
           assetPath = pathParts.slice(0, -1).join('/')
+          console.log('🔗 Using realtimeDbPath:', assetPath)
         } else {
           // Default to lowercase asset symbol
           assetPath = `/${selectedAsset.symbol.toLowerCase()}`
+          console.log('🔗 Using default path:', assetPath)
         }
 
-        console.log(`📊 Loading historical data from: ${assetPath}`)
+        // ✅ First, check what data is available
+        console.log('🔍 Checking available data structure...')
+        const allData = await getAllData(assetPath)
         
-        // Fetch last 500 bars
-        const historical = await fetchHistoricalData(assetPath, 500)
+        if (allData) {
+          console.log('📦 Available data keys:', Object.keys(allData))
+          
+          // Check for ohlc data
+          if (allData.ohlc) {
+            console.log('✅ Found OHLC data, count:', Object.keys(allData.ohlc).length)
+          } else {
+            console.log('⚠️ No OHLC data found, checking for direct timestamp keys...')
+            
+            // Check if data is stored directly without /ohlc path
+            const timestamps = Object.keys(allData).filter(key => !isNaN(parseInt(key)))
+            if (timestamps.length > 0) {
+              console.log('✅ Found direct timestamp data, count:', timestamps.length)
+            }
+          }
+        }
+
+        // ✅ Fetch historical data with increased limit
+        console.log(`📥 Fetching last 2000 bars from: ${assetPath}`)
+        const historical = await fetchHistoricalData(assetPath, 2000)
         
         if (historical.length > 0) {
+          console.log(`✅ Loaded ${historical.length} historical bars`)
+          console.log(`   First bar: ${historical[0].datetime}`)
+          console.log(`   Last bar: ${historical[historical.length - 1].datetime}`)
+          console.log(`   Sample data:`, historical[historical.length - 1])
+          
           // Convert to PricePoint format
           const pricePoints: PricePoint[] = historical.map(bar => ({
             timestamp: bar.timestamp,
@@ -98,14 +129,16 @@ export default function TradingChart() {
           
           setRawPriceData(pricePoints)
           setHistoricalLoaded(true)
-          console.log(`✅ Loaded ${pricePoints.length} historical price points`)
+          console.log(`✅ Set ${pricePoints.length} price points to state`)
         } else {
-          console.log('⚠️ No historical data available, waiting for real-time data...')
+          console.warn('⚠️ No historical data returned')
+          setDataLoadError('No historical data available. Make sure the simulator is running.')
           setRawPriceData([])
         }
         
       } catch (error) {
-        console.error('Error loading historical data:', error)
+        console.error('❌ Error loading historical data:', error)
+        setDataLoadError(`Error loading data: ${error}`)
         setRawPriceData([])
       } finally {
         setIsLoading(false)
@@ -142,28 +175,34 @@ export default function TradingChart() {
 
   // Subscribe to real-time updates
   useEffect(() => {
-    if (!selectedAsset) return
+    if (!selectedAsset || !historicalLoaded) return
 
     let unsubscribe: (() => void) | undefined
 
     if (selectedAsset.dataSource === 'realtime_db' && selectedAsset.realtimeDbPath) {
+      console.log('🔴 Subscribing to real-time updates:', selectedAsset.realtimeDbPath)
+      
       // Subscribe to current_price for real-time updates
       unsubscribe = subscribeToPriceUpdates(selectedAsset.realtimeDbPath, (data) => {
+        console.log('📡 Real-time update received:', data)
         setCurrentPrice(data)
         addPriceToHistory(data)
       })
     }
 
     return () => {
-      if (unsubscribe) unsubscribe()
+      if (unsubscribe) {
+        console.log('🔴 Unsubscribing from real-time updates')
+        unsubscribe()
+      }
     }
-  }, [selectedAsset, setCurrentPrice, addPriceToHistory])
+  }, [selectedAsset, historicalLoaded, setCurrentPrice, addPriceToHistory])
 
   // Add real-time price to raw data
   useEffect(() => {
     if (currentPrice && historicalLoaded) {
       const newPoint: PricePoint = {
-        timestamp: currentPrice.timestamp || Date.now() / 1000,
+        timestamp: currentPrice.timestamp || Math.floor(Date.now() / 1000),
         price: currentPrice.price,
         volume: Math.random() * 1000000 // Mock volume for real-time data
       }
@@ -174,15 +213,20 @@ export default function TradingChart() {
         if (exists) return prev
         
         const updated = [...prev, newPoint]
-        // Keep last 500 points for performance
-        return updated.slice(-500)
+        // Keep last 2000 points for performance
+        return updated.slice(-2000)
       })
     }
   }, [currentPrice, historicalLoaded])
 
-  // Aggregate data based on timeframe (optimized for performance)
+  // ✅ FIXED: Aggregate data based on timeframe with better handling
   useEffect(() => {
-    if (rawPriceData.length === 0) return
+    if (rawPriceData.length === 0) {
+      console.log('⚠️ No raw price data to aggregate')
+      return
+    }
+
+    console.log(`🔄 Aggregating ${rawPriceData.length} bars to ${timeframe} timeframe`)
 
     const timeframeSeconds = TIMEFRAME_SECONDS[timeframe]
     const bars: Map<number, AggregatedBar> = new Map()
@@ -210,6 +254,8 @@ export default function TradingChart() {
         if (point.open !== undefined) {
           // This is already an OHLC bar, just update close
           bar.close = point.close || point.price
+          bar.high = Math.max(bar.high, point.high || point.price)
+          bar.low = Math.min(bar.low, point.low || point.price)
           bar.volume += point.volume || 0
         } else {
           // This is a single price point, update OHLC
@@ -226,8 +272,11 @@ export default function TradingChart() {
       .sort((a, b) => a.timestamp - b.timestamp)
       .slice(-maxDataPoints)
 
+    console.log(`✅ Aggregated to ${aggregated.length} ${timeframe} bars`)
+    console.log(`   Showing last ${maxDataPoints} bars (zoom: ${zoom}x)`)
+
     setAggregatedData(aggregated)
-  }, [rawPriceData, timeframe, maxDataPoints])
+  }, [rawPriceData, timeframe, maxDataPoints, zoom])
 
   // Mouse handlers
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -243,7 +292,23 @@ export default function TradingChart() {
     setMousePos(null)
   }, [])
 
-  // Draw chart
+  // Refresh data manually
+  const handleRefresh = async () => {
+    if (!selectedAsset) return
+    
+    setIsLoading(true)
+    setRawPriceData([])
+    setAggregatedData([])
+    
+    // Trigger reload by updating selected asset
+    const asset = selectedAsset
+    useTradingStore.setState({ selectedAsset: null })
+    setTimeout(() => {
+      useTradingStore.setState({ selectedAsset: asset })
+    }, 100)
+  }
+
+  // Draw chart (same as before, no changes needed)
   useEffect(() => {
     if (!canvasRef.current || aggregatedData.length === 0 || dimensions.width === 0) return
 
@@ -639,6 +704,16 @@ export default function TradingChart() {
           </button>
         </div>
 
+        {/* Refresh Button */}
+        <button
+          onClick={handleRefresh}
+          disabled={isLoading}
+          className="p-1.5 bg-[#0f1419]/80 backdrop-blur-sm border border-gray-800/50 rounded-lg text-gray-400 hover:text-white transition-colors disabled:opacity-50"
+          title="Refresh Data"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+        </button>
+
         {/* Fullscreen Toggle */}
         <button
           onClick={toggleFullscreen}
@@ -656,7 +731,7 @@ export default function TradingChart() {
         </div>
         {aggregatedData.length > 0 && (
           <div className="text-xs text-gray-500 mt-1">
-            {aggregatedData.length} bars
+            {aggregatedData.length} bars • {rawPriceData.length} raw
           </div>
         )}
       </div>
@@ -677,6 +752,19 @@ export default function TradingChart() {
             <div>Loading historical data...</div>
           </div>
         </div>
+      ) : dataLoadError ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-red-400 text-sm flex flex-col items-center gap-3 text-center max-w-md">
+            <Activity className="w-12 h-12 opacity-20" />
+            <div>{dataLoadError}</div>
+            <button 
+              onClick={handleRefresh}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white text-xs transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
       ) : aggregatedData.length === 0 ? (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-gray-500 text-sm flex flex-col items-center gap-3">
@@ -685,6 +773,12 @@ export default function TradingChart() {
             </div>
             <div>Waiting for data...</div>
             <div className="text-xs text-gray-600">Make sure simulator is running</div>
+            <button 
+              onClick={handleRefresh}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white text-xs transition-colors"
+            >
+              Refresh
+            </button>
           </div>
         </div>
       ) : !historicalLoaded && aggregatedData.length < 20 ? (

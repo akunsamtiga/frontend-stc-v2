@@ -39,14 +39,17 @@ export function subscribeToPriceUpdates(
   return () => off(priceRef)
 }
 
-// Fetch historical OHLC data
+// ✅ FIXED: Fetch historical OHLC data with better error handling and logging
 export async function fetchHistoricalData(
   assetPath: string,
-  limit: number = 500
+  limit: number = 1000 // Increased default limit
 ): Promise<any[]> {
   if (typeof window === 'undefined') return []
 
   try {
+    console.log(`📊 Fetching historical data from: ${assetPath}`)
+    console.log(`   Limit: ${limit} bars`)
+    
     const ohlcPath = `${assetPath}/ohlc`
     const ohlcRef = ref(database, ohlcPath)
     
@@ -55,38 +58,79 @@ export async function fetchHistoricalData(
     const snapshot = await get(historyQuery)
     
     if (!snapshot.exists()) {
-      console.log('No historical data found')
-      return []
+      console.warn('⚠️ No historical data found at path:', ohlcPath)
+      
+      // Try alternative path without /ohlc
+      console.log('🔄 Trying alternative path:', assetPath)
+      const altRef = ref(database, assetPath)
+      const altSnapshot = await get(query(altRef, orderByKey(), limitToLast(limit)))
+      
+      if (!altSnapshot.exists()) {
+        console.error('❌ No data found at alternative path either')
+        return []
+      }
+      
+      // Use alternative snapshot
+      const data = altSnapshot.val()
+      console.log('✅ Found data at alternative path')
+      return processHistoricalData(data, limit)
     }
 
     const data = snapshot.val()
-    const historicalData: any[] = []
-
-    // Convert object to array
-    Object.keys(data).forEach(key => {
-      const item = data[key]
-      historicalData.push({
-        timestamp: item.timestamp || parseInt(key),
-        datetime: item.datetime,
-        open: item.open,
-        high: item.high,
-        low: item.low,
-        close: item.close,
-        volume: item.volume || 0
-      })
-    })
-
-    // Sort by timestamp ascending
-    historicalData.sort((a, b) => a.timestamp - b.timestamp)
-
-    console.log(`✅ Loaded ${historicalData.length} historical bars from Firebase`)
+    console.log(`✅ Raw data fetched. Keys count: ${Object.keys(data).length}`)
     
-    return historicalData
+    return processHistoricalData(data, limit)
 
   } catch (error) {
-    console.error('Error fetching historical data:', error)
+    console.error('❌ Error fetching historical data:', error)
     return []
   }
+}
+
+// Process and validate historical data
+function processHistoricalData(data: any, limit: number): any[] {
+  const historicalData: any[] = []
+
+  // Convert object to array
+  Object.keys(data).forEach(key => {
+    const item = data[key]
+    
+    // Validate data structure
+    if (!item || typeof item !== 'object') {
+      console.warn('⚠️ Invalid data item:', key)
+      return
+    }
+
+    // Handle both timestamp formats
+    const timestamp = item.timestamp || parseInt(key)
+    
+    // Validate required fields
+    if (!timestamp || !item.close) {
+      console.warn('⚠️ Missing required fields:', { timestamp, close: item.close })
+      return
+    }
+
+    historicalData.push({
+      timestamp: timestamp,
+      datetime: item.datetime || new Date(timestamp * 1000).toISOString(),
+      open: item.open || item.close,
+      high: item.high || item.close,
+      low: item.low || item.close,
+      close: item.close,
+      volume: item.volume || 0
+    })
+  })
+
+  // Sort by timestamp ascending
+  historicalData.sort((a, b) => a.timestamp - b.timestamp)
+
+  // Take last N bars
+  const result = historicalData.slice(-limit)
+
+  console.log(`✅ Processed ${result.length} historical bars`)
+  console.log(`   Date range: ${result[0]?.datetime} to ${result[result.length - 1]?.datetime}`)
+
+  return result
 }
 
 // Subscribe to OHLC updates (for new bars)
@@ -123,4 +167,28 @@ export function subscribeToOHLCUpdates(
   })
 
   return () => off(ohlcRef)
+}
+
+// ✅ NEW: Get all available data (for debugging)
+export async function getAllData(assetPath: string): Promise<any> {
+  if (typeof window === 'undefined') return null
+
+  try {
+    console.log(`🔍 Getting all data from: ${assetPath}`)
+    const assetRef = ref(database, assetPath)
+    const snapshot = await get(assetRef)
+    
+    if (!snapshot.exists()) {
+      console.warn('⚠️ No data found')
+      return null
+    }
+
+    const data = snapshot.val()
+    console.log('📦 Data structure:', Object.keys(data))
+    
+    return data
+  } catch (error) {
+    console.error('❌ Error getting all data:', error)
+    return null
+  }
 }
