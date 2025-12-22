@@ -203,19 +203,21 @@ export default function TradingPage() {
           {/* Deposit Button */}
           <button
             onClick={() => router.push('/balance')}
-            className="p-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded-lg transition-colors group"
+            className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded-lg transition-colors group"
             title="Deposit"
           >
             <Plus className="w-4 h-4 text-green-400 group-hover:text-green-300" />
+            <span className="text-sm font-medium text-green-400 group-hover:text-green-300">Deposit</span>
           </button>
 
           {/* Withdraw Button */}
           <button
             onClick={() => router.push('/balance')}
-            className="p-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-lg transition-colors group"
+            className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-lg transition-colors group"
             title="Withdraw"
           >
             <Minus className="w-4 h-4 text-red-400 group-hover:text-red-300" />
+            <span className="text-sm font-medium text-red-400 group-hover:text-red-300">Withdraw</span>
           </button>
 
           {/* History Button */}
