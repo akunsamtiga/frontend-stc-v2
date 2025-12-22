@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import { Asset } from '@/types'
 import { formatCurrency, DURATIONS } from '@/lib/utils'
 import TradingChart from '../../components/TradingChart'
+import HistorySidebar from '../../components/HistorySidebar'
 import { 
   TrendingUp,
   TrendingDown,
@@ -135,13 +136,14 @@ export default function TradingPage() {
     <div className="h-screen flex flex-col bg-[#0a0e17] text-white overflow-hidden">
       {/* Top Bar */}
       <div className="h-14 bg-[#0f1419] border-b border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">
-        {/* Left - Logo & Asset */}
-        <div className="flex items-center gap-4">
+        {/* Desktop Layout */}
+        <div className="hidden lg:flex items-center gap-4 w-full">
+          {/* Logo & Title */}
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
               <TrendingUp className="w-4 h-4" />
             </div>
-            <span className="font-bold text-sm hidden sm:block">BinaryTrade</span>
+            <span className="font-bold text-sm">BinaryTrade</span>
           </div>
 
           {/* Asset Selector */}
@@ -153,7 +155,7 @@ export default function TradingPage() {
               {selectedAsset ? (
                 <>
                   <span className="text-sm font-medium">{selectedAsset.symbol}</span>
-                  <span className="text-xs text-gray-400 hidden sm:inline">{selectedAsset.name}</span>
+                  <span className="text-xs text-gray-400">{selectedAsset.name}</span>
                 </>
               ) : (
                 <span className="text-sm text-gray-400">Select Asset</span>
@@ -188,20 +190,38 @@ export default function TradingPage() {
               </>
             )}
           </div>
-        </div>
 
-        {/* Right - Balance & User */}
-        <div className="flex items-center gap-3">
-          {/* Balance */}
-          <div className="hidden sm:flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
+          {/* Spacer */}
+          <div className="flex-1"></div>
+
+          {/* Balance Display */}
+          <div className="flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
             <Wallet className="w-4 h-4 text-blue-400" />
             <span className="text-sm font-mono font-bold">{formatCurrency(balance)}</span>
           </div>
 
-          {/* History Button - Desktop */}
+          {/* Deposit Button */}
+          <button
+            onClick={() => router.push('/balance')}
+            className="p-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded-lg transition-colors group"
+            title="Deposit"
+          >
+            <Plus className="w-4 h-4 text-green-400 group-hover:text-green-300" />
+          </button>
+
+          {/* Withdraw Button */}
+          <button
+            onClick={() => router.push('/balance')}
+            className="p-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-lg transition-colors group"
+            title="Withdraw"
+          >
+            <Minus className="w-4 h-4 text-red-400 group-hover:text-red-300" />
+          </button>
+
+          {/* History Button */}
           <button
             onClick={() => setShowHistorySidebar(true)}
-            className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors border border-gray-800/50"
+            className="flex items-center gap-2 px-3 py-1.5 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors border border-gray-800/50"
           >
             <History className="w-4 h-4" />
             <span className="text-sm">History</span>
@@ -254,11 +274,36 @@ export default function TradingPage() {
               </>
             )}
           </div>
+        </div>
+
+        {/* Mobile Layout */}
+        <div className="flex lg:hidden items-center justify-between w-full">
+          {/* Logo */}
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+          </div>
+
+          {/* Balance */}
+          <div className="flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
+            <Wallet className="w-3 h-3 text-blue-400" />
+            <span className="text-xs font-mono font-bold">{formatCurrency(balance)}</span>
+          </div>
+
+          {/* Wallet Button */}
+          <button
+            onClick={() => router.push('/balance')}
+            className="p-2 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors border border-gray-800/50"
+            title="Balance"
+          >
+            <Wallet className="w-4 h-4 text-blue-400" />
+          </button>
 
           {/* Mobile Menu Toggle */}
           <button
             onClick={() => setShowMobileMenu(!showMobileMenu)}
-            className="lg:hidden p-2 hover:bg-[#1a1f2e] rounded-lg transition-colors"
+            className="p-2 hover:bg-[#1a1f2e] rounded-lg transition-colors"
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -305,133 +350,126 @@ export default function TradingPage() {
           </div>
         </div>
 
-        {/* Trading Panel - Desktop */}
-        <div className="hidden lg:block w-80 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
-          <div className="h-full flex flex-col">
+        {/* Trading Panel - Desktop (COMPACT VERSION) */}
+        <div className="hidden lg:block w-72 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
+          <div className="h-full flex flex-col p-4 space-y-3">
             {/* Panel Header */}
-            <div className="p-4 border-b border-gray-800/50">
-              <h3 className="text-sm font-semibold text-gray-400 mb-1">Trading Panel</h3>
+            <div className="pb-3 border-b border-gray-800/50">
+              <h3 className="text-xs font-semibold text-gray-400">Quick Trade</h3>
               {selectedAsset && (
-                <div className="text-xs text-gray-500">
-                  Profit Rate: <span className="text-green-400 font-bold">{selectedAsset.profitRate}%</span>
+                <div className="text-xs text-gray-500 mt-1">
+                  Rate: <span className="text-green-400 font-bold">+{selectedAsset.profitRate}%</span>
                 </div>
               )}
             </div>
 
-            {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {/* Amount */}
+            {/* Amount & Duration - 2 Columns */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Amount Column */}
               <div>
-                <label className="text-xs text-gray-400 mb-2 block font-medium">Investment Amount</label>
+                <label className="text-xs text-gray-400 mb-1.5 block font-medium">Amount</label>
                 <div className="relative">
                   <input
                     type="number"
                     value={amount}
                     onChange={(e) => setAmount(Number(e.target.value))}
-                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-4 py-3 text-center text-lg font-mono font-bold focus:outline-none focus:border-blue-500/50 transition-colors"
+                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-center text-sm font-mono font-bold focus:outline-none focus:border-blue-500/50 transition-colors"
                     min="1000"
                     step="1000"
                   />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-1">
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-0.5">
                     <button
                       onClick={() => setAmount((prev) => prev + 1000)}
                       className="p-0.5 bg-[#232936] hover:bg-[#2d3442] rounded transition-colors"
                     >
-                      <Plus className="w-3 h-3" />
+                      <Plus className="w-2.5 h-2.5" />
                     </button>
                     <button
                       onClick={() => setAmount((prev) => Math.max(1000, prev - 1000))}
                       className="p-0.5 bg-[#232936] hover:bg-[#2d3442] rounded transition-colors"
                     >
-                      <Minus className="w-3 h-3" />
+                      <Minus className="w-2.5 h-2.5" />
                     </button>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  {[10000, 50000, 100000].map((preset) => (
-                    <button
-                      key={preset}
-                      onClick={() => setAmount(preset)}
-                      className={`py-1.5 rounded-lg text-xs font-medium transition-all ${
-                        amount === preset
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
-                      }`}
-                    >
-                      {preset >= 1000000 ? `${preset/1000000}M` : `${preset/1000}K`}
-                    </button>
-                  ))}
-                </div>
               </div>
 
-              {/* Duration */}
+              {/* Duration Column */}
               <div>
-                <label className="text-xs text-gray-400 mb-2 block font-medium flex items-center gap-1">
+                <label className="text-xs text-gray-400 mb-1.5 block font-medium flex items-center gap-1">
                   <Clock className="w-3 h-3" />
-                  Duration (Minutes)
+                  Time (m)
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <select
+                  value={duration}
+                  onChange={(e) => setDuration(Number(e.target.value))}
+                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-center text-sm font-bold focus:outline-none focus:border-blue-500/50 transition-colors"
+                >
                   {DURATIONS.map((d) => (
-                    <button
-                      key={d}
-                      onClick={() => setDuration(d)}
-                      className={`py-2 rounded-lg text-sm font-medium transition-all ${
-                        duration === d
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
-                      }`}
-                    >
-                      {d}m
-                    </button>
+                    <option key={d} value={d}>{d}m</option>
                   ))}
-                </div>
+                </select>
               </div>
-
-              {/* Profit Info */}
-              {selectedAsset && (
-                <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg p-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-400">Investment:</span>
-                      <span className="font-mono font-bold">{formatCurrency(amount)}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-400">Profit:</span>
-                      <span className="font-mono font-bold text-green-400">+{formatCurrency(potentialProfit)}</span>
-                    </div>
-                    <div className="border-t border-green-500/20 pt-2 mt-2">
-                      <div className="flex justify-between">
-                        <span className="text-xs text-gray-400">Total Payout:</span>
-                        <span className="font-mono font-bold text-green-400">{formatCurrency(potentialPayout)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
 
-            {/* Action Buttons */}
-            <div className="p-4 border-t border-gray-800/50 space-y-2">
-              <button
-                onClick={() => handlePlaceOrder('CALL')}
-                disabled={loading || !selectedAsset}
-                className="w-full bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-500/20"
-              >
-                <TrendingUp className="w-5 h-5" />
-                <span>BUY (Higher)</span>
-              </button>
+            {/* Quick Amount Presets */}
+            <div className="grid grid-cols-3 gap-2">
+              {[10000, 50000, 100000].map((preset) => (
+                <button
+                  key={preset}
+                  onClick={() => setAmount(preset)}
+                  className={`py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    amount === preset
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
+                  }`}
+                >
+                  {preset >= 1000000 ? `${preset/1000000}M` : `${preset/1000}K`}
+                </button>
+              ))}
+            </div>
 
-              <button
-                onClick={() => handlePlaceOrder('PUT')}
-                disabled={loading || !selectedAsset}
-                className="w-full bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/20"
-              >
-                <TrendingDown className="w-5 h-5" />
-                <span>SELL (Lower)</span>
-              </button>
+            {/* Profit Info - Single Line */}
+            {selectedAsset && (
+              <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg px-3 py-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-400">Potential:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-gray-300">{formatCurrency(amount)}</span>
+                    <span className="text-gray-500">→</span>
+                    <span className="font-mono font-bold text-green-400">{formatCurrency(potentialPayout)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Spacer */}
+            <div className="flex-1"></div>
+
+            {/* Action Buttons - Icon Only (Horizontal) */}
+            <div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => handlePlaceOrder('CALL')}
+                  disabled={loading || !selectedAsset}
+                  className="bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-green-500/20"
+                  title="Buy (Higher)"
+                >
+                  <TrendingUp className="w-6 h-6" />
+                </button>
+
+                <button
+                  onClick={() => handlePlaceOrder('PUT')}
+                  disabled={loading || !selectedAsset}
+                  className="bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-red-500/20"
+                  title="Sell (Lower)"
+                >
+                  <TrendingDown className="w-6 h-6" />
+                </button>
+              </div>
 
               {loading && (
-                <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-2">
+                <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-2 mt-2">
                   <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-400"></div>
                   Processing...
                 </div>
@@ -524,7 +562,30 @@ export default function TradingPage() {
                 <X className="w-5 h-5" />
               </button>
             </div>
+            
             <div className="space-y-2">
+              {/* Asset Selector - Mobile */}
+              <div className="mb-4">
+                <label className="text-xs text-gray-400 mb-2 block">Select Asset</label>
+                <select
+                  value={selectedAsset?.id || ''}
+                  onChange={(e) => {
+                    const asset = assets.find(a => a.id === e.target.value)
+                    if (asset) {
+                      setSelectedAsset(asset)
+                      setShowMobileMenu(false)
+                    }
+                  }}
+                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500/50"
+                >
+                  {assets.map((asset) => (
+                    <option key={asset.id} value={asset.id}>
+                      {asset.symbol} - {asset.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <button
                 onClick={() => {
                   setShowHistorySidebar(true)
@@ -535,13 +596,7 @@ export default function TradingPage() {
                 <History className="w-4 h-4" />
                 <span>History</span>
               </button>
-              <button
-                onClick={() => router.push('/balance')}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-              >
-                <Wallet className="w-4 h-4" />
-                <span>Balance</span>
-              </button>
+              
               <button
                 onClick={() => router.push('/profile')}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
@@ -549,10 +604,27 @@ export default function TradingPage() {
                 <Settings className="w-4 h-4" />
                 <span>Settings</span>
               </button>
+
+              <button
+                onClick={() => {
+                  logout()
+                  router.push('/')
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </button>
             </div>
           </div>
         </>
       )}
+
+      {/* History Sidebar */}
+      <HistorySidebar 
+        isOpen={showHistorySidebar} 
+        onClose={() => setShowHistorySidebar(false)} 
+      />
 
       <style jsx>{`
         @keyframes slide-in-right {
