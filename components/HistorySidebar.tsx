@@ -49,12 +49,15 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
 
   return (
     <>
+      {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/60 z-40 lg:z-30"
         onClick={onClose}
       />
 
+      {/* Sidebar */}
       <div className="fixed top-0 right-0 lg:left-14 bottom-0 w-full lg:w-96 bg-background-secondary border-l border-gray-700 z-50 lg:z-30 flex flex-col shadow-2xl animate-slide-in">
+        {/* Header */}
         <div className="p-4 border-b border-gray-700 flex items-center justify-between flex-shrink-0">
           <h2 className="text-lg font-bold">Order History</h2>
           <button
@@ -65,6 +68,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
           </button>
         </div>
 
+        {/* Stats */}
         <div className="p-4 border-b border-gray-700 grid grid-cols-4 gap-2 flex-shrink-0">
           <div className="text-center p-2 bg-background-tertiary rounded-lg">
             <div className="text-xs text-gray-400 mb-1">Total</div>
@@ -84,6 +88,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
           </div>
         </div>
 
+        {/* Filter */}
         <div className="p-4 border-b border-gray-700 flex-shrink-0">
           <div className="flex items-center gap-2 mb-2">
             <Filter className="w-4 h-4 text-gray-400" />
@@ -106,6 +111,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
           </div>
         </div>
 
+        {/* Orders List */}
         <div className="flex-1 overflow-y-auto p-4">
           {loading ? (
             <div className="text-center py-12 text-gray-400">
@@ -123,6 +129,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                   key={order.id}
                   className="bg-background-tertiary rounded-lg p-3 border border-gray-700 hover:border-gray-600 transition-colors"
                 >
+                  {/* Header */}
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       {order.direction === 'CALL' ? (
@@ -150,6 +157,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                     </div>
                   </div>
 
+                  {/* Details */}
                   <div className="grid grid-cols-2 gap-2 text-xs mb-2">
                     <div>
                       <div className="text-gray-400">Amount</div>
@@ -180,6 +188,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                     )}
                   </div>
 
+                  {/* Time */}
                   <div className="text-xs text-gray-500 border-t border-gray-700 pt-2">
                     {formatDate(order.createdAt)}
                   </div>
@@ -189,6 +198,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
           )}
         </div>
 
+        {/* Refresh Button */}
         <div className="p-4 border-t border-gray-700 flex-shrink-0">
           <button
             onClick={loadOrders}

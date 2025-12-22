@@ -19,8 +19,9 @@ export default function TradingChart() {
   const [priceData, setPriceData] = useState<PricePoint[]>([])
   const [priceChange, setPriceChange] = useState(0)
   const [priceChangePercent, setPriceChangePercent] = useState(0)
-  const maxDataPoints = 60
+  const maxDataPoints = 60 // Show last 60 seconds
 
+  // Handle resize
   useEffect(() => {
     const updateDimensions = () => {
       if (containerRef.current) {
@@ -34,6 +35,7 @@ export default function TradingChart() {
     return () => window.removeEventListener('resize', updateDimensions)
   }, [])
 
+  // Update price data
   useEffect(() => {
     if (currentPrice) {
       const newPoint: PricePoint = {
@@ -46,6 +48,7 @@ export default function TradingChart() {
         return updated.slice(-maxDataPoints)
       })
 
+      // Calculate price change
       if (priceData.length > 0) {
         const firstPrice = priceData[0].price
         const change = currentPrice.price - firstPrice
@@ -56,6 +59,7 @@ export default function TradingChart() {
     }
   }, [currentPrice])
 
+  // Draw chart
   useEffect(() => {
     if (!canvasRef.current || priceData.length < 2 || dimensions.width === 0) return
 
@@ -63,28 +67,34 @@ export default function TradingChart() {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
+    // Set canvas size
     canvas.width = dimensions.width * window.devicePixelRatio
     canvas.height = dimensions.height * window.devicePixelRatio
     canvas.style.width = `${dimensions.width}px`
     canvas.style.height = `${dimensions.height}px`
     ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
 
+    // Clear canvas
     ctx.clearRect(0, 0, dimensions.width, dimensions.height)
 
+    // Chart settings
     const padding = { top: 40, right: 60, bottom: 30, left: 10 }
     const chartWidth = dimensions.width - padding.left - padding.right
     const chartHeight = dimensions.height - padding.top - padding.bottom
 
+    // Get price range
     const prices = priceData.map(d => d.price)
     const minPrice = Math.min(...prices)
     const maxPrice = Math.max(...prices)
     const priceRange = maxPrice - minPrice || 1
 
+    // Add some padding to price range
     const pricePadding = priceRange * 0.1
     const minY = minPrice - pricePadding
     const maxY = maxPrice + pricePadding
     const adjustedRange = maxY - minY
 
+    // Helper function to convert data to canvas coordinates
     const getX = (index: number) => {
       return padding.left + (index / (priceData.length - 1)) * chartWidth
     }
@@ -93,6 +103,7 @@ export default function TradingChart() {
       return padding.top + chartHeight - ((price - minY) / adjustedRange) * chartHeight
     }
 
+    // Draw grid lines
     ctx.strokeStyle = 'rgba(75, 85, 99, 0.3)'
     ctx.lineWidth = 1
     const gridLines = 5
@@ -104,6 +115,7 @@ export default function TradingChart() {
       ctx.lineTo(dimensions.width - padding.right, y)
       ctx.stroke()
 
+      // Draw price labels
       const price = maxY - (adjustedRange / gridLines) * i
       ctx.fillStyle = '#9ca3af'
       ctx.font = '11px monospace'
@@ -115,15 +127,18 @@ export default function TradingChart() {
       )
     }
 
+    // Determine trend color
     const isUptrend = priceChange >= 0
     const lineColor = isUptrend ? '#10b981' : '#ef4444'
     const gradientColor1 = isUptrend ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'
     const gradientColor2 = isUptrend ? 'rgba(16, 185, 129, 0)' : 'rgba(239, 68, 68, 0)'
 
+    // Create gradient
     const gradient = ctx.createLinearGradient(0, padding.top, 0, dimensions.height - padding.bottom)
     gradient.addColorStop(0, gradientColor1)
     gradient.addColorStop(1, gradientColor2)
 
+    // Draw filled area
     ctx.beginPath()
     ctx.moveTo(getX(0), dimensions.height - padding.bottom)
     
@@ -142,6 +157,7 @@ export default function TradingChart() {
     ctx.fillStyle = gradient
     ctx.fill()
 
+    // Draw line
     ctx.beginPath()
     ctx.strokeStyle = lineColor
     ctx.lineWidth = 2
@@ -160,16 +176,19 @@ export default function TradingChart() {
 
     ctx.stroke()
 
+    // Draw current price point
     if (priceData.length > 0) {
       const lastPoint = priceData[priceData.length - 1]
       const lastX = getX(priceData.length - 1)
       const lastY = getY(lastPoint.price)
 
+      // Outer glow
       ctx.beginPath()
       ctx.arc(lastX, lastY, 6, 0, Math.PI * 2)
       ctx.fillStyle = lineColor + '40'
       ctx.fill()
 
+      // Inner dot
       ctx.beginPath()
       ctx.arc(lastX, lastY, 3, 0, Math.PI * 2)
       ctx.fillStyle = lineColor
@@ -191,6 +210,7 @@ export default function TradingChart() {
 
   return (
     <div ref={containerRef} className="h-full bg-background-secondary relative">
+      {/* Price Display */}
       <div className="absolute top-4 left-4 z-10">
         <div className="bg-background/80 backdrop-blur-sm rounded-lg p-3 border border-gray-700">
           <div className="text-xs text-gray-400 mb-1">{selectedAsset.name}</div>
@@ -224,8 +244,10 @@ export default function TradingChart() {
         </div>
       </div>
 
+      {/* Chart Canvas */}
       <canvas ref={canvasRef} className="w-full h-full" />
 
+      {/* No Data Message */}
       {priceData.length === 0 && currentPrice && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-gray-400 text-sm">
@@ -234,6 +256,7 @@ export default function TradingChart() {
         </div>
       )}
 
+      {/* Time Range Label */}
       {priceData.length > 0 && (
         <div className="absolute bottom-4 right-4 text-xs text-gray-500">
           Last {priceData.length} seconds
