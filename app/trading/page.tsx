@@ -9,8 +9,8 @@ import { subscribeToPriceUpdates } from '@/lib/firebase'
 import { toast } from 'sonner'
 import { Asset } from '@/types'
 import { formatCurrency, DURATIONS } from '@/lib/utils'
-import TradingChart from '@/components/ChartTrading'
-import HistorySidebar from '@/components/HistorySidebar'
+import TradingChart from '../../components/TradingChart'
+import HistorySidebar from '../../components/HistorySidebar'
 import { 
   ArrowUpCircle, 
   ArrowDownCircle, 
