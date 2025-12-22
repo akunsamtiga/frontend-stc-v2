@@ -21,14 +21,16 @@ if (typeof window !== 'undefined' && !getApps().length) {
 
 export { database, ref, onValue, off }
 
-// ✅ SMART: Calculate how many raw bars needed based on timeframe
-const TIMEFRAME_REQUIREMENTS = {
-  '1m': { seconds: 60, barsNeeded: 200, rawBarsNeeded: 200 * 60 },      // 200 bars x 60s = 12,000 raw
-  '5m': { seconds: 300, barsNeeded: 200, rawBarsNeeded: 200 * 300 },    // 200 bars x 300s = 60,000 raw
-  '15m': { seconds: 900, barsNeeded: 200, rawBarsNeeded: 200 * 900 },   // 200 bars x 900s = 180,000 raw
-  '1h': { seconds: 3600, barsNeeded: 200, rawBarsNeeded: 200 * 3600 },  // 200 bars x 3600s = 720,000 raw
-  '4h': { seconds: 14400, barsNeeded: 200, rawBarsNeeded: 200 * 14400 },// 200 bars x 14400s = 2,880,000 raw
-  '1d': { seconds: 86400, barsNeeded: 200, rawBarsNeeded: 200 * 86400 } // 200 bars x 86400s = 17,280,000 raw
+// ✅ Timeframe mapping
+type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
+
+const TIMEFRAME_CONFIG = {
+  '1m': { path: 'ohlc_1m', barsToFetch: 200 },
+  '5m': { path: 'ohlc_5m', barsToFetch: 200 },
+  '15m': { path: 'ohlc_15m', barsToFetch: 200 },
+  '1h': { path: 'ohlc_1h', barsToFetch: 200 },
+  '4h': { path: 'ohlc_4h', barsToFetch: 150 },
+  '1d': { path: 'ohlc_1d', barsToFetch: 100 }
 }
 
 // Subscribe to real-time price updates
@@ -49,54 +51,58 @@ export function subscribeToPriceUpdates(
   return () => off(priceRef)
 }
 
-// ✅ SMART: Fetch appropriate amount of data based on timeframe
+// ✅ Fetch historical data from pre-aggregated timeframe
 export async function fetchHistoricalData(
   assetPath: string,
-  timeframe: '1m' | '5m' | '15m' | '1h' | '4h' | '1d' = '1m'
+  timeframe: Timeframe = '1m'
 ): Promise<any[]> {
   if (typeof window === 'undefined') return []
 
   try {
-    const requirements = TIMEFRAME_REQUIREMENTS[timeframe]
+    const config = TIMEFRAME_CONFIG[timeframe]
     
-    // Cap to reasonable limits to prevent memory issues
-    const maxLimit = 50000 // Firebase limit per query
-    const limitToFetch = Math.min(requirements.rawBarsNeeded, maxLimit)
+    if (!config) {
+      console.error(`❌ Invalid timeframe: ${timeframe}`)
+      return []
+    }
+
+    console.log(`📊 Fetching ${timeframe} data from pre-aggregated path`)
+    console.log(`   Path: ${assetPath}/${config.path}`)
+    console.log(`   Bars needed: ${config.barsToFetch}`)
     
-    console.log(`📊 Fetching for ${timeframe} timeframe:`)
-    console.log(`   Need: ${requirements.barsNeeded} bars`)
-    console.log(`   Fetching: ${limitToFetch} raw bars`)
-    console.log(`   Time covered: ${(limitToFetch / 60).toFixed(0)} minutes`)
-    
-    const ohlcPath = `${assetPath}/ohlc`
+    const ohlcPath = `${assetPath}/${config.path}`
     const ohlcRef = ref(database, ohlcPath)
     
     // Query with appropriate limit
-    const historyQuery = query(ohlcRef, orderByKey(), limitToLast(limitToFetch))
+    const historyQuery = query(ohlcRef, orderByKey(), limitToLast(config.barsToFetch))
     const snapshot = await get(historyQuery)
     
     if (!snapshot.exists()) {
-      console.warn('⚠️ No historical data found at path:', ohlcPath)
+      console.warn('⚠️ No data found at path:', ohlcPath)
       
-      // Try alternative path
-      console.log('🔄 Trying alternative path:', assetPath)
-      const altRef = ref(database, assetPath)
-      const altSnapshot = await get(query(altRef, orderByKey(), limitToLast(limitToFetch)))
+      // Try alternative paths
+      console.log('🔄 Trying alternative paths...')
+      
+      // Try without asset prefix
+      const altPath = `/${config.path}`
+      const altRef = ref(database, altPath)
+      const altSnapshot = await get(query(altRef, orderByKey(), limitToLast(config.barsToFetch)))
       
       if (!altSnapshot.exists()) {
-        console.error('❌ No data found at alternative path either')
+        console.error('❌ No data found in alternative paths')
+        console.log('💡 Make sure simulator is running with multi-timeframe mode')
         return []
       }
       
       const data = altSnapshot.val()
       console.log('✅ Found data at alternative path')
-      return processHistoricalData(data, limitToFetch)
+      return processHistoricalData(data, config.barsToFetch)
     }
 
     const data = snapshot.val()
-    console.log(`✅ Raw data fetched. Keys count: ${Object.keys(data).length}`)
+    console.log(`✅ Fetched ${Object.keys(data).length} bars from ${timeframe} timeframe`)
     
-    return processHistoricalData(data, limitToFetch)
+    return processHistoricalData(data, config.barsToFetch)
 
   } catch (error) {
     console.error('❌ Error fetching historical data:', error)
@@ -139,7 +145,7 @@ function processHistoricalData(data: any, limit: number): any[] {
   // Take last N bars
   const result = historicalData.slice(-limit)
 
-  console.log(`✅ Processed ${result.length} historical bars`)
+  console.log(`✅ Processed ${result.length} bars`)
   if (result.length > 0) {
     console.log(`   Date range: ${result[0]?.datetime} to ${result[result.length - 1]?.datetime}`)
   }
@@ -147,15 +153,24 @@ function processHistoricalData(data: any, limit: number): any[] {
   return result
 }
 
-// Subscribe to OHLC updates (for new bars)
+// ✅ Subscribe to timeframe-specific OHLC updates
 export function subscribeToOHLCUpdates(
   assetPath: string,
+  timeframe: Timeframe,
   callback: (data: any) => void
 ) {
   if (typeof window === 'undefined') return () => {}
 
-  const ohlcPath = `${assetPath}/ohlc`
+  const config = TIMEFRAME_CONFIG[timeframe]
+  if (!config) {
+    console.error(`❌ Invalid timeframe: ${timeframe}`)
+    return () => {}
+  }
+
+  const ohlcPath = `${assetPath}/${config.path}`
   const ohlcRef = ref(database, ohlcPath)
+  
+  console.log(`🔔 Subscribing to ${timeframe} updates at: ${ohlcPath}`)
   
   const unsubscribe = onValue(ohlcRef, (snapshot) => {
     const data = snapshot.val()
@@ -182,26 +197,66 @@ export function subscribeToOHLCUpdates(
   return () => off(ohlcRef)
 }
 
-// Get all available data (for debugging)
-export async function getAllData(assetPath: string): Promise<any> {
+// ✅ Get latest bar from specific timeframe (for real-time updates)
+export async function getLatestBar(
+  assetPath: string,
+  timeframe: Timeframe
+): Promise<any | null> {
   if (typeof window === 'undefined') return null
 
   try {
-    console.log(`🔍 Getting all data from: ${assetPath}`)
-    const assetRef = ref(database, assetPath)
-    const snapshot = await get(assetRef)
+    const config = TIMEFRAME_CONFIG[timeframe]
+    if (!config) return null
+
+    const ohlcPath = `${assetPath}/${config.path}`
+    const ohlcRef = ref(database, ohlcPath)
+    const latestQuery = query(ohlcRef, orderByKey(), limitToLast(1))
     
-    if (!snapshot.exists()) {
-      console.warn('⚠️ No data found')
-      return null
-    }
+    const snapshot = await get(latestQuery)
+    
+    if (!snapshot.exists()) return null
 
     const data = snapshot.val()
-    console.log('📦 Data structure:', Object.keys(data))
+    const keys = Object.keys(data)
+    if (keys.length === 0) return null
+
+    const latestData = data[keys[0]]
     
-    return data
+    return {
+      timestamp: latestData.timestamp || parseInt(keys[0]),
+      datetime: latestData.datetime,
+      open: latestData.open,
+      high: latestData.high,
+      low: latestData.low,
+      close: latestData.close,
+      volume: latestData.volume || 0
+    }
   } catch (error) {
-    console.error('❌ Error getting all data:', error)
+    console.error('❌ Error getting latest bar:', error)
     return null
   }
+}
+
+// Debug helper
+export async function checkAvailableTimeframes(assetPath: string): Promise<string[]> {
+  if (typeof window === 'undefined') return []
+
+  const available: string[] = []
+  
+  for (const [tf, config] of Object.entries(TIMEFRAME_CONFIG)) {
+    try {
+      const path = `${assetPath}/${config.path}`
+      const testRef = ref(database, path)
+      const snapshot = await get(query(testRef, limitToLast(1)))
+      
+      if (snapshot.exists()) {
+        available.push(tf)
+      }
+    } catch (error) {
+      // Path doesn't exist
+    }
+  }
+  
+  console.log('📊 Available timeframes:', available.join(', '))
+  return available
 }
