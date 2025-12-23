@@ -362,24 +362,26 @@ export default function LandingPage() {
                 and trade with <span className="text-cyan-400 font-semibold">confidence 24/7</span>.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-row gap-3 sm:gap-4">
                 <button
                   onClick={() => {
                     setIsLogin(true)
                     setShowAuthModal(true)
                   }}
-                  className="group px-8 py-4 bg-[#1e293b] hover:bg-[#334155] rounded-xl text-lg font-semibold text-white transition-colors border border-gray-700 shadow-lg"
+                  className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-[#1e293b] hover:bg-[#334155] rounded-xl text-sm sm:text-lg font-semibold text-white transition-colors border border-gray-700 shadow-lg"
                 >
-                  <span className="flex items-center gap-2">
-                    Sign In to Trade
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="hidden sm:inline">Sign In to Trade</span>
+                    <span className="sm:hidden">Sign In</span>
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
                   </span>
                 </button>
 
-                <button className="group px-8 py-4 bg-white/5 hover:bg-white/10 border border-gray-700 hover:border-gray-600 rounded-xl text-lg font-semibold transition-all backdrop-blur-sm">
-                  <span className="flex items-center gap-2">
-                    <Activity className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                    Watch Demo
+                <button className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-white/5 hover:bg-white/10 border border-gray-700 hover:border-gray-600 rounded-xl text-sm sm:text-lg font-semibold transition-all backdrop-blur-sm">
+                  <span className="flex items-center justify-center gap-2">
+                    <Activity className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
+                    <span className="hidden sm:inline">Watch Demo</span>
+                    <span className="sm:hidden">Demo</span>
                   </span>
                 </button>
               </div>
@@ -533,23 +535,23 @@ export default function LandingPage() {
             </div>
 
             {/* Carousel Controls */}
-            <div className="flex items-center justify-center gap-4 mt-8">
+            <div className="flex items-center justify-center gap-3 mt-8">
               <button
                 onClick={() => setActiveFeature((prev) => (prev === 0 ? features.length - 1 : prev - 1))}
-                className="w-10 h-10 bg-[#1e293b] hover:bg-[#334155] rounded-full flex items-center justify-center transition-colors"
+                className="w-8 h-8 bg-[#1e293b] hover:bg-[#334155] rounded-full flex items-center justify-center transition-colors"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className="w-4 h-4" />
               </button>
 
-              <div className="flex gap-2">
+              <div className="flex gap-1.5">
                 {features.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setActiveFeature(index)}
-                    className={`h-2 rounded-full transition-all ${
+                    className={`h-1.5 rounded-full transition-all ${
                       index === activeFeature 
-                        ? 'bg-blue-500 w-8' 
-                        : 'bg-gray-700 w-2'
+                        ? 'bg-blue-500 w-6' 
+                        : 'bg-gray-700 w-1.5'
                     }`}
                   />
                 ))}
@@ -557,9 +559,9 @@ export default function LandingPage() {
 
               <button
                 onClick={() => setActiveFeature((prev) => (prev === features.length - 1 ? 0 : prev + 1))}
-                className="w-10 h-10 bg-[#1e293b] hover:bg-[#334155] rounded-full flex items-center justify-center transition-colors"
+                className="w-8 h-8 bg-[#1e293b] hover:bg-[#334155] rounded-full flex items-center justify-center transition-colors"
               >
-                <ChevronRight className="w-5 h-5" />
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -614,10 +616,10 @@ export default function LandingPage() {
                   <button
                     key={index}
                     onClick={() => setActiveTestimonial(index)}
-                    className={`h-2 rounded-full transition-all ${
+                    className={`h-1.5 rounded-full transition-all ${
                       index === activeTestimonial 
                         ? 'bg-blue-500 w-8' 
-                        : 'bg-gray-700 w-2 hover:bg-gray-600'
+                        : 'bg-gray-700 w-1.5 hover:bg-gray-600'
                     }`}
                   />
                 ))}
@@ -672,23 +674,23 @@ export default function LandingPage() {
             </div>
 
             {/* Carousel Controls */}
-            <div className="flex items-center justify-center gap-4 mt-6">
+            <div className="flex items-center justify-center gap-3 mt-6">
               <button
                 onClick={() => setActiveTestimonial((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1))}
-                className="w-10 h-10 bg-[#1e293b] hover:bg-[#334155] rounded-full flex items-center justify-center transition-colors"
+                className="w-8 h-8 bg-[#1e293b] hover:bg-[#334155] rounded-full flex items-center justify-center transition-colors"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className="w-4 h-4" />
               </button>
 
-              <div className="flex gap-2">
+              <div className="flex gap-1.5">
                 {testimonials.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setActiveTestimonial(index)}
-                    className={`h-2 rounded-full transition-all ${
+                    className={`h-1.5 rounded-full transition-all ${
                       index === activeTestimonial 
-                        ? 'bg-blue-500 w-8' 
-                        : 'bg-gray-700 w-2'
+                        ? 'bg-blue-500 w-6' 
+                        : 'bg-gray-700 w-1.5'
                     }`}
                   />
                 ))}
@@ -696,9 +698,9 @@ export default function LandingPage() {
 
               <button
                 onClick={() => setActiveTestimonial((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1))}
-                className="w-10 h-10 bg-[#1e293b] hover:bg-[#334155] rounded-full flex items-center justify-center transition-colors"
+                className="w-8 h-8 bg-[#1e293b] hover:bg-[#334155] rounded-full flex items-center justify-center transition-colors"
               >
-                <ChevronRight className="w-5 h-5" />
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -838,11 +840,14 @@ export default function LandingPage() {
 
                 {isLogin && (
                   <div className="flex items-center justify-between text-sm">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" className="w-4 h-4 rounded border-gray-700 bg-[#0a0e17] text-blue-500 focus:ring-blue-500" />
-                      <span className="text-gray-400">Remember me</span>
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input 
+                        type="checkbox" 
+                        className="w-3.5 h-3.5 rounded border-gray-700 bg-[#0a0e17] text-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer" 
+                      />
+                      <span className="text-gray-400 text-xs group-hover:text-gray-300">Remember me</span>
                     </label>
-                    <a href="#" className="text-blue-400 hover:text-blue-300 transition-colors">
+                    <a href="#" className="text-blue-400 hover:text-blue-300 transition-colors text-xs">
                       Forgot password?
                     </a>
                   </div>
@@ -927,183 +932,183 @@ export default function LandingPage() {
                     <span className="text-gray-300">No credit card required</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
-                    <div className="w-6 h-6 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <span className="text-gray-300">24/7 customer support</span>
-                  </div>
+                <div className="w-6 h-6 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
                 </div>
-              )}
-
-              <p className="mt-6 text-xs text-center text-gray-500 leading-relaxed">
-                By continuing, you agree to our{' '}
-                <a href="#" className="text-blue-400 hover:text-blue-300">Terms of Service</a>
-                {' '}and{' '}
-                <a href="#" className="text-blue-400 hover:text-blue-300">Privacy Policy</a>
-              </p>
+                <span className="text-gray-300">24/7 customer support</span>
+              </div>
             </div>
-          </div>
-        </>
-      )}
+          )}
 
-      <style jsx>{`
-        @keyframes gradient {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
+          <p className="mt-6 text-xs text-center text-gray-500 leading-relaxed">
+            By continuing, you agree to our{' '}
+            <a href="#" className="text-blue-400 hover:text-blue-300">Terms of Service</a>
+            {' '}and{' '}
+            <a href="#" className="text-blue-400 hover:text-blue-300">Privacy Policy</a>
+          </p>
+        </div>
+      </div>
+    </>
+  )}
 
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-20px); }
-        }
+  <style jsx>{`
+    @keyframes gradient {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
 
-        @keyframes pulse-slow {
-          0%, 100% { opacity: 0.05; }
-          50% { opacity: 0.15; }
-        }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
 
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 0.05; }
+      50% { opacity: 0.15; }
+    }
 
-        @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
+    @keyframes spin-slow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
 
-        @keyframes fade-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
+    @keyframes fade-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
 
-        @keyframes fade-in-right {
-          from {
-            opacity: 0;
-            transform: translateX(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
+    @keyframes fade-in-up {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
-        @keyframes slide-in-left {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
+    @keyframes fade-in-right {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
 
-        @keyframes slide-in-right {
-          from {
-            opacity: 0;
-            transform: translateX(50px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
+    @keyframes slide-in-left {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
 
-        @keyframes slide-left {
-          from {
-            transform: translateX(100%);
-          }
-          to {
-            transform: translateX(0);
-          }
-        }
+    @keyframes slide-in-right {
+      from {
+        opacity: 0;
+        transform: translateX(50px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
 
-        @keyframes scale-in {
-          from {
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
+    @keyframes slide-left {
+      from {
+        transform: translateX(100%);
+      }
+      to {
+        transform: translateX(0);
+      }
+    }
 
-        .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradient 3s ease infinite;
-        }
+    @keyframes scale-in {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
 
-        .animate-float {
-          animation: float 6s ease-in-out infinite;
-        }
+    .animate-gradient {
+      background-size: 200% 200%;
+      animation: gradient 3s ease infinite;
+    }
 
-        .animate-pulse-slow {
-          animation: pulse-slow 4s ease-in-out infinite;
-        }
+    .animate-float {
+      animation: float 6s ease-in-out infinite;
+    }
 
-        .animate-spin-slow {
-          animation: spin-slow 3s linear infinite;
-        }
+    .animate-pulse-slow {
+      animation: pulse-slow 4s ease-in-out infinite;
+    }
 
-        .animate-fade-in {
-          animation: fade-in 0.3s ease-out;
-        }
+    .animate-spin-slow {
+      animation: spin-slow 3s linear infinite;
+    }
 
-        .animate-fade-in-up {
-          animation: fade-in-up 0.6s ease-out;
-        }
+    .animate-fade-in {
+      animation: fade-in 0.3s ease-out;
+    }
 
-        .animate-fade-in-right {
-          animation: fade-in-right 0.8s ease-out;
-        }
+    .animate-fade-in-up {
+      animation: fade-in-up 0.6s ease-out;
+    }
 
-        .animate-slide-in-left {
-          animation: slide-in-left 0.6s ease-out;
-        }
+    .animate-fade-in-right {
+      animation: fade-in-right 0.8s ease-out;
+    }
 
-        .animate-slide-in-right {
-          animation: slide-in-right 0.8s ease-out;
-        }
+    .animate-slide-in-left {
+      animation: slide-in-left 0.6s ease-out;
+    }
 
-        .animate-slide-left {
-          animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
+    .animate-slide-in-right {
+      animation: slide-in-right 0.8s ease-out;
+    }
 
-        .animate-scale-in {
-          animation: scale-in 0.3s ease-out;
-        }
+    .animate-slide-left {
+      animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
 
-        html {
-          scroll-behavior: smooth;
-        }
+    .animate-scale-in {
+      animation: scale-in 0.3s ease-out;
+    }
 
-        ::-webkit-scrollbar {
-          width: 8px;
-        }
+    html {
+      scroll-behavior: smooth;
+    }
 
-        ::-webkit-scrollbar-track {
-          background: #0a0e17;
-        }
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
 
-        ::-webkit-scrollbar-thumb {
-          background: linear-gradient(to bottom, #3b82f6, #10b981);
-          border-radius: 4px;
-        }
+    ::-webkit-scrollbar-track {
+      background: #0a0e17;
+    }
 
-        ::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(to bottom, #2563eb, #059669);
-        }
-      `}</style>
-    </div>
-  )
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(to bottom, #3b82f6, #10b981);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(to bottom, #2563eb, #059669);
+    }
+  `}</style>
+</div>
+)
 }
