@@ -31,6 +31,8 @@ export default function TradingChart() {
   const [error, setError] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [isLive, setIsLive] = useState(false)
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
   // Initialize chart once on mount - with retry mechanism
   useEffect(() => {
@@ -256,11 +258,12 @@ export default function TradingChart() {
         setIsLoading(false)
 
         // Subscribe to real-time updates
-        console.log(`🔔 Subscribing to ${timeframe} updates`)
+        console.log(`🔔 Subscribing to ${timeframe} real-time updates`)
         unsubscribeRef.current = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
           if (isCancelled || !candleSeriesRef.current || !lineSeriesRef.current) return
 
-          console.log('📊 New bar update:', newBar.close)
+          const updateType = newBar.isNewBar ? '🆕 NEW' : '🔄 UPDATE'
+          console.log(`${updateType} ${timeframe} bar: ${newBar.close}`)
 
           const candleUpdate = {
             time: newBar.timestamp,
@@ -275,8 +278,18 @@ export default function TradingChart() {
             value: newBar.close,
           }
 
+          // Update chart
           candleSeriesRef.current.update(candleUpdate)
           lineSeriesRef.current.update(lineUpdate)
+          
+          // Update live indicators
+          setIsLive(true)
+          setLastUpdate(new Date())
+          
+          // Reset live indicator after 5 seconds of no updates
+          setTimeout(() => {
+            setIsLive(false)
+          }, 5000)
         })
 
       } catch (err: any) {
@@ -418,7 +431,20 @@ export default function TradingChart() {
           {isInitialized && !isLoading && !error && (
             <>
               <span>•</span>
-              <span className="text-green-400">●</span>
+              <div className="flex items-center gap-1">
+                <span className={`${isLive ? 'text-green-400 animate-pulse' : 'text-gray-500'}`}>●</span>
+                <span className={isLive ? 'text-green-400' : 'text-gray-500'}>
+                  {isLive ? 'LIVE' : 'Waiting'}
+                </span>
+              </div>
+            </>
+          )}
+          {lastUpdate && (
+            <>
+              <span>•</span>
+              <span className="text-gray-500 text-[10px]">
+                {lastUpdate.toLocaleTimeString()}
+              </span>
             </>
           )}
         </div>

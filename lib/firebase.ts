@@ -186,10 +186,8 @@ function processHistoricalData(data: any, limit: number): any[] {
 }
 
 /**
- * Subscribe to OHLC updates with debouncing
+ * Subscribe to OHLC updates - REAL-TIME VERSION
  */
-let updateTimeout: NodeJS.Timeout | null = null
-
 export function subscribeToOHLCUpdates(
   assetPath: string,
   timeframe: Timeframe,
@@ -207,68 +205,56 @@ export function subscribeToOHLCUpdates(
   }
 
   const ohlcPath = `${assetPath}/${config.path}`
-  console.log(`🔔 Subscribing to ${timeframe} updates at: ${ohlcPath}`)
+  console.log(`🔔 Subscribing to ${timeframe} REAL-TIME updates at: ${ohlcPath}`)
   
   // Get reference to the OHLC path
   const ohlcRef = ref(database, ohlcPath)
   
-  // Track last bar to avoid duplicates
+  // Track last bar timestamp to detect updates
   let lastBarTimestamp: number | null = null
+  let updateCount = 0
   
   const unsubscribe = onValue(ohlcRef, (snapshot) => {
     const data = snapshot.val()
-    if (!data) {
-      console.warn('⚠️ Received empty data in subscription')
-      return
-    }
+    if (!data) return
 
     // Get the latest entry
     const keys = Object.keys(data).sort()
     const latestKey = keys[keys.length - 1]
     const latestData = data[latestKey]
     
-    if (!latestData) {
-      console.warn('⚠️ No latest data found')
-      return
-    }
+    if (!latestData || !latestData.close) return
 
     const barTimestamp = latestData.timestamp || parseInt(latestKey)
     
-    // Skip if same bar (avoid duplicate updates)
-    if (barTimestamp === lastBarTimestamp) {
-      return
+    // Always update (even same bar) for real-time OHLC changes
+    const isNewBar = barTimestamp !== lastBarTimestamp
+    
+    if (isNewBar) {
+      lastBarTimestamp = barTimestamp
+      updateCount++
+      console.log(`🆕 New ${timeframe} bar #${updateCount}: ${latestData.close} @ ${latestData.datetime}`)
     }
     
-    lastBarTimestamp = barTimestamp
-
-    // Debounce updates
-    if (updateTimeout) clearTimeout(updateTimeout)
+    const barData = {
+      timestamp: barTimestamp,
+      datetime: latestData.datetime || new Date(barTimestamp * 1000).toISOString(),
+      open: latestData.open || latestData.close,
+      high: latestData.high || latestData.close,
+      low: latestData.low || latestData.close,
+      close: latestData.close,
+      volume: latestData.volume || 0,
+      isNewBar // Flag untuk chart tahu ini bar baru atau update
+    }
     
-    updateTimeout = setTimeout(() => {
-      const barData = {
-        timestamp: barTimestamp,
-        datetime: latestData.datetime || new Date(barTimestamp * 1000).toISOString(),
-        open: latestData.open || latestData.close,
-        high: latestData.high || latestData.close,
-        low: latestData.low || latestData.close,
-        close: latestData.close,
-        volume: latestData.volume || 0
-      }
-      
-      console.log(`📊 New ${timeframe} bar:`, barData.close, '@', barData.datetime)
-      callback(barData)
-    }, 100) // 100ms debounce
+    callback(barData)
 
   }, (error) => {
     console.error(`❌ Subscription error for ${timeframe}:`, error)
   })
 
   return () => {
-    console.log(`🔕 Unsubscribing from ${timeframe} updates`)
-    if (updateTimeout) {
-      clearTimeout(updateTimeout)
-      updateTimeout = null
-    }
+    console.log(`🔕 Unsubscribing from ${timeframe} (received ${updateCount} updates)`)
     off(ohlcRef)
   }
 }

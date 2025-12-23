@@ -23,6 +23,7 @@ import {
   Menu,
   Plus
 } from 'lucide-react'
+import RealtimeMonitor from '@/components/RealtimeMonitor'
 
 // Lazy load heavy components with proper loading state
 const TradingChart = dynamic(() => import('@/components/TradingChart'), {
@@ -600,6 +601,7 @@ export default function TradingPage() {
           onClose={() => setShowHistorySidebar(false)} 
         />
       )}
+          {process.env.NODE_ENV === 'development' && <RealtimeMonitor />}
     </div>
   )
 }
