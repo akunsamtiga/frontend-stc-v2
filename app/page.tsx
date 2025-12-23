@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
@@ -11,22 +11,127 @@ import {
   Shield, 
   Clock, 
   BarChart3,
-  Smartphone,
   Award,
   Users,
-  DollarSign,
-  CheckCircle,
   ArrowRight,
-  PlayCircle,
   Star,
   Globe,
   Lock,
   TrendingDown,
-  LineChart,
-  PieChart,
   Target,
-  ChevronRight
+  ChevronRight,
+  X,
+  Sparkles,
+  Activity,
+  DollarSign
 } from 'lucide-react'
+
+// Live Trading Ticker Component
+const LiveTradingTicker = () => {
+  const [trades, setTrades] = useState([
+    { user: 'Ahmad***', asset: 'EUR/USD', profit: 8500, time: '2s ago' },
+    { user: 'Siti***', asset: 'BTC/USD', profit: 12300, time: '5s ago' },
+    { user: 'Budi***', asset: 'IDX_STC', profit: 5800, time: '8s ago' },
+  ])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const names = ['Ahmad***', 'Siti***', 'Budi***', 'Rina***', 'Deni***', 'Maya***']
+      const assets = ['EUR/USD', 'BTC/USD', 'IDX_STC', 'GBP/JPY', 'XAU/USD']
+      
+      const newTrade = {
+        user: names[Math.floor(Math.random() * names.length)],
+        asset: assets[Math.floor(Math.random() * assets.length)],
+        profit: Math.floor(Math.random() * 15000) + 3000,
+        time: 'just now'
+      }
+
+      setTrades(prev => [newTrade, ...prev.slice(0, 2)])
+    }, 4000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <div className="absolute top-24 right-8 w-72 bg-[#0a0e17]/95 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-4 shadow-2xl z-10 animate-slide-in-right">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+        <span className="text-xs font-semibold text-gray-300">Live Trades</span>
+      </div>
+      <div className="space-y-2">
+        {trades.map((trade, i) => (
+          <div 
+            key={i}
+            className="flex items-center justify-between p-2 bg-green-500/5 border border-green-500/20 rounded-lg animate-fade-in-up"
+            style={{ animationDelay: `${i * 100}ms` }}
+          >
+            <div className="flex-1">
+              <div className="text-xs font-medium text-gray-200">{trade.user}</div>
+              <div className="text-[10px] text-gray-400">{trade.asset}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs font-bold text-green-400">+Rp {trade.profit.toLocaleString()}</div>
+              <div className="text-[10px] text-gray-500">{trade.time}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Animated Trading Chart Preview
+const AnimatedTradingChart = () => {
+  const [bars, setBars] = useState<number[]>([])
+
+  useEffect(() => {
+    // Initialize with random bars
+    const initialBars = Array.from({ length: 30 }, () => Math.random() * 80 + 20)
+    setBars(initialBars)
+
+    // Update last bar every second
+    const interval = setInterval(() => {
+      setBars(prev => {
+        const newBars = [...prev.slice(1), Math.random() * 80 + 20]
+        return newBars
+      })
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <div className="h-64 flex items-end justify-between gap-1 p-4">
+      {bars.map((height, i) => (
+        <div
+          key={i}
+          className="flex-1 bg-gradient-to-t from-emerald-500/50 to-blue-500/50 rounded-t transition-all duration-1000 ease-out"
+          style={{ 
+            height: `${height}%`,
+            opacity: i < 5 ? 0.3 : 1
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
+// Floating Price Cards
+const FloatingPriceCard = ({ symbol, price, change, delay }: any) => (
+  <div 
+    className="absolute bg-[#0a0e17]/95 backdrop-blur-xl border border-gray-800/50 rounded-xl p-3 shadow-2xl animate-float"
+    style={{ animationDelay: `${delay}s` }}
+  >
+    <div className="text-xs text-gray-400 mb-1">{symbol}</div>
+    <div className="text-lg font-bold font-mono mb-1">{price}</div>
+    <div className={`text-xs font-semibold flex items-center gap-1 ${
+      change > 0 ? 'text-green-400' : 'text-red-400'
+    }`}>
+      {change > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+      {change > 0 ? '+' : ''}{change}%
+    </div>
+  </div>
+)
 
 export default function LandingPage() {
   const router = useRouter()
@@ -37,6 +142,7 @@ export default function LandingPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [activeTestimonial, setActiveTestimonial] = useState(0)
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
 
   useEffect(() => {
     if (user) {
@@ -49,6 +155,19 @@ export default function LandingPage() {
       setActiveTestimonial((prev) => (prev + 1) % 3)
     }, 5000)
     return () => clearInterval(interval)
+  }, [])
+
+  // Mouse parallax effect
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({
+        x: (e.clientX / window.innerWidth) * 20,
+        y: (e.clientY / window.innerHeight) * 20
+      })
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,65 +206,36 @@ export default function LandingPage() {
   }
 
   const stats = [
-    { label: 'Active Users', value: '50,000+', icon: Users },
-    { label: 'Daily Trades', value: '1M+', icon: TrendingUp },
-    { label: 'Success Rate', value: '87%', icon: Target },
+    { label: 'Active Traders', value: '50K+', icon: Users },
+    { label: 'Daily Volume', value: '$2.5M', icon: DollarSign },
+    { label: 'Win Rate', value: '87%', icon: Target },
     { label: 'Countries', value: '150+', icon: Globe },
   ]
 
   const features = [
     {
       icon: Zap,
-      title: 'Lightning Fast Execution',
-      description: 'Execute trades in milliseconds with our cutting-edge technology'
+      title: 'Lightning Fast',
+      description: 'Execute trades in milliseconds with zero lag',
+      gradient: 'from-yellow-500/20 to-orange-500/20'
     },
     {
       icon: Shield,
       title: 'Bank-Level Security',
-      description: 'Your funds are protected with advanced encryption and security protocols'
+      description: 'Military-grade encryption protects your funds',
+      gradient: 'from-blue-500/20 to-cyan-500/20'
     },
     {
       icon: BarChart3,
       title: 'Real-Time Analytics',
-      description: 'Access live market data and advanced charting tools'
-    },
-    {
-      icon: Smartphone,
-      title: 'Trade Anywhere',
-      description: 'Seamless experience across desktop, tablet, and mobile devices'
+      description: 'Advanced charts and market insights',
+      gradient: 'from-purple-500/20 to-pink-500/20'
     },
     {
       icon: Award,
-      title: 'Up to 85% Profit',
-      description: 'Industry-leading profit rates on successful trades'
-    },
-    {
-      icon: Clock,
-      title: '24/7 Support',
-      description: 'Expert support team available around the clock'
-    },
-  ]
-
-  const steps = [
-    {
-      number: '01',
-      title: 'Create Account',
-      description: 'Sign up in less than 2 minutes and verify your account'
-    },
-    {
-      number: '02',
-      title: 'Fund Your Account',
-      description: 'Deposit funds securely using multiple payment methods'
-    },
-    {
-      number: '03',
-      title: 'Start Trading',
-      description: 'Choose your asset, predict the direction, and place your trade'
-    },
-    {
-      number: '04',
-      title: 'Earn Profits',
-      description: 'Watch your profits grow with every successful trade'
+      title: 'Up to 95% Profit',
+      description: 'Industry-leading returns on trades',
+      gradient: 'from-green-500/20 to-emerald-500/20'
     },
   ]
 
@@ -153,59 +243,92 @@ export default function LandingPage() {
     {
       name: 'Ahmad Rizki',
       role: 'Professional Trader',
-      content: 'STC AutoTrade has completely changed my trading experience. The platform is intuitive, fast, and reliable. I\'ve been profitable for 6 months straight!',
+      content: 'Game-changing platform! Fast, reliable, and profitable. I\'ve been consistently winning for 6 months.',
       rating: 5,
-      avatar: '👨‍💼'
+      avatar: '👨‍💼',
+      profit: '+285%'
     },
     {
       name: 'Siti Nurhaliza',
       role: 'Part-Time Trader',
-      content: 'As a beginner, I was worried about trading. But STC AutoTrade\'s simple interface and educational resources helped me learn quickly. Highly recommended!',
+      content: 'As a beginner, the interface made trading easy. Great support and educational resources helped me succeed!',
       rating: 5,
-      avatar: '👩‍💻'
+      avatar: '👩‍💻',
+      profit: '+142%'
     },
     {
       name: 'Budi Santoso',
       role: 'Experienced Investor',
-      content: 'I\'ve tried many platforms, but STC AutoTrade stands out with its speed, security, and excellent customer support. The profit rates are unbeatable!',
+      content: 'Best trading platform I\'ve used. Speed, security, and profit rates are unmatched in the industry.',
       rating: 5,
-      avatar: '👨‍🎓'
+      avatar: '👨‍🎓',
+      profit: '+378%'
     },
   ]
 
   if (user) return null
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#0a0e17] text-white overflow-hidden">
+      {/* Animated Background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div 
+          className="absolute top-1/4 -left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] animate-pulse-slow"
+          style={{
+            transform: `translate(${mousePosition.x}px, ${mousePosition.y}px)`
+          }}
+        />
+        <div 
+          className="absolute bottom-1/4 -right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] animate-pulse-slow"
+          style={{
+            transform: `translate(${-mousePosition.x}px, ${-mousePosition.y}px)`,
+            animationDelay: '1s'
+          }}
+        />
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
+      </div>
+
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-gray-800">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0e17]/80 backdrop-blur-xl border-b border-gray-800/50">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-16 sm:h-20">
-            {/* Logo */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-[#1e40af] to-[#047857] rounded-xl flex items-center justify-center shadow-lg">
-                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          <div className="flex items-center justify-between h-20">
+            <div className="flex items-center gap-3 group cursor-pointer">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                <TrendingUp className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xl sm:text-2xl font-bold bg-clip-text text-white">
-                STC AutoTrade
-              </span>
+              <div>
+                <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+                  STC AutoTrade
+                </span>
+                <div className="flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-[10px] text-gray-500">LIVE</span>
+                </div>
+              </div>
             </div>
 
-            {/* Nav Links - Desktop */}
             <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-gray-300 hover:text-white transition-colors">Features</a>
-              <a href="#how-it-works" className="text-gray-300 hover:text-white transition-colors">How It Works</a>
-              <a href="#testimonials" className="text-gray-300 hover:text-white transition-colors">Reviews</a>
+              <a href="#features" className="text-sm text-gray-400 hover:text-white transition-colors relative group">
+                Features
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
+              </a>
+              <a href="#how-it-works" className="text-sm text-gray-400 hover:text-white transition-colors relative group">
+                How It Works
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
+              </a>
+              <a href="#testimonials" className="text-sm text-gray-400 hover:text-white transition-colors relative group">
+                Reviews
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
+              </a>
             </div>
 
-            {/* CTA Buttons */}
             <div className="flex items-center gap-3">
               <button
                 onClick={() => {
                   setIsLogin(true)
                   setShowAuthModal(true)
                 }}
-                className="hidden sm:block px-4 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors"
+                className="hidden sm:block px-5 py-2.5 text-sm font-medium text-gray-300 hover:text-white transition-colors"
               >
                 Sign In
               </button>
@@ -214,9 +337,10 @@ export default function LandingPage() {
                   setIsLogin(false)
                   setShowAuthModal(true)
                 }}
-                className="px-4 sm:px-6 py-2 sm:py-2.5 bg-gradient-to-r from-[#1e40af] to-[#047857] hover:from-[#1e3a8a] hover:to-[#065f46] rounded-lg text-sm sm:text-base font-semibold text-white transition-all shadow-lg hover:shadow-xl"
+                className="relative px-6 py-2.5 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg text-sm font-semibold text-white shadow-lg overflow-hidden group"
               >
-                Get Started
+                <span className="relative z-10">Get Started</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </button>
             </div>
           </div>
@@ -225,253 +349,215 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32 overflow-hidden">
-        {/* Background Effects - DARKER */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#1e40af]/10 via-[#047857]/10 to-transparent"></div>
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#1e40af]/30 rounded-full blur-[120px]"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#047857]/30 rounded-full blur-[120px]"></div>
-
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
-          <div className="max-w-4xl mx-auto text-center">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#1e40af]/20 border border-[#1e40af]/30 rounded-full mb-6 sm:mb-8">
-              <Award className="w-4 h-4 text-[#2563eb]" />
-              <span className="text-sm font-medium">Trusted by 50,000+ traders worldwide</span>
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left Content */}
+            <div className="space-y-8 animate-fade-in-up">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500/20 to-emerald-500/20 border border-blue-500/30 rounded-full backdrop-blur-sm animate-slide-in-left">
+                <Sparkles className="w-4 h-4 text-blue-400 animate-spin-slow" />
+                <span className="text-sm font-medium">Trusted by 50,000+ traders</span>
+              </div>
+
+              <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold leading-tight">
+                Trade Binary Options with
+                <span className="block mt-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-emerald-400 to-cyan-400 animate-gradient">
+                  Lightning Speed
+                </span>
+              </h1>
+
+              <p className="text-lg sm:text-xl text-gray-400 leading-relaxed">
+                Execute trades in <span className="text-emerald-400 font-semibold">milliseconds</span>, 
+                earn up to <span className="text-blue-400 font-semibold">95% profit</span>, 
+                and trade with <span className="text-cyan-400 font-semibold">confidence 24/7</span>.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={() => {
+                    setIsLogin(false)
+                    setShowAuthModal(true)
+                  }}
+                  className="group relative px-8 py-4 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl text-lg font-semibold text-white overflow-hidden shadow-2xl"
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                    Start Trading Now
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
+                </button>
+
+                <button className="group px-8 py-4 bg-white/5 hover:bg-white/10 border border-gray-700 hover:border-gray-600 rounded-xl text-lg font-semibold transition-all backdrop-blur-sm">
+                  <span className="flex items-center gap-2">
+                    <Activity className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    Watch Demo
+                  </span>
+                </button>
+              </div>
+
+              {/* Stats Row */}
+              <div className="grid grid-cols-4 gap-4 pt-8">
+                {stats.map((stat, index) => (
+                  <div 
+                    key={index} 
+                    className="text-center transform hover:scale-110 transition-transform cursor-default"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    <stat.icon className="w-6 h-6 text-blue-400 mx-auto mb-2" />
+                    <div className="text-xl font-bold">{stat.value}</div>
+                    <div className="text-xs text-gray-500">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Headline */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 sm:mb-8 leading-tight">
-              Trade Binary Options with
-              <span className="block mt-2 bg-clip-text text-transparent bg-gradient-to-r from-[#1e40af] via-[#047857] to-[#16a34a]">
-                Confidence & Speed
-              </span>
-            </h1>
+            {/* Right - Trading Platform Preview */}
+            <div className="relative animate-fade-in-right">
+              {/* Live Trades Ticker */}
+              <LiveTradingTicker />
 
-            {/* Subheadline */}
-            <p className="text-lg sm:text-xl text-gray-400 mb-8 sm:mb-12 max-w-2xl mx-auto leading-relaxed">
-              Join the future of trading with our professional platform. Execute trades in milliseconds, 
-              earn up to 85% profit, and trade with confidence 24/7.
-            </p>
+              {/* Floating Price Cards */}
+              <FloatingPriceCard 
+                symbol="EUR/USD" 
+                price="1.0856" 
+                change={2.3} 
+                delay={0}
+                style={{ top: '10%', left: '-10%' }}
+              />
+              <FloatingPriceCard 
+                symbol="BTC/USD" 
+                price="68,342" 
+                change={-1.2} 
+                delay={0.5}
+                style={{ top: '60%', left: '-5%' }}
+              />
+              <FloatingPriceCard 
+                symbol="IDX_STC" 
+                price="7,289" 
+                change={0.8} 
+                delay={1}
+                style={{ bottom: '10%', right: '-10%' }}
+              />
 
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 sm:mb-16">
-              <button
-                onClick={() => {
-                  setIsLogin(false)
-                  setShowAuthModal(true)
-                }}
-                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-[#1e40af] to-[#047857] hover:from-[#1e3a8a] hover:to-[#065f46] rounded-xl text-lg font-semibold text-white transition-all shadow-2xl hover:shadow-[#1e40af]/50 hover:scale-105 flex items-center justify-center gap-2"
-              >
-                Start Trading Now
-                <ArrowRight className="w-5 h-5" />
-              </button>
-              <button className="w-full sm:w-auto px-8 py-4 bg-white/5 hover:bg-white/10 border border-gray-700 hover:border-gray-600 rounded-xl text-lg font-semibold transition-all flex items-center justify-center gap-2">
-                <PlayCircle className="w-5 h-5" />
-                Watch Demo
-              </button>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
-              {stats.map((stat, index) => (
-                <div key={index} className="bg-background-secondary/50 backdrop-blur-sm border border-gray-800 rounded-xl p-4 sm:p-6 hover:border-[#1e40af]/40 transition-colors">
-                  <stat.icon className="w-6 h-6 sm:w-8 sm:h-8 text-[#2563eb] mx-auto mb-2 sm:mb-3" />
-                  <div className="text-2xl sm:text-3xl font-bold mb-1">{stat.value}</div>
-                  <div className="text-xs sm:text-sm text-gray-400">{stat.label}</div>
+              {/* Main Trading Interface */}
+              <div className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl p-6 shadow-2xl backdrop-blur-xl transform hover:scale-105 transition-transform duration-500">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-blue-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30">
+                      <TrendingUp className="w-6 h-6 text-emerald-400" />
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-400">EUR/USD</div>
+                      <div className="text-3xl font-bold font-mono">1.0856</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-1 text-emerald-400 text-lg font-semibold">
+                      <TrendingUp className="w-5 h-5" />
+                      +2.3%
+                    </div>
+                    <div className="text-xs text-gray-500 flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+                      Live
+                    </div>
+                  </div>
                 </div>
-              ))}
+
+                {/* Chart */}
+                <div className="bg-[#0a0e17] rounded-2xl mb-6 overflow-hidden border border-gray-800/50">
+                  <AnimatedTradingChart />
+                </div>
+
+                {/* Trade Buttons */}
+                <div className="grid grid-cols-2 gap-4">
+                  <button className="group relative bg-gradient-to-br from-emerald-500/20 to-green-500/20 hover:from-emerald-500/30 hover:to-green-500/30 border border-emerald-500/30 rounded-xl p-6 transition-all overflow-hidden">
+                    <div className="absolute inset-0 bg-emerald-500/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
+                    <TrendingUp className="w-8 h-8 text-emerald-400 mx-auto mb-2 relative z-10 group-hover:scale-110 transition-transform" />
+                    <div className="font-bold text-lg text-emerald-400 relative z-10">CALL</div>
+                    <div className="text-xs text-gray-400 relative z-10">+95% Profit</div>
+                  </button>
+
+                  <button className="group relative bg-gradient-to-br from-red-500/20 to-pink-500/20 hover:from-red-500/30 hover:to-pink-500/30 border border-red-500/30 rounded-xl p-6 transition-all overflow-hidden">
+                    <div className="absolute inset-0 bg-red-500/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
+                    <TrendingDown className="w-8 h-8 text-red-400 mx-auto mb-2 relative z-10 group-hover:scale-110 transition-transform" />
+                    <div className="font-bold text-lg text-red-400 relative z-10">PUT</div>
+                    <div className="text-xs text-gray-400 relative z-10">+95% Profit</div>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 sm:py-32 bg-background-secondary/30">
+      <section id="features" className="py-20 sm:py-32 relative">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6">
-              Why Choose <span className="text-gradient-dark">STC AutoTrade</span>?
+          <div className="text-center mb-16 animate-fade-in-up">
+            <h2 className="text-4xl sm:text-5xl font-bold mb-6">
+              Why Choose <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">STC AutoTrade</span>?
             </h2>
-            <p className="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto">
-              Experience the most advanced binary options trading platform with features designed for your success
+            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+              Experience trading reimagined with cutting-edge technology
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
               <div 
                 key={index}
-                className="group bg-background-secondary border border-gray-800 rounded-2xl p-6 sm:p-8 hover:border-[#1e40af]/50 transition-all hover:shadow-2xl hover:shadow-[#1e40af]/10 hover:-translate-y-1"
+                className="group relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-6 hover:border-blue-500/50 transition-all duration-500 overflow-hidden animate-fade-in-up"
+                style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-[#1e40af]/20 rounded-xl flex items-center justify-center mb-4 sm:mb-6 group-hover:bg-[#1e40af]/30 transition-colors">
-                  <feature.icon className="w-6 h-6 sm:w-7 sm:h-7 text-[#2563eb]" />
-                </div>
-                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">{feature.title}</h3>
-                <p className="text-gray-400 leading-relaxed">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section id="how-it-works" className="py-20 sm:py-32">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6">
-              Start Trading in <span className="text-gradient-dark">4 Easy Steps</span>
-            </h2>
-            <p className="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto">
-              Get started with STC AutoTrade in minutes and begin your journey to financial freedom
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-            {steps.map((step, index) => (
-              <div key={index} className="relative">
-                {index < steps.length - 1 && (
-                  <div className="hidden lg:block absolute top-16 left-1/2 w-full h-0.5 bg-gradient-to-r from-[#1e40af]/50 to-[#047857]/50"></div>
-                )}
+                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
                 
-                <div className="relative bg-background-secondary border border-gray-800 rounded-2xl p-6 sm:p-8 hover:border-[#1e40af]/50 transition-all">
-                  <div className="absolute -top-4 left-6 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-[#1e40af] to-[#047857] rounded-xl flex items-center justify-center text-xl sm:text-2xl font-bold shadow-lg">
-                    {step.number}
+                <div className="relative z-10">
+                  <div className="w-14 h-14 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 rounded-xl flex items-center justify-center mb-4 border border-blue-500/30 group-hover:scale-110 transition-transform">
+                    <feature.icon className="w-7 h-7 text-blue-400" />
                   </div>
-
-                  <div className="mt-8">
-                    <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">{step.title}</h3>
-                    <p className="text-gray-400 leading-relaxed">{step.description}</p>
-                  </div>
+                  <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+                  <p className="text-gray-400 text-sm leading-relaxed">{feature.description}</p>
                 </div>
               </div>
             ))}
-          </div>
-
-          <div className="text-center mt-12 sm:mt-16">
-            <button
-              onClick={() => {
-                setIsLogin(false)
-                setShowAuthModal(true)
-              }}
-              className="px-8 py-4 bg-gradient-to-r from-[#1e40af] to-[#047857] hover:from-[#1e3a8a] hover:to-[#065f46] rounded-xl text-lg font-semibold text-white transition-all shadow-xl hover:shadow-2xl hover:scale-105 inline-flex items-center gap-2"
-            >
-              Create Free Account
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Platform Showcase */}
-      <section className="py-20 sm:py-32 bg-gradient-to-b from-background-secondary/30 to-background">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6">
-                Professional Trading Platform
-              </h2>
-              <p className="text-lg sm:text-xl text-gray-400 mb-8">
-                Experience a trading platform built for speed, accuracy, and ease of use. 
-                With real-time charts, advanced analytics, and instant execution, you have 
-                everything you need to succeed.
-              </p>
-
-              <div className="space-y-4">
-                {[
-                  { icon: LineChart, text: 'Advanced charting tools' },
-                  { icon: Lock, text: 'Secure and encrypted' },
-                  { icon: Zap, text: 'Lightning-fast execution' },
-                  { icon: PieChart, text: 'Portfolio analytics' },
-                ].map((item, index) => (
-                  <div key={index} className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-[#1e40af]/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <item.icon className="w-5 h-5 text-[#2563eb]" />
-                    </div>
-                    <span className="text-lg">{item.text}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={() => {
-                  setIsLogin(false)
-                  setShowAuthModal(true)
-                }}
-                className="mt-8 px-8 py-4 bg-white/5 hover:bg-white/10 border border-gray-700 hover:border-[#1e40af]/50 rounded-xl text-lg font-semibold transition-all inline-flex items-center gap-2"
-              >
-                Explore Platform
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#1e40af]/30 to-[#047857]/30 rounded-3xl blur-3xl"></div>
-              <div className="relative bg-background-secondary border border-gray-800 rounded-3xl p-4 shadow-2xl">
-                <div className="bg-background rounded-2xl p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-[#059669]/20 rounded-lg flex items-center justify-center">
-                        <TrendingUp className="w-6 h-6 text-[#059669]" />
-                      </div>
-                      <div>
-                        <div className="text-sm text-gray-400">EUR/USD</div>
-                        <div className="text-2xl font-bold font-mono">1.0856</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[#059669] text-sm">+0.23%</div>
-                      <div className="text-xs text-gray-400">Live</div>
-                    </div>
-                  </div>
-
-                  <div className="h-48 bg-background-tertiary rounded-xl mb-6 flex items-end justify-around p-4">
-                    {[40, 65, 45, 80, 55, 90, 70, 85, 60, 95].map((height, i) => (
-                      <div key={i} className="w-full mx-1 bg-gradient-to-t from-[#059669]/50 to-[#059669] rounded-t" style={{ height: `${height}%` }}></div>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-[#059669]/10 border border-[#059669]/30 rounded-xl p-4 text-center">
-                      <TrendingUp className="w-6 h-6 text-[#059669] mx-auto mb-2" />
-                      <div className="font-semibold">BUY</div>
-                    </div>
-                    <div className="bg-[#dc2626]/10 border border-[#dc2626]/30 rounded-xl p-4 text-center">
-                      <TrendingDown className="w-6 h-6 text-[#dc2626] mx-auto mb-2" />
-                      <div className="font-semibold">SELL</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      <section id="testimonials" className="py-20 sm:py-32 bg-background-secondary/30">
+      <section id="testimonials" className="py-20 sm:py-32 relative">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6">
-              Trusted by <span className="text-gradient-dark">Thousands</span>
+            <h2 className="text-4xl sm:text-5xl font-bold mb-6">
+              Trusted by <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Thousands</span>
             </h2>
-            <p className="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto">
-              See what our traders are saying about their experience with STC AutoTrade
+            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+              See what successful traders say about us
             </p>
           </div>
 
           <div className="max-w-4xl mx-auto">
-            <div className="relative bg-background-secondary border border-gray-800 rounded-3xl p-8 sm:p-12">
-              <div className="text-center">
+            <div className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl p-8 sm:p-12 backdrop-blur-xl">
+              <div className="text-center animate-fade-in">
                 <div className="text-6xl mb-6">{testimonials[activeTestimonial].avatar}</div>
                 
                 <div className="flex justify-center gap-1 mb-6">
-                  {[...Array(testimonials[activeTestimonial].rating)].map((_, i) => (
+                  {[...Array(5)].map((_, i) => (
                     <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                   ))}
                 </div>
 
-                <p className="text-lg sm:text-xl text-gray-300 mb-6 leading-relaxed">
+                <p className="text-xl text-gray-300 mb-6 leading-relaxed">
                   "{testimonials[activeTestimonial].content}"
                 </p>
+
+                <div className="inline-flex items-center gap-3 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full mb-4">
+                  <TrendingUp className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm font-bold text-emerald-400">
+                    {testimonials[activeTestimonial].profit} Returns
+                  </span>
+                </div>
 
                 <div className="font-semibold text-lg mb-1">
                   {testimonials[activeTestimonial].name}
@@ -486,10 +572,10 @@ export default function LandingPage() {
                   <button
                     key={index}
                     onClick={() => setActiveTestimonial(index)}
-                    className={`w-2 h-2 rounded-full transition-all ${
+                    className={`h-2 rounded-full transition-all ${
                       index === activeTestimonial 
-                        ? 'bg-[#1e40af] w-8' 
-                        : 'bg-gray-600 hover:bg-gray-500'
+                        ? 'bg-gradient-to-r from-blue-500 to-emerald-500 w-8' 
+                        : 'bg-gray-700 w-2 hover:bg-gray-600'
                     }`}
                   />
                 ))}
@@ -500,101 +586,46 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 sm:py-32">
+      <section className="py-20 sm:py-32 relative">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="relative bg-gradient-to-r from-[#1e40af]/30 via-[#047857]/30 to-[#16a34a]/30 border border-[#1e40af]/40 rounded-3xl p-8 sm:p-16 text-center overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-[#1e40af]/10 to-[#047857]/10 blur-3xl"></div>
+          <div className="relative bg-gradient-to-r from-blue-500/20 via-emerald-500/20 to-cyan-500/20 border border-blue-500/30 rounded-3xl p-8 sm:p-16 text-center overflow-hidden backdrop-blur-xl">
+            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
             
             <div className="relative z-10">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6">
+              <h2 className="text-4xl sm:text-5xl font-bold mb-6">
                 Ready to Start Your Trading Journey?
               </h2>
-              <p className="text-lg sm:text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-                Join thousands of successful traders and start earning profits today. 
-                Get started in less than 2 minutes!
+              <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+                Join 50,000+ successful traders. Start earning in less than 2 minutes!
               </p>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <button
-                  onClick={() => {
-                    setIsLogin(false)
-                    setShowAuthModal(true)
-                  }}
-                  className="w-full sm:w-auto px-8 py-4 bg-white text-background hover:bg-gray-100 rounded-xl text-lg font-semibold transition-all shadow-xl hover:shadow-2xl inline-flex items-center justify-center gap-2"
-                >
+              <button
+                onClick={() => {
+                  setIsLogin(false)
+                  setShowAuthModal(true)
+                }}
+                className="group relative px-8 py-4 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl text-lg font-semibold text-white shadow-2xl overflow-hidden"
+              >
+                <span className="relative z-10 flex items-center gap-2">
                   Create Free Account
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-                <button className="w-full sm:w-auto px-8 py-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-lg font-semibold transition-all">
-                  Learn More
-                </button>
-              </div>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              </button>
             </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-background-secondary border-t border-gray-800 py-12 sm:py-16">
+      <footer className="bg-[#0f1419] border-t border-gray-800/50 py-12">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-[#1e40af] to-[#047857] rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xl font-bold">STC AutoTrade</span>
-              </div>
-              <p className="text-gray-400 text-sm leading-relaxed">
-                Professional binary options trading platform for traders worldwide.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-4">Platform</h3>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Trading</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Assets</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Analytics</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Mobile App</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-4">Company</h3>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-4">Legal</h3>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Risk Warning</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Licenses</a></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-gray-400">
-              © 2025 STC AutoTrade. All rights reserved.
-            </p>
-            <div className="flex items-center gap-6">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                <Globe className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                <Shield className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                <Lock className="w-5 h-5" />
-              </a>
+          <div className="text-center text-gray-400 text-sm">
+            <p>© 2025 STC AutoTrade. All rights reserved.</p>
+            <div className="flex items-center justify-center gap-6 mt-4">
+              <Globe className="w-5 h-5 hover:text-white transition-colors cursor-pointer" />
+              <Shield className="w-5 h-5 hover:text-white transition-colors cursor-pointer" />
+              <Lock className="w-5 h-5 hover:text-white transition-colors cursor-pointer" />
             </div>
           </div>
         </div>
@@ -603,13 +634,22 @@ export default function LandingPage() {
       {/* Auth Modal */}
       {showAuthModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-background-secondary border border-gray-700 rounded-2xl max-w-md w-full p-6 sm:p-8 animate-scale-in">
+          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl max-w-md w-full p-8 animate-scale-in backdrop-blur-xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-emerald-500"></div>
+            
+            <button
+              onClick={() => setShowAuthModal(false)}
+              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
             <div className="text-center mb-6">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+              <h2 className="text-3xl font-bold mb-2">
                 {isLogin ? 'Welcome Back' : 'Get Started'}
               </h2>
               <p className="text-gray-400">
-                {isLogin ? 'Sign in to continue trading' : 'Create your account in seconds'}
+                {isLogin ? 'Sign in to continue trading' : 'Create your account'}
               </p>
             </div>
 
@@ -623,7 +663,7 @@ export default function LandingPage() {
                   placeholder="you@example.com"
                   required
                   disabled={loading}
-                  className="w-full bg-background-tertiary border-gray-600 px-4 py-3 rounded-lg"
+                  className="w-full bg-[#0a0e17] border-gray-700 px-4 py-3 rounded-lg focus:border-blue-500 transition-colors"
                   autoComplete="email"
                 />
               </div>
@@ -637,7 +677,7 @@ export default function LandingPage() {
                   placeholder="••••••••"
                   required
                   disabled={loading}
-                  className="w-full bg-background-tertiary border-gray-600 px-4 py-3 rounded-lg"
+                  className="w-full bg-[#0a0e17] border-gray-700 px-4 py-3 rounded-lg focus:border-blue-500 transition-colors"
                   autoComplete="current-password"
                 />
               </div>
@@ -645,7 +685,7 @@ export default function LandingPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full btn btn-primary py-3 text-lg"
+                className="w-full relative px-6 py-3 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg text-lg font-semibold text-white shadow-lg overflow-hidden group"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -653,7 +693,10 @@ export default function LandingPage() {
                     Processing...
                   </span>
                 ) : (
-                  isLogin ? 'Sign In' : 'Create Account'
+                  <>
+                    <span className="relative z-10">{isLogin ? 'Sign In' : 'Create Account'}</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  </>
                 )}
               </button>
             </form>
@@ -662,22 +705,14 @@ export default function LandingPage() {
               <button
                 onClick={() => setIsLogin(!isLogin)}
                 disabled={loading}
-                className="text-[#2563eb] hover:text-[#1e40af] transition-colors disabled:opacity-50"
+                className="text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50"
               >
                 {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
               </button>
             </div>
 
-            <button
-              onClick={() => setShowAuthModal(false)}
-              disabled={loading}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors"
-            >
-              ✕
-            </button>
-
             {isLogin && (
-              <div className="mt-6 p-4 bg-background rounded-lg border border-gray-700">
+              <div className="mt-6 p-4 bg-[#0a0e17] rounded-lg border border-gray-800/50">
                 <div className="text-xs text-gray-400 mb-2">Demo Credentials:</div>
                 <div className="text-xs font-mono space-y-1 text-gray-300">
                   <div>Email: superadmin@trading.com</div>
@@ -690,9 +725,73 @@ export default function LandingPage() {
       )}
 
       <style jsx>{`
+        @keyframes gradient {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-20px); }
+        }
+
+        @keyframes pulse-slow {
+          0%, 100% { opacity: 0.05; }
+          50% { opacity: 0.15; }
+        }
+
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
         @keyframes fade-in {
           from { opacity: 0; }
           to { opacity: 1; }
+        }
+
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes fade-in-right {
+          from {
+            opacity: 0;
+            transform: translateX(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes slide-in-left {
+          from {
+            opacity: 0;
+            transform: translateX(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes slide-in-right {
+          from {
+            opacity: 0;
+            transform: translateX(50px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
         }
 
         @keyframes scale-in {
@@ -706,23 +805,67 @@ export default function LandingPage() {
           }
         }
 
+        .animate-gradient {
+          background-size: 200% 200%;
+          animation: gradient 3s ease infinite;
+        }
+
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
+        }
+
+        .animate-pulse-slow {
+          animation: pulse-slow 4s ease-in-out infinite;
+        }
+
+        .animate-spin-slow {
+          animation: spin-slow 3s linear infinite;
+        }
+
         .animate-fade-in {
-          animation: fade-in 0.2s ease-out;
+          animation: fade-in 0.3s ease-out;
+        }
+
+        .animate-fade-in-up {
+          animation: fade-in-up 0.6s ease-out;
+        }
+
+        .animate-fade-in-right {
+          animation: fade-in-right 0.8s ease-out;
+        }
+
+        .animate-slide-in-left {
+          animation: slide-in-left 0.6s ease-out;
+        }
+
+        .animate-slide-in-right {
+          animation: slide-in-right 0.8s ease-out;
         }
 
         .animate-scale-in {
-          animation: scale-in 0.2s ease-out;
-        }
-
-        .text-gradient-dark {
-          background: linear-gradient(135deg, #1e40af 0%, #047857 50%, #16a34a 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          animation: scale-in 0.3s ease-out;
         }
 
         html {
           scroll-behavior: smooth;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+          background: #0a0e17;
+        }
+
+        ::-webkit-scrollbar-thumb {
+          background: linear-gradient(to bottom, #3b82f6, #10b981);
+          border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(to bottom, #2563eb, #059669);
         }
       `}</style>
     </div>
