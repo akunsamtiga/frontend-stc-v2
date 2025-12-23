@@ -578,7 +578,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials - CAROUSEL FOR MOBILE */}
+      {/* Testimonials - FIXED SSR */}
       <section id="testimonials" className="py-20 sm:py-32 relative">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="text-center mb-16">
@@ -592,23 +592,21 @@ export default function LandingPage() {
 
           <div className="max-w-4xl mx-auto">
             <div className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl p-8 sm:p-12 backdrop-blur-xl overflow-hidden">
-              {/* Desktop & Mobile View */}
+              {/* Carousel Container */}
               <div className="relative">
                 <div 
-                  className="flex transition-transform duration-500 ease-out sm:block"
-                  style={{ 
-                    transform: `translateX(-${activeTestimonial * 100}%)`,
-                  }}
+                  className="flex sm:block transition-transform duration-500 ease-out"
+                  style={{ transform: `translateX(-${activeTestimonial * 100}%)` }}
                 >
                   {testimonials.map((testimonial, index) => (
                     <div 
                       key={index}
-                      className="w-full flex-shrink-0 sm:w-auto"
-                      style={{ 
-                        display: index === activeTestimonial || window.innerWidth >= 640 ? 'block' : 'none' 
-                      }}
+                      className="w-full flex-shrink-0 sm:flex-shrink-0"
                     >
-                      <div className="text-center animate-fade-in px-4 sm:px-0">
+                      {/* Use conditional rendering for mobile, always show for desktop */}
+                      <div className={`text-center animate-fade-in px-4 sm:px-0 ${
+                        index !== activeTestimonial ? 'hidden sm:block' : ''
+                      }`}>
                         <div className="text-6xl mb-6">{testimonial.avatar}</div>
                         
                         <div className="flex justify-center gap-1 mb-6">
@@ -709,7 +707,7 @@ export default function LandingPage() {
       {/* Footer */}
       <EnhancedFooter />
 
-      {/* Auth Sidebar */}
+      {/* Auth Sidebar - (sama seperti sebelumnya) */}
       {showAuthModal && (
         <>
           {/* Backdrop */}
@@ -889,6 +887,7 @@ export default function LandingPage() {
                   <span className="text-sm font-medium">Facebook</span>
                 </button>
               </div>
+
               {/* Features */}
               {!isLogin && (
                 <div className="mt-6 space-y-3">
