@@ -1,6 +1,5 @@
 'use client'
 
-import FirebaseDebugger from '@/components/FirebaseDebugger'
 import { useEffect, useState, useCallback, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
@@ -22,16 +21,18 @@ import {
   ChevronDown,
   X,
   Menu,
-  Minus,
   Plus
 } from 'lucide-react'
 
-// Lazy load heavy components
+// Lazy load heavy components with proper loading state
 const TradingChart = dynamic(() => import('@/components/TradingChart'), {
   ssr: false,
   loading: () => (
-    <div className="h-full flex items-center justify-center bg-[#0a0e17]">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
+    <div className="w-full h-full flex items-center justify-center bg-[#0a0e17]">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-3"></div>
+        <div className="text-sm text-gray-400">Loading chart...</div>
+      </div>
     </div>
   )
 })
@@ -40,7 +41,7 @@ const HistorySidebar = dynamic(() => import('@/components/HistorySidebar'), {
   ssr: false
 })
 
-// Memoized components for better performance
+// Memoized Price Ticker
 const PriceTicker = memo(({ asset, price }: { asset: Asset; price: any }) => {
   if (!price) return null
 
@@ -81,7 +82,6 @@ export default function TradingPage() {
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
   
-  // Use optimized selectors
   const selectedAsset = useSelectedAsset()
   const currentPrice = useCurrentPrice()
   const { setSelectedAsset, setCurrentPrice, addPriceToHistory } = useTradingStore()
@@ -120,7 +120,7 @@ export default function TradingPage() {
     return () => {
       if (unsubscribe) unsubscribe()
     }
-  }, [selectedAsset?.id]) // Only re-run if asset ID changes
+  }, [selectedAsset?.id])
 
   const loadData = useCallback(async () => {
     try {
@@ -171,7 +171,6 @@ export default function TradingPage() {
       toast.success(`${direction} order placed successfully!`)
       setBalance((prev) => prev - amount)
       
-      // Reload data after 1 second
       setTimeout(loadData, 1000)
     } catch (error: any) {
       const errorMsg = error?.response?.data?.error || 'Failed to place order'
@@ -332,18 +331,26 @@ export default function TradingPage() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Chart Area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Main Content - FIXED LAYOUT */}
+      <div className="flex-1 flex overflow-hidden min-h-0">
+        {/* Chart Area - EXPLICIT SIZING */}
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           {/* Price Ticker */}
           {selectedAsset && currentPrice && (
             <PriceTicker asset={selectedAsset} price={currentPrice} />
           )}
 
-          {/* Chart */}
-          <div className="flex-1 bg-[#0a0e17]">
-            <TradingChart />
+          {/* Chart Container - CRITICAL: Must have explicit height */}
+          <div className="flex-1 bg-[#0a0e17] relative" style={{ minHeight: '500px' }}>
+            {selectedAsset ? (
+              <TradingChart />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="text-center text-gray-500">
+                  <div className="text-sm">Select an asset to view chart</div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -593,7 +600,6 @@ export default function TradingPage() {
           onClose={() => setShowHistorySidebar(false)} 
         />
       )}
-      {process.env.NODE_ENV === 'development' && <FirebaseDebugger />}
     </div>
   )
 }

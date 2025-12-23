@@ -32,88 +32,134 @@ export default function TradingChart() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
 
-  // Initialize chart once on mount
+  // Initialize chart once on mount - with retry mechanism
   useEffect(() => {
-    if (!chartContainerRef.current || mountedRef.current) return
+    if (mountedRef.current) return
+    
+    let retryCount = 0
+    const maxRetries = 5
+    const retryDelay = 200
 
-    console.log('🎨 Initializing chart...')
-    mountedRef.current = true
-
-    try {
+    const initChart = () => {
       const container = chartContainerRef.current
+      
+      if (!container) {
+        console.warn('⚠️ Container not ready, retry', retryCount + 1)
+        if (retryCount < maxRetries) {
+          retryCount++
+          setTimeout(initChart, retryDelay)
+        } else {
+          console.error('❌ Container never became ready')
+          setError('Chart container initialization timeout')
+        }
+        return
+      }
+
       const { width, height } = container.getBoundingClientRect()
-
-      const chart = createChart(container, {
-        width,
-        height,
-        layout: {
-          background: { type: ColorType.Solid, color: '#0a0e17' },
-          textColor: '#9ca3af',
-        },
-        grid: {
-          vertLines: { color: 'rgba(255, 255, 255, 0.03)' },
-          horzLines: { color: 'rgba(255, 255, 255, 0.03)' },
-        },
-        crosshair: {
-          mode: CrosshairMode.Normal,
-        },
-        rightPriceScale: {
-          borderColor: 'rgba(255, 255, 255, 0.1)',
-        },
-        timeScale: {
-          borderColor: 'rgba(255, 255, 255, 0.1)',
-          timeVisible: true,
-          secondsVisible: false,
-        },
-      })
-
-      const candleSeries = chart.addCandlestickSeries({
-        upColor: '#10b981',
-        downColor: '#ef4444',
-        borderUpColor: '#10b981',
-        borderDownColor: '#ef4444',
-        wickUpColor: '#10b981',
-        wickDownColor: '#ef4444',
-        visible: chartType === 'candle',
-      })
-
-      const lineSeries = chart.addLineSeries({
-        color: '#3b82f6',
-        lineWidth: 2,
-        visible: chartType === 'line',
-      })
-
-      chartRef.current = chart
-      candleSeriesRef.current = candleSeries
-      lineSeriesRef.current = lineSeries
-
-      console.log('✅ Chart initialized')
-      setIsInitialized(true)
-
-      // Handle resize
-      const handleResize = () => {
-        if (container && chart) {
-          const { width, height } = container.getBoundingClientRect()
-          chart.applyOptions({ width, height })
+      
+      if (width === 0 || height === 0) {
+        console.warn('⚠️ Container has no dimensions, retry', retryCount + 1)
+        if (retryCount < maxRetries) {
+          retryCount++
+          setTimeout(initChart, retryDelay)
+        } else {
+          console.error('❌ Container never got dimensions')
+          setError('Chart container has no size')
         }
+        return
       }
 
-      window.addEventListener('resize', handleResize)
+      console.log('🎨 Initializing chart...', { width, height })
+      mountedRef.current = true
 
-      return () => {
-        window.removeEventListener('resize', handleResize)
-        if (unsubscribeRef.current) {
-          unsubscribeRef.current()
-          unsubscribeRef.current = null
+      try {
+        const chart = createChart(container, {
+          width,
+          height,
+          layout: {
+            background: { type: ColorType.Solid, color: '#0a0e17' },
+            textColor: '#9ca3af',
+          },
+          grid: {
+            vertLines: { color: 'rgba(255, 255, 255, 0.03)' },
+            horzLines: { color: 'rgba(255, 255, 255, 0.03)' },
+          },
+          crosshair: {
+            mode: CrosshairMode.Normal,
+          },
+          rightPriceScale: {
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+          },
+          timeScale: {
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            timeVisible: true,
+            secondsVisible: false,
+          },
+        })
+
+        const candleSeries = chart.addCandlestickSeries({
+          upColor: '#10b981',
+          downColor: '#ef4444',
+          borderUpColor: '#10b981',
+          borderDownColor: '#ef4444',
+          wickUpColor: '#10b981',
+          wickDownColor: '#ef4444',
+          visible: chartType === 'candle',
+        })
+
+        const lineSeries = chart.addLineSeries({
+          color: '#3b82f6',
+          lineWidth: 2,
+          visible: chartType === 'line',
+        })
+
+        chartRef.current = chart
+        candleSeriesRef.current = candleSeries
+        lineSeriesRef.current = lineSeries
+
+        console.log('✅ Chart initialized successfully')
+        setIsInitialized(true)
+
+        // Handle resize
+        const handleResize = () => {
+          if (container && chart) {
+            const { width, height } = container.getBoundingClientRect()
+            if (width > 0 && height > 0) {
+              chart.applyOptions({ width, height })
+            }
+          }
         }
+
+        window.addEventListener('resize', handleResize)
+
+        // Cleanup
+        return () => {
+          console.log('🧹 Cleaning up chart...')
+          window.removeEventListener('resize', handleResize)
+          if (unsubscribeRef.current) {
+            unsubscribeRef.current()
+            unsubscribeRef.current = null
+          }
+          mountedRef.current = false
+          setIsInitialized(false)
+          try {
+            chart.remove()
+          } catch (e) {
+            console.warn('Chart already removed')
+          }
+        }
+      } catch (err: any) {
+        console.error('❌ Chart init error:', err)
+        setError(`Chart initialization failed: ${err.message}`)
         mountedRef.current = false
-        setIsInitialized(false)
-        chart.remove()
       }
-    } catch (err: any) {
-      console.error('❌ Chart init error:', err)
-      setError(`Chart initialization failed: ${err.message}`)
-      mountedRef.current = false
+    }
+
+    // Start initialization with small delay to ensure DOM is ready
+    const timeoutId = setTimeout(initChart, 100)
+
+    return () => {
+      clearTimeout(timeoutId)
     }
   }, []) // Only run once on mount
 
