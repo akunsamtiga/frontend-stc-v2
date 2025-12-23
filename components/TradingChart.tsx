@@ -395,20 +395,20 @@ export default function TradingChart() {
         style={{ minHeight: '400px' }}
       />
 
-      {/* Mobile Controls - Floating Above Chart - SMALLER & MORE TRANSPARENT */}
-      <div className="lg:hidden absolute top-2 left-2 right-2 z-10">
-        <div className="flex items-center gap-1 bg-black/15 backdrop-blur-md border border-white/5 rounded-md p-0.5">
-          {/* Timeframe Buttons - Scrollable, Show 3 */}
-          <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide max-w-[90px]">
+      {/* Mobile Controls - Compact & Auto Width */}
+      <div className="lg:hidden absolute top-2 left-2 z-10">
+        <div className="inline-flex items-center gap-1 bg-black/20 backdrop-blur-md border border-white/10 rounded-full p-1">
+          {/* Timeframe Buttons - Scrollable, Mini Size */}
+          <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide max-w-[80px]">
             {(['1m', '5m', '15m', '1h', '4h', '1d'] as Timeframe[]).map((tf) => (
               <button
                 key={tf}
                 onClick={() => setTimeframe(tf)}
                 disabled={isLoading}
-                className={`px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap transition-all flex-shrink-0 ${
+                className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold whitespace-nowrap transition-all flex-shrink-0 ${
                   timeframe === tf
-                    ? 'bg-blue-500/70 text-white backdrop-blur-sm'
-                    : 'bg-white/5 text-gray-300 hover:bg-white/15 backdrop-blur-sm'
+                    ? 'bg-blue-500/80 text-white shadow-sm'
+                    : 'bg-white/5 text-gray-300 hover:bg-white/15'
                 } disabled:opacity-50`}
               >
                 {tf}
@@ -417,24 +417,24 @@ export default function TradingChart() {
           </div>
 
           {/* Divider */}
-          <div className="w-px h-4 bg-white/10 flex-shrink-0"></div>
+          <div className="w-px h-3 bg-white/10 flex-shrink-0"></div>
 
           {/* Chart Type */}
           <button
             onClick={() => setChartType(chartType === 'candle' ? 'line' : 'candle')}
             disabled={isLoading}
-            className="px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap bg-white/5 text-gray-300 hover:bg-white/15 backdrop-blur-sm flex-shrink-0 transition-colors"
+            className="px-1.5 py-0.5 rounded-full text-[8px] font-bold whitespace-nowrap bg-white/5 text-gray-300 hover:bg-white/15 flex-shrink-0 transition-colors"
           >
-            {chartType === 'candle' ? 'Candle' : 'Line'}
+            {chartType === 'candle' ? '📊' : '📈'}
           </button>
 
           {/* Refresh */}
           <button
             onClick={handleRefresh}
             disabled={isLoading}
-            className="w-5 h-5 rounded bg-white/5 hover:bg-white/15 backdrop-blur-sm flex-shrink-0 transition-colors disabled:opacity-50 flex items-center justify-center"
+            className="w-5 h-5 rounded-full bg-white/5 hover:bg-white/15 flex-shrink-0 transition-colors disabled:opacity-50 flex items-center justify-center"
           >
-            <RefreshCw className={`w-2.5 h-2.5 text-gray-300 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-2 h-2 text-gray-300 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>

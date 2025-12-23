@@ -578,37 +578,35 @@ export default function TradingPage() {
               )}
             </div>
 
-            {/* Duration */}
+            {/* Duration - FIXED SPACING */}
             <div className="relative">
               <label className="text-xs text-gray-400 mb-1.5 block font-medium">Duration</label>
               <div className="relative">
                 <select
                   value={duration}
                   onChange={(e) => setDuration(Number(e.target.value))}
-                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg pl-3 pr-9 py-2.5 text-center text-sm font-bold focus:outline-none focus:border-blue-500/50 appearance-none"
+                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2.5 pr-8 text-center text-sm font-bold focus:outline-none focus:border-blue-500/50 appearance-none"
                 >
                   {DURATIONS.map((d) => (
                     <option key={d} value={d}>{d}m</option>
                   ))}
                 </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
                   <ChevronDown className="w-4 h-4 text-gray-400" />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Potential Payout */}
+          {/* Potential Payout - CENTERED & AUTO WIDTH */}
           {selectedAsset && (
-            <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg px-4 py-2.5">
-              <div className="flex items-center justify-between">
+            <div className="flex justify-center">
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-full px-4 py-2">
                 <span className="text-xs text-gray-400">Pendapatan</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-green-400">+{selectedAsset.profitRate}%</span>
-                  <span className="text-sm font-mono font-bold text-green-400">
-                    {formatCurrency(potentialPayout)}
-                  </span>
-                </div>
+                <span className="text-xs font-semibold text-green-400">+{selectedAsset.profitRate}%</span>
+                <span className="text-sm font-mono font-bold text-green-400">
+                  {formatCurrency(potentialPayout)}
+                </span>
               </div>
             </div>
           )}
