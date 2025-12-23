@@ -395,16 +395,16 @@ export default function TradingChart() {
         style={{ minHeight: '400px' }}
       />
 
-      {/* Mobile Controls - Bottom (Above Trading Panel) */}
-      <div className="lg:hidden absolute bottom-0 left-0 right-0 z-10 bg-[#0f1419]/95 backdrop-blur-sm border-t border-gray-800/50 p-2">
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
-          {/* Timeframe Buttons */}
+      {/* Mobile Controls - Bottom - SMALLER */}
+      <div className="lg:hidden absolute bottom-0 left-0 right-0 z-10 bg-[#0f1419]/95 backdrop-blur-sm border-t border-gray-800/50 p-1.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+          {/* Timeframe Buttons - SMALLER */}
           {(['1m', '5m', '15m', '1h', '4h', '1d'] as Timeframe[]).map((tf) => (
             <button
               key={tf}
               onClick={() => setTimeframe(tf)}
               disabled={isLoading}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 ${
+              className={`px-2 py-1 rounded text-[10px] font-semibold whitespace-nowrap transition-all flex-shrink-0 ${
                 timeframe === tf
                   ? 'bg-blue-500 text-white'
                   : 'bg-[#1a1f2e] text-gray-400 border border-gray-800/50'
@@ -415,24 +415,24 @@ export default function TradingChart() {
           ))}
 
           {/* Divider */}
-          <div className="w-px h-6 bg-gray-800 flex-shrink-0 mx-1"></div>
+          <div className="w-px h-4 bg-gray-800 flex-shrink-0"></div>
 
-          {/* Chart Type */}
+          {/* Chart Type - SMALLER */}
           <button
             onClick={() => setChartType(chartType === 'candle' ? 'line' : 'candle')}
             disabled={isLoading}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap bg-[#1a1f2e] text-gray-400 border border-gray-800/50 flex-shrink-0 hover:bg-[#232936] transition-colors"
+            className="px-2 py-1 rounded text-[10px] font-semibold whitespace-nowrap bg-[#1a1f2e] text-gray-400 border border-gray-800/50 flex-shrink-0 hover:bg-[#232936] transition-colors"
           >
             {chartType === 'candle' ? 'Candle' : 'Line'}
           </button>
 
-          {/* Refresh */}
+          {/* Refresh - SMALLER */}
           <button
             onClick={handleRefresh}
             disabled={isLoading}
-            className="w-8 h-8 rounded-lg bg-[#1a1f2e] border border-gray-800/50 flex-shrink-0 hover:bg-[#232936] transition-colors disabled:opacity-50 flex items-center justify-center"
+            className="w-6 h-6 rounded bg-[#1a1f2e] border border-gray-800/50 flex-shrink-0 hover:bg-[#232936] transition-colors disabled:opacity-50 flex items-center justify-center"
           >
-            <RefreshCw className={`w-4 h-4 text-gray-400 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3 h-3 text-gray-400 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>

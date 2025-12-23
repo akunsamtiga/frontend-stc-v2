@@ -22,7 +22,9 @@ import {
   X,
   Menu,
   Plus,
-  Minus
+  Minus,
+  ArrowDownToLine,
+  ArrowUpFromLine
 } from 'lucide-react'
 import RealtimeMonitor from '@/components/RealtimeMonitor'
 
@@ -97,6 +99,9 @@ export default function TradingPage() {
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showWalletModal, setShowWalletModal] = useState(false)
   const [showAmountDropdown, setShowAmountDropdown] = useState(false)
+  const [depositAmount, setDepositAmount] = useState('')
+  const [withdrawAmount, setWithdrawAmount] = useState('')
+  const [walletLoading, setWalletLoading] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -145,6 +150,62 @@ export default function TradingPage() {
       setBalance(0)
     }
   }, [selectedAsset])
+
+  const handleDeposit = async () => {
+    const amt = parseFloat(depositAmount)
+    if (isNaN(amt) || amt <= 0) {
+      toast.error('Invalid amount')
+      return
+    }
+
+    setWalletLoading(true)
+    try {
+      await api.createBalanceEntry({
+        type: 'deposit',
+        amount: amt,
+        description: 'Deposit',
+      })
+      toast.success('Deposit successful!')
+      setDepositAmount('')
+      setShowWalletModal(false)
+      loadData()
+    } catch (error) {
+      console.error('Deposit failed:', error)
+      toast.error('Deposit failed')
+    } finally {
+      setWalletLoading(false)
+    }
+  }
+
+  const handleWithdraw = async () => {
+    const amt = parseFloat(withdrawAmount)
+    if (isNaN(amt) || amt <= 0) {
+      toast.error('Invalid amount')
+      return
+    }
+    if (amt > balance) {
+      toast.error('Insufficient balance')
+      return
+    }
+
+    setWalletLoading(true)
+    try {
+      await api.createBalanceEntry({
+        type: 'withdrawal',
+        amount: amt,
+        description: 'Withdrawal',
+      })
+      toast.success('Withdrawal successful!')
+      setWithdrawAmount('')
+      setShowWalletModal(false)
+      loadData()
+    } catch (error) {
+      console.error('Withdrawal failed:', error)
+      toast.error('Withdrawal failed')
+    } finally {
+      setWalletLoading(false)
+    }
+  }
 
   const handlePlaceOrder = useCallback(async (direction: 'CALL' | 'PUT') => {
     if (!selectedAsset) {
@@ -306,12 +367,12 @@ export default function TradingPage() {
           </div>
         </div>
 
-        {/* Mobile Layout - FIXED SYMMETRICAL */}
+        {/* Mobile Layout - SYMMETRICAL & BALANCED */}
         <div className="flex lg:hidden items-center justify-between w-full">
-          {/* Left: Logo */}
-          <div className="flex items-center gap-2 w-20">
-            <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-4 h-4" />
+          {/* Left: Logo (w-16) */}
+          <div className="flex items-center w-16">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <TrendingUp className="w-4.5 h-4.5" />
             </div>
           </div>
 
@@ -321,19 +382,21 @@ export default function TradingPage() {
             <span className="text-sm font-mono font-bold">{formatCurrency(balance)}</span>
           </div>
 
-          {/* Right: Actions (Equal width to left) */}
-          <div className="flex items-center gap-2 justify-end w-20">
+          {/* Right: Actions (w-16) - SYMMETRIC */}
+          <div className="flex items-center gap-2 justify-end w-16">
             <button
               onClick={() => setShowWalletModal(true)}
-              className="w-8 h-8 flex items-center justify-center bg-[#1a1f2e] hover:bg-[#232936] rounded-lg border border-gray-800/50 transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+              aria-label="Wallet"
             >
-              <Wallet className="w-4 h-4 text-blue-400" />
+              <Wallet className="w-4.5 h-4.5 text-gray-300" />
             </button>
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="w-8 h-8 flex items-center justify-center hover:bg-[#1a1f2e] rounded-lg transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+              aria-label="Menu"
             >
-              <Menu className="w-4.5 h-4.5" />
+              <Menu className="w-4.5 h-4.5 text-gray-300" />
             </button>
           </div>
         </div>
@@ -465,7 +528,7 @@ export default function TradingPage() {
         </div>
       </div>
 
-      {/* Mobile Trading Panel - IMPROVED */}
+      {/* Mobile Trading Panel */}
       <div className="lg:hidden bg-[#0f1419] border-t border-gray-800/50 p-3">
         <div className="space-y-3">
           {/* Asset Rate Display */}
@@ -591,6 +654,92 @@ export default function TradingPage() {
         </div>
       </div>
 
+      {/* Wallet Modal - Slide Up from Bottom */}
+      {showWalletModal && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/70 z-50 backdrop-blur-sm animate-fade-in" 
+            onClick={() => setShowWalletModal(false)} 
+          />
+          <div className="fixed bottom-0 left-0 right-0 bg-[#0f1419] rounded-t-3xl z-50 animate-slide-up border-t border-gray-800/50">
+            <div className="p-6">
+              {/* Handle Bar */}
+              <div className="w-12 h-1 bg-gray-700 rounded-full mx-auto mb-6"></div>
+
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold">Wallet</h3>
+                <button 
+                  onClick={() => setShowWalletModal(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#1a1f2e] transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Balance Display */}
+              <div className="bg-gradient-to-br from-blue-500/10 to-purple-600/10 border border-blue-500/20 rounded-2xl p-6 mb-6">
+                <div className="text-sm text-gray-400 mb-2">Current Balance</div>
+                <div className="text-4xl font-bold font-mono mb-1">{formatCurrency(balance)}</div>
+                <div className="text-xs text-gray-500">Available for trading</div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => {
+                    setShowWalletModal(false)
+                    setTimeout(() => router.push('/balance'), 300)
+                  }}
+                  className="bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded-xl p-6 transition-all group"
+                >
+                  <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-green-500/30 transition-colors">
+                    <ArrowDownToLine className="w-6 h-6 text-green-400" />
+                  </div>
+                  <div className="text-center">
+                    <div className="font-bold text-green-400 mb-1">Deposit</div>
+                    <div className="text-xs text-gray-400">Add funds</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowWalletModal(false)
+                    setTimeout(() => router.push('/balance'), 300)
+                  }}
+                  className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-xl p-6 transition-all group"
+                >
+                  <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-red-500/30 transition-colors">
+                    <ArrowUpFromLine className="w-6 h-6 text-red-400" />
+                  </div>
+                  <div className="text-center">
+                    <div className="font-bold text-red-400 mb-1">Withdraw</div>
+                    <div className="text-xs text-gray-400">Cash out</div>
+                  </div>
+                </button>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="mt-4 pt-4 border-t border-gray-800/50">
+                <button
+                  onClick={() => {
+                    setShowWalletModal(false)
+                    setTimeout(() => router.push('/history'), 300)
+                  }}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <History className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm">Transaction History</span>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-gray-400 rotate-[-90deg]" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Mobile Menu */}
       {showMobileMenu && (
         <>
@@ -685,16 +834,30 @@ export default function TradingPage() {
 
       <style jsx>{`
         @keyframes slide-left {
-          from {
-            transform: translateX(100%);
-          }
-          to {
-            transform: translateX(0);
-          }
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+
+        @keyframes slide-up {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
 
         .animate-slide-left {
           animation: slide-left 0.3s ease-out;
+        }
+
+        .animate-slide-up {
+          animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .animate-fade-in {
+          animation: fade-in 0.2s ease-out;
         }
       `}</style>
     </div>
