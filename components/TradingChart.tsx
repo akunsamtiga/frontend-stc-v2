@@ -314,7 +314,7 @@ export default function TradingChart() {
                 key={tf}
                 onClick={() => setTimeframe(tf)}
                 disabled={isLoading}
-                className={`px-2 py-0.5 text-[10px] font-semibold rounded transition-all flex-shrink-0 ${
+                className={`px-2 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
                   timeframe === tf
                     ? 'bg-blue-500/70 text-white shadow-sm backdrop-blur-sm'
                     : 'text-gray-300 hover:text-white hover:bg-white/10'
@@ -330,7 +330,7 @@ export default function TradingChart() {
             <button
               onClick={() => setChartType('candle')}
               disabled={isLoading}
-              className={`px-2 py-0.5 text-[10px] font-semibold rounded transition-all ${
+              className={`px-2 py-0.5 text-xs font-semibold rounded transition-all ${
                 chartType === 'candle'
                   ? 'bg-blue-500/70 text-white shadow-sm backdrop-blur-sm'
                   : 'text-gray-300 hover:text-white hover:bg-white/10'
@@ -341,7 +341,7 @@ export default function TradingChart() {
             <button
               onClick={() => setChartType('line')}
               disabled={isLoading}
-              className={`px-2 py-0.5 text-[10px] font-semibold rounded transition-all ${
+              className={`px-2 py-0.5 text-xs font-semibold rounded transition-all ${
                 chartType === 'line'
                   ? 'bg-blue-500/70 text-white shadow-sm backdrop-blur-sm'
                   : 'text-gray-300 hover:text-white hover:bg-white/10'
@@ -355,7 +355,7 @@ export default function TradingChart() {
           <div className="flex items-center gap-0.5 bg-black/15 backdrop-blur-md border border-white/5 rounded-md p-0.5">
             <button
               onClick={handleFitContent}
-              className="px-2 py-0.5 text-[10px] font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
+              className="px-2 py-0.5 text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
               title="Fit content"
             >
               Fit
@@ -405,7 +405,7 @@ export default function TradingChart() {
                 key={tf}
                 onClick={() => setTimeframe(tf)}
                 disabled={isLoading}
-                className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold whitespace-nowrap transition-all flex-shrink-0 ${
+                className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all flex-shrink-0 ${
                   timeframe === tf
                     ? 'bg-blue-500/80 text-white shadow-sm'
                     : 'bg-white/5 text-gray-300 hover:bg-white/15'
@@ -423,9 +423,9 @@ export default function TradingChart() {
           <button
             onClick={() => setChartType(chartType === 'candle' ? 'line' : 'candle')}
             disabled={isLoading}
-            className="px-1.5 py-0.5 rounded-full text-[8px] font-bold whitespace-nowrap bg-white/5 text-gray-300 hover:bg-white/15 flex-shrink-0 transition-colors"
+            className="px-1.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap bg-white/5 text-gray-300 hover:bg-white/15 flex-shrink-0 transition-colors"
           >
-            {chartType === 'candle' ? '📊' : '📈'}
+            {chartType === 'candle' ? 'Candle' : 'Line'}
           </button>
 
           {/* Refresh */}

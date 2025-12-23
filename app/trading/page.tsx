@@ -581,20 +581,15 @@ export default function TradingPage() {
             {/* Duration - FIXED SPACING */}
             <div className="relative">
               <label className="text-xs text-gray-400 mb-1.5 block font-medium">Duration</label>
-              <div className="relative">
-                <select
-                  value={duration}
-                  onChange={(e) => setDuration(Number(e.target.value))}
-                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2.5 pr-8 text-center text-sm font-bold focus:outline-none focus:border-blue-500/50 appearance-none"
-                >
-                  {DURATIONS.map((d) => (
-                    <option key={d} value={d}>{d}m</option>
-                  ))}
-                </select>
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <ChevronDown className="w-4 h-4 text-gray-400" />
-                </div>
-              </div>
+              <select
+                value={duration}
+                onChange={(e) => setDuration(Number(e.target.value))}
+                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2.5 text-center text-sm font-bold focus:outline-none focus:border-blue-500/50 appearance-none cursor-pointer"
+              >
+                {DURATIONS.map((d) => (
+                  <option key={d} value={d}>{d}m</option>
+                ))}
+              </select>
             </div>
           </div>
 
