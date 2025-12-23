@@ -324,10 +324,10 @@ export default function TradingPage() {
           {/* Right: Actions (Equal width to left) */}
           <div className="flex items-center gap-2 justify-end w-20">
             <button
-              onClick={() => setShowHistorySidebar(true)}
+              onClick={() => setShowWalletModal(true)}
               className="w-8 h-8 flex items-center justify-center bg-[#1a1f2e] hover:bg-[#232936] rounded-lg border border-gray-800/50 transition-colors"
             >
-              <History className="w-4 h-4" />
+              <Wallet className="w-4 h-4 text-blue-400" />
             </button>
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
@@ -489,13 +489,13 @@ export default function TradingPage() {
                   type="number"
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
-                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg pl-3 pr-8 py-2.5 text-center text-sm font-mono font-bold focus:outline-none focus:border-blue-500/50"
+                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg pl-3 pr-9 py-2.5 text-center text-sm font-mono font-bold focus:outline-none focus:border-blue-500/50"
                   min="1000"
                   step="1000"
                 />
                 <button
                   onClick={() => setShowAmountDropdown(!showAmountDropdown)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                 >
                   <ChevronDown className="w-4 h-4" />
                 </button>
@@ -529,31 +529,35 @@ export default function TradingPage() {
             </div>
 
             {/* Duration */}
-            <div>
+            <div className="relative">
               <label className="text-xs text-gray-400 mb-1.5 block font-medium">Duration</label>
-              <select
-                value={duration}
-                onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2.5 text-center text-sm font-bold focus:outline-none focus:border-blue-500/50"
-              >
-                {DURATIONS.map((d) => (
-                  <option key={d} value={d}>{d}m</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={duration}
+                  onChange={(e) => setDuration(Number(e.target.value))}
+                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg pl-3 pr-9 py-2.5 text-center text-sm font-bold focus:outline-none focus:border-blue-500/50 appearance-none"
+                >
+                  {DURATIONS.map((d) => (
+                    <option key={d} value={d}>{d}m</option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Potential Payout */}
+          {/* Potential Payout - Compact */}
           {selectedAsset && (
-            <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
-              <div className="text-center space-y-1">
-                <div className="text-xs text-gray-400">Potential Payout</div>
-                <div className="text-xl font-mono font-bold text-green-400">
+            <div className="flex items-center justify-center">
+              <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-2">
+                <span className="text-sm font-mono font-bold text-green-400">
                   {formatCurrency(potentialPayout)}
-                </div>
-                <div className="text-xs text-gray-500">
-                  Profit: {formatCurrency(potentialProfit)}
-                </div>
+                </span>
+                <span className="text-xs text-gray-500">
+                  (+{formatCurrency(potentialProfit)})
+                </span>
               </div>
             </div>
           )}
@@ -620,6 +624,17 @@ export default function TradingPage() {
                   ))}
                 </select>
               </div>
+
+              <button
+                onClick={() => {
+                  setShowHistorySidebar(true)
+                  setShowMobileMenu(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <History className="w-4 h-4" />
+                <span>History</span>
+              </button>
 
               <button
                 onClick={() => {

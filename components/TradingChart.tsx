@@ -423,14 +423,14 @@ export default function TradingChart() {
             disabled={isLoading}
             className="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap bg-[#1a1f2e] text-gray-400 border border-gray-800/50 flex-shrink-0 hover:bg-[#232936] transition-colors"
           >
-            {chartType === 'candle' ? '📊' : '📈'} {chartType === 'candle' ? 'Candle' : 'Line'}
+            {chartType === 'candle' ? 'Candle' : 'Line'}
           </button>
 
           {/* Refresh */}
           <button
             onClick={handleRefresh}
             disabled={isLoading}
-            className="p-2 rounded-lg bg-[#1a1f2e] border border-gray-800/50 flex-shrink-0 hover:bg-[#232936] transition-colors disabled:opacity-50"
+            className="w-8 h-8 rounded-lg bg-[#1a1f2e] border border-gray-800/50 flex-shrink-0 hover:bg-[#232936] transition-colors disabled:opacity-50 flex items-center justify-center"
           >
             <RefreshCw className={`w-4 h-4 text-gray-400 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
