@@ -838,25 +838,10 @@ export default function LandingPage() {
                   />
                 </div>
 
-                {isLogin && (
-                  <div className="flex items-center justify-between text-sm">
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                      <input 
-                        type="checkbox" 
-                        className="w-3.5 h-3.5 rounded border-gray-700 bg-[#0a0e17] text-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer" 
-                      />
-                      <span className="text-gray-400 text-xs group-hover:text-gray-300">Remember me</span>
-                    </label>
-                    <a href="#" className="text-blue-400 hover:text-blue-300 transition-colors text-xs">
-                      Forgot password?
-                    </a>
-                  </div>
-                )}
-
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full px-6 py-3.5 bg-[#1e293b] hover:bg-[#334155] rounded-lg text-lg font-semibold text-white transition-colors border border-gray-700 shadow-lg disabled:opacity-50"
+                  className="w-full px-6 py-3.5 bg-[#1e293b] hover:bg-[#334155] rounded-lg text-lg font-semibold text-white transition-colors border border-gray-700 shadow-lg disabled:opacity-50 mt-6"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
