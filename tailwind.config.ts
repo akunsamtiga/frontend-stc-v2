@@ -26,6 +26,18 @@ const config: Config = {
           DEFAULT: '#ef4444',
           dark: '#dc2626',
         },
+        // Tambahan warna hijau pastel
+        emerald: {
+          300: '#6ee7b7',
+          400: '#34d399',
+          500: '#10b981',
+          600: '#059669',
+        },
+        green: {
+          300: '#86efac',
+          400: '#4ade80',
+          500: '#22c55e',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

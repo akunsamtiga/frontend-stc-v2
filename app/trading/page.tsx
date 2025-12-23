@@ -254,10 +254,10 @@ export default function TradingPage() {
         {/* Desktop Layout */}
         <div className="hidden lg:flex items-center gap-4 w-full">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+            <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
               <TrendingUp className="w-4 h-4" />
             </div>
-            <span className="font-bold text-sm">BinaryTrade</span>
+            <span className="font-bold text-sm">STC AutoTrade</span>
           </div>
 
           <div className="relative">
@@ -329,7 +329,7 @@ export default function TradingPage() {
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity"
+              className="w-8 h-8 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity"
             >
               <span className="text-xs font-bold">{user.email[0].toUpperCase()}</span>
             </button>
@@ -371,7 +371,7 @@ export default function TradingPage() {
         <div className="flex lg:hidden items-center justify-between w-full">
           {/* Left: Logo (w-16) */}
           <div className="flex items-center w-16">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
               <TrendingUp className="w-4.5 h-4.5" />
             </div>
           </div>

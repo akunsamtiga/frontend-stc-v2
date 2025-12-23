@@ -155,21 +155,21 @@ export default function LandingPage() {
     {
       name: 'Ahmad Rizki',
       role: 'Professional Trader',
-      content: 'BinaryTrade has completely changed my trading experience. The platform is intuitive, fast, and reliable. I\'ve been profitable for 6 months straight!',
+      content: 'STC AutoTrade has completely changed my trading experience. The platform is intuitive, fast, and reliable. I\'ve been profitable for 6 months straight!',
       rating: 5,
       avatar: '👨‍💼'
     },
     {
       name: 'Siti Nurhaliza',
       role: 'Part-Time Trader',
-      content: 'As a beginner, I was worried about trading. But BinaryTrade\'s simple interface and educational resources helped me learn quickly. Highly recommended!',
+      content: 'As a beginner, I was worried about trading. But STC AutoTrade\'s simple interface and educational resources helped me learn quickly. Highly recommended!',
       rating: 5,
       avatar: '👩‍💻'
     },
     {
       name: 'Budi Santoso',
       role: 'Experienced Investor',
-      content: 'I\'ve tried many platforms, but BinaryTrade stands out with its speed, security, and excellent customer support. The profit rates are unbeatable!',
+      content: 'I\'ve tried many platforms, but STC AutoTrade stands out with its speed, security, and excellent customer support. The profit rates are unbeatable!',
       rating: 5,
       avatar: '👨‍🎓'
     },
@@ -185,11 +185,11 @@ export default function LandingPage() {
           <div className="flex items-center justify-between h-16 sm:h-20">
             {/* Logo */}
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-primary to-purple-600 rounded-xl flex items-center justify-center">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-primary to-emerald-500 rounded-xl flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <span className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">
-                BinaryTrade
+              <span className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-emerald-500">
+                STC AutoTrade
               </span>
             </div>
 
@@ -216,7 +216,7 @@ export default function LandingPage() {
                   setIsLogin(false)
                   setShowAuthModal(true)
                 }}
-                className="px-4 sm:px-6 py-2 sm:py-2.5 bg-gradient-to-r from-primary to-purple-600 hover:from-primary-dark hover:to-purple-700 rounded-lg text-sm sm:text-base font-semibold text-white transition-all shadow-lg hover:shadow-xl"
+                className="px-4 sm:px-6 py-2 sm:py-2.5 bg-gradient-to-r from-primary to-emerald-500 hover:from-primary-dark hover:to-emerald-600 rounded-lg text-sm sm:text-base font-semibold text-white transition-all shadow-lg hover:shadow-xl"
               >
                 Get Started
               </button>
@@ -228,9 +228,9 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32 overflow-hidden">
         {/* Background Effects */}
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-purple-600/5 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-emerald-500/5 to-transparent"></div>
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px]"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px]"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-emerald-500/20 rounded-full blur-[120px]"></div>
 
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
@@ -243,7 +243,7 @@ export default function LandingPage() {
             {/* Headline */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 sm:mb-8 leading-tight">
               Trade Binary Options with
-              <span className="block mt-2 bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-500 to-pink-500">
+              <span className="block mt-2 bg-clip-text text-transparent bg-gradient-to-r from-primary via-emerald-500 to-green-400">
                 Confidence & Speed
               </span>
             </h1>
@@ -261,7 +261,7 @@ export default function LandingPage() {
                   setIsLogin(false)
                   setShowAuthModal(true)
                 }}
-                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-primary to-purple-600 hover:from-primary-dark hover:to-purple-700 rounded-xl text-lg font-semibold text-white transition-all shadow-2xl hover:shadow-primary/50 hover:scale-105 flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-primary to-emerald-500 hover:from-primary-dark hover:to-emerald-600 rounded-xl text-lg font-semibold text-white transition-all shadow-2xl hover:shadow-primary/50 hover:scale-105 flex items-center justify-center gap-2"
               >
                 Start Trading Now
                 <ArrowRight className="w-5 h-5" />
@@ -291,7 +291,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 sm:px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6">
-              Why Choose <span className="text-gradient">BinaryTrade</span>?
+              Why Choose <span className="text-gradient">STC AutoTrade</span>?
             </h2>
             <p className="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto">
               Experience the most advanced binary options trading platform with features designed for your success
@@ -323,7 +323,7 @@ export default function LandingPage() {
               Start Trading in <span className="text-gradient">4 Easy Steps</span>
             </h2>
             <p className="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto">
-              Get started with BinaryTrade in minutes and begin your journey to financial freedom
+              Get started with STC AutoTrade in minutes and begin your journey to financial freedom
             </p>
           </div>
 
@@ -332,12 +332,12 @@ export default function LandingPage() {
               <div key={index} className="relative">
                 {/* Connector Line - Desktop Only */}
                 {index < steps.length - 1 && (
-                  <div className="hidden lg:block absolute top-16 left-1/2 w-full h-0.5 bg-gradient-to-r from-primary/50 to-purple-600/50"></div>
+                  <div className="hidden lg:block absolute top-16 left-1/2 w-full h-0.5 bg-gradient-to-r from-primary/50 to-emerald-500/50"></div>
                 )}
                 
                 <div className="relative bg-background-secondary border border-gray-800 rounded-2xl p-6 sm:p-8 hover:border-primary/50 transition-all">
                   {/* Step Number */}
-                  <div className="absolute -top-4 left-6 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-primary to-purple-600 rounded-xl flex items-center justify-center text-xl sm:text-2xl font-bold shadow-lg">
+                  <div className="absolute -top-4 left-6 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-primary to-emerald-500 rounded-xl flex items-center justify-center text-xl sm:text-2xl font-bold shadow-lg">
                     {step.number}
                   </div>
 
@@ -357,7 +357,7 @@ export default function LandingPage() {
                 setIsLogin(false)
                 setShowAuthModal(true)
               }}
-              className="px-8 py-4 bg-gradient-to-r from-primary to-purple-600 hover:from-primary-dark hover:to-purple-700 rounded-xl text-lg font-semibold text-white transition-all shadow-xl hover:shadow-2xl hover:scale-105 inline-flex items-center gap-2"
+              className="px-8 py-4 bg-gradient-to-r from-primary to-emerald-500 hover:from-primary-dark hover:to-emerald-600 rounded-xl text-lg font-semibold text-white transition-all shadow-xl hover:shadow-2xl hover:scale-105 inline-flex items-center gap-2"
             >
               Create Free Account
               <ChevronRight className="w-5 h-5" />
@@ -411,7 +411,7 @@ export default function LandingPage() {
 
             {/* Right - Platform Preview */}
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-purple-600/20 rounded-3xl blur-3xl"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-emerald-500/20 rounded-3xl blur-3xl"></div>
               <div className="relative bg-background-secondary border border-gray-800 rounded-3xl p-4 shadow-2xl">
                 {/* Mock Platform Interface */}
                 <div className="bg-background rounded-2xl p-6">
@@ -464,7 +464,7 @@ export default function LandingPage() {
               Trusted by <span className="text-gradient">Thousands</span>
             </h2>
             <p className="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto">
-              See what our traders are saying about their experience with BinaryTrade
+              See what our traders are saying about their experience with STC AutoTrade
             </p>
           </div>
 
@@ -514,8 +514,8 @@ export default function LandingPage() {
       {/* CTA Section */}
       <section className="py-20 sm:py-32">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="relative bg-gradient-to-r from-primary/20 via-purple-600/20 to-pink-500/20 border border-primary/30 rounded-3xl p-8 sm:p-16 text-center overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-purple-600/10 blur-3xl"></div>
+          <div className="relative bg-gradient-to-r from-primary/20 via-emerald-500/20 to-green-400/20 border border-primary/30 rounded-3xl p-8 sm:p-16 text-center overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-emerald-500/10 blur-3xl"></div>
             
             <div className="relative z-10">
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6">
@@ -553,10 +553,10 @@ export default function LandingPage() {
             {/* Brand */}
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-primary to-purple-600 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-primary to-emerald-500 rounded-lg flex items-center justify-center">
                   <TrendingUp className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xl font-bold">BinaryTrade</span>
+                <span className="text-xl font-bold">STC AutoTrade</span>
               </div>
               <p className="text-gray-400 text-sm leading-relaxed">
                 Professional binary options trading platform for traders worldwide.
@@ -600,7 +600,7 @@ export default function LandingPage() {
           {/* Bottom */}
           <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-gray-400">
-              © 2025 BinaryTrade. All rights reserved.
+              © 2025 STC AutoTrade. All rights reserved.
             </p>
             <div className="flex items-center gap-6">
               <a href="#" className="text-gray-400 hover:text-white transition-colors">
@@ -706,7 +706,7 @@ export default function LandingPage() {
         </div>
       )}
 
-      {/* Animations */}
+      {/* Animations & Styles */}
       <style jsx>{`
         @keyframes fade-in {
           from { opacity: 0; }
@@ -733,13 +733,12 @@ export default function LandingPage() {
         }
 
         .text-gradient {
-          background: linear-gradient(135deg, #3b82f6 0%, #a855f7 50%, #ec4899 100%);
+          background: linear-gradient(135deg, #3b82f6 0%, #10b981 50%, #86efac 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
         }
 
-        /* Smooth scroll */
         html {
           scroll-behavior: smooth;
         }
