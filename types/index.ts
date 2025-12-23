@@ -41,7 +41,7 @@ export interface BinaryOrder {
 export interface Balance {
   id: string
   user_id: string
-  type: 'deposit' | 'withdrawal' | 'win' | 'lose'
+  type: 'deposit' | 'withdrawal' | 'win' | 'lose' | 'order_debit' | 'order_profit'  // ← UPDATE
   amount: number
   description?: string
   createdAt: string
