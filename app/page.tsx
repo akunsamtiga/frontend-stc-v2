@@ -186,7 +186,7 @@ export default function LandingPage() {
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-[#1e40af] to-[#047857] rounded-xl flex items-center justify-center shadow-lg">
                 <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <span className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#1e40af] to-[#047857]">
+              <span className="text-xl sm:text-2xl font-bold bg-clip-text text-white">
                 STC AutoTrade
               </span>
             </div>
