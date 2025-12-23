@@ -394,7 +394,7 @@ export default function TradingChart() {
               className="p-1 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-50"
               title="Refresh"
             >
-              <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
             <button
               onClick={toggleFullscreen}
@@ -462,7 +462,7 @@ export default function TradingChart() {
             disabled={isLoading}
             className="w-5 h-5 rounded-full bg-white/5 hover:bg-white/15 flex-shrink-0 transition-colors disabled:opacity-50 flex items-center justify-center"
           >
-            <RefreshCw className={`w-2 h-2 text-gray-300 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 text-gray-300 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
