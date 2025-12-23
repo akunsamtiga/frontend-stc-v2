@@ -304,19 +304,19 @@ export default function TradingChart() {
 
   return (
     <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : 'h-full'}`}>
-      {/* Desktop Controls - Top Left */}
+      {/* Desktop Controls - Top Left - SMALLER & MORE TRANSPARENT */}
       <div className="hidden lg:block absolute top-2 left-2 z-10">
-        <div className="flex items-center gap-2">
-          {/* Timeframe */}
-          <div className="flex items-center gap-1 bg-black/30 backdrop-blur-md border border-white/10 rounded-lg p-1">
+        <div className="flex items-center gap-1.5">
+          {/* Timeframe - Scrollable */}
+          <div className="flex items-center gap-0.5 bg-black/15 backdrop-blur-md border border-white/5 rounded-md p-0.5 max-w-[140px] overflow-x-auto scrollbar-hide">
             {(['1m', '5m', '15m', '1h', '4h', '1d'] as Timeframe[]).map((tf) => (
               <button
                 key={tf}
                 onClick={() => setTimeframe(tf)}
                 disabled={isLoading}
-                className={`px-2.5 py-1 text-xs font-medium rounded transition-all ${
+                className={`px-2 py-0.5 text-[10px] font-semibold rounded transition-all flex-shrink-0 ${
                   timeframe === tf
-                    ? 'bg-blue-500/80 text-white shadow-lg backdrop-blur-sm'
+                    ? 'bg-blue-500/70 text-white shadow-sm backdrop-blur-sm'
                     : 'text-gray-300 hover:text-white hover:bg-white/10'
                 } disabled:opacity-50`}
               >
@@ -326,13 +326,13 @@ export default function TradingChart() {
           </div>
 
           {/* Chart Type */}
-          <div className="flex items-center gap-1 bg-black/30 backdrop-blur-md border border-white/10 rounded-lg p-1">
+          <div className="flex items-center gap-0.5 bg-black/15 backdrop-blur-md border border-white/5 rounded-md p-0.5">
             <button
               onClick={() => setChartType('candle')}
               disabled={isLoading}
-              className={`px-2.5 py-1 text-xs font-medium rounded transition-all ${
+              className={`px-2 py-0.5 text-[10px] font-semibold rounded transition-all ${
                 chartType === 'candle'
-                  ? 'bg-blue-500/80 text-white shadow-lg backdrop-blur-sm'
+                  ? 'bg-blue-500/70 text-white shadow-sm backdrop-blur-sm'
                   : 'text-gray-300 hover:text-white hover:bg-white/10'
               }`}
             >
@@ -341,9 +341,9 @@ export default function TradingChart() {
             <button
               onClick={() => setChartType('line')}
               disabled={isLoading}
-              className={`px-2.5 py-1 text-xs font-medium rounded transition-all ${
+              className={`px-2 py-0.5 text-[10px] font-semibold rounded transition-all ${
                 chartType === 'line'
-                  ? 'bg-blue-500/80 text-white shadow-lg backdrop-blur-sm'
+                  ? 'bg-blue-500/70 text-white shadow-sm backdrop-blur-sm'
                   : 'text-gray-300 hover:text-white hover:bg-white/10'
               }`}
             >
@@ -352,10 +352,10 @@ export default function TradingChart() {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-1 bg-black/30 backdrop-blur-md border border-white/10 rounded-lg p-1">
+          <div className="flex items-center gap-0.5 bg-black/15 backdrop-blur-md border border-white/5 rounded-md p-0.5">
             <button
               onClick={handleFitContent}
-              className="px-2.5 py-1 text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
+              className="px-2 py-0.5 text-[10px] font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
               title="Fit content"
             >
               Fit
@@ -363,28 +363,28 @@ export default function TradingChart() {
             <button
               onClick={handleRefresh}
               disabled={isLoading}
-              className="p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-50"
+              className="p-1 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-50"
               title="Refresh"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
             <button
               onClick={toggleFullscreen}
-              className="p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
+              className="p-1 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
               title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
             >
-              {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              {isFullscreen ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Chart Info - Top Right */}
-      <div className="absolute top-2 right-2 z-10 bg-black/30 backdrop-blur-md border border-white/10 rounded-lg px-3 py-1.5">
-        <div className="text-xs text-gray-300 flex items-center gap-2">
-          <span className="font-medium">{selectedAsset.symbol}</span>
-          <span>•</span>
-          <span>{timeframe}</span>
+      {/* Chart Info - Top Right - SMALLER & MORE TRANSPARENT */}
+      <div className="absolute top-2 right-2 z-10 bg-black/15 backdrop-blur-md border border-white/5 rounded-md px-2 py-1">
+        <div className="text-[10px] text-gray-300 flex items-center gap-1.5">
+          <span className="font-semibold">{selectedAsset.symbol}</span>
+          <span className="text-gray-500">•</span>
+          <span className="text-gray-400">{timeframe}</span>
         </div>
       </div>
 
@@ -395,44 +395,46 @@ export default function TradingChart() {
         style={{ minHeight: '400px' }}
       />
 
-      {/* Mobile Controls - Floating Above Chart */}
+      {/* Mobile Controls - Floating Above Chart - SMALLER & MORE TRANSPARENT */}
       <div className="lg:hidden absolute top-2 left-2 right-2 z-10">
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide bg-black/30 backdrop-blur-md border border-white/10 rounded-lg p-1.5">
-          {/* Timeframe Buttons - SMALLER */}
-          {(['1m', '5m', '15m', '1h', '4h', '1d'] as Timeframe[]).map((tf) => (
-            <button
-              key={tf}
-              onClick={() => setTimeframe(tf)}
-              disabled={isLoading}
-              className={`px-2 py-1 rounded text-[10px] font-semibold whitespace-nowrap transition-all flex-shrink-0 ${
-                timeframe === tf
-                  ? 'bg-blue-500/80 text-white backdrop-blur-sm'
-                  : 'bg-white/10 text-gray-300 hover:bg-white/20 backdrop-blur-sm'
-              } disabled:opacity-50`}
-            >
-              {tf}
-            </button>
-          ))}
+        <div className="flex items-center gap-1 bg-black/15 backdrop-blur-md border border-white/5 rounded-md p-0.5">
+          {/* Timeframe Buttons - Scrollable, Show 3 */}
+          <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide max-w-[90px]">
+            {(['1m', '5m', '15m', '1h', '4h', '1d'] as Timeframe[]).map((tf) => (
+              <button
+                key={tf}
+                onClick={() => setTimeframe(tf)}
+                disabled={isLoading}
+                className={`px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap transition-all flex-shrink-0 ${
+                  timeframe === tf
+                    ? 'bg-blue-500/70 text-white backdrop-blur-sm'
+                    : 'bg-white/5 text-gray-300 hover:bg-white/15 backdrop-blur-sm'
+                } disabled:opacity-50`}
+              >
+                {tf}
+              </button>
+            ))}
+          </div>
 
           {/* Divider */}
-          <div className="w-px h-4 bg-white/20 flex-shrink-0"></div>
+          <div className="w-px h-4 bg-white/10 flex-shrink-0"></div>
 
-          {/* Chart Type - SMALLER */}
+          {/* Chart Type */}
           <button
             onClick={() => setChartType(chartType === 'candle' ? 'line' : 'candle')}
             disabled={isLoading}
-            className="px-2 py-1 rounded text-[10px] font-semibold whitespace-nowrap bg-white/10 text-gray-300 hover:bg-white/20 backdrop-blur-sm flex-shrink-0 transition-colors"
+            className="px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap bg-white/5 text-gray-300 hover:bg-white/15 backdrop-blur-sm flex-shrink-0 transition-colors"
           >
             {chartType === 'candle' ? 'Candle' : 'Line'}
           </button>
 
-          {/* Refresh - SMALLER */}
+          {/* Refresh */}
           <button
             onClick={handleRefresh}
             disabled={isLoading}
-            className="w-6 h-6 rounded bg-white/10 hover:bg-white/20 backdrop-blur-sm flex-shrink-0 transition-colors disabled:opacity-50 flex items-center justify-center"
+            className="w-5 h-5 rounded bg-white/5 hover:bg-white/15 backdrop-blur-sm flex-shrink-0 transition-colors disabled:opacity-50 flex items-center justify-center"
           >
-            <RefreshCw className={`w-3 h-3 text-gray-300 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-2.5 h-2.5 text-gray-300 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
@@ -485,6 +487,11 @@ export default function TradingChart() {
 
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
+        }
+
+        /* Smooth scroll */
+        .scrollbar-hide {
+          scroll-behavior: smooth;
         }
       `}</style>
     </div>
