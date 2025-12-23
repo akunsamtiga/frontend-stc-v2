@@ -3,24 +3,14 @@
 import { useState } from 'react'
 import { 
   TrendingUp, 
-  Globe, 
-  Shield, 
-  Lock,
   Mail,
-  MapPin,
-  Phone,
   Send,
   Facebook,
   Twitter,
   Instagram,
   Linkedin,
   Youtube,
-  ArrowRight,
-  CheckCircle,
-  Award,
-  Zap,
-  Clock,
-  CreditCard,
+  Shield,
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
@@ -66,8 +56,8 @@ export default function EnhancedFooter() {
       { label: 'Community', href: '#community' },
     ],
     legal: [
-      { label: 'Terms of Service', href: '#terms' },
-      { label: 'Privacy Policy', href: '#privacy' },
+      { label: 'Terms', href: '#terms' },
+      { label: 'Privacy', href: '#privacy' },
       { label: 'Risk Warning', href: '#risk' },
       { label: 'Licenses', href: '#licenses' },
     ],
@@ -79,20 +69,6 @@ export default function EnhancedFooter() {
     { icon: Instagram, href: '#', label: 'Instagram' },
     { icon: Linkedin, href: '#', label: 'LinkedIn' },
     { icon: Youtube, href: '#', label: 'YouTube' },
-  ]
-
-  const trustBadges = [
-    { icon: Shield, text: 'SSL Secured' },
-    { icon: Lock, text: 'Bank-Level Security' },
-    { icon: Award, text: 'Licensed' },
-    { icon: CheckCircle, text: 'Verified' },
-  ]
-
-  const features = [
-    { icon: Zap, text: '0.01s' },
-    { icon: Clock, text: '24/7' },
-    { icon: CreditCard, text: 'Instant' },
-    { icon: Globe, text: '150+' },
   ]
 
   const toggleSection = (section: string) => {
@@ -108,11 +84,9 @@ export default function EnhancedFooter() {
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
-        {/* Top Section - Newsletter */}
-        <div className="py-12 sm:py-16 border-b border-gray-800/50">
-          {/* Desktop Layout */}
-          <div className="hidden lg:grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            {/* Newsletter */}
+        {/* Newsletter Section - Desktop */}
+        <div className="hidden md:block py-12 sm:py-16 border-b border-gray-800/50">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             <div className="animate-fade-in-up">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 rounded-xl flex items-center justify-center border border-blue-500/30">
@@ -136,100 +110,46 @@ export default function EnhancedFooter() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-3 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-700 hover:border-gray-600 rounded-lg font-semibold text-white transition-all disabled:opacity-50 flex items-center gap-2"
+                  className="px-6 py-3 bg-[#1e293b] hover:bg-[#334155] rounded-lg font-semibold text-white transition-colors border border-gray-700 disabled:opacity-50"
                 >
                   {loading ? (
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                   ) : (
-                    <>
+                    <span className="flex items-center gap-2">
                       Subscribe
                       <Send className="w-4 h-4" />
-                    </>
+                    </span>
                   )}
                 </button>
               </form>
             </div>
-
-            {/* Features Grid */}
-            <div className="grid grid-cols-4 gap-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-              {features.map((feature, index) => (
-                <div
-                  key={index}
-                  className="bg-[#0f1419] border border-gray-800/50 rounded-xl p-4 text-center hover:border-blue-500/30 transition-all"
-                >
-                  <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center mx-auto mb-2">
-                    <feature.icon className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <div className="text-xs font-medium text-gray-300">{feature.text}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Mobile Layout - Simplified */}
-          <div className="lg:hidden text-center">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 rounded-xl flex items-center justify-center border border-blue-500/30">
-                <Mail className="w-5 h-5 text-blue-400" />
-              </div>
-              <div className="text-left">
-                <h3 className="text-xl font-bold">Stay Updated</h3>
-                <p className="text-xs text-gray-400">Latest trading insights</p>
-              </div>
-            </div>
-
-            <form onSubmit={handleSubscribe} className="flex gap-2">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Your email"
-                className="flex-1 bg-[#0f1419] border border-gray-800 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={loading}
-              />
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-4 py-2.5 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-700 rounded-lg font-medium text-white transition-all disabled:opacity-50"
-              >
-                {loading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-              </button>
-            </form>
           </div>
         </div>
 
         {/* Main Footer Content */}
         <div className="py-12 sm:py-16">
           {/* Desktop Grid */}
-          <div className="hidden lg:grid grid-cols-6 gap-8">
+          <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-6 gap-8">
             {/* Brand Column */}
-            <div className="col-span-2">
+            <div className="col-span-2 animate-fade-in-up">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
                   <TrendingUp className="w-6 h-6 text-white" />
                 </div>
-                <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-                  STC AutoTrade
-                </span>
+                <div>
+                  <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+                    STC AutoTrade
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-[10px] text-gray-500">LIVE TRADING</span>
+                  </div>
+                </div>
               </div>
 
               <p className="text-sm text-gray-400 leading-relaxed mb-6">
                 Professional binary options trading platform. Fast, secure, and reliable.
               </p>
-
-              {/* Trust Badges */}
-              <div className="grid grid-cols-2 gap-2 mb-6">
-                {trustBadges.map((badge, index) => (
-                  <div key={index} className="flex items-center gap-2 text-xs text-gray-400">
-                    <badge.icon className="w-4 h-4 text-emerald-400" />
-                    <span>{badge.text}</span>
-                  </div>
-                ))}
-              </div>
 
               {/* Social Links */}
               <div className="flex items-center gap-3">
@@ -237,130 +157,174 @@ export default function EnhancedFooter() {
                   <a
                     key={index}
                     href={social.href}
-                    className="w-10 h-10 bg-[#0f1419] border border-gray-800 rounded-lg flex items-center justify-center hover:bg-[#1a1f2e] hover:border-blue-500/30 transition-all"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 bg-[#0f1419] border border-gray-800 rounded-lg flex items-center justify-center hover:bg-[#1a1f2e] hover:border-blue-500/30 transition-all group"
                     aria-label={social.label}
                   >
-                    <social.icon className="w-5 h-5" />
+                    <social.icon className="w-5 h-5 text-gray-400 group-hover:text-blue-400 transition-colors" />
                   </a>
                 ))}
               </div>
             </div>
 
             {/* Links Columns */}
-            {Object.entries(footerLinks).map(([key, links], index) => (
-              <div key={key}>
-                <h4 className="text-sm font-bold mb-4 text-gray-300 capitalize">{key}</h4>
-                <ul className="space-y-2.5">
-                  {links.map((link, i) => (
-                    <li key={i}>
-                      <a
-                        href={link.href}
-                        className="text-sm text-gray-400 hover:text-blue-400 transition-colors"
-                      >
-                        {link.label}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            <div className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+              <h4 className="text-sm font-bold mb-4 text-gray-300">Platform</h4>
+              <ul className="space-y-2.5">
+                {footerLinks.platform.map((link, index) => (
+                  <li key={index}>
+                    <a
+                      href={link.href}
+                      className="text-sm text-gray-400 hover:text-blue-400 transition-colors"
+                    >
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+              <h4 className="text-sm font-bold mb-4 text-gray-300">Company</h4>
+              <ul className="space-y-2.5">
+                {footerLinks.company.map((link, index) => (
+                  <li key={index}>
+                    <a
+                      href={link.href}
+                      className="text-sm text-gray-400 hover:text-blue-400 transition-colors"
+                    >
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+              <h4 className="text-sm font-bold mb-4 text-gray-300">Resources</h4>
+              <ul className="space-y-2.5">
+                {footerLinks.resources.map((link, index) => (
+                  <li key={index}>
+                    <a
+                      href={link.href}
+                      className="text-sm text-gray-400 hover:text-blue-400 transition-colors"
+                    >
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+              <h4 className="text-sm font-bold mb-4 text-gray-300">Legal</h4>
+              <ul className="space-y-2.5">
+                {footerLinks.legal.map((link, index) => (
+                  <li key={index}>
+                    <a
+                      href={link.href}
+                      className="text-sm text-gray-400 hover:text-blue-400 transition-colors"
+                    >
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           {/* Mobile Accordion */}
-          <div className="lg:hidden space-y-3">
+          <div className="md:hidden space-y-4">
             {/* Brand */}
-            <div className="text-center mb-6">
-              <div className="flex items-center justify-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-xl flex items-center justify-center">
+            <div className="mb-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
                   <TrendingUp className="w-6 h-6 text-white" />
                 </div>
-                <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-                  STC AutoTrade
-                </span>
+                <div>
+                  <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+                    STC AutoTrade
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-[10px] text-gray-500">LIVE</span>
+                  </div>
+                </div>
               </div>
-              <p className="text-sm text-gray-400 mb-4">
-                Professional binary options trading
+              <p className="text-sm text-gray-400 leading-relaxed mb-4">
+                Professional binary options trading platform.
               </p>
+            </div>
 
-              {/* Social Links Mobile */}
-              <div className="flex items-center justify-center gap-3">
-                {socialLinks.map((social, index) => (
-                  <a
-                    key={index}
-                    href={social.href}
-                    className="w-10 h-10 bg-[#0f1419] border border-gray-800 rounded-lg flex items-center justify-center hover:bg-[#1a1f2e] transition-all"
-                    aria-label={social.label}
-                  >
-                    <social.icon className="w-5 h-5" />
-                  </a>
-                ))}
-              </div>
+            {/* Newsletter - Mobile */}
+            <div className="mb-6 pb-6 border-b border-gray-800/50">
+              <form onSubmit={handleSubscribe} className="space-y-3">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Your email"
+                  className="w-full bg-[#0f1419] border border-gray-800 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={loading}
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full px-4 py-2.5 bg-[#1e293b] hover:bg-[#334155] rounded-lg text-sm font-semibold text-white transition-colors border border-gray-700 disabled:opacity-50"
+                >
+                  {loading ? 'Subscribing...' : 'Subscribe to Newsletter'}
+                </button>
+              </form>
             </div>
 
             {/* Accordion Sections */}
             {Object.entries(footerLinks).map(([key, links]) => (
-              <div key={key} className="border border-gray-800/50 rounded-lg overflow-hidden">
+              <div key={key} className="border-b border-gray-800/50">
                 <button
                   onClick={() => toggleSection(key)}
-                  className="w-full flex items-center justify-between p-4 bg-[#0f1419] hover:bg-[#1a1f2e] transition-colors"
+                  className="w-full flex items-center justify-between py-3 text-left"
                 >
-                  <span className="text-sm font-bold capitalize">{key}</span>
+                  <span className="font-semibold text-gray-200 capitalize">{key}</span>
                   {expandedSection === key ? (
-                    <ChevronUp className="w-4 h-4 text-gray-400" />
+                    <ChevronUp className="w-5 h-5 text-gray-400" />
                   ) : (
-                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                    <ChevronDown className="w-5 h-5 text-gray-400" />
                   )}
                 </button>
-                
                 {expandedSection === key && (
-                  <div className="p-4 pt-0 bg-[#0a0e17]">
-                    <ul className="space-y-2">
-                      {links.map((link, i) => (
-                        <li key={i}>
-                          <a
-                            href={link.href}
-                            className="text-sm text-gray-400 hover:text-blue-400 transition-colors block py-1"
-                          >
-                            {link.label}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  <ul className="pb-4 space-y-2">
+                    {links.map((link, index) => (
+                      <li key={index}>
+                        <a
+                          href={link.href}
+                          className="text-sm text-gray-400 hover:text-blue-400 transition-colors block py-1"
+                        >
+                          {link.label}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
             ))}
-          </div>
-        </div>
 
-        {/* Contact Info - Simplified for Mobile */}
-        <div className="py-6 border-t border-gray-800/50">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="flex items-center gap-3 text-sm">
-              <MapPin className="w-4 h-4 text-blue-400 flex-shrink-0" />
-              <div>
-                <div className="text-gray-400 text-xs">Location</div>
-                <div className="font-medium text-gray-300 text-xs sm:text-sm">Jakarta, ID</div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 text-sm">
-              <Mail className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <div>
-                <div className="text-gray-400 text-xs">Email</div>
-                <a href="mailto:support@stcautotrade.com" className="font-medium text-gray-300 hover:text-blue-400 transition-colors text-xs sm:text-sm">
-                  support@stcautotrade.com
-                </a>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 text-sm">
-              <Phone className="w-4 h-4 text-purple-400 flex-shrink-0" />
-              <div>
-                <div className="text-gray-400 text-xs">Support</div>
-                <a href="tel:+6281234567890" className="font-medium text-gray-300 hover:text-blue-400 transition-colors text-xs sm:text-sm">
-                  +62 812-3456-7890
-                </a>
+            {/* Social Links - Mobile */}
+            <div className="pt-4">
+              <h4 className="text-sm font-semibold mb-3 text-gray-300">Follow Us</h4>
+              <div className="flex items-center gap-3">
+                {socialLinks.map((social, index) => (
+                  <a
+                    key={index}
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 bg-[#0f1419] border border-gray-800 rounded-lg flex items-center justify-center hover:bg-[#1a1f2e] hover:border-blue-500/30 transition-all"
+                    aria-label={social.label}
+                  >
+                    <social.icon className="w-5 h-5 text-gray-400" />
+                  </a>
+                ))}
               </div>
             </div>
           </div>
@@ -368,43 +332,69 @@ export default function EnhancedFooter() {
 
         {/* Bottom Bar */}
         <div className="py-6 border-t border-gray-800/50">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
-              © {new Date().getFullYear()} STC AutoTrade. All rights reserved.
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="text-sm text-gray-500 text-center md:text-left">
+              <p>© {new Date().getFullYear()} STC AutoTrade. All rights reserved.</p>
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-500">
-              <div className="flex items-center gap-1">
-                <Shield className="w-3 h-3 text-emerald-400" />
-                <span>SSL</span>
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-emerald-400" />
+                <span>SSL Secured</span>
               </div>
-              <div className="flex items-center gap-1">
-                <Lock className="w-3 h-3 text-blue-400" />
-                <span>PCI DSS</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Award className="w-3 h-3 text-yellow-400" />
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-blue-400" />
                 <span>Licensed</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Risk Warning - Compact Mobile */}
+        {/* Risk Warning - Simplified for Mobile */}
         <div className="pb-6">
-          <div className="bg-gradient-to-r from-yellow-500/5 to-orange-500/5 border border-yellow-500/20 rounded-xl p-3 sm:p-4">
-            <div className="flex items-start gap-2 sm:gap-3">
-              <Shield className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
-              <div>
+          <div className="bg-gradient-to-r from-yellow-500/5 to-orange-500/5 border border-yellow-500/20 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <Shield className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
                 <h5 className="text-xs font-bold text-yellow-400 mb-1">Risk Warning</h5>
                 <p className="text-xs text-gray-400 leading-relaxed">
-                  Trading involves substantial risk. Only invest capital you can afford to lose.
+                  Trading involves risk. Only invest what you can afford to lose. Past performance doesn't guarantee future results.
                 </p>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes pulse-slow {
+          0%, 100% {
+            opacity: 0.05;
+          }
+          50% {
+            opacity: 0.15;
+          }
+        }
+
+        .animate-fade-in-up {
+          animation: fade-in-up 0.6s ease-out;
+        }
+
+        .animate-pulse-slow {
+          animation: pulse-slow 4s ease-in-out infinite;
+        }
+      `}</style>
     </footer>
   )
 }
