@@ -119,7 +119,7 @@ export default function ProfilePage() {
                   onClick={() => setActiveTab('profile')}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-all ${
                     activeTab === 'profile'
-                      ? 'bg-blue-500 text-white shadow-lg'
+                      ? 'bg-gradient-to-r from-blue-500 to-emerald-500 text-white shadow-lg'
                       : 'text-gray-400 hover:bg-[#1a1f2e]'
                   }`}
                 >
@@ -130,7 +130,7 @@ export default function ProfilePage() {
                   onClick={() => setActiveTab('security')}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-all ${
                     activeTab === 'security'
-                      ? 'bg-blue-500 text-white shadow-lg'
+                      ? 'bg-gradient-to-r from-blue-500 to-emerald-500 text-white shadow-lg'
                       : 'text-gray-400 hover:bg-[#1a1f2e]'
                   }`}
                 >
@@ -329,7 +329,7 @@ export default function ProfilePage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed px-6 py-3 rounded-xl font-semibold text-white transition-all shadow-lg mt-6"
+                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-blue-600 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed px-6 py-3 rounded-xl font-semibold text-white transition-all shadow-lg mt-6"
                   >
                     {loading ? (
                       <>
@@ -387,7 +387,7 @@ export default function ProfilePage() {
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-blue-500 peer-checked:to-emerald-500"></div>
                     </label>
                   </div>
 
@@ -404,7 +404,7 @@ export default function ProfilePage() {
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-blue-500 peer-checked:to-emerald-500"></div>
                     </label>
                   </div>
 
@@ -421,7 +421,7 @@ export default function ProfilePage() {
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-blue-500 peer-checked:to-emerald-500"></div>
                     </label>
                   </div>
                 </div>

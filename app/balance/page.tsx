@@ -25,7 +25,7 @@ export default function BalancePage() {
   const router = useRouter()
   const user = useAuthStore((state) => state.user)
   const [balance, setBalance] = useState(0)
-  const [transactions, setTransactions] = useState<BalanceType[]>([])
+  const [allTransactions, setAllTransactions] = useState<BalanceType[]>([])
   const [showDeposit, setShowDeposit] = useState(false)
   const [showWithdraw, setShowWithdraw] = useState(false)
   const [amount, setAmount] = useState('')
@@ -49,11 +49,11 @@ export default function BalancePage() {
       ])
       
       setBalance(balanceRes?.data?.balance || balanceRes?.balance || 0)
-      setTransactions(historyRes?.data?.transactions || historyRes?.transactions || [])
+      setAllTransactions(historyRes?.data?.transactions || historyRes?.transactions || [])
     } catch (error) {
       console.error('Failed to load balance:', error)
       setBalance(0)
-      setTransactions([])
+      setAllTransactions([])
     } finally {
       setInitialLoading(false)
     }
@@ -118,21 +118,26 @@ export default function BalancePage() {
   // Quick amount presets
   const quickAmounts = [10000, 50000, 100000, 250000, 500000, 1000000]
 
-  // Calculate stats
+  // Calculate stats dari SEMUA transaksi
   const stats = {
-    totalDeposits: transactions
+    totalDeposits: allTransactions
       .filter(t => t.type === 'deposit')
       .reduce((sum, t) => sum + t.amount, 0),
-    totalWithdrawals: transactions
+    totalWithdrawals: allTransactions
       .filter(t => t.type === 'withdrawal')
       .reduce((sum, t) => sum + t.amount, 0),
-    totalWins: transactions
+    totalWins: allTransactions
       .filter(t => t.type === 'win')
       .reduce((sum, t) => sum + t.amount, 0),
-    totalLosses: transactions
+    totalLosses: allTransactions
       .filter(t => t.type === 'lose')
       .reduce((sum, t) => sum + t.amount, 0),
   }
+
+  // FILTER: Hanya tampilkan deposit dan withdrawal di history
+  const walletTransactions = allTransactions.filter(
+    t => t.type === 'deposit' || t.type === 'withdrawal'
+  )
 
   if (!user) return null
 
@@ -251,28 +256,29 @@ export default function BalancePage() {
           </div>
         </div>
 
-        {/* Transaction History */}
+        {/* Transaction History - HANYA DEPOSIT & WITHDRAWAL */}
         <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
           <div className="p-4 sm:p-6 border-b border-gray-800/50">
             <div className="flex items-center gap-2">
               <History className="w-5 h-5 text-blue-400" />
-              <h2 className="text-lg sm:text-xl font-bold">Transaction History</h2>
+              <h2 className="text-lg sm:text-xl font-bold">Wallet Transactions</h2>
               <span className="ml-auto text-sm text-gray-400">
-                {transactions.length} {transactions.length === 1 ? 'transaction' : 'transactions'}
+                {walletTransactions.length} {walletTransactions.length === 1 ? 'transaction' : 'transactions'}
               </span>
             </div>
+            <p className="text-xs text-gray-500 mt-1">Deposits and withdrawals only</p>
           </div>
 
           <div className="p-4 sm:p-6">
-            {transactions.length === 0 ? (
+            {walletTransactions.length === 0 ? (
               <div className="text-center py-12">
                 <History className="w-16 h-16 mx-auto mb-4 text-gray-600 opacity-20" />
-                <p className="text-gray-400">No transactions yet</p>
-                <p className="text-sm text-gray-500 mt-2">Your transaction history will appear here</p>
+                <p className="text-gray-400">No wallet transactions yet</p>
+                <p className="text-sm text-gray-500 mt-2">Deposits and withdrawals will appear here</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {transactions.map((tx, index) => (
+                {walletTransactions.map((tx, index) => (
                   <div
                     key={tx.id}
                     className="flex items-center justify-between p-4 bg-[#1a1f2e] border border-gray-800/50 rounded-xl hover:bg-[#232936] transition-all animate-fade-in-up"
@@ -280,11 +286,11 @@ export default function BalancePage() {
                   >
                     <div className="flex items-center gap-4 flex-1 min-w-0">
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                        tx.type === 'deposit' || tx.type === 'win' 
+                        tx.type === 'deposit'
                           ? 'bg-green-500/20 border border-green-500/30' 
                           : 'bg-red-500/20 border border-red-500/30'
                       }`}>
-                        {tx.type === 'deposit' || tx.type === 'win' ? (
+                        {tx.type === 'deposit' ? (
                           <TrendingUp className="w-6 h-6 text-green-400" />
                         ) : (
                           <TrendingDown className="w-6 h-6 text-red-400" />
@@ -296,9 +302,9 @@ export default function BalancePage() {
                       </div>
                     </div>
                     <div className={`text-xl font-bold font-mono flex-shrink-0 ${
-                      tx.type === 'deposit' || tx.type === 'win' ? 'text-green-400' : 'text-red-400'
+                      tx.type === 'deposit' ? 'text-green-400' : 'text-red-400'
                     }`}>
-                      {tx.type === 'deposit' || tx.type === 'win' ? '+' : '-'}
+                      {tx.type === 'deposit' ? '+' : '-'}
                       {formatCurrency(tx.amount)}
                     </div>
                   </div>
