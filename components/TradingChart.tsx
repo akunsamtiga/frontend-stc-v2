@@ -9,7 +9,8 @@ import {
   Minimize2, 
   RefreshCw, 
   AlertCircle,
-  Activity
+  Activity,
+  Settings
 } from 'lucide-react'
 
 type ChartType = 'line' | 'candle'
@@ -33,8 +34,9 @@ export default function TradingChart() {
   const [isInitialized, setIsInitialized] = useState(false)
   const [isLive, setIsLive] = useState(false)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+  const [showControls, setShowControls] = useState(false)
 
-  // Initialize chart once on mount - with retry mechanism
+  // Initialize chart once on mount
   useEffect(() => {
     if (mountedRef.current) return
     
@@ -46,12 +48,10 @@ export default function TradingChart() {
       const container = chartContainerRef.current
       
       if (!container) {
-        console.warn('⚠️ Container not ready, retry', retryCount + 1)
         if (retryCount < maxRetries) {
           retryCount++
           setTimeout(initChart, retryDelay)
         } else {
-          console.error('❌ Container never became ready')
           setError('Chart container initialization timeout')
         }
         return
@@ -60,18 +60,15 @@ export default function TradingChart() {
       const { width, height } = container.getBoundingClientRect()
       
       if (width === 0 || height === 0) {
-        console.warn('⚠️ Container has no dimensions, retry', retryCount + 1)
         if (retryCount < maxRetries) {
           retryCount++
           setTimeout(initChart, retryDelay)
         } else {
-          console.error('❌ Container never got dimensions')
           setError('Chart container has no size')
         }
         return
       }
 
-      console.log('🎨 Initializing chart...', { width, height })
       mountedRef.current = true
 
       try {
@@ -119,10 +116,8 @@ export default function TradingChart() {
         candleSeriesRef.current = candleSeries
         lineSeriesRef.current = lineSeries
 
-        console.log('✅ Chart initialized successfully')
         setIsInitialized(true)
 
-        // Handle resize
         const handleResize = () => {
           if (container && chart) {
             const { width, height } = container.getBoundingClientRect()
@@ -134,9 +129,7 @@ export default function TradingChart() {
 
         window.addEventListener('resize', handleResize)
 
-        // Cleanup
         return () => {
-          console.log('🧹 Cleaning up chart...')
           window.removeEventListener('resize', handleResize)
           if (unsubscribeRef.current) {
             unsubscribeRef.current()
@@ -151,26 +144,23 @@ export default function TradingChart() {
           }
         }
       } catch (err: any) {
-        console.error('❌ Chart init error:', err)
+        console.error('Chart init error:', err)
         setError(`Chart initialization failed: ${err.message}`)
         mountedRef.current = false
       }
     }
 
-    // Start initialization with small delay to ensure DOM is ready
     const timeoutId = setTimeout(initChart, 100)
 
     return () => {
       clearTimeout(timeoutId)
     }
-  }, []) // Only run once on mount
+  }, [])
 
   // Handle chart type change
   useEffect(() => {
     if (!candleSeriesRef.current || !lineSeriesRef.current) return
 
-    console.log(`📊 Switching to ${chartType} chart`)
-    
     if (chartType === 'candle') {
       candleSeriesRef.current.applyOptions({ visible: true })
       lineSeriesRef.current.applyOptions({ visible: false })
@@ -180,15 +170,9 @@ export default function TradingChart() {
     }
   }, [chartType])
 
-  // Load data when chart is ready and asset is selected
+  // Load data when chart is ready
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
-      console.log('⏸️ Waiting for chart readiness...', {
-        hasAsset: !!selectedAsset,
-        isInitialized,
-        hasCandleSeries: !!candleSeriesRef.current,
-        hasLineSeries: !!lineSeriesRef.current
-      })
       return
     }
 
@@ -198,21 +182,15 @@ export default function TradingChart() {
       setIsLoading(true)
       setError(null)
 
-      // Cleanup previous subscription
       if (unsubscribeRef.current) {
-        console.log('🔕 Cleaning up previous subscription')
         unsubscribeRef.current()
         unsubscribeRef.current = null
       }
 
       try {
-        // Extract asset path
         const pathParts = selectedAsset.realtimeDbPath?.split('/') || []
         const assetPath = pathParts.slice(0, -1).join('/') || `/${selectedAsset.symbol.toLowerCase()}`
 
-        console.log(`🔥 Loading ${timeframe} data from: ${assetPath}`)
-
-        // Fetch historical data
         const data = await fetchHistoricalData(assetPath, timeframe)
 
         if (isCancelled) return
@@ -223,9 +201,6 @@ export default function TradingChart() {
           return
         }
 
-        console.log(`📊 Received ${data.length} bars`)
-
-        // Prepare data for chart
         const candleData = data.map(bar => ({
           time: bar.timestamp,
           open: bar.open,
@@ -241,29 +216,19 @@ export default function TradingChart() {
 
         if (isCancelled) return
 
-        // Set data on series
         if (candleSeriesRef.current && lineSeriesRef.current) {
-          console.log('💾 Setting data on chart...')
           candleSeriesRef.current.setData(candleData)
           lineSeriesRef.current.setData(lineData)
 
-          // Fit content
           if (chartRef.current) {
             chartRef.current.timeScale().fitContent()
           }
-
-          console.log('✅ Data loaded successfully!')
         }
 
         setIsLoading(false)
 
-        // Subscribe to real-time updates
-        console.log(`🔔 Subscribing to ${timeframe} real-time updates`)
         unsubscribeRef.current = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
           if (isCancelled || !candleSeriesRef.current || !lineSeriesRef.current) return
-
-          const updateType = newBar.isNewBar ? '🆕 NEW' : '🔄 UPDATE'
-          console.log(`${updateType} ${timeframe} bar: ${newBar.close}`)
 
           const candleUpdate = {
             time: newBar.timestamp,
@@ -278,15 +243,12 @@ export default function TradingChart() {
             value: newBar.close,
           }
 
-          // Update chart
           candleSeriesRef.current.update(candleUpdate)
           lineSeriesRef.current.update(lineUpdate)
           
-          // Update live indicators
           setIsLive(true)
           setLastUpdate(new Date())
           
-          // Reset live indicator after 5 seconds of no updates
           setTimeout(() => {
             setIsLive(false)
           }, 5000)
@@ -294,7 +256,7 @@ export default function TradingChart() {
 
       } catch (err: any) {
         if (isCancelled) return
-        console.error('❌ Error loading data:', err)
+        console.error('Error loading data:', err)
         setError(err.message || 'Failed to load chart data')
         setIsLoading(false)
       }
@@ -305,19 +267,15 @@ export default function TradingChart() {
     return () => {
       isCancelled = true
       if (unsubscribeRef.current) {
-        console.log('🔕 Unsubscribing from updates')
         unsubscribeRef.current()
         unsubscribeRef.current = null
       }
     }
   }, [selectedAsset?.id, timeframe, isInitialized])
 
-  // Handlers
   const handleRefresh = useCallback(() => {
     if (!selectedAsset) return
-    console.log('🔄 Manual refresh triggered')
     
-    // Force reload by temporarily clearing and resetting asset
     const currentAsset = selectedAsset
     useTradingStore.setState({ selectedAsset: null })
     setTimeout(() => {
@@ -335,7 +293,6 @@ export default function TradingChart() {
     setIsFullscreen(prev => !prev)
   }, [])
 
-  // Render: No asset selected
   if (!selectedAsset) {
     return (
       <div className="h-full flex items-center justify-center bg-[#0a0e17]">
@@ -349,104 +306,182 @@ export default function TradingChart() {
 
   return (
     <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : 'h-full'}`}>
-      {/* Controls */}
-      <div className="absolute top-2 left-2 z-10 flex items-center gap-2">
-        {/* Timeframe Selector */}
-        <div className="flex items-center gap-1 bg-[#0f1419]/90 backdrop-blur-sm border border-gray-800 rounded-lg p-1">
-          {(['1m', '5m', '15m', '1h', '4h', '1d'] as Timeframe[]).map((tf) => (
+      {/* Controls - DESKTOP */}
+      <div className="hidden lg:block absolute top-2 left-2 z-10">
+        <div className="flex items-center gap-2">
+          {/* Timeframe Selector */}
+          <div className="flex items-center gap-1 bg-[#0f1419]/90 backdrop-blur-sm border border-gray-800 rounded-lg p-1">
+            {(['1m', '5m', '15m', '1h', '4h', '1d'] as Timeframe[]).map((tf) => (
+              <button
+                key={tf}
+                onClick={() => setTimeframe(tf)}
+                disabled={isLoading}
+                className={`px-2.5 py-1 text-xs font-medium rounded transition-all ${
+                  timeframe === tf
+                    ? 'bg-blue-500 text-white shadow-lg'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                } disabled:opacity-50`}
+              >
+                {tf}
+              </button>
+            ))}
+          </div>
+
+          {/* Chart Type */}
+          <div className="flex items-center gap-1 bg-[#0f1419]/90 backdrop-blur-sm border border-gray-800 rounded-lg p-1">
             <button
-              key={tf}
-              onClick={() => setTimeframe(tf)}
+              onClick={() => setChartType('candle')}
               disabled={isLoading}
               className={`px-2.5 py-1 text-xs font-medium rounded transition-all ${
-                timeframe === tf
+                chartType === 'candle'
                   ? 'bg-blue-500 text-white shadow-lg'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
-              } disabled:opacity-50`}
+              }`}
             >
-              {tf}
+              Candle
             </button>
-          ))}
-        </div>
+            <button
+              onClick={() => setChartType('line')}
+              disabled={isLoading}
+              className={`px-2.5 py-1 text-xs font-medium rounded transition-all ${
+                chartType === 'line'
+                  ? 'bg-blue-500 text-white shadow-lg'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              Line
+            </button>
+          </div>
 
-        {/* Chart Type */}
-        <div className="flex items-center gap-1 bg-[#0f1419]/90 backdrop-blur-sm border border-gray-800 rounded-lg p-1">
-          <button
-            onClick={() => setChartType('candle')}
-            disabled={isLoading}
-            className={`px-2.5 py-1 text-xs font-medium rounded transition-all ${
-              chartType === 'candle'
-                ? 'bg-blue-500 text-white shadow-lg'
-                : 'text-gray-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            Candle
-          </button>
-          <button
-            onClick={() => setChartType('line')}
-            disabled={isLoading}
-            className={`px-2.5 py-1 text-xs font-medium rounded transition-all ${
-              chartType === 'line'
-                ? 'bg-blue-500 text-white shadow-lg'
-                : 'text-gray-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            Line
-          </button>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-1 bg-[#0f1419]/90 backdrop-blur-sm border border-gray-800 rounded-lg p-1">
-          <button
-            onClick={handleFitContent}
-            className="px-2.5 py-1 text-xs font-medium text-gray-400 hover:text-white transition-colors"
-            title="Fit content"
-          >
-            Fit
-          </button>
-          <button
-            onClick={handleRefresh}
-            disabled={isLoading}
-            className="p-1.5 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
-            title="Refresh"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
-          <button
-            onClick={toggleFullscreen}
-            className="p-1.5 text-gray-400 hover:text-white transition-colors"
-            title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-          >
-            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-          </button>
+          {/* Actions */}
+          <div className="flex items-center gap-1 bg-[#0f1419]/90 backdrop-blur-sm border border-gray-800 rounded-lg p-1">
+            <button
+              onClick={handleFitContent}
+              className="px-2.5 py-1 text-xs font-medium text-gray-400 hover:text-white transition-colors"
+              title="Fit content"
+            >
+              Fit
+            </button>
+            <button
+              onClick={handleRefresh}
+              disabled={isLoading}
+              className="p-1.5 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
+              title="Refresh"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              onClick={toggleFullscreen}
+              className="p-1.5 text-gray-400 hover:text-white transition-colors"
+              title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            >
+              {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Chart Info */}
+      {/* Controls - MOBILE (Stacked Properly) */}
+      <div className="lg:hidden absolute top-2 left-2 right-2 z-10">
+        <div className="flex items-center justify-between mb-2">
+          {/* Settings Button */}
+          <button
+            onClick={() => setShowControls(!showControls)}
+            className="p-2 bg-[#0f1419]/90 backdrop-blur-sm border border-gray-800 rounded-lg"
+          >
+            <Settings className="w-4 h-4 text-gray-400" />
+          </button>
+
+          {/* Live Indicator */}
+          {isInitialized && !isLoading && !error && (
+            <div className="flex items-center gap-2 bg-[#0f1419]/90 backdrop-blur-sm border border-gray-800 rounded-lg px-3 py-1.5">
+              <span className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`}></span>
+              <span className={`text-xs font-medium ${isLive ? 'text-green-400' : 'text-gray-500'}`}>
+                {isLive ? 'LIVE' : 'Waiting'}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Controls Panel */}
+        {showControls && (
+          <div className="bg-[#0f1419]/95 backdrop-blur-sm border border-gray-800 rounded-lg p-3 space-y-3 animate-slide-down">
+            {/* Timeframe */}
+            <div>
+              <div className="text-xs text-gray-400 mb-2 font-medium">Timeframe</div>
+              <div className="grid grid-cols-6 gap-1">
+                {(['1m', '5m', '15m', '1h', '4h', '1d'] as Timeframe[]).map((tf) => (
+                  <button
+                    key={tf}
+                    onClick={() => setTimeframe(tf)}
+                    disabled={isLoading}
+                    className={`px-2 py-1.5 text-xs font-medium rounded transition-all ${
+                      timeframe === tf
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-[#1a1f2e] text-gray-400 border border-gray-800/50'
+                    } disabled:opacity-50`}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Chart Type */}
+            <div>
+              <div className="text-xs text-gray-400 mb-2 font-medium">Chart Type</div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setChartType('candle')}
+                  disabled={isLoading}
+                  className={`px-3 py-2 text-xs font-medium rounded-lg transition-all ${
+                    chartType === 'candle'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-[#1a1f2e] text-gray-400 border border-gray-800/50'
+                  }`}
+                >
+                  Candlestick
+                </button>
+                <button
+                  onClick={() => setChartType('line')}
+                  disabled={isLoading}
+                  className={`px-3 py-2 text-xs font-medium rounded-lg transition-all ${
+                    chartType === 'line'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-[#1a1f2e] text-gray-400 border border-gray-800/50'
+                  }`}
+                >
+                  Line Chart
+                </button>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-2 border-t border-gray-800/50">
+              <button
+                onClick={handleFitContent}
+                className="flex-1 px-3 py-2 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 rounded-lg text-xs font-medium transition-colors"
+              >
+                Fit View
+              </button>
+              <button
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="px-4 py-2 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Chart Info - Top Right */}
       <div className="absolute top-2 right-2 z-10 bg-[#0f1419]/90 backdrop-blur-sm border border-gray-800 rounded-lg px-3 py-1.5">
         <div className="text-xs text-gray-400 flex items-center gap-2">
-          <span>{selectedAsset.symbol}</span>
+          <span className="font-medium">{selectedAsset.symbol}</span>
           <span>•</span>
           <span>{timeframe}</span>
-          {isInitialized && !isLoading && !error && (
-            <>
-              <span>•</span>
-              <div className="flex items-center gap-1">
-                <span className={`${isLive ? 'text-green-400 animate-pulse' : 'text-gray-500'}`}>●</span>
-                <span className={isLive ? 'text-green-400' : 'text-gray-500'}>
-                  {isLive ? 'LIVE' : 'Waiting'}
-                </span>
-              </div>
-            </>
-          )}
-          {lastUpdate && (
-            <>
-              <span>•</span>
-              <span className="text-gray-500 text-[10px]">
-                {lastUpdate.toLocaleTimeString()}
-              </span>
-            </>
-          )}
         </div>
       </div>
 
@@ -477,17 +512,12 @@ export default function TradingChart() {
             <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3 opacity-30" />
             <div className="text-sm font-medium text-red-400 mb-2">Failed to Load Chart</div>
             <div className="text-xs text-gray-500 mb-4 whitespace-pre-line">{error}</div>
-            <div className="space-y-2">
-              <button 
-                onClick={handleRefresh}
-                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white text-xs font-medium transition-colors"
-              >
-                Try Again
-              </button>
-              <div className="text-xs text-gray-600">
-                Check browser console (F12) for details
-              </div>
-            </div>
+            <button 
+              onClick={handleRefresh}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white text-xs font-medium transition-colors"
+            >
+              Try Again
+            </button>
           </div>
         </div>
       )}
@@ -501,6 +531,23 @@ export default function TradingChart() {
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        @keyframes slide-down {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-slide-down {
+          animation: slide-down 0.2s ease-out;
+        }
+      `}</style>
     </div>
   )
 }
