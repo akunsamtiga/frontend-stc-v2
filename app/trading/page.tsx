@@ -26,7 +26,6 @@ import {
 } from 'lucide-react'
 import RealtimeMonitor from '@/components/RealtimeMonitor'
 
-// Lazy load heavy components
 const TradingChart = dynamic(() => import('@/components/TradingChart'), {
   ssr: false,
   loading: () => (
@@ -43,7 +42,6 @@ const HistorySidebar = dynamic(() => import('@/components/HistorySidebar'), {
   ssr: false
 })
 
-// Memoized Price Ticker
 const PriceTicker = memo(({ asset, price }: { asset: Asset; price: any }) => {
   if (!price) return null
 
@@ -98,6 +96,7 @@ export default function TradingPage() {
   const [showHistorySidebar, setShowHistorySidebar] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showWalletModal, setShowWalletModal] = useState(false)
+  const [showAmountDropdown, setShowAmountDropdown] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -107,7 +106,6 @@ export default function TradingPage() {
     loadData()
   }, [user, router])
 
-  // Subscribe to price updates
   useEffect(() => {
     if (!selectedAsset) return
 
@@ -194,7 +192,6 @@ export default function TradingPage() {
       <div className="h-14 bg-[#0f1419] border-b border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">
         {/* Desktop Layout */}
         <div className="hidden lg:flex items-center gap-4 w-full">
-          {/* Logo */}
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
               <TrendingUp className="w-4 h-4" />
@@ -202,7 +199,6 @@ export default function TradingPage() {
             <span className="font-bold text-sm">BinaryTrade</span>
           </div>
 
-          {/* Asset Selector */}
           <div className="relative">
             <button
               onClick={() => setShowAssetMenu(!showAssetMenu)}
@@ -248,7 +244,6 @@ export default function TradingPage() {
 
           <div className="flex-1"></div>
 
-          {/* Balance & Actions */}
           <div className="flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
             <Wallet className="w-4 h-4 text-blue-400" />
             <span className="text-sm font-mono font-bold">{formatCurrency(balance)}</span>
@@ -270,7 +265,6 @@ export default function TradingPage() {
             <span className="text-sm">History</span>
           </button>
 
-          {/* User Menu */}
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
@@ -312,36 +306,34 @@ export default function TradingPage() {
           </div>
         </div>
 
-        {/* Mobile Layout - UPDATED */}
+        {/* Mobile Layout - FIXED SYMMETRICAL */}
         <div className="flex lg:hidden items-center justify-between w-full">
-          {/* Logo */}
-          <div className="flex items-center gap-2">
+          {/* Left: Logo */}
+          <div className="flex items-center gap-2 w-20">
             <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
 
-          {/* Balance & Wallet - RIGHT SIDE */}
-          <div className="flex items-center gap-2">
-            {/* Balance Display */}
-            <div className="flex items-center gap-1 bg-[#1a1f2e] px-2.5 py-1.5 rounded-lg border border-gray-800/50">
-              <span className="text-xs font-mono font-bold">{formatCurrency(balance)}</span>
-            </div>
+          {/* Center: Balance */}
+          <div className="flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
+            <Wallet className="w-3.5 h-3.5 text-blue-400" />
+            <span className="text-sm font-mono font-bold">{formatCurrency(balance)}</span>
+          </div>
 
-            {/* Wallet Button */}
+          {/* Right: Actions (Equal width to left) */}
+          <div className="flex items-center gap-2 justify-end w-20">
             <button
-              onClick={() => setShowWalletModal(true)}
-              className="p-2 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg border border-gray-800/50 transition-colors"
+              onClick={() => setShowHistorySidebar(true)}
+              className="w-8 h-8 flex items-center justify-center bg-[#1a1f2e] hover:bg-[#232936] rounded-lg border border-gray-800/50 transition-colors"
             >
-              <Wallet className="w-4 h-4 text-blue-400" />
+              <History className="w-4 h-4" />
             </button>
-
-            {/* Menu Button */}
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="p-2 hover:bg-[#1a1f2e] rounded-lg transition-colors"
+              className="w-8 h-8 flex items-center justify-center hover:bg-[#1a1f2e] rounded-lg transition-colors"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-4.5 h-4.5" />
             </button>
           </div>
         </div>
@@ -351,14 +343,12 @@ export default function TradingPage() {
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Chart Area */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-          {/* Price Ticker - Desktop Only */}
           {selectedAsset && currentPrice && (
             <div className="hidden lg:block">
               <PriceTicker asset={selectedAsset} price={currentPrice} />
             </div>
           )}
 
-          {/* Chart Container */}
           <div className="flex-1 bg-[#0a0e17] relative" style={{ minHeight: '400px' }}>
             {selectedAsset ? (
               <TradingChart />
@@ -475,7 +465,7 @@ export default function TradingPage() {
         </div>
       </div>
 
-      {/* Mobile Trading Panel - UPDATED */}
+      {/* Mobile Trading Panel - IMPROVED */}
       <div className="lg:hidden bg-[#0f1419] border-t border-gray-800/50 p-3">
         <div className="space-y-3">
           {/* Asset Rate Display */}
@@ -485,29 +475,66 @@ export default function TradingPage() {
                 <span className="text-gray-400">Trading:</span>
                 <span className="font-medium">{selectedAsset.symbol}</span>
               </div>
-              <div className="text-green-400 font-bold">Profit Rate: +{selectedAsset.profitRate}%</div>
+              <div className="text-green-400 font-bold">+{selectedAsset.profitRate}%</div>
             </div>
           )}
 
           {/* Amount & Duration */}
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-xs text-gray-400 mb-1 block">Amount</label>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(Number(e.target.value))}
-                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-center text-sm font-mono font-bold focus:outline-none focus:border-blue-500/50"
-                min="1000"
-                step="1000"
-              />
+          <div className="grid grid-cols-2 gap-3">
+            {/* Amount with Dropdown */}
+            <div className="relative">
+              <label className="text-xs text-gray-400 mb-1.5 block font-medium">Amount</label>
+              <div className="relative">
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(Number(e.target.value))}
+                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg pl-3 pr-8 py-2.5 text-center text-sm font-mono font-bold focus:outline-none focus:border-blue-500/50"
+                  min="1000"
+                  step="1000"
+                />
+                <button
+                  onClick={() => setShowAmountDropdown(!showAmountDropdown)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                >
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Quick Amount Dropdown */}
+              {showAmountDropdown && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setShowAmountDropdown(false)} 
+                  />
+                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden">
+                    {[10000, 25000, 50000, 75000, 100000, 250000, 500000, 1000000].map((preset) => (
+                      <button
+                        key={preset}
+                        onClick={() => {
+                          setAmount(preset)
+                          setShowAmountDropdown(false)
+                        }}
+                        className={`w-full px-4 py-2.5 text-left text-sm font-mono hover:bg-[#232936] transition-colors border-b border-gray-800/30 last:border-0 ${
+                          amount === preset ? 'bg-[#232936] text-blue-400' : 'text-gray-300'
+                        }`}
+                      >
+                        {formatCurrency(preset)}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
+
+            {/* Duration */}
             <div>
-              <label className="text-xs text-gray-400 mb-1 block">Duration</label>
+              <label className="text-xs text-gray-400 mb-1.5 block font-medium">Duration</label>
               <select
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-center text-sm font-bold focus:outline-none focus:border-blue-500/50"
+                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2.5 text-center text-sm font-bold focus:outline-none focus:border-blue-500/50"
               >
                 {DURATIONS.map((d) => (
                   <option key={d} value={d}>{d}m</option>
@@ -516,24 +543,7 @@ export default function TradingPage() {
             </div>
           </div>
 
-          {/* Quick Amount Buttons */}
-          <div className="grid grid-cols-3 gap-2">
-            {[10000, 50000, 100000].map((preset) => (
-              <button
-                key={preset}
-                onClick={() => setAmount(preset)}
-                className={`py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  amount === preset
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
-                }`}
-              >
-                {preset >= 1000000 ? `${preset/1000000}M` : `${preset/1000}K`}
-              </button>
-            ))}
-          </div>
-
-          {/* Potential Payout - CENTERED SINGLE COLUMN */}
+          {/* Potential Payout */}
           {selectedAsset && (
             <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
               <div className="text-center space-y-1">
@@ -549,21 +559,21 @@ export default function TradingPage() {
           )}
 
           {/* Trade Buttons */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => handlePlaceOrder('CALL')}
               disabled={loading || !selectedAsset}
-              className="bg-green-500 hover:bg-green-600 disabled:opacity-50 py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2"
+              className="bg-green-500 hover:bg-green-600 active:bg-green-700 disabled:opacity-50 py-3.5 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
             >
-              <TrendingUp className="w-4 h-4" />
+              <TrendingUp className="w-5 h-5" />
               <span>BUY</span>
             </button>
             <button
               onClick={() => handlePlaceOrder('PUT')}
               disabled={loading || !selectedAsset}
-              className="bg-red-500 hover:bg-red-600 disabled:opacity-50 py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2"
+              className="bg-red-500 hover:bg-red-600 active:bg-red-700 disabled:opacity-50 py-3.5 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
             >
-              <TrendingDown className="w-4 h-4" />
+              <TrendingDown className="w-5 h-5" />
               <span>SELL</span>
             </button>
           </div>
@@ -576,73 +586,6 @@ export default function TradingPage() {
           )}
         </div>
       </div>
-
-      {/* Wallet Modal - SLIDE FROM BOTTOM */}
-      {showWalletModal && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black/60 z-50 animate-fade-in lg:hidden"
-            onClick={() => setShowWalletModal(false)}
-          />
-          <div className="fixed bottom-0 left-0 right-0 bg-[#0f1419] rounded-t-2xl border-t border-gray-800/50 z-50 animate-slide-up lg:hidden">
-            <div className="p-4">
-              {/* Handle Bar */}
-              <div className="w-12 h-1 bg-gray-700 rounded-full mx-auto mb-4"></div>
-
-              {/* Title */}
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold">Wallet</h3>
-                <button
-                  onClick={() => setShowWalletModal(false)}
-                  className="p-2 hover:bg-[#1a1f2e] rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Balance Display */}
-              <div className="bg-gradient-to-br from-blue-500/10 to-purple-600/10 border border-blue-500/20 rounded-xl p-4 mb-4">
-                <div className="text-sm text-gray-400 mb-1">Current Balance</div>
-                <div className="text-3xl font-bold font-mono">{formatCurrency(balance)}</div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <button
-                  onClick={() => {
-                    setShowWalletModal(false)
-                    router.push('/balance')
-                  }}
-                  className="flex flex-col items-center gap-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded-xl p-4 transition-colors"
-                >
-                  <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
-                    <Plus className="w-6 h-6 text-green-400" />
-                  </div>
-                  <span className="font-semibold text-green-400">Deposit</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowWalletModal(false)
-                    router.push('/balance')
-                  }}
-                  className="flex flex-col items-center gap-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-xl p-4 transition-colors"
-                >
-                  <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
-                    <Minus className="w-6 h-6 text-red-400" />
-                  </div>
-                  <span className="font-semibold text-red-400">Withdraw</span>
-                </button>
-              </div>
-
-              {/* Quick Info */}
-              <div className="text-xs text-gray-500 text-center">
-                Tap an option to manage your funds
-              </div>
-            </div>
-          </div>
-        </>
-      )}
 
       {/* Mobile Menu */}
       {showMobileMenu && (
@@ -680,17 +623,20 @@ export default function TradingPage() {
 
               <button
                 onClick={() => {
-                  setShowHistorySidebar(true)
+                  router.push('/balance')
                   setShowMobileMenu(false)
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
-                <History className="w-4 h-4" />
-                <span>History</span>
+                <Wallet className="w-4 h-4" />
+                <span>Balance</span>
               </button>
               
               <button
-                onClick={() => router.push('/profile')}
+                onClick={() => {
+                  router.push('/profile')
+                  setShowMobileMenu(false)
+                }}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
                 <Settings className="w-4 h-4" />
@@ -722,22 +668,7 @@ export default function TradingPage() {
 
       {process.env.NODE_ENV === 'development' && <RealtimeMonitor />}
 
-      {/* Animations */}
       <style jsx>{`
-        @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        @keyframes slide-up {
-          from {
-            transform: translateY(100%);
-          }
-          to {
-            transform: translateY(0);
-          }
-        }
-
         @keyframes slide-left {
           from {
             transform: translateX(100%);
@@ -745,14 +676,6 @@ export default function TradingPage() {
           to {
             transform: translateX(0);
           }
-        }
-
-        .animate-fade-in {
-          animation: fade-in 0.2s ease-out;
-        }
-
-        .animate-slide-up {
-          animation: slide-up 0.3s ease-out;
         }
 
         .animate-slide-left {
