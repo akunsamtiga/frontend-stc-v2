@@ -78,8 +78,8 @@ export default function TradingChart() {
             textColor: '#9ca3af',
           },
           grid: {
-            vertLines: { color: 'rgba(255, 255, 255, 0.03)' },
-            horzLines: { color: 'rgba(255, 255, 255, 0.03)' },
+            vertLines: { color: 'rgba(255, 255, 255, 0.1)' },
+            horzLines: { color: 'rgba(255, 255, 255, 0.1)' },
           },
           crosshair: {
             mode: CrosshairMode.Normal,
@@ -121,6 +121,18 @@ export default function TradingChart() {
             const { width, height } = container.getBoundingClientRect()
             if (width > 0 && height > 0) {
               chart.applyOptions({ width, height })
+              
+              // Re-apply zoom on resize for mobile
+              const isMobile = window.innerWidth < 1024
+              if (isMobile) {
+                // Maintain zoom level on mobile after resize
+                const visibleRange = chart.timeScale().getVisibleRange()
+                if (visibleRange) {
+                  setTimeout(() => {
+                    chart.timeScale().setVisibleRange(visibleRange)
+                  }, 100)
+                }
+              }
             }
           }
         }
@@ -219,7 +231,23 @@ export default function TradingChart() {
           lineSeriesRef.current.setData(lineData)
 
           if (chartRef.current) {
-            chartRef.current.timeScale().fitContent()
+            // Detect mobile
+            const isMobile = window.innerWidth < 1024 // lg breakpoint
+            
+            if (isMobile && candleData.length > 0) {
+              // Mobile: Show only last 30-40 bars for better zoom
+              const barsToShow = 35
+              const lastIndex = candleData.length - 1
+              const firstIndex = Math.max(0, lastIndex - barsToShow)
+              
+              chartRef.current.timeScale().setVisibleRange({
+                from: candleData[firstIndex].time as any,
+                to: candleData[lastIndex].time as any,
+              })
+            } else {
+              // Desktop: Fit all content
+              chartRef.current.timeScale().fitContent()
+            }
           }
         }
 
