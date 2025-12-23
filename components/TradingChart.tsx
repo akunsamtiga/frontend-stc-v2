@@ -30,6 +30,7 @@ export default function TradingChart() {
   const [error, setError] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [dataLoaded, setDataLoaded] = useState(false)
+  const [chartReady, setChartReady] = useState(false)
 
   // Debug log
   useEffect(() => {
@@ -40,9 +41,10 @@ export default function TradingChart() {
       selectedAsset: selectedAsset?.symbol,
       isLoading,
       error,
-      dataLoaded
+      dataLoaded,
+      chartReady
     })
-  }, [selectedAsset, isLoading, error, dataLoaded])
+  }, [selectedAsset, isLoading, error, dataLoaded, chartReady])
 
   // Initialize chart
   useEffect(() => {
@@ -110,6 +112,9 @@ export default function TradingChart() {
 
       console.log('✅ Chart initialized successfully')
 
+      // Mark chart as ready
+      setChartReady(true)
+
       // Handle resize
       const handleResize = () => {
         if (chartContainerRef.current && chartRef.current) {
@@ -125,6 +130,7 @@ export default function TradingChart() {
         if (unsubscribeRef.current) {
           unsubscribeRef.current()
         }
+        setChartReady(false)
         chart.remove()
         chartRef.current = null
         candleSeriesRef.current = null
@@ -153,9 +159,10 @@ export default function TradingChart() {
 
   // Load data
   useEffect(() => {
-    if (!selectedAsset || !candleSeriesRef.current || !lineSeriesRef.current) {
+    if (!selectedAsset || !chartReady || !candleSeriesRef.current || !lineSeriesRef.current) {
       console.log('⚠️ Not ready to load data:', {
         hasAsset: !!selectedAsset,
+        chartReady: chartReady,
         hasCandleSeries: !!candleSeriesRef.current,
         hasLineSeries: !!lineSeriesRef.current
       })
