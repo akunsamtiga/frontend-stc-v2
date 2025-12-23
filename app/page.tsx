@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
@@ -21,6 +21,7 @@ import {
   TrendingDown,
   Target,
   ChevronRight,
+  ChevronLeft,
   X,
   Sparkles,
   Activity,
@@ -54,7 +55,7 @@ const LiveTradingTicker = () => {
   }, [])
 
   return (
-    <div className="absolute top-24 right-8 w-72 bg-[#0a0e17]/95 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-4 shadow-2xl z-10 animate-slide-in-right">
+    <div className="absolute top-24 right-8 w-72 bg-[#0a0e17]/95 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-4 shadow-2xl z-10 animate-slide-in-right hidden lg:block">
       <div className="flex items-center gap-2 mb-3">
         <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
         <span className="text-xs font-semibold text-gray-300">Live Trades</span>
@@ -86,11 +87,9 @@ const AnimatedTradingChart = () => {
   const [bars, setBars] = useState<number[]>([])
 
   useEffect(() => {
-    // Initialize with random bars
     const initialBars = Array.from({ length: 30 }, () => Math.random() * 80 + 20)
     setBars(initialBars)
 
-    // Update last bar every second
     const interval = setInterval(() => {
       setBars(prev => {
         const newBars = [...prev.slice(1), Math.random() * 80 + 20]
@@ -118,10 +117,10 @@ const AnimatedTradingChart = () => {
 }
 
 // Floating Price Cards
-const FloatingPriceCard = ({ symbol, price, change, delay }: any) => (
+const FloatingPriceCard = ({ symbol, price, change, delay, style }: any) => (
   <div 
-    className="absolute bg-[#0a0e17]/95 backdrop-blur-xl border border-gray-800/50 rounded-xl p-3 shadow-2xl animate-float"
-    style={{ animationDelay: `${delay}s` }}
+    className="absolute bg-[#0a0e17]/95 backdrop-blur-xl border border-gray-800/50 rounded-xl p-3 shadow-2xl animate-float hidden lg:block"
+    style={{ animationDelay: `${delay}s`, ...style }}
   >
     <div className="text-xs text-gray-400 mb-1">{symbol}</div>
     <div className="text-lg font-bold font-mono mb-1">{price}</div>
@@ -143,6 +142,7 @@ export default function LandingPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [activeTestimonial, setActiveTestimonial] = useState(0)
+  const [activeFeature, setActiveFeature] = useState(0)
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
 
   useEffect(() => {
@@ -151,10 +151,19 @@ export default function LandingPage() {
     }
   }, [user, router])
 
+  // Auto rotate testimonials
   useEffect(() => {
     const interval = setInterval(() => {
-      setActiveTestimonial((prev) => (prev + 1) % 3)
+      setActiveTestimonial((prev) => (prev + 1) % testimonials.length)
     }, 5000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Auto rotate features on mobile
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveFeature((prev) => (prev + 1) % features.length)
+    }, 3000)
     return () => clearInterval(interval)
   }, [])
 
@@ -329,10 +338,9 @@ export default function LandingPage() {
                   setIsLogin(true)
                   setShowAuthModal(true)
                 }}
-                className="relative px-6 py-2.5 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg text-sm font-semibold text-white shadow-lg overflow-hidden group"
+                className="px-6 py-2.5 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-700 rounded-lg text-sm font-semibold text-white transition-all"
               >
-                <span className="relative z-10">Sign In</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                Sign In
               </button>
             </div>
           </div>
@@ -369,14 +377,12 @@ export default function LandingPage() {
                     setIsLogin(true)
                     setShowAuthModal(true)
                   }}
-                  className="group relative px-8 py-4 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl text-lg font-semibold text-white overflow-hidden shadow-2xl"
+                  className="group px-8 py-4 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-700 hover:border-gray-600 rounded-xl text-lg font-semibold transition-all"
                 >
-                  <span className="relative z-10 flex items-center gap-2">
+                  <span className="flex items-center gap-2">
                     Sign In to Trade
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
                 </button>
 
                 <button className="group px-8 py-4 bg-white/5 hover:bg-white/10 border border-gray-700 hover:border-gray-600 rounded-xl text-lg font-semibold transition-all backdrop-blur-sm">
@@ -495,7 +501,8 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Desktop Grid */}
+          <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
               <div 
                 key={index}
@@ -514,10 +521,64 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+
+          {/* Mobile Carousel */}
+          <div className="sm:hidden relative">
+            <div className="overflow-hidden">
+              <div 
+                className="flex transition-transform duration-500 ease-out"
+                style={{ transform: `translateX(-${activeFeature * 100}%)` }}
+              >
+                {features.map((feature, index) => (
+                  <div 
+                    key={index}
+                    className="w-full flex-shrink-0 px-4"
+                  >
+                    <div className="bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-8 h-full">
+                      <div className="w-14 h-14 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 rounded-xl flex items-center justify-center mb-4 border border-blue-500/30 mx-auto">
+                        <feature.icon className="w-7 h-7 text-blue-400" />
+                      </div>
+                      <h3 className="text-xl font-bold mb-3 text-center">{feature.title}</h3>
+                      <p className="text-gray-400 text-sm leading-relaxed text-center">{feature.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Navigation Dots */}
+            <div className="flex justify-center gap-2 mt-6">
+              {features.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setActiveFeature(index)}
+                  className={`h-2 rounded-full transition-all ${
+                    index === activeFeature 
+                      ? 'bg-blue-500 w-8' 
+                      : 'bg-gray-700 w-2'
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Navigation Arrows */}
+            <button
+              onClick={() => setActiveFeature((prev) => (prev - 1 + features.length) % features.length)}
+              className="absolute left-0 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#1a1f2e] border border-gray-800 rounded-full flex items-center justify-center hover:bg-[#232936] transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setActiveFeature((prev) => (prev + 1) % features.length)}
+              className="absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#1a1f2e] border border-gray-800 rounded-full flex items-center justify-center hover:bg-[#232936] transition-colors"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* Testimonials - CAROUSEL FOR MOBILE */}
       <section id="testimonials" className="py-20 sm:py-32 relative">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="text-center mb-16">
@@ -530,35 +591,56 @@ export default function LandingPage() {
           </div>
 
           <div className="max-w-4xl mx-auto">
-            <div className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl p-8 sm:p-12 backdrop-blur-xl">
-              <div className="text-center animate-fade-in">
-                <div className="text-6xl mb-6">{testimonials[activeTestimonial].avatar}</div>
-                
-                <div className="flex justify-center gap-1 mb-6">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+            <div className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl p-8 sm:p-12 backdrop-blur-xl overflow-hidden">
+              {/* Desktop & Mobile View */}
+              <div className="relative">
+                <div 
+                  className="flex transition-transform duration-500 ease-out sm:block"
+                  style={{ 
+                    transform: `translateX(-${activeTestimonial * 100}%)`,
+                  }}
+                >
+                  {testimonials.map((testimonial, index) => (
+                    <div 
+                      key={index}
+                      className="w-full flex-shrink-0 sm:w-auto"
+                      style={{ 
+                        display: index === activeTestimonial || window.innerWidth >= 640 ? 'block' : 'none' 
+                      }}
+                    >
+                      <div className="text-center animate-fade-in px-4 sm:px-0">
+                        <div className="text-6xl mb-6">{testimonial.avatar}</div>
+                        
+                        <div className="flex justify-center gap-1 mb-6">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                          ))}
+                        </div>
+
+                        <p className="text-xl text-gray-300 mb-6 leading-relaxed">
+                          "{testimonial.content}"
+                        </p>
+
+                        <div className="inline-flex items-center gap-3 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full mb-4">
+                          <TrendingUp className="w-4 h-4 text-emerald-400" />
+                          <span className="text-sm font-bold text-emerald-400">
+                            {testimonial.profit} Returns
+                          </span>
+                        </div>
+
+                        <div className="font-semibold text-lg mb-1">
+                          {testimonial.name}
+                        </div>
+                        <div className="text-gray-400">
+                          {testimonial.role}
+                        </div>
+                      </div>
+                    </div>
                   ))}
-                </div>
-
-                <p className="text-xl text-gray-300 mb-6 leading-relaxed">
-                  "{testimonials[activeTestimonial].content}"
-                </p>
-
-                <div className="inline-flex items-center gap-3 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full mb-4">
-                  <TrendingUp className="w-4 h-4 text-emerald-400" />
-                  <span className="text-sm font-bold text-emerald-400">
-                    {testimonials[activeTestimonial].profit} Returns
-                  </span>
-                </div>
-
-                <div className="font-semibold text-lg mb-1">
-                  {testimonials[activeTestimonial].name}
-                </div>
-                <div className="text-gray-400">
-                  {testimonials[activeTestimonial].role}
                 </div>
               </div>
 
+              {/* Navigation */}
               <div className="flex justify-center gap-2 mt-8">
                 {testimonials.map((_, index) => (
                   <button
@@ -571,6 +653,22 @@ export default function LandingPage() {
                     }`}
                   />
                 ))}
+              </div>
+
+              {/* Mobile Navigation Arrows */}
+              <div className="sm:hidden">
+                <button
+                  onClick={() => setActiveTestimonial((prev) => (prev - 1 + testimonials.length) % testimonials.length)}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#1a1f2e] border border-gray-800 rounded-full flex items-center justify-center hover:bg-[#232936] transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setActiveTestimonial((prev) => (prev + 1) % testimonials.length)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#1a1f2e] border border-gray-800 rounded-full flex items-center justify-center hover:bg-[#232936] transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
               </div>
             </div>
           </div>
@@ -596,13 +694,12 @@ export default function LandingPage() {
                   setIsLogin(true)
                   setShowAuthModal(true)
                 }}
-                className="group relative px-8 py-4 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl text-lg font-semibold text-white shadow-2xl overflow-hidden"
+                className="group px-8 py-4 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-700 hover:border-gray-600 rounded-xl text-lg font-semibold shadow-2xl transition-all"
               >
-                <span className="relative z-10 flex items-center gap-2">
+                <span className="flex items-center gap-2">
                   Sign In Now
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </button>
             </div>
           </div>
@@ -731,7 +828,7 @@ export default function LandingPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full relative px-6 py-3.5 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg text-lg font-semibold text-white shadow-lg overflow-hidden group disabled:opacity-50"
+                  className="w-full px-6 py-3.5 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-700 hover:border-gray-600 rounded-lg text-lg font-semibold text-white transition-all disabled:opacity-50"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
@@ -739,12 +836,9 @@ export default function LandingPage() {
                       Processing...
                     </span>
                   ) : (
-                    <>
-                      <span className="relative z-10">
-                        {isLogin ? 'Sign In' : 'Create Account'}
-                      </span>
-                      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    </>
+                    <span>
+                      {isLogin ? 'Sign In' : 'Create Account'}
+                    </span>
                   )}
                 </button>
               </form>
@@ -795,7 +889,6 @@ export default function LandingPage() {
                   <span className="text-sm font-medium">Facebook</span>
                 </button>
               </div>
-
               {/* Features */}
               {!isLogin && (
                 <div className="mt-6 space-y-3">
@@ -838,6 +931,7 @@ export default function LandingPage() {
         </>
       )}
 
+      {/* Custom Styles */}
       <style jsx>{`
         @keyframes gradient {
           0%, 100% { background-position: 0% 50%; }
@@ -993,6 +1087,11 @@ export default function LandingPage() {
 
         ::-webkit-scrollbar-thumb:hover {
           background: linear-gradient(to bottom, #2563eb, #059669);
+        }
+
+        /* Smooth carousel transitions */
+        .transition-transform {
+          transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
         }
       `}</style>
     </div>
