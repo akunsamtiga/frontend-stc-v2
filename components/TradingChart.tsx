@@ -9,8 +9,7 @@ import {
   Minimize2, 
   RefreshCw, 
   AlertCircle,
-  Activity,
-  Settings
+  Activity
 } from 'lucide-react'
 
 type ChartType = 'line' | 'candle'
@@ -34,7 +33,6 @@ export default function TradingChart() {
   const [isInitialized, setIsInitialized] = useState(false)
   const [isLive, setIsLive] = useState(false)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
-  const [showControls, setShowControls] = useState(false)
 
   // Initialize chart once on mount
   useEffect(() => {
@@ -306,7 +304,7 @@ export default function TradingChart() {
 
   return (
     <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : 'h-full'}`}>
-      {/* Controls - DESKTOP */}
+      {/* Controls - DESKTOP (Top Left) */}
       <div className="hidden lg:block absolute top-2 left-2 z-10">
         <div className="flex items-center gap-2">
           {/* Timeframe Selector */}
@@ -381,107 +379,21 @@ export default function TradingChart() {
         </div>
       </div>
 
-      {/* Controls - MOBILE (Stacked Properly) */}
-      <div className="lg:hidden absolute top-2 left-2 right-2 z-10">
-        <div className="flex items-center justify-between mb-2">
-          {/* Settings Button */}
-          <button
-            onClick={() => setShowControls(!showControls)}
-            className="p-2 bg-[#0f1419]/90 backdrop-blur-sm border border-gray-800 rounded-lg"
-          >
-            <Settings className="w-4 h-4 text-gray-400" />
-          </button>
-
-          {/* Live Indicator */}
-          {isInitialized && !isLoading && !error && (
-            <div className="flex items-center gap-2 bg-[#0f1419]/90 backdrop-blur-sm border border-gray-800 rounded-lg px-3 py-1.5">
-              <span className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`}></span>
-              <span className={`text-xs font-medium ${isLive ? 'text-green-400' : 'text-gray-500'}`}>
-                {isLive ? 'LIVE' : 'Waiting'}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Controls Panel */}
-        {showControls && (
-          <div className="bg-[#0f1419]/95 backdrop-blur-sm border border-gray-800 rounded-lg p-3 space-y-3 animate-slide-down">
-            {/* Timeframe */}
-            <div>
-              <div className="text-xs text-gray-400 mb-2 font-medium">Timeframe</div>
-              <div className="grid grid-cols-6 gap-1">
-                {(['1m', '5m', '15m', '1h', '4h', '1d'] as Timeframe[]).map((tf) => (
-                  <button
-                    key={tf}
-                    onClick={() => setTimeframe(tf)}
-                    disabled={isLoading}
-                    className={`px-2 py-1.5 text-xs font-medium rounded transition-all ${
-                      timeframe === tf
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-[#1a1f2e] text-gray-400 border border-gray-800/50'
-                    } disabled:opacity-50`}
-                  >
-                    {tf}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Chart Type */}
-            <div>
-              <div className="text-xs text-gray-400 mb-2 font-medium">Chart Type</div>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setChartType('candle')}
-                  disabled={isLoading}
-                  className={`px-3 py-2 text-xs font-medium rounded-lg transition-all ${
-                    chartType === 'candle'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-[#1a1f2e] text-gray-400 border border-gray-800/50'
-                  }`}
-                >
-                  Candlestick
-                </button>
-                <button
-                  onClick={() => setChartType('line')}
-                  disabled={isLoading}
-                  className={`px-3 py-2 text-xs font-medium rounded-lg transition-all ${
-                    chartType === 'line'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-[#1a1f2e] text-gray-400 border border-gray-800/50'
-                  }`}
-                >
-                  Line Chart
-                </button>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2 pt-2 border-t border-gray-800/50">
-              <button
-                onClick={handleFitContent}
-                className="flex-1 px-3 py-2 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 rounded-lg text-xs font-medium transition-colors"
-              >
-                Fit View
-              </button>
-              <button
-                onClick={handleRefresh}
-                disabled={isLoading}
-                className="px-4 py-2 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 rounded-lg transition-colors disabled:opacity-50"
-              >
-                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Chart Info - Top Right */}
       <div className="absolute top-2 right-2 z-10 bg-[#0f1419]/90 backdrop-blur-sm border border-gray-800 rounded-lg px-3 py-1.5">
         <div className="text-xs text-gray-400 flex items-center gap-2">
           <span className="font-medium">{selectedAsset.symbol}</span>
           <span>•</span>
           <span>{timeframe}</span>
+          {isInitialized && !isLoading && !error && (
+            <>
+              <span>•</span>
+              <span className={`flex items-center gap-1 ${isLive ? 'text-green-400' : 'text-gray-500'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`}></span>
+                {isLive ? 'LIVE' : 'Waiting'}
+              </span>
+            </>
+          )}
         </div>
       </div>
 
@@ -491,6 +403,75 @@ export default function TradingChart() {
         className="w-full h-full bg-[#0a0e17]"
         style={{ minHeight: '400px' }}
       />
+
+      {/* Controls - MOBILE (Bottom, Always Visible) */}
+      <div className="lg:hidden absolute bottom-0 left-0 right-0 z-10 bg-[#0f1419]/95 backdrop-blur-sm border-t border-gray-800/50 p-2">
+        <div className="flex flex-col gap-2">
+          {/* Timeframe - Compact Pills */}
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+            {(['1m', '5m', '15m', '1h', '4h', '1d'] as Timeframe[]).map((tf) => (
+              <button
+                key={tf}
+                onClick={() => setTimeframe(tf)}
+                disabled={isLoading}
+                className={`flex-shrink-0 px-2.5 py-1 text-[10px] font-bold rounded-md transition-all ${
+                  timeframe === tf
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-[#1a1f2e] text-gray-400 border border-gray-800/50'
+                } disabled:opacity-50`}
+              >
+                {tf}
+              </button>
+            ))}
+          </div>
+
+          {/* Chart Type & Actions */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Chart Type */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setChartType('candle')}
+                disabled={isLoading}
+                className={`px-3 py-1 text-[10px] font-medium rounded-md transition-all ${
+                  chartType === 'candle'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-[#1a1f2e] text-gray-400 border border-gray-800/50'
+                }`}
+              >
+                Candle
+              </button>
+              <button
+                onClick={() => setChartType('line')}
+                disabled={isLoading}
+                className={`px-3 py-1 text-[10px] font-medium rounded-md transition-all ${
+                  chartType === 'line'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-[#1a1f2e] text-gray-400 border border-gray-800/50'
+                }`}
+              >
+                Line
+              </button>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleFitContent}
+                className="px-2.5 py-1 bg-[#1a1f2e] border border-gray-800/50 rounded-md text-[10px] font-medium text-gray-400 hover:text-white transition-colors"
+              >
+                Fit
+              </button>
+              <button
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="p-1.5 bg-[#1a1f2e] border border-gray-800/50 rounded-md transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3 h-3 text-gray-400 ${isLoading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Loading Overlay */}
       {isLoading && (
@@ -533,19 +514,13 @@ export default function TradingChart() {
       )}
 
       <style jsx>{`
-        @keyframes slide-down {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
 
-        .animate-slide-down {
-          animation: slide-down 0.2s ease-out;
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
         }
       `}</style>
     </div>
