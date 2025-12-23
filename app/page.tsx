@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
+import EnhancedFooter from '@/components/EnhancedFooter'
 import { 
   TrendingUp, 
   Zap, 
@@ -618,18 +619,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#0f1419] border-t border-gray-800/50 py-12">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="text-center text-gray-400 text-sm">
-            <p>© 2025 STC AutoTrade. All rights reserved.</p>
-            <div className="flex items-center justify-center gap-6 mt-4">
-              <Globe className="w-5 h-5 hover:text-white transition-colors cursor-pointer" />
-              <Shield className="w-5 h-5 hover:text-white transition-colors cursor-pointer" />
-              <Lock className="w-5 h-5 hover:text-white transition-colors cursor-pointer" />
-            </div>
-          </div>
-        </div>
-      </footer>
+      <EnhancedFooter />
 
       {/* Auth Modal */}
       {showAuthModal && (
