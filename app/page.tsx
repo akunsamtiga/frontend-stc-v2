@@ -329,18 +329,9 @@ export default function LandingPage() {
                   setIsLogin(true)
                   setShowAuthModal(true)
                 }}
-                className="hidden sm:block px-5 py-2.5 text-sm font-medium text-gray-300 hover:text-white transition-colors"
-              >
-                Sign In
-              </button>
-              <button
-                onClick={() => {
-                  setIsLogin(false)
-                  setShowAuthModal(true)
-                }}
                 className="relative px-6 py-2.5 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg text-sm font-semibold text-white shadow-lg overflow-hidden group"
               >
-                <span className="relative z-10">Get Started</span>
+                <span className="relative z-10">Sign In</span>
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </button>
             </div>
@@ -375,13 +366,13 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={() => {
-                    setIsLogin(false)
+                    setIsLogin(true)
                     setShowAuthModal(true)
                   }}
                   className="group relative px-8 py-4 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl text-lg font-semibold text-white overflow-hidden shadow-2xl"
                 >
                   <span className="relative z-10 flex items-center gap-2">
-                    Start Trading Now
+                    Sign In to Trade
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -602,13 +593,13 @@ export default function LandingPage() {
 
               <button
                 onClick={() => {
-                  setIsLogin(false)
+                  setIsLogin(true)
                   setShowAuthModal(true)
                 }}
                 className="group relative px-8 py-4 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl text-lg font-semibold text-white shadow-2xl overflow-hidden"
               >
                 <span className="relative z-10 flex items-center gap-2">
-                  Create Free Account
+                  Sign In Now
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -621,97 +612,230 @@ export default function LandingPage() {
       {/* Footer */}
       <EnhancedFooter />
 
-      {/* Auth Modal */}
+      {/* Auth Sidebar */}
       {showAuthModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl max-w-md w-full p-8 animate-scale-in backdrop-blur-xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-emerald-500"></div>
-            
-            <button
-              onClick={() => setShowAuthModal(false)}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 animate-fade-in" 
+            onClick={() => setShowAuthModal(false)}
+          />
 
-            <div className="text-center mb-6">
-              <h2 className="text-3xl font-bold mb-2">
-                {isLogin ? 'Welcome Back' : 'Get Started'}
-              </h2>
-              <p className="text-gray-400">
-                {isLogin ? 'Sign in to continue trading' : 'Create your account'}
-              </p>
+          {/* Sidebar */}
+          <div className="fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-gradient-to-b from-[#0f1419] to-[#0a0e17] z-50 animate-slide-left shadow-2xl overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 z-10 bg-gradient-to-b from-[#0f1419] to-transparent backdrop-blur-xl border-b border-gray-800/50 p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold">STC AutoTrade</h2>
+                    <p className="text-xs text-gray-400">Professional Trading Platform</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAuthModal(false)}
+                  className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/5 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  required
-                  disabled={loading}
-                  className="w-full bg-[#0a0e17] border-gray-700 px-4 py-3 rounded-lg focus:border-blue-500 transition-colors"
-                  autoComplete="email"
-                />
+            {/* Content */}
+            <div className="p-6">
+              {/* Toggle Tabs */}
+              <div className="flex gap-2 p-1 bg-[#0a0e17] rounded-xl mb-6">
+                <button
+                  onClick={() => setIsLogin(true)}
+                  className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
+                    isLogin
+                      ? 'bg-gradient-to-r from-blue-500 to-emerald-500 text-white shadow-lg'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={() => setIsLogin(false)}
+                  className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
+                    !isLogin
+                      ? 'bg-gradient-to-r from-blue-500 to-emerald-500 text-white shadow-lg'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Register
+                </button>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  disabled={loading}
-                  className="w-full bg-[#0a0e17] border-gray-700 px-4 py-3 rounded-lg focus:border-blue-500 transition-colors"
-                  autoComplete="current-password"
-                />
+              {/* Title */}
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold mb-2">
+                  {isLogin ? 'Welcome Back!' : 'Create Account'}
+                </h3>
+                <p className="text-gray-400">
+                  {isLogin 
+                    ? 'Sign in to continue trading' 
+                    : 'Join thousands of successful traders'}
+                </p>
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full relative px-6 py-3 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg text-lg font-semibold text-white shadow-lg overflow-hidden group"
-              >
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    Processing...
-                  </span>
-                ) : (
-                  <>
-                    <span className="relative z-10">{isLogin ? 'Sign In' : 'Create Account'}</span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  </>
+              {/* Form */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    required
+                    disabled={loading}
+                    className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    autoComplete="email"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    disabled={loading}
+                    className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    autoComplete="current-password"
+                  />
+                </div>
+
+                {isLogin && (
+                  <div className="flex items-center justify-between text-sm">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" className="w-4 h-4 rounded border-gray-700 bg-[#0a0e17] text-blue-500 focus:ring-blue-500" />
+                      <span className="text-gray-400">Remember me</span>
+                    </label>
+                    <a href="#" className="text-blue-400 hover:text-blue-300 transition-colors">
+                      Forgot password?
+                    </a>
+                  </div>
                 )}
-              </button>
-            </form>
 
-            <div className="mt-6 text-center">
-              <button
-                onClick={() => setIsLogin(!isLogin)}
-                disabled={loading}
-                className="text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50"
-              >
-                {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-              </button>
-            </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full relative px-6 py-3.5 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg text-lg font-semibold text-white shadow-lg overflow-hidden group disabled:opacity-50"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Processing...
+                    </span>
+                  ) : (
+                    <>
+                      <span className="relative z-10">
+                        {isLogin ? 'Sign In' : 'Create Account'}
+                      </span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    </>
+                  )}
+                </button>
+              </form>
 
-            {isLogin && (
-              <div className="mt-6 p-4 bg-[#0a0e17] rounded-lg border border-gray-800/50">
-                <div className="text-xs text-gray-400 mb-2">Demo Credentials:</div>
-                <div className="text-xs font-mono space-y-1 text-gray-300">
-                  <div>Email: superadmin@trading.com</div>
-                  <div>Pass: SuperAdmin123!</div>
+              {/* Demo Credentials */}
+              {isLogin && (
+                <div className="mt-6 p-4 bg-gradient-to-br from-blue-500/10 to-emerald-500/10 border border-blue-500/20 rounded-xl">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Shield className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold text-blue-400 mb-1">Demo Account</div>
+                      <div className="text-xs text-gray-400 space-y-1">
+                        <div>Email: <span className="text-gray-300 font-mono">superadmin@trading.com</span></div>
+                        <div>Pass: <span className="text-gray-300 font-mono">SuperAdmin123!</span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-800"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-[#0f1419] text-gray-400">Or continue with</span>
                 </div>
               </div>
-            )}
+
+              {/* Social Login */}
+              <div className="grid grid-cols-2 gap-3">
+                <button className="flex items-center justify-center gap-2 px-4 py-3 bg-[#0a0e17] border border-gray-800 rounded-lg hover:bg-[#1a1f2e] transition-colors">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                  </svg>
+                  <span className="text-sm font-medium">Google</span>
+                </button>
+                <button className="flex items-center justify-center gap-2 px-4 py-3 bg-[#0a0e17] border border-gray-800 rounded-lg hover:bg-[#1a1f2e] transition-colors">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/>
+                  </svg>
+                  <span className="text-sm font-medium">Facebook</span>
+                </button>
+              </div>
+
+              {/* Features */}
+              {!isLogin && (
+                <div className="mt-6 space-y-3">
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-6 h-6 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-gray-300">Free demo account with $10,000</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-6 h-6 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-gray-300">No credit card required</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-6 h-6 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-gray-300">24/7 customer support</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Terms */}
+              <p className="mt-6 text-xs text-center text-gray-500 leading-relaxed">
+                By continuing, you agree to our{' '}
+                <a href="#" className="text-blue-400 hover:text-blue-300">Terms of Service</a>
+                {' '}and{' '}
+                <a href="#" className="text-blue-400 hover:text-blue-300">Privacy Policy</a>
+              </p>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       <style jsx>{`
@@ -784,6 +908,15 @@ export default function LandingPage() {
           }
         }
 
+        @keyframes slide-left {
+          from {
+            transform: translateX(100%);
+          }
+          to {
+            transform: translateX(0);
+          }
+        }
+
         @keyframes scale-in {
           from {
             opacity: 0;
@@ -830,6 +963,10 @@ export default function LandingPage() {
 
         .animate-slide-in-right {
           animation: slide-in-right 0.8s ease-out;
+        }
+
+        .animate-slide-left {
+          animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .animate-scale-in {
