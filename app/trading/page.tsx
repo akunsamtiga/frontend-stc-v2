@@ -306,34 +306,32 @@ export default function TradingPage() {
           </div>
         </div>
 
-        {/* Mobile Layout - FIXED SYMMETRICAL */}
+        {/* Mobile Layout - PROPORTIONAL */}
         <div className="flex lg:hidden items-center justify-between w-full">
           {/* Left: Logo */}
-          <div className="flex items-center gap-2 w-20">
-            <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-4 h-4" />
-            </div>
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+            <TrendingUp className="w-5 h-5" />
           </div>
 
           {/* Center: Balance */}
-          <div className="flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
-            <Wallet className="w-3.5 h-3.5 text-blue-400" />
-            <span className="text-sm font-mono font-bold">{formatCurrency(balance)}</span>
+          <div className="flex items-center gap-2 bg-[#1a1f2e] h-10 px-3 rounded-lg border border-gray-800/50 mx-3 flex-1 justify-center">
+            <Wallet className="w-4 h-4 text-blue-400 flex-shrink-0" />
+            <span className="text-sm font-mono font-bold truncate">{formatCurrency(balance)}</span>
           </div>
 
-          {/* Right: Actions (Equal width to left) */}
-          <div className="flex items-center gap-2 justify-end w-20">
+          {/* Right: Actions */}
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={() => setShowWalletModal(true)}
-              className="w-8 h-8 flex items-center justify-center bg-[#1a1f2e] hover:bg-[#232936] rounded-lg border border-gray-800/50 transition-colors"
+              className="w-10 h-10 flex items-center justify-center bg-[#1a1f2e] hover:bg-[#232936] rounded-lg border border-gray-800/50 transition-colors"
             >
-              <Wallet className="w-4 h-4 text-blue-400" />
+              <Wallet className="w-4.5 h-4.5 text-blue-400" />
             </button>
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="w-8 h-8 flex items-center justify-center hover:bg-[#1a1f2e] rounded-lg transition-colors"
+              className="w-10 h-10 flex items-center justify-center hover:bg-[#1a1f2e] rounded-lg transition-colors"
             >
-              <Menu className="w-4.5 h-4.5" />
+              <Menu className="w-5 h-5" />
             </button>
           </div>
         </div>
