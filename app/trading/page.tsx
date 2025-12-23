@@ -1,5 +1,6 @@
 'use client'
 
+import FirebaseDebugger from '@/components/FirebaseDebugger'
 import { useEffect, useState, useCallback, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
@@ -592,6 +593,7 @@ export default function TradingPage() {
           onClose={() => setShowHistorySidebar(false)} 
         />
       )}
+      {process.env.NODE_ENV === 'development' && <FirebaseDebugger />}
     </div>
   )
 }
