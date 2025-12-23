@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { createChart, IChartApi, ISeriesApi, UTCTimestamp, LineStyle } from 'lightweight-charts'
+import { useEffect, useRef, useState } from 'react'
+import { createChart, ColorType, CrosshairMode } from 'lightweight-charts'
 import { useTradingStore } from '@/store/trading'
 import { fetchHistoricalData, subscribeToOHLCUpdates } from '@/lib/firebase'
 import { 
@@ -17,10 +17,9 @@ type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
 
 export default function TradingChart() {
   const chartContainerRef = useRef<HTMLDivElement>(null)
-  const chartRef = useRef<IChartApi | null>(null)
-  const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
-  const lineSeriesRef = useRef<ISeriesApi<'Line'> | null>(null)
-  const resizeObserverRef = useRef<ResizeObserver | null>(null)
+  const chartRef = useRef<any>(null)
+  const candleSeriesRef = useRef<any>(null)
+  const lineSeriesRef = useRef<any>(null)
   const unsubscribeRef = useRef<(() => void) | null>(null)
 
   const { selectedAsset } = useTradingStore()
@@ -30,88 +29,118 @@ export default function TradingChart() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [dataLoaded, setDataLoaded] = useState(false)
 
-  // Initialize chart once
+  // Debug log
   useEffect(() => {
-    if (!chartContainerRef.current) return
-
-    // Create chart with proper typing
-    const chart = createChart(chartContainerRef.current, {
-      width: chartContainerRef.current.clientWidth,
-      height: chartContainerRef.current.clientHeight,
-      layout: {
-        background: { color: '#0a0e17' },
-        textColor: '#9ca3af',
-      },
-      grid: {
-        vertLines: { color: 'rgba(255, 255, 255, 0.03)' },
-        horzLines: { color: 'rgba(255, 255, 255, 0.03)' },
-      },
-      crosshair: {
-        mode: 1,
-        vertLine: {
-          color: 'rgba(255, 255, 255, 0.3)',
-          style: LineStyle.Dashed,
-          labelBackgroundColor: '#3b82f6',
-        },
-        horzLine: {
-          color: 'rgba(255, 255, 255, 0.3)',
-          style: LineStyle.Dashed,
-          labelBackgroundColor: '#3b82f6',
-        },
-      },
-      rightPriceScale: {
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-      },
-      timeScale: {
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        timeVisible: true,
-        secondsVisible: false,
-      },
+    console.log('🔍 Chart Debug:', {
+      hasContainer: !!chartContainerRef.current,
+      hasChart: !!chartRef.current,
+      hasSeries: !!candleSeriesRef.current,
+      selectedAsset: selectedAsset?.symbol,
+      isLoading,
+      error,
+      dataLoaded
     })
+  }, [selectedAsset, isLoading, error, dataLoaded])
 
-    chartRef.current = chart
-
-    // Add candlestick series
-    candleSeriesRef.current = chart.addCandlestickSeries({
-      upColor: '#10b981',
-      downColor: '#ef4444',
-      borderUpColor: '#10b981',
-      borderDownColor: '#ef4444',
-      wickUpColor: '#10b981',
-      wickDownColor: '#ef4444',
-    })
-
-    // Add line series (hidden by default)
-    lineSeriesRef.current = chart.addLineSeries({
-      color: '#3b82f6',
-      lineWidth: 2,
-      visible: false,
-    })
-
-    // Handle resize
-    const handleResize = () => {
-      if (chartContainerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({
-          width: chartContainerRef.current.clientWidth,
-          height: chartContainerRef.current.clientHeight,
-        })
-      }
+  // Initialize chart
+  useEffect(() => {
+    if (!chartContainerRef.current) {
+      console.warn('⚠️ Chart container not ready')
+      return
     }
 
-    resizeObserverRef.current = new ResizeObserver(handleResize)
-    resizeObserverRef.current.observe(chartContainerRef.current)
+    console.log('🎨 Initializing chart...')
 
-    return () => {
-      resizeObserverRef.current?.disconnect()
-      unsubscribeRef.current?.()
-      chart.remove()
+    try {
+      // Create chart
+      const chart = createChart(chartContainerRef.current, {
+        width: chartContainerRef.current.clientWidth,
+        height: chartContainerRef.current.clientHeight,
+        layout: {
+          background: { type: ColorType.Solid, color: '#0a0e17' },
+          textColor: '#9ca3af',
+        },
+        grid: {
+          vertLines: { color: 'rgba(255, 255, 255, 0.03)' },
+          horzLines: { color: 'rgba(255, 255, 255, 0.03)' },
+        },
+        crosshair: {
+          mode: CrosshairMode.Normal,
+        },
+        rightPriceScale: {
+          borderColor: 'rgba(255, 255, 255, 0.1)',
+        },
+        timeScale: {
+          borderColor: 'rgba(255, 255, 255, 0.1)',
+          timeVisible: true,
+          secondsVisible: false,
+        },
+      })
+
+      chartRef.current = chart
+
+      // Add candlestick series
+      const candleSeries = chart.addCandlestickSeries({
+        upColor: '#10b981',
+        downColor: '#ef4444',
+        borderUpColor: '#10b981',
+        borderDownColor: '#ef4444',
+        wickUpColor: '#10b981',
+        wickDownColor: '#ef4444',
+      })
+      candleSeriesRef.current = candleSeries
+
+      // Add line series (hidden by default)
+      const lineSeries = chart.addLineSeries({
+        color: '#3b82f6',
+        lineWidth: 2,
+      })
+      lineSeriesRef.current = lineSeries
+
+      // Make line series invisible initially
+      if (chartType === 'candle') {
+        candleSeries.applyOptions({ visible: true })
+        lineSeries.applyOptions({ visible: false })
+      } else {
+        candleSeries.applyOptions({ visible: false })
+        lineSeries.applyOptions({ visible: true })
+      }
+
+      console.log('✅ Chart initialized successfully')
+
+      // Handle resize
+      const handleResize = () => {
+        if (chartContainerRef.current && chartRef.current) {
+          const { width, height } = chartContainerRef.current.getBoundingClientRect()
+          chartRef.current.applyOptions({ width, height })
+        }
+      }
+
+      window.addEventListener('resize', handleResize)
+
+      return () => {
+        window.removeEventListener('resize', handleResize)
+        if (unsubscribeRef.current) {
+          unsubscribeRef.current()
+        }
+        chart.remove()
+        chartRef.current = null
+        candleSeriesRef.current = null
+        lineSeriesRef.current = null
+      }
+    } catch (err: any) {
+      console.error('❌ Chart initialization error:', err)
+      setError(`Chart init failed: ${err.message}`)
     }
   }, [])
 
   // Switch chart type
   useEffect(() => {
     if (!candleSeriesRef.current || !lineSeriesRef.current) return
+
+    console.log(`📊 Switching to ${chartType} chart`)
 
     if (chartType === 'candle') {
       candleSeriesRef.current.applyOptions({ visible: true })
@@ -122,16 +151,25 @@ export default function TradingChart() {
     }
   }, [chartType])
 
-  // Load data when asset/timeframe changes
+  // Load data
   useEffect(() => {
-    if (!selectedAsset || !candleSeriesRef.current || !lineSeriesRef.current) return
+    if (!selectedAsset || !candleSeriesRef.current || !lineSeriesRef.current) {
+      console.log('⚠️ Not ready to load data:', {
+        hasAsset: !!selectedAsset,
+        hasCandleSeries: !!candleSeriesRef.current,
+        hasLineSeries: !!lineSeriesRef.current
+      })
+      return
+    }
 
     const loadData = async () => {
       setIsLoading(true)
       setError(null)
+      setDataLoaded(false)
 
-      // Unsubscribe from previous updates
+      // Cleanup previous subscription
       if (unsubscribeRef.current) {
+        console.log('🔕 Cleaning up previous subscription')
         unsubscribeRef.current()
         unsubscribeRef.current = null
       }
@@ -140,18 +178,21 @@ export default function TradingChart() {
         const pathParts = selectedAsset.realtimeDbPath?.split('/') || []
         const assetPath = pathParts.slice(0, -1).join('/') || `/${selectedAsset.symbol.toLowerCase()}`
 
-        console.log(`📊 Loading ${timeframe} data...`)
+        console.log(`📥 Loading ${timeframe} data from: ${assetPath}`)
+        
         const data = await fetchHistoricalData(assetPath, timeframe)
 
+        console.log(`📊 Received ${data.length} bars`)
+
         if (data.length === 0) {
-          setError('No data available')
+          setError('No data available. Check if simulator is running.')
           setIsLoading(false)
           return
         }
 
-        // Convert to chart format
+        // Convert data
         const candleData = data.map(bar => ({
-          time: bar.timestamp as UTCTimestamp,
+          time: bar.timestamp,
           open: bar.open,
           high: bar.high,
           low: bar.low,
@@ -159,26 +200,35 @@ export default function TradingChart() {
         }))
 
         const lineData = data.map(bar => ({
-          time: bar.timestamp as UTCTimestamp,
+          time: bar.timestamp,
           value: bar.close,
         }))
 
-        // Update both series
-        candleSeriesRef.current!.setData(candleData)
-        lineSeriesRef.current!.setData(lineData)
+        console.log('💾 Setting data on series...')
+        console.log('Sample bar:', candleData[0])
+
+        // Set data
+        candleSeriesRef.current.setData(candleData)
+        lineSeriesRef.current.setData(lineData)
 
         // Fit content
-        chartRef.current?.timeScale().fitContent()
+        if (chartRef.current) {
+          chartRef.current.timeScale().fitContent()
+        }
 
-        console.log(`✅ Loaded ${data.length} bars`)
+        console.log('✅ Data loaded successfully!')
+        setDataLoaded(true)
+        setIsLoading(false)
 
-        // Subscribe to real-time updates
+        // Subscribe to updates
         console.log(`🔔 Subscribing to ${timeframe} updates`)
         unsubscribeRef.current = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
           if (!candleSeriesRef.current || !lineSeriesRef.current) return
 
+          console.log('📊 New bar received:', newBar.close)
+
           const candleUpdate = {
-            time: newBar.timestamp as UTCTimestamp,
+            time: newBar.timestamp,
             open: newBar.open,
             high: newBar.high,
             low: newBar.low,
@@ -186,7 +236,7 @@ export default function TradingChart() {
           }
 
           const lineUpdate = {
-            time: newBar.timestamp as UTCTimestamp,
+            time: newBar.timestamp,
             value: newBar.close,
           }
 
@@ -194,10 +244,9 @@ export default function TradingChart() {
           lineSeriesRef.current.update(lineUpdate)
         })
 
-        setIsLoading(false)
-      } catch (error: any) {
-        console.error('❌ Error loading data:', error)
-        setError(error.message || 'Failed to load data')
+      } catch (err: any) {
+        console.error('❌ Error loading data:', err)
+        setError(err.message || 'Failed to load chart data')
         setIsLoading(false)
       }
     }
@@ -206,6 +255,7 @@ export default function TradingChart() {
 
     return () => {
       if (unsubscribeRef.current) {
+        console.log('🔕 Unsubscribing on cleanup')
         unsubscribeRef.current()
         unsubscribeRef.current = null
       }
@@ -213,21 +263,25 @@ export default function TradingChart() {
   }, [selectedAsset, timeframe])
 
   // Handlers
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = () => {
     if (!selectedAsset) return
+    console.log('🔄 Manual refresh triggered')
     const asset = selectedAsset
     useTradingStore.setState({ selectedAsset: null })
     setTimeout(() => useTradingStore.setState({ selectedAsset: asset }), 100)
-  }, [selectedAsset])
+  }
 
-  const handleFitContent = useCallback(() => {
-    chartRef.current?.timeScale().fitContent()
-  }, [])
+  const handleFitContent = () => {
+    if (chartRef.current) {
+      chartRef.current.timeScale().fitContent()
+    }
+  }
 
-  const toggleFullscreen = useCallback(() => {
+  const toggleFullscreen = () => {
     setIsFullscreen(prev => !prev)
-  }, [])
+  }
 
+  // Render states
   if (!selectedAsset) {
     return (
       <div className="h-full flex items-center justify-center bg-[#0a0e17]">
@@ -241,7 +295,7 @@ export default function TradingChart() {
 
   return (
     <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : 'h-full'}`}>
-      {/* Top Controls */}
+      {/* Controls */}
       <div className="absolute top-2 left-2 z-10 flex items-center gap-2">
         {/* Timeframe */}
         <div className="flex items-center gap-1 bg-[#0f1419]/90 backdrop-blur-sm border border-gray-800 rounded-lg p-1">
@@ -254,7 +308,7 @@ export default function TradingChart() {
                 timeframe === tf
                   ? 'bg-blue-500 text-white shadow-lg'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              } disabled:opacity-50`}
             >
               {tf}
             </button>
@@ -292,7 +346,6 @@ export default function TradingChart() {
           <button
             onClick={handleFitContent}
             className="px-2.5 py-1 text-xs font-medium text-gray-400 hover:text-white transition-colors"
-            title="Fit Content"
           >
             Fit
           </button>
@@ -300,53 +353,71 @@ export default function TradingChart() {
             onClick={handleRefresh}
             disabled={isLoading}
             className="p-1.5 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
-            title="Refresh"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
           <button
             onClick={toggleFullscreen}
             className="p-1.5 text-gray-400 hover:text-white transition-colors"
-            title="Toggle Fullscreen"
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>
 
-      {/* Info Badge */}
+      {/* Info */}
       <div className="absolute top-2 right-2 z-10 bg-[#0f1419]/90 backdrop-blur-sm border border-gray-800 rounded-lg px-3 py-1.5">
-        <div className="text-xs text-gray-400">
-          {selectedAsset.symbol} • {timeframe}
+        <div className="text-xs text-gray-400 flex items-center gap-2">
+          <span>{selectedAsset.symbol}</span>
+          <span>•</span>
+          <span>{timeframe}</span>
+          {dataLoaded && (
+            <>
+              <span>•</span>
+              <span className="text-green-400">●</span>
+            </>
+          )}
         </div>
       </div>
 
       {/* Chart Container */}
-      <div ref={chartContainerRef} className="w-full h-full" />
+      <div 
+        ref={chartContainerRef} 
+        className="w-full h-full bg-[#0a0e17]"
+        style={{ minHeight: '400px' }}
+      />
 
-      {/* Loading Overlay */}
+      {/* Loading */}
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#0a0e17]/90">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-3"></div>
             <div className="text-sm text-gray-400">Loading {timeframe} data...</div>
+            <div className="text-xs text-gray-500 mt-2">
+              {selectedAsset.symbol} • {selectedAsset.name}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Error Overlay */}
+      {/* Error */}
       {!isLoading && error && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#0a0e17]/90">
           <div className="text-center max-w-md px-6">
             <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3 opacity-30" />
-            <div className="text-sm font-medium text-red-400 mb-2">Failed to Load Data</div>
-            <div className="text-xs text-gray-500 mb-4">{error}</div>
-            <button 
-              onClick={handleRefresh}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white text-xs font-medium transition-colors"
-            >
-              Try Again
-            </button>
+            <div className="text-sm font-medium text-red-400 mb-2">Failed to Load Chart</div>
+            <div className="text-xs text-gray-500 mb-4 whitespace-pre-line">{error}</div>
+            <div className="space-y-2">
+              <button 
+                onClick={handleRefresh}
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white text-xs font-medium transition-colors"
+              >
+                Try Again
+              </button>
+              <div className="text-xs text-gray-600">
+                Check browser console (F12) for details
+              </div>
+            </div>
           </div>
         </div>
       )}
