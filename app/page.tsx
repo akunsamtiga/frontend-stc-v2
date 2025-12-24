@@ -152,6 +152,8 @@ export default function LandingPage() {
   const [activeTestimonial, setActiveTestimonial] = useState(0)
   const [activeFeature, setActiveFeature] = useState(0)
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+const [touchStart, setTouchStart] = useState(0)
+const [touchEnd, setTouchEnd] = useState(0)
 
   useEffect(() => {
     if (user) {
@@ -167,6 +169,13 @@ export default function LandingPage() {
     return () => clearInterval(interval)
   }, [])
 
+  useEffect(() => {
+  const interval = setInterval(() => {
+    setActiveFeature((prev) => (prev + 1) % features.length)
+  }, 4000)
+  return () => clearInterval(interval)
+}, [])
+
   // Mouse parallax effect
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -179,6 +188,33 @@ export default function LandingPage() {
     window.addEventListener('mousemove', handleMouseMove)
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
+
+  // Touch handlers for swipe
+const handleTouchStart = (e: React.TouchEvent) => {
+  setTouchStart(e.targetTouches[0].clientX)
+}
+
+const handleTouchMove = (e: React.TouchEvent) => {
+  setTouchEnd(e.targetTouches[0].clientX)
+}
+
+const handleTouchEnd = () => {
+  if (!touchStart || !touchEnd) return
+  
+  const distance = touchStart - touchEnd
+  const isLeftSwipe = distance > 50
+  const isRightSwipe = distance < -50
+
+  if (isLeftSwipe) {
+    setActiveFeature((prev) => (prev + 1) % features.length)
+  }
+  if (isRightSwipe) {
+    setActiveFeature((prev) => (prev === 0 ? features.length - 1 : prev - 1))
+  }
+
+  setTouchStart(0)
+  setTouchEnd(0)
+}
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -540,103 +576,143 @@ export default function LandingPage() {
           </div>
 
           {/* Mobile Modern Stack Layout */}
-          <div className="sm:hidden relative">
-            <div className="space-y-4">
-              {features.map((feature, index) => (
-                <div 
-                  key={index}
-                  className={`relative overflow-hidden rounded-2xl transition-all duration-500 ${
-                    index === activeFeature 
-                      ? 'opacity-100 scale-100' 
-                      : 'opacity-0 scale-95 absolute inset-0 pointer-events-none'
-                  }`}
-                >
-                  {/* Background Gradient */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient}`}></div>
-                  
-                  {/* Glass Effect */}
-                  <div className="absolute inset-0 bg-[#0a0e17]/60 backdrop-blur-xl"></div>
-                  
-                  {/* Border */}
-                  <div className={`absolute inset-0 border-2 ${feature.borderColor} rounded-2xl`}></div>
-                  
-                  {/* Content */}
-                  <div className="relative p-8 space-y-6">
-                    {/* Icon Container */}
-                    <div className="flex justify-center">
-                      <div className={`relative w-20 h-20 ${feature.bgColor} ${feature.borderColor} border-2 rounded-2xl flex items-center justify-center transform hover:scale-110 transition-transform`}>
-                        <feature.icon className={`w-10 h-10 ${feature.color}`} />
-                        
-                        {/* Glow Effect */}
-                        <div className={`absolute inset-0 ${feature.bgColor} blur-xl opacity-50 rounded-2xl`}></div>
-                      </div>
-                    </div>
-
-                    {/* Title */}
-                    <div className="text-center">
-                      <h3 className="text-2xl font-bold mb-2">{feature.title}</h3>
-                      <div className={`w-16 h-1 ${feature.bgColor} rounded-full mx-auto`}></div>
-                    </div>
-
-                    {/* Description */}
-                    <p className="text-gray-300 text-center leading-relaxed text-lg">
-                      {feature.description}
-                    </p>
-
-                    {/* Feature Number */}
-                    <div className="absolute top-4 right-4">
-                      <div className="w-8 h-8 bg-white/5 backdrop-blur-sm rounded-lg flex items-center justify-center border border-white/10">
-                        <span className="text-xs font-bold text-gray-400">{index + 1}/4</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Modern Controls */}
-            <div className="flex items-center justify-between mt-8 px-4">
-              <button
-                onClick={() => setActiveFeature((prev) => (prev === 0 ? features.length - 1 : prev - 1))}
-                className="group w-12 h-12 bg-gradient-to-br from-[#1e293b] to-[#0f172a] hover:from-[#334155] hover:to-[#1e293b] rounded-xl flex items-center justify-center transition-all border border-gray-700 shadow-lg"
-              >
-                <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
-              </button>
-
-              {/* Progress Indicators */}
-              <div className="flex gap-2">
-                {features.map((feature, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setActiveFeature(index)}
-                    className="group relative"
-                  >
-                    <div className={`h-2 rounded-full transition-all duration-300 ${
-                      index === activeFeature 
-                        ? `w-12 ${feature.bgColor}` 
-                        : 'w-2 bg-gray-700 hover:bg-gray-600'
-                    }`} />
-                    {index === activeFeature && (
-                      <div className={`absolute inset-0 ${feature.bgColor} blur-md opacity-50 rounded-full`}></div>
-                    )}
-                  </button>
-                ))}
+<div className="sm:hidden relative">
+  {/* Swipeable Container */}
+  <div 
+    className="relative overflow-hidden rounded-3xl"
+    onTouchStart={handleTouchStart}
+    onTouchMove={handleTouchMove}
+    onTouchEnd={handleTouchEnd}
+  >
+    {/* Cards Stack */}
+    <div className="relative h-[520px]">
+      {features.map((feature, index) => {
+        const isActive = index === activeFeature
+        const isPrev = index === (activeFeature === 0 ? features.length - 1 : activeFeature - 1)
+        const isNext = index === (activeFeature + 1) % features.length
+        
+        return (
+          <div 
+            key={index}
+            className={`absolute inset-0 transition-all duration-500 ease-out ${
+              isActive 
+                ? 'opacity-100 scale-100 z-30 translate-x-0' 
+                : isPrev
+                ? 'opacity-30 scale-95 z-10 -translate-x-8'
+                : isNext
+                ? 'opacity-30 scale-95 z-10 translate-x-8'
+                : 'opacity-0 scale-90 z-0'
+            }`}
+          >
+            {/* Card */}
+            <div className="relative h-full mx-4 rounded-3xl overflow-hidden">
+              {/* Animated Background Gradient */}
+              <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} animate-pulse-slow`}></div>
+              
+              {/* Glass Effect */}
+              <div className="absolute inset-0 bg-[#0a0e17]/70 backdrop-blur-2xl"></div>
+              
+              {/* Animated Border */}
+              <div className={`absolute inset-0 rounded-3xl ${feature.borderColor} border-2`}>
+                <div className={`absolute inset-0 ${feature.bgColor} blur-xl opacity-30`}></div>
               </div>
 
-              <button
-                onClick={() => setActiveFeature((prev) => (prev === features.length - 1 ? 0 : prev + 1))}
-                className="group w-12 h-12 bg-gradient-to-br from-[#1e293b] to-[#0f172a] hover:from-[#334155] hover:to-[#1e293b] rounded-xl flex items-center justify-center transition-all border border-gray-700 shadow-lg"
-              >
-                <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
-              </button>
-            </div>
+              {/* Floating Particles */}
+              <div className="absolute inset-0 overflow-hidden">
+                <div className={`absolute top-1/4 left-1/4 w-32 h-32 ${feature.bgColor} rounded-full blur-3xl opacity-20 animate-float`}></div>
+                <div className={`absolute bottom-1/4 right-1/4 w-40 h-40 ${feature.bgColor} rounded-full blur-3xl opacity-20 animate-float`} style={{ animationDelay: '1s' }}></div>
+              </div>
 
-            {/* Auto Play Indicator */}
-            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-500">
-              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
-              <span>Swipe atau gunakan tombol untuk navigasi</span>
+              {/* Content */}
+              <div className="relative h-full flex flex-col items-center justify-center p-8 space-y-8">
+                {/* Animated Icon Container */}
+                <div className="relative">
+                  <div className={`w-28 h-28 ${feature.bgColor} ${feature.borderColor} border-2 rounded-3xl flex items-center justify-center transform hover:scale-110 transition-all duration-300 shadow-2xl`}>
+                    <feature.icon className={`w-14 h-14 ${feature.color} animate-pulse`} />
+                  </div>
+                  
+                  {/* Pulsing Ring */}
+                  <div className={`absolute inset-0 ${feature.borderColor} border-2 rounded-3xl animate-ping opacity-20`}></div>
+                  
+                  {/* Glow Effect */}
+                  <div className={`absolute inset-0 ${feature.bgColor} blur-2xl opacity-50 rounded-3xl`}></div>
+                </div>
+
+                {/* Title */}
+                <div className="text-center space-y-4">
+                  <h3 className="text-3xl font-bold tracking-tight">{feature.title}</h3>
+                  <div className={`w-20 h-1.5 ${feature.bgColor} rounded-full mx-auto`}></div>
+                </div>
+
+                {/* Description */}
+                <p className="text-gray-300 text-center leading-relaxed text-lg px-4">
+                  {feature.description}
+                </p>
+
+                {/* Decorative Elements */}
+                <div className="flex gap-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div 
+                      key={i}
+                      className={`w-2 h-2 ${feature.bgColor} rounded-full animate-pulse`}
+                      style={{ animationDelay: `${i * 200}ms` }}
+                    ></div>
+                  ))}
+                </div>
+
+                {/* Feature Number Badge */}
+                <div className="absolute top-6 right-6">
+                  <div className={`relative w-12 h-12 ${feature.bgColor} ${feature.borderColor} border-2 rounded-2xl flex items-center justify-center shadow-xl`}>
+                    <span className={`text-lg font-bold ${feature.color}`}>{index + 1}</span>
+                    <div className={`absolute inset-0 ${feature.bgColor} blur-lg opacity-50 rounded-2xl`}></div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+        )
+      })}
+    </div>
+  </div>
+
+  {/* Modern Progress Indicators */}
+  <div className="mt-8 px-4">
+    <div className="flex items-center justify-center gap-3">
+      {features.map((feature, index) => (
+        <button
+          key={index}
+          onClick={() => setActiveFeature(index)}
+          className="relative group"
+        >
+          <div className={`transition-all duration-300 rounded-full ${
+            index === activeFeature 
+              ? `w-12 h-3 ${feature.bgColor}` 
+              : 'w-3 h-3 bg-gray-700 hover:bg-gray-600'
+          }`}>
+            {index === activeFeature && (
+              <>
+                <div className={`absolute inset-0 ${feature.bgColor} blur-md opacity-50 rounded-full animate-pulse`}></div>
+                <div className={`absolute inset-0 ${feature.bgColor} rounded-full`}>
+                  <div className="absolute inset-0 bg-white/30 rounded-full animate-ping"></div>
+                </div>
+              </>
+            )}
+          </div>
+        </button>
+      ))}
+    </div>
+  </div>
+
+  {/* Swipe Hint */}
+  <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-500">
+    <div className="flex gap-1">
+      <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+      <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+      <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+    </div>
+    <span>Swipe untuk melihat fitur lainnya</span>
+  </div>
+</div>
         </div>
       </section>
 
