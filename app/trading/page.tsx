@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, memo } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { useAuthStore } from '@/store/auth'
 import { useTradingStore, useSelectedAsset, useCurrentPrice } from '@/store/trading'
 import { api } from '@/lib/api'
@@ -87,13 +88,12 @@ export default function TradingPage() {
   const currentPrice = useCurrentPrice()
   const { setSelectedAsset, setCurrentPrice, addPriceToHistory } = useTradingStore()
 
-  // ✅ SEMUA STATE HARUS DI DALAM COMPONENT!
   const [assets, setAssets] = useState<Asset[]>([])
   const [balance, setBalance] = useState(0)
   const [amount, setAmount] = useState(10000)
   const [duration, setDuration] = useState(1)
   const [loading, setLoading] = useState(false)
-  const [activeOrders, setActiveOrders] = useState<BinaryOrder[]>([])  // ← YANG INI!
+  const [activeOrders, setActiveOrders] = useState<BinaryOrder[]>([])
   const [showAssetMenu, setShowAssetMenu] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showHistorySidebar, setShowHistorySidebar] = useState(false)
@@ -268,13 +268,18 @@ export default function TradingPage() {
 
   return (
     <div className="h-screen flex flex-col bg-[#0a0e17] text-white overflow-hidden">
-      {/* Top Bar - sama seperti sebelumnya */}
+      {/* Top Bar */}
       <div className="h-14 bg-[#0f1419] border-b border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">
-        {/* ... (kode top bar sama) */}
+        {/* Desktop Layout */}
         <div className="hidden lg:flex items-center gap-4 w-full">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-4 h-4" />
+            <div className="w-7 h-7 relative">
+              <Image 
+                src="/stc-logo.png" 
+                alt="STC Logo" 
+                fill
+                className="object-contain"
+              />
             </div>
             <span className="font-bold text-sm">STC AutoTrade</span>
           </div>
@@ -392,8 +397,13 @@ export default function TradingPage() {
         {/* Mobile Layout */}
         <div className="flex lg:hidden items-center justify-between w-full">
           <div className="flex items-center w-16">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-4.5 h-4.5" />
+            <div className="w-8 h-8 relative">
+              <Image 
+                src="/stc-logo.png" 
+                alt="STC Logo" 
+                fill
+                className="object-contain"
+              />
             </div>
           </div>
 
@@ -599,7 +609,7 @@ export default function TradingPage() {
               )}
             </div>
 
-            {/* Duration - FIXED SPACING */}
+            {/* Duration */}
             <div className="relative">
               <label className="text-xs text-gray-400 mb-1.5 block font-medium">Duration</label>
               <select
@@ -614,7 +624,7 @@ export default function TradingPage() {
             </div>
           </div>
 
-          {/* Potential Payout - CENTERED & AUTO WIDTH */}
+          {/* Potential Payout */}
           {selectedAsset && (
             <div className="flex justify-center">
               <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-full px-4 py-2">

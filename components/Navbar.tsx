@@ -53,8 +53,8 @@ export default function Navbar() {
                 priority
               />
             </div>
-            <div className="hidden sm:block">
-              <span className="font-bold text-lg bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+            <div>
+              <span className="font-bold text-lg text-white">
                 STC AutoTrade
               </span>
             </div>
