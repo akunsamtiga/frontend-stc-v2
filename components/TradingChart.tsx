@@ -1,27 +1,44 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi } from 'lightweight-charts'
+import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, Time } from 'lightweight-charts'
 import { useTradingStore } from '@/store/trading'
 import { fetchHistoricalData, subscribeToOHLCUpdates } from '@/lib/firebase'
+import { BinaryOrder } from '@/types'
+import { formatCurrency, calculateTimeLeft } from '@/lib/utils'
 import { 
   Maximize2, 
   Minimize2, 
   RefreshCw, 
   AlertCircle,
-  Activity
+  Activity,
+  TrendingUp,
+  TrendingDown,
+  Clock
 } from 'lucide-react'
 
 type ChartType = 'line' | 'candle'
 type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
 
-export default function TradingChart() {
+interface OrderMarker {
+  order: BinaryOrder
+  entryMarker: any
+  exitMarker?: any
+  priceLine: any
+}
+
+interface TradingChartProps {
+  activeOrders?: BinaryOrder[]
+}
+
+export default function TradingChart({ activeOrders = [] }: TradingChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null)
   const lineSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   const unsubscribeRef = useRef<(() => void) | null>(null)
   const mountedRef = useRef(false)
+  const orderMarkersRef = useRef<Map<string, OrderMarker>>(new Map())
 
   const { selectedAsset } = useTradingStore()
 
@@ -32,7 +49,122 @@ export default function TradingChart() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const [isLive, setIsLive] = useState(false)
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+  const [orderTimers, setOrderTimers] = useState<Record<string, string>>({})
+
+  // Update order timers every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const timers: Record<string, string> = {}
+      activeOrders.forEach(order => {
+        if (order.status === 'ACTIVE' && order.exit_time) {
+          timers[order.id] = calculateTimeLeft(order.exit_time)
+        }
+      })
+      setOrderTimers(timers)
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [activeOrders])
+
+  // Clear markers when orders change
+  useEffect(() => {
+    if (!chartRef.current || !candleSeriesRef.current) return
+
+    const currentOrderIds = new Set(activeOrders.map(o => o.id))
+    
+    // Remove markers for orders that no longer exist
+    orderMarkersRef.current.forEach((marker, orderId) => {
+      if (!currentOrderIds.has(orderId)) {
+        // Remove price line
+        if (marker.priceLine && candleSeriesRef.current) {
+          candleSeriesRef.current.removePriceLine(marker.priceLine)
+        }
+        orderMarkersRef.current.delete(orderId)
+      }
+    })
+
+    // Add/update markers for current orders
+    activeOrders.forEach(order => {
+      updateOrderMarker(order)
+    })
+  }, [activeOrders])
+
+  const updateOrderMarker = (order: BinaryOrder) => {
+    if (!candleSeriesRef.current || !chartRef.current) return
+
+    const existingMarker = orderMarkersRef.current.get(order.id)
+    
+    // If marker exists and order status changed, update it
+    if (existingMarker) {
+      if (order.status === 'WON' || order.status === 'LOST') {
+        // Remove old price line
+        if (existingMarker.priceLine) {
+          candleSeriesRef.current.removePriceLine(existingMarker.priceLine)
+        }
+        
+        // Add exit marker
+        if (order.exit_price && order.exit_time && !existingMarker.exitMarker) {
+          const exitTime = Math.floor(new Date(order.exit_time).getTime() / 1000) as Time
+          const exitMarker = {
+            time: exitTime,
+            position: 'aboveBar' as const,
+            color: order.status === 'WON' ? '#10b981' : '#ef4444',
+            shape: order.status === 'WON' ? 'arrowUp' as const : 'arrowDown' as const,
+            text: `${order.status} ${formatCurrency(order.profit || 0)}`,
+            size: 2
+          }
+          
+          candleSeriesRef.current.setMarkers([
+            ...candleSeriesRef.current.markers() || [],
+            existingMarker.entryMarker,
+            exitMarker
+          ])
+
+          orderMarkersRef.current.set(order.id, {
+            ...existingMarker,
+            exitMarker
+          })
+        }
+      }
+      return
+    }
+
+    // Create new marker for new order
+    const entryTime = Math.floor(new Date(order.entry_time).getTime() / 1000) as Time
+    const isCall = order.direction === 'CALL'
+    
+    const entryMarker = {
+      time: entryTime,
+      position: isCall ? 'belowBar' as const : 'aboveBar' as const,
+      color: isCall ? '#10b981' : '#ef4444',
+      shape: isCall ? 'arrowUp' as const : 'arrowDown' as const,
+      text: `${order.direction} ${formatCurrency(order.amount)}`,
+      size: 2
+    }
+
+    // Add price line for active orders
+    let priceLine = null
+    if (order.status === 'ACTIVE') {
+      priceLine = candleSeriesRef.current.createPriceLine({
+        price: order.entry_price,
+        color: isCall ? '#10b981' : '#ef4444',
+        lineWidth: 2,
+        lineStyle: 2, // Dashed
+        axisLabelVisible: true,
+        title: `${order.direction} @ ${order.entry_price.toFixed(3)}`
+      })
+    }
+
+    // Set marker
+    const existingMarkers = candleSeriesRef.current.markers() || []
+    candleSeriesRef.current.setMarkers([...existingMarkers, entryMarker])
+
+    orderMarkersRef.current.set(order.id, {
+      order,
+      entryMarker,
+      priceLine
+    })
+  }
 
   // Initialize chart
   useEffect(() => {
@@ -122,10 +254,8 @@ export default function TradingChart() {
             if (width > 0 && height > 0) {
               chart.applyOptions({ width, height })
               
-              // Re-apply zoom on resize for mobile
               const isMobile = window.innerWidth < 1024
               if (isMobile) {
-                // Maintain zoom level on mobile after resize
                 const visibleRange = chart.timeScale().getVisibleRange()
                 if (visibleRange) {
                   setTimeout(() => {
@@ -145,6 +275,15 @@ export default function TradingChart() {
             unsubscribeRef.current()
             unsubscribeRef.current = null
           }
+          
+          // Clear all markers
+          orderMarkersRef.current.forEach((marker) => {
+            if (marker.priceLine && candleSeriesRef.current) {
+              candleSeriesRef.current.removePriceLine(marker.priceLine)
+            }
+          })
+          orderMarkersRef.current.clear()
+          
           mountedRef.current = false
           setIsInitialized(false)
           try {
@@ -231,11 +370,9 @@ export default function TradingChart() {
           lineSeriesRef.current.setData(lineData)
 
           if (chartRef.current) {
-            // Detect mobile
-            const isMobile = window.innerWidth < 1024 // lg breakpoint
+            const isMobile = window.innerWidth < 1024
             
             if (isMobile && candleData.length > 0) {
-              // Mobile: Show only last 30-40 bars for better zoom
               const barsToShow = 35
               const lastIndex = candleData.length - 1
               const firstIndex = Math.max(0, lastIndex - barsToShow)
@@ -245,7 +382,6 @@ export default function TradingChart() {
                 to: candleData[lastIndex].time as any,
               })
             } else {
-              // Desktop: Fit all content
               chartRef.current.timeScale().fitContent()
             }
           }
@@ -273,7 +409,6 @@ export default function TradingChart() {
           lineSeriesRef.current.update(lineUpdate)
           
           setIsLive(true)
-          setLastUpdate(new Date())
           
           setTimeout(() => {
             setIsLive(false)
@@ -332,10 +467,9 @@ export default function TradingChart() {
 
   return (
     <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : 'h-full'}`}>
-      {/* Desktop Controls - Top Left - SMALLER & MORE TRANSPARENT */}
+      {/* Desktop Controls */}
       <div className="hidden lg:block absolute top-2 left-2 z-10">
         <div className="flex items-center gap-1.5">
-          {/* Timeframe - Scrollable */}
           <div className="flex items-center gap-0.5 bg-black/15 backdrop-blur-md border border-white/5 rounded-md p-0.5 max-w-[140px] overflow-x-auto scrollbar-hide">
             {(['1m', '5m', '15m', '1h', '4h', '1d'] as Timeframe[]).map((tf) => (
               <button
@@ -353,7 +487,6 @@ export default function TradingChart() {
             ))}
           </div>
 
-          {/* Chart Type */}
           <div className="flex items-center gap-0.5 bg-black/15 backdrop-blur-md border border-white/5 rounded-md p-0.5">
             <button
               onClick={() => setChartType('candle')}
@@ -379,7 +512,6 @@ export default function TradingChart() {
             </button>
           </div>
 
-          {/* Actions */}
           <div className="flex items-center gap-0.5 bg-black/15 backdrop-blur-md border border-white/5 rounded-md p-0.5">
             <button
               onClick={handleFitContent}
@@ -407,14 +539,78 @@ export default function TradingChart() {
         </div>
       </div>
 
-      {/* Chart Info - Top Right - SMALLER & MORE TRANSPARENT */}
+      {/* Chart Info */}
       <div className="absolute top-2 right-2 z-10 bg-black/15 backdrop-blur-md border border-white/5 rounded-md px-2 py-1">
         <div className="text-[10px] text-gray-300 flex items-center gap-1.5">
           <span className="font-semibold">{selectedAsset.symbol}</span>
           <span className="text-gray-500">•</span>
           <span className="text-gray-400">{timeframe}</span>
+          {activeOrders.length > 0 && (
+            <>
+              <span className="text-gray-500">•</span>
+              <span className="text-blue-400 font-semibold">{activeOrders.length} Active</span>
+            </>
+          )}
         </div>
       </div>
+
+      {/* Active Orders Overlay */}
+      {activeOrders.length > 0 && (
+        <div className="absolute top-12 right-2 z-10 space-y-1 max-h-[calc(100%-100px)] overflow-y-auto scrollbar-hide">
+          {activeOrders.map((order) => (
+            <div 
+              key={order.id}
+              className={`bg-black/40 backdrop-blur-md border rounded-lg px-3 py-2 min-w-[180px] ${
+                order.direction === 'CALL' 
+                  ? 'border-green-500/30' 
+                  : 'border-red-500/30'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1.5">
+                  {order.direction === 'CALL' ? (
+                    <TrendingUp className="w-3 h-3 text-green-400" />
+                  ) : (
+                    <TrendingDown className="w-3 h-3 text-red-400" />
+                  )}
+                  <span className={`text-xs font-bold ${
+                    order.direction === 'CALL' ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {order.direction}
+                  </span>
+                </div>
+                <span className="text-[10px] text-gray-400">{order.asset_name}</span>
+              </div>
+              
+              <div className="text-[10px] text-gray-300 space-y-0.5">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Amount:</span>
+                  <span className="font-mono font-semibold">{formatCurrency(order.amount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Entry:</span>
+                  <span className="font-mono">{order.entry_price.toFixed(3)}</span>
+                </div>
+                {orderTimers[order.id] && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400 flex items-center gap-1">
+                      <Clock className="w-2.5 h-2.5" />
+                      Time:
+                    </span>
+                    <span className={`font-mono font-bold ${
+                      orderTimers[order.id].includes('Expired') 
+                        ? 'text-red-400' 
+                        : 'text-yellow-400'
+                    }`}>
+                      {orderTimers[order.id]}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Chart Container */}
       <div 
@@ -423,10 +619,9 @@ export default function TradingChart() {
         style={{ minHeight: '400px' }}
       />
 
-      {/* Mobile Controls - Compact & Auto Width */}
+      {/* Mobile Controls */}
       <div className="lg:hidden absolute top-2 left-2 z-10">
         <div className="inline-flex items-center gap-1 bg-black/20 backdrop-blur-md border border-white/10 rounded-full p-1">
-          {/* Timeframe Buttons - Scrollable, Mini Size */}
           <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide max-w-[80px]">
             {(['1m', '5m', '15m', '1h', '4h', '1d'] as Timeframe[]).map((tf) => (
               <button
@@ -444,10 +639,8 @@ export default function TradingChart() {
             ))}
           </div>
 
-          {/* Divider */}
           <div className="w-px h-3 bg-white/10 flex-shrink-0"></div>
 
-          {/* Chart Type */}
           <button
             onClick={() => setChartType(chartType === 'candle' ? 'line' : 'candle')}
             disabled={isLoading}
@@ -456,7 +649,6 @@ export default function TradingChart() {
             {chartType === 'candle' ? 'Candle' : 'Line'}
           </button>
 
-          {/* Refresh */}
           <button
             onClick={handleRefresh}
             disabled={isLoading}
@@ -515,11 +707,6 @@ export default function TradingChart() {
 
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
-        }
-
-        /* Smooth scroll */
-        .scrollbar-hide {
-          scroll-behavior: smooth;
         }
       `}</style>
     </div>

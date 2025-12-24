@@ -10,7 +10,7 @@ export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
-    minimumFractionDigits: 0, // Rupiah tanpa desimal
+    minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount)
 }
@@ -34,10 +34,19 @@ export function calculateTimeLeft(exitTime: string): string {
 
   if (diff <= 0) return 'Expired'
 
-  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const minutes = Math.floor((diff % 3600000) / 60000)
   const seconds = Math.floor((diff % 60000) / 1000)
 
-  return `${minutes}m ${seconds}s`
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${seconds}s`
+  }
+  
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`
+  }
+  
+  return `${seconds}s`
 }
 
 export function getPriceChangeClass(change: number): string {

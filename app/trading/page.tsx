@@ -7,7 +7,7 @@ import { useTradingStore, useSelectedAsset, useCurrentPrice } from '@/store/trad
 import { api } from '@/lib/api'
 import { subscribeToPriceUpdates } from '@/lib/firebase'
 import { toast } from 'sonner'
-import { Asset } from '@/types'
+import { Asset, BinaryOrder } from '@/types'
 import { formatCurrency, DURATIONS } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 import { 
@@ -22,7 +22,6 @@ import {
   X,
   Menu,
   Plus,
-  Minus,
   ArrowDownToLine,
   ArrowUpFromLine
 } from 'lucide-react'
@@ -88,11 +87,13 @@ export default function TradingPage() {
   const currentPrice = useCurrentPrice()
   const { setSelectedAsset, setCurrentPrice, addPriceToHistory } = useTradingStore()
 
+  // ✅ SEMUA STATE HARUS DI DALAM COMPONENT!
   const [assets, setAssets] = useState<Asset[]>([])
   const [balance, setBalance] = useState(0)
   const [amount, setAmount] = useState(10000)
   const [duration, setDuration] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [activeOrders, setActiveOrders] = useState<BinaryOrder[]>([])  // ← YANG INI!
   const [showAssetMenu, setShowAssetMenu] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showHistorySidebar, setShowHistorySidebar] = useState(false)
@@ -103,6 +104,7 @@ export default function TradingPage() {
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [walletLoading, setWalletLoading] = useState(false)
 
+  // Load data on mount
   useEffect(() => {
     if (!user) {
       router.push('/')
@@ -111,6 +113,7 @@ export default function TradingPage() {
     loadData()
   }, [user, router])
 
+  // Subscribe to price updates
   useEffect(() => {
     if (!selectedAsset) return
 
@@ -128,18 +131,32 @@ export default function TradingPage() {
     }
   }, [selectedAsset?.id])
 
+  // Auto-refresh active orders every 5 seconds
+  useEffect(() => {
+    if (!user) return
+
+    const interval = setInterval(() => {
+      loadData()
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [user])
+
   const loadData = useCallback(async () => {
     try {
-      const [assetsRes, balanceRes] = await Promise.all([
+      const [assetsRes, balanceRes, ordersRes] = await Promise.all([
         api.getAssets(true),
         api.getCurrentBalance(),
+        api.getOrders('ACTIVE', 1, 50),
       ])
 
       const assetsList = assetsRes?.data?.assets || assetsRes?.assets || []
       const currentBalance = balanceRes?.data?.balance || balanceRes?.balance || 0
+      const activeOrdersList = ordersRes?.data?.orders || ordersRes?.orders || []
 
       setAssets(assetsList)
       setBalance(currentBalance)
+      setActiveOrders(activeOrdersList)
 
       if (assetsList.length > 0 && !selectedAsset) {
         setSelectedAsset(assetsList[0])
@@ -148,8 +165,45 @@ export default function TradingPage() {
       console.error('Failed to load data:', error)
       setAssets([])
       setBalance(0)
+      setActiveOrders([])
     }
   }, [selectedAsset])
+
+  const handlePlaceOrder = useCallback(async (direction: 'CALL' | 'PUT') => {
+    if (!selectedAsset) {
+      toast.error('Please select an asset')
+      return
+    }
+    if (amount <= 0) {
+      toast.error('Invalid amount')
+      return
+    }
+    if (amount > balance) {
+      toast.error('Insufficient balance')
+      return
+    }
+
+    setLoading(true)
+    try {
+      await api.createOrder({
+        asset_id: selectedAsset.id,
+        direction,
+        amount,
+        duration,
+      })
+
+      toast.success(`${direction} order placed successfully!`)
+      setBalance((prev) => prev - amount)
+      
+      // Reload data immediately to update active orders
+      setTimeout(loadData, 500)
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.error || 'Failed to place order'
+      toast.error(errorMsg)
+    } finally {
+      setLoading(false)
+    }
+  }, [selectedAsset, amount, balance, duration, loadData])
 
   const handleDeposit = async () => {
     const amt = parseFloat(depositAmount)
@@ -207,41 +261,6 @@ export default function TradingPage() {
     }
   }
 
-  const handlePlaceOrder = useCallback(async (direction: 'CALL' | 'PUT') => {
-    if (!selectedAsset) {
-      toast.error('Please select an asset')
-      return
-    }
-    if (amount <= 0) {
-      toast.error('Invalid amount')
-      return
-    }
-    if (amount > balance) {
-      toast.error('Insufficient balance')
-      return
-    }
-
-    setLoading(true)
-    try {
-      await api.createOrder({
-        asset_id: selectedAsset.id,
-        direction,
-        amount,
-        duration,
-      })
-
-      toast.success(`${direction} order placed successfully!`)
-      setBalance((prev) => prev - amount)
-      
-      setTimeout(loadData, 1000)
-    } catch (error: any) {
-      const errorMsg = error?.response?.data?.error || 'Failed to place order'
-      toast.error(errorMsg)
-    } finally {
-      setLoading(false)
-    }
-  }, [selectedAsset, amount, balance, duration, loadData])
-
   const potentialProfit = selectedAsset ? (amount * selectedAsset.profitRate) / 100 : 0
   const potentialPayout = amount + potentialProfit
 
@@ -249,9 +268,9 @@ export default function TradingPage() {
 
   return (
     <div className="h-screen flex flex-col bg-[#0a0e17] text-white overflow-hidden">
-      {/* Top Bar */}
+      {/* Top Bar - sama seperti sebelumnya */}
       <div className="h-14 bg-[#0f1419] border-b border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">
-        {/* Desktop Layout */}
+        {/* ... (kode top bar sama) */}
         <div className="hidden lg:flex items-center gap-4 w-full">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
@@ -260,6 +279,7 @@ export default function TradingPage() {
             <span className="font-bold text-sm">STC AutoTrade</span>
           </div>
 
+          {/* Asset Menu */}
           <div className="relative">
             <button
               onClick={() => setShowAssetMenu(!showAssetMenu)}
@@ -305,6 +325,7 @@ export default function TradingPage() {
 
           <div className="flex-1"></div>
 
+          {/* Balance & Actions */}
           <div className="flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
             <Wallet className="w-4 h-4 text-blue-400" />
             <span className="text-sm font-mono font-bold">{formatCurrency(balance)}</span>
@@ -326,6 +347,7 @@ export default function TradingPage() {
             <span className="text-sm">History</span>
           </button>
 
+          {/* User Menu */}
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
@@ -367,21 +389,18 @@ export default function TradingPage() {
           </div>
         </div>
 
-        {/* Mobile Layout - SYMMETRICAL & BALANCED */}
+        {/* Mobile Layout */}
         <div className="flex lg:hidden items-center justify-between w-full">
-          {/* Left: Logo (w-16) */}
           <div className="flex items-center w-16">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
               <TrendingUp className="w-4.5 h-4.5" />
             </div>
           </div>
 
-          {/* Center: Balance */}
           <div className="flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
             <span className="text-sm font-mono font-bold">{formatCurrency(balance)}</span>
           </div>
 
-          {/* Right: Actions (w-16) - SYMMETRIC */}
           <div className="flex items-center gap-2 justify-end w-16">
             <button
               onClick={() => setShowWalletModal(true)}
@@ -403,7 +422,6 @@ export default function TradingPage() {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* Chart Area */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           {selectedAsset && currentPrice && (
             <div className="hidden lg:block">
@@ -413,7 +431,7 @@ export default function TradingPage() {
 
           <div className="flex-1 bg-[#0a0e17] relative" style={{ minHeight: '400px' }}>
             {selectedAsset ? (
-              <TradingChart />
+              <TradingChart activeOrders={activeOrders} />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <div className="text-center text-gray-500">
@@ -812,7 +830,7 @@ export default function TradingPage() {
       )}
 
       {process.env.NODE_ENV === 'development' && <RealtimeMonitor />}
-
+    
       <style jsx>{`
         @keyframes slide-left {
           from { transform: translateX(100%); }
