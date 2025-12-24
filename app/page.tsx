@@ -28,7 +28,7 @@ import {
   ChevronRight
 } from 'lucide-react'
 
-// Live Trading Ticker Component
+// Live Trading Ticker Component with more data
 const LiveTradingTicker = () => {
   const [trades, setTrades] = useState([
     { user: 'Ahmad***', asset: 'EUR/USD', profit: 8500, time: '2 detik lalu' },
@@ -37,19 +37,27 @@ const LiveTradingTicker = () => {
   ])
 
   useEffect(() => {
+    const names = [
+      'Ahmad***', 'Siti***', 'Budi***', 'Rina***', 'Deni***', 'Maya***',
+      'Andi***', 'Fitri***', 'Joko***', 'Dewi***', 'Agus***', 'Lina***',
+      'Rudi***', 'Nur***', 'Hadi***', 'Sari***', 'Yudi***', 'Tini***'
+    ]
+    const assets = [
+      'EUR/USD', 'BTC/USD', 'IDX_STC', 'GBP/JPY', 'XAU/USD',
+      'USD/JPY', 'ETH/USD', 'AUD/USD', 'NZD/USD', 'USD/CHF',
+      'EUR/GBP', 'BTC/ETH', 'LTC/USD', 'XRP/USD', 'DOT/USD'
+    ]
+    
     const interval = setInterval(() => {
-      const names = ['Ahmad***', 'Siti***', 'Budi***', 'Rina***', 'Deni***', 'Maya***']
-      const assets = ['EUR/USD', 'BTC/USD', 'IDX_STC', 'GBP/JPY', 'XAU/USD']
-      
       const newTrade = {
         user: names[Math.floor(Math.random() * names.length)],
         asset: assets[Math.floor(Math.random() * assets.length)],
-        profit: Math.floor(Math.random() * 15000) + 3000,
+        profit: Math.floor(Math.random() * 20000) + 2500,
         time: 'baru saja'
       }
 
       setTrades(prev => [newTrade, ...prev.slice(0, 2)])
-    }, 4000)
+    }, 3500)
 
     return () => clearInterval(interval)
   }, [])
@@ -219,25 +227,37 @@ export default function LandingPage() {
       icon: Zap,
       title: 'Eksekusi Kilat',
       description: 'Eksekusi order dalam milidetik tanpa lag',
-      gradient: 'from-yellow-500/20 to-orange-500/20'
+      gradient: 'from-yellow-500/20 to-orange-500/20',
+      color: 'text-yellow-400',
+      bgColor: 'bg-yellow-500/10',
+      borderColor: 'border-yellow-500/30'
     },
     {
       icon: Shield,
       title: 'Keamanan Maksimal',
       description: 'Enkripsi tingkat militer melindungi dana Anda',
-      gradient: 'from-blue-500/20 to-cyan-500/20'
+      gradient: 'from-blue-500/20 to-cyan-500/20',
+      color: 'text-blue-400',
+      bgColor: 'bg-blue-500/10',
+      borderColor: 'border-blue-500/30'
     },
     {
       icon: BarChart3,
       title: 'Analisis Real-Time',
       description: 'Chart canggih dan wawasan pasar terkini',
-      gradient: 'from-purple-500/20 to-pink-500/20'
+      gradient: 'from-purple-500/20 to-pink-500/20',
+      color: 'text-purple-400',
+      bgColor: 'bg-purple-500/10',
+      borderColor: 'border-purple-500/30'
     },
     {
       icon: Award,
       title: 'Profit Hingga 95%',
       description: 'Keuntungan terbaik di industri trading',
-      gradient: 'from-green-500/20 to-emerald-500/20'
+      gradient: 'from-green-500/20 to-emerald-500/20',
+      color: 'text-green-400',
+      bgColor: 'bg-green-500/10',
+      borderColor: 'border-green-500/30'
     },
   ]
 
@@ -248,7 +268,9 @@ export default function LandingPage() {
       content: 'Platform yang mengubah permainan! Cepat, handal, dan menguntungkan. Saya konsisten profit selama 6 bulan.',
       rating: 5,
       avatar: '👨‍💼',
-      profit: '+285%'
+      profit: '+285%',
+      location: 'Jakarta',
+      duration: '6 bulan'
     },
     {
       name: 'Siti Nurhaliza',
@@ -256,7 +278,9 @@ export default function LandingPage() {
       content: 'Sebagai pemula, tampilan interface memudahkan trading. Dukungan hebat dan materi edukasi membantu saya sukses!',
       rating: 5,
       avatar: '👩‍💻',
-      profit: '+142%'
+      profit: '+142%',
+      location: 'Surabaya',
+      duration: '3 bulan'
     },
     {
       name: 'Budi Santoso',
@@ -264,7 +288,9 @@ export default function LandingPage() {
       content: 'Platform trading terbaik yang pernah saya gunakan. Kecepatan, keamanan, dan tingkat profit tak tertandingi.',
       rating: 5,
       avatar: '👨‍🎓',
-      profit: '+378%'
+      profit: '+378%',
+      location: 'Bandung',
+      duration: '1 tahun'
     },
   ]
 
@@ -513,59 +539,102 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* Mobile Carousel */}
+          {/* Mobile Modern Stack Layout */}
           <div className="sm:hidden relative">
-            <div className="overflow-hidden">
-              <div 
-                className="flex transition-transform duration-500 ease-out"
-                style={{ transform: `translateX(-${activeFeature * 100}%)` }}
-              >
-                {features.map((feature, index) => (
-                  <div 
-                    key={index}
-                    className="w-full flex-shrink-0 px-4"
-                  >
-                    <div className="bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-8 h-full">
-                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 rounded-xl flex items-center justify-center mb-6 border border-blue-500/30 mx-auto">
-                        <feature.icon className="w-8 h-8 text-blue-400" />
+            <div className="space-y-4">
+              {features.map((feature, index) => (
+                <div 
+                  key={index}
+                  className={`relative overflow-hidden rounded-2xl transition-all duration-500 ${
+                    index === activeFeature 
+                      ? 'opacity-100 scale-100' 
+                      : 'opacity-0 scale-95 absolute inset-0 pointer-events-none'
+                  }`}
+                >
+                  {/* Background Gradient */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient}`}></div>
+                  
+                  {/* Glass Effect */}
+                  <div className="absolute inset-0 bg-[#0a0e17]/60 backdrop-blur-xl"></div>
+                  
+                  {/* Border */}
+                  <div className={`absolute inset-0 border-2 ${feature.borderColor} rounded-2xl`}></div>
+                  
+                  {/* Content */}
+                  <div className="relative p-8 space-y-6">
+                    {/* Icon Container */}
+                    <div className="flex justify-center">
+                      <div className={`relative w-20 h-20 ${feature.bgColor} ${feature.borderColor} border-2 rounded-2xl flex items-center justify-center transform hover:scale-110 transition-transform`}>
+                        <feature.icon className={`w-10 h-10 ${feature.color}`} />
+                        
+                        {/* Glow Effect */}
+                        <div className={`absolute inset-0 ${feature.bgColor} blur-xl opacity-50 rounded-2xl`}></div>
                       </div>
-                      <h3 className="text-2xl font-bold mb-4 text-center">{feature.title}</h3>
-                      <p className="text-gray-400 leading-relaxed text-center">{feature.description}</p>
+                    </div>
+
+                    {/* Title */}
+                    <div className="text-center">
+                      <h3 className="text-2xl font-bold mb-2">{feature.title}</h3>
+                      <div className={`w-16 h-1 ${feature.bgColor} rounded-full mx-auto`}></div>
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-gray-300 text-center leading-relaxed text-lg">
+                      {feature.description}
+                    </p>
+
+                    {/* Feature Number */}
+                    <div className="absolute top-4 right-4">
+                      <div className="w-8 h-8 bg-white/5 backdrop-blur-sm rounded-lg flex items-center justify-center border border-white/10">
+                        <span className="text-xs font-bold text-gray-400">{index + 1}/4</span>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
 
-            {/* Carousel Controls */}
-            <div className="flex items-center justify-center gap-3 mt-8">
+            {/* Modern Controls */}
+            <div className="flex items-center justify-between mt-8 px-4">
               <button
                 onClick={() => setActiveFeature((prev) => (prev === 0 ? features.length - 1 : prev - 1))}
-                className="w-8 h-8 bg-[#1e293b] hover:bg-[#334155] rounded-full flex items-center justify-center transition-colors"
+                className="group w-12 h-12 bg-gradient-to-br from-[#1e293b] to-[#0f172a] hover:from-[#334155] hover:to-[#1e293b] rounded-xl flex items-center justify-center transition-all border border-gray-700 shadow-lg"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
               </button>
 
-              <div className="flex gap-1.5">
-                {features.map((_, index) => (
+              {/* Progress Indicators */}
+              <div className="flex gap-2">
+                {features.map((feature, index) => (
                   <button
                     key={index}
                     onClick={() => setActiveFeature(index)}
-                    className={`h-1.5 rounded-full transition-all ${
+                    className="group relative"
+                  >
+                    <div className={`h-2 rounded-full transition-all duration-300 ${
                       index === activeFeature 
-                        ? 'bg-blue-500 w-6' 
-                        : 'bg-gray-700 w-1.5'
-                    }`}
-                  />
+                        ? `w-12 ${feature.bgColor}` 
+                        : 'w-2 bg-gray-700 hover:bg-gray-600'
+                    }`} />
+                    {index === activeFeature && (
+                      <div className={`absolute inset-0 ${feature.bgColor} blur-md opacity-50 rounded-full`}></div>
+                    )}
+                  </button>
                 ))}
               </div>
 
               <button
                 onClick={() => setActiveFeature((prev) => (prev === features.length - 1 ? 0 : prev + 1))}
-                className="w-8 h-8 bg-[#1e293b] hover:bg-[#334155] rounded-full flex items-center justify-center transition-colors"
+                className="group w-12 h-12 bg-gradient-to-br from-[#1e293b] to-[#0f172a] hover:from-[#334155] hover:to-[#1e293b] rounded-xl flex items-center justify-center transition-all border border-gray-700 shadow-lg"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
               </button>
+            </div>
+
+            {/* Auto Play Indicator */}
+            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-500">
+              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
+              <span>Swipe atau gunakan tombol untuk navigasi</span>
             </div>
           </div>
         </div>
@@ -630,81 +699,148 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Mobile Carousel */}
+          {/* Mobile Premium Card Design */}
           <div className="sm:hidden">
-            <div className="overflow-hidden">
-              <div 
-                className="flex transition-transform duration-500 ease-out"
-                style={{ transform: `translateX(-${activeTestimonial * 100}%)` }}
-              >
-                {testimonials.map((testimonial, index) => (
-                  <div 
-                    key={index}
-                    className="w-full flex-shrink-0 px-4"
-                  >
-                    <div className="bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-8">
-                      <div className="text-center">
-                        <div className="text-5xl mb-4">{testimonial.avatar}</div>
-                        
-                        <div className="flex justify-center gap-1 mb-4">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          ))}
-                        </div>
+            <div className="relative">
+              {testimonials.map((testimonial, index) => (
+                <div 
+                  key={index}
+                  className={`transition-all duration-500 ${
+                    index === activeTestimonial 
+                      ? 'opacity-100 scale-100 relative z-10' 
+                      : 'opacity-0 scale-95 absolute inset-0 pointer-events-none'
+                  }`}
+                >
+                  {/* Card Container */}
+                  <div className="relative mx-4 rounded-3xl overflow-hidden">
+                    {/* Gradient Background */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-blue-500/10 to-purple-500/10"></div>
+                    
+                    {/* Glass Effect */}
+                    <div className="absolute inset-0 bg-[#0a0e17]/80 backdrop-blur-2xl"></div>
+                    
+                    {/* Border Gradient */}
+                    <div className="absolute inset-0 border-2 border-transparent rounded-3xl bg-gradient-to-br from-emerald-500/30 via-blue-500/30 to-purple-500/30" style={{ 
+                      WebkitMask: 'linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)',
+                      WebkitMaskComposite: 'xor',
+                      maskComposite: 'exclude'
+                    }}></div>
 
-                        <p className="text-base text-gray-300 mb-4 leading-relaxed">
-                          "{testimonial.content}"
+                    {/* Content */}
+                    <div className="relative p-8 space-y-6">
+                      {/* Avatar with Glow */}
+                      <div className="relative inline-block">
+                        <div className="text-7xl">{testimonial.avatar}</div>
+                        <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full"></div>
+                      </div>
+
+                      {/* Stars */}
+                      <div className="flex justify-center gap-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400 animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
+                        ))}
+                      </div>
+
+                      {/* Quote */}
+                      <div className="relative">
+                        <div className="absolute -top-4 -left-2 text-6xl text-blue-500/20 font-serif">"</div>
+                        <p className="text-base text-gray-200 leading-relaxed relative z-10 italic">
+                          {testimonial.content}
                         </p>
+                        <div className="absolute -bottom-4 -right-2 text-6xl text-blue-500/20 font-serif rotate-180">"</div>
+                      </div>
 
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full mb-3">
-                          <TrendingUp className="w-3 h-3 text-emerald-400" />
-                          <span className="text-xs font-bold text-emerald-400">
-                            {testimonial.profit} Keuntungan
-                          </span>
+                      {/* Stats Row */}
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Profit Badge */}
+                        <div className="bg-gradient-to-br from-emerald-500/20 to-green-500/20 border border-emerald-500/30 rounded-xl p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <TrendingUp className="w-4 h-4 text-emerald-400" />
+                            <span className="text-xs text-gray-400">Keuntungan</span>
+                          </div>
+                          <div className="text-xl font-bold text-emerald-400">{testimonial.profit}</div>
                         </div>
 
-                        <div className="font-semibold mb-1">
-                          {testimonial.name}
+                        {/* Duration Badge */}
+                        <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 rounded-xl p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Clock className="w-4 h-4 text-blue-400" />
+                            <span className="text-xs text-gray-400">Durasi</span>
+                          </div>
+                          <div className="text-xl font-bold text-blue-400">{testimonial.duration}</div>
                         </div>
-                        <div className="text-sm text-gray-400">
-                          {testimonial.role}
+                      </div>
+
+                      {/* Divider */}
+                      <div className="h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent"></div>
+
+                      {/* User Info */}
+                      <div className="text-center space-y-2">
+                        <h4 className="text-xl font-bold">{testimonial.name}</h4>
+                        <p className="text-sm text-gray-400">{testimonial.role}</p>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
+                          <Globe className="w-3 h-3 text-gray-400" />
+                          <span className="text-xs text-gray-400">{testimonial.location}</span>
+                        </div>
+                      </div>
+
+                      {/* Verified Badge */}
+                      <div className="absolute top-4 right-4">
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 rounded-full backdrop-blur-sm">
+                          <svg className="w-3 h-3 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                          </svg>
+                          <span className="text-xs font-medium text-blue-400">Verified</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
 
-            {/* Carousel Controls */}
-            <div className="flex items-center justify-center gap-3 mt-6">
+            {/* Enhanced Mobile Controls */}
+            <div className="flex items-center justify-between mt-8 px-8">
               <button
                 onClick={() => setActiveTestimonial((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1))}
-                className="w-8 h-8 bg-[#1e293b] hover:bg-[#334155] rounded-full flex items-center justify-center transition-colors"
+                className="group w-12 h-12 bg-gradient-to-br from-[#1e293b] to-[#0f172a] hover:from-[#334155] hover:to-[#1e293b] rounded-xl flex items-center justify-center transition-all border border-gray-700 shadow-lg active:scale-95"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
               </button>
 
-              <div className="flex gap-1.5">
+              {/* Dots with Progress */}
+              <div className="flex gap-2">
                 {testimonials.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setActiveTestimonial(index)}
-                    className={`h-1.5 rounded-full transition-all ${
-                      index === activeTestimonial 
-                        ? 'bg-blue-500 w-6' 
-                        : 'bg-gray-700 w-1.5'
-                    }`}
-                  />
+                    className="relative group"
+                  >
+                    {index === activeTestimonial ? (
+                      <div className="relative">
+                        <div className="w-12 h-2 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full"></div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-emerald-500 blur-md opacity-50 rounded-full"></div>
+                      </div>
+                    ) : (
+                      <div className="w-2 h-2 bg-gray-700 hover:bg-gray-600 rounded-full transition-all"></div>
+                    )}
+                  </button>
                 ))}
               </div>
 
               <button
                 onClick={() => setActiveTestimonial((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1))}
-                className="w-8 h-8 bg-[#1e293b] hover:bg-[#334155] rounded-full flex items-center justify-center transition-colors"
+                className="group w-12 h-12 bg-gradient-to-br from-[#1e293b] to-[#0f172a] hover:from-[#334155] hover:to-[#1e293b] rounded-xl flex items-center justify-center transition-all border border-gray-700 shadow-lg active:scale-95"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
               </button>
+            </div>
+
+            {/* Counter */}
+            <div className="mt-6 text-center">
+              <span className="text-sm text-gray-500">
+                {activeTestimonial + 1} / {testimonials.length}
+              </span>
             </div>
           </div>
         </div>
