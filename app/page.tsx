@@ -1,12 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/store/auth'
-import { api } from '@/lib/api'
-import { toast } from 'sonner'
-import EnhancedFooter from '@/components/EnhancedFooter'
-import Image from 'next/image'
 import { 
   TrendingUp, 
   Zap, 
@@ -28,24 +22,36 @@ import {
   ChevronRight
 } from 'lucide-react'
 
+// Extended Live Trading Data
+const tradingData = [
+  { user: 'Ahmad***', asset: 'EUR/USD', profit: 8500, time: '2 detik lalu' },
+  { user: 'Siti***', asset: 'BTC/USD', profit: 12300, time: '5 detik lalu' },
+  { user: 'Budi***', asset: 'IDX_STC', profit: 5800, time: '8 detik lalu' },
+  { user: 'Rina***', asset: 'GBP/JPY', profit: 9200, time: '12 detik lalu' },
+  { user: 'Deni***', asset: 'XAU/USD', profit: 15600, time: '15 detik lalu' },
+  { user: 'Maya***', asset: 'USD/JPY', profit: 7400, time: '18 detik lalu' },
+  { user: 'Faisal***', asset: 'EUR/GBP', profit: 11200, time: '22 detik lalu' },
+  { user: 'Dewi***', asset: 'AUD/USD', profit: 6900, time: '25 detik lalu' },
+  { user: 'Rudi***', asset: 'BTC/USD', profit: 18500, time: '28 detik lalu' },
+  { user: 'Linda***', asset: 'IDX_STC', profit: 8100, time: '32 detik lalu' },
+  { user: 'Arif***', asset: 'XAU/USD', profit: 13400, time: '35 detik lalu' },
+  { user: 'Sari***', asset: 'EUR/USD', profit: 9800, time: '38 detik lalu' },
+  { user: 'Hendra***', asset: 'GBP/USD', profit: 10500, time: '42 detik lalu' },
+  { user: 'Putri***', asset: 'USD/CHF', profit: 7200, time: '45 detik lalu' },
+  { user: 'Andi***', asset: 'BTC/USD', profit: 16800, time: '48 detik lalu' }
+]
+
 // Live Trading Ticker Component
 const LiveTradingTicker = () => {
-  const [trades, setTrades] = useState([
-    { user: 'Ahmad***', asset: 'EUR/USD', profit: 8500, time: '2 detik lalu' },
-    { user: 'Siti***', asset: 'BTC/USD', profit: 12300, time: '5 detik lalu' },
-    { user: 'Budi***', asset: 'IDX_STC', profit: 5800, time: '8 detik lalu' },
-  ])
+  const [trades, setTrades] = useState(tradingData.slice(0, 3))
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const names = ['Ahmad***', 'Siti***', 'Budi***', 'Rina***', 'Deni***', 'Maya***']
-      const assets = ['EUR/USD', 'BTC/USD', 'IDX_STC', 'GBP/JPY', 'XAU/USD']
-      
+      const randomTrade = tradingData[Math.floor(Math.random() * tradingData.length)]
       const newTrade = {
-        user: names[Math.floor(Math.random() * names.length)],
-        asset: assets[Math.floor(Math.random() * assets.length)],
-        profit: Math.floor(Math.random() * 15000) + 3000,
-        time: 'baru saja'
+        ...randomTrade,
+        time: 'baru saja',
+        profit: Math.floor(Math.random() * 15000) + 3000
       }
 
       setTrades(prev => [newTrade, ...prev.slice(0, 2)])
@@ -134,8 +140,6 @@ const FloatingPriceCard = ({ symbol, price, change, delay, style }: any) => (
 )
 
 export default function LandingPage() {
-  const router = useRouter()
-  const { user, setAuth } = useAuthStore()
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
@@ -144,12 +148,8 @@ export default function LandingPage() {
   const [activeTestimonial, setActiveTestimonial] = useState(0)
   const [activeFeature, setActiveFeature] = useState(0)
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
-
-  useEffect(() => {
-    if (user) {
-      router.push('/trading')
-    }
-  }, [user, router])
+  const [touchStart, setTouchStart] = useState(0)
+  const [touchEnd, setTouchEnd] = useState(0)
 
   // Auto carousel for testimonials
   useEffect(() => {
@@ -172,39 +172,49 @@ export default function LandingPage() {
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
 
+  // Touch swipe handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchEnd = (type: 'feature' | 'testimonial') => {
+    if (!touchStart || !touchEnd) return
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > 50
+    const isRightSwipe = distance < -50
+
+    if (type === 'feature') {
+      if (isLeftSwipe && activeFeature < features.length - 1) {
+        setActiveFeature(prev => prev + 1)
+      }
+      if (isRightSwipe && activeFeature > 0) {
+        setActiveFeature(prev => prev - 1)
+      }
+    } else {
+      if (isLeftSwipe && activeTestimonial < testimonials.length - 1) {
+        setActiveTestimonial(prev => prev + 1)
+      }
+      if (isRightSwipe && activeTestimonial > 0) {
+        setActiveTestimonial(prev => prev - 1)
+      }
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-
-    try {
-      const response = isLogin
-        ? await api.login(email, password)
-        : await api.register(email, password)
-
-      const userData = response.user || response.data?.user
-      const token = response.token || response.data?.token
-
-      if (!userData || !token) {
-        toast.error('Respon tidak valid dari server')
-        return
-      }
-
-      setAuth(userData, token)
-      api.setToken(token)
-
-      toast.success(response.message || 'Login berhasil!')
-      router.replace('/trading')
-    } catch (error: any) {
-      const errorMessage = 
-        error.response?.data?.error || 
-        error.response?.data?.message ||
-        error.message || 
-        'Autentikasi gagal'
-      
-      toast.error(errorMessage)
-    } finally {
+    
+    // Simulate API call
+    setTimeout(() => {
+      alert(isLogin ? 'Login berhasil!' : 'Registrasi berhasil!')
       setLoading(false)
-    }
+      setShowAuthModal(false)
+    }, 1500)
   }
 
   const stats = [
@@ -219,25 +229,29 @@ export default function LandingPage() {
       icon: Zap,
       title: 'Eksekusi Kilat',
       description: 'Eksekusi order dalam milidetik tanpa lag',
-      gradient: 'from-yellow-500/20 to-orange-500/20'
+      gradient: 'from-yellow-500/20 to-orange-500/20',
+      color: 'yellow'
     },
     {
       icon: Shield,
       title: 'Keamanan Maksimal',
       description: 'Enkripsi tingkat militer melindungi dana Anda',
-      gradient: 'from-blue-500/20 to-cyan-500/20'
+      gradient: 'from-blue-500/20 to-cyan-500/20',
+      color: 'blue'
     },
     {
       icon: BarChart3,
       title: 'Analisis Real-Time',
       description: 'Chart canggih dan wawasan pasar terkini',
-      gradient: 'from-purple-500/20 to-pink-500/20'
+      gradient: 'from-purple-500/20 to-pink-500/20',
+      color: 'purple'
     },
     {
       icon: Award,
       title: 'Profit Hingga 95%',
       description: 'Keuntungan terbaik di industri trading',
-      gradient: 'from-green-500/20 to-emerald-500/20'
+      gradient: 'from-green-500/20 to-emerald-500/20',
+      color: 'green'
     },
   ]
 
@@ -248,7 +262,8 @@ export default function LandingPage() {
       content: 'Platform yang mengubah permainan! Cepat, handal, dan menguntungkan. Saya konsisten profit selama 6 bulan.',
       rating: 5,
       avatar: '👨‍💼',
-      profit: '+285%'
+      profit: '+285%',
+      badge: 'Pro Trader'
     },
     {
       name: 'Siti Nurhaliza',
@@ -256,7 +271,8 @@ export default function LandingPage() {
       content: 'Sebagai pemula, tampilan interface memudahkan trading. Dukungan hebat dan materi edukasi membantu saya sukses!',
       rating: 5,
       avatar: '👩‍💻',
-      profit: '+142%'
+      profit: '+142%',
+      badge: 'Rising Star'
     },
     {
       name: 'Budi Santoso',
@@ -264,11 +280,10 @@ export default function LandingPage() {
       content: 'Platform trading terbaik yang pernah saya gunakan. Kecepatan, keamanan, dan tingkat profit tak tertandingi.',
       rating: 5,
       avatar: '👨‍🎓',
-      profit: '+378%'
+      profit: '+378%',
+      badge: 'Elite Investor'
     },
   ]
-
-  if (user) return null
 
   return (
     <div className="min-h-screen bg-[#0a0e17] text-white overflow-hidden">
@@ -295,14 +310,8 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-20">
             <div className="flex items-center gap-3 group cursor-pointer">
-              <div className="relative w-10 h-10 flex-shrink-0">
-                <Image
-                  src="/stc-logo.png"
-                  alt="STC AutoTrade"
-                  fill
-                  className="object-contain transform group-hover:scale-110 transition-transform rounded-md"
-                  priority
-                />
+              <div className="relative w-10 h-10 flex-shrink-0 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                <span className="text-xl font-bold">S</span>
               </div>
               <div>
                 <span className="text-xl font-bold text-white">
@@ -513,59 +522,99 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* Mobile Carousel */}
-          <div className="sm:hidden relative">
-            <div className="overflow-hidden">
-              <div 
-                className="flex transition-transform duration-500 ease-out"
-                style={{ transform: `translateX(-${activeFeature * 100}%)` }}
-              >
-                {features.map((feature, index) => (
-                  <div 
-                    key={index}
-                    className="w-full flex-shrink-0 px-4"
-                  >
-                    <div className="bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-8 h-full">
-                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 rounded-xl flex items-center justify-center mb-6 border border-blue-500/30 mx-auto">
-                        <feature.icon className="w-8 h-8 text-blue-400" />
+          {/* Modern Mobile Card Stack */}
+          <div className="sm:hidden">
+            <div 
+              className="relative"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={() => handleTouchEnd('feature')}
+            >
+              <div className="relative h-[420px]">
+                {features.map((feature, index) => {
+                  const isActive = index === activeFeature
+                  const isPrev = index === activeFeature - 1
+                  const isNext = index === activeFeature + 1
+                  
+                  let transform = 'translateX(100%) scale(0.9)'
+                  let opacity = 0
+                  let zIndex = 0
+
+                  if (isActive) {
+                    transform = 'translateX(0) scale(1)'
+                    opacity = 1
+                    zIndex = 30
+                  } else if (isPrev) {
+                    transform = 'translateX(-100%) scale(0.9)'
+                    opacity = 0
+                    zIndex = 10
+                  } else if (isNext) {
+                    transform = 'translateX(20%) scale(0.95)'
+                    opacity = 0.3
+                    zIndex = 20
+                  }
+
+                  return (
+                    <div
+                      key={index}
+                      className="absolute inset-0 transition-all duration-500 ease-out"
+                      style={{
+                        transform,
+                        opacity,
+                        zIndex
+                      }}
+                    >
+                      <div className="h-full bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border-2 border-gray-800/50 rounded-3xl p-8 shadow-2xl">
+                        {/* Icon with glow */}
+                        <div className="relative mb-6">
+                          <div className={`absolute inset-0 bg-${feature.color}-500/20 rounded-2xl blur-xl`}></div>
+                          <div className={`relative w-20 h-20 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center border border-${feature.color}-500/30 mx-auto`}>
+                            <feature.icon className={`w-10 h-10 text-${feature.color}-400`} />
+                          </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="text-center space-y-4">
+                          <h3 className="text-2xl font-bold">{feature.title}</h3>
+                          <p className="text-gray-400 text-lg leading-relaxed">
+                            {feature.description}
+                          </p>
+                        </div>
+
+                        {/* Decorative elements */}
+                        <div className="mt-8 flex justify-center gap-2">
+                          <div className={`w-12 h-1 bg-gradient-to-r ${feature.gradient} rounded-full`}></div>
+                        </div>
                       </div>
-                      <h3 className="text-2xl font-bold mb-4 text-center">{feature.title}</h3>
-                      <p className="text-gray-400 leading-relaxed text-center">{feature.description}</p>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Carousel Controls */}
-            <div className="flex items-center justify-center gap-3 mt-8">
-              <button
-                onClick={() => setActiveFeature((prev) => (prev === 0 ? features.length - 1 : prev - 1))}
-                className="w-8 h-8 bg-[#1e293b] hover:bg-[#334155] rounded-full flex items-center justify-center transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-
-              <div className="flex gap-1.5">
-                {features.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setActiveFeature(index)}
-                    className={`h-1.5 rounded-full transition-all ${
-                      index === activeFeature 
-                        ? 'bg-blue-500 w-6' 
-                        : 'bg-gray-700 w-1.5'
-                    }`}
-                  />
-                ))}
+                  )
+                })}
               </div>
 
-              <button
-                onClick={() => setActiveFeature((prev) => (prev === features.length - 1 ? 0 : prev + 1))}
-                className="w-8 h-8 bg-[#1e293b] hover:bg-[#334155] rounded-full flex items-center justify-center transition-colors"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
+              {/* Enhanced Navigation */}
+              <div className="mt-8 space-y-4">
+                {/* Progress dots */}
+                <div className="flex justify-center gap-2">
+                  {features.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setActiveFeature(index)}
+                      className={`transition-all duration-300 rounded-full ${
+                        index === activeFeature 
+                          ? 'bg-gradient-to-r from-blue-500 to-emerald-500 w-8 h-2' 
+                          : 'bg-gray-700 w-2 h-2 hover:bg-gray-600'
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                {/* Feature counter */}
+                <div className="text-center">
+                  <span className="text-sm text-gray-400">
+                    {activeFeature + 1} / {features.length}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -630,81 +679,116 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Mobile Carousel */}
+          {/* Modern Mobile Testimonial Cards */}
           <div className="sm:hidden">
-            <div className="overflow-hidden">
-              <div 
-                className="flex transition-transform duration-500 ease-out"
-                style={{ transform: `translateX(-${activeTestimonial * 100}%)` }}
-              >
-                {testimonials.map((testimonial, index) => (
-                  <div 
-                    key={index}
-                    className="w-full flex-shrink-0 px-4"
-                  >
-                    <div className="bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-8">
-                      <div className="text-center">
-                        <div className="text-5xl mb-4">{testimonial.avatar}</div>
+            <div 
+              className="relative"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={() => handleTouchEnd('testimonial')}
+            >
+              <div className="relative h-[500px]">
+                {testimonials.map((testimonial, index) => {
+                  const isActive = index === activeTestimonial
+                  const offset = index - activeTestimonial
+                  
+                  let transform = `translateX(${offset * 100}%) scale(${isActive ? 1 : 0.9})`
+                  let opacity = isActive ? 1 : 0
+                  let zIndex = isActive ? 20 : 10
+
+                  return (
+                    <div
+                      key={index}
+                      className="absolute inset-0 transition-all duration-500 ease-out px-4"
+                      style={{
+                        transform,
+                        opacity,
+                        zIndex
+                      }}
+                    >
+                      <div className="h-full bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border-2 border-gray-800/50 rounded-3xl p-6 shadow-2xl overflow-hidden">
+                        {/* Background decoration */}
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-emerald-500/10 rounded-full blur-3xl"></div>
                         
-                        <div className="flex justify-center gap-1 mb-4">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          ))}
-                        </div>
+                        <div className="relative z-10 h-full flex flex-col">
+                          {/* Header */}
+                          <div className="text-center mb-6">
+                            <div className="text-6xl mb-4">{testimonial.avatar}</div>
+                            
+                            {/* Badge */}
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 rounded-full mb-3">
+                              <Award className="w-3 h-3 text-blue-400" />
+                              <span className="text-xs font-semibold text-blue-400">{testimonial.badge}</span>
+                            </div>
 
-                        <p className="text-base text-gray-300 mb-4 leading-relaxed">
-                          "{testimonial.content}"
-                        </p>
+                            {/* Stars */}
+                            <div className="flex justify-center gap-1 mb-3">
+                              {[...Array(5)].map((_, i) => (
+                                <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                              ))}
+                            </div>
+                          </div>
 
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full mb-3">
-                          <TrendingUp className="w-3 h-3 text-emerald-400" />
-                          <span className="text-xs font-bold text-emerald-400">
-                            {testimonial.profit} Keuntungan
-                          </span>
-                        </div>
+                          {/* Quote */}
+                          <div className="flex-1 flex items-center mb-6">
+                            <div className="relative">
+                              <div className="absolute -top-2 -left-2 text-4xl text-blue-500/20">"</div>
+                              <p className="text-gray-300 text-base leading-relaxed px-4">
+                                {testimonial.content}
+                              </p>
+                              <div className="absolute -bottom-4 -right-2 text-4xl text-blue-500/20 rotate-180">"</div>
+                            </div>
+                          </div>
 
-                        <div className="font-semibold mb-1">
-                          {testimonial.name}
-                        </div>
-                        <div className="text-sm text-gray-400">
-                          {testimonial.role}
+                          {/* Footer */}
+                          <div className="space-y-3">
+                            {/* Profit badge */}
+                            <div className="flex justify-center">
+                              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500/20 to-green-500/20 border border-emerald-500/30 rounded-full">
+                                <TrendingUp className="w-4 h-4 text-emerald-400" />
+                                <span className="text-sm font-bold text-emerald-400">
+                                  {testimonial.profit} Keuntungan
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Name and role */}
+                            <div className="text-center">
+                              <div className="font-bold text-lg mb-1">{testimonial.name}</div>
+                              <div className="text-sm text-gray-400">{testimonial.role}</div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Carousel Controls */}
-            <div className="flex items-center justify-center gap-3 mt-6">
-              <button
-                onClick={() => setActiveTestimonial((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1))}
-                className="w-8 h-8 bg-[#1e293b] hover:bg-[#334155] rounded-full flex items-center justify-center transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-
-              <div className="flex gap-1.5">
-                {testimonials.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setActiveTestimonial(index)}
-                    className={`h-1.5 rounded-full transition-all ${
-                      index === activeTestimonial 
-                        ? 'bg-blue-500 w-6' 
-                        : 'bg-gray-700 w-1.5'
-                    }`}
-                  />
-                ))}
+                  )
+                })}
               </div>
 
-              <button
-                onClick={() => setActiveTestimonial((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1))}
-                className="w-8 h-8 bg-[#1e293b] hover:bg-[#334155] rounded-full flex items-center justify-center transition-colors"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
+              {/* Navigation */}
+              <div className="mt-8 space-y-4">
+                {/* Dots */}
+                <div className="flex justify-center gap-2">
+                  {testimonials.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setActiveTestimonial(index)}
+                      className={`transition-all duration-300 rounded-full ${
+                        index === activeTestimonial 
+                          ? 'bg-gradient-to-r from-blue-500 to-emerald-500 w-8 h-2' 
+                          : 'bg-gray-700 w-2 h-2'
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                {/* Counter */}
+                <div className="text-center">
+                  <span className="text-sm text-gray-400">
+                    {activeTestimonial + 1} / {testimonials.length}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -741,10 +825,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <EnhancedFooter />
-
-      {/* Auth Sidebar */}
+      {/* Auth Modal */}
       {showAuthModal && (
         <>
           <div 
@@ -756,13 +837,8 @@ export default function LandingPage() {
             <div className="sticky top-0 z-10 bg-gradient-to-b from-[#0f1419] to-transparent backdrop-blur-xl border-b border-gray-800/50 p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="relative w-10 h-10">
-                    <Image
-                      src="/stc-logo.png"
-                      alt="STC AutoTrade"
-                      fill
-                      className="object-contain rounded-md"
-                    />
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                    <span className="text-xl font-bold">S</span>
                   </div>
                   <div>
                     <h2 className="text-xl font-bold">STC AutoTrade</h2>
@@ -826,7 +902,6 @@ export default function LandingPage() {
                     required
                     disabled={loading}
                     className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    autoComplete="email"
                   />
                 </div>
 
@@ -842,7 +917,6 @@ export default function LandingPage() {
                     required
                     disabled={loading}
                     className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    autoComplete="current-password"
                   />
                 </div>
 
@@ -871,8 +945,8 @@ export default function LandingPage() {
                     <div className="flex-1">
                       <div className="text-sm font-semibold text-blue-400 mb-1">Akun Demo</div>
                       <div className="text-xs text-gray-400 space-y-1">
-                        <div>Email: <span className="text-gray-300 font-mono">superadmin@trading.com</span></div>
-                        <div>Pass: <span className="text-gray-300 font-mono">SuperAdmin123!</span></div>
+                        <div>Email: <span className="text-gray-300 font-mono">demo@trading.com</span></div>
+                        <div>Pass: <span className="text-gray-300 font-mono">demo123</span></div>
                       </div>
                     </div>
                   </div>
