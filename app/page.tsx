@@ -305,7 +305,7 @@ export default function LandingPage() {
                 />
               </div>
               <div>
-                <span className="text-xl font-bold bg-clip-text text-white">
+                <span className="text-xl font-bold text-white">
                   STC AutoTrade
                 </span>
               </div>
@@ -485,7 +485,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 sm:px-6">
           <div className="text-center mb-16 animate-fade-in-up">
             <h2 className="text-4xl sm:text-5xl font-bold mb-6">
-              Mengapa Memilih <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">STC AutoTrade</span>?
+              Mengapa Memilih <span className="text-white">STC AutoTrade</span>?
             </h2>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
               Rasakan trading yang direvolusi dengan teknologi canggih
