@@ -528,9 +528,9 @@ export default function TradingChart({ activeOrders = [], currentPrice }: Tradin
         </div>
       </div>
 
-      {/* Active Orders Overlay - REALTIME P&L */}
+      {/* Active Orders Overlay - SIMPLE REALTIME P&L */}
       {activeOrders.length > 0 && (
-        <div className="absolute top-12 right-2 z-10 space-y-1 max-h-[calc(100%-100px)] overflow-y-auto scrollbar-hide">
+        <div className="absolute top-12 right-2 z-10 space-y-1.5 max-h-[calc(100%-100px)] overflow-y-auto scrollbar-hide">
           {activeOrders.filter(o => o.status === 'ACTIVE').map((order) => {
             // Calculate realtime P&L
             const current = currentPrice || order.entry_price
@@ -541,10 +541,6 @@ export default function TradingChart({ activeOrders = [], currentPrice }: Tradin
               ? current > order.entry_price 
               : current < order.entry_price
             
-            // Calculate price difference
-            const priceDiff = current - order.entry_price
-            const priceChangePercent = ((priceDiff / order.entry_price) * 100)
-            
             // Calculate potential profit/loss
             const potentialProfit = order.amount * (order.profitRate / 100)
             const potentialPayout = isWinning 
@@ -554,18 +550,19 @@ export default function TradingChart({ activeOrders = [], currentPrice }: Tradin
             return (
               <div 
                 key={order.id}
-                className={`bg-black/40 backdrop-blur-md border rounded-lg px-3 py-2 min-w-[200px] transition-all ${
+                className={`bg-black/50 backdrop-blur-md border rounded-lg px-3 py-2.5 min-w-[160px] transition-all ${
                   isWinning
                     ? 'border-green-500/50 shadow-lg shadow-green-500/20' 
                     : 'border-red-500/50 shadow-lg shadow-red-500/20'
                 }`}
               >
-                <div className="flex items-center justify-between mb-2">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-700/50">
                   <div className="flex items-center gap-1.5">
                     {order.direction === 'CALL' ? (
-                      <TrendingUp className="w-3 h-3 text-green-400" />
+                      <TrendingUp className="w-3.5 h-3.5 text-green-400" />
                     ) : (
-                      <TrendingDown className="w-3 h-3 text-red-400" />
+                      <TrendingDown className="w-3.5 h-3.5 text-red-400" />
                     )}
                     <span className={`text-xs font-bold ${
                       order.direction === 'CALL' ? 'text-green-400' : 'text-red-400'
@@ -573,41 +570,27 @@ export default function TradingChart({ activeOrders = [], currentPrice }: Tradin
                       {order.direction}
                     </span>
                   </div>
-                  <span className="text-[10px] text-gray-400">{order.asset_name}</span>
+                  <span className="text-[10px] text-gray-400 font-medium">{order.asset_name}</span>
                 </div>
                 
-                <div className="text-[10px] text-gray-300 space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Amount:</span>
-                    <span className="font-mono font-semibold">{formatCurrency(order.amount)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Entry:</span>
-                    <span className="font-mono">{order.entry_price.toFixed(3)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Current:</span>
-                    <span className={`font-mono font-bold ${
-                      isWinning ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {current.toFixed(3)}
-                    </span>
-                  </div>
+                {/* Body - Simple Info */}
+                <div className="space-y-1.5">
+                  {/* Amount */}
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Change:</span>
-                    <span className={`font-mono text-xs font-bold ${
-                      isWinning ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {isWinning ? '+' : ''}{priceChangePercent.toFixed(2)}%
+                    <span className="text-[10px] text-gray-400">Amount</span>
+                    <span className="text-xs font-mono font-semibold text-gray-200">
+                      {formatCurrency(order.amount)}
                     </span>
                   </div>
+                  
+                  {/* Time Remaining */}
                   {orderTimers[order.id] && (
-                    <div className="flex justify-between items-center pt-1 border-t border-gray-700/50">
-                      <span className="text-gray-400 flex items-center gap-1">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] text-gray-400 flex items-center gap-1">
                         <Clock className="w-2.5 h-2.5" />
-                        Time:
+                        Time
                       </span>
-                      <span className={`font-mono font-bold ${
+                      <span className={`text-xs font-mono font-bold ${
                         orderTimers[order.id].includes('Expired') 
                           ? 'text-red-400' 
                           : 'text-yellow-400'
@@ -616,12 +599,13 @@ export default function TradingChart({ activeOrders = [], currentPrice }: Tradin
                       </span>
                     </div>
                   )}
-                  {/* REALTIME P&L */}
-                  <div className={`flex justify-between items-center pt-1.5 border-t ${
+                  
+                  {/* P&L - PROMINENT */}
+                  <div className={`flex justify-between items-center pt-2 mt-1 border-t ${
                     isWinning ? 'border-green-500/30' : 'border-red-500/30'
                   }`}>
-                    <span className="text-gray-400 font-medium">P&L:</span>
-                    <span className={`font-mono font-bold text-sm ${
+                    <span className="text-[11px] text-gray-300 font-semibold">P&L</span>
+                    <span className={`font-mono font-bold text-base ${
                       isWinning ? 'text-green-400' : 'text-red-400'
                     }`}>
                       {isWinning ? '+' : ''}{formatCurrency(potentialPayout)}
