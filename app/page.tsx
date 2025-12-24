@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 import EnhancedFooter from '@/components/EnhancedFooter'
+import Image from 'next/image'
 import { 
   TrendingUp, 
   Zap, 
@@ -30,9 +31,9 @@ import {
 // Live Trading Ticker Component
 const LiveTradingTicker = () => {
   const [trades, setTrades] = useState([
-    { user: 'Ahmad***', asset: 'EUR/USD', profit: 8500, time: '2s ago' },
-    { user: 'Siti***', asset: 'BTC/USD', profit: 12300, time: '5s ago' },
-    { user: 'Budi***', asset: 'IDX_STC', profit: 5800, time: '8s ago' },
+    { user: 'Ahmad***', asset: 'EUR/USD', profit: 8500, time: '2 detik lalu' },
+    { user: 'Siti***', asset: 'BTC/USD', profit: 12300, time: '5 detik lalu' },
+    { user: 'Budi***', asset: 'IDX_STC', profit: 5800, time: '8 detik lalu' },
   ])
 
   useEffect(() => {
@@ -44,7 +45,7 @@ const LiveTradingTicker = () => {
         user: names[Math.floor(Math.random() * names.length)],
         asset: assets[Math.floor(Math.random() * assets.length)],
         profit: Math.floor(Math.random() * 15000) + 3000,
-        time: 'just now'
+        time: 'baru saja'
       }
 
       setTrades(prev => [newTrade, ...prev.slice(0, 2)])
@@ -57,7 +58,7 @@ const LiveTradingTicker = () => {
     <div className="hidden lg:block absolute top-24 right-8 w-72 bg-[#0a0e17]/95 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-4 shadow-2xl z-10 animate-slide-in-right">
       <div className="flex items-center gap-2 mb-3">
         <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-        <span className="text-xs font-semibold text-gray-300">Live Trades</span>
+        <span className="text-xs font-semibold text-gray-300">Transaksi Live</span>
       </div>
       <div className="space-y-2">
         {trades.map((trade, i) => (
@@ -184,21 +185,21 @@ export default function LandingPage() {
       const token = response.token || response.data?.token
 
       if (!userData || !token) {
-        toast.error('Invalid response from server')
+        toast.error('Respon tidak valid dari server')
         return
       }
 
       setAuth(userData, token)
       api.setToken(token)
 
-      toast.success(response.message || 'Login successful!')
+      toast.success(response.message || 'Login berhasil!')
       router.replace('/trading')
     } catch (error: any) {
       const errorMessage = 
         error.response?.data?.error || 
         error.response?.data?.message ||
         error.message || 
-        'Authentication failed'
+        'Autentikasi gagal'
       
       toast.error(errorMessage)
     } finally {
@@ -207,35 +208,35 @@ export default function LandingPage() {
   }
 
   const stats = [
-    { label: 'Active Traders', value: '50K+', icon: Users },
-    { label: 'Daily Volume', value: '$2.5M', icon: DollarSign },
+    { label: 'Trader Aktif', value: '50K+', icon: Users },
+    { label: 'Volume Harian', value: '$2.5M', icon: DollarSign },
     { label: 'Win Rate', value: '87%', icon: Target },
-    { label: 'Countries', value: '150+', icon: Globe },
+    { label: 'Negara', value: '150+', icon: Globe },
   ]
 
   const features = [
     {
       icon: Zap,
-      title: 'Lightning Fast',
-      description: 'Execute trades in milliseconds with zero lag',
+      title: 'Eksekusi Kilat',
+      description: 'Eksekusi order dalam milidetik tanpa lag',
       gradient: 'from-yellow-500/20 to-orange-500/20'
     },
     {
       icon: Shield,
-      title: 'Bank-Level Security',
-      description: 'Military-grade encryption protects your funds',
+      title: 'Keamanan Maksimal',
+      description: 'Enkripsi tingkat militer melindungi dana Anda',
       gradient: 'from-blue-500/20 to-cyan-500/20'
     },
     {
       icon: BarChart3,
-      title: 'Real-Time Analytics',
-      description: 'Advanced charts and market insights',
+      title: 'Analisis Real-Time',
+      description: 'Chart canggih dan wawasan pasar terkini',
       gradient: 'from-purple-500/20 to-pink-500/20'
     },
     {
       icon: Award,
-      title: 'Up to 95% Profit',
-      description: 'Industry-leading returns on trades',
+      title: 'Profit Hingga 95%',
+      description: 'Keuntungan terbaik di industri trading',
       gradient: 'from-green-500/20 to-emerald-500/20'
     },
   ]
@@ -243,24 +244,24 @@ export default function LandingPage() {
   const testimonials = [
     {
       name: 'Ahmad Rizki',
-      role: 'Professional Trader',
-      content: 'Game-changing platform! Fast, reliable, and profitable. I\'ve been consistently winning for 6 months.',
+      role: 'Trader Profesional',
+      content: 'Platform yang mengubah permainan! Cepat, handal, dan menguntungkan. Saya konsisten profit selama 6 bulan.',
       rating: 5,
       avatar: '👨‍💼',
       profit: '+285%'
     },
     {
       name: 'Siti Nurhaliza',
-      role: 'Part-Time Trader',
-      content: 'As a beginner, the interface made trading easy. Great support and educational resources helped me succeed!',
+      role: 'Trader Paruh Waktu',
+      content: 'Sebagai pemula, tampilan interface memudahkan trading. Dukungan hebat dan materi edukasi membantu saya sukses!',
       rating: 5,
       avatar: '👩‍💻',
       profit: '+142%'
     },
     {
       name: 'Budi Santoso',
-      role: 'Experienced Investor',
-      content: 'Best trading platform I\'ve used. Speed, security, and profit rates are unmatched in the industry.',
+      role: 'Investor Berpengalaman',
+      content: 'Platform trading terbaik yang pernah saya gunakan. Kecepatan, keamanan, dan tingkat profit tak tertandingi.',
       rating: 5,
       avatar: '👨‍🎓',
       profit: '+378%'
@@ -294,31 +295,33 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-20">
             <div className="flex items-center gap-3 group cursor-pointer">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-                <TrendingUp className="w-6 h-6 text-white" />
+              <div className="relative w-10 h-10 flex-shrink-0">
+                <Image
+                  src="/stc-logo.png"
+                  alt="STC AutoTrade"
+                  fill
+                  className="object-contain transform group-hover:scale-110 transition-transform"
+                  priority
+                />
               </div>
               <div>
                 <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
                   STC AutoTrade
                 </span>
-                <div className="flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="text-[10px] text-gray-500">LIVE</span>
-                </div>
               </div>
             </div>
 
             <div className="hidden md:flex items-center gap-8">
               <a href="#features" className="text-sm text-gray-400 hover:text-white transition-colors relative group">
-                Features
+                Fitur
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
               </a>
               <a href="#how-it-works" className="text-sm text-gray-400 hover:text-white transition-colors relative group">
-                How It Works
+                Cara Kerja
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
               </a>
               <a href="#testimonials" className="text-sm text-gray-400 hover:text-white transition-colors relative group">
-                Reviews
+                Testimoni
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
               </a>
             </div>
@@ -331,7 +334,7 @@ export default function LandingPage() {
                 }}
                 className="px-6 py-2.5 bg-[#1e293b] hover:bg-[#334155] rounded-lg text-sm font-semibold text-white shadow-lg transition-colors border border-gray-700"
               >
-                Sign In
+                Masuk
               </button>
             </div>
           </div>
@@ -346,20 +349,20 @@ export default function LandingPage() {
             <div className="space-y-8 animate-fade-in-up">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500/20 to-emerald-500/20 border border-blue-500/30 rounded-full backdrop-blur-sm animate-slide-in-left">
                 <Sparkles className="w-4 h-4 text-blue-400 animate-spin-slow" />
-                <span className="text-sm font-medium">Trusted by 50,000+ traders</span>
+                <span className="text-sm font-medium">Dipercaya 50.000+ trader</span>
               </div>
 
               <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold leading-tight">
-                Trade Binary Options with
+                Trading Binary Option dengan
                 <span className="block mt-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-emerald-400 to-cyan-400 animate-gradient">
-                  Lightning Speed
+                  Kecepatan Kilat
                 </span>
               </h1>
 
               <p className="text-lg sm:text-xl text-gray-400 leading-relaxed">
-                Execute trades in <span className="text-emerald-400 font-semibold">milliseconds</span>, 
-                earn up to <span className="text-blue-400 font-semibold">95% profit</span>, 
-                and trade with <span className="text-cyan-400 font-semibold">confidence 24/7</span>.
+                Eksekusi order dalam <span className="text-emerald-400 font-semibold">milidetik</span>, 
+                dapatkan profit hingga <span className="text-blue-400 font-semibold">95%</span>, 
+                dan trading dengan <span className="text-cyan-400 font-semibold">percaya diri 24/7</span>.
               </p>
 
               <div className="flex flex-row gap-3 sm:gap-4">
@@ -371,8 +374,8 @@ export default function LandingPage() {
                   className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-[#1e293b] hover:bg-[#334155] rounded-xl text-sm sm:text-lg font-semibold text-white transition-colors border border-gray-700 shadow-lg"
                 >
                   <span className="flex items-center justify-center gap-2">
-                    <span className="hidden sm:inline">Sign In to Trade</span>
-                    <span className="sm:hidden">Sign In</span>
+                    <span className="hidden sm:inline">Masuk untuk Trading</span>
+                    <span className="sm:hidden">Masuk</span>
                     <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
                   </span>
                 </button>
@@ -380,7 +383,7 @@ export default function LandingPage() {
                 <button className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-white/5 hover:bg-white/10 border border-gray-700 hover:border-gray-600 rounded-xl text-sm sm:text-lg font-semibold transition-all backdrop-blur-sm">
                   <span className="flex items-center justify-center gap-2">
                     <Activity className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
-                    <span className="hidden sm:inline">Watch Demo</span>
+                    <span className="hidden sm:inline">Lihat Demo</span>
                     <span className="sm:hidden">Demo</span>
                   </span>
                 </button>
@@ -460,15 +463,15 @@ export default function LandingPage() {
                   <button className="group relative bg-gradient-to-br from-emerald-500/20 to-green-500/20 hover:from-emerald-500/30 hover:to-green-500/30 border border-emerald-500/30 rounded-xl p-6 transition-all overflow-hidden">
                     <div className="absolute inset-0 bg-emerald-500/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
                     <TrendingUp className="w-8 h-8 text-emerald-400 mx-auto mb-2 relative z-10 group-hover:scale-110 transition-transform" />
-                    <div className="font-bold text-lg text-emerald-400 relative z-10">CALL</div>
-                    <div className="text-xs text-gray-400 relative z-10">+95% Profit</div>
+                    <div className="font-bold text-lg text-emerald-400 relative z-10">BELI</div>
+                    <div className="text-xs text-gray-400 relative z-10">Profit +95%</div>
                   </button>
 
                   <button className="group relative bg-gradient-to-br from-red-500/20 to-pink-500/20 hover:from-red-500/30 hover:to-pink-500/30 border border-red-500/30 rounded-xl p-6 transition-all overflow-hidden">
                     <div className="absolute inset-0 bg-red-500/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
                     <TrendingDown className="w-8 h-8 text-red-400 mx-auto mb-2 relative z-10 group-hover:scale-110 transition-transform" />
-                    <div className="font-bold text-lg text-red-400 relative z-10">PUT</div>
-                    <div className="text-xs text-gray-400 relative z-10">+95% Profit</div>
+                    <div className="font-bold text-lg text-red-400 relative z-10">JUAL</div>
+                    <div className="text-xs text-gray-400 relative z-10">Profit +95%</div>
                   </button>
                 </div>
               </div>
@@ -482,10 +485,10 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 sm:px-6">
           <div className="text-center mb-16 animate-fade-in-up">
             <h2 className="text-4xl sm:text-5xl font-bold mb-6">
-              Why Choose <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">STC AutoTrade</span>?
+              Mengapa Memilih <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">STC AutoTrade</span>?
             </h2>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              Experience trading reimagined with cutting-edge technology
+              Rasakan trading yang direvolusi dengan teknologi canggih
             </p>
           </div>
 
@@ -573,10 +576,10 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 sm:px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl sm:text-5xl font-bold mb-6">
-              Trusted by <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Thousands</span>
+              Dipercaya <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Ribuan</span> Trader
             </h2>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              See what successful traders say about us
+              Lihat apa kata trader sukses tentang kami
             </p>
           </div>
 
@@ -599,7 +602,7 @@ export default function LandingPage() {
                 <div className="inline-flex items-center gap-3 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full mb-4">
                   <TrendingUp className="w-4 h-4 text-emerald-400" />
                   <span className="text-sm font-bold text-emerald-400">
-                    {testimonials[activeTestimonial].profit} Returns
+                    {testimonials[activeTestimonial].profit} Keuntungan
                   </span>
                 </div>
 
@@ -656,7 +659,7 @@ export default function LandingPage() {
                         <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full mb-3">
                           <TrendingUp className="w-3 h-3 text-emerald-400" />
                           <span className="text-xs font-bold text-emerald-400">
-                            {testimonial.profit} Returns
+                            {testimonial.profit} Keuntungan
                           </span>
                         </div>
 
@@ -715,10 +718,10 @@ export default function LandingPage() {
             
             <div className="relative z-10">
               <h2 className="text-4xl sm:text-5xl font-bold mb-6">
-                Ready to Start Your Trading Journey?
+                Siap Memulai Perjalanan Trading Anda?
               </h2>
               <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-                Join 50,000+ successful traders. Start earning in less than 2 minutes!
+                Bergabung dengan 50.000+ trader sukses. Mulai menghasilkan dalam waktu kurang dari 2 menit!
               </p>
 
               <button
@@ -729,7 +732,7 @@ export default function LandingPage() {
                 className="group px-8 py-4 bg-[#1e293b] hover:bg-[#334155] rounded-xl text-lg font-semibold text-white transition-colors border border-gray-700 shadow-lg"
               >
                 <span className="flex items-center gap-2">
-                  Sign In Now
+                  Masuk Sekarang
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </span>
               </button>
@@ -753,12 +756,17 @@ export default function LandingPage() {
             <div className="sticky top-0 z-10 bg-gradient-to-b from-[#0f1419] to-transparent backdrop-blur-xl border-b border-gray-800/50 p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
-                    <TrendingUp className="w-6 h-6 text-white" />
+                  <div className="relative w-10 h-10">
+                    <Image
+                      src="/stc-logo.png"
+                      alt="STC AutoTrade"
+                      fill
+                      className="object-contain"
+                    />
                   </div>
                   <div>
                     <h2 className="text-xl font-bold">STC AutoTrade</h2>
-                    <p className="text-xs text-gray-400">Professional Trading Platform</p>
+                    <p className="text-xs text-gray-400">Platform Trading Profesional</p>
                   </div>
                 </div>
                 <button
@@ -780,7 +788,7 @@ export default function LandingPage() {
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  Sign In
+                  Masuk
                 </button>
                 <button
                   onClick={() => setIsLogin(false)}
@@ -790,31 +798,31 @@ export default function LandingPage() {
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  Register
+                  Daftar
                 </button>
               </div>
 
               <div className="mb-6">
                 <h3 className="text-2xl font-bold mb-2">
-                  {isLogin ? 'Welcome Back!' : 'Create Account'}
+                  {isLogin ? 'Selamat Datang Kembali!' : 'Buat Akun'}
                 </h3>
                 <p className="text-gray-400">
                   {isLogin 
-                    ? 'Sign in to continue trading' 
-                    : 'Join thousands of successful traders'}
+                    ? 'Masuk untuk melanjutkan trading' 
+                    : 'Bergabung dengan ribuan trader sukses'}
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Email Address
+                    Alamat Email
                   </label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
+                    placeholder="anda@example.com"
                     required
                     disabled={loading}
                     className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
@@ -846,10 +854,10 @@ export default function LandingPage() {
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      Processing...
+                      Memproses...
                     </span>
                   ) : (
-                    <span>{isLogin ? 'Sign In' : 'Create Account'}</span>
+                    <span>{isLogin ? 'Masuk' : 'Buat Akun'}</span>
                   )}
                 </button>
               </form>
@@ -861,7 +869,7 @@ export default function LandingPage() {
                       <Shield className="w-4 h-4 text-blue-400" />
                     </div>
                     <div className="flex-1">
-                      <div className="text-sm font-semibold text-blue-400 mb-1">Demo Account</div>
+                      <div className="text-sm font-semibold text-blue-400 mb-1">Akun Demo</div>
                       <div className="text-xs text-gray-400 space-y-1">
                         <div>Email: <span className="text-gray-300 font-mono">superadmin@trading.com</span></div>
                         <div>Pass: <span className="text-gray-300 font-mono">SuperAdmin123!</span></div>
@@ -876,7 +884,7 @@ export default function LandingPage() {
                   <div className="w-full border-t border-gray-800"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-[#0f1419] text-gray-400">Or continue with</span>
+                  <span className="px-4 bg-[#0f1419] text-gray-400">Atau lanjutkan dengan</span>
                 </div>
               </div>
 
@@ -906,7 +914,7 @@ export default function LandingPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
-                    <span className="text-gray-300">Free demo account with $10,000</span>
+                    <span className="text-gray-300">Akun demo gratis $10,000</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
                     <div className="w-6 h-6 bg-blue-500/20 rounded-lg flex items-center justify-center">
@@ -914,186 +922,186 @@ export default function LandingPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
-                    <span className="text-gray-300">No credit card required</span>
+                    <span className="text-gray-300">Tanpa kartu kredit</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
-                <div className="w-6 h-6 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                  <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
+                    <div className="w-6 h-6 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-gray-300">Dukungan pelanggan 24/7</span>
+                  </div>
                 </div>
-                <span className="text-gray-300">24/7 customer support</span>
-              </div>
+              )}
+
+              <p className="mt-6 text-xs text-center text-gray-500 leading-relaxed">
+                Dengan melanjutkan, Anda menyetujui{' '}
+                <a href="#" className="text-blue-400 hover:text-blue-300">Syarat & Ketentuan</a>
+                {' '}dan{' '}
+                <a href="#" className="text-blue-400 hover:text-blue-300">Kebijakan Privasi</a> kami
+              </p>
             </div>
-          )}
+          </div>
+        </>
+      )}
 
-          <p className="mt-6 text-xs text-center text-gray-500 leading-relaxed">
-            By continuing, you agree to our{' '}
-            <a href="#" className="text-blue-400 hover:text-blue-300">Terms of Service</a>
-            {' '}and{' '}
-            <a href="#" className="text-blue-400 hover:text-blue-300">Privacy Policy</a>
-          </p>
-        </div>
-      </div>
-    </>
-  )}
+      <style jsx>{`
+        @keyframes gradient {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
 
-  <style jsx>{`
-    @keyframes gradient {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-    }
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-20px); }
+        }
 
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-20px); }
-    }
+        @keyframes pulse-slow {
+          0%, 100% { opacity: 0.05; }
+          50% { opacity: 0.15; }
+        }
 
-    @keyframes pulse-slow {
-      0%, 100% { opacity: 0.05; }
-      50% { opacity: 0.15; }
-    }
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
 
-    @keyframes spin-slow {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
 
-    @keyframes fade-in {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
 
-    @keyframes fade-in-up {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
+        @keyframes fade-in-right {
+          from {
+            opacity: 0;
+            transform: translateX(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
 
-    @keyframes fade-in-right {
-      from {
-        opacity: 0;
-        transform: translateX(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
+        @keyframes slide-in-left {
+          from {
+            opacity: 0;
+            transform: translateX(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
 
-    @keyframes slide-in-left {
-      from {
-        opacity: 0;
-        transform: translateX(-20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
+        @keyframes slide-in-right {
+          from {
+            opacity: 0;
+            transform: translateX(50px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
 
-    @keyframes slide-in-right {
-      from {
-        opacity: 0;
-        transform: translateX(50px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
+        @keyframes slide-left {
+          from {
+            transform: translateX(100%);
+          }
+          to {
+            transform: translateX(0);
+          }
+        }
 
-    @keyframes slide-left {
-      from {
-        transform: translateX(100%);
-      }
-      to {
-        transform: translateX(0);
-      }
-    }
+        @keyframes scale-in {
+          from {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
 
-    @keyframes scale-in {
-      from {
-        opacity: 0;
-        transform: scale(0.95);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
-    }
+        .animate-gradient {
+          background-size: 200% 200%;
+          animation: gradient 3s ease infinite;
+        }
 
-    .animate-gradient {
-      background-size: 200% 200%;
-      animation: gradient 3s ease infinite;
-    }
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
+        }
 
-    .animate-float {
-      animation: float 6s ease-in-out infinite;
-    }
+        .animate-pulse-slow {
+          animation: pulse-slow 4s ease-in-out infinite;
+        }
 
-    .animate-pulse-slow {
-      animation: pulse-slow 4s ease-in-out infinite;
-    }
+        .animate-spin-slow {
+          animation: spin-slow 3s linear infinite;
+        }
 
-    .animate-spin-slow {
-      animation: spin-slow 3s linear infinite;
-    }
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
+        }
 
-    .animate-fade-in {
-      animation: fade-in 0.3s ease-out;
-    }
+        .animate-fade-in-up {
+          animation: fade-in-up 0.6s ease-out;
+        }
 
-    .animate-fade-in-up {
-      animation: fade-in-up 0.6s ease-out;
-    }
+        .animate-fade-in-right {
+          animation: fade-in-right 0.8s ease-out;
+        }
 
-    .animate-fade-in-right {
-      animation: fade-in-right 0.8s ease-out;
-    }
+        .animate-slide-in-left {
+          animation: slide-in-left 0.6s ease-out;
+        }
 
-    .animate-slide-in-left {
-      animation: slide-in-left 0.6s ease-out;
-    }
+        .animate-slide-in-right {
+          animation: slide-in-right 0.8s ease-out;
+        }
 
-    .animate-slide-in-right {
-      animation: slide-in-right 0.8s ease-out;
-    }
+        .animate-slide-left {
+          animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
 
-    .animate-slide-left {
-      animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
+        .animate-scale-in {
+          animation: scale-in 0.3s ease-out;
+        }
 
-    .animate-scale-in {
-      animation: scale-in 0.3s ease-out;
-    }
+        html {
+          scroll-behavior: smooth;
+        }
 
-    html {
-      scroll-behavior: smooth;
-    }
+        ::-webkit-scrollbar {
+          width: 8px;
+        }
 
-    ::-webkit-scrollbar {
-      width: 8px;
-    }
+        ::-webkit-scrollbar-track {
+          background: #0a0e17;
+        }
 
-    ::-webkit-scrollbar-track {
-      background: #0a0e17;
-    }
+        ::-webkit-scrollbar-thumb {
+          background: linear-gradient(to bottom, #3b82f6, #10b981);
+          border-radius: 4px;
+        }
 
-    ::-webkit-scrollbar-thumb {
-      background: linear-gradient(to bottom, #3b82f6, #10b981);
-      border-radius: 4px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: linear-gradient(to bottom, #2563eb, #059669);
-    }
-  `}</style>
-</div>
-)
+        ::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(to bottom, #2563eb, #059669);
+        }
+      `}</style>
+    </div>
+  )
 }

@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
+import Image from 'next/image'
 import { 
-  TrendingUp,
   History,
   Wallet,
   Settings,
@@ -32,8 +32,8 @@ export default function Navbar() {
 
   const navLinks = [
     { path: '/trading', label: 'Trading', icon: BarChart3 },
-    { path: '/history', label: 'History', icon: History },
-    { path: '/balance', label: 'Balance', icon: Wallet },
+    { path: '/history', label: 'Riwayat', icon: History },
+    { path: '/balance', label: 'Saldo', icon: Wallet },
   ]
 
   if (!user) return null
@@ -44,8 +44,14 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center gap-3 group cursor-pointer" onClick={() => router.push('/trading')}>
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-              <TrendingUp className="w-5 h-5 text-white" />
+            <div className="relative w-8 h-8 flex-shrink-0">
+              <Image
+                src="/stc-logo.png"
+                alt="STC AutoTrade"
+                fill
+                className="object-contain transform group-hover:scale-110 transition-transform"
+                priority
+              />
             </div>
             <div className="hidden sm:block">
               <span className="font-bold text-lg bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
@@ -122,7 +128,7 @@ export default function Navbar() {
                     className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#232936] transition-colors text-left"
                   >
                     <Settings className="w-4 h-4" />
-                    <span className="text-sm">Settings</span>
+                    <span className="text-sm">Pengaturan</span>
                   </button>
                   <div className="border-t border-gray-800/30">
                     <button
@@ -130,7 +136,7 @@ export default function Navbar() {
                       className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors text-left text-red-400"
                     >
                       <LogOut className="w-4 h-4" />
-                      <span className="text-sm">Logout</span>
+                      <span className="text-sm">Keluar</span>
                     </button>
                   </div>
                 </div>
@@ -232,7 +238,7 @@ export default function Navbar() {
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
                 <Settings className="w-5 h-5" />
-                <span className="font-medium">Settings</span>
+                <span className="font-medium">Pengaturan</span>
               </button>
               
               <button
@@ -240,7 +246,7 @@ export default function Navbar() {
                 className="w-full flex items-center gap-3 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-lg transition-colors text-red-400"
               >
                 <LogOut className="w-5 h-5" />
-                <span className="font-medium">Logout</span>
+                <span className="font-medium">Keluar</span>
               </button>
             </div>
           </div>

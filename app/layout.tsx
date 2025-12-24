@@ -14,9 +14,14 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Binary Option Trading Platform',
-  description: 'Professional binary option trading platform with real-time price streaming',
-  keywords: ['binary option', 'trading', 'IDX_STC', 'forex', 'crypto'],
+  title: 'STC AutoTrade - Platform Trading Binary Option Profesional',
+  description: 'Platform trading binary option dengan eksekusi kilat, profit hingga 95%, dan keamanan maksimal. Dipercaya 50.000+ trader.',
+  keywords: ['binary option', 'trading', 'IDX_STC', 'forex', 'crypto', 'STC AutoTrade'],
+  icons: {
+    icon: '/stc.ico',
+    shortcut: '/stc.ico',
+    apple: '/stc.ico',
+  },
 }
 
 export default function RootLayout({
@@ -25,7 +30,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+    <html lang="id" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+      <head>
+        <link rel="icon" href="/stc.ico" sizes="any" />
+      </head>
       <body>
         {children}
         <Toaster 
