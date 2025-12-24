@@ -278,7 +278,7 @@ export default function TradingPage() {
                 src="/stc-logo.png" 
                 alt="STC Logo" 
                 fill
-                className="object-contain"
+                className="object-contain rounded-md"
               />
             </div>
             <span className="font-bold text-sm">STC AutoTrade</span>
@@ -402,7 +402,7 @@ export default function TradingPage() {
                 src="/stc-logo.png" 
                 alt="STC Logo" 
                 fill
-                className="object-contain"
+                className="object-contain rounded-md"
               />
             </div>
           </div>
