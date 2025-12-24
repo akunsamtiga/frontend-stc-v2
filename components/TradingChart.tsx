@@ -1,4 +1,4 @@
-// components/TradingChart.tsx
+// components/TradingChart.tsx - FIXED VERSION
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
@@ -15,9 +15,7 @@ import {
   Activity,
   TrendingUp,
   TrendingDown,
-  Clock,
-  Trophy,
-  XCircle
+  Clock
 } from 'lucide-react'
 
 type ChartType = 'line' | 'candle'
@@ -33,11 +31,10 @@ interface OrderMarker {
 
 interface TradingChartProps {
   activeOrders?: BinaryOrder[]
-  completedOrders?: BinaryOrder[] // BARU: Tambah prop untuk completed orders
   currentPrice?: number
 }
 
-export default function TradingChart({ activeOrders = [], completedOrders = [], currentPrice }: TradingChartProps) {
+export default function TradingChart({ activeOrders = [], currentPrice }: TradingChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null)
@@ -57,10 +54,10 @@ export default function TradingChart({ activeOrders = [], completedOrders = [], 
   const [isLive, setIsLive] = useState(false)
   const [orderTimers, setOrderTimers] = useState<Record<string, string>>({})
 
-  // Combine active and recent completed orders for display
-  const allDisplayOrders = [...activeOrders, ...completedOrders.slice(-5)] // Show last 5 completed
+  // ✅ HANYA TAMPILKAN ACTIVE ORDERS
+  const displayOrders = activeOrders
 
-  // Update order timers every second
+  // Update order timers
   useEffect(() => {
     const interval = setInterval(() => {
       const timers: Record<string, string> = {}
@@ -75,13 +72,13 @@ export default function TradingChart({ activeOrders = [], completedOrders = [], 
     return () => clearInterval(interval)
   }, [activeOrders])
 
-  // Update markers when orders change
+  // ✅ CLEANUP OLD MARKERS & UPDATE NEW ONES
   useEffect(() => {
     if (!chartRef.current || !candleSeriesRef.current) return
 
-    const currentOrderIds = new Set(allDisplayOrders.map(o => o.id))
+    const currentOrderIds = new Set(displayOrders.map(o => o.id))
     
-    // Remove markers for orders that are no longer in display list
+    // Remove markers untuk order yang tidak ada lagi
     orderMarkersRef.current.forEach((marker, orderId) => {
       if (!currentOrderIds.has(orderId)) {
         // Remove price lines
@@ -95,32 +92,29 @@ export default function TradingChart({ activeOrders = [], completedOrders = [], 
       }
     })
 
-    // Clear and rebuild all markers
+    // Clear all markers dan rebuild
     if (candleSeriesRef.current) {
       candleSeriesRef.current.setMarkers([])
     }
 
-    // Add/update markers for all display orders
-    allDisplayOrders.forEach(order => {
+    // Add markers untuk active orders saja
+    displayOrders.forEach(order => {
       updateOrderMarker(order)
     })
-  }, [allDisplayOrders])
+  }, [displayOrders])
 
   const updateOrderMarker = (order: BinaryOrder) => {
     if (!candleSeriesRef.current || !chartRef.current) return
 
     const existingMarker = orderMarkersRef.current.get(order.id)
     
-    // Jika marker sudah ada dan order completed, skip update
-    if (existingMarker && order.status !== 'ACTIVE') return
+    // Jika marker sudah ada dan order masih ACTIVE, skip
+    if (existingMarker && order.status === 'ACTIVE') return
 
     const entryTime = Math.floor(new Date(order.entry_time).getTime() / 1000) as Time
     const isCall = order.direction === 'CALL'
-    const isActive = order.status === 'ACTIVE'
-    const isWon = order.status === 'WON'
-    const isLost = order.status === 'LOST'
 
-    // Remove existing marker if any
+    // Remove existing marker jika ada
     if (existingMarker) {
       if (existingMarker.entryLine && candleSeriesRef.current) {
         candleSeriesRef.current.removePriceLine(existingMarker.entryLine)
@@ -130,15 +124,11 @@ export default function TradingChart({ activeOrders = [], completedOrders = [], 
       }
     }
 
-    // ENTRY MARKER
+    // ✅ ENTRY MARKER - Untuk ACTIVE orders saja
     const entryMarker = {
       time: entryTime,
       position: isCall ? 'belowBar' as const : 'aboveBar' as const,
-      color: isActive 
-        ? (isCall ? '#10b981' : '#ef4444')
-        : isWon 
-          ? '#10b981' 
-          : '#ef4444',
+      color: isCall ? '#10b981' : '#ef4444',
       shape: isCall ? 'arrowUp' as const : 'arrowDown' as const,
       text: `${order.direction} ${formatCurrency(order.amount)}`,
       size: 2
@@ -147,60 +137,22 @@ export default function TradingChart({ activeOrders = [], completedOrders = [], 
     // ENTRY PRICE LINE
     const entryLine = candleSeriesRef.current.createPriceLine({
       price: order.entry_price,
-      color: isActive 
-        ? (isCall ? '#10b981' : '#ef4444')
-        : isWon 
-          ? '#10b981' 
-          : '#ef4444',
+      color: isCall ? '#10b981' : '#ef4444',
       lineWidth: 2,
-      lineStyle: isActive ? 2 : 0, // Dashed for active, solid for completed
+      lineStyle: 2, // Dashed
       axisLabelVisible: true,
-      title: isActive 
-        ? `${order.direction} Entry` 
-        : isWon 
-          ? `✓ ${order.direction} WON` 
-          : `✗ ${order.direction} LOST`
+      title: `${order.direction} Entry`
     })
 
-    const markers = [entryMarker]
-    let exitLine = undefined
-
-    // EXIT MARKER & LINE (jika sudah completed)
-    if (!isActive && order.exit_time && order.exit_price) {
-      const exitTime = Math.floor(new Date(order.exit_time).getTime() / 1000) as Time
-      
-      // Exit marker - USE ARROW SHAPES ONLY
-      const exitMarker = {
-        time: exitTime,
-        position: isWon ? 'aboveBar' as const : 'belowBar' as const,
-        color: isWon ? '#10b981' : '#ef4444',
-        shape: isWon ? 'arrowUp' as const : 'arrowDown' as const, // ← FIX: Use arrow shapes
-        text: isWon ? '✓ WIN' : '✗ LOST',
-        size: 3
-      }
-      markers.push(exitMarker)
-
-      // Exit price line
-      exitLine = candleSeriesRef.current.createPriceLine({
-        price: order.exit_price,
-        color: isWon ? '#10b981' : '#ef4444',
-        lineWidth: 2,
-        lineStyle: 0, // Solid
-        axisLabelVisible: true,
-        title: `Exit: ${order.exit_price.toFixed(3)}`
-      })
-    }
-
-    // Set all markers at once
+    // Set marker
     const existingMarkers = candleSeriesRef.current.markers() || []
-    candleSeriesRef.current.setMarkers([...existingMarkers, ...markers])
+    candleSeriesRef.current.setMarkers([...existingMarkers, entryMarker])
 
     // Store marker reference
     orderMarkersRef.current.set(order.id, {
       order,
       entryMarker,
-      entryLine,
-      exitLine
+      entryLine
     })
   }
 
@@ -569,16 +521,10 @@ export default function TradingChart({ activeOrders = [], completedOrders = [], 
               <span className="text-blue-400 font-semibold">{activeOrders.length} Active</span>
             </>
           )}
-          {completedOrders.length > 0 && (
-            <>
-              <span className="text-gray-500">•</span>
-              <span className="text-gray-400">{completedOrders.length} History</span>
-            </>
-          )}
         </div>
       </div>
 
-      {/* Active Orders Overlay */}
+      {/* ✅ ACTIVE ORDERS OVERLAY - HANYA ACTIVE */}
       {activeOrders.length > 0 && (
         <div className="absolute top-12 right-2 z-10 space-y-1.5 max-h-[calc(100%-100px)] overflow-y-auto scrollbar-hide">
           {activeOrders.map((order) => {

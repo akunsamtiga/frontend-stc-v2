@@ -1,4 +1,4 @@
-// app/trading/page.tsx - FULL CODE WITH NOTIFICATIONS
+// app/trading/page.tsx - FIXED VERSION (No completed orders in chart)
 'use client'
 
 import { useEffect, useState, useCallback, memo, useRef } from 'react'
@@ -194,7 +194,7 @@ export default function TradingPage() {
       setAssets(assetsList)
       setBalance(currentBalance)
       setActiveOrders(active)
-      setCompletedOrders(completed.slice(0, 10)) // Keep last 10 completed
+      setCompletedOrders(completed.slice(0, 10)) // Keep last 10 completed for notification only
 
       if (assetsList.length > 0 && !selectedAsset) {
         setSelectedAsset(assetsList[0])
@@ -482,7 +482,6 @@ export default function TradingPage() {
             {selectedAsset ? (
               <TradingChart 
                 activeOrders={activeOrders}
-                completedOrders={completedOrders}
                 currentPrice={currentPrice?.price}
               />
             ) : (
@@ -876,7 +875,7 @@ export default function TradingPage() {
         />
       )}
 
-      {/* ORDER NOTIFICATION - TAMPILKAN WIN/LOST POPUP */}
+      {/* ORDER NOTIFICATION */}
       <OrderNotification 
         order={notificationOrder}
         onClose={() => setNotificationOrder(null)}
