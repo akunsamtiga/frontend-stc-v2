@@ -305,7 +305,7 @@ export default function LandingPage() {
                 />
               </div>
               <div>
-                <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+                <span className="text-xl font-bold bg-clip-text text-white">
                   STC AutoTrade
                 </span>
               </div>
