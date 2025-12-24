@@ -1,6 +1,7 @@
+// app/trading/page.tsx - FULL CODE WITH NOTIFICATIONS
 'use client'
 
-import { useEffect, useState, useCallback, memo } from 'react'
+import { useEffect, useState, useCallback, memo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useAuthStore } from '@/store/auth'
@@ -27,6 +28,7 @@ import {
   ArrowUpFromLine
 } from 'lucide-react'
 import RealtimeMonitor from '@/components/RealtimeMonitor'
+import OrderNotification from '@/components/OrderNotification'
 
 const TradingChart = dynamic(() => import('@/components/TradingChart'), {
   ssr: false,
@@ -94,6 +96,9 @@ export default function TradingPage() {
   const [duration, setDuration] = useState(1)
   const [loading, setLoading] = useState(false)
   const [activeOrders, setActiveOrders] = useState<BinaryOrder[]>([])
+  const [completedOrders, setCompletedOrders] = useState<BinaryOrder[]>([])
+  const [notificationOrder, setNotificationOrder] = useState<BinaryOrder | null>(null)
+  const previousOrdersRef = useRef<Map<string, BinaryOrder>>(new Map())
   const [showAssetMenu, setShowAssetMenu] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showHistorySidebar, setShowHistorySidebar] = useState(false)
@@ -147,16 +152,49 @@ export default function TradingPage() {
       const [assetsRes, balanceRes, ordersRes] = await Promise.all([
         api.getAssets(true),
         api.getCurrentBalance(),
-        api.getOrders('ACTIVE', 1, 50),
+        api.getOrders(undefined, 1, 100), // Get ALL orders
       ])
 
       const assetsList = assetsRes?.data?.assets || assetsRes?.assets || []
       const currentBalance = balanceRes?.data?.balance || balanceRes?.balance || 0
-      const activeOrdersList = ordersRes?.data?.orders || ordersRes?.orders || []
+      const allOrders = ordersRes?.data?.orders || ordersRes?.orders || []
+
+      // Separate active and completed orders
+      const active = allOrders.filter((o: BinaryOrder) => o.status === 'ACTIVE')
+      const completed = allOrders.filter((o: BinaryOrder) => 
+        o.status === 'WON' || o.status === 'LOST'
+      )
+
+      // DETECT ORDER STATUS CHANGES FOR NOTIFICATION
+      active.forEach((order: BinaryOrder) => {
+        previousOrdersRef.current.set(order.id, order)
+      })
+
+      // Check for newly completed orders
+      completed.forEach((order: BinaryOrder) => {
+        const previousOrder = previousOrdersRef.current.get(order.id)
+        
+        // If order was ACTIVE before and now completed, show notification
+        if (previousOrder && previousOrder.status === 'ACTIVE' && 
+            (order.status === 'WON' || order.status === 'LOST')) {
+          console.log('🎯 Order completed! Showing notification:', order)
+          setNotificationOrder(order)
+          
+          // Play sound (optional)
+          if (typeof window !== 'undefined') {
+            const audio = new Audio(order.status === 'WON' ? '/sounds/win.mp3' : '/sounds/lose.mp3')
+            audio.volume = 0.3
+            audio.play().catch(e => console.log('Audio play failed:', e))
+          }
+          
+          previousOrdersRef.current.delete(order.id)
+        }
+      })
 
       setAssets(assetsList)
       setBalance(currentBalance)
-      setActiveOrders(activeOrdersList)
+      setActiveOrders(active)
+      setCompletedOrders(completed.slice(0, 10)) // Keep last 10 completed
 
       if (assetsList.length > 0 && !selectedAsset) {
         setSelectedAsset(assetsList[0])
@@ -166,6 +204,7 @@ export default function TradingPage() {
       setAssets([])
       setBalance(0)
       setActiveOrders([])
+      setCompletedOrders([])
     }
   }, [selectedAsset])
 
@@ -440,19 +479,20 @@ export default function TradingPage() {
           )}
 
           <div className="flex-1 bg-[#0a0e17] relative" style={{ minHeight: '400px' }}>
-          {selectedAsset ? (
-            <TradingChart 
-              activeOrders={activeOrders} 
-              currentPrice={currentPrice?.price}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <div className="text-center text-gray-500">
-                <div className="text-sm">Select an asset to view chart</div>
+            {selectedAsset ? (
+              <TradingChart 
+                activeOrders={activeOrders}
+                completedOrders={completedOrders}
+                currentPrice={currentPrice?.price}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="text-center text-gray-500">
+                  <div className="text-sm">Select an asset to view chart</div>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
         </div>
 
         {/* Trading Panel - Desktop */}
@@ -666,7 +706,7 @@ export default function TradingPage() {
         </div>
       </div>
 
-      {/* Wallet Modal - Slide Up from Bottom */}
+      {/* Wallet Modal */}
       {showWalletModal && (
         <>
           <div 
@@ -675,10 +715,7 @@ export default function TradingPage() {
           />
           <div className="fixed bottom-0 left-0 right-0 bg-[#0f1419] rounded-t-3xl z-50 animate-slide-up border-t border-gray-800/50">
             <div className="p-6">
-              {/* Handle Bar */}
               <div className="w-12 h-1 bg-gray-700 rounded-full mx-auto mb-6"></div>
-
-              {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold">Wallet</h3>
                 <button 
@@ -689,14 +726,12 @@ export default function TradingPage() {
                 </button>
               </div>
 
-              {/* Balance Display */}
               <div className="bg-gradient-to-br from-blue-500/10 to-purple-600/10 border border-blue-500/20 rounded-2xl p-6 mb-6">
                 <div className="text-sm text-gray-400 mb-2">Current Balance</div>
                 <div className="text-4xl font-bold font-mono mb-1">{formatCurrency(balance)}</div>
                 <div className="text-xs text-gray-500">Available for trading</div>
               </div>
 
-              {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-4">
                 <button
                   onClick={() => {
@@ -731,7 +766,6 @@ export default function TradingPage() {
                 </button>
               </div>
 
-              {/* Quick Actions */}
               <div className="mt-4 pt-4 border-t border-gray-800/50">
                 <button
                   onClick={() => {
@@ -841,6 +875,12 @@ export default function TradingPage() {
           onClose={() => setShowHistorySidebar(false)} 
         />
       )}
+
+      {/* ORDER NOTIFICATION - TAMPILKAN WIN/LOST POPUP */}
+      <OrderNotification 
+        order={notificationOrder}
+        onClose={() => setNotificationOrder(null)}
+      />
 
       {process.env.NODE_ENV === 'development' && <RealtimeMonitor />}
     
