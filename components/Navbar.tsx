@@ -49,7 +49,7 @@ export default function Navbar() {
                 src="/stc-logo.png"
                 alt="STC AutoTrade"
                 fill
-                className="object-contain transform group-hover:scale-110 transition-transform"
+                className="object-contain transform group-hover:scale-110 transition-transform rounded-md"
                 priority
               />
             </div>
