@@ -430,16 +430,19 @@ export default function TradingPage() {
           )}
 
           <div className="flex-1 bg-[#0a0e17] relative" style={{ minHeight: '400px' }}>
-            {selectedAsset ? (
-              <TradingChart activeOrders={activeOrders} />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="text-center text-gray-500">
-                  <div className="text-sm">Select an asset to view chart</div>
-                </div>
+          {selectedAsset ? (
+            <TradingChart 
+              activeOrders={activeOrders} 
+              currentPrice={currentPrice?.price}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="text-center text-gray-500">
+                <div className="text-sm">Select an asset to view chart</div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
         </div>
 
         {/* Trading Panel - Desktop */}

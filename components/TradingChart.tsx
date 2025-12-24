@@ -29,9 +29,10 @@ interface OrderMarker {
 
 interface TradingChartProps {
   activeOrders?: BinaryOrder[]
+  currentPrice?: number
 }
 
-export default function TradingChart({ activeOrders = [] }: TradingChartProps) {
+export default function TradingChart({ activeOrders = [], currentPrice }: TradingChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null)
@@ -70,9 +71,11 @@ export default function TradingChart({ activeOrders = [] }: TradingChartProps) {
   useEffect(() => {
     if (!chartRef.current || !candleSeriesRef.current) return
 
-    const currentOrderIds = new Set(activeOrders.map(o => o.id))
+    // HANYA tampilkan marker untuk ACTIVE orders
+    const activeOnly = activeOrders.filter(o => o.status === 'ACTIVE')
+    const currentOrderIds = new Set(activeOnly.map(o => o.id))
     
-    // Remove markers for orders that no longer exist
+    // Remove markers for orders that are no longer ACTIVE
     orderMarkersRef.current.forEach((marker, orderId) => {
       if (!currentOrderIds.has(orderId)) {
         // Remove price line
@@ -83,53 +86,27 @@ export default function TradingChart({ activeOrders = [] }: TradingChartProps) {
       }
     })
 
-    // Add/update markers for current orders
-    activeOrders.forEach(order => {
+    // Clear all markers first
+    if (candleSeriesRef.current) {
+      candleSeriesRef.current.setMarkers([])
+    }
+
+    // Add markers only for ACTIVE orders
+    activeOnly.forEach(order => {
       updateOrderMarker(order)
     })
   }, [activeOrders])
 
   const updateOrderMarker = (order: BinaryOrder) => {
     if (!candleSeriesRef.current || !chartRef.current) return
+    if (order.status !== 'ACTIVE') return // Only show markers for ACTIVE orders
 
     const existingMarker = orderMarkersRef.current.get(order.id)
     
-    // If marker exists and order status changed, update it
-    if (existingMarker) {
-      if (order.status === 'WON' || order.status === 'LOST') {
-        // Remove old price line
-        if (existingMarker.priceLine) {
-          candleSeriesRef.current.removePriceLine(existingMarker.priceLine)
-        }
-        
-        // Add exit marker
-        if (order.exit_price && order.exit_time && !existingMarker.exitMarker) {
-          const exitTime = Math.floor(new Date(order.exit_time).getTime() / 1000) as Time
-          const exitMarker = {
-            time: exitTime,
-            position: 'aboveBar' as const,
-            color: order.status === 'WON' ? '#10b981' : '#ef4444',
-            shape: order.status === 'WON' ? 'arrowUp' as const : 'arrowDown' as const,
-            text: `${order.status} ${formatCurrency(order.profit || 0)}`,
-            size: 2
-          }
-          
-          candleSeriesRef.current.setMarkers([
-            ...candleSeriesRef.current.markers() || [],
-            existingMarker.entryMarker,
-            exitMarker
-          ])
+    // Skip if marker already exists
+    if (existingMarker) return
 
-          orderMarkersRef.current.set(order.id, {
-            ...existingMarker,
-            exitMarker
-          })
-        }
-      }
-      return
-    }
-
-    // Create new marker for new order
+    // Create new marker for new ACTIVE order
     const entryTime = Math.floor(new Date(order.entry_time).getTime() / 1000) as Time
     const isCall = order.direction === 'CALL'
     
@@ -142,18 +119,15 @@ export default function TradingChart({ activeOrders = [] }: TradingChartProps) {
       size: 2
     }
 
-    // Add price line for active orders
-    let priceLine = null
-    if (order.status === 'ACTIVE') {
-      priceLine = candleSeriesRef.current.createPriceLine({
-        price: order.entry_price,
-        color: isCall ? '#10b981' : '#ef4444',
-        lineWidth: 2,
-        lineStyle: 2, // Dashed
-        axisLabelVisible: true,
-        title: `${order.direction} @ ${order.entry_price.toFixed(3)}`
-      })
-    }
+    // Add price line
+    const priceLine = candleSeriesRef.current.createPriceLine({
+      price: order.entry_price,
+      color: isCall ? '#10b981' : '#ef4444',
+      lineWidth: 2,
+      lineStyle: 2, // Dashed
+      axisLabelVisible: true,
+      title: `${order.direction} @ ${order.entry_price.toFixed(3)}`
+    })
 
     // Set marker
     const existingMarkers = candleSeriesRef.current.markers() || []
@@ -554,61 +528,109 @@ export default function TradingChart({ activeOrders = [] }: TradingChartProps) {
         </div>
       </div>
 
-      {/* Active Orders Overlay */}
+      {/* Active Orders Overlay - REALTIME P&L */}
       {activeOrders.length > 0 && (
         <div className="absolute top-12 right-2 z-10 space-y-1 max-h-[calc(100%-100px)] overflow-y-auto scrollbar-hide">
-          {activeOrders.map((order) => (
-            <div 
-              key={order.id}
-              className={`bg-black/40 backdrop-blur-md border rounded-lg px-3 py-2 min-w-[180px] ${
-                order.direction === 'CALL' 
-                  ? 'border-green-500/30' 
-                  : 'border-red-500/30'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-1.5">
-                  {order.direction === 'CALL' ? (
-                    <TrendingUp className="w-3 h-3 text-green-400" />
-                  ) : (
-                    <TrendingDown className="w-3 h-3 text-red-400" />
-                  )}
-                  <span className={`text-xs font-bold ${
-                    order.direction === 'CALL' ? 'text-green-400' : 'text-red-400'
-                  }`}>
-                    {order.direction}
-                  </span>
-                </div>
-                <span className="text-[10px] text-gray-400">{order.asset_name}</span>
-              </div>
-              
-              <div className="text-[10px] text-gray-300 space-y-0.5">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Amount:</span>
-                  <span className="font-mono font-semibold">{formatCurrency(order.amount)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Entry:</span>
-                  <span className="font-mono">{order.entry_price.toFixed(3)}</span>
-                </div>
-                {orderTimers[order.id] && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400 flex items-center gap-1">
-                      <Clock className="w-2.5 h-2.5" />
-                      Time:
-                    </span>
-                    <span className={`font-mono font-bold ${
-                      orderTimers[order.id].includes('Expired') 
-                        ? 'text-red-400' 
-                        : 'text-yellow-400'
+          {activeOrders.filter(o => o.status === 'ACTIVE').map((order) => {
+            // Calculate realtime P&L
+            const current = currentPrice || order.entry_price
+            const isCall = order.direction === 'CALL'
+            
+            // Determine if winning or losing
+            const isWinning = isCall 
+              ? current > order.entry_price 
+              : current < order.entry_price
+            
+            // Calculate price difference
+            const priceDiff = current - order.entry_price
+            const priceChangePercent = ((priceDiff / order.entry_price) * 100)
+            
+            // Calculate potential profit/loss
+            const potentialProfit = order.amount * (order.profitRate / 100)
+            const potentialPayout = isWinning 
+              ? order.amount + potentialProfit 
+              : -order.amount
+            
+            return (
+              <div 
+                key={order.id}
+                className={`bg-black/40 backdrop-blur-md border rounded-lg px-3 py-2 min-w-[200px] transition-all ${
+                  isWinning
+                    ? 'border-green-500/50 shadow-lg shadow-green-500/20' 
+                    : 'border-red-500/50 shadow-lg shadow-red-500/20'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5">
+                    {order.direction === 'CALL' ? (
+                      <TrendingUp className="w-3 h-3 text-green-400" />
+                    ) : (
+                      <TrendingDown className="w-3 h-3 text-red-400" />
+                    )}
+                    <span className={`text-xs font-bold ${
+                      order.direction === 'CALL' ? 'text-green-400' : 'text-red-400'
                     }`}>
-                      {orderTimers[order.id]}
+                      {order.direction}
                     </span>
                   </div>
-                )}
+                  <span className="text-[10px] text-gray-400">{order.asset_name}</span>
+                </div>
+                
+                <div className="text-[10px] text-gray-300 space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Amount:</span>
+                    <span className="font-mono font-semibold">{formatCurrency(order.amount)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Entry:</span>
+                    <span className="font-mono">{order.entry_price.toFixed(3)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Current:</span>
+                    <span className={`font-mono font-bold ${
+                      isWinning ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {current.toFixed(3)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Change:</span>
+                    <span className={`font-mono text-xs font-bold ${
+                      isWinning ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {isWinning ? '+' : ''}{priceChangePercent.toFixed(2)}%
+                    </span>
+                  </div>
+                  {orderTimers[order.id] && (
+                    <div className="flex justify-between items-center pt-1 border-t border-gray-700/50">
+                      <span className="text-gray-400 flex items-center gap-1">
+                        <Clock className="w-2.5 h-2.5" />
+                        Time:
+                      </span>
+                      <span className={`font-mono font-bold ${
+                        orderTimers[order.id].includes('Expired') 
+                          ? 'text-red-400' 
+                          : 'text-yellow-400'
+                      }`}>
+                        {orderTimers[order.id]}
+                      </span>
+                    </div>
+                  )}
+                  {/* REALTIME P&L */}
+                  <div className={`flex justify-between items-center pt-1.5 border-t ${
+                    isWinning ? 'border-green-500/30' : 'border-red-500/30'
+                  }`}>
+                    <span className="text-gray-400 font-medium">P&L:</span>
+                    <span className={`font-mono font-bold text-sm ${
+                      isWinning ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {isWinning ? '+' : ''}{formatCurrency(potentialPayout)}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
