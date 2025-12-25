@@ -1,4 +1,4 @@
-// lib/utils.ts - OPTIMIZED WITH MEMOIZATION
+// lib/utils.ts - FIXED VERSION (No ESM import)
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { format } from 'date-fns'

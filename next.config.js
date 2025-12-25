@@ -24,14 +24,6 @@ const nextConfig = {
   // Experimental features for performance
   experimental: {
     optimizePackageImports: ['lucide-react', 'date-fns'],
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
   },
   
   // Compiler optimizations
@@ -42,13 +34,12 @@ const nextConfig = {
   },
   
   // Production optimizations
-  swcMinify: true,
   compress: true,
   poweredByHeader: false,
   generateEtags: true,
   
   // Webpack optimizations
-  webpack: (config, { isServer, webpack }) => {
+  webpack: (config, { isServer }) => {
     // Optimize bundle size
     if (!isServer) {
       config.optimization.splitChunks = {
@@ -92,25 +83,6 @@ const nextConfig = {
           },
         },
       }
-      
-      // Optimize imports
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        'date-fns': 'date-fns/esm',
-      }
-    }
-    
-    // Bundle analyzer (only in development)
-    if (process.env.ANALYZE === 'true') {
-      const { BundleAnalyzerPlugin } = require('@next/bundle-analyzer')()
-      config.plugins.push(
-        new BundleAnalyzerPlugin({
-          analyzerMode: 'static',
-          reportFilename: isServer
-            ? '../analyze/server.html'
-            : './analyze/client.html',
-        })
-      )
     }
     
     return config
