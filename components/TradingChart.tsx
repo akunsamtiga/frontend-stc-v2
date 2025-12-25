@@ -1,4 +1,4 @@
-// components/TradingChart.tsx - REAL-TIME OPTIMIZED VERSION
+// components/TradingChart.tsx
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
@@ -6,17 +6,24 @@ import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, Time, UTC
 import { useTradingStore } from '@/store/trading'
 import { fetchHistoricalData, subscribeToOHLCUpdates, subscribeToPriceUpdates } from '@/lib/firebase'
 import { BinaryOrder } from '@/types'
-import { formatCurrency, calculateTimeLeft } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import { 
   Maximize2, 
   Minimize2, 
   RefreshCw, 
   AlertCircle,
-  Activity
+  Activity,
+  TrendingUp,
+  TrendingDown
 } from 'lucide-react'
 
 type ChartType = 'line' | 'candle'
 type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
+
+interface TradingChartProps {
+  activeOrders?: BinaryOrder[]
+  currentPrice?: number
+}
 
 interface OrderMarker {
   order: BinaryOrder
@@ -24,19 +31,12 @@ interface OrderMarker {
   entryLine: any
 }
 
-interface TradingChartProps {
-  activeOrders?: BinaryOrder[]
-  currentPrice?: number
-}
-
-// ===================================
-// OPTIMIZED COMPONENTS
-// ===================================
-
+// Optimized Controls Component
 const ChartControls = memo(({ 
   timeframe, 
   chartType, 
   isLoading,
+  isMobile,
   onTimeframeChange,
   onChartTypeChange,
   onFitContent,
@@ -44,17 +44,20 @@ const ChartControls = memo(({
   onToggleFullscreen,
   isFullscreen
 }: any) => (
-  <div className="hidden lg:block absolute top-2 left-2 z-10">
+  <div className={`absolute ${isMobile ? 'top-1 left-1 right-1' : 'top-2 left-2'} z-10`}>
     <div className="flex items-center gap-1.5">
-      <div className="flex items-center gap-0.5 bg-black/15 backdrop-blur-md border border-white/5 rounded-md p-0.5 max-w-[140px] overflow-x-auto scrollbar-hide">
+      {/* Timeframe Selector */}
+      <div className={`flex items-center gap-0.5 bg-black/20 backdrop-blur-md border border-white/10 rounded-md p-0.5 ${
+        isMobile ? 'overflow-x-auto scrollbar-hide max-w-[200px]' : 'max-w-[140px] overflow-x-auto scrollbar-hide'
+      }`}>
         {(['1m', '5m', '15m', '1h', '4h', '1d'] as Timeframe[]).map((tf) => (
           <button
             key={tf}
             onClick={() => onTimeframeChange(tf)}
             disabled={isLoading}
-            className={`px-2 py-0.5 text-xs font-semibold rounded transition-all flex-shrink-0 ${
+            className={`${isMobile ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs'} font-semibold rounded transition-all flex-shrink-0 ${
               timeframe === tf
-                ? 'bg-blue-500/70 text-white shadow-sm backdrop-blur-sm'
+                ? 'bg-blue-500/80 text-white shadow-sm backdrop-blur-sm'
                 : 'text-gray-300 hover:text-white hover:bg-white/10'
             } disabled:opacity-50`}
           >
@@ -63,54 +66,60 @@ const ChartControls = memo(({
         ))}
       </div>
 
-      <div className="flex items-center gap-0.5 bg-black/15 backdrop-blur-md border border-white/5 rounded-md p-0.5">
+      {/* Chart Type Selector */}
+      <div className="flex items-center gap-0.5 bg-black/20 backdrop-blur-md border border-white/10 rounded-md p-0.5">
         <button
           onClick={() => onChartTypeChange('candle')}
           disabled={isLoading}
-          className={`px-2 py-0.5 text-xs font-semibold rounded transition-all ${
+          className={`${isMobile ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs'} font-semibold rounded transition-all ${
             chartType === 'candle'
-              ? 'bg-blue-500/70 text-white shadow-sm backdrop-blur-sm'
+              ? 'bg-blue-500/80 text-white shadow-sm backdrop-blur-sm'
               : 'text-gray-300 hover:text-white hover:bg-white/10'
           }`}
         >
-          Candle
+          {isMobile ? <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0v3M8 13v3M2 7h3M11 7h3M4 4h8v8H4z"/></svg> : 'Candle'}
         </button>
         <button
           onClick={() => onChartTypeChange('line')}
           disabled={isLoading}
-          className={`px-2 py-0.5 text-xs font-semibold rounded transition-all ${
+          className={`${isMobile ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs'} font-semibold rounded transition-all ${
             chartType === 'line'
-              ? 'bg-blue-500/70 text-white shadow-sm backdrop-blur-sm'
+              ? 'bg-blue-500/80 text-white shadow-sm backdrop-blur-sm'
               : 'text-gray-300 hover:text-white hover:bg-white/10'
           }`}
         >
-          Line
+          {isMobile ? <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4"/></svg> : 'Line'}
         </button>
       </div>
 
-      <div className="flex items-center gap-0.5 bg-black/15 backdrop-blur-md border border-white/5 rounded-md p-0.5">
-        <button
-          onClick={onFitContent}
-          className="px-2 py-0.5 text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
-          title="Fit content"
-        >
-          Fit
-        </button>
+      {/* Action Buttons */}
+      <div className="flex items-center gap-0.5 bg-black/20 backdrop-blur-md border border-white/10 rounded-md p-0.5">
+        {!isMobile && (
+          <button
+            onClick={onFitContent}
+            className="px-2 py-0.5 text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
+            title="Fit content"
+          >
+            Fit
+          </button>
+        )}
         <button
           onClick={onRefresh}
           disabled={isLoading}
-          className="p-1 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-50"
+          className={`${isMobile ? 'p-0.5' : 'p-1'} text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-50`}
           title="Refresh"
         >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} ${isLoading ? 'animate-spin' : ''}`} />
         </button>
-        <button
-          onClick={onToggleFullscreen}
-          className="p-1 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
-          title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-        >
-          {isFullscreen ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
-        </button>
+        {!isMobile && (
+          <button
+            onClick={onToggleFullscreen}
+            className="p-1 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
+            title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+          >
+            {isFullscreen ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+          </button>
+        )}
       </div>
     </div>
   </div>
@@ -118,10 +127,24 @@ const ChartControls = memo(({
 
 ChartControls.displayName = 'ChartControls'
 
-// ===================================
-// MAIN CHART COMPONENT
-// ===================================
+// Loading Skeleton
+const ChartSkeleton = () => (
+  <div className="w-full h-full flex items-center justify-center bg-[#0a0e17]">
+    <div className="text-center space-y-4">
+      <div className="w-16 h-16 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+      <div className="space-y-2">
+        <div className="text-sm text-gray-400 animate-pulse">Loading chart data...</div>
+        <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+        </div>
+      </div>
+    </div>
+  </div>
+)
 
+// Main Chart Component
 const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -129,68 +152,62 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   const lineSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   const currentPriceLineRef = useRef<any>(null)
   
-  // Unsubscribe functions
   const unsubscribeOHLCRef = useRef<(() => void) | null>(null)
   const unsubscribePriceRef = useRef<(() => void) | null>(null)
   
   const mountedRef = useRef(false)
   const orderMarkersRef = useRef<Map<string, OrderMarker>>(new Map())
-  const lastBarTimestampRef = useRef<number>(0)
   const rafIdRef = useRef<number | null>(null)
   
   const { selectedAsset } = useTradingStore()
 
   const [chartType, setChartType] = useState<ChartType>('candle')
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
-  const [lastPrice, setLastPrice] = useState<number | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
 
-  // ===================================
-  // REAL-TIME PRICE LINE UPDATE
-  // ===================================
-  
+  // Detect mobile
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Update current price line
   const updateCurrentPriceLine = useCallback((price: number) => {
     if (!candleSeriesRef.current || !chartRef.current) return
     
-    // Cancel previous RAF
     if (rafIdRef.current) {
       cancelAnimationFrame(rafIdRef.current)
     }
     
-    // Use RAF for smooth updates
     rafIdRef.current = requestAnimationFrame(() => {
       try {
-        // Remove old line
         if (currentPriceLineRef.current && candleSeriesRef.current) {
           candleSeriesRef.current.removePriceLine(currentPriceLineRef.current)
         }
         
-        // Add new line
         if (candleSeriesRef.current) {
           currentPriceLineRef.current = candleSeriesRef.current.createPriceLine({
             price: price,
-            color: '#3b82f6',
-            lineWidth: 2,
-            lineStyle: 0,
+            color: 'rgba(59, 130, 246, 0.4)',
+            lineWidth: 1,
+            lineStyle: 2,
             axisLabelVisible: true,
-            title: 'Current'
+            title: ''
           })
         }
-        
-        setLastPrice(price)
       } catch (error) {
         console.error('Price line update error:', error)
       }
     })
   }, [])
 
-  // ===================================
-  // ORDER MARKERS
-  // ===================================
-  
+  // Update order markers
   const updateOrderMarker = useCallback((order: BinaryOrder) => {
     if (!candleSeriesRef.current || !chartRef.current) return
 
@@ -200,10 +217,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     const entryTime = Math.floor(new Date(order.entry_time).getTime() / 1000) as Time
     const isCall = order.direction === 'CALL'
 
-    if (existingMarker) {
-      if (existingMarker.entryLine && candleSeriesRef.current) {
-        candleSeriesRef.current.removePriceLine(existingMarker.entryLine)
-      }
+    if (existingMarker?.entryLine && candleSeriesRef.current) {
+      candleSeriesRef.current.removePriceLine(existingMarker.entryLine)
     }
 
     const entryMarker = {
@@ -221,7 +236,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       lineWidth: 2,
       lineStyle: 2,
       axisLabelVisible: true,
-      title: `${order.direction} Entry`
+      title: `${order.direction}`
     })
 
     const existingMarkers = candleSeriesRef.current.markers() || []
@@ -234,16 +249,12 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     })
   }, [])
 
-  // ===================================
-  // UPDATE ORDERS
-  // ===================================
-  
+  // Update orders
   useEffect(() => {
     if (!chartRef.current || !candleSeriesRef.current) return
 
     const currentOrderIds = new Set(activeOrders.map(o => o.id))
     
-    // Remove old markers
     orderMarkersRef.current.forEach((marker, orderId) => {
       if (!currentOrderIds.has(orderId)) {
         if (marker.entryLine && candleSeriesRef.current) {
@@ -253,7 +264,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       }
     })
 
-    // Update markers
     if (candleSeriesRef.current) {
       candleSeriesRef.current.setMarkers([])
     }
@@ -263,20 +273,14 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     })
   }, [activeOrders, updateOrderMarker])
 
-  // ===================================
-  // UPDATE CURRENT PRICE LINE
-  // ===================================
-  
+  // Update current price
   useEffect(() => {
     if (currentPrice && isInitialized) {
       updateCurrentPriceLine(currentPrice)
     }
   }, [currentPrice, isInitialized, updateCurrentPriceLine])
 
-  // ===================================
-  // INITIALIZE CHART
-  // ===================================
-  
+  // Initialize chart
   useEffect(() => {
     if (mountedRef.current) return
     
@@ -297,11 +301,29 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           textColor: '#9ca3af',
         },
         grid: {
-          vertLines: { color: 'rgba(255, 255, 255, 0.1)' },
-          horzLines: { color: 'rgba(255, 255, 255, 0.1)' },
+          vertLines: { 
+            color: 'rgba(255, 255, 255, 0.15)',
+            style: 0,
+            visible: true
+          },
+          horzLines: { 
+            color: 'rgba(255, 255, 255, 0.15)',
+            style: 0,
+            visible: true
+          },
         },
         crosshair: {
           mode: CrosshairMode.Normal,
+          vertLine: {
+            width: 1,
+            color: 'rgba(255, 255, 255, 0.3)',
+            style: 3,
+          },
+          horzLine: {
+            width: 1,
+            color: 'rgba(255, 255, 255, 0.3)',
+            style: 3,
+          },
         },
         rightPriceScale: {
           borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -349,7 +371,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       return () => {
         window.removeEventListener('resize', handleResize)
         
-        // Cleanup
         if (unsubscribeOHLCRef.current) {
           unsubscribeOHLCRef.current()
           unsubscribeOHLCRef.current = null
@@ -391,10 +412,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [])
 
-  // ===================================
-  // CHART TYPE CHANGE
-  // ===================================
-  
+  // Chart type change
   useEffect(() => {
     if (!candleSeriesRef.current || !lineSeriesRef.current) return
 
@@ -407,10 +425,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [chartType])
 
-  // ===================================
-  // LOAD DATA & SUBSCRIBE
-  // ===================================
-  
+  // Load data
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
       return
@@ -422,7 +437,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       setIsLoading(true)
       setError(null)
 
-      // Cleanup previous subscriptions
       if (unsubscribeOHLCRef.current) {
         unsubscribeOHLCRef.current()
         unsubscribeOHLCRef.current = null
@@ -437,13 +451,12 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         const pathParts = selectedAsset.realtimeDbPath?.split('/') || []
         const assetPath = pathParts.slice(0, -1).join('/') || `/${selectedAsset.symbol.toLowerCase()}`
 
-        // Load historical data
         const data = await fetchHistoricalData(assetPath, timeframe)
 
         if (isCancelled) return
 
         if (!data || data.length === 0) {
-          setError('No data available. Check simulator.')
+          setError('No data available')
           setIsLoading(false)
           return
         }
@@ -470,16 +483,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           if (chartRef.current) {
             chartRef.current.timeScale().fitContent()
           }
-          
-          // Store last bar timestamp
-          if (data.length > 0) {
-            lastBarTimestampRef.current = data[data.length - 1].timestamp
-          }
         }
 
         setIsLoading(false)
 
-        // ✅ SUBSCRIBE TO OHLC UPDATES
         unsubscribeOHLCRef.current = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
           if (isCancelled || !candleSeriesRef.current || !lineSeriesRef.current) return
 
@@ -498,12 +505,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
           candleSeriesRef.current.update(candleUpdate)
           lineSeriesRef.current.update(lineUpdate)
-          
-          // Update last bar timestamp
-          lastBarTimestampRef.current = newBar.timestamp
         })
         
-        // ✅ SUBSCRIBE TO REAL-TIME PRICE (for current price line)
         if (selectedAsset.realtimeDbPath) {
           unsubscribePriceRef.current = subscribeToPriceUpdates(
             selectedAsset.realtimeDbPath, 
@@ -537,10 +540,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [selectedAsset?.id, timeframe, isInitialized, updateCurrentPriceLine])
 
-  // ===================================
-  // HANDLERS
-  // ===================================
-  
   const handleRefresh = useCallback(() => {
     if (!selectedAsset) return
     
@@ -561,18 +560,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     setIsFullscreen(prev => !prev)
   }, [])
 
-  const handleTimeframeChange = useCallback((tf: Timeframe) => {
-    setTimeframe(tf)
-  }, [])
-
-  const handleChartTypeChange = useCallback((type: ChartType) => {
-    setChartType(type)
-  }, [])
-
-  // ===================================
-  // RENDER
-  // ===================================
-  
   if (!selectedAsset) {
     return (
       <div className="h-full flex items-center justify-center bg-[#0a0e17]">
@@ -590,58 +577,28 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         timeframe={timeframe}
         chartType={chartType}
         isLoading={isLoading}
-        onTimeframeChange={handleTimeframeChange}
-        onChartTypeChange={handleChartTypeChange}
+        isMobile={isMobile}
+        onTimeframeChange={setTimeframe}
+        onChartTypeChange={setChartType}
         onFitContent={handleFitContent}
         onRefresh={handleRefresh}
         onToggleFullscreen={toggleFullscreen}
         isFullscreen={isFullscreen}
       />
 
-      {/* Chart Info */}
-      <div className="absolute top-2 right-2 z-10 bg-black/15 backdrop-blur-md border border-white/5 rounded-md px-2 py-1">
-        <div className="text-[10px] text-gray-300 flex items-center gap-1.5">
-          <span className="font-semibold">{selectedAsset.symbol}</span>
-          <span className="text-gray-500">•</span>
-          <span className="text-gray-400">{timeframe}</span>
-          {activeOrders.length > 0 && (
-            <>
-              <span className="text-gray-500">•</span>
-              <span className="text-blue-400 font-semibold">{activeOrders.length} Active</span>
-            </>
-          )}
-          {lastPrice && (
-            <>
-              <span className="text-gray-500">•</span>
-              <span className="text-green-400 font-mono font-semibold">{lastPrice.toFixed(3)}</span>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Chart Container */}
       <div 
         ref={chartContainerRef} 
         className="w-full h-full bg-[#0a0e17]"
         style={{ minHeight: '400px' }}
       />
 
-      {/* Loading Overlay */}
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#0a0e17]/90 z-20">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-3"></div>
-            <div className="text-sm text-gray-400">Loading {timeframe} data...</div>
-          </div>
-        </div>
-      )}
+      {isLoading && <ChartSkeleton />}
 
-      {/* Error Overlay */}
       {!isLoading && error && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#0a0e17]/90 z-20">
           <div className="text-center max-w-md px-6">
             <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3 opacity-30" />
-            <div className="text-sm font-medium text-red-400 mb-2">Failed to Load Chart</div>
+            <div className="text-sm font-medium text-red-400 mb-2">Failed to Load</div>
             <div className="text-xs text-gray-500 mb-4">{error}</div>
             <button 
               onClick={handleRefresh}

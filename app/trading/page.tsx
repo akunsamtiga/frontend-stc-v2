@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import { Asset, BinaryOrder } from '@/types'
 import { formatCurrency, DURATIONS } from '@/lib/utils'
 import dynamic from 'next/dynamic'
+import ActiveOrderTicker from '@/components/ActiveOrderTicker'
 import { 
   TrendingUp,
   TrendingDown,
@@ -885,6 +886,8 @@ export default function TradingPage() {
         order={notificationOrder}
         onClose={() => setNotificationOrder(null)}
       />
+
+      <ActiveOrderTicker orders={activeOrders} />
 
       {process.env.NODE_ENV === 'development' && <RealtimeMonitor />}
     
