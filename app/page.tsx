@@ -24,12 +24,11 @@ import {
   Sparkles,
   Activity,
   DollarSign,
-  ChevronRight,
-  CheckCircle,
-  Quote
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 
-// Live Trading Ticker Component
+// Live Trading Ticker Component with more data
 const LiveTradingTicker = () => {
   const [trades, setTrades] = useState([
     { user: 'Ahmad***', asset: 'EUR/USD', profit: 8500, time: '2 detik lalu' },
@@ -40,11 +39,13 @@ const LiveTradingTicker = () => {
   useEffect(() => {
     const names = [
       'Ahmad***', 'Siti***', 'Budi***', 'Rina***', 'Deni***', 'Maya***',
-      'Andi***', 'Fitri***', 'Joko***', 'Dewi***', 'Agus***', 'Lina***'
+      'Andi***', 'Fitri***', 'Joko***', 'Dewi***', 'Agus***', 'Lina***',
+      'Rudi***', 'Nur***', 'Hadi***', 'Sari***', 'Yudi***', 'Tini***'
     ]
     const assets = [
       'EUR/USD', 'BTC/USD', 'IDX_STC', 'GBP/JPY', 'XAU/USD',
-      'USD/JPY', 'ETH/USD', 'AUD/USD'
+      'USD/JPY', 'ETH/USD', 'AUD/USD', 'NZD/USD', 'USD/CHF',
+      'EUR/GBP', 'BTC/ETH', 'LTC/USD', 'XRP/USD', 'DOT/USD'
     ]
     
     const interval = setInterval(() => {
@@ -54,6 +55,7 @@ const LiveTradingTicker = () => {
         profit: Math.floor(Math.random() * 20000) + 2500,
         time: 'baru saja'
       }
+
       setTrades(prev => [newTrade, ...prev.slice(0, 2)])
     }, 3500)
 
@@ -61,19 +63,20 @@ const LiveTradingTicker = () => {
   }, [])
 
   return (
-    <div className="hidden lg:block absolute top-24 right-8 w-72 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl z-10">
+    <div className="hidden lg:block absolute top-24 right-8 w-72 bg-[#0a0e17]/95 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-4 shadow-2xl z-10 animate-slide-in-right">
       <div className="flex items-center gap-2 mb-3">
         <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-        <span className="text-xs font-medium text-gray-300">Live Trades</span>
+        <span className="text-xs font-semibold text-gray-300">Transaksi Live</span>
       </div>
       <div className="space-y-2">
         {trades.map((trade, i) => (
           <div 
             key={i}
-            className="flex items-center justify-between p-2 bg-white/5 rounded-lg"
+            className="flex items-center justify-between p-2 bg-green-500/5 border border-green-500/20 rounded-lg animate-fade-in-up"
+            style={{ animationDelay: `${i * 100}ms` }}
           >
             <div className="flex-1">
-              <div className="text-xs font-medium">{trade.user}</div>
+              <div className="text-xs font-medium text-gray-200">{trade.user}</div>
               <div className="text-[10px] text-gray-400">{trade.asset}</div>
             </div>
             <div className="text-right">
@@ -96,7 +99,10 @@ const AnimatedTradingChart = () => {
     setBars(initialBars)
 
     const interval = setInterval(() => {
-      setBars(prev => [...prev.slice(1), Math.random() * 80 + 20])
+      setBars(prev => {
+        const newBars = [...prev.slice(1), Math.random() * 80 + 20]
+        return newBars
+      })
     }, 1000)
 
     return () => clearInterval(interval)
@@ -107,7 +113,7 @@ const AnimatedTradingChart = () => {
       {bars.map((height, i) => (
         <div
           key={i}
-          className="flex-1 bg-gradient-to-t from-emerald-500/50 to-blue-500/50 rounded-t transition-all duration-1000"
+          className="flex-1 bg-gradient-to-t from-emerald-500/50 to-blue-500/50 rounded-t transition-all duration-1000 ease-out"
           style={{ 
             height: `${height}%`,
             opacity: i < 5 ? 0.3 : 1
@@ -118,6 +124,23 @@ const AnimatedTradingChart = () => {
   )
 }
 
+// Floating Price Cards
+const FloatingPriceCard = ({ symbol, price, change, delay, style }: any) => (
+  <div 
+    className="hidden lg:block absolute bg-[#0a0e17]/95 backdrop-blur-xl border border-gray-800/50 rounded-xl p-3 shadow-2xl animate-float"
+    style={{ animationDelay: `${delay}s`, ...style }}
+  >
+    <div className="text-xs text-gray-400 mb-1">{symbol}</div>
+    <div className="text-lg font-bold font-mono mb-1">{price}</div>
+    <div className={`text-xs font-semibold flex items-center gap-1 ${
+      change > 0 ? 'text-green-400' : 'text-red-400'
+    }`}>
+      {change > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+      {change > 0 ? '+' : ''}{change}%
+    </div>
+  </div>
+)
+
 export default function LandingPage() {
   const router = useRouter()
   const { user, setAuth } = useAuthStore()
@@ -127,18 +150,71 @@ export default function LandingPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [activeTestimonial, setActiveTestimonial] = useState(0)
+  const [activeFeature, setActiveFeature] = useState(0)
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+const [touchStart, setTouchStart] = useState(0)
+const [touchEnd, setTouchEnd] = useState(0)
 
   useEffect(() => {
-    if (user) router.push('/trading')
+    if (user) {
+      router.push('/trading')
+    }
   }, [user, router])
 
-  // Auto carousel
+  // Auto carousel for testimonials
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveTestimonial((prev) => (prev + 1) % 3)
     }, 5000)
     return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+  const interval = setInterval(() => {
+    setActiveFeature((prev) => (prev + 1) % features.length)
+  }, 4000)
+  return () => clearInterval(interval)
+}, [])
+
+  // Mouse parallax effect
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({
+        x: (e.clientX / window.innerWidth) * 20,
+        y: (e.clientY / window.innerHeight) * 20
+      })
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [])
+
+  // Touch handlers for swipe
+const handleTouchStart = (e: React.TouchEvent) => {
+  setTouchStart(e.targetTouches[0].clientX)
+}
+
+const handleTouchMove = (e: React.TouchEvent) => {
+  setTouchEnd(e.targetTouches[0].clientX)
+}
+
+const handleTouchEnd = () => {
+  if (!touchStart || !touchEnd) return
+  
+  const distance = touchStart - touchEnd
+  const isLeftSwipe = distance > 50
+  const isRightSwipe = distance < -50
+
+  if (isLeftSwipe) {
+    setActiveFeature((prev) => (prev + 1) % features.length)
+  }
+  if (isRightSwipe) {
+    setActiveFeature((prev) => (prev === 0 ? features.length - 1 : prev - 1))
+  }
+
+  setTouchStart(0)
+  setTouchEnd(0)
+}
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -159,6 +235,7 @@ export default function LandingPage() {
 
       setAuth(userData, token)
       api.setToken(token)
+
       toast.success(response.message || 'Login berhasil!')
       router.replace('/trading')
     } catch (error: any) {
@@ -167,6 +244,7 @@ export default function LandingPage() {
         error.response?.data?.message ||
         error.message || 
         'Autentikasi gagal'
+      
       toast.error(errorMessage)
     } finally {
       setLoading(false)
@@ -184,45 +262,70 @@ export default function LandingPage() {
     {
       icon: Zap,
       title: 'Eksekusi Kilat',
-      description: 'Order diproses dalam milidetik tanpa delay'
+      description: 'Eksekusi order dalam milidetik tanpa lag',
+      gradient: 'from-yellow-500/20 to-orange-500/20',
+      color: 'text-yellow-400',
+      bgColor: 'bg-yellow-500/10',
+      borderColor: 'border-yellow-500/30'
     },
     {
       icon: Shield,
-      title: 'Keamanan Terjamin',
-      description: 'Enkripsi tingkat bank untuk semua transaksi'
+      title: 'Keamanan Maksimal',
+      description: 'Enkripsi tingkat militer melindungi dana Anda',
+      gradient: 'from-blue-500/20 to-cyan-500/20',
+      color: 'text-blue-400',
+      bgColor: 'bg-blue-500/10',
+      borderColor: 'border-blue-500/30'
     },
     {
       icon: BarChart3,
       title: 'Analisis Real-Time',
-      description: 'Chart profesional dengan data pasar terkini'
+      description: 'Chart canggih dan wawasan pasar terkini',
+      gradient: 'from-purple-500/20 to-pink-500/20',
+      color: 'text-purple-400',
+      bgColor: 'bg-purple-500/10',
+      borderColor: 'border-purple-500/30'
     },
     {
       icon: Award,
       title: 'Profit Hingga 95%',
-      description: 'ROI terbaik di industri binary options'
+      description: 'Keuntungan terbaik di industri trading',
+      gradient: 'from-green-500/20 to-emerald-500/20',
+      color: 'text-green-400',
+      bgColor: 'bg-green-500/10',
+      borderColor: 'border-green-500/30'
     },
   ]
 
   const testimonials = [
     {
       name: 'Ahmad Rizki',
-      role: 'Professional Trader',
-      content: 'Platform terbaik yang pernah saya gunakan. Eksekusi cepat dan profit konsisten.',
+      role: 'Trader Profesional',
+      content: 'Platform yang mengubah permainan! Cepat, handal, dan menguntungkan. Saya konsisten profit selama 6 bulan.',
+      rating: 5,
+      avatar: '👨‍💼',
       profit: '+285%',
+      location: 'Jakarta',
       duration: '6 bulan'
     },
     {
       name: 'Siti Nurhaliza',
-      role: 'Part-time Trader',
-      content: 'Interface yang mudah dipahami, cocok untuk pemula seperti saya. Support sangat membantu.',
+      role: 'Trader Paruh Waktu',
+      content: 'Sebagai pemula, tampilan interface memudahkan trading. Dukungan hebat dan materi edukasi membantu saya sukses!',
+      rating: 5,
+      avatar: '👩‍💻',
       profit: '+142%',
+      location: 'Surabaya',
       duration: '3 bulan'
     },
     {
       name: 'Budi Santoso',
-      role: 'Experienced Investor',
-      content: 'Kecepatan eksekusi dan reliability platform ini tidak tertandingi. Highly recommended!',
+      role: 'Investor Berpengalaman',
+      content: 'Platform trading terbaik yang pernah saya gunakan. Kecepatan, keamanan, dan tingkat profit tak tertandingi.',
+      rating: 5,
+      avatar: '👨‍🎓',
       profit: '+378%',
+      location: 'Bandung',
       duration: '1 tahun'
     },
   ]
@@ -230,79 +333,132 @@ export default function LandingPage() {
   if (user) return null
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] text-white">
+    <div className="min-h-screen bg-[#0a0e17] text-white overflow-hidden">
+      {/* Animated Background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div 
+          className="absolute top-1/4 -left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] animate-pulse-slow"
+          style={{
+            transform: `translate(${mousePosition.x}px, ${mousePosition.y}px)`
+          }}
+        />
+        <div 
+          className="absolute bottom-1/4 -right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] animate-pulse-slow"
+          style={{
+            transform: `translate(${-mousePosition.x}px, ${-mousePosition.y}px)`,
+            animationDelay: '1s'
+          }}
+        />
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
+      </div>
+
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0e17]/80 backdrop-blur-xl border-b border-white/5">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0e17]/80 backdrop-blur-xl border-b border-gray-800/50">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-20">
-            <div className="flex items-center gap-3">
-              <div className="relative w-10 h-10">
-                <Image src="/stc-logo.png" alt="STC" fill className="object-contain rounded-md" priority />
+            <div className="flex items-center gap-3 group cursor-pointer">
+              <div className="relative w-10 h-10 flex-shrink-0">
+                <Image
+                  src="/stc-logo.png"
+                  alt="STC AutoTrade"
+                  fill
+                  className="object-contain transform group-hover:scale-110 transition-transform rounded-md"
+                  priority
+                />
               </div>
-              <span className="text-xl font-bold">STC AutoTrade</span>
+              <div>
+                <span className="text-xl font-bold text-white">
+                  STC AutoTrade
+                </span>
+              </div>
             </div>
 
             <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-sm text-gray-400 hover:text-white transition-colors">Fitur</a>
-              <a href="#testimonials" className="text-sm text-gray-400 hover:text-white transition-colors">Testimoni</a>
+              <a href="#features" className="text-sm text-gray-400 hover:text-white transition-colors relative group">
+                Fitur
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
+              </a>
+              <a href="#how-it-works" className="text-sm text-gray-400 hover:text-white transition-colors relative group">
+                Cara Kerja
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
+              </a>
+              <a href="#testimonials" className="text-sm text-gray-400 hover:text-white transition-colors relative group">
+                Testimoni
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
+              </a>
             </div>
 
-            <button
-              onClick={() => {
-                setIsLogin(true)
-                setShowAuthModal(true)
-              }}
-              className="px-6 py-2.5 bg-white text-[#0a0e17] hover:bg-gray-100 rounded-lg text-sm font-semibold transition-colors"
-            >
-              Masuk
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  setIsLogin(true)
+                  setShowAuthModal(true)
+                }}
+                className="px-6 py-2.5 bg-[#1e293b] hover:bg-[#334155] rounded-lg text-sm font-semibold text-white shadow-lg transition-colors border border-gray-700"
+              >
+                Masuk
+              </button>
+            </div>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32">
-        <div className="container mx-auto px-4 sm:px-6">
+      <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32 overflow-hidden">
+        <div className="container mx-auto px-4 sm:px-6 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full backdrop-blur-sm">
-                <Sparkles className="w-4 h-4 text-blue-400" />
-                <span className="text-sm">Dipercaya 50.000+ trader</span>
+            {/* Left Content */}
+            <div className="space-y-8 animate-fade-in-up">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500/20 to-emerald-500/20 border border-blue-500/30 rounded-full backdrop-blur-sm animate-slide-in-left">
+                <Sparkles className="w-4 h-4 text-blue-400 animate-spin-slow" />
+                <span className="text-sm font-medium">Dipercaya 50.000+ trader</span>
               </div>
 
               <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold leading-tight">
-                Trading Binary Option
-                <span className="block mt-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
-                  Profesional
+                Trading Binary Option dengan
+                <span className="block mt-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-emerald-400 to-cyan-400 animate-gradient">
+                  Kecepatan Kilat
                 </span>
               </h1>
 
               <p className="text-lg sm:text-xl text-gray-400 leading-relaxed">
-                Platform trading dengan eksekusi kilat, profit hingga 95%, dan keamanan maksimal.
+                Eksekusi order dalam <span className="text-emerald-400 font-semibold">milidetik</span>, 
+                dapatkan profit hingga <span className="text-blue-400 font-semibold">95%</span>, 
+                dan trading dengan <span className="text-cyan-400 font-semibold">percaya diri 24/7</span>.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-row gap-3 sm:gap-4">
                 <button
                   onClick={() => {
                     setIsLogin(true)
                     setShowAuthModal(true)
                   }}
-                  className="group px-8 py-4 bg-white text-[#0a0e17] hover:bg-gray-100 rounded-xl text-lg font-semibold transition-all"
+                  className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-[#1e293b] hover:bg-[#334155] rounded-xl text-sm sm:text-lg font-semibold text-white transition-colors border border-gray-700 shadow-lg"
                 >
                   <span className="flex items-center justify-center gap-2">
-                    Mulai Trading
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    <span className="hidden sm:inline">Masuk untuk Trading</span>
+                    <span className="sm:hidden">Masuk</span>
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
                   </span>
                 </button>
 
-                <button className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-lg font-semibold transition-all">
-                  Lihat Demo
+                <button className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-white/5 hover:bg-white/10 border border-gray-700 hover:border-gray-600 rounded-xl text-sm sm:text-lg font-semibold transition-all backdrop-blur-sm">
+                  <span className="flex items-center justify-center gap-2">
+                    <Activity className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
+                    <span className="hidden sm:inline">Lihat Demo</span>
+                    <span className="sm:hidden">Demo</span>
+                  </span>
                 </button>
               </div>
 
+              {/* Stats Row */}
               <div className="grid grid-cols-4 gap-4 pt-8">
                 {stats.map((stat, index) => (
-                  <div key={index} className="text-center">
+                  <div 
+                    key={index} 
+                    className="text-center transform hover:scale-110 transition-transform cursor-default"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
                     <stat.icon className="w-6 h-6 text-blue-400 mx-auto mb-2" />
                     <div className="text-xl font-bold">{stat.value}</div>
                     <div className="text-xs text-gray-500">{stat.label}</div>
@@ -311,12 +467,37 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="relative">
+            {/* Right - Trading Platform Preview */}
+            <div className="relative animate-fade-in-right">
               <LiveTradingTicker />
-              <div className="relative bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl">
+
+              <FloatingPriceCard 
+                symbol="EUR/USD" 
+                price="1.0856" 
+                change={2.3} 
+                delay={0}
+                style={{ top: '10%', left: '-10%' }}
+              />
+              <FloatingPriceCard 
+                symbol="BTC/USD" 
+                price="68,342" 
+                change={-1.2} 
+                delay={0.5}
+                style={{ top: '60%', left: '-5%' }}
+              />
+              <FloatingPriceCard 
+                symbol="IDX_STC" 
+                price="7,289" 
+                change={0.8} 
+                delay={1}
+                style={{ bottom: '10%', right: '-10%' }}
+              />
+
+              {/* Main Trading Interface */}
+              <div className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl p-6 shadow-2xl backdrop-blur-xl transform hover:scale-105 transition-transform duration-500">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-blue-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30">
                       <TrendingUp className="w-6 h-6 text-emerald-400" />
                     </div>
                     <div>
@@ -329,21 +510,30 @@ export default function LandingPage() {
                       <TrendingUp className="w-5 h-5" />
                       +2.3%
                     </div>
+                    <div className="text-xs text-gray-500 flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+                      Live
+                    </div>
                   </div>
                 </div>
 
-                <div className="bg-[#0a0e17] rounded-2xl mb-6 overflow-hidden">
+                <div className="bg-[#0a0e17] rounded-2xl mb-6 overflow-hidden border border-gray-800/50">
                   <AnimatedTradingChart />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <button className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 rounded-xl p-6 transition-all">
-                    <TrendingUp className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-                    <div className="font-bold text-lg text-emerald-400">BUY</div>
+                  <button className="group relative bg-gradient-to-br from-emerald-500/20 to-green-500/20 hover:from-emerald-500/30 hover:to-green-500/30 border border-emerald-500/30 rounded-xl p-6 transition-all overflow-hidden">
+                    <div className="absolute inset-0 bg-emerald-500/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
+                    <TrendingUp className="w-8 h-8 text-emerald-400 mx-auto mb-2 relative z-10 group-hover:scale-110 transition-transform" />
+                    <div className="font-bold text-lg text-emerald-400 relative z-10">BELI</div>
+                    <div className="text-xs text-gray-400 relative z-10">Profit +95%</div>
                   </button>
-                  <button className="bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-xl p-6 transition-all">
-                    <TrendingDown className="w-8 h-8 text-red-400 mx-auto mb-2" />
-                    <div className="font-bold text-lg text-red-400">SELL</div>
+
+                  <button className="group relative bg-gradient-to-br from-red-500/20 to-pink-500/20 hover:from-red-500/30 hover:to-pink-500/30 border border-red-500/30 rounded-xl p-6 transition-all overflow-hidden">
+                    <div className="absolute inset-0 bg-red-500/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
+                    <TrendingDown className="w-8 h-8 text-red-400 mx-auto mb-2 relative z-10 group-hover:scale-110 transition-transform" />
+                    <div className="font-bold text-lg text-red-400 relative z-10">JUAL</div>
+                    <div className="text-xs text-gray-400 relative z-10">Profit +95%</div>
                   </button>
                 </div>
               </div>
@@ -352,211 +542,412 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ========================================= */}
-      {/* FEATURES SECTION - MINIMALIST CLEAN */}
-      {/* ========================================= */}
+      {/* Features Section */}
       <section id="features" className="py-20 sm:py-32 relative">
         <div className="container mx-auto px-4 sm:px-6">
-          {/* Section Header */}
-          <div className="text-center mb-16 max-w-2xl mx-auto">
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-              Mengapa STC AutoTrade?
+          <div className="text-center mb-16 animate-fade-in-up">
+            <h2 className="text-4xl sm:text-5xl font-bold mb-6">
+              Mengapa Memilih <span className="text-white">STC AutoTrade</span>?
             </h2>
-            <p className="text-lg text-gray-400">
-              Platform trading dengan teknologi terdepan dan pengalaman pengguna terbaik
+            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+              Rasakan trading yang direvolusi dengan teknologi canggih
             </p>
           </div>
 
-          {/* Features Grid - Clean & Minimal */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+          {/* Desktop Grid */}
+          <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
               <div 
                 key={index}
-                className="group relative"
+                className="group relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-6 hover:border-blue-500/50 transition-all duration-500 overflow-hidden animate-fade-in-up"
+                style={{ animationDelay: `${index * 100}ms` }}
               >
-                {/* Card */}
-                <div className="relative h-full p-8 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-all duration-300">
-                  {/* Icon */}
-                  <div className="mb-6">
-                    <div className="w-14 h-14 rounded-xl bg-white/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                      <feature.icon className="w-7 h-7 text-white" />
-                    </div>
+                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
+                
+                <div className="relative z-10">
+                  <div className="w-14 h-14 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 rounded-xl flex items-center justify-center mb-4 border border-blue-500/30 group-hover:scale-110 transition-transform">
+                    <feature.icon className="w-7 h-7 text-blue-400" />
                   </div>
-
-                  {/* Content */}
                   <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-                  <p className="text-gray-400 leading-relaxed">{feature.description}</p>
-
-                  {/* Hover Effect Line */}
-                  <div className="absolute bottom-0 left-0 w-0 h-1 bg-gradient-to-r from-blue-400 to-emerald-400 group-hover:w-full transition-all duration-500"></div>
+                  <p className="text-gray-400 text-sm leading-relaxed">{feature.description}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Trust Indicators */}
-          <div className="mt-16 pt-16 border-t border-white/10">
-            <div className="flex flex-wrap items-center justify-center gap-12">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-emerald-400" />
-                <span className="text-sm text-gray-400">Licensed & Regulated</span>
+          {/* Mobile Modern Stack Layout */}
+<div className="sm:hidden relative">
+  {/* Swipeable Container */}
+  <div 
+    className="relative overflow-hidden rounded-3xl"
+    onTouchStart={handleTouchStart}
+    onTouchMove={handleTouchMove}
+    onTouchEnd={handleTouchEnd}
+  >
+    {/* Cards Stack */}
+    <div className="relative h-[520px]">
+      {features.map((feature, index) => {
+        const isActive = index === activeFeature
+        const isPrev = index === (activeFeature === 0 ? features.length - 1 : activeFeature - 1)
+        const isNext = index === (activeFeature + 1) % features.length
+        
+        return (
+          <div 
+            key={index}
+            className={`absolute inset-0 transition-all duration-500 ease-out ${
+              isActive 
+                ? 'opacity-100 scale-100 z-30 translate-x-0' 
+                : isPrev
+                ? 'opacity-30 scale-95 z-10 -translate-x-8'
+                : isNext
+                ? 'opacity-30 scale-95 z-10 translate-x-8'
+                : 'opacity-0 scale-90 z-0'
+            }`}
+          >
+            {/* Card */}
+            <div className="relative h-full mx-4 rounded-3xl overflow-hidden">
+              {/* Animated Background Gradient */}
+              <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} animate-pulse-slow`}></div>
+              
+              {/* Glass Effect */}
+              <div className="absolute inset-0 bg-[#0a0e17]/70 backdrop-blur-2xl"></div>
+              
+              {/* Animated Border */}
+              <div className={`absolute inset-0 rounded-3xl ${feature.borderColor} border-2`}>
+                <div className={`absolute inset-0 ${feature.bgColor} blur-xl opacity-30`}></div>
               </div>
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-emerald-400" />
-                <span className="text-sm text-gray-400">SSL Encrypted</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-emerald-400" />
-                <span className="text-sm text-gray-400">24/7 Support</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-emerald-400" />
-                <span className="text-sm text-gray-400">Instant Withdrawal</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* ========================================= */}
-      {/* TESTIMONIALS SECTION - CLEAN MINIMAL */}
-      {/* ========================================= */}
-      <section id="testimonials" className="py-20 sm:py-32 relative">
-        <div className="container mx-auto px-4 sm:px-6">
-          {/* Section Header */}
-          <div className="text-center mb-16 max-w-2xl mx-auto">
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-              Trusted by Thousands
-            </h2>
-            <p className="text-lg text-gray-400">
-              Cerita sukses dari trader yang menggunakan platform kami
-            </p>
-          </div>
-
-          {/* Testimonial Slider */}
-          <div className="max-w-4xl mx-auto">
-            <div className="relative bg-white/5 border border-white/10 rounded-3xl p-8 sm:p-12 backdrop-blur-xl">
-              {/* Quote Icon */}
-              <div className="absolute top-8 left-8 opacity-10">
-                <Quote className="w-16 h-16" />
+              {/* Floating Particles */}
+              <div className="absolute inset-0 overflow-hidden">
+                <div className={`absolute top-1/4 left-1/4 w-32 h-32 ${feature.bgColor} rounded-full blur-3xl opacity-20 animate-float`}></div>
+                <div className={`absolute bottom-1/4 right-1/4 w-40 h-40 ${feature.bgColor} rounded-full blur-3xl opacity-20 animate-float`} style={{ animationDelay: '1s' }}></div>
               </div>
 
               {/* Content */}
-              <div className="relative z-10">
-                {testimonials.map((testimonial, index) => (
-                  <div
-                    key={index}
-                    className={`transition-all duration-500 ${
-                      index === activeTestimonial
-                        ? 'opacity-100 relative'
-                        : 'opacity-0 absolute inset-0 pointer-events-none'
-                    }`}
-                  >
-                    {/* Stars */}
-                    <div className="flex justify-center gap-1 mb-6">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                      ))}
-                    </div>
-
-                    {/* Quote */}
-                    <p className="text-xl sm:text-2xl text-center mb-8 leading-relaxed">
-                      "{testimonial.content}"
-                    </p>
-
-                    {/* Stats */}
-                    <div className="flex justify-center gap-8 mb-8">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-emerald-400">{testimonial.profit}</div>
-                        <div className="text-sm text-gray-400">Profit</div>
-                      </div>
-                      <div className="w-px bg-white/10"></div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold">{testimonial.duration}</div>
-                        <div className="text-sm text-gray-400">Trading</div>
-                      </div>
-                    </div>
-
-                    {/* Author */}
-                    <div className="text-center">
-                      <div className="font-bold text-lg mb-1">{testimonial.name}</div>
-                      <div className="text-sm text-gray-400">{testimonial.role}</div>
-                    </div>
+              <div className="relative h-full flex flex-col items-center justify-center p-8 space-y-8">
+                {/* Animated Icon Container */}
+                <div className="relative">
+                  <div className={`w-28 h-28 ${feature.bgColor} ${feature.borderColor} border-2 rounded-3xl flex items-center justify-center transform hover:scale-110 transition-all duration-300 shadow-2xl`}>
+                    <feature.icon className={`w-14 h-14 ${feature.color} animate-pulse`} />
                   </div>
-                ))}
+                  
+                  {/* Pulsing Ring */}
+                  <div className={`absolute inset-0 ${feature.borderColor} border-2 rounded-3xl animate-ping opacity-20`}></div>
+                  
+                  {/* Glow Effect */}
+                  <div className={`absolute inset-0 ${feature.bgColor} blur-2xl opacity-50 rounded-3xl`}></div>
+                </div>
+
+                {/* Title */}
+                <div className="text-center space-y-4">
+                  <h3 className="text-3xl font-bold tracking-tight">{feature.title}</h3>
+                  <div className={`w-20 h-1.5 ${feature.bgColor} rounded-full mx-auto`}></div>
+                </div>
+
+                {/* Description */}
+                <p className="text-gray-300 text-center leading-relaxed text-lg px-4">
+                  {feature.description}
+                </p>
+
+                {/* Decorative Elements */}
+                <div className="flex gap-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div 
+                      key={i}
+                      className={`w-2 h-2 ${feature.bgColor} rounded-full animate-pulse`}
+                      style={{ animationDelay: `${i * 200}ms` }}
+                    ></div>
+                  ))}
+                </div>
+
+                {/* Feature Number Badge */}
+                <div className="absolute top-6 right-6">
+                  <div className={`relative w-12 h-12 ${feature.bgColor} ${feature.borderColor} border-2 rounded-2xl flex items-center justify-center shadow-xl`}>
+                    <span className={`text-lg font-bold ${feature.color}`}>{index + 1}</span>
+                    <div className={`absolute inset-0 ${feature.bgColor} blur-lg opacity-50 rounded-2xl`}></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  </div>
+
+  {/* Modern Progress Indicators */}
+  <div className="mt-8 px-4">
+    <div className="flex items-center justify-center gap-3">
+      {features.map((feature, index) => (
+        <button
+          key={index}
+          onClick={() => setActiveFeature(index)}
+          className="relative group"
+        >
+          <div className={`transition-all duration-300 rounded-full ${
+            index === activeFeature 
+              ? `w-12 h-3 ${feature.bgColor}` 
+              : 'w-3 h-3 bg-gray-700 hover:bg-gray-600'
+          }`}>
+            {index === activeFeature && (
+              <>
+                <div className={`absolute inset-0 ${feature.bgColor} blur-md opacity-50 rounded-full animate-pulse`}></div>
+                <div className={`absolute inset-0 ${feature.bgColor} rounded-full`}>
+                  <div className="absolute inset-0 bg-white/30 rounded-full animate-ping"></div>
+                </div>
+              </>
+            )}
+          </div>
+        </button>
+      ))}
+    </div>
+  </div>
+
+  {/* Swipe Hint */}
+  <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-500">
+    <div className="flex gap-1">
+      <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+      <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+      <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+    </div>
+    <span>Swipe untuk melihat fitur lainnya</span>
+  </div>
+</div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section id="testimonials" className="py-20 sm:py-32 relative">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl sm:text-5xl font-bold mb-6">
+              Dipercaya <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Ribuan</span> Trader
+            </h2>
+            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+              Lihat apa kata trader sukses tentang kami
+            </p>
+          </div>
+
+          {/* Desktop Version */}
+          <div className="hidden sm:block max-w-4xl mx-auto">
+            <div className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl p-8 sm:p-12 backdrop-blur-xl">
+              <div className="text-center animate-fade-in">
+                <div className="text-6xl mb-6">{testimonials[activeTestimonial].avatar}</div>
+                
+                <div className="flex justify-center gap-1 mb-6">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+
+                <p className="text-xl text-gray-300 mb-6 leading-relaxed">
+                  "{testimonials[activeTestimonial].content}"
+                </p>
+
+                <div className="inline-flex items-center gap-3 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full mb-4">
+                  <TrendingUp className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm font-bold text-emerald-400">
+                    {testimonials[activeTestimonial].profit} Keuntungan
+                  </span>
+                </div>
+
+                <div className="font-semibold text-lg mb-1">
+                  {testimonials[activeTestimonial].name}
+                </div>
+                <div className="text-gray-400">
+                  {testimonials[activeTestimonial].role}
+                </div>
               </div>
 
-              {/* Navigation Dots */}
               <div className="flex justify-center gap-2 mt-8">
                 {testimonials.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setActiveTestimonial(index)}
-                    className={`h-2 rounded-full transition-all ${
+                    className={`h-1.5 rounded-full transition-all ${
                       index === activeTestimonial 
-                        ? 'bg-white w-8' 
-                        : 'bg-white/30 w-2 hover:bg-white/50'
+                        ? 'bg-blue-500 w-8' 
+                        : 'bg-gray-700 w-1.5 hover:bg-gray-600'
                     }`}
                   />
                 ))}
               </div>
             </div>
           </div>
+
+          {/* Mobile Premium Card Design */}
+          <div className="sm:hidden">
+            <div className="relative">
+              {testimonials.map((testimonial, index) => (
+                <div 
+                  key={index}
+                  className={`transition-all duration-500 ${
+                    index === activeTestimonial 
+                      ? 'opacity-100 scale-100 relative z-10' 
+                      : 'opacity-0 scale-95 absolute inset-0 pointer-events-none'
+                  }`}
+                >
+                  {/* Card Container */}
+                  <div className="relative mx-4 rounded-3xl overflow-hidden">
+                    {/* Gradient Background */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-blue-500/10 to-purple-500/10"></div>
+                    
+                    {/* Glass Effect */}
+                    <div className="absolute inset-0 bg-[#0a0e17]/80 backdrop-blur-2xl"></div>
+                    
+                    {/* Border Gradient */}
+                    <div className="absolute inset-0 border-2 border-transparent rounded-3xl bg-gradient-to-br from-emerald-500/30 via-blue-500/30 to-purple-500/30" style={{ 
+                      WebkitMask: 'linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)',
+                      WebkitMaskComposite: 'xor',
+                      maskComposite: 'exclude'
+                    }}></div>
+
+                    {/* Content */}
+                    <div className="relative p-8 space-y-6">
+                      {/* Avatar with Glow */}
+                      <div className="relative inline-block">
+                        <div className="text-7xl">{testimonial.avatar}</div>
+                        <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full"></div>
+                      </div>
+
+                      {/* Stars */}
+                      <div className="flex justify-center gap-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400 animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
+                        ))}
+                      </div>
+
+                      {/* Quote */}
+                      <div className="relative">
+                        <div className="absolute -top-4 -left-2 text-6xl text-blue-500/20 font-serif">"</div>
+                        <p className="text-base text-gray-200 leading-relaxed relative z-10 italic">
+                          {testimonial.content}
+                        </p>
+                        <div className="absolute -bottom-4 -right-2 text-6xl text-blue-500/20 font-serif rotate-180">"</div>
+                      </div>
+
+                      {/* Stats Row */}
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Profit Badge */}
+                        <div className="bg-gradient-to-br from-emerald-500/20 to-green-500/20 border border-emerald-500/30 rounded-xl p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <TrendingUp className="w-4 h-4 text-emerald-400" />
+                            <span className="text-xs text-gray-400">Keuntungan</span>
+                          </div>
+                          <div className="text-xl font-bold text-emerald-400">{testimonial.profit}</div>
+                        </div>
+
+                        {/* Duration Badge */}
+                        <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 rounded-xl p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Clock className="w-4 h-4 text-blue-400" />
+                            <span className="text-xs text-gray-400">Durasi</span>
+                          </div>
+                          <div className="text-xl font-bold text-blue-400">{testimonial.duration}</div>
+                        </div>
+                      </div>
+
+                      {/* Divider */}
+                      <div className="h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent"></div>
+
+                      {/* User Info */}
+                      <div className="text-center space-y-2">
+                        <h4 className="text-xl font-bold">{testimonial.name}</h4>
+                        <p className="text-sm text-gray-400">{testimonial.role}</p>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
+                          <Globe className="w-3 h-3 text-gray-400" />
+                          <span className="text-xs text-gray-400">{testimonial.location}</span>
+                        </div>
+                      </div>
+
+                      {/* Verified Badge */}
+                      <div className="absolute top-4 right-4">
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 rounded-full backdrop-blur-sm">
+                          <svg className="w-3 h-3 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                          </svg>
+                          <span className="text-xs font-medium text-blue-400">Verified</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Enhanced Mobile Controls */}
+            <div className="flex items-center justify-between mt-8 px-8">
+              <button
+                onClick={() => setActiveTestimonial((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1))}
+                className="group w-12 h-12 bg-gradient-to-br from-[#1e293b] to-[#0f172a] hover:from-[#334155] hover:to-[#1e293b] rounded-xl flex items-center justify-center transition-all border border-gray-700 shadow-lg active:scale-95"
+              >
+                <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+              </button>
+
+              {/* Dots with Progress */}
+              <div className="flex gap-2">
+                {testimonials.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setActiveTestimonial(index)}
+                    className="relative group"
+                  >
+                    {index === activeTestimonial ? (
+                      <div className="relative">
+                        <div className="w-12 h-2 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full"></div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-emerald-500 blur-md opacity-50 rounded-full"></div>
+                      </div>
+                    ) : (
+                      <div className="w-2 h-2 bg-gray-700 hover:bg-gray-600 rounded-full transition-all"></div>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setActiveTestimonial((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1))}
+                className="group w-12 h-12 bg-gradient-to-br from-[#1e293b] to-[#0f172a] hover:from-[#334155] hover:to-[#1e293b] rounded-xl flex items-center justify-center transition-all border border-gray-700 shadow-lg active:scale-95"
+              >
+                <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </div>
+
+            {/* Counter */}
+            <div className="mt-6 text-center">
+              <span className="text-sm text-gray-500">
+                {activeTestimonial + 1} / {testimonials.length}
+              </span>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ========================================= */}
-      {/* CTA SECTION - MINIMAL CLEAN */}
-      {/* ========================================= */}
+      {/* CTA Section */}
       <section className="py-20 sm:py-32 relative">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="max-w-4xl mx-auto text-center">
-            {/* Main CTA Card */}
-            <div className="relative bg-white/5 border border-white/10 rounded-3xl p-12 sm:p-16 backdrop-blur-xl overflow-hidden">
-              {/* Background Pattern */}
-              <div className="absolute inset-0 opacity-5">
-                <div className="absolute inset-0" style={{
-                  backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
-                  backgroundSize: '40px 40px'
-                }}></div>
-              </div>
+          <div className="relative bg-gradient-to-r from-blue-500/20 via-emerald-500/20 to-cyan-500/20 border border-blue-500/30 rounded-3xl p-8 sm:p-16 text-center overflow-hidden backdrop-blur-xl">
+            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+            
+            <div className="relative z-10">
+              <h2 className="text-4xl sm:text-5xl font-bold mb-6">
+                Siap Memulai Perjalanan Trading Anda?
+              </h2>
+              <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+                Bergabung dengan 50.000+ trader sukses. Mulai menghasilkan dalam waktu kurang dari 2 menit!
+              </p>
 
-              {/* Content */}
-              <div className="relative z-10">
-                <h2 className="text-4xl sm:text-5xl font-bold mb-6">
-                  Siap Memulai Trading?
-                </h2>
-                <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
-                  Bergabung dengan 50.000+ trader sukses. Dapatkan akun demo gratis $10,000.
-                </p>
-
-                <button
-                  onClick={() => {
-                    setIsLogin(true)
-                    setShowAuthModal(true)
-                  }}
-                  className="group inline-flex items-center gap-3 px-10 py-5 bg-white text-[#0a0e17] hover:bg-gray-100 rounded-xl text-lg font-bold transition-all"
-                >
-                  Buat Akun Gratis
+              <button
+                onClick={() => {
+                  setIsLogin(true)
+                  setShowAuthModal(true)
+                }}
+                className="group px-8 py-4 bg-[#1e293b] hover:bg-[#334155] rounded-xl text-lg font-semibold text-white transition-colors border border-gray-700 shadow-lg"
+              >
+                <span className="flex items-center gap-2">
+                  Masuk Sekarang
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </button>
-
-                {/* Benefits */}
-                <div className="flex flex-wrap items-center justify-center gap-8 mt-10 pt-10 border-t border-white/10">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-emerald-400" />
-                    <span className="text-sm">Demo $10,000</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-emerald-400" />
-                    <span className="text-sm">Tanpa Kartu Kredit</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-emerald-400" />
-                    <span className="text-sm">Setup 2 Menit</span>
-                  </div>
-                </div>
-              </div>
+                </span>
+              </button>
             </div>
           </div>
         </div>
@@ -565,20 +956,25 @@ export default function LandingPage() {
       {/* Footer */}
       <EnhancedFooter />
 
-      {/* Auth Modal */}
+      {/* Auth Sidebar */}
       {showAuthModal && (
         <>
           <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 animate-fade-in" 
             onClick={() => setShowAuthModal(false)}
           />
 
-          <div className="fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-[#0f1419] z-50 overflow-y-auto shadow-2xl">
-            <div className="sticky top-0 z-10 bg-[#0f1419] border-b border-white/10 p-6">
+          <div className="fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-gradient-to-b from-[#0f1419] to-[#0a0e17] z-50 animate-slide-left shadow-2xl overflow-y-auto">
+            <div className="sticky top-0 z-10 bg-gradient-to-b from-[#0f1419] to-transparent backdrop-blur-xl border-b border-gray-800/50 p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="relative w-10 h-10">
-                    <Image src="/stc-logo.png" alt="STC" fill className="object-contain rounded-md" />
+                    <Image
+                      src="/stc-logo.png"
+                      alt="STC AutoTrade"
+                      fill
+                      className="object-contain rounded-md"
+                    />
                   </div>
                   <div>
                     <h2 className="text-xl font-bold">STC AutoTrade</h2>
@@ -587,7 +983,7 @@ export default function LandingPage() {
                 </div>
                 <button
                   onClick={() => setShowAuthModal(false)}
-                  className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/5"
+                  className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/5 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -599,7 +995,9 @@ export default function LandingPage() {
                 <button
                   onClick={() => setIsLogin(true)}
                   className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
-                    isLogin ? 'bg-white text-[#0a0e17]' : 'text-gray-400'
+                    isLogin
+                      ? 'bg-[#1e293b] text-white shadow-lg border border-gray-700'
+                      : 'text-gray-400 hover:text-white'
                   }`}
                 >
                   Masuk
@@ -607,7 +1005,9 @@ export default function LandingPage() {
                 <button
                   onClick={() => setIsLogin(false)}
                   className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
-                    !isLogin ? 'bg-white text-[#0a0e17]' : 'text-gray-400'
+                    !isLogin
+                      ? 'bg-[#1e293b] text-white shadow-lg border border-gray-700'
+                      : 'text-gray-400 hover:text-white'
                   }`}
                 >
                   Daftar
@@ -616,16 +1016,20 @@ export default function LandingPage() {
 
               <div className="mb-6">
                 <h3 className="text-2xl font-bold mb-2">
-                  {isLogin ? 'Selamat Datang Kembali!' : 'Buat Akun Baru'}
+                  {isLogin ? 'Selamat Datang Kembali!' : 'Buat Akun'}
                 </h3>
                 <p className="text-gray-400">
-                  {isLogin ? 'Masuk untuk melanjutkan trading' : 'Mulai trading dalam 2 menit'}
+                  {isLogin 
+                    ? 'Masuk untuk melanjutkan trading' 
+                    : 'Bergabung dengan ribuan trader sukses'}
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Email</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Alamat Email
+                  </label>
                   <input
                     type="email"
                     value={email}
@@ -633,12 +1037,15 @@ export default function LandingPage() {
                     placeholder="anda@example.com"
                     required
                     disabled={loading}
-                    className="w-full bg-[#0a0e17] border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-white/30 transition-all"
+                    className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    autoComplete="email"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Password</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Password
+                  </label>
                   <input
                     type="password"
                     value={password}
@@ -646,19 +1053,20 @@ export default function LandingPage() {
                     placeholder="••••••••"
                     required
                     disabled={loading}
-                    className="w-full bg-[#0a0e17] border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-white/30 transition-all"
+                    className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    autoComplete="current-password"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full px-6 py-3.5 bg-white text-[#0a0e17] hover:bg-gray-100 rounded-lg font-semibold transition-all disabled:opacity-50 mt-6"
+                  className="w-full px-6 py-3.5 bg-[#1e293b] hover:bg-[#334155] rounded-lg text-lg font-semibold text-white transition-colors border border-gray-700 shadow-lg disabled:opacity-50 mt-6"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#0a0e17]"></div>
-                      Processing...
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Memproses...
                     </span>
                   ) : (
                     <span>{isLogin ? 'Masuk' : 'Buat Akun'}</span>
@@ -667,35 +1075,245 @@ export default function LandingPage() {
               </form>
 
               {isLogin && (
-                <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                  <div className="text-sm font-semibold text-blue-400 mb-2">Demo Account</div>
-                  <div className="text-xs space-y-1">
-                    <div>Email: <span className="font-mono">superadmin@trading.com</span></div>
-                    <div>Pass: <span className="font-mono">SuperAdmin123!</span></div>
+                <div className="mt-6 p-4 bg-gradient-to-br from-blue-500/10 to-emerald-500/10 border border-blue-500/20 rounded-xl">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Shield className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold text-blue-400 mb-1">Akun Demo</div>
+                      <div className="text-xs text-gray-400 space-y-1">
+                        <div>Email: <span className="text-gray-300 font-mono">superadmin@trading.com</span></div>
+                        <div>Pass: <span className="text-gray-300 font-mono">SuperAdmin123!</span></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
 
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-800"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-[#0f1419] text-gray-400">Atau lanjutkan dengan</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button className="flex items-center justify-center gap-2 px-4 py-3 bg-[#0a0e17] border border-gray-800 rounded-lg hover:bg-[#1a1f2e] transition-colors">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                  </svg>
+                  <span className="text-sm font-medium">Google</span>
+                </button>
+                <button className="flex items-center justify-center gap-2 px-4 py-3 bg-[#0a0e17] border border-gray-800 rounded-lg hover:bg-[#1a1f2e] transition-colors">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/>
+                  </svg>
+                  <span className="text-sm font-medium">Facebook</span>
+                </button>
+              </div>
+
               {!isLogin && (
                 <div className="mt-6 space-y-3">
                   <div className="flex items-center gap-3 text-sm">
-                    <CheckCircle className="w-5 h-5 text-emerald-400" />
-                    <span>Akun demo $10,000 gratis</span>
+                    <div className="w-6 h-6 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-gray-300">Akun demo gratis $10,000</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
-                    <CheckCircle className="w-5 h-5 text-emerald-400" />
-                    <span>Tanpa kartu kredit</span>
+                    <div className="w-6 h-6 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-gray-300">Tanpa kartu kredit</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
-                    <CheckCircle className="w-5 h-5 text-emerald-400" />
-                    <span>Support 24/7</span>
+                    <div className="w-6 h-6 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-gray-300">Dukungan pelanggan 24/7</span>
                   </div>
                 </div>
               )}
+
+              <p className="mt-6 text-xs text-center text-gray-500 leading-relaxed">
+                Dengan melanjutkan, Anda menyetujui{' '}
+                <a href="#" className="text-blue-400 hover:text-blue-300">Syarat & Ketentuan</a>
+                {' '}dan{' '}
+                <a href="#" className="text-blue-400 hover:text-blue-300">Kebijakan Privasi</a> kami
+              </p>
             </div>
           </div>
         </>
       )}
+
+      <style jsx>{`
+        @keyframes gradient {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-20px); }
+        }
+
+        @keyframes pulse-slow {
+          0%, 100% { opacity: 0.05; }
+          50% { opacity: 0.15; }
+        }
+
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes fade-in-right {
+          from {
+            opacity: 0;
+            transform: translateX(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes slide-in-left {
+          from {
+            opacity: 0;
+            transform: translateX(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes slide-in-right {
+          from {
+            opacity: 0;
+            transform: translateX(50px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes slide-left {
+          from {
+            transform: translateX(100%);
+          }
+          to {
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes scale-in {
+          from {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        .animate-gradient {
+          background-size: 200% 200%;
+          animation: gradient 3s ease infinite;
+        }
+
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
+        }
+
+        .animate-pulse-slow {
+          animation: pulse-slow 4s ease-in-out infinite;
+        }
+
+        .animate-spin-slow {
+          animation: spin-slow 3s linear infinite;
+        }
+
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
+        }
+
+        .animate-fade-in-up {
+          animation: fade-in-up 0.6s ease-out;
+        }
+
+        .animate-fade-in-right {
+          animation: fade-in-right 0.8s ease-out;
+        }
+
+        .animate-slide-in-left {
+          animation: slide-in-left 0.6s ease-out;
+        }
+
+        .animate-slide-in-right {
+          animation: slide-in-right 0.8s ease-out;
+        }
+
+        .animate-slide-left {
+          animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .animate-scale-in {
+          animation: scale-in 0.3s ease-out;
+        }
+
+        html {
+          scroll-behavior: smooth;
+        }
+
+        ::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+          background: #0a0e17;
+        }
+
+        ::-webkit-scrollbar-thumb {
+          background: linear-gradient(to bottom, #3b82f6, #10b981);
+          border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(to bottom, #2563eb, #059669);
+        }
+      `}</style>
     </div>
   )
 }
