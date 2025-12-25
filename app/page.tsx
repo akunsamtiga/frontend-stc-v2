@@ -542,540 +542,485 @@ const handleTouchEnd = () => {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 sm:py-32 relative">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="text-center mb-16 animate-fade-in-up">
-            <h2 className="text-4xl sm:text-5xl font-bold mb-6">
-              Mengapa Memilih <span className="text-white">STC AutoTrade</span>?
-            </h2>
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              Rasakan trading yang direvolusi dengan teknologi canggih
-            </p>
-          </div>
-
-          {/* Desktop Grid */}
-          <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-  {features.map((feature, index) => (
-    <div 
-      key={index}
-      className="group relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-6 hover:border-blue-500/50 transition-all duration-500 overflow-hidden animate-fade-in-up"
-      style={{ animationDelay: `${index * 100}ms` }}
-    >
-      <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
-      
-      <div className="relative z-10">
-        <div className="w-14 h-14 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 rounded-xl flex items-center justify-center mb-4 border border-blue-500/30 group-hover:scale-110 transition-transform">
-          <feature.icon className="w-7 h-7 text-blue-400" />
-        </div>
-        <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-        <p className="text-gray-400 text-sm leading-relaxed">{feature.description}</p>
+      {/* Features Section - Modern Minimalist */}
+<section id="features" className="py-20 sm:py-32 relative">
+  <div className="container mx-auto px-4 sm:px-6">
+    {/* Header */}
+    <div className="text-center mb-16 animate-fade-in-up">
+      <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full mb-6">
+        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
+        <span className="text-sm font-medium text-blue-400">Teknologi Terdepan</span>
       </div>
+      <h2 className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight">
+        Mengapa Memilih Kami
+      </h2>
+      <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+        Platform trading dengan teknologi dan keamanan terbaik
+      </p>
     </div>
-  ))}
-</div>
 
-          {/* Mobile Modern Stack Layout */}
-<div className="sm:hidden relative">
-  {/* Swipeable Container */}
-  <div 
-    className="relative overflow-hidden"
-    onTouchStart={handleTouchStart}
-    onTouchMove={handleTouchMove}
-    onTouchEnd={handleTouchEnd}
-  >
-    {/* Cards Stack */}
-    <div className="relative min-h-[360px]">
-      {features.map((feature, index) => {
-        const isActive = index === activeFeature
-        const offset = index - activeFeature
-        
-        return (
-          <div 
-            key={index}
-            className={`absolute inset-0 transition-all duration-500 ease-out ${
-              isActive 
-                ? 'opacity-100 scale-100 z-30 translate-x-0' 
-                : offset === -1
-                ? 'opacity-0 scale-95 z-10 -translate-x-full'
-                : offset === 1
-                ? 'opacity-0 scale-95 z-10 translate-x-full'
-                : 'opacity-0 scale-90 z-0'
-            }`}
-          >
-            {/* Modern Clean Card */}
-            <div className="mx-4 h-full">
-              <div className="relative h-full bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-6 overflow-hidden">
-                {/* Subtle gradient background */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-5`}></div>
-                
-                {/* Content */}
-                <div className="relative h-full flex flex-col">
-                  {/* Icon - Clean & Minimal */}
-                  <div className="mb-6">
-                    <div className={`inline-flex w-16 h-16 ${feature.bgColor} ${feature.borderColor} border-2 rounded-2xl items-center justify-center`}>
-                      <feature.icon className={`w-8 h-8 ${feature.color}`} />
-                    </div>
-                  </div>
-
-                  {/* Title & Description */}
-                  <div className="flex-1 space-y-3">
-                    <h3 className="text-2xl font-bold tracking-tight">{feature.title}</h3>
-                    <p className="text-gray-400 leading-relaxed">{feature.description}</p>
-                  </div>
-
-                  {/* Feature Number Badge - Minimal */}
-                  <div className="absolute top-4 right-4">
-                    <div className={`w-8 h-8 ${feature.bgColor} rounded-lg flex items-center justify-center border ${feature.borderColor}`}>
-                      <span className={`text-sm font-bold ${feature.color}`}>{index + 1}</span>
-                    </div>
-                  </div>
-
-                  {/* Bottom Accent Line */}
-                  <div className={`h-1 w-20 ${feature.bgColor} rounded-full mt-6`}></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  </div>
-
-  {/* Clean Progress Indicators - DIPERBAIKI (ukuran lebih kecil) */}
-  <div className="mt-6 px-4">
-    <div className="flex items-center justify-center gap-2">
+    {/* Desktop Grid - Clean Cards */}
+    <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
       {features.map((feature, index) => (
-        <button
+        <div 
           key={index}
-          onClick={() => setActiveFeature(index)}
-          className="relative group transition-all duration-300"
+          className="group relative bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-6 hover:border-gray-700 transition-all duration-300 overflow-hidden"
+          style={{ animationDelay: `${index * 100}ms` }}
         >
-          <div className={`transition-all duration-300 rounded-full ${
-            index === activeFeature 
-              ? `w-8 h-2 ${feature.bgColor}` 
-              : 'w-2 h-2 bg-gray-700 hover:bg-gray-600'
-          }`}></div>
-        </button>
+          {/* Subtle hover gradient */}
+          <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+          
+          <div className="relative z-10">
+            {/* Icon */}
+            <div className={`inline-flex w-14 h-14 ${feature.bgColor} ${feature.borderColor} border-2 rounded-2xl items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+              <feature.icon className={`w-7 h-7 ${feature.color}`} />
+            </div>
+
+            {/* Content */}
+            <h3 className="text-xl font-bold mb-3 tracking-tight">{feature.title}</h3>
+            <p className="text-gray-400 text-sm leading-relaxed">{feature.description}</p>
+
+            {/* Bottom accent */}
+            <div className={`h-1 w-12 ${feature.bgColor} rounded-full mt-6 group-hover:w-20 transition-all duration-300`}></div>
+          </div>
+        </div>
       ))}
     </div>
-  </div>
 
-  {/* Swipe Hint - Minimal */}
-  <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-500">
-    <span>Swipe untuk melihat lebih banyak</span>
-  </div>
-</div>
+    {/* Mobile - Modern Stack with Clean Indicators */}
+    <div className="sm:hidden relative">
+      <div 
+        className="relative overflow-hidden"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div className="relative min-h-[340px]">
+          {features.map((feature, index) => {
+            const isActive = index === activeFeature
+            const offset = index - activeFeature
+            
+            return (
+              <div 
+                key={index}
+                className={`absolute inset-0 transition-all duration-500 ease-out ${
+                  isActive 
+                    ? 'opacity-100 scale-100 z-30 translate-x-0' 
+                    : offset === -1
+                    ? 'opacity-0 scale-95 z-10 -translate-x-full'
+                    : offset === 1
+                    ? 'opacity-0 scale-95 z-10 translate-x-full'
+                    : 'opacity-0 scale-90 z-0'
+                }`}
+              >
+                <div className="mx-4 h-full">
+                  <div className="relative h-full bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-6 overflow-hidden">
+                    {/* Subtle bg gradient */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-5`}></div>
+                    
+                    <div className="relative h-full flex flex-col">
+                      {/* Icon - Clean */}
+                      <div className="mb-6">
+                        <div className={`inline-flex w-16 h-16 ${feature.bgColor} ${feature.borderColor} border-2 rounded-2xl items-center justify-center`}>
+                          <feature.icon className={`w-8 h-8 ${feature.color}`} />
+                        </div>
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 space-y-3">
+                        <h3 className="text-2xl font-bold tracking-tight">{feature.title}</h3>
+                        <p className="text-gray-400 leading-relaxed">{feature.description}</p>
+                      </div>
+
+                      {/* Number badge - minimal */}
+                      <div className="absolute top-4 right-4">
+                        <div className={`w-8 h-8 ${feature.bgColor} rounded-lg flex items-center justify-center border ${feature.borderColor}`}>
+                          <span className={`text-sm font-bold ${feature.color}`}>{index + 1}</span>
+                        </div>
+                      </div>
+
+                      {/* Bottom accent */}
+                      <div className={`h-1 w-20 ${feature.bgColor} rounded-full mt-6`}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
-      </section>
+      </div>
+
+      {/* Clean Progress Dots - Smaller */}
+      <div className="mt-6 px-4">
+        <div className="flex items-center justify-center gap-2">
+          {features.map((feature, index) => (
+            <button
+              key={index}
+              onClick={() => setActiveFeature(index)}
+              className="transition-all duration-300"
+            >
+              <div className={`transition-all duration-300 rounded-full ${
+                index === activeFeature 
+                  ? `w-8 h-2 ${feature.bgColor}` 
+                  : 'w-2 h-2 bg-gray-700 hover:bg-gray-600'
+              }`}></div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Swipe hint */}
+      <div className="mt-4 text-center text-xs text-gray-500">
+        Swipe untuk melihat lebih banyak
+      </div>
+    </div>
+  </div>
+</section>
 
 
-      {/* How It Works Section */}
+{/* How It Works - Modern Clean Timeline */}
 <section id="how-it-works" className="py-20 sm:py-32 relative overflow-hidden">
   <div className="container mx-auto px-4 sm:px-6">
+    {/* Header */}
     <div className="text-center mb-20 animate-fade-in-up">
-      <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-full backdrop-blur-sm mb-4">
-        <Sparkles className="w-4 h-4 text-purple-400 animate-spin-slow" />
-        <span className="text-sm font-medium">Mulai dalam 3 langkah mudah</span>
+      <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/20 rounded-full mb-6">
+        <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse"></div>
+        <span className="text-sm font-medium text-purple-400">Mulai dalam 3 langkah mudah</span>
       </div>
-      <h2 className="text-4xl sm:text-5xl font-bold mb-6">
-        Cara <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 animate-gradient">Kerja Platform</span>
+      <h2 className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight">
+        Cara Kerja Platform
       </h2>
-      <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+      <p className="text-lg text-gray-400 max-w-2xl mx-auto">
         Trading menjadi mudah dengan sistem otomatis kami
       </p>
     </div>
 
-    {/* Desktop Timeline View */}
-    <div className="hidden lg:block relative max-w-6xl mx-auto">
-      {/* Animated Central Line */}
-      <div className="absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2">
-        <div className="absolute inset-0 bg-gradient-to-b from-purple-500/20 via-pink-500/20 to-blue-500/20"></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-purple-500 via-pink-500 to-blue-500 animate-pulse-glow"></div>
-      </div>
+    {/* Desktop - Modern Timeline */}
+    <div className="hidden lg:block max-w-5xl mx-auto">
+      <div className="relative">
+        {/* Clean vertical line */}
+        <div className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 bg-gradient-to-b from-purple-500/20 via-pink-500/20 to-blue-500/20"></div>
 
-      {/* Steps */}
-      <div className="relative space-y-32">
-        {/* Step 1 */}
-        <div className="relative flex items-center">
-          <div className="w-[calc(50%-4rem)] mr-auto animate-fade-in-up">
-            <div className="group relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-8 hover:border-purple-500/50 transition-all duration-500 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 via-purple-500/0 to-purple-500/0 group-hover:from-purple-500/10 group-hover:via-purple-500/5 group-hover:to-transparent transition-all duration-500"></div>
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/20 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              
-              <div className="relative z-10">
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-purple-500/10 rounded-xl flex items-center justify-center border border-purple-500/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+        <div className="space-y-24">
+          {/* Step 1 - Left */}
+          <div className="relative flex items-center">
+            <div className="w-[calc(50%-3rem)] mr-auto">
+              <div className="bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-8 hover:border-purple-500/30 transition-all">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-purple-500/10 border border-purple-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
                     <Users className="w-6 h-6 text-purple-400" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-2xl font-bold mb-2 group-hover:text-purple-400 transition-colors">Daftar & Verifikasi</h3>
-                    <p className="text-gray-400 leading-relaxed">Buat akun dalam 2 menit. Verifikasi identitas untuk keamanan maksimal dan mulai dengan akun demo gratis.</p>
+                    <h3 className="text-xl font-bold mb-2">Daftar & Verifikasi</h3>
+                    <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                      Buat akun dalam 2 menit. Verifikasi identitas untuk keamanan maksimal dan mulai dengan akun demo gratis.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-xs text-purple-400">Registrasi cepat</span>
+                      <span className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-xs text-purple-400">Demo $10K</span>
+                    </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-4">
-                  <div className="px-3 py-1.5 bg-purple-500/10 border border-purple-500/30 rounded-full text-xs font-medium text-purple-400 group-hover:bg-purple-500/20 transition-colors">Registrasi cepat</div>
-                  <div className="px-3 py-1.5 bg-purple-500/10 border border-purple-500/30 rounded-full text-xs font-medium text-purple-400 group-hover:bg-purple-500/20 transition-colors">Akun demo $10K</div>
-                  <div className="px-3 py-1.5 bg-purple-500/10 border border-purple-500/30 rounded-full text-xs font-medium text-purple-400 group-hover:bg-purple-500/20 transition-colors">Verifikasi aman</div>
+              </div>
+            </div>
+
+            {/* Number circle - minimalist */}
+            <div className="absolute left-1/2 -translate-x-1/2 z-10">
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 bg-purple-500/20 rounded-full animate-ping opacity-75"></div>
+                <div className="absolute inset-2 bg-[#0a0e17] rounded-full border-2 border-purple-500/50 flex items-center justify-center">
+                  <span className="text-xl font-bold text-purple-400">1</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="absolute left-1/2 -translate-x-1/2 z-10">
-            <div className="relative w-20 h-20 animate-float">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/30 to-purple-500/10 rounded-full animate-ping-slow"></div>
-              <div className="absolute inset-2 bg-gradient-to-br from-purple-500/40 to-transparent rounded-full blur-sm"></div>
-              <div className="absolute inset-4 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] rounded-full border-2 border-purple-500/50 flex items-center justify-center shadow-lg shadow-purple-500/20">
-                <span className="text-2xl font-bold text-purple-400">1</span>
-              </div>
-              <div className="absolute inset-0 animate-spin-slow">
-                <div className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-purple-400 rounded-full -translate-x-1/2"></div>
-                <div className="absolute bottom-0 left-1/2 w-1.5 h-1.5 bg-purple-400 rounded-full -translate-x-1/2"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Step 2 */}
-        <div className="relative flex items-center flex-row-reverse" style={{ animationDelay: '200ms' }}>
-          <div className="w-[calc(50%-4rem)] ml-auto animate-fade-in-up">
-            <div className="group relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-8 hover:border-pink-500/50 transition-all duration-500 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-pink-500/0 via-pink-500/0 to-pink-500/0 group-hover:from-pink-500/10 group-hover:via-pink-500/5 group-hover:to-transparent transition-all duration-500"></div>
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-500/20 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              
-              <div className="relative z-10">
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-pink-500/20 to-pink-500/10 rounded-xl flex items-center justify-center border border-pink-500/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+          {/* Step 2 - Right */}
+          <div className="relative flex items-center flex-row-reverse">
+            <div className="w-[calc(50%-3rem)] ml-auto">
+              <div className="bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-8 hover:border-pink-500/30 transition-all">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-pink-500/10 border border-pink-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
                     <DollarSign className="w-6 h-6 text-pink-400" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-2xl font-bold mb-2 group-hover:text-pink-400 transition-colors">Deposit & Pilih Strategi</h3>
-                    <p className="text-gray-400 leading-relaxed">Deposit mulai dari Rp 100.000. Pilih strategi trading otomatis sesuai profil risiko Anda.</p>
+                    <h3 className="text-xl font-bold mb-2">Deposit & Pilih Strategi</h3>
+                    <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                      Deposit mulai dari Rp 100.000. Pilih strategi trading otomatis sesuai profil risiko Anda.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-3 py-1 bg-pink-500/10 border border-pink-500/20 rounded-full text-xs text-pink-400">Minimal rendah</span>
+                      <span className="px-3 py-1 bg-pink-500/10 border border-pink-500/20 rounded-full text-xs text-pink-400">Auto trading</span>
+                    </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-4">
-                  <div className="px-3 py-1.5 bg-pink-500/10 border border-pink-500/30 rounded-full text-xs font-medium text-pink-400 group-hover:bg-pink-500/20 transition-colors">Deposit minimal rendah</div>
-                  <div className="px-3 py-1.5 bg-pink-500/10 border border-pink-500/30 rounded-full text-xs font-medium text-pink-400 group-hover:bg-pink-500/20 transition-colors">Multiple payment</div>
-                  <div className="px-3 py-1.5 bg-pink-500/10 border border-pink-500/30 rounded-full text-xs font-medium text-pink-400 group-hover:bg-pink-500/20 transition-colors">Auto trading</div>
+              </div>
+            </div>
+
+            <div className="absolute left-1/2 -translate-x-1/2 z-10">
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 bg-pink-500/20 rounded-full animate-ping opacity-75" style={{ animationDelay: '0.5s' }}></div>
+                <div className="absolute inset-2 bg-[#0a0e17] rounded-full border-2 border-pink-500/50 flex items-center justify-center">
+                  <span className="text-xl font-bold text-pink-400">2</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="absolute left-1/2 -translate-x-1/2 z-10">
-            <div className="relative w-20 h-20 animate-float" style={{ animationDelay: '0.5s' }}>
-              <div className="absolute inset-0 bg-gradient-to-br from-pink-500/30 to-pink-500/10 rounded-full animate-ping-slow"></div>
-              <div className="absolute inset-2 bg-gradient-to-br from-pink-500/40 to-transparent rounded-full blur-sm"></div>
-              <div className="absolute inset-4 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] rounded-full border-2 border-pink-500/50 flex items-center justify-center shadow-lg shadow-pink-500/20">
-                <span className="text-2xl font-bold text-pink-400">2</span>
-              </div>
-              <div className="absolute inset-0 animate-spin-slow">
-                <div className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-pink-400 rounded-full -translate-x-1/2"></div>
-                <div className="absolute bottom-0 left-1/2 w-1.5 h-1.5 bg-pink-400 rounded-full -translate-x-1/2"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Step 3 */}
-        <div className="relative flex items-center" style={{ animationDelay: '400ms' }}>
-          <div className="w-[calc(50%-4rem)] mr-auto animate-fade-in-up">
-            <div className="group relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-8 hover:border-blue-500/50 transition-all duration-500 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-blue-500/0 to-blue-500/0 group-hover:from-blue-500/10 group-hover:via-blue-500/5 group-hover:to-transparent transition-all duration-500"></div>
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/20 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              
-              <div className="relative z-10">
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-blue-500/10 rounded-xl flex items-center justify-center border border-blue-500/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+          {/* Step 3 - Left */}
+          <div className="relative flex items-center">
+            <div className="w-[calc(50%-3rem)] mr-auto">
+              <div className="bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-8 hover:border-blue-500/30 transition-all">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-blue-500/10 border border-blue-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
                     <TrendingUp className="w-6 h-6 text-blue-400" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-2xl font-bold mb-2 group-hover:text-blue-400 transition-colors">Trading & Profit</h3>
-                    <p className="text-gray-400 leading-relaxed">Sistem kami trading otomatis 24/7. Pantau profit real-time dan tarik keuntungan kapan saja.</p>
+                    <h3 className="text-xl font-bold mb-2">Trading & Profit</h3>
+                    <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                      Sistem kami trading otomatis 24/7. Pantau profit real-time dan tarik keuntungan kapan saja.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-xs text-blue-400">Trading 24/7</span>
+                      <span className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-xs text-blue-400">Profit 95%</span>
+                    </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-4">
-                  <div className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-full text-xs font-medium text-blue-400 group-hover:bg-blue-500/20 transition-colors">Trading 24/7</div>
-                  <div className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-full text-xs font-medium text-blue-400 group-hover:bg-blue-500/20 transition-colors">Profit hingga 95%</div>
-                  <div className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-full text-xs font-medium text-blue-400 group-hover:bg-blue-500/20 transition-colors">Withdraw instan</div>
+              </div>
+            </div>
+
+            <div className="absolute left-1/2 -translate-x-1/2 z-10">
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 bg-blue-500/20 rounded-full animate-ping opacity-75" style={{ animationDelay: '1s' }}></div>
+                <div className="absolute inset-2 bg-[#0a0e17] rounded-full border-2 border-blue-500/50 flex items-center justify-center">
+                  <span className="text-xl font-bold text-blue-400">3</span>
                 </div>
               </div>
             </div>
           </div>
-
-          <div className="absolute left-1/2 -translate-x-1/2 z-10">
-            <div className="relative w-20 h-20 animate-float" style={{ animationDelay: '1s' }}>
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 to-blue-500/10 rounded-full animate-ping-slow"></div>
-              <div className="absolute inset-2 bg-gradient-to-br from-blue-500/40 to-transparent rounded-full blur-sm"></div>
-              <div className="absolute inset-4 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] rounded-full border-2 border-blue-500/50 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <span className="text-2xl font-bold text-blue-400">3</span>
-              </div>
-              <div className="absolute inset-0 animate-spin-slow">
-                <div className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-blue-400 rounded-full -translate-x-1/2"></div>
-                <div className="absolute bottom-0 left-1/2 w-1.5 h-1.5 bg-blue-400 rounded-full -translate-x-1/2"></div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
 
-    {/* Mobile Vertical Flow */}
-    <div className="lg:hidden space-y-8">
-      {/* Step 1 */}
-      <div className="relative animate-fade-in-up">
-        <div className="absolute left-8 top-20 w-0.5 h-8 bg-gradient-to-b from-purple-500/30 to-transparent"></div>
-        <div className="flex gap-4">
+    {/* Mobile - Clean Vertical */}
+    <div className="lg:hidden space-y-6">
+      {[
+        { icon: Users, title: 'Daftar & Verifikasi', desc: 'Buat akun dalam 2 menit dengan verifikasi aman', color: 'purple', num: 1 },
+        { icon: DollarSign, title: 'Deposit & Pilih Strategi', desc: 'Deposit minimal Rp 100K dan pilih strategi auto trading', color: 'pink', num: 2 },
+        { icon: TrendingUp, title: 'Trading & Profit', desc: 'Sistem trading otomatis 24/7 dengan profit hingga 95%', color: 'blue', num: 3 }
+      ].map((step, i) => (
+        <div key={i} className="flex gap-4 relative">
+          {i < 2 && <div className="absolute left-7 top-16 w-px h-6 bg-gray-800"></div>}
+          
           <div className="flex-shrink-0">
-            <div className="relative w-16 h-16 animate-float">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-purple-500/5 rounded-full blur-md"></div>
-              <div className="absolute inset-1 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] rounded-full border-2 border-purple-500/50 flex items-center justify-center">
-                <span className="text-xl font-bold text-purple-400">1</span>
-              </div>
+            <div className={`relative w-14 h-14 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-full flex items-center justify-center`}>
+              <span className={`text-lg font-bold text-${step.color}-400`}>{step.num}</span>
             </div>
           </div>
-          <div className="flex-1 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-xl p-4 hover:border-purple-500/50 transition-all">
+          
+          <div className="flex-1 bg-[#0a0e17] border border-gray-800/50 rounded-xl p-4">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-purple-500/5 rounded-lg flex items-center justify-center border border-purple-500/30">
-                <Users className="w-5 h-5 text-purple-400" />
+              <div className={`w-10 h-10 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-lg flex items-center justify-center`}>
+                <step.icon className={`w-5 h-5 text-${step.color}-400`} />
               </div>
-              <h3 className="font-bold text-lg">Daftar & Verifikasi</h3>
+              <h3 className="font-bold">{step.title}</h3>
             </div>
-            <p className="text-sm text-gray-400 leading-relaxed">Buat akun dalam 2 menit dengan verifikasi aman</p>
+            <p className="text-sm text-gray-400 leading-relaxed">{step.desc}</p>
           </div>
         </div>
-      </div>
-
-      {/* Step 2 */}
-      <div className="relative animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-        <div className="absolute left-8 top-20 w-0.5 h-8 bg-gradient-to-b from-pink-500/30 to-transparent"></div>
-        <div className="flex gap-4">
-          <div className="flex-shrink-0">
-            <div className="relative w-16 h-16 animate-float" style={{ animationDelay: '0.5s' }}>
-              <div className="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-pink-500/5 rounded-full blur-md"></div>
-              <div className="absolute inset-1 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] rounded-full border-2 border-pink-500/50 flex items-center justify-center">
-                <span className="text-xl font-bold text-pink-400">2</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex-1 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-xl p-4 hover:border-pink-500/50 transition-all">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-pink-500/20 to-pink-500/5 rounded-lg flex items-center justify-center border border-pink-500/30">
-                <DollarSign className="w-5 h-5 text-pink-400" />
-              </div>
-              <h3 className="font-bold text-lg">Deposit & Pilih Strategi</h3>
-            </div>
-            <p className="text-sm text-gray-400 leading-relaxed">Deposit minimal Rp 100K dan pilih strategi auto trading</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Step 3 */}
-      <div className="relative animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-        <div className="flex gap-4">
-          <div className="flex-shrink-0">
-            <div className="relative w-16 h-16 animate-float" style={{ animationDelay: '1s' }}>
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-blue-500/5 rounded-full blur-md"></div>
-              <div className="absolute inset-1 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] rounded-full border-2 border-blue-500/50 flex items-center justify-center">
-                <span className="text-xl font-bold text-blue-400">3</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex-1 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-xl p-4 hover:border-blue-500/50 transition-all">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-blue-500/5 rounded-lg flex items-center justify-center border border-blue-500/30">
-                <TrendingUp className="w-5 h-5 text-blue-400" />
-              </div>
-              <h3 className="font-bold text-lg">Trading & Profit</h3>
-            </div>
-            <p className="text-sm text-gray-400 leading-relaxed">Sistem trading otomatis 24/7 dengan profit hingga 95%</p>
-          </div>
-        </div>
-      </div>
+      ))}
     </div>
 
-    {/* Bottom CTA */}
+    {/* CTA */}
     <div className="text-center mt-16">
       <button
         onClick={() => {
           setIsLogin(false)
           setShowAuthModal(true)
         }}
-        className="group px-8 py-4 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-blue-500/20 hover:from-purple-500/30 hover:via-pink-500/30 hover:to-blue-500/30 border border-purple-500/30 rounded-xl font-semibold transition-all backdrop-blur-sm"
+        className="group inline-flex items-center gap-2 px-8 py-4 bg-white text-gray-900 rounded-xl font-semibold hover:bg-gray-100 transition-all shadow-lg active:scale-95"
       >
-        <span className="flex items-center gap-2">
-          Mulai Trading Sekarang
-          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-        </span>
+        <span>Mulai Trading Sekarang</span>
+        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
       </button>
     </div>
   </div>
 </section>
 
-      {/* Testimonials */}
-      <section id="testimonials" className="py-20 sm:py-32 relative">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl sm:text-5xl font-bold mb-6">
-              Dipercaya <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Ribuan</span> Trader
-            </h2>
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              Lihat apa kata trader sukses tentang kami
-            </p>
-          </div>
-
-          {/* Desktop Version */}
-          <div className="hidden sm:block max-w-4xl mx-auto">
-            <div className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl p-8 sm:p-12 backdrop-blur-xl">
-              <div className="text-center animate-fade-in">
-                <div className="text-6xl mb-6">{testimonials[activeTestimonial].avatar}</div>
-                
-                <div className="flex justify-center gap-1 mb-6">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-
-                <p className="text-xl text-gray-300 mb-6 leading-relaxed">
-                  "{testimonials[activeTestimonial].content}"
-                </p>
-
-                <div className="inline-flex items-center gap-3 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full mb-4">
-                  <TrendingUp className="w-4 h-4 text-emerald-400" />
-                  <span className="text-sm font-bold text-emerald-400">
-                    {testimonials[activeTestimonial].profit} Keuntungan
-                  </span>
-                </div>
-
-                <div className="font-semibold text-lg mb-1">
-                  {testimonials[activeTestimonial].name}
-                </div>
-                <div className="text-gray-400">
-                  {testimonials[activeTestimonial].role}
-                </div>
-              </div>
-
-              <div className="flex justify-center gap-2 mt-8">
-                {testimonials.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setActiveTestimonial(index)}
-                    className={`h-1.5 rounded-full transition-all ${
-                      index === activeTestimonial 
-                        ? 'bg-blue-500 w-8' 
-                        : 'bg-gray-700 w-1.5 hover:bg-gray-600'
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Mobile Premium Card Design */}
-          <div className="sm:hidden">
-  <div className="relative">
-    {testimonials.map((testimonial, index) => (
-      <div 
-        key={index}
-        className={`transition-all duration-500 ${
-          index === activeTestimonial 
-            ? 'opacity-100 scale-100 relative z-10' 
-            : 'opacity-0 scale-95 absolute inset-0 pointer-events-none'
-        }`}
-      >
-        {/* Modern Clean Card */}
-        <div className="mx-4 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-6 overflow-hidden">
-          {/* Content */}
-          <div className="space-y-4">
-            {/* Avatar & Stars - Compact */}
-            <div className="flex items-center justify-between">
-              <div className="text-5xl">{testimonial.avatar}</div>
-              <div className="flex gap-0.5">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                ))}
-              </div>
-            </div>
-
-            {/* Quote - Clean Typography */}
-            <div className="relative py-2">
-              <p className="text-base text-gray-200 leading-relaxed italic">
-                "{testimonial.content}"
-              </p>
-            </div>
-
-            {/* Stats - Compact Grid */}
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-800/50">
-              <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-3">
-                <div className="text-xs text-gray-400 mb-1">Keuntungan</div>
-                <div className="text-lg font-bold text-emerald-400">{testimonial.profit}</div>
-              </div>
-              <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-3">
-                <div className="text-xs text-gray-400 mb-1">Durasi</div>
-                <div className="text-lg font-bold text-blue-400">{testimonial.duration}</div>
-              </div>
-            </div>
-
-            {/* User Info - Clean */}
-            <div className="pt-3 border-t border-gray-800/50">
-              <h4 className="font-bold text-lg">{testimonial.name}</h4>
-              <p className="text-sm text-gray-400">{testimonial.role}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <Globe className="w-3 h-3 text-gray-500" />
-                <span className="text-xs text-gray-500">{testimonial.location}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+{/* Testimonials - Modern Clean Design */}
+<section id="testimonials" className="py-20 sm:py-32 relative">
+  <div className="container mx-auto px-4 sm:px-6">
+    {/* Header */}
+    <div className="text-center mb-16">
+      <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6">
+        <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+        <span className="text-sm font-medium text-emerald-400">Testimoni Trader</span>
       </div>
-    ))}
-  </div>
-
-  {/* Clean Mobile Controls - DIPERBAIKI */}
-  <div className="flex items-center justify-between mt-6 px-4">
-    <button
-      onClick={() => setActiveTestimonial((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1))}
-      className="w-10 h-10 bg-[#1e293b] hover:bg-[#334155] rounded-lg flex items-center justify-center transition-all border border-gray-700 active:scale-95"
-    >
-      <ChevronLeft className="w-5 h-5" />
-    </button>
-
-    {/* Minimal Dots - DIPERBAIKI (ukuran lebih kecil) */}
-    <div className="flex gap-2">
-      {testimonials.map((_, index) => (
-        <button
-          key={index}
-          onClick={() => setActiveTestimonial(index)}
-          className="transition-all duration-300"
-        >
-          {index === activeTestimonial ? (
-            <div className="w-8 h-2 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full"></div>
-          ) : (
-            <div className="w-2 h-2 bg-gray-700 hover:bg-gray-600 rounded-full"></div>
-          )}
-        </button>
-      ))}
+      <h2 className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight">
+        Dipercaya Ribuan Trader
+      </h2>
+      <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+        Lihat apa kata trader sukses tentang kami
+      </p>
     </div>
 
-    <button
-      onClick={() => setActiveTestimonial((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1))}
-      className="w-10 h-10 bg-[#1e293b] hover:bg-[#334155] rounded-lg flex items-center justify-center transition-all border border-gray-700 active:scale-95"
-    >
-      <ChevronRight className="w-5 h-5" />
-    </button>
-  </div>
+    {/* Desktop - Single Card */}
+    <div className="hidden sm:block max-w-3xl mx-auto">
+      <div className="relative bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-12">
+        <div className="text-center">
+          {/* Avatar */}
+          <div className="text-6xl mb-6">{testimonials[activeTestimonial].avatar}</div>
+          
+          {/* Stars */}
+          <div className="flex justify-center gap-1 mb-6">
+            {[...Array(5)].map((_, i) => (
+              <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+            ))}
+          </div>
 
-  {/* Counter - Minimal */}
-  <div className="mt-4 text-center">
-    <span className="text-xs text-gray-500">
-      {activeTestimonial + 1} / {testimonials.length}
-    </span>
-  </div>
-</div>
+          {/* Quote */}
+          <p className="text-xl text-gray-200 mb-8 leading-relaxed">
+            "{testimonials[activeTestimonial].content}"
+          </p>
+
+          {/* Stats inline */}
+          <div className="flex items-center justify-center gap-6 mb-6">
+            <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+              <div className="text-sm text-gray-400 mb-1">Keuntungan</div>
+              <div className="text-lg font-bold text-emerald-400">
+                {testimonials[activeTestimonial].profit}
+              </div>
+            </div>
+            <div className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+              <div className="text-sm text-gray-400 mb-1">Durasi</div>
+              <div className="text-lg font-bold text-blue-400">
+                {testimonials[activeTestimonial].duration}
+              </div>
+            </div>
+          </div>
+
+          {/* User info */}
+          <div className="pt-6 border-t border-gray-800/50">
+            <div className="font-bold text-lg mb-1">
+              {testimonials[activeTestimonial].name}
+            </div>
+            <div className="text-gray-400 text-sm">
+              {testimonials[activeTestimonial].role}
+            </div>
+          </div>
         </div>
-      </section>
 
+        {/* Progress dots - minimal */}
+        <div className="flex justify-center gap-2 mt-8">
+          {testimonials.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setActiveTestimonial(index)}
+              className="transition-all duration-300"
+            >
+              <div className={`rounded-full transition-all ${
+                index === activeTestimonial 
+                  ? 'bg-gradient-to-r from-blue-500 to-emerald-500 w-8 h-2' 
+                  : 'bg-gray-700 hover:bg-gray-600 w-2 h-2'
+              }`}></div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* Mobile - Clean Card */}
+    <div className="sm:hidden">
+      <div className="relative">
+        {testimonials.map((testimonial, index) => (
+          <div 
+            key={index}
+            className={`transition-all duration-500 ${
+              index === activeTestimonial 
+                ? 'opacity-100 scale-100 relative z-10' 
+                : 'opacity-0 scale-95 absolute inset-0 pointer-events-none'
+            }`}
+          >
+            <div className="mx-4 bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="text-5xl">{testimonial.avatar}</div>
+                <div className="flex gap-0.5">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+              </div>
+
+              {/* Quote */}
+              <p className="text-base text-gray-200 leading-relaxed mb-6 italic">
+                "{testimonial.content}"
+              </p>
+
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-3 mb-6 pb-6 border-b border-gray-800/50">
+                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-3 text-center">
+                  <div className="text-xs text-gray-400 mb-1">Keuntungan</div>
+                  <div className="text-lg font-bold text-emerald-400">{testimonial.profit}</div>
+                </div>
+                <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-3 text-center">
+                  <div className="text-xs text-gray-400 mb-1">Durasi</div>
+                  <div className="text-lg font-bold text-blue-400">{testimonial.duration}</div>
+                </div>
+              </div>
+
+              {/* User info */}
+              <div>
+                <h4 className="font-bold text-lg mb-1">{testimonial.name}</h4>
+                <p className="text-sm text-gray-400">{testimonial.role}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Mobile Controls */}
+      <div className="flex items-center justify-between mt-6 px-4">
+        <button
+          onClick={() => setActiveTestimonial((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1))}
+          className="w-10 h-10 bg-[#1e293b] hover:bg-[#334155] rounded-lg flex items-center justify-center transition-all border border-gray-700"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+
+        <div className="flex gap-2">
+          {testimonials.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setActiveTestimonial(index)}
+              className="transition-all duration-300"
+            >
+              {index === activeTestimonial ? (
+                <div className="w-8 h-2 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full"></div>
+              ) : (
+                <div className="w-2 h-2 bg-gray-700 hover:bg-gray-600 rounded-full"></div>
+              )}
+            </button>
+          ))}
+        </div>
+
+        <button
+          onClick={() => setActiveTestimonial((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1))}
+          className="w-10 h-10 bg-[#1e293b] hover:bg-[#334155] rounded-lg flex items-center justify-center transition-all border border-gray-700"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Counter */}
+      <div className="mt-4 text-center">
+        <span className="text-xs text-gray-500">
+          {activeTestimonial + 1} / {testimonials.length}
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
 
       {/* CTA Section */}
 {/* CTA Section - Modern Futuristic */}
