@@ -34,7 +34,7 @@ interface TradingChartProps {
 }
 
 // ===================================
-// MOBILE CONTROLS COMPONENT
+// MOBILE CONTROLS COMPONENT (DROPDOWN)
 // ===================================
 const MobileControls = memo(({ 
   timeframe, 
@@ -45,127 +45,128 @@ const MobileControls = memo(({
   onFitContent,
   onRefresh
 }: any) => {
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const [canScrollLeft, setCanScrollLeft] = useState(false)
-  const [canScrollRight, setCanScrollRight] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   const timeframes: Timeframe[] = ['1m', '5m', '15m', '1h', '4h', '1d']
 
-  const checkScroll = () => {
-    const container = scrollContainerRef.current
-    if (container) {
-      setCanScrollLeft(container.scrollLeft > 0)
-      setCanScrollRight(
-        container.scrollLeft < container.scrollWidth - container.clientWidth - 1
-      )
-    }
-  }
-
+  // Close dropdown when clicking outside
   useEffect(() => {
-    checkScroll()
-    const container = scrollContainerRef.current
-    if (container) {
-      container.addEventListener('scroll', checkScroll)
-      return () => container.removeEventListener('scroll', checkScroll)
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
     }
-  }, [])
 
-  const scroll = (direction: 'left' | 'right') => {
-    const container = scrollContainerRef.current
-    if (container) {
-      const scrollAmount = 100
-      container.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
-      })
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
     }
-  }
+  }, [isOpen])
 
   return (
-    <div className="lg:hidden absolute top-2 left-2 right-2 z-10">
-      {/* Timeframe Selector with Scroll */}
-      <div className="flex items-center gap-1 mb-2">
-        {canScrollLeft && (
-          <button
-            onClick={() => scroll('left')}
-            className="flex-shrink-0 w-7 h-7 bg-black/40 backdrop-blur-md border border-white/10 rounded-md flex items-center justify-center"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-        )}
-
-        <div 
-          ref={scrollContainerRef}
-          className="flex-1 flex gap-1 overflow-x-auto scrollbar-hide bg-black/30 backdrop-blur-md border border-white/10 rounded-md p-1"
-        >
-          {timeframes.map((tf) => (
-            <button
-              key={tf}
-              onClick={() => onTimeframeChange(tf)}
-              disabled={isLoading}
-              className={`flex-shrink-0 px-3 py-1 text-xs font-bold rounded transition-all ${
-                timeframe === tf
-                  ? 'bg-blue-500/80 text-white shadow-sm'
-                  : 'text-gray-300 hover:text-white hover:bg-white/10'
-              } disabled:opacity-50`}
-            >
-              {tf}
-            </button>
-          ))}
+    <div className="lg:hidden absolute top-2 left-2 z-10" ref={dropdownRef}>
+      {/* Trigger Button - Compact */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg hover:bg-black/50 transition-all"
+      >
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-bold text-white">{timeframe}</span>
+          <span className="text-xs text-gray-400">|</span>
+          <span className="text-xs text-gray-300">{chartType === 'candle' ? 'Candle' : 'Line'}</span>
         </div>
+        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
 
-        {canScrollRight && (
-          <button
-            onClick={() => scroll('right')}
-            className="flex-shrink-0 w-7 h-7 bg-black/40 backdrop-blur-md border border-white/10 rounded-md flex items-center justify-center"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        )}
-      </div>
+      {/* Dropdown Menu */}
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl overflow-hidden animate-scale-in min-w-[200px]">
+          {/* Timeframes */}
+          <div className="p-2 border-b border-gray-800/50">
+            <div className="text-[10px] font-semibold text-gray-400 mb-1.5 px-2">Timeframe</div>
+            <div className="grid grid-cols-3 gap-1">
+              {timeframes.map((tf) => (
+                <button
+                  key={tf}
+                  onClick={() => {
+                    onTimeframeChange(tf)
+                    setIsOpen(false)
+                  }}
+                  disabled={isLoading}
+                  className={`px-2 py-1.5 text-xs font-bold rounded transition-all ${
+                    timeframe === tf
+                      ? 'bg-blue-500 text-white shadow-sm'
+                      : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#232936]'
+                  } disabled:opacity-50`}
+                >
+                  {tf}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      {/* Chart Type & Actions */}
-      <div className="flex items-center gap-1">
-        <div className="flex items-center gap-0.5 bg-black/30 backdrop-blur-md border border-white/10 rounded-md p-0.5">
-          <button
-            onClick={() => onChartTypeChange('candle')}
-            disabled={isLoading}
-            className={`px-2 py-1 text-xs font-semibold rounded transition-all ${
-              chartType === 'candle'
-                ? 'bg-blue-500/80 text-white shadow-sm'
-                : 'text-gray-300 hover:text-white hover:bg-white/10'
-            }`}
-          >
-            Candle
-          </button>
-          <button
-            onClick={() => onChartTypeChange('line')}
-            disabled={isLoading}
-            className={`px-2 py-1 text-xs font-semibold rounded transition-all ${
-              chartType === 'line'
-                ? 'bg-blue-500/80 text-white shadow-sm'
-                : 'text-gray-300 hover:text-white hover:bg-white/10'
-            }`}
-          >
-            Line
-          </button>
+          {/* Chart Type */}
+          <div className="p-2 border-b border-gray-800/50">
+            <div className="text-[10px] font-semibold text-gray-400 mb-1.5 px-2">Chart Type</div>
+            <div className="flex gap-1">
+              <button
+                onClick={() => {
+                  onChartTypeChange('candle')
+                  setIsOpen(false)
+                }}
+                disabled={isLoading}
+                className={`flex-1 px-2 py-1.5 text-xs font-semibold rounded transition-all ${
+                  chartType === 'candle'
+                    ? 'bg-blue-500 text-white shadow-sm'
+                    : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#232936]'
+                }`}
+              >
+                Candle
+              </button>
+              <button
+                onClick={() => {
+                  onChartTypeChange('line')
+                  setIsOpen(false)
+                }}
+                disabled={isLoading}
+                className={`flex-1 px-2 py-1.5 text-xs font-semibold rounded transition-all ${
+                  chartType === 'line'
+                    ? 'bg-blue-500 text-white shadow-sm'
+                    : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#232936]'
+                }`}
+              >
+                Line
+              </button>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="p-2">
+            <div className="flex gap-1">
+              <button
+                onClick={() => {
+                  onFitContent()
+                  setIsOpen(false)
+                }}
+                className="flex-1 px-2 py-1.5 text-xs font-medium text-gray-300 bg-[#1a1f2e] hover:bg-[#232936] rounded transition-all"
+              >
+                Fit Content
+              </button>
+              <button
+                onClick={() => {
+                  onRefresh()
+                  setIsOpen(false)
+                }}
+                disabled={isLoading}
+                className="px-2 py-1.5 text-gray-300 bg-[#1a1f2e] hover:bg-[#232936] rounded transition-all disabled:opacity-50 flex items-center gap-1"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+          </div>
         </div>
-
-        <button
-          onClick={onFitContent}
-          className="px-2 py-1 text-xs font-medium text-gray-300 bg-black/30 backdrop-blur-md border border-white/10 rounded-md hover:text-white hover:bg-white/10"
-        >
-          Fit
-        </button>
-
-        <button
-          onClick={onRefresh}
-          disabled={isLoading}
-          className="p-1 text-gray-300 bg-black/30 backdrop-blur-md border border-white/10 rounded-md hover:text-white hover:bg-white/10 disabled:opacity-50"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-        </button>
-      </div>
+      )}
     </div>
   )
 })
@@ -258,14 +259,14 @@ const DesktopControls = memo(({
 DesktopControls.displayName = 'DesktopControls'
 
 // ===================================
-// ORDER TICKER (IN CHART)
+// ORDER TICKER (IN CHART - COMPACT)
 // ===================================
 const OrderTicker = memo(({ orders, currentPrice }: { orders: BinaryOrder[], currentPrice?: number }) => {
   if (orders.length === 0) return null
 
   return (
-    <div className="absolute bottom-4 left-4 right-4 z-20 pointer-events-none">
-      <div className="flex flex-col gap-2">
+    <div className="absolute bottom-4 left-4 z-20 pointer-events-none">
+      <div className="flex flex-col gap-2 items-start">
         {orders.map((order) => {
           const timeLeft = calculateTimeLeft(order.exit_time || '')
           const priceDiff = currentPrice ? currentPrice - order.entry_price : 0
@@ -274,36 +275,43 @@ const OrderTicker = memo(({ orders, currentPrice }: { orders: BinaryOrder[], cur
           return (
             <div
               key={order.id}
-              className={`px-3 py-2 rounded-lg backdrop-blur-md border shadow-lg animate-slide-up pointer-events-auto ${
+              className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg backdrop-blur-md border shadow-lg animate-slide-up pointer-events-auto ${
                 isWinning
                   ? 'bg-green-500/20 border-green-500/50'
                   : 'bg-red-500/20 border-red-500/50'
               }`}
             >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  {order.direction === 'CALL' ? (
-                    <TrendingUp className="w-4 h-4 text-green-400 flex-shrink-0" />
-                  ) : (
-                    <TrendingDown className="w-4 h-4 text-red-400 flex-shrink-0" />
-                  )}
-                  <div className="text-xs">
-                    <div className="font-semibold">{order.asset_name}</div>
-                    <div className="text-gray-300 font-mono">{order.entry_price.toFixed(3)}</div>
-                  </div>
-                </div>
+              {/* Icon & Direction */}
+              {order.direction === 'CALL' ? (
+                <TrendingUp className="w-4 h-4 text-green-400 flex-shrink-0" />
+              ) : (
+                <TrendingDown className="w-4 h-4 text-red-400 flex-shrink-0" />
+              )}
 
-                <div className="text-right">
-                  <div className={`text-xs font-bold ${isWinning ? 'text-green-400' : 'text-red-400'}`}>
-                    {isWinning ? 'WINNING' : 'LOSING'}
-                  </div>
-                  <div className="text-xs text-gray-300 font-mono">{timeLeft}</div>
-                </div>
+              {/* Asset & Entry Price */}
+              <div className="text-xs">
+                <div className="font-semibold leading-tight">{order.asset_name}</div>
+                <div className="text-gray-300 font-mono text-[10px]">{order.entry_price.toFixed(3)}</div>
+              </div>
 
-                <div className="text-right">
-                  <div className="text-xs text-gray-400">Amount</div>
-                  <div className="text-xs font-bold font-mono">{formatCurrency(order.amount)}</div>
+              {/* Divider */}
+              <div className="w-px h-6 bg-white/10"></div>
+
+              {/* Status */}
+              <div className="text-xs">
+                <div className={`font-bold leading-tight ${isWinning ? 'text-green-400' : 'text-red-400'}`}>
+                  {isWinning ? 'WIN' : 'LOSE'}
                 </div>
+                <div className="text-gray-300 font-mono text-[10px]">{timeLeft}</div>
+              </div>
+
+              {/* Divider */}
+              <div className="w-px h-6 bg-white/10"></div>
+
+              {/* Amount */}
+              <div className="text-xs text-right">
+                <div className="text-gray-400 text-[10px] leading-tight">Amount</div>
+                <div className="font-bold font-mono leading-tight">{formatCurrency(order.amount)}</div>
               </div>
             </div>
           )
@@ -871,12 +879,19 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       )}
 
       <style jsx>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
+        @keyframes scale-in {
+          from {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
         }
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
+
+        .animate-scale-in {
+          animation: scale-in 0.2s ease-out;
         }
       `}</style>
     </div>
