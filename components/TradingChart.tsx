@@ -848,15 +848,29 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
       {/* Loading Overlay */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#0a0e17]/90 z-20">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-3"></div>
-            <div className="text-sm text-gray-400">Loading {timeframe} data...</div>
-            <div className="mt-2 w-48 h-1 bg-gray-800 rounded-full overflow-hidden mx-auto">
-              <div 
-                className="h-full bg-blue-500 transition-all duration-300"
-                style={{ width: `${loadingProgress}%` }}
-              />
+        <div className="absolute inset-0 bg-[#0a0e17]/90 z-20">
+          <div className="h-full flex flex-col p-4">
+            {/* Animated skeleton bars */}
+            <div className="flex-1 flex items-end gap-2">
+              {[...Array(20)].map((_, i) => (
+                <div
+                  key={i}
+                  className="flex-1 bg-blue-500/20 rounded-t animate-pulse"
+                  style={{
+                    height: `${30 + Math.random() * 70}%`,
+                    animationDelay: `${i * 50}ms`
+                  }}
+                />
+              ))}
+            </div>
+            
+            <div className="mt-4 text-center">
+              <div className="text-sm text-gray-400">
+                Loading {timeframe} chart...
+              </div>
+              <div className="mt-2 w-48 h-1 bg-gray-800 rounded-full mx-auto overflow-hidden">
+                <div className="h-full bg-blue-500 animate-loading-bar" />
+              </div>
             </div>
           </div>
         </div>

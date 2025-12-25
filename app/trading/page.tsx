@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import { Asset, BinaryOrder } from '@/types'
 import { formatCurrency, DURATIONS } from '@/lib/utils'
 import dynamic from 'next/dynamic'
+import { prefetchDefaultAsset } from '@/lib/firebase'
 
 import { 
   TrendingUp,
@@ -116,7 +117,22 @@ export default function TradingPage() {
       router.push('/')
       return
     }
-    loadData()
+    
+    // Load data and prefetch default asset
+    const initializeData = async () => {
+      await loadData()
+      
+      // Prefetch default asset untuk instant chart loading
+      if (selectedAsset && selectedAsset.realtimeDbPath) {
+        const pathParts = selectedAsset.realtimeDbPath.split('/') || []
+        const assetPath = pathParts.slice(0, -1).join('/') || `/${selectedAsset.symbol.toLowerCase()}`
+        
+        // Prefetch in background (tidak blocking UI)
+        prefetchDefaultAsset(assetPath).catch(console.error)
+      }
+    }
+    
+    initializeData()
   }, [user, router])
 
   useEffect(() => {
