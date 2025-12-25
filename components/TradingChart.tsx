@@ -1,4 +1,4 @@
-// components/TradingChart.tsx
+// components/TradingChart.tsx - OPTIMIZED VERSION
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
@@ -6,7 +6,7 @@ import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, Time, UTC
 import { useTradingStore } from '@/store/trading'
 import { fetchHistoricalData, subscribeToOHLCUpdates, subscribeToPriceUpdates } from '@/lib/firebase'
 import { BinaryOrder } from '@/types'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, calculateTimeLeft } from '@/lib/utils'
 import { 
   Maximize2, 
   Minimize2, 
@@ -14,16 +14,13 @@ import {
   AlertCircle,
   Activity,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 
 type ChartType = 'line' | 'candle'
 type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
-
-interface TradingChartProps {
-  activeOrders?: BinaryOrder[]
-  currentPrice?: number
-}
 
 interface OrderMarker {
   order: BinaryOrder
@@ -31,12 +28,157 @@ interface OrderMarker {
   entryLine: any
 }
 
-// Optimized Controls Component
-const ChartControls = memo(({ 
+interface TradingChartProps {
+  activeOrders?: BinaryOrder[]
+  currentPrice?: number
+}
+
+// ===================================
+// MOBILE CONTROLS COMPONENT
+// ===================================
+const MobileControls = memo(({ 
   timeframe, 
   chartType, 
   isLoading,
-  isMobile,
+  onTimeframeChange,
+  onChartTypeChange,
+  onFitContent,
+  onRefresh
+}: any) => {
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  const timeframes: Timeframe[] = ['1m', '5m', '15m', '1h', '4h', '1d']
+
+  const checkScroll = () => {
+    const container = scrollContainerRef.current
+    if (container) {
+      setCanScrollLeft(container.scrollLeft > 0)
+      setCanScrollRight(
+        container.scrollLeft < container.scrollWidth - container.clientWidth - 1
+      )
+    }
+  }
+
+  useEffect(() => {
+    checkScroll()
+    const container = scrollContainerRef.current
+    if (container) {
+      container.addEventListener('scroll', checkScroll)
+      return () => container.removeEventListener('scroll', checkScroll)
+    }
+  }, [])
+
+  const scroll = (direction: 'left' | 'right') => {
+    const container = scrollContainerRef.current
+    if (container) {
+      const scrollAmount = 100
+      container.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      })
+    }
+  }
+
+  return (
+    <div className="lg:hidden absolute top-2 left-2 right-2 z-10">
+      {/* Timeframe Selector with Scroll */}
+      <div className="flex items-center gap-1 mb-2">
+        {canScrollLeft && (
+          <button
+            onClick={() => scroll('left')}
+            className="flex-shrink-0 w-7 h-7 bg-black/40 backdrop-blur-md border border-white/10 rounded-md flex items-center justify-center"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+        )}
+
+        <div 
+          ref={scrollContainerRef}
+          className="flex-1 flex gap-1 overflow-x-auto scrollbar-hide bg-black/30 backdrop-blur-md border border-white/10 rounded-md p-1"
+        >
+          {timeframes.map((tf) => (
+            <button
+              key={tf}
+              onClick={() => onTimeframeChange(tf)}
+              disabled={isLoading}
+              className={`flex-shrink-0 px-3 py-1 text-xs font-bold rounded transition-all ${
+                timeframe === tf
+                  ? 'bg-blue-500/80 text-white shadow-sm'
+                  : 'text-gray-300 hover:text-white hover:bg-white/10'
+              } disabled:opacity-50`}
+            >
+              {tf}
+            </button>
+          ))}
+        </div>
+
+        {canScrollRight && (
+          <button
+            onClick={() => scroll('right')}
+            className="flex-shrink-0 w-7 h-7 bg-black/40 backdrop-blur-md border border-white/10 rounded-md flex items-center justify-center"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Chart Type & Actions */}
+      <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 bg-black/30 backdrop-blur-md border border-white/10 rounded-md p-0.5">
+          <button
+            onClick={() => onChartTypeChange('candle')}
+            disabled={isLoading}
+            className={`px-2 py-1 text-xs font-semibold rounded transition-all ${
+              chartType === 'candle'
+                ? 'bg-blue-500/80 text-white shadow-sm'
+                : 'text-gray-300 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            Candle
+          </button>
+          <button
+            onClick={() => onChartTypeChange('line')}
+            disabled={isLoading}
+            className={`px-2 py-1 text-xs font-semibold rounded transition-all ${
+              chartType === 'line'
+                ? 'bg-blue-500/80 text-white shadow-sm'
+                : 'text-gray-300 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            Line
+          </button>
+        </div>
+
+        <button
+          onClick={onFitContent}
+          className="px-2 py-1 text-xs font-medium text-gray-300 bg-black/30 backdrop-blur-md border border-white/10 rounded-md hover:text-white hover:bg-white/10"
+        >
+          Fit
+        </button>
+
+        <button
+          onClick={onRefresh}
+          disabled={isLoading}
+          className="p-1 text-gray-300 bg-black/30 backdrop-blur-md border border-white/10 rounded-md hover:text-white hover:bg-white/10 disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+        </button>
+      </div>
+    </div>
+  )
+})
+
+MobileControls.displayName = 'MobileControls'
+
+// ===================================
+// DESKTOP CONTROLS COMPONENT
+// ===================================
+const DesktopControls = memo(({ 
+  timeframe, 
+  chartType, 
+  isLoading,
   onTimeframeChange,
   onChartTypeChange,
   onFitContent,
@@ -44,20 +186,17 @@ const ChartControls = memo(({
   onToggleFullscreen,
   isFullscreen
 }: any) => (
-  <div className={`absolute ${isMobile ? 'top-1 left-1 right-1' : 'top-2 left-2'} z-10`}>
+  <div className="hidden lg:block absolute top-2 left-2 z-10">
     <div className="flex items-center gap-1.5">
-      {/* Timeframe Selector */}
-      <div className={`flex items-center gap-0.5 bg-black/20 backdrop-blur-md border border-white/10 rounded-md p-0.5 ${
-        isMobile ? 'overflow-x-auto scrollbar-hide max-w-[200px]' : 'max-w-[140px] overflow-x-auto scrollbar-hide'
-      }`}>
+      <div className="flex items-center gap-0.5 bg-black/15 backdrop-blur-md border border-white/5 rounded-md p-0.5">
         {(['1m', '5m', '15m', '1h', '4h', '1d'] as Timeframe[]).map((tf) => (
           <button
             key={tf}
             onClick={() => onTimeframeChange(tf)}
             disabled={isLoading}
-            className={`${isMobile ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs'} font-semibold rounded transition-all flex-shrink-0 ${
+            className={`px-2 py-0.5 text-xs font-semibold rounded transition-all ${
               timeframe === tf
-                ? 'bg-blue-500/80 text-white shadow-sm backdrop-blur-sm'
+                ? 'bg-blue-500/70 text-white shadow-sm'
                 : 'text-gray-300 hover:text-white hover:bg-white/10'
             } disabled:opacity-50`}
           >
@@ -66,85 +205,119 @@ const ChartControls = memo(({
         ))}
       </div>
 
-      {/* Chart Type Selector */}
-      <div className="flex items-center gap-0.5 bg-black/20 backdrop-blur-md border border-white/10 rounded-md p-0.5">
+      <div className="flex items-center gap-0.5 bg-black/15 backdrop-blur-md border border-white/5 rounded-md p-0.5">
         <button
           onClick={() => onChartTypeChange('candle')}
           disabled={isLoading}
-          className={`${isMobile ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs'} font-semibold rounded transition-all ${
+          className={`px-2 py-0.5 text-xs font-semibold rounded transition-all ${
             chartType === 'candle'
-              ? 'bg-blue-500/80 text-white shadow-sm backdrop-blur-sm'
+              ? 'bg-blue-500/70 text-white shadow-sm'
               : 'text-gray-300 hover:text-white hover:bg-white/10'
           }`}
         >
-          {isMobile ? <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0v3M8 13v3M2 7h3M11 7h3M4 4h8v8H4z"/></svg> : 'Candle'}
+          Candle
         </button>
         <button
           onClick={() => onChartTypeChange('line')}
           disabled={isLoading}
-          className={`${isMobile ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs'} font-semibold rounded transition-all ${
+          className={`px-2 py-0.5 text-xs font-semibold rounded transition-all ${
             chartType === 'line'
-              ? 'bg-blue-500/80 text-white shadow-sm backdrop-blur-sm'
+              ? 'bg-blue-500/70 text-white shadow-sm'
               : 'text-gray-300 hover:text-white hover:bg-white/10'
           }`}
         >
-          {isMobile ? <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4"/></svg> : 'Line'}
+          Line
         </button>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex items-center gap-0.5 bg-black/20 backdrop-blur-md border border-white/10 rounded-md p-0.5">
-        {!isMobile && (
-          <button
-            onClick={onFitContent}
-            className="px-2 py-0.5 text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
-            title="Fit content"
-          >
-            Fit
-          </button>
-        )}
+      <div className="flex items-center gap-0.5 bg-black/15 backdrop-blur-md border border-white/5 rounded-md p-0.5">
+        <button
+          onClick={onFitContent}
+          className="px-2 py-0.5 text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
+        >
+          Fit
+        </button>
         <button
           onClick={onRefresh}
           disabled={isLoading}
-          className={`${isMobile ? 'p-0.5' : 'p-1'} text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-50`}
-          title="Refresh"
+          className="p-1 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-50"
         >
-          <RefreshCw className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} ${isLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
         </button>
-        {!isMobile && (
-          <button
-            onClick={onToggleFullscreen}
-            className="p-1 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
-            title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-          >
-            {isFullscreen ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
-          </button>
-        )}
+        <button
+          onClick={onToggleFullscreen}
+          className="p-1 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
+        >
+          {isFullscreen ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+        </button>
       </div>
     </div>
   </div>
 ))
 
-ChartControls.displayName = 'ChartControls'
+DesktopControls.displayName = 'DesktopControls'
 
-// Loading Skeleton
-const ChartSkeleton = () => (
-  <div className="w-full h-full flex items-center justify-center bg-[#0a0e17]">
-    <div className="text-center space-y-4">
-      <div className="w-16 h-16 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
-      <div className="space-y-2">
-        <div className="text-sm text-gray-400 animate-pulse">Loading chart data...</div>
-        <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
-          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-          <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-        </div>
+// ===================================
+// ORDER TICKER (IN CHART)
+// ===================================
+const OrderTicker = memo(({ orders, currentPrice }: { orders: BinaryOrder[], currentPrice?: number }) => {
+  if (orders.length === 0) return null
+
+  return (
+    <div className="absolute bottom-4 left-4 right-4 z-20 pointer-events-none">
+      <div className="flex flex-col gap-2">
+        {orders.map((order) => {
+          const timeLeft = calculateTimeLeft(order.exit_time || '')
+          const priceDiff = currentPrice ? currentPrice - order.entry_price : 0
+          const isWinning = order.direction === 'CALL' ? priceDiff > 0 : priceDiff < 0
+
+          return (
+            <div
+              key={order.id}
+              className={`px-3 py-2 rounded-lg backdrop-blur-md border shadow-lg animate-slide-up pointer-events-auto ${
+                isWinning
+                  ? 'bg-green-500/20 border-green-500/50'
+                  : 'bg-red-500/20 border-red-500/50'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  {order.direction === 'CALL' ? (
+                    <TrendingUp className="w-4 h-4 text-green-400 flex-shrink-0" />
+                  ) : (
+                    <TrendingDown className="w-4 h-4 text-red-400 flex-shrink-0" />
+                  )}
+                  <div className="text-xs">
+                    <div className="font-semibold">{order.asset_name}</div>
+                    <div className="text-gray-300 font-mono">{order.entry_price.toFixed(3)}</div>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <div className={`text-xs font-bold ${isWinning ? 'text-green-400' : 'text-red-400'}`}>
+                    {isWinning ? 'WINNING' : 'LOSING'}
+                  </div>
+                  <div className="text-xs text-gray-300 font-mono">{timeLeft}</div>
+                </div>
+
+                <div className="text-right">
+                  <div className="text-xs text-gray-400">Amount</div>
+                  <div className="text-xs font-bold font-mono">{formatCurrency(order.amount)}</div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
-  </div>
-)
+  )
+})
 
-// Main Chart Component
+OrderTicker.displayName = 'OrderTicker'
+
+// ===================================
+// MAIN CHART COMPONENT
+// ===================================
 const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -163,21 +336,16 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
   const [chartType, setChartType] = useState<ChartType>('candle')
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
+  const [lastPrice, setLastPrice] = useState<number | null>(null)
+  const [loadingProgress, setLoadingProgress] = useState(0)
 
-  // Detect mobile
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 1024)
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
-
-  // Update current price line
+  // ===================================
+  // UPDATE CURRENT PRICE LINE
+  // ===================================
   const updateCurrentPriceLine = useCallback((price: number) => {
     if (!candleSeriesRef.current || !chartRef.current) return
     
@@ -194,20 +362,25 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         if (candleSeriesRef.current) {
           currentPriceLineRef.current = candleSeriesRef.current.createPriceLine({
             price: price,
-            color: 'rgba(59, 130, 246, 0.4)',
-            lineWidth: 1,
-            lineStyle: 2,
+            color: '#3b82f6',
+            lineWidth: 1, // 👈 TIPIS
+            lineStyle: 2, // 👈 DASHED
             axisLabelVisible: true,
-            title: ''
+            title: 'Current',
+            lineVisible: true,
           })
         }
+        
+        setLastPrice(price)
       } catch (error) {
         console.error('Price line update error:', error)
       }
     })
   }, [])
 
-  // Update order markers
+  // ===================================
+  // ORDER MARKERS
+  // ===================================
   const updateOrderMarker = useCallback((order: BinaryOrder) => {
     if (!candleSeriesRef.current || !chartRef.current) return
 
@@ -217,8 +390,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     const entryTime = Math.floor(new Date(order.entry_time).getTime() / 1000) as Time
     const isCall = order.direction === 'CALL'
 
-    if (existingMarker?.entryLine && candleSeriesRef.current) {
-      candleSeriesRef.current.removePriceLine(existingMarker.entryLine)
+    if (existingMarker) {
+      if (existingMarker.entryLine && candleSeriesRef.current) {
+        candleSeriesRef.current.removePriceLine(existingMarker.entryLine)
+      }
     }
 
     const entryMarker = {
@@ -236,7 +411,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       lineWidth: 2,
       lineStyle: 2,
       axisLabelVisible: true,
-      title: `${order.direction}`
+      title: `${order.direction} Entry`
     })
 
     const existingMarkers = candleSeriesRef.current.markers() || []
@@ -249,7 +424,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     })
   }, [])
 
-  // Update orders
+  // ===================================
+  // UPDATE ORDERS
+  // ===================================
   useEffect(() => {
     if (!chartRef.current || !candleSeriesRef.current) return
 
@@ -273,14 +450,18 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     })
   }, [activeOrders, updateOrderMarker])
 
-  // Update current price
+  // ===================================
+  // UPDATE CURRENT PRICE
+  // ===================================
   useEffect(() => {
     if (currentPrice && isInitialized) {
       updateCurrentPriceLine(currentPrice)
     }
   }, [currentPrice, isInitialized, updateCurrentPriceLine])
 
-  // Initialize chart
+  // ===================================
+  // INITIALIZE CHART
+  // ===================================
   useEffect(() => {
     if (mountedRef.current) return
     
@@ -302,12 +483,12 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         },
         grid: {
           vertLines: { 
-            color: 'rgba(255, 255, 255, 0.15)',
+            color: 'rgba(255, 255, 255, 0.08)', // 👈 LEBIH TEBAL
             style: 0,
             visible: true
           },
           horzLines: { 
-            color: 'rgba(255, 255, 255, 0.15)',
+            color: 'rgba(255, 255, 255, 0.08)', // 👈 LEBIH TEBAL
             style: 0,
             visible: true
           },
@@ -315,21 +496,23 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         crosshair: {
           mode: CrosshairMode.Normal,
           vertLine: {
-            width: 1,
             color: 'rgba(255, 255, 255, 0.3)',
+            width: 1,
             style: 3,
           },
           horzLine: {
-            width: 1,
             color: 'rgba(255, 255, 255, 0.3)',
+            width: 1,
             style: 3,
           },
         },
         rightPriceScale: {
           borderColor: 'rgba(255, 255, 255, 0.1)',
+          borderVisible: true,
         },
         timeScale: {
           borderColor: 'rgba(255, 255, 255, 0.1)',
+          borderVisible: true,
           timeVisible: true,
           secondsVisible: false,
         },
@@ -412,7 +595,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [])
 
-  // Chart type change
+  // ===================================
+  // CHART TYPE CHANGE
+  // ===================================
   useEffect(() => {
     if (!candleSeriesRef.current || !lineSeriesRef.current) return
 
@@ -425,7 +610,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [chartType])
 
-  // Load data
+  // ===================================
+  // LOAD DATA & SUBSCRIBE
+  // ===================================
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
       return
@@ -436,6 +623,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     const loadChartData = async () => {
       setIsLoading(true)
       setError(null)
+      setLoadingProgress(0)
 
       if (unsubscribeOHLCRef.current) {
         unsubscribeOHLCRef.current()
@@ -451,12 +639,16 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         const pathParts = selectedAsset.realtimeDbPath?.split('/') || []
         const assetPath = pathParts.slice(0, -1).join('/') || `/${selectedAsset.symbol.toLowerCase()}`
 
+        setLoadingProgress(30)
+
         const data = await fetchHistoricalData(assetPath, timeframe)
 
         if (isCancelled) return
 
+        setLoadingProgress(60)
+
         if (!data || data.length === 0) {
-          setError('No data available')
+          setError('No data available. Check simulator.')
           setIsLoading(false)
           return
         }
@@ -476,6 +668,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
         if (isCancelled) return
 
+        setLoadingProgress(90)
+
         if (candleSeriesRef.current && lineSeriesRef.current) {
           candleSeriesRef.current.setData(candleData)
           lineSeriesRef.current.setData(lineData)
@@ -485,6 +679,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           }
         }
 
+        setLoadingProgress(100)
         setIsLoading(false)
 
         unsubscribeOHLCRef.current = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
@@ -540,6 +735,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [selectedAsset?.id, timeframe, isInitialized, updateCurrentPriceLine])
 
+  // ===================================
+  // HANDLERS
+  // ===================================
   const handleRefresh = useCallback(() => {
     if (!selectedAsset) return
     
@@ -560,6 +758,17 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     setIsFullscreen(prev => !prev)
   }, [])
 
+  const handleTimeframeChange = useCallback((tf: Timeframe) => {
+    setTimeframe(tf)
+  }, [])
+
+  const handleChartTypeChange = useCallback((type: ChartType) => {
+    setChartType(type)
+  }, [])
+
+  // ===================================
+  // RENDER
+  // ===================================
   if (!selectedAsset) {
     return (
       <div className="h-full flex items-center justify-center bg-[#0a0e17]">
@@ -573,32 +782,83 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
   return (
     <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : 'h-full'}`}>
-      <ChartControls
+      {/* Desktop Controls */}
+      <DesktopControls
         timeframe={timeframe}
         chartType={chartType}
         isLoading={isLoading}
-        isMobile={isMobile}
-        onTimeframeChange={setTimeframe}
-        onChartTypeChange={setChartType}
+        onTimeframeChange={handleTimeframeChange}
+        onChartTypeChange={handleChartTypeChange}
         onFitContent={handleFitContent}
         onRefresh={handleRefresh}
         onToggleFullscreen={toggleFullscreen}
         isFullscreen={isFullscreen}
       />
 
+      {/* Mobile Controls */}
+      <MobileControls
+        timeframe={timeframe}
+        chartType={chartType}
+        isLoading={isLoading}
+        onTimeframeChange={handleTimeframeChange}
+        onChartTypeChange={handleChartTypeChange}
+        onFitContent={handleFitContent}
+        onRefresh={handleRefresh}
+      />
+
+      {/* Chart Info */}
+      <div className="absolute top-2 right-2 z-10 bg-black/15 backdrop-blur-md border border-white/5 rounded-md px-2 py-1">
+        <div className="text-[10px] text-gray-300 flex items-center gap-1.5">
+          <span className="font-semibold">{selectedAsset.symbol}</span>
+          <span className="text-gray-500">•</span>
+          <span className="text-gray-400">{timeframe}</span>
+          {activeOrders.length > 0 && (
+            <>
+              <span className="text-gray-500">•</span>
+              <span className="text-blue-400 font-semibold">{activeOrders.length} Active</span>
+            </>
+          )}
+          {lastPrice && (
+            <>
+              <span className="text-gray-500">•</span>
+              <span className="text-green-400 font-mono font-semibold">{lastPrice.toFixed(3)}</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Chart Container */}
       <div 
         ref={chartContainerRef} 
         className="w-full h-full bg-[#0a0e17]"
         style={{ minHeight: '400px' }}
       />
 
-      {isLoading && <ChartSkeleton />}
+      {/* Order Ticker - HANYA UNTUK ACTIVE ORDERS */}
+      <OrderTicker orders={activeOrders} currentPrice={currentPrice} />
 
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[#0a0e17]/90 z-20">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-3"></div>
+            <div className="text-sm text-gray-400">Loading {timeframe} data...</div>
+            <div className="mt-2 w-48 h-1 bg-gray-800 rounded-full overflow-hidden mx-auto">
+              <div 
+                className="h-full bg-blue-500 transition-all duration-300"
+                style={{ width: `${loadingProgress}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Overlay */}
       {!isLoading && error && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#0a0e17]/90 z-20">
           <div className="text-center max-w-md px-6">
             <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3 opacity-30" />
-            <div className="text-sm font-medium text-red-400 mb-2">Failed to Load</div>
+            <div className="text-sm font-medium text-red-400 mb-2">Failed to Load Chart</div>
             <div className="text-xs text-gray-500 mb-4">{error}</div>
             <button 
               onClick={handleRefresh}
@@ -609,6 +869,16 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   )
 })
