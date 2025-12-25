@@ -556,40 +556,39 @@ const handleTouchEnd = () => {
 
           {/* Desktop Grid */}
           <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, index) => (
-              <div 
-                key={index}
-                className="group relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-6 hover:border-blue-500/50 transition-all duration-500 overflow-hidden animate-fade-in-up"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
-                
-                <div className="relative z-10">
-                  <div className="w-14 h-14 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 rounded-xl flex items-center justify-center mb-4 border border-blue-500/30 group-hover:scale-110 transition-transform">
-                    <feature.icon className="w-7 h-7 text-blue-400" />
-                  </div>
-                  <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-                  <p className="text-gray-400 text-sm leading-relaxed">{feature.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+  {features.map((feature, index) => (
+    <div 
+      key={index}
+      className="group relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-6 hover:border-blue-500/50 transition-all duration-500 overflow-hidden animate-fade-in-up"
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
+      <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
+      
+      <div className="relative z-10">
+        <div className="w-14 h-14 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 rounded-xl flex items-center justify-center mb-4 border border-blue-500/30 group-hover:scale-110 transition-transform">
+          <feature.icon className="w-7 h-7 text-blue-400" />
+        </div>
+        <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+        <p className="text-gray-400 text-sm leading-relaxed">{feature.description}</p>
+      </div>
+    </div>
+  ))}
+</div>
 
           {/* Mobile Modern Stack Layout */}
 <div className="sm:hidden relative">
   {/* Swipeable Container */}
   <div 
-    className="relative overflow-hidden rounded-3xl"
+    className="relative overflow-hidden"
     onTouchStart={handleTouchStart}
     onTouchMove={handleTouchMove}
     onTouchEnd={handleTouchEnd}
   >
     {/* Cards Stack */}
-    <div className="relative h-[520px]">
+    <div className="relative min-h-[360px]">
       {features.map((feature, index) => {
         const isActive = index === activeFeature
-        const isPrev = index === (activeFeature === 0 ? features.length - 1 : activeFeature - 1)
-        const isNext = index === (activeFeature + 1) % features.length
+        const offset = index - activeFeature
         
         return (
           <div 
@@ -597,75 +596,43 @@ const handleTouchEnd = () => {
             className={`absolute inset-0 transition-all duration-500 ease-out ${
               isActive 
                 ? 'opacity-100 scale-100 z-30 translate-x-0' 
-                : isPrev
-                ? 'opacity-30 scale-95 z-10 -translate-x-8'
-                : isNext
-                ? 'opacity-30 scale-95 z-10 translate-x-8'
+                : offset === -1
+                ? 'opacity-0 scale-95 z-10 -translate-x-full'
+                : offset === 1
+                ? 'opacity-0 scale-95 z-10 translate-x-full'
                 : 'opacity-0 scale-90 z-0'
             }`}
           >
-            {/* Card */}
-            <div className="relative h-full mx-4 rounded-3xl overflow-hidden">
-              {/* Animated Background Gradient */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} animate-pulse-slow`}></div>
-              
-              {/* Glass Effect */}
-              <div className="absolute inset-0 bg-[#0a0e17]/70 backdrop-blur-2xl"></div>
-              
-              {/* Animated Border */}
-              <div className={`absolute inset-0 rounded-3xl ${feature.borderColor} border-2`}>
-                <div className={`absolute inset-0 ${feature.bgColor} blur-xl opacity-30`}></div>
-              </div>
-
-              {/* Floating Particles */}
-              <div className="absolute inset-0 overflow-hidden">
-                <div className={`absolute top-1/4 left-1/4 w-32 h-32 ${feature.bgColor} rounded-full blur-3xl opacity-20 animate-float`}></div>
-                <div className={`absolute bottom-1/4 right-1/4 w-40 h-40 ${feature.bgColor} rounded-full blur-3xl opacity-20 animate-float`} style={{ animationDelay: '1s' }}></div>
-              </div>
-
-              {/* Content */}
-              <div className="relative h-full flex flex-col items-center justify-center p-8 space-y-8">
-                {/* Animated Icon Container */}
-                <div className="relative">
-                  <div className={`w-28 h-28 ${feature.bgColor} ${feature.borderColor} border-2 rounded-3xl flex items-center justify-center transform hover:scale-110 transition-all duration-300 shadow-2xl`}>
-                    <feature.icon className={`w-14 h-14 ${feature.color} animate-pulse`} />
+            {/* Modern Clean Card */}
+            <div className="mx-4 h-full">
+              <div className="relative h-full bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-6 overflow-hidden">
+                {/* Subtle gradient background */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-5`}></div>
+                
+                {/* Content */}
+                <div className="relative h-full flex flex-col">
+                  {/* Icon - Clean & Minimal */}
+                  <div className="mb-6">
+                    <div className={`inline-flex w-16 h-16 ${feature.bgColor} ${feature.borderColor} border-2 rounded-2xl items-center justify-center`}>
+                      <feature.icon className={`w-8 h-8 ${feature.color}`} />
+                    </div>
                   </div>
-                  
-                  {/* Pulsing Ring */}
-                  <div className={`absolute inset-0 ${feature.borderColor} border-2 rounded-3xl animate-ping opacity-20`}></div>
-                  
-                  {/* Glow Effect */}
-                  <div className={`absolute inset-0 ${feature.bgColor} blur-2xl opacity-50 rounded-3xl`}></div>
-                </div>
 
-                {/* Title */}
-                <div className="text-center space-y-4">
-                  <h3 className="text-3xl font-bold tracking-tight">{feature.title}</h3>
-                  <div className={`w-20 h-1.5 ${feature.bgColor} rounded-full mx-auto`}></div>
-                </div>
-
-                {/* Description */}
-                <p className="text-gray-300 text-center leading-relaxed text-lg px-4">
-                  {feature.description}
-                </p>
-
-                {/* Decorative Elements */}
-                <div className="flex gap-2">
-                  {[...Array(3)].map((_, i) => (
-                    <div 
-                      key={i}
-                      className={`w-2 h-2 ${feature.bgColor} rounded-full animate-pulse`}
-                      style={{ animationDelay: `${i * 200}ms` }}
-                    ></div>
-                  ))}
-                </div>
-
-                {/* Feature Number Badge */}
-                <div className="absolute top-6 right-6">
-                  <div className={`relative w-12 h-12 ${feature.bgColor} ${feature.borderColor} border-2 rounded-2xl flex items-center justify-center shadow-xl`}>
-                    <span className={`text-lg font-bold ${feature.color}`}>{index + 1}</span>
-                    <div className={`absolute inset-0 ${feature.bgColor} blur-lg opacity-50 rounded-2xl`}></div>
+                  {/* Title & Description */}
+                  <div className="flex-1 space-y-3">
+                    <h3 className="text-2xl font-bold tracking-tight">{feature.title}</h3>
+                    <p className="text-gray-400 leading-relaxed">{feature.description}</p>
                   </div>
+
+                  {/* Feature Number Badge - Minimal */}
+                  <div className="absolute top-4 right-4">
+                    <div className={`w-8 h-8 ${feature.bgColor} rounded-lg flex items-center justify-center border ${feature.borderColor}`}>
+                      <span className={`text-sm font-bold ${feature.color}`}>{index + 1}</span>
+                    </div>
+                  </div>
+
+                  {/* Bottom Accent Line */}
+                  <div className={`h-1 w-20 ${feature.bgColor} rounded-full mt-6`}></div>
                 </div>
               </div>
             </div>
@@ -675,42 +642,28 @@ const handleTouchEnd = () => {
     </div>
   </div>
 
-  {/* Modern Progress Indicators */}
-  <div className="mt-8 px-4">
-    <div className="flex items-center justify-center gap-3">
+  {/* Clean Progress Indicators - DIPERBAIKI (ukuran lebih kecil) */}
+  <div className="mt-6 px-4">
+    <div className="flex items-center justify-center gap-2">
       {features.map((feature, index) => (
         <button
           key={index}
           onClick={() => setActiveFeature(index)}
-          className="relative group"
+          className="relative group transition-all duration-300"
         >
           <div className={`transition-all duration-300 rounded-full ${
             index === activeFeature 
-              ? `w-12 h-3 ${feature.bgColor}` 
-              : 'w-3 h-3 bg-gray-700 hover:bg-gray-600'
-          }`}>
-            {index === activeFeature && (
-              <>
-                <div className={`absolute inset-0 ${feature.bgColor} blur-md opacity-50 rounded-full animate-pulse`}></div>
-                <div className={`absolute inset-0 ${feature.bgColor} rounded-full`}>
-                  <div className="absolute inset-0 bg-white/30 rounded-full animate-ping"></div>
-                </div>
-              </>
-            )}
-          </div>
+              ? `w-8 h-2 ${feature.bgColor}` 
+              : 'w-2 h-2 bg-gray-700 hover:bg-gray-600'
+          }`}></div>
         </button>
       ))}
     </div>
   </div>
 
-  {/* Swipe Hint */}
-  <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-500">
-    <div className="flex gap-1">
-      <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-      <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-      <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-    </div>
-    <span>Swipe untuk melihat fitur lainnya</span>
+  {/* Swipe Hint - Minimal */}
+  <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-500">
+    <span>Swipe untuk melihat lebih banyak</span>
   </div>
 </div>
         </div>
@@ -777,181 +730,181 @@ const handleTouchEnd = () => {
 
           {/* Mobile Premium Card Design */}
           <div className="sm:hidden">
-            <div className="relative">
-              {testimonials.map((testimonial, index) => (
-                <div 
-                  key={index}
-                  className={`transition-all duration-500 ${
-                    index === activeTestimonial 
-                      ? 'opacity-100 scale-100 relative z-10' 
-                      : 'opacity-0 scale-95 absolute inset-0 pointer-events-none'
-                  }`}
-                >
-                  {/* Card Container */}
-                  <div className="relative mx-4 rounded-3xl overflow-hidden">
-                    {/* Gradient Background */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-blue-500/10 to-purple-500/10"></div>
-                    
-                    {/* Glass Effect */}
-                    <div className="absolute inset-0 bg-[#0a0e17]/80 backdrop-blur-2xl"></div>
-                    
-                    {/* Border Gradient */}
-                    <div className="absolute inset-0 border-2 border-transparent rounded-3xl bg-gradient-to-br from-emerald-500/30 via-blue-500/30 to-purple-500/30" style={{ 
-                      WebkitMask: 'linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)',
-                      WebkitMaskComposite: 'xor',
-                      maskComposite: 'exclude'
-                    }}></div>
-
-                    {/* Content */}
-                    <div className="relative p-8 space-y-6">
-                      {/* Avatar with Glow */}
-                      <div className="relative inline-block">
-                        <div className="text-7xl">{testimonial.avatar}</div>
-                        <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full"></div>
-                      </div>
-
-                      {/* Stars */}
-                      <div className="flex justify-center gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400 animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
-                        ))}
-                      </div>
-
-                      {/* Quote */}
-                      <div className="relative">
-                        <div className="absolute -top-4 -left-2 text-6xl text-blue-500/20 font-serif">"</div>
-                        <p className="text-base text-gray-200 leading-relaxed relative z-10 italic">
-                          {testimonial.content}
-                        </p>
-                        <div className="absolute -bottom-4 -right-2 text-6xl text-blue-500/20 font-serif rotate-180">"</div>
-                      </div>
-
-                      {/* Stats Row */}
-                      <div className="grid grid-cols-2 gap-3">
-                        {/* Profit Badge */}
-                        <div className="bg-gradient-to-br from-emerald-500/20 to-green-500/20 border border-emerald-500/30 rounded-xl p-3">
-                          <div className="flex items-center gap-2 mb-1">
-                            <TrendingUp className="w-4 h-4 text-emerald-400" />
-                            <span className="text-xs text-gray-400">Keuntungan</span>
-                          </div>
-                          <div className="text-xl font-bold text-emerald-400">{testimonial.profit}</div>
-                        </div>
-
-                        {/* Duration Badge */}
-                        <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 rounded-xl p-3">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Clock className="w-4 h-4 text-blue-400" />
-                            <span className="text-xs text-gray-400">Durasi</span>
-                          </div>
-                          <div className="text-xl font-bold text-blue-400">{testimonial.duration}</div>
-                        </div>
-                      </div>
-
-                      {/* Divider */}
-                      <div className="h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent"></div>
-
-                      {/* User Info */}
-                      <div className="text-center space-y-2">
-                        <h4 className="text-xl font-bold">{testimonial.name}</h4>
-                        <p className="text-sm text-gray-400">{testimonial.role}</p>
-                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
-                          <Globe className="w-3 h-3 text-gray-400" />
-                          <span className="text-xs text-gray-400">{testimonial.location}</span>
-                        </div>
-                      </div>
-
-                      {/* Verified Badge */}
-                      <div className="absolute top-4 right-4">
-                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 rounded-full backdrop-blur-sm">
-                          <svg className="w-3 h-3 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-                          </svg>
-                          <span className="text-xs font-medium text-blue-400">Verified</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Enhanced Mobile Controls */}
-            <div className="flex items-center justify-between mt-8 px-8">
-              <button
-                onClick={() => setActiveTestimonial((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1))}
-                className="group w-12 h-12 bg-gradient-to-br from-[#1e293b] to-[#0f172a] hover:from-[#334155] hover:to-[#1e293b] rounded-xl flex items-center justify-center transition-all border border-gray-700 shadow-lg active:scale-95"
-              >
-                <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
-              </button>
-
-              {/* Dots with Progress */}
-              <div className="flex gap-2">
-                {testimonials.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setActiveTestimonial(index)}
-                    className="relative group"
-                  >
-                    {index === activeTestimonial ? (
-                      <div className="relative">
-                        <div className="w-12 h-2 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full"></div>
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-emerald-500 blur-md opacity-50 rounded-full"></div>
-                      </div>
-                    ) : (
-                      <div className="w-2 h-2 bg-gray-700 hover:bg-gray-600 rounded-full transition-all"></div>
-                    )}
-                  </button>
+  <div className="relative">
+    {testimonials.map((testimonial, index) => (
+      <div 
+        key={index}
+        className={`transition-all duration-500 ${
+          index === activeTestimonial 
+            ? 'opacity-100 scale-100 relative z-10' 
+            : 'opacity-0 scale-95 absolute inset-0 pointer-events-none'
+        }`}
+      >
+        {/* Modern Clean Card */}
+        <div className="mx-4 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-6 overflow-hidden">
+          {/* Content */}
+          <div className="space-y-4">
+            {/* Avatar & Stars - Compact */}
+            <div className="flex items-center justify-between">
+              <div className="text-5xl">{testimonial.avatar}</div>
+              <div className="flex gap-0.5">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                 ))}
               </div>
-
-              <button
-                onClick={() => setActiveTestimonial((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1))}
-                className="group w-12 h-12 bg-gradient-to-br from-[#1e293b] to-[#0f172a] hover:from-[#334155] hover:to-[#1e293b] rounded-xl flex items-center justify-center transition-all border border-gray-700 shadow-lg active:scale-95"
-              >
-                <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
-              </button>
             </div>
 
-            {/* Counter */}
-            <div className="mt-6 text-center">
-              <span className="text-sm text-gray-500">
-                {activeTestimonial + 1} / {testimonials.length}
-              </span>
+            {/* Quote - Clean Typography */}
+            <div className="relative py-2">
+              <p className="text-base text-gray-200 leading-relaxed italic">
+                "{testimonial.content}"
+              </p>
+            </div>
+
+            {/* Stats - Compact Grid */}
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-800/50">
+              <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-3">
+                <div className="text-xs text-gray-400 mb-1">Keuntungan</div>
+                <div className="text-lg font-bold text-emerald-400">{testimonial.profit}</div>
+              </div>
+              <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-3">
+                <div className="text-xs text-gray-400 mb-1">Durasi</div>
+                <div className="text-lg font-bold text-blue-400">{testimonial.duration}</div>
+              </div>
+            </div>
+
+            {/* User Info - Clean */}
+            <div className="pt-3 border-t border-gray-800/50">
+              <h4 className="font-bold text-lg">{testimonial.name}</h4>
+              <p className="text-sm text-gray-400">{testimonial.role}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <Globe className="w-3 h-3 text-gray-500" />
+                <span className="text-xs text-gray-500">{testimonial.location}</span>
+              </div>
             </div>
           </div>
+        </div>
+      </div>
+    ))}
+  </div>
+
+  {/* Clean Mobile Controls - DIPERBAIKI */}
+  <div className="flex items-center justify-between mt-6 px-4">
+    <button
+      onClick={() => setActiveTestimonial((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1))}
+      className="w-10 h-10 bg-[#1e293b] hover:bg-[#334155] rounded-lg flex items-center justify-center transition-all border border-gray-700 active:scale-95"
+    >
+      <ChevronLeft className="w-5 h-5" />
+    </button>
+
+    {/* Minimal Dots - DIPERBAIKI (ukuran lebih kecil) */}
+    <div className="flex gap-2">
+      {testimonials.map((_, index) => (
+        <button
+          key={index}
+          onClick={() => setActiveTestimonial(index)}
+          className="transition-all duration-300"
+        >
+          {index === activeTestimonial ? (
+            <div className="w-8 h-2 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full"></div>
+          ) : (
+            <div className="w-2 h-2 bg-gray-700 hover:bg-gray-600 rounded-full"></div>
+          )}
+        </button>
+      ))}
+    </div>
+
+    <button
+      onClick={() => setActiveTestimonial((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1))}
+      className="w-10 h-10 bg-[#1e293b] hover:bg-[#334155] rounded-lg flex items-center justify-center transition-all border border-gray-700 active:scale-95"
+    >
+      <ChevronRight className="w-5 h-5" />
+    </button>
+  </div>
+
+  {/* Counter - Minimal */}
+  <div className="mt-4 text-center">
+    <span className="text-xs text-gray-500">
+      {activeTestimonial + 1} / {testimonials.length}
+    </span>
+  </div>
+</div>
         </div>
       </section>
 
       {/* CTA Section */}
       <section className="py-20 sm:py-32 relative">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="relative bg-gradient-to-r from-blue-500/20 via-emerald-500/20 to-cyan-500/20 border border-blue-500/30 rounded-3xl p-8 sm:p-16 text-center overflow-hidden backdrop-blur-xl">
-            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
-            
-            <div className="relative z-10">
-              <h2 className="text-4xl sm:text-5xl font-bold mb-6">
-                Siap Memulai Perjalanan Trading Anda?
-              </h2>
-              <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-                Bergabung dengan 50.000+ trader sukses. Mulai menghasilkan dalam waktu kurang dari 2 menit!
-              </p>
+  <div className="container mx-auto px-4 sm:px-6">
+    <div className="relative bg-gradient-to-r from-blue-500/20 via-emerald-500/20 to-cyan-500/20 border border-blue-500/30 rounded-3xl overflow-hidden backdrop-blur-xl">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+      
+      {/* Desktop Content */}
+      <div className="hidden sm:block relative z-10 p-16 text-center">
+        <h2 className="text-4xl sm:text-5xl font-bold mb-6">
+          Siap Memulai Perjalanan Trading Anda?
+        </h2>
+        <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+          Bergabung dengan 50.000+ trader sukses. Mulai menghasilkan dalam waktu kurang dari 2 menit!
+        </p>
 
-              <button
-                onClick={() => {
-                  setIsLogin(true)
-                  setShowAuthModal(true)
-                }}
-                className="group px-8 py-4 bg-[#1e293b] hover:bg-[#334155] rounded-xl text-lg font-semibold text-white transition-colors border border-gray-700 shadow-lg"
-              >
-                <span className="flex items-center gap-2">
-                  Masuk Sekarang
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </span>
-              </button>
-            </div>
+        <button
+          onClick={() => {
+            setIsLogin(true)
+            setShowAuthModal(true)
+          }}
+          className="group px-8 py-4 bg-[#1e293b] hover:bg-[#334155] rounded-xl text-lg font-semibold text-white transition-colors border border-gray-700 shadow-lg"
+        >
+          <span className="flex items-center gap-2">
+            Masuk Sekarang
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </span>
+        </button>
+      </div>
+
+      {/* Mobile Content - DIPERBAIKI (lebih compact) */}
+      <div className="sm:hidden relative z-10 p-6 text-center">
+        <h2 className="text-2xl font-bold mb-4">
+          Siap Trading Sekarang?
+        </h2>
+        <p className="text-sm text-gray-300 mb-6">
+          Bergabung dengan 50.000+ trader sukses
+        </p>
+
+        <button
+          onClick={() => {
+            setIsLogin(true)
+            setShowAuthModal(true)
+          }}
+          className="group w-full px-6 py-3 bg-[#1e293b] hover:bg-[#334155] active:bg-[#475569] rounded-xl font-semibold text-white transition-colors border border-gray-700 shadow-lg"
+        >
+          <span className="flex items-center justify-center gap-2">
+            Masuk Sekarang
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </span>
+        </button>
+
+        {/* Trust Indicators - Minimal */}
+        <div className="flex items-center justify-center gap-4 mt-6 text-xs text-gray-400">
+          <div className="flex items-center gap-1">
+            <Users className="w-3 h-3" />
+            <span>50K+</span>
+          </div>
+          <div className="w-1 h-1 bg-gray-600 rounded-full"></div>
+          <div className="flex items-center gap-1">
+            <Shield className="w-3 h-3" />
+            <span>Aman</span>
+          </div>
+          <div className="w-1 h-1 bg-gray-600 rounded-full"></div>
+          <div className="flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            <span>24/7</span>
           </div>
         </div>
-      </section>
+      </div>
+    </div>
+  </div>
+</section>
 
       {/* Footer */}
       <EnhancedFooter />
