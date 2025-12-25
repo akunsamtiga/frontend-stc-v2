@@ -118,21 +118,26 @@ export default function TradingPage() {
     loadData()
   }, [user, router])
 
-  // Subscribe to price updates
   useEffect(() => {
     if (!selectedAsset) return
 
     let unsubscribe: (() => void) | undefined
 
     if (selectedAsset.dataSource === 'realtime_db' && selectedAsset.realtimeDbPath) {
+      console.log('📡 Subscribing to price:', selectedAsset.realtimeDbPath)
+      
       unsubscribe = subscribeToPriceUpdates(selectedAsset.realtimeDbPath, (data) => {
+        console.log('💰 Price update:', data.price) // Debug log
         setCurrentPrice(data)
         addPriceToHistory(data)
       })
     }
 
     return () => {
-      if (unsubscribe) unsubscribe()
+      if (unsubscribe) {
+        console.log('🔕 Unsubscribing from price updates')
+        unsubscribe()
+      }
     }
   }, [selectedAsset?.id])
 

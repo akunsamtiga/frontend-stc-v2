@@ -1,6 +1,6 @@
-// lib/firebase.ts - OPTIMIZED VERSION
+// lib/firebase.ts - OPTIMIZED VERSION WITH BETTER REAL-TIME
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
-import { getDatabase, Database, ref, onValue, off, query, orderByKey, limitToLast, get } from 'firebase/database'
+import { getDatabase, Database, ref, onValue, off } from 'firebase/database'
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -32,7 +32,7 @@ if (typeof window !== 'undefined') {
 export { database, ref, onValue, off }
 
 // ===================================
-// OPTIMIZATIONS
+// TYPES & CONFIG
 // ===================================
 
 type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
@@ -46,7 +46,7 @@ const TIMEFRAME_CONFIG: Record<Timeframe, { path: string; barsToFetch: number }>
   '1d': { path: 'ohlc_1d', barsToFetch: 60 }
 }
 
-// Enhanced cache with TTL
+// Cache with TTL
 interface CacheEntry {
   data: any[]
   timestamp: number
@@ -55,47 +55,57 @@ interface CacheEntry {
 
 const dataCache = new Map<string, CacheEntry>()
 const CACHE_TTL = {
-  '1m': 10000,  // 10s
-  '5m': 30000,  // 30s
-  '15m': 60000, // 1m
-  '1h': 300000, // 5m
-  '4h': 600000, // 10m
-  '1d': 900000  // 15m
+  '1m': 5000,   // 5s
+  '5m': 15000,  // 15s
+  '15m': 30000, // 30s
+  '1h': 60000,  // 1m
+  '4h': 120000, // 2m
+  '1d': 300000  // 5m
 }
 
 // Request deduplication
 const pendingRequests = new Map<string, Promise<any[]>>()
 
-// Debounce helper
-function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeout)
+// ===================================
+// RAF THROTTLE FOR SMOOTH UPDATES
+// ===================================
+
+function rafThrottle<T extends (...args: any[]) => any>(func: T): T {
+  let rafId: number | null = null
+  let lastArgs: any[] | null = null
+  
+  return ((...args: any[]) => {
+    lastArgs = args
+    
+    if (rafId !== null) return
+    
+    rafId = requestAnimationFrame(() => {
+      if (lastArgs) {
+        func(...lastArgs)
+        lastArgs = null
+      }
+      rafId = null
+    })
+  }) as T
+}
+
+// ===================================
+// DEBOUNCE (for less frequent updates)
+// ===================================
+
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
+  let timeout: NodeJS.Timeout | null = null
+  
+  return ((...args: any[]) => {
+    if (timeout) clearTimeout(timeout)
     timeout = setTimeout(() => func(...args), wait)
-  }
+  }) as T
 }
 
-// Throttle helper
-function throttle<T extends (...args: any[]) => any>(
-  func: T,
-  limit: number
-): (...args: Parameters<T>) => void {
-  let inThrottle: boolean
-  return (...args: Parameters<T>) => {
-    if (!inThrottle) {
-      func(...args)
-      inThrottle = true
-      setTimeout(() => inThrottle = false, limit)
-    }
-  }
-}
+// ===================================
+// FETCH HISTORICAL DATA (with cache)
+// ===================================
 
-/**
- * Fetch historical OHLC data with caching and deduplication
- */
 export async function fetchHistoricalData(
   assetPath: string,
   timeframe: Timeframe = '1m'
@@ -118,57 +128,63 @@ export async function fetchHistoricalData(
     const ttl = CACHE_TTL[timeframe] || 30000
     
     if (cached && (now - cached.timestamp) < ttl) {
-      console.log(`✅ Using cached data for ${timeframe} (${cached.data.length} bars)`)
+      console.log(`✅ Cache hit: ${timeframe} (${cached.data.length} bars)`)
       return cached.data
     }
 
-    // Check if request is pending
+    // Check pending
     const pendingKey = cacheKey
     if (pendingRequests.has(pendingKey)) {
-      console.log(`⏳ Waiting for pending request: ${timeframe}`)
+      console.log(`⏳ Using pending request: ${timeframe}`)
       return pendingRequests.get(pendingKey)!
     }
 
-    // Create new request
-    const requestPromise = (async () => {
+    // Fetch data
+    const requestPromise = new Promise<any[]>((resolve, reject) => {
       const ohlcPath = `${assetPath}/${config.path}`
       const ohlcRef = ref(database, ohlcPath)
-      const historyQuery = query(ohlcRef, orderByKey(), limitToLast(config.barsToFetch))
       
-      const snapshot = await get(historyQuery)
-      
-      if (!snapshot.exists()) {
-        console.warn(`No data found at: ${ohlcPath}`)
-        return []
-      }
+      // Use onValue for real-time snapshot
+      const unsubscribe = onValue(ohlcRef, (snapshot) => {
+        unsubscribe() // Get once
+        
+        if (!snapshot.exists()) {
+          console.warn(`No data at: ${ohlcPath}`)
+          resolve([])
+          return
+        }
 
-      const rawData = snapshot.val()
-      const result = processHistoricalData(rawData, config.barsToFetch)
-      
-      if (result.length === 0) {
-        console.warn(`No valid data after processing`)
-        return []
-      }
-      
-      // Update cache
-      dataCache.set(cacheKey, { 
-        data: result, 
-        timestamp: now,
-        ttl 
+        const rawData = snapshot.val()
+        const result = processHistoricalData(rawData, config.barsToFetch)
+        
+        if (result.length === 0) {
+          console.warn(`No valid data after processing`)
+          resolve([])
+          return
+        }
+        
+        // Cache it
+        dataCache.set(cacheKey, { 
+          data: result, 
+          timestamp: now,
+          ttl 
+        })
+        
+        // Cleanup cache if too large
+        if (dataCache.size > 20) {
+          const entries = Array.from(dataCache.entries())
+          entries.sort((a, b) => a[1].timestamp - b[1].timestamp)
+          dataCache.delete(entries[0][0])
+        }
+        
+        console.log(`✅ Fetched ${result.length} bars for ${timeframe}`)
+        resolve(result)
+      }, (error) => {
+        console.error('Firebase read error:', error)
+        reject(error)
       })
-      
-      // Clean old cache
-      if (dataCache.size > 20) {
-        const entries = Array.from(dataCache.entries())
-        entries.sort((a, b) => a[1].timestamp - b[1].timestamp)
-        dataCache.delete(entries[0][0])
-      }
-      
-      console.log(`✅ Fetched ${result.length} bars for ${timeframe}`)
-      return result
-    })()
+    })
 
-    // Store pending request
     pendingRequests.set(pendingKey, requestPromise)
     
     try {
@@ -179,14 +195,15 @@ export async function fetchHistoricalData(
     }
 
   } catch (error: any) {
-    console.error('Error fetching data:', error.message)
+    console.error('Fetch error:', error.message)
     return []
   }
 }
 
-/**
- * Process and validate historical data
- */
+// ===================================
+// PROCESS DATA
+// ===================================
+
 function processHistoricalData(data: any, limit: number): any[] {
   if (!data || typeof data !== 'object') {
     return []
@@ -203,7 +220,6 @@ function processHistoricalData(data: any, limit: number): any[] {
     const timestamp = item.timestamp || parseInt(key)
     
     if (!timestamp || isNaN(timestamp)) return
-
     if (typeof item.close !== 'number' || item.close <= 0) return
 
     historicalData.push({
@@ -225,9 +241,10 @@ function processHistoricalData(data: any, limit: number): any[] {
   return historicalData.slice(-limit)
 }
 
-/**
- * Subscribe to OHLC updates with throttling
- */
+// ===================================
+// SUBSCRIBE TO OHLC (RAF throttled)
+// ===================================
+
 export function subscribeToOHLCUpdates(
   assetPath: string,
   timeframe: Timeframe,
@@ -249,8 +266,8 @@ export function subscribeToOHLCUpdates(
   let lastBarTimestamp: number | null = null
   let updateCount = 0
   
-  // Throttle callback to prevent too many updates
-  const throttledCallback = throttle(callback, 500)
+  // RAF throttle the callback for smooth updates
+  const throttledCallback = rafThrottle(callback)
   
   const unsubscribe = onValue(ohlcRef, (snapshot) => {
     const data = snapshot.val()
@@ -281,21 +298,23 @@ export function subscribeToOHLCUpdates(
       isNewBar
     }
     
+    // Use RAF throttled callback
     throttledCallback(barData)
 
   }, (error) => {
-    console.error(`Subscription error for ${timeframe}:`, error)
+    console.error(`OHLC subscription error (${timeframe}):`, error)
   })
 
   return () => {
-    console.log(`🔕 Unsubscribing from ${timeframe} (received ${updateCount} updates)`)
+    console.log(`🔕 Unsubscribing from ${timeframe} (${updateCount} updates)`)
     off(ohlcRef)
   }
 }
 
-/**
- * Subscribe to current price with debouncing
- */
+// ===================================
+// SUBSCRIBE TO CURRENT PRICE (RAF throttled)
+// ===================================
+
 export function subscribeToPriceUpdates(
   path: string,
   callback: (data: any) => void
@@ -306,69 +325,31 @@ export function subscribeToPriceUpdates(
 
   const priceRef = ref(database, path)
   
-  // Debounce callback to prevent too many rapid updates
-  const debouncedCallback = debounce(callback, 100)
+  // RAF throttle for ultra-smooth price updates
+  const throttledCallback = rafThrottle(callback)
+  
+  let updateCount = 0
   
   const unsubscribe = onValue(priceRef, (snapshot) => {
     const data = snapshot.val()
     if (data) {
-      debouncedCallback(data)
+      updateCount++
+      throttledCallback(data)
     }
   }, (error) => {
     console.error('Price subscription error:', error)
   })
 
   return () => {
-    console.log('🔕 Unsubscribing from price updates')
+    console.log(`🔕 Unsubscribing from price (${updateCount} updates)`)
     off(priceRef)
   }
 }
 
-/**
- * Get latest bar
- */
-export async function getLatestBar(
-  assetPath: string,
-  timeframe: Timeframe
-): Promise<any | null> {
-  if (typeof window === 'undefined' || !database) return null
+// ===================================
+// CLEAR CACHE
+// ===================================
 
-  try {
-    const config = TIMEFRAME_CONFIG[timeframe]
-    if (!config) return null
-
-    const ohlcPath = `${assetPath}/${config.path}`
-    const ohlcRef = ref(database, ohlcPath)
-    const latestQuery = query(ohlcRef, orderByKey(), limitToLast(1))
-    
-    const snapshot = await get(latestQuery)
-    
-    if (!snapshot.exists()) return null
-
-    const data = snapshot.val()
-    const keys = Object.keys(data)
-    if (keys.length === 0) return null
-
-    const latestData = data[keys[0]]
-    
-    return {
-      timestamp: latestData.timestamp || parseInt(keys[0]),
-      datetime: latestData.datetime,
-      open: latestData.open,
-      high: latestData.high,
-      low: latestData.low,
-      close: latestData.close,
-      volume: latestData.volume || 0
-    }
-  } catch (error) {
-    console.error('Error getting latest bar:', error)
-    return null
-  }
-}
-
-/**
- * Clear cache manually
- */
 export function clearDataCache(pattern?: string) {
   if (!pattern) {
     dataCache.clear()
@@ -382,12 +363,13 @@ export function clearDataCache(pattern?: string) {
       dataCache.delete(key)
     }
   })
-  console.log(`🗑️ Cache cleared for pattern: ${pattern}`)
+  console.log(`🗑️ Cache cleared for: ${pattern}`)
 }
 
-/**
- * Prefetch data for multiple timeframes
- */
+// ===================================
+// PREFETCH (for better UX)
+// ===================================
+
 export async function prefetchTimeframes(
   assetPath: string,
   timeframes: Timeframe[]

@@ -1,10 +1,10 @@
-// components/TradingChart.tsx - HIGHLY OPTIMIZED
+// components/TradingChart.tsx - REAL-TIME OPTIMIZED VERSION
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
-import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, Time } from 'lightweight-charts'
+import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, Time, UTCTimestamp } from 'lightweight-charts'
 import { useTradingStore } from '@/store/trading'
-import { fetchHistoricalData, subscribeToOHLCUpdates, prefetchTimeframes } from '@/lib/firebase'
+import { fetchHistoricalData, subscribeToOHLCUpdates, subscribeToPriceUpdates } from '@/lib/firebase'
 import { BinaryOrder } from '@/types'
 import { formatCurrency, calculateTimeLeft } from '@/lib/utils'
 import { 
@@ -29,7 +29,10 @@ interface TradingChartProps {
   currentPrice?: number
 }
 
-// Memoized internal components
+// ===================================
+// OPTIMIZED COMPONENTS
+// ===================================
+
 const ChartControls = memo(({ 
   timeframe, 
   chartType, 
@@ -115,17 +118,26 @@ const ChartControls = memo(({
 
 ChartControls.displayName = 'ChartControls'
 
+// ===================================
+// MAIN CHART COMPONENT
+// ===================================
+
 const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null)
   const lineSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
-  const unsubscribeRef = useRef<(() => void) | null>(null)
+  const currentPriceLineRef = useRef<any>(null)
+  
+  // Unsubscribe functions
+  const unsubscribeOHLCRef = useRef<(() => void) | null>(null)
+  const unsubscribePriceRef = useRef<(() => void) | null>(null)
+  
   const mountedRef = useRef(false)
   const orderMarkersRef = useRef<Map<string, OrderMarker>>(new Map())
-  const lastDataUpdateRef = useRef<number>(0)
-  const previousOrdersRef = useRef<Map<string, BinaryOrder>>(new Map())
-
+  const lastBarTimestampRef = useRef<number>(0)
+  const rafIdRef = useRef<number | null>(null)
+  
   const { selectedAsset } = useTradingStore()
 
   const [chartType, setChartType] = useState<ChartType>('candle')
@@ -134,51 +146,51 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   const [error, setError] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
-  const [orderTimers, setOrderTimers] = useState<Record<string, string>>({})
+  const [lastPrice, setLastPrice] = useState<number | null>(null)
 
-  // Update order timers (optimized)
-  useEffect(() => {
-    if (activeOrders.length === 0) return
+  // ===================================
+  // REAL-TIME PRICE LINE UPDATE
+  // ===================================
+  
+  const updateCurrentPriceLine = useCallback((price: number) => {
+    if (!candleSeriesRef.current || !chartRef.current) return
     
-    const interval = setInterval(() => {
-      const timers: Record<string, string> = {}
-      activeOrders.forEach(order => {
-        if (order.status === 'ACTIVE' && order.exit_time) {
-          timers[order.id] = calculateTimeLeft(order.exit_time)
-        }
-      })
-      setOrderTimers(timers)
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [activeOrders])
-
-  // Cleanup old markers & update new ones (optimized)
-  useEffect(() => {
-    if (!chartRef.current || !candleSeriesRef.current) return
-
-    const currentOrderIds = new Set(activeOrders.map(o => o.id))
+    // Cancel previous RAF
+    if (rafIdRef.current) {
+      cancelAnimationFrame(rafIdRef.current)
+    }
     
-    // Remove markers for completed orders
-    orderMarkersRef.current.forEach((marker, orderId) => {
-      if (!currentOrderIds.has(orderId)) {
-        if (marker.entryLine && candleSeriesRef.current) {
-          candleSeriesRef.current.removePriceLine(marker.entryLine)
+    // Use RAF for smooth updates
+    rafIdRef.current = requestAnimationFrame(() => {
+      try {
+        // Remove old line
+        if (currentPriceLineRef.current && candleSeriesRef.current) {
+          candleSeriesRef.current.removePriceLine(currentPriceLineRef.current)
         }
-        orderMarkersRef.current.delete(orderId)
+        
+        // Add new line
+        if (candleSeriesRef.current) {
+          currentPriceLineRef.current = candleSeriesRef.current.createPriceLine({
+            price: price,
+            color: '#3b82f6',
+            lineWidth: 2,
+            lineStyle: 0,
+            axisLabelVisible: true,
+            title: 'Current'
+          })
+        }
+        
+        setLastPrice(price)
+      } catch (error) {
+        console.error('Price line update error:', error)
       }
     })
+  }, [])
 
-    // Update markers
-    if (candleSeriesRef.current) {
-      candleSeriesRef.current.setMarkers([])
-    }
-
-    activeOrders.forEach(order => {
-      updateOrderMarker(order)
-    })
-  }, [activeOrders])
-
+  // ===================================
+  // ORDER MARKERS
+  // ===================================
+  
   const updateOrderMarker = useCallback((order: BinaryOrder) => {
     if (!candleSeriesRef.current || !chartRef.current) return
 
@@ -222,7 +234,49 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     })
   }, [])
 
-  // Initialize chart (optimized)
+  // ===================================
+  // UPDATE ORDERS
+  // ===================================
+  
+  useEffect(() => {
+    if (!chartRef.current || !candleSeriesRef.current) return
+
+    const currentOrderIds = new Set(activeOrders.map(o => o.id))
+    
+    // Remove old markers
+    orderMarkersRef.current.forEach((marker, orderId) => {
+      if (!currentOrderIds.has(orderId)) {
+        if (marker.entryLine && candleSeriesRef.current) {
+          candleSeriesRef.current.removePriceLine(marker.entryLine)
+        }
+        orderMarkersRef.current.delete(orderId)
+      }
+    })
+
+    // Update markers
+    if (candleSeriesRef.current) {
+      candleSeriesRef.current.setMarkers([])
+    }
+
+    activeOrders.forEach(order => {
+      updateOrderMarker(order)
+    })
+  }, [activeOrders, updateOrderMarker])
+
+  // ===================================
+  // UPDATE CURRENT PRICE LINE
+  // ===================================
+  
+  useEffect(() => {
+    if (currentPrice && isInitialized) {
+      updateCurrentPriceLine(currentPrice)
+    }
+  }, [currentPrice, isInitialized, updateCurrentPriceLine])
+
+  // ===================================
+  // INITIALIZE CHART
+  // ===================================
+  
   useEffect(() => {
     if (mountedRef.current) return
     
@@ -294,9 +348,24 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
       return () => {
         window.removeEventListener('resize', handleResize)
-        if (unsubscribeRef.current) {
-          unsubscribeRef.current()
-          unsubscribeRef.current = null
+        
+        // Cleanup
+        if (unsubscribeOHLCRef.current) {
+          unsubscribeOHLCRef.current()
+          unsubscribeOHLCRef.current = null
+        }
+        
+        if (unsubscribePriceRef.current) {
+          unsubscribePriceRef.current()
+          unsubscribePriceRef.current = null
+        }
+        
+        if (rafIdRef.current) {
+          cancelAnimationFrame(rafIdRef.current)
+        }
+        
+        if (currentPriceLineRef.current && candleSeriesRef.current) {
+          candleSeriesRef.current.removePriceLine(currentPriceLineRef.current)
         }
         
         orderMarkersRef.current.forEach((marker) => {
@@ -308,6 +377,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         
         mountedRef.current = false
         setIsInitialized(false)
+        
         try {
           chart.remove()
         } catch (e) {
@@ -321,7 +391,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [])
 
-  // Handle chart type change
+  // ===================================
+  // CHART TYPE CHANGE
+  // ===================================
+  
   useEffect(() => {
     if (!candleSeriesRef.current || !lineSeriesRef.current) return
 
@@ -334,7 +407,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [chartType])
 
-  // Load data (optimized with prefetching)
+  // ===================================
+  // LOAD DATA & SUBSCRIBE
+  // ===================================
+  
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
       return
@@ -346,32 +422,34 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       setIsLoading(true)
       setError(null)
 
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current()
-        unsubscribeRef.current = null
+      // Cleanup previous subscriptions
+      if (unsubscribeOHLCRef.current) {
+        unsubscribeOHLCRef.current()
+        unsubscribeOHLCRef.current = null
+      }
+      
+      if (unsubscribePriceRef.current) {
+        unsubscribePriceRef.current()
+        unsubscribePriceRef.current = null
       }
 
       try {
         const pathParts = selectedAsset.realtimeDbPath?.split('/') || []
         const assetPath = pathParts.slice(0, -1).join('/') || `/${selectedAsset.symbol.toLowerCase()}`
 
-        // Prefetch multiple timeframes in background
-        if (timeframe === '1m') {
-          prefetchTimeframes(assetPath, ['5m', '15m']).catch(console.error)
-        }
-
+        // Load historical data
         const data = await fetchHistoricalData(assetPath, timeframe)
 
         if (isCancelled) return
 
         if (!data || data.length === 0) {
-          setError('No data available. Please check if the simulator is running.')
+          setError('No data available. Check simulator.')
           setIsLoading(false)
           return
         }
 
         const candleData = data.map(bar => ({
-          time: bar.timestamp,
+          time: bar.timestamp as UTCTimestamp,
           open: bar.open,
           high: bar.high,
           low: bar.low,
@@ -379,7 +457,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         }))
 
         const lineData = data.map(bar => ({
-          time: bar.timestamp,
+          time: bar.timestamp as UTCTimestamp,
           value: bar.close,
         }))
 
@@ -392,21 +470,21 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           if (chartRef.current) {
             chartRef.current.timeScale().fitContent()
           }
+          
+          // Store last bar timestamp
+          if (data.length > 0) {
+            lastBarTimestampRef.current = data[data.length - 1].timestamp
+          }
         }
 
         setIsLoading(false)
 
-        // Subscribe to updates
-        unsubscribeRef.current = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
+        // ✅ SUBSCRIBE TO OHLC UPDATES
+        unsubscribeOHLCRef.current = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
           if (isCancelled || !candleSeriesRef.current || !lineSeriesRef.current) return
 
-          // Throttle updates to max 1 per 500ms
-          const now = Date.now()
-          if (now - lastDataUpdateRef.current < 500) return
-          lastDataUpdateRef.current = now
-
           const candleUpdate = {
-            time: newBar.timestamp,
+            time: newBar.timestamp as UTCTimestamp,
             open: newBar.open,
             high: newBar.high,
             low: newBar.low,
@@ -414,13 +492,27 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           }
 
           const lineUpdate = {
-            time: newBar.timestamp,
+            time: newBar.timestamp as UTCTimestamp,
             value: newBar.close,
           }
 
           candleSeriesRef.current.update(candleUpdate)
           lineSeriesRef.current.update(lineUpdate)
+          
+          // Update last bar timestamp
+          lastBarTimestampRef.current = newBar.timestamp
         })
+        
+        // ✅ SUBSCRIBE TO REAL-TIME PRICE (for current price line)
+        if (selectedAsset.realtimeDbPath) {
+          unsubscribePriceRef.current = subscribeToPriceUpdates(
+            selectedAsset.realtimeDbPath, 
+            (priceData) => {
+              if (isCancelled) return
+              updateCurrentPriceLine(priceData.price)
+            }
+          )
+        }
 
       } catch (err: any) {
         if (isCancelled) return
@@ -434,13 +526,21 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
     return () => {
       isCancelled = true
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current()
-        unsubscribeRef.current = null
+      if (unsubscribeOHLCRef.current) {
+        unsubscribeOHLCRef.current()
+        unsubscribeOHLCRef.current = null
+      }
+      if (unsubscribePriceRef.current) {
+        unsubscribePriceRef.current()
+        unsubscribePriceRef.current = null
       }
     }
-  }, [selectedAsset?.id, timeframe, isInitialized])
+  }, [selectedAsset?.id, timeframe, isInitialized, updateCurrentPriceLine])
 
+  // ===================================
+  // HANDLERS
+  // ===================================
+  
   const handleRefresh = useCallback(() => {
     if (!selectedAsset) return
     
@@ -469,6 +569,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     setChartType(type)
   }, [])
 
+  // ===================================
+  // RENDER
+  // ===================================
+  
   if (!selectedAsset) {
     return (
       <div className="h-full flex items-center justify-center bg-[#0a0e17]">
@@ -504,6 +608,12 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
             <>
               <span className="text-gray-500">•</span>
               <span className="text-blue-400 font-semibold">{activeOrders.length} Active</span>
+            </>
+          )}
+          {lastPrice && (
+            <>
+              <span className="text-gray-500">•</span>
+              <span className="text-green-400 font-mono font-semibold">{lastPrice.toFixed(3)}</span>
             </>
           )}
         </div>
