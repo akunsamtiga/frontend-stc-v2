@@ -1076,78 +1076,122 @@ const handleTouchEnd = () => {
 </section>
 
       {/* CTA Section */}
+{/* CTA Section - Modern Futuristic */}
       <section className="py-20 sm:py-32 relative">
-  <div className="container mx-auto px-4 sm:px-6">
-    <div className="relative bg-gradient-to-r from-blue-500/20 via-emerald-500/20 to-cyan-500/20 border border-blue-500/30 rounded-3xl overflow-hidden backdrop-blur-xl">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
-      
-      {/* Desktop Content */}
-      <div className="hidden sm:block relative z-10 p-16 text-center">
-        <h2 className="text-4xl sm:text-5xl font-bold mb-6">
-          Siap Memulai Perjalanan Trading Anda?
-        </h2>
-        <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-          Bergabung dengan 50.000+ trader sukses. Mulai menghasilkan dalam waktu kurang dari 2 menit!
-        </p>
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="relative bg-[#0a0e17] border border-gray-800/50 rounded-3xl overflow-hidden">
+            {/* Futuristic Grid Background */}
+            <div className="absolute inset-0">
+              <div className="absolute inset-0" style={{
+                backgroundImage: `
+                  linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+                  linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px)
+                `,
+                backgroundSize: '40px 40px'
+              }}></div>
+              
+              {/* Subtle Gradient Glow */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px]"></div>
+            </div>
 
-        <button
-          onClick={() => {
-            setIsLogin(true)
-            setShowAuthModal(true)
-          }}
-          className="group px-8 py-4 bg-[#1e293b] hover:bg-[#334155] rounded-xl text-lg font-semibold text-white transition-colors border border-gray-700 shadow-lg"
-        >
-          <span className="flex items-center gap-2">
-            Masuk Sekarang
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </span>
-        </button>
-      </div>
+            {/* Desktop Content */}
+            <div className="hidden sm:block relative z-10 px-16 py-20 text-center">
+              {/* Top Badge */}
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full mb-8">
+                <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-blue-400">Platform Trading Terpercaya</span>
+              </div>
 
-      {/* Mobile Content - DIPERBAIKI (lebih compact) */}
-      <div className="sm:hidden relative z-10 p-6 text-center">
-        <h2 className="text-2xl font-bold mb-4">
-          Siap Trading Sekarang?
-        </h2>
-        <p className="text-sm text-gray-300 mb-6">
-          Bergabung dengan 50.000+ trader sukses
-        </p>
+              {/* Heading */}
+              <h2 className="text-5xl font-bold mb-6 tracking-tight">
+                Mulai Trading Hari Ini
+              </h2>
+              
+              {/* Subtitle */}
+              <p className="text-lg text-gray-400 mb-10 max-w-xl mx-auto">
+                Bergabung dengan 50.000+ trader profesional di seluruh dunia
+              </p>
 
-        <button
-          onClick={() => {
-            setIsLogin(true)
-            setShowAuthModal(true)
-          }}
-          className="group w-full px-6 py-3 bg-[#1e293b] hover:bg-[#334155] active:bg-[#475569] rounded-xl font-semibold text-white transition-colors border border-gray-700 shadow-lg"
-        >
-          <span className="flex items-center justify-center gap-2">
-            Masuk Sekarang
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </span>
-        </button>
+              {/* CTA Button */}
+              <button
+                onClick={() => {
+                  setIsLogin(true)
+                  setShowAuthModal(true)
+                }}
+                className="group inline-flex items-center gap-3 px-8 py-4 bg-white text-gray-900 rounded-xl font-semibold hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl active:scale-95"
+              >
+                <span>Masuk Sekarang</span>
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </button>
 
-        {/* Trust Indicators - Minimal */}
-        <div className="flex items-center justify-center gap-4 mt-6 text-xs text-gray-400">
-          <div className="flex items-center gap-1">
-            <Users className="w-3 h-3" />
-            <span>50K+</span>
-          </div>
-          <div className="w-1 h-1 bg-gray-600 rounded-full"></div>
-          <div className="flex items-center gap-1">
-            <Shield className="w-3 h-3" />
-            <span>Aman</span>
-          </div>
-          <div className="w-1 h-1 bg-gray-600 rounded-full"></div>
-          <div className="flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            <span>24/7</span>
+              {/* Trust Indicators - Minimal */}
+              <div className="flex items-center justify-center gap-8 mt-12 pt-8 border-t border-gray-800/50">
+                <div className="text-center">
+                  <div className="text-2xl font-bold mb-1">50K+</div>
+                  <div className="text-xs text-gray-500">Trader Aktif</div>
+                </div>
+                <div className="w-px h-10 bg-gray-800"></div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold mb-1">$2.5M</div>
+                  <div className="text-xs text-gray-500">Volume Harian</div>
+                </div>
+                <div className="w-px h-10 bg-gray-800"></div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold mb-1">95%</div>
+                  <div className="text-xs text-gray-500">Max Profit</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Content */}
+            <div className="sm:hidden relative z-10 p-8 text-center">
+              {/* Top Badge */}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full mb-6">
+                <div className="w-1 h-1 bg-blue-400 rounded-full animate-pulse"></div>
+                <span className="text-xs font-medium text-blue-400">Platform Terpercaya</span>
+              </div>
+
+              {/* Heading */}
+              <h2 className="text-3xl font-bold mb-4 tracking-tight">
+                Mulai Trading<br />Hari Ini
+              </h2>
+              
+              {/* Subtitle */}
+              <p className="text-sm text-gray-400 mb-8">
+                Bergabung dengan 50.000+ trader profesional
+              </p>
+
+              {/* CTA Button */}
+              <button
+                onClick={() => {
+                  setIsLogin(true)
+                  setShowAuthModal(true)
+                }}
+                className="group w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white text-gray-900 rounded-xl font-semibold hover:bg-gray-100 active:bg-gray-200 transition-all shadow-lg"
+              >
+                <span>Masuk Sekarang</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              {/* Trust Indicators - Compact */}
+              <div className="grid grid-cols-3 gap-4 mt-8 pt-6 border-t border-gray-800/50">
+                <div className="text-center">
+                  <div className="text-xl font-bold mb-0.5">50K+</div>
+                  <div className="text-[10px] text-gray-500">Trader</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold mb-0.5">$2.5M</div>
+                  <div className="text-[10px] text-gray-500">Volume</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold mb-0.5">95%</div>
+                  <div className="text-[10px] text-gray-500">Profit</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-</section>
+      </section>
 
 
       {/* Footer */}
