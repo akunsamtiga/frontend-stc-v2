@@ -16,7 +16,8 @@ import {
   TrendingUp,
   TrendingDown,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ChevronDown
 } from 'lucide-react'
 
 type ChartType = 'line' | 'candle'
