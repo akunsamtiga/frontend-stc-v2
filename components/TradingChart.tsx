@@ -846,30 +846,44 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       {/* Order Ticker - HANYA UNTUK ACTIVE ORDERS */}
       <OrderTicker orders={activeOrders} currentPrice={currentPrice} />
 
-      {/* Loading Overlay */}
       {isLoading && (
-        <div className="absolute inset-0 bg-[#0a0e17]/90 z-20">
-          <div className="h-full flex flex-col p-4">
-            {/* Animated skeleton bars */}
-            <div className="flex-1 flex items-end gap-2">
-              {[...Array(20)].map((_, i) => (
+        <div className="absolute inset-0 bg-[#0a0e17]/95 z-20">
+          <div className="h-full flex flex-col p-6">
+            {/* Chart Header Skeleton */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex gap-2">
+                <div className="w-12 h-8 bg-gray-800 rounded animate-pulse"></div>
+                <div className="w-12 h-8 bg-gray-800 rounded animate-pulse" style={{ animationDelay: '100ms' }}></div>
+                <div className="w-12 h-8 bg-gray-800 rounded animate-pulse" style={{ animationDelay: '200ms' }}></div>
+              </div>
+              <div className="w-24 h-8 bg-gray-800 rounded animate-pulse" style={{ animationDelay: '300ms' }}></div>
+            </div>
+            
+            {/* Animated Chart Bars */}
+            <div className="flex-1 flex items-end gap-1">
+              {[...Array(30)].map((_, i) => (
                 <div
                   key={i}
-                  className="flex-1 bg-blue-500/20 rounded-t animate-pulse"
+                  className="flex-1 bg-gradient-to-t from-blue-500/20 to-blue-500/5 rounded-t animate-pulse"
                   style={{
-                    height: `${30 + Math.random() * 70}%`,
-                    animationDelay: `${i * 50}ms`
+                    height: `${20 + Math.random() * 80}%`,
+                    animationDelay: `${i * 30}ms`,
+                    animationDuration: '1.5s'
                   }}
                 />
               ))}
             </div>
             
+            {/* Loading Text */}
             <div className="mt-4 text-center">
-              <div className="text-sm text-gray-400">
-                Loading {timeframe} chart...
+              <div className="text-sm text-gray-400 mb-2">
+                Loading {timeframe} chart data...
               </div>
-              <div className="mt-2 w-48 h-1 bg-gray-800 rounded-full mx-auto overflow-hidden">
-                <div className="h-full bg-blue-500 animate-loading-bar" />
+              <div className="w-48 h-1 bg-gray-800 rounded-full mx-auto overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 animate-loading-bar"></div>
+              </div>
+              <div className="text-xs text-gray-500 mt-2">
+                {loadingProgress}% complete
               </div>
             </div>
           </div>
@@ -908,6 +922,15 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         .animate-scale-in {
           animation: scale-in 0.2s ease-out;
         }
+          @keyframes loading-bar {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  
+  .animate-loading-bar {
+    animation: loading-bar 1.5s ease-in-out infinite;
+  }
+
       `}</style>
     </div>
   )
