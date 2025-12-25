@@ -9,15 +9,15 @@ import { Balance as BalanceType } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { 
   Wallet, 
-  Plus, 
-  Minus, 
-  TrendingUp, 
-  TrendingDown, 
   ArrowDownToLine,
   ArrowUpFromLine,
   History,
   X,
-  DollarSign
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Minus,
+  ChevronRight
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -37,7 +37,6 @@ export default function BalancePage() {
       router.push('/')
       return
     }
-
     loadData()
   }, [user])
 
@@ -115,31 +114,26 @@ export default function BalancePage() {
     }
   }
 
-  // Quick amount presets
   const quickAmounts = [10000, 50000, 100000, 250000, 500000, 1000000]
 
-  // Calculate stats dari SEMUA transaksi
   const stats = {
-  totalDeposits: allTransactions
-    .filter(t => t.type === 'deposit')
-    .reduce((sum, t) => sum + t.amount, 0),
-  totalWithdrawals: allTransactions
-    .filter(t => t.type === 'withdrawal')
-    .reduce((sum, t) => sum + t.amount, 0),
-  totalWins: allTransactions
-    .filter(t => t.type === 'win' || t.type === 'order_profit')  // ← TAMBAH
-    .reduce((sum, t) => sum + t.amount, 0),
-  totalLosses: allTransactions
-    .filter(t => t.type === 'lose' || t.type === 'order_debit')  // ← TAMBAH (optional)
-    .reduce((sum, t) => sum + t.amount, 0),
-}
+    totalDeposits: allTransactions
+      .filter(t => t.type === 'deposit')
+      .reduce((sum, t) => sum + t.amount, 0),
+    totalWithdrawals: allTransactions
+      .filter(t => t.type === 'withdrawal')
+      .reduce((sum, t) => sum + t.amount, 0),
+    totalWins: allTransactions
+      .filter(t => t.type === 'win' || t.type === 'order_profit')
+      .reduce((sum, t) => sum + t.amount, 0),
+    totalLosses: allTransactions
+      .filter(t => t.type === 'lose' || t.type === 'order_debit')
+      .reduce((sum, t) => sum + t.amount, 0),
+  }
 
-
-
-  // FILTER: Hanya tampilkan deposit dan withdrawal di history
   const walletTransactions = allTransactions.filter(
-  t => t.type === 'deposit' || t.type === 'withdrawal'  // ← SEKARANG BERSIH!
-)
+    t => t.type === 'deposit' || t.type === 'withdrawal'
+  )
 
   if (!user) return null
 
@@ -149,8 +143,8 @@ export default function BalancePage() {
         <Navbar />
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
-            <div className="text-gray-400">Loading balance...</div>
+            <div className="w-12 h-12 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+            <div className="text-sm text-gray-400">Loading...</div>
           </div>
         </div>
       </div>
@@ -161,153 +155,148 @@ export default function BalancePage() {
     <div className="min-h-screen bg-[#0a0e17]">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
-        {/* Page Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Wallet & Balance</h1>
-          <p className="text-sm text-gray-400">Manage your funds and view transaction history</p>
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Header - Clean & Minimal */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2 tracking-tight">Wallet</h1>
+          <p className="text-gray-400">Manage your funds</p>
         </div>
 
-        {/* Balance Card - Full Width on Mobile */}
-        <div className="mb-6 animate-fade-in-up">
-          <div className="bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-emerald-500/20 border border-blue-500/30 rounded-2xl p-6 sm:p-8 backdrop-blur-xl">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-3">
-                  <Wallet className="w-5 h-5 text-blue-400" />
-                  <span className="text-sm text-gray-300">Current Balance</span>
-                </div>
-                <div className="text-4xl sm:text-5xl lg:text-6xl font-bold font-mono mb-4">
-                  {formatCurrency(balance)}
-                </div>
-                <div className="flex items-center gap-2 text-xs text-gray-400">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span>Available for trading</span>
-                </div>
+        {/* Balance Card - Centered & Clean */}
+        <div className="max-w-2xl mx-auto mb-12">
+          <div className="relative bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-transparent border border-gray-800/50 rounded-3xl p-8 sm:p-12">
+            {/* Subtle glow */}
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent rounded-3xl blur-2xl -z-10"></div>
+            
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-gray-800/30 rounded-full mb-4">
+                <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-xs text-gray-400">Available Balance</span>
               </div>
               
-              {/* Action Buttons */}
-              <div className="flex sm:flex-col gap-3 w-full sm:w-auto">
-                <button
-                  onClick={() => setShowDeposit(true)}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 px-6 py-3 rounded-xl font-semibold text-white transition-all shadow-lg shadow-green-500/20 group"
-                >
-                  <ArrowDownToLine className="w-5 h-5 group-hover:translate-y-0.5 transition-transform" />
-                  <span>Deposit</span>
-                </button>
-                <button
-                  onClick={() => setShowWithdraw(true)}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 px-6 py-3 rounded-xl font-semibold text-white transition-all shadow-lg shadow-red-500/20 group"
-                >
-                  <ArrowUpFromLine className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
-                  <span>Withdraw</span>
-                </button>
+              <div className="text-5xl sm:text-6xl font-bold font-mono mb-2 tracking-tight">
+                {formatCurrency(balance)}
               </div>
+              
+              <p className="text-sm text-gray-500">Ready for trading</p>
+            </div>
+
+            {/* Action Buttons - Minimal */}
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => setShowDeposit(true)}
+                className="group flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 border border-gray-800/50 hover:border-gray-700 rounded-xl transition-all"
+              >
+                <ArrowDownToLine className="w-4 h-4 text-green-400" />
+                <span className="font-medium">Deposit</span>
+              </button>
+              
+              <button
+                onClick={() => setShowWithdraw(true)}
+                className="group flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 border border-gray-800/50 hover:border-gray-700 rounded-xl transition-all"
+              >
+                <ArrowUpFromLine className="w-4 h-4 text-red-400" />
+                <span className="font-medium">Withdraw</span>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <div className="bg-[#0f1419] border border-gray-800/50 rounded-xl p-4 hover:bg-[#1a1f2e] transition-all">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+        {/* Stats - Clean Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6 hover:border-gray-700 transition-colors">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-green-400" />
               </div>
-              <div className="text-xs text-gray-400">Total Deposits</div>
+              <span className="text-sm text-gray-400">Deposits</span>
             </div>
-            <div className="text-xl font-bold font-mono text-green-400">
-              {formatCurrency(stats.totalDeposits)}
-            </div>
+            <div className="text-2xl font-bold font-mono">{formatCurrency(stats.totalDeposits)}</div>
           </div>
 
-          <div className="bg-[#0f1419] border border-gray-800/50 rounded-xl p-4 hover:bg-[#1a1f2e] transition-all">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
+          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6 hover:border-gray-700 transition-colors">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center">
                 <TrendingDown className="w-5 h-5 text-red-400" />
               </div>
-              <div className="text-xs text-gray-400">Total Withdrawals</div>
+              <span className="text-sm text-gray-400">Withdrawals</span>
             </div>
-            <div className="text-xl font-bold font-mono text-red-400">
-              {formatCurrency(stats.totalWithdrawals)}
-            </div>
+            <div className="text-2xl font-bold font-mono">{formatCurrency(stats.totalWithdrawals)}</div>
           </div>
 
-          <div className="bg-[#0f1419] border border-gray-800/50 rounded-xl p-4 hover:bg-[#1a1f2e] transition-all">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6 hover:border-gray-700 transition-colors">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
                 <DollarSign className="w-5 h-5 text-emerald-400" />
               </div>
-              <div className="text-xs text-gray-400">Total Wins</div>
+              <span className="text-sm text-gray-400">Wins</span>
             </div>
-            <div className="text-xl font-bold font-mono text-emerald-400">
-              {formatCurrency(stats.totalWins)}
-            </div>
+            <div className="text-2xl font-bold font-mono">{formatCurrency(stats.totalWins)}</div>
           </div>
 
-          <div className="bg-[#0f1419] border border-gray-800/50 rounded-xl p-4 hover:bg-[#1a1f2e] transition-all">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6 hover:border-gray-700 transition-colors">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center">
                 <Minus className="w-5 h-5 text-orange-400" />
               </div>
-              <div className="text-xs text-gray-400">Total Losses</div>
+              <span className="text-sm text-gray-400">Losses</span>
             </div>
-            <div className="text-xl font-bold font-mono text-orange-400">
-              {formatCurrency(stats.totalLosses)}
-            </div>
+            <div className="text-2xl font-bold font-mono">{formatCurrency(stats.totalLosses)}</div>
           </div>
         </div>
 
-        {/* Transaction History - HANYA DEPOSIT & WITHDRAWAL */}
-        <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-          <div className="p-4 sm:p-6 border-b border-gray-800/50">
-            <div className="flex items-center gap-2">
-              <History className="w-5 h-5 text-blue-400" />
-              <h2 className="text-lg sm:text-xl font-bold">Wallet Transactions</h2>
-              <span className="ml-auto text-sm text-gray-400">
-                {walletTransactions.length} {walletTransactions.length === 1 ? 'transaction' : 'transactions'}
-              </span>
+        {/* Transaction History - Clean List */}
+        <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl overflow-hidden">
+          <div className="p-6 border-b border-gray-800/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <History className="w-5 h-5 text-gray-400" />
+                <h2 className="text-lg font-bold">Recent Transactions</h2>
+              </div>
+              <span className="text-sm text-gray-500">{walletTransactions.length} total</span>
             </div>
-            <p className="text-xs text-gray-500 mt-1">Deposits and withdrawals only</p>
           </div>
 
-          <div className="p-4 sm:p-6">
+          <div className="p-6">
             {walletTransactions.length === 0 ? (
-              <div className="text-center py-12">
-                <History className="w-16 h-16 mx-auto mb-4 text-gray-600 opacity-20" />
-                <p className="text-gray-400">No wallet transactions yet</p>
-                <p className="text-sm text-gray-500 mt-2">Deposits and withdrawals will appear here</p>
+              <div className="text-center py-16">
+                <History className="w-16 h-16 mx-auto mb-4 text-gray-700 opacity-20" />
+                <p className="text-gray-400 mb-1">No transactions yet</p>
+                <p className="text-sm text-gray-500">Your wallet activity will appear here</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {walletTransactions.map((tx, index) => (
+                {walletTransactions.map((tx) => (
                   <div
                     key={tx.id}
-                    className="flex items-center justify-between p-4 bg-[#1a1f2e] border border-gray-800/50 rounded-xl hover:bg-[#232936] transition-all animate-fade-in-up"
-                    style={{ animationDelay: `${index * 50}ms` }}
+                    className="group flex items-center justify-between p-4 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 hover:border-gray-700 rounded-xl transition-all cursor-default"
                   >
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                         tx.type === 'deposit'
-                          ? 'bg-green-500/20 border border-green-500/30' 
-                          : 'bg-red-500/20 border border-red-500/30'
+                          ? 'bg-green-500/10'
+                          : 'bg-red-500/10'
                       }`}>
                         {tx.type === 'deposit' ? (
-                          <TrendingUp className="w-6 h-6 text-green-400" />
+                          <ArrowDownToLine className="w-5 h-5 text-green-400" />
                         ) : (
-                          <TrendingDown className="w-6 h-6 text-red-400" />
+                          <ArrowUpFromLine className="w-5 h-5 text-red-400" />
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold capitalize mb-1">{tx.type}</div>
-                        <div className="text-sm text-gray-400 truncate">{formatDate(tx.createdAt)}</div>
+                      <div>
+                        <div className="font-medium mb-0.5 capitalize">{tx.type}</div>
+                        <div className="text-sm text-gray-400">{formatDate(tx.createdAt)}</div>
                       </div>
                     </div>
-                    <div className={`text-xl font-bold font-mono flex-shrink-0 ${
-                      tx.type === 'deposit' ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {tx.type === 'deposit' ? '+' : '-'}
-                      {formatCurrency(tx.amount)}
+                    
+                    <div className="flex items-center gap-3">
+                      <div className={`text-xl font-bold font-mono ${
+                        tx.type === 'deposit' ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        {tx.type === 'deposit' ? '+' : '-'}
+                        {formatCurrency(tx.amount)}
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-gray-400 transition-colors" />
                     </div>
                   </div>
                 ))}
@@ -317,54 +306,51 @@ export default function BalancePage() {
         </div>
       </div>
 
-      {/* Deposit Modal */}
+      {/* Deposit Modal - Minimal Design */}
       {showDeposit && (
         <>
           <div 
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 animate-fade-in" 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" 
             onClick={() => setShowDeposit(false)}
           />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-md bg-[#0f1419] border border-gray-800/50 rounded-2xl z-50 animate-scale-in shadow-2xl">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center border border-green-500/30">
-                    <ArrowDownToLine className="w-6 h-6 text-green-400" />
-                  </div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-[#0f1419] border border-gray-800/50 rounded-2xl shadow-2xl animate-scale-in">
+              <div className="p-6 border-b border-gray-800/50">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold">Deposit Funds</h2>
+                    <h2 className="text-xl font-bold mb-1">Deposit Funds</h2>
                     <p className="text-sm text-gray-400">Add money to your wallet</p>
                   </div>
+                  <button
+                    onClick={() => setShowDeposit(false)}
+                    className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#1a1f2e] transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setShowDeposit(false)}
-                  className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#1a1f2e] transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
               </div>
 
-              <div className="space-y-4">
+              <div className="p-6 space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Amount</label>
+                  <label className="block text-sm text-gray-400 mb-3">Enter Amount</label>
                   <input
                     type="number"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    placeholder="Enter amount"
-                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                    placeholder="0"
+                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-4 text-2xl font-mono font-bold text-center focus:outline-none focus:border-green-500/50 transition-colors"
                     autoFocus
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Quick Amount</label>
+                  <label className="block text-sm text-gray-400 mb-3">Quick Select</label>
                   <div className="grid grid-cols-3 gap-2">
                     {quickAmounts.map((preset) => (
                       <button
                         key={preset}
                         onClick={() => setAmount(preset.toString())}
-                        className={`py-2 rounded-lg text-sm font-medium transition-all ${
+                        className={`py-3 rounded-xl text-sm font-medium transition-all ${
                           amount === preset.toString()
                             ? 'bg-green-500 text-white'
                             : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
@@ -375,31 +361,13 @@ export default function BalancePage() {
                     ))}
                   </div>
                 </div>
-              </div>
 
-              <div className="flex gap-3 mt-6">
                 <button
                   onClick={handleDeposit}
                   disabled={loading}
-                  className="flex-1 bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-xl font-semibold text-white transition-all shadow-lg"
+                  className="w-full bg-green-500 hover:bg-green-600 disabled:opacity-50 py-4 rounded-xl font-semibold text-white transition-all"
                 >
-                  {loading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      Processing...
-                    </span>
-                  ) : (
-                    'Confirm Deposit'
-                  )}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowDeposit(false)
-                    setAmount('')
-                  }}
-                  className="px-6 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-xl font-semibold transition-all border border-gray-800/50"
-                >
-                  Cancel
+                  {loading ? 'Processing...' : 'Confirm Deposit'}
                 </button>
               </div>
             </div>
@@ -407,55 +375,52 @@ export default function BalancePage() {
         </>
       )}
 
-      {/* Withdraw Modal */}
+      {/* Withdraw Modal - Minimal Design */}
       {showWithdraw && (
         <>
           <div 
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 animate-fade-in" 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" 
             onClick={() => setShowWithdraw(false)}
           />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-md bg-[#0f1419] border border-gray-800/50 rounded-2xl z-50 animate-scale-in shadow-2xl">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center border border-red-500/30">
-                    <ArrowUpFromLine className="w-6 h-6 text-red-400" />
-                  </div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-[#0f1419] border border-gray-800/50 rounded-2xl shadow-2xl animate-scale-in">
+              <div className="p-6 border-b border-gray-800/50">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold">Withdraw Funds</h2>
+                    <h2 className="text-xl font-bold mb-1">Withdraw Funds</h2>
                     <p className="text-sm text-gray-400">Max: {formatCurrency(balance)}</p>
                   </div>
+                  <button
+                    onClick={() => setShowWithdraw(false)}
+                    className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#1a1f2e] transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setShowWithdraw(false)}
-                  className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#1a1f2e] transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
               </div>
 
-              <div className="space-y-4">
+              <div className="p-6 space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Amount</label>
+                  <label className="block text-sm text-gray-400 mb-3">Enter Amount</label>
                   <input
                     type="number"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    placeholder="Enter amount"
+                    placeholder="0"
                     max={balance}
-                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-4 text-2xl font-mono font-bold text-center focus:outline-none focus:border-red-500/50 transition-colors"
                     autoFocus
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Quick Amount</label>
+                  <label className="block text-sm text-gray-400 mb-3">Quick Select</label>
                   <div className="grid grid-cols-3 gap-2">
                     {quickAmounts.filter(p => p <= balance).map((preset) => (
                       <button
                         key={preset}
                         onClick={() => setAmount(preset.toString())}
-                        className={`py-2 rounded-lg text-sm font-medium transition-all ${
+                        className={`py-3 rounded-xl text-sm font-medium transition-all ${
                           amount === preset.toString()
                             ? 'bg-red-500 text-white'
                             : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
@@ -466,31 +431,13 @@ export default function BalancePage() {
                     ))}
                   </div>
                 </div>
-              </div>
 
-              <div className="flex gap-3 mt-6">
                 <button
                   onClick={handleWithdraw}
                   disabled={loading}
-                  className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-xl font-semibold text-white transition-all shadow-lg"
+                  className="w-full bg-red-500 hover:bg-red-600 disabled:opacity-50 py-4 rounded-xl font-semibold text-white transition-all"
                 >
-                  {loading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      Processing...
-                    </span>
-                  ) : (
-                    'Confirm Withdrawal'
-                  )}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowWithdraw(false)
-                    setAmount('')
-                  }}
-                  className="px-6 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-xl font-semibold transition-all border border-gray-800/50"
-                >
-                  Cancel
+                  {loading ? 'Processing...' : 'Confirm Withdrawal'}
                 </button>
               </div>
             </div>
@@ -499,43 +446,19 @@ export default function BalancePage() {
       )}
 
       <style jsx>{`
-        @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        @keyframes fade-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
         @keyframes scale-in {
           from {
             opacity: 0;
-            transform: translate(-50%, -50%) scale(0.9);
+            transform: scale(0.95);
           }
           to {
             opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
+            transform: scale(1);
           }
         }
 
-        .animate-fade-in {
-          animation: fade-in 0.2s ease-out;
-        }
-
-        .animate-fade-in-up {
-          animation: fade-in-up 0.6s ease-out;
-        }
-
         .animate-scale-in {
-          animation: scale-in 0.3s ease-out;
+          animation: scale-in 0.2s ease-out;
         }
       `}</style>
     </div>

@@ -13,11 +13,9 @@ import {
   Clock, 
   Filter,
   Target,
-  Trophy,
-  XCircle,
   Activity,
-  ChevronDown,
-  RefreshCw
+  RefreshCw,
+  ChevronRight
 } from 'lucide-react'
 
 export default function HistoryPage() {
@@ -33,7 +31,6 @@ export default function HistoryPage() {
       router.push('/')
       return
     }
-
     loadOrders()
   }, [user, filter])
 
@@ -76,8 +73,8 @@ export default function HistoryPage() {
         <Navbar />
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
-            <div className="text-gray-400">Loading history...</div>
+            <div className="w-12 h-12 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+            <div className="text-sm text-gray-400">Loading...</div>
           </div>
         </div>
       </div>
@@ -88,196 +85,196 @@ export default function HistoryPage() {
     <div className="min-h-screen bg-[#0a0e17]">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
-        {/* Page Header */}
-        <div className="flex items-center justify-between mb-6">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Header - Clean */}
+        <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Trading History</h1>
-            <p className="text-sm text-gray-400">View your complete trading activity</p>
+            <h1 className="text-3xl font-bold mb-2 tracking-tight">Trading History</h1>
+            <p className="text-gray-400">Your complete activity</p>
           </div>
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 rounded-lg transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-gray-800/50 hover:border-gray-700 rounded-xl transition-all"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </button>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6 animate-fade-in-up">
-          <div className="bg-[#0f1419] border border-gray-800/50 rounded-xl p-4 hover:bg-[#1a1f2e] transition-all">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+        {/* Stats - Minimal Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6 hover:border-gray-700 transition-colors">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center">
                 <Activity className="w-5 h-5 text-blue-400" />
               </div>
-              <div className="text-xs text-gray-400">Total Trades</div>
+              <span className="text-sm text-gray-400">Total</span>
             </div>
-            <div className="text-2xl font-bold">{stats.total}</div>
+            <div className="text-3xl font-bold">{stats.total}</div>
           </div>
 
-          <div className="bg-[#0f1419] border border-gray-800/50 rounded-xl p-4 hover:bg-[#1a1f2e] transition-all">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-                <Trophy className="w-5 h-5 text-green-400" />
+          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6 hover:border-gray-700 transition-colors">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-green-400" />
               </div>
-              <div className="text-xs text-gray-400">Won</div>
+              <span className="text-sm text-gray-400">Won</span>
             </div>
-            <div className="text-2xl font-bold text-green-400">{stats.won}</div>
+            <div className="text-3xl font-bold text-green-400">{stats.won}</div>
           </div>
 
-          <div className="bg-[#0f1419] border border-gray-800/50 rounded-xl p-4 hover:bg-[#1a1f2e] transition-all">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
-                <XCircle className="w-5 h-5 text-red-400" />
+          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6 hover:border-gray-700 transition-colors">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center">
+                <TrendingDown className="w-5 h-5 text-red-400" />
               </div>
-              <div className="text-xs text-gray-400">Lost</div>
+              <span className="text-sm text-gray-400">Lost</span>
             </div>
-            <div className="text-2xl font-bold text-red-400">{stats.lost}</div>
+            <div className="text-3xl font-bold text-red-400">{stats.lost}</div>
           </div>
 
-          <div className="bg-[#0f1419] border border-gray-800/50 rounded-xl p-4 hover:bg-[#1a1f2e] transition-all">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6 hover:border-gray-700 transition-colors">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-yellow-500/10 rounded-xl flex items-center justify-center">
                 <Target className="w-5 h-5 text-yellow-400" />
               </div>
-              <div className="text-xs text-gray-400">Win Rate</div>
+              <span className="text-sm text-gray-400">Win Rate</span>
             </div>
-            <div className="text-2xl font-bold text-yellow-400">{winRate}%</div>
+            <div className="text-3xl font-bold text-yellow-400">{winRate}%</div>
           </div>
+        </div>
 
-          <div className="col-span-2 lg:col-span-1 bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-xl p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-purple-400" />
+        {/* Total P&L - Centered Card */}
+        <div className="max-w-xl mx-auto mb-8">
+          <div className="relative bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-transparent border border-gray-800/50 rounded-2xl p-8">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent rounded-2xl blur-2xl -z-10"></div>
+            
+            <div className="text-center">
+              <div className="text-sm text-gray-400 mb-2">Total Profit & Loss</div>
+              <div className={`text-5xl font-bold font-mono ${
+                totalProfit >= 0 ? 'text-green-400' : 'text-red-400'
+              }`}>
+                {totalProfit >= 0 ? '+' : ''}{formatCurrency(totalProfit)}
               </div>
-              <div className="text-xs text-gray-400">Total P&L</div>
-            </div>
-            <div className={`text-2xl font-bold font-mono ${
-              totalProfit >= 0 ? 'text-green-400' : 'text-red-400'
-            }`}>
-              {totalProfit >= 0 ? '+' : ''}{formatCurrency(totalProfit)}
             </div>
           </div>
         </div>
 
-        {/* Filter Section */}
-        <div className="bg-[#0f1419] border border-gray-800/50 rounded-xl p-4 mb-6 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-400" />
-              <span className="text-sm text-gray-400">Filter by status:</span>
-            </div>
-            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-              {['all', 'ACTIVE', 'WON', 'LOST'].map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    filter === f
-                      ? 'bg-blue-500 text-white shadow-lg'
-                      : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
-                  }`}
-                >
-                  {f === 'all' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
-                  {f !== 'all' && (
-                    <span className="ml-1.5 text-xs opacity-60">
-                      ({f === 'ACTIVE' ? stats.active : f === 'WON' ? stats.won : stats.lost})
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
+        {/* Filter - Minimal Pills */}
+        <div className="flex items-center gap-3 mb-6 overflow-x-auto pb-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Filter className="w-4 h-4 text-gray-500" />
+            <span className="text-sm text-gray-500">Filter:</span>
           </div>
+          {['all', 'ACTIVE', 'WON', 'LOST'].map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
+                filter === f
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-gray-800/50'
+              }`}
+            >
+              {f === 'all' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
+              {f !== 'all' && ` (${f === 'ACTIVE' ? stats.active : f === 'WON' ? stats.won : stats.lost})`}
+            </button>
+          ))}
         </div>
 
-        {/* Orders Table/Cards */}
-        <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+        {/* Orders List - Clean */}
+        <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl overflow-hidden">
           {orders.length === 0 ? (
-            <div className="text-center py-16">
-              <Activity className="w-16 h-16 mx-auto mb-4 text-gray-600 opacity-20" />
+            <div className="text-center py-20">
+              <Activity className="w-16 h-16 mx-auto mb-4 text-gray-700 opacity-20" />
               <p className="text-gray-400 text-lg mb-2">
                 {filter === 'all' ? 'No trades yet' : `No ${filter.toLowerCase()} trades`}
               </p>
-              <p className="text-sm text-gray-500">
-                Your trading history will appear here
-              </p>
+              <p className="text-sm text-gray-500">Your trading history will appear here</p>
             </div>
           ) : (
-            <>
+            <div className="divide-y divide-gray-800/30">
               {/* Desktop Table */}
               <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-[#1a1f2e] border-b border-gray-800/50">
-                    <tr>
-                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-400">Time</th>
-                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-400">Asset</th>
-                      <th className="text-center py-4 px-4 text-xs font-semibold text-gray-400">Direction</th>
-                      <th className="text-right py-4 px-4 text-xs font-semibold text-gray-400">Amount</th>
-                      <th className="text-right py-4 px-4 text-xs font-semibold text-gray-400">Entry</th>
-                      <th className="text-right py-4 px-4 text-xs font-semibold text-gray-400">Exit</th>
-                      <th className="text-center py-4 px-4 text-xs font-semibold text-gray-400">Duration</th>
-                      <th className="text-center py-4 px-4 text-xs font-semibold text-gray-400">Status</th>
-                      <th className="text-right py-4 px-4 text-xs font-semibold text-gray-400">Profit/Loss</th>
+                  <thead>
+                    <tr className="text-left text-xs text-gray-500">
+                      <th className="py-4 px-6 font-medium">Time</th>
+                      <th className="py-4 px-6 font-medium">Asset</th>
+                      <th className="py-4 px-6 font-medium text-center">Type</th>
+                      <th className="py-4 px-6 font-medium text-right">Amount</th>
+                      <th className="py-4 px-6 font-medium text-right">Entry → Exit</th>
+                      <th className="py-4 px-6 font-medium text-center">Time</th>
+                      <th className="py-4 px-6 font-medium text-center">Status</th>
+                      <th className="py-4 px-6 font-medium text-right">P&L</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {orders.map((order, index) => (
+                  <tbody className="divide-y divide-gray-800/30">
+                    {orders.map((order) => (
                       <tr 
-                        key={order.id} 
-                        className="border-b border-gray-800/30 hover:bg-[#1a1f2e] transition-all animate-fade-in-up"
-                        style={{ animationDelay: `${index * 30}ms` }}
+                        key={order.id}
+                        className="hover:bg-[#1a1f2e] transition-colors cursor-default"
                       >
-                        <td className="py-4 px-4 text-sm">{formatDate(order.createdAt)}</td>
-                        <td className="py-4 px-4">
+                        <td className="py-4 px-6 text-sm text-gray-400">
+                          {new Date(order.createdAt).toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </td>
+                        <td className="py-4 px-6">
                           <div className="font-medium">{order.asset_name}</div>
-                          <div className="text-xs text-gray-400">{order.profitRate}% rate</div>
+                          <div className="text-xs text-gray-500">+{order.profitRate}%</div>
                         </td>
-                        <td className="py-4 px-4 text-center">
-                          {order.direction === 'CALL' ? (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-500/20 border border-green-500/30 rounded-lg">
-                              <TrendingUp className="w-4 h-4 text-green-400" />
-                              <span className="text-sm font-semibold text-green-400">CALL</span>
+                        <td className="py-4 px-6">
+                          <div className="flex justify-center">
+                            {order.direction === 'CALL' ? (
+                              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-500/10 rounded-full">
+                                <TrendingUp className="w-3 h-3 text-green-400" />
+                                <span className="text-xs font-medium text-green-400">CALL</span>
+                              </div>
+                            ) : (
+                              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-500/10 rounded-full">
+                                <TrendingDown className="w-3 h-3 text-red-400" />
+                                <span className="text-xs font-medium text-red-400">PUT</span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 text-right font-mono">{formatCurrency(order.amount)}</td>
+                        <td className="py-4 px-6 text-right font-mono text-sm text-gray-400">
+                          {order.entry_price.toFixed(3)} → {order.exit_price ? order.exit_price.toFixed(3) : '—'}
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex justify-center">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-800/50 rounded text-xs text-gray-400">
+                              <Clock className="w-3 h-3" />
+                              {order.duration}m
                             </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500/20 border border-red-500/30 rounded-lg">
-                              <TrendingDown className="w-4 h-4 text-red-400" />
-                              <span className="text-sm font-semibold text-red-400">PUT</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex justify-center">
+                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
+                              order.status === 'WON' ? 'bg-green-500/10 text-green-400' :
+                              order.status === 'LOST' ? 'bg-red-500/10 text-red-400' :
+                              order.status === 'ACTIVE' ? 'bg-blue-500/10 text-blue-400' :
+                              'bg-gray-500/10 text-gray-400'
+                            }`}>
+                              {order.status}
                             </span>
-                          )}
+                          </div>
                         </td>
-                        <td className="py-4 px-4 text-right font-mono font-semibold">{formatCurrency(order.amount)}</td>
-                        <td className="py-4 px-4 text-right font-mono">{order.entry_price.toFixed(3)}</td>
-                        <td className="py-4 px-4 text-right font-mono">
-                          {order.exit_price ? order.exit_price.toFixed(3) : '-'}
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-700/30 rounded text-xs">
-                            <Clock className="w-3 h-3" />
-                            {order.duration}m
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold ${
-                            order.status === 'WON' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-                            order.status === 'LOST' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                            order.status === 'ACTIVE' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-                            'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-                          }`}>
-                            {order.status}
-                          </span>
-                        </td>
-                        <td className={`py-4 px-4 text-right font-mono font-bold ${
+                        <td className={`py-4 px-6 text-right font-mono font-bold ${
                           order.profit && order.profit > 0 ? 'text-green-400' : 
                           order.profit && order.profit < 0 ? 'text-red-400' : 
-                          'text-gray-400'
+                          'text-gray-500'
                         }`}>
                           {order.profit !== null && order.profit !== undefined ? (
-                            <>
-                              {order.profit > 0 ? '+' : ''}{formatCurrency(order.profit)}
-                            </>
-                          ) : '-'}
+                            <>{order.profit > 0 ? '+' : ''}{formatCurrency(order.profit)}</>
+                          ) : '—'}
                         </td>
                       </tr>
                     ))}
@@ -286,20 +283,16 @@ export default function HistoryPage() {
               </div>
 
               {/* Mobile Cards */}
-              <div className="lg:hidden p-4 space-y-3">
-                {orders.map((order, index) => (
+              <div className="lg:hidden space-y-3 p-4">
+                {orders.map((order) => (
                   <div
                     key={order.id}
-                    className="bg-[#1a1f2e] border border-gray-800/50 rounded-xl p-4 animate-fade-in-up"
-                    style={{ animationDelay: `${index * 30}ms` }}
+                    className="group bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 hover:border-gray-700 rounded-xl p-4 transition-all cursor-default"
                   >
-                    {/* Header */}
-                    <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-800/50">
+                    <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          order.direction === 'CALL' 
-                            ? 'bg-green-500/20 border border-green-500/30' 
-                            : 'bg-red-500/20 border border-red-500/30'
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                          order.direction === 'CALL' ? 'bg-green-500/10' : 'bg-red-500/10'
                         }`}>
                           {order.direction === 'CALL' ? (
                             <TrendingUp className="w-5 h-5 text-green-400" />
@@ -308,84 +301,74 @@ export default function HistoryPage() {
                           )}
                         </div>
                         <div>
-                          <div className="font-semibold">{order.asset_name}</div>
-                          <div className="text-xs text-gray-400">{formatDate(order.createdAt)}</div>
+                          <div className="font-medium">{order.asset_name}</div>
+                          <div className="text-xs text-gray-400">
+                            {new Date(order.createdAt).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
                         </div>
                       </div>
-                      <span className={`px-2 py-1 rounded text-xs font-bold ${
-                        order.status === 'WON' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-                        order.status === 'LOST' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                        order.status === 'ACTIVE' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-                        'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-                      }`}>
-                        {order.status}
-                      </span>
+                      
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          order.status === 'WON' ? 'bg-green-500/10 text-green-400' :
+                          order.status === 'LOST' ? 'bg-red-500/10 text-red-400' :
+                          order.status === 'ACTIVE' ? 'bg-blue-500/10 text-blue-400' :
+                          'bg-gray-500/10 text-gray-400'
+                        }`}>
+                          {order.status}
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-gray-400 transition-colors" />
+                      </div>
                     </div>
 
-                    {/* Details Grid */}
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div>
-                        <div className="text-xs text-gray-400 mb-1">Amount</div>
-                        <div className="font-mono font-semibold">{formatCurrency(order.amount)}</div>
+                        <div className="text-xs text-gray-500 mb-1">Amount</div>
+                        <div className="font-mono">{formatCurrency(order.amount)}</div>
                       </div>
                       <div>
-                        <div className="text-xs text-gray-400 mb-1">Duration</div>
+                        <div className="text-xs text-gray-500 mb-1">Duration</div>
                         <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          <span className="font-semibold">{order.duration}m</span>
+                          <Clock className="w-3 h-3 text-gray-500" />
+                          <span>{order.duration}m</span>
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs text-gray-400 mb-1">Entry Price</div>
-                        <div className="font-mono">{order.entry_price.toFixed(3)}</div>
+                        <div className="text-xs text-gray-500 mb-1">Entry</div>
+                        <div className="font-mono text-sm">{order.entry_price.toFixed(3)}</div>
                       </div>
                       <div>
-                        <div className="text-xs text-gray-400 mb-1">Exit Price</div>
-                        <div className="font-mono">
-                          {order.exit_price ? order.exit_price.toFixed(3) : '-'}
+                        <div className="text-xs text-gray-500 mb-1">Exit</div>
+                        <div className="font-mono text-sm">
+                          {order.exit_price ? order.exit_price.toFixed(3) : '—'}
                         </div>
                       </div>
                     </div>
 
-                    {/* Profit/Loss */}
                     {order.profit !== null && order.profit !== undefined && (
-                      <div className="mt-3 pt-3 border-t border-gray-800/50">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-400">Profit/Loss</span>
-                          <span className={`font-mono font-bold text-lg ${
-                            order.profit > 0 ? 'text-green-400' : 
-                            order.profit < 0 ? 'text-red-400' : 
-                            'text-gray-400'
-                          }`}>
-                            {order.profit > 0 ? '+' : ''}{formatCurrency(order.profit)}
-                          </span>
-                        </div>
+                      <div className="mt-3 pt-3 border-t border-gray-800/50 flex items-center justify-between">
+                        <span className="text-sm text-gray-400">P&L</span>
+                        <span className={`font-mono font-bold text-lg ${
+                          order.profit > 0 ? 'text-green-400' : 
+                          order.profit < 0 ? 'text-red-400' : 
+                          'text-gray-500'
+                        }`}>
+                          {order.profit > 0 ? '+' : ''}{formatCurrency(order.profit)}
+                        </span>
                       </div>
                     )}
                   </div>
                 ))}
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes fade-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .animate-fade-in-up {
-          animation: fade-in-up 0.6s ease-out;
-        }
-      `}</style>
     </div>
   )
 }
