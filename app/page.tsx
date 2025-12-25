@@ -832,6 +832,249 @@ const handleTouchEnd = () => {
         </div>
       </section>
 
+      {/* How It Works Section */}
+<section id="how-it-works" className="py-20 sm:py-32 relative overflow-hidden">
+  <div className="container mx-auto px-4 sm:px-6">
+    <div className="text-center mb-20 animate-fade-in-up">
+      <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-full backdrop-blur-sm mb-4">
+        <Sparkles className="w-4 h-4 text-purple-400 animate-spin-slow" />
+        <span className="text-sm font-medium">Mulai dalam 3 langkah mudah</span>
+      </div>
+      <h2 className="text-4xl sm:text-5xl font-bold mb-6">
+        Cara <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 animate-gradient">Kerja Platform</span>
+      </h2>
+      <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+        Trading menjadi mudah dengan sistem otomatis kami
+      </p>
+    </div>
+
+    {/* Desktop Timeline View */}
+    <div className="hidden lg:block relative max-w-6xl mx-auto">
+      {/* Animated Central Line */}
+      <div className="absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2">
+        <div className="absolute inset-0 bg-gradient-to-b from-purple-500/20 via-pink-500/20 to-blue-500/20"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-purple-500 via-pink-500 to-blue-500 animate-pulse-glow"></div>
+      </div>
+
+      {/* Steps */}
+      <div className="relative space-y-32">
+        {/* Step 1 */}
+        <div className="relative flex items-center">
+          <div className="w-[calc(50%-4rem)] mr-auto animate-fade-in-up">
+            <div className="group relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-8 hover:border-purple-500/50 transition-all duration-500 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 via-purple-500/0 to-purple-500/0 group-hover:from-purple-500/10 group-hover:via-purple-500/5 group-hover:to-transparent transition-all duration-500"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/20 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              
+              <div className="relative z-10">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-purple-500/10 rounded-xl flex items-center justify-center border border-purple-500/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                    <Users className="w-6 h-6 text-purple-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-bold mb-2 group-hover:text-purple-400 transition-colors">Daftar & Verifikasi</h3>
+                    <p className="text-gray-400 leading-relaxed">Buat akun dalam 2 menit. Verifikasi identitas untuk keamanan maksimal dan mulai dengan akun demo gratis.</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-4">
+                  <div className="px-3 py-1.5 bg-purple-500/10 border border-purple-500/30 rounded-full text-xs font-medium text-purple-400 group-hover:bg-purple-500/20 transition-colors">Registrasi cepat</div>
+                  <div className="px-3 py-1.5 bg-purple-500/10 border border-purple-500/30 rounded-full text-xs font-medium text-purple-400 group-hover:bg-purple-500/20 transition-colors">Akun demo $10K</div>
+                  <div className="px-3 py-1.5 bg-purple-500/10 border border-purple-500/30 rounded-full text-xs font-medium text-purple-400 group-hover:bg-purple-500/20 transition-colors">Verifikasi aman</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="absolute left-1/2 -translate-x-1/2 z-10">
+            <div className="relative w-20 h-20 animate-float">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/30 to-purple-500/10 rounded-full animate-ping-slow"></div>
+              <div className="absolute inset-2 bg-gradient-to-br from-purple-500/40 to-transparent rounded-full blur-sm"></div>
+              <div className="absolute inset-4 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] rounded-full border-2 border-purple-500/50 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                <span className="text-2xl font-bold text-purple-400">1</span>
+              </div>
+              <div className="absolute inset-0 animate-spin-slow">
+                <div className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-purple-400 rounded-full -translate-x-1/2"></div>
+                <div className="absolute bottom-0 left-1/2 w-1.5 h-1.5 bg-purple-400 rounded-full -translate-x-1/2"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Step 2 */}
+        <div className="relative flex items-center flex-row-reverse" style={{ animationDelay: '200ms' }}>
+          <div className="w-[calc(50%-4rem)] ml-auto animate-fade-in-up">
+            <div className="group relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-8 hover:border-pink-500/50 transition-all duration-500 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-pink-500/0 via-pink-500/0 to-pink-500/0 group-hover:from-pink-500/10 group-hover:via-pink-500/5 group-hover:to-transparent transition-all duration-500"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-500/20 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              
+              <div className="relative z-10">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-pink-500/20 to-pink-500/10 rounded-xl flex items-center justify-center border border-pink-500/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                    <DollarSign className="w-6 h-6 text-pink-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-bold mb-2 group-hover:text-pink-400 transition-colors">Deposit & Pilih Strategi</h3>
+                    <p className="text-gray-400 leading-relaxed">Deposit mulai dari Rp 100.000. Pilih strategi trading otomatis sesuai profil risiko Anda.</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-4">
+                  <div className="px-3 py-1.5 bg-pink-500/10 border border-pink-500/30 rounded-full text-xs font-medium text-pink-400 group-hover:bg-pink-500/20 transition-colors">Deposit minimal rendah</div>
+                  <div className="px-3 py-1.5 bg-pink-500/10 border border-pink-500/30 rounded-full text-xs font-medium text-pink-400 group-hover:bg-pink-500/20 transition-colors">Multiple payment</div>
+                  <div className="px-3 py-1.5 bg-pink-500/10 border border-pink-500/30 rounded-full text-xs font-medium text-pink-400 group-hover:bg-pink-500/20 transition-colors">Auto trading</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="absolute left-1/2 -translate-x-1/2 z-10">
+            <div className="relative w-20 h-20 animate-float" style={{ animationDelay: '0.5s' }}>
+              <div className="absolute inset-0 bg-gradient-to-br from-pink-500/30 to-pink-500/10 rounded-full animate-ping-slow"></div>
+              <div className="absolute inset-2 bg-gradient-to-br from-pink-500/40 to-transparent rounded-full blur-sm"></div>
+              <div className="absolute inset-4 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] rounded-full border-2 border-pink-500/50 flex items-center justify-center shadow-lg shadow-pink-500/20">
+                <span className="text-2xl font-bold text-pink-400">2</span>
+              </div>
+              <div className="absolute inset-0 animate-spin-slow">
+                <div className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-pink-400 rounded-full -translate-x-1/2"></div>
+                <div className="absolute bottom-0 left-1/2 w-1.5 h-1.5 bg-pink-400 rounded-full -translate-x-1/2"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Step 3 */}
+        <div className="relative flex items-center" style={{ animationDelay: '400ms' }}>
+          <div className="w-[calc(50%-4rem)] mr-auto animate-fade-in-up">
+            <div className="group relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-8 hover:border-blue-500/50 transition-all duration-500 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-blue-500/0 to-blue-500/0 group-hover:from-blue-500/10 group-hover:via-blue-500/5 group-hover:to-transparent transition-all duration-500"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/20 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              
+              <div className="relative z-10">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-blue-500/10 rounded-xl flex items-center justify-center border border-blue-500/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                    <TrendingUp className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-bold mb-2 group-hover:text-blue-400 transition-colors">Trading & Profit</h3>
+                    <p className="text-gray-400 leading-relaxed">Sistem kami trading otomatis 24/7. Pantau profit real-time dan tarik keuntungan kapan saja.</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-4">
+                  <div className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-full text-xs font-medium text-blue-400 group-hover:bg-blue-500/20 transition-colors">Trading 24/7</div>
+                  <div className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-full text-xs font-medium text-blue-400 group-hover:bg-blue-500/20 transition-colors">Profit hingga 95%</div>
+                  <div className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-full text-xs font-medium text-blue-400 group-hover:bg-blue-500/20 transition-colors">Withdraw instan</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="absolute left-1/2 -translate-x-1/2 z-10">
+            <div className="relative w-20 h-20 animate-float" style={{ animationDelay: '1s' }}>
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 to-blue-500/10 rounded-full animate-ping-slow"></div>
+              <div className="absolute inset-2 bg-gradient-to-br from-blue-500/40 to-transparent rounded-full blur-sm"></div>
+              <div className="absolute inset-4 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] rounded-full border-2 border-blue-500/50 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <span className="text-2xl font-bold text-blue-400">3</span>
+              </div>
+              <div className="absolute inset-0 animate-spin-slow">
+                <div className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-blue-400 rounded-full -translate-x-1/2"></div>
+                <div className="absolute bottom-0 left-1/2 w-1.5 h-1.5 bg-blue-400 rounded-full -translate-x-1/2"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Mobile Vertical Flow */}
+    <div className="lg:hidden space-y-8">
+      {/* Step 1 */}
+      <div className="relative animate-fade-in-up">
+        <div className="absolute left-8 top-20 w-0.5 h-8 bg-gradient-to-b from-purple-500/30 to-transparent"></div>
+        <div className="flex gap-4">
+          <div className="flex-shrink-0">
+            <div className="relative w-16 h-16 animate-float">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-purple-500/5 rounded-full blur-md"></div>
+              <div className="absolute inset-1 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] rounded-full border-2 border-purple-500/50 flex items-center justify-center">
+                <span className="text-xl font-bold text-purple-400">1</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-xl p-4 hover:border-purple-500/50 transition-all">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-purple-500/5 rounded-lg flex items-center justify-center border border-purple-500/30">
+                <Users className="w-5 h-5 text-purple-400" />
+              </div>
+              <h3 className="font-bold text-lg">Daftar & Verifikasi</h3>
+            </div>
+            <p className="text-sm text-gray-400 leading-relaxed">Buat akun dalam 2 menit dengan verifikasi aman</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Step 2 */}
+      <div className="relative animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+        <div className="absolute left-8 top-20 w-0.5 h-8 bg-gradient-to-b from-pink-500/30 to-transparent"></div>
+        <div className="flex gap-4">
+          <div className="flex-shrink-0">
+            <div className="relative w-16 h-16 animate-float" style={{ animationDelay: '0.5s' }}>
+              <div className="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-pink-500/5 rounded-full blur-md"></div>
+              <div className="absolute inset-1 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] rounded-full border-2 border-pink-500/50 flex items-center justify-center">
+                <span className="text-xl font-bold text-pink-400">2</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-xl p-4 hover:border-pink-500/50 transition-all">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-pink-500/20 to-pink-500/5 rounded-lg flex items-center justify-center border border-pink-500/30">
+                <DollarSign className="w-5 h-5 text-pink-400" />
+              </div>
+              <h3 className="font-bold text-lg">Deposit & Pilih Strategi</h3>
+            </div>
+            <p className="text-sm text-gray-400 leading-relaxed">Deposit minimal Rp 100K dan pilih strategi auto trading</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Step 3 */}
+      <div className="relative animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+        <div className="flex gap-4">
+          <div className="flex-shrink-0">
+            <div className="relative w-16 h-16 animate-float" style={{ animationDelay: '1s' }}>
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-blue-500/5 rounded-full blur-md"></div>
+              <div className="absolute inset-1 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] rounded-full border-2 border-blue-500/50 flex items-center justify-center">
+                <span className="text-xl font-bold text-blue-400">3</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-xl p-4 hover:border-blue-500/50 transition-all">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-blue-500/5 rounded-lg flex items-center justify-center border border-blue-500/30">
+                <TrendingUp className="w-5 h-5 text-blue-400" />
+              </div>
+              <h3 className="font-bold text-lg">Trading & Profit</h3>
+            </div>
+            <p className="text-sm text-gray-400 leading-relaxed">Sistem trading otomatis 24/7 dengan profit hingga 95%</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Bottom CTA */}
+    <div className="text-center mt-16">
+      <button
+        onClick={() => {
+          setIsLogin(false)
+          setShowAuthModal(true)
+        }}
+        className="group px-8 py-4 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-blue-500/20 hover:from-purple-500/30 hover:via-pink-500/30 hover:to-blue-500/30 border border-purple-500/30 rounded-xl font-semibold transition-all backdrop-blur-sm"
+      >
+        <span className="flex items-center gap-2">
+          Mulai Trading Sekarang
+          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+        </span>
+      </button>
+    </div>
+  </div>
+</section>
+
       {/* CTA Section */}
       <section className="py-20 sm:py-32 relative">
   <div className="container mx-auto px-4 sm:px-6">
@@ -905,6 +1148,7 @@ const handleTouchEnd = () => {
     </div>
   </div>
 </section>
+
 
       {/* Footer */}
       <EnhancedFooter />
