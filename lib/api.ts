@@ -1,9 +1,9 @@
-import axios, { AxiosInstance, AxiosError } from 'axios'
+// lib/api.ts - OPTIMIZED VERSION WITH CACHING
+import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
 
-// Response types
 interface ApiResponse<T = any> {
   success?: boolean
   message?: string
@@ -12,10 +12,31 @@ interface ApiResponse<T = any> {
   [key: string]: any
 }
 
+interface CacheEntry {
+  data: any
+  timestamp: number
+  expiresIn: number
+}
+
+interface PendingRequest {
+  promise: Promise<any>
+  timestamp: number
+}
+
 class ApiClient {
   private client: AxiosInstance
+  private cache: Map<string, CacheEntry>
+  private pendingRequests: Map<string, PendingRequest>
+  private retryConfig = {
+    maxRetries: 3,
+    retryDelay: 1000,
+    retryableStatuses: [408, 429, 500, 502, 503, 504]
+  }
 
   constructor() {
+    this.cache = new Map()
+    this.pendingRequests = new Map()
+    
     this.client = axios.create({
       baseURL: API_URL,
       timeout: 10000,
@@ -24,6 +45,11 @@ class ApiClient {
       },
     })
 
+    this.setupInterceptors()
+    this.startCacheCleanup()
+  }
+
+  private setupInterceptors() {
     // Request interceptor
     this.client.interceptors.request.use(
       (config) => {
@@ -31,32 +57,45 @@ class ApiClient {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
         }
-        console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`)
+        
+        // Add request ID for deduplication
+        if (!config.headers['X-Request-ID']) {
+          config.headers['X-Request-ID'] = this.generateRequestId(config)
+        }
+        
         return config
       },
-      (error) => {
-        console.error('Request interceptor error:', error)
-        return Promise.reject(error)
-      }
+      (error) => Promise.reject(error)
     )
 
-    // Response interceptor - return full response.data
+    // Response interceptor with retry logic
     this.client.interceptors.response.use(
-      (response) => {
-        console.log(`API Response [${response.status}]:`, response.data)
-        return response.data
-      },
-      (error: AxiosError<any>) => {
-        console.error('API Error:', error.response?.data || error.message)
+      (response) => response.data,
+      async (error: AxiosError<any>) => {
+        const config = error.config as AxiosRequestConfig & { _retry?: number }
         
+        if (!config) return Promise.reject(error)
+        
+        // Retry logic
+        const shouldRetry = this.shouldRetry(error, config)
+        
+        if (shouldRetry) {
+          config._retry = (config._retry || 0) + 1
+          
+          const delay = this.getRetryDelay(config._retry)
+          await this.sleep(delay)
+          
+          return this.client.request(config)
+        }
+        
+        // Error handling
         const message = 
           error.response?.data?.error || 
           error.response?.data?.message ||
           error.message || 
           'An error occurred'
         
-        // Don't show toast for silent requests
-        if (!error.config?.headers?.['X-Silent-Error']) {
+        if (!config.headers?.['X-Silent-Error']) {
           toast.error(message)
         }
         
@@ -65,50 +104,203 @@ class ApiClient {
     )
   }
 
+  private shouldRetry(error: AxiosError, config: AxiosRequestConfig & { _retry?: number }): boolean {
+    const retryCount = config._retry || 0
+    
+    if (retryCount >= this.retryConfig.maxRetries) {
+      return false
+    }
+    
+    // Don't retry on POST/PUT/DELETE by default (unless explicitly marked as idempotent)
+    if (['post', 'put', 'delete'].includes(config.method?.toLowerCase() || '') && 
+        !config.headers?.['X-Idempotent']) {
+      return false
+    }
+    
+    // Retry on network errors
+    if (!error.response) {
+      return true
+    }
+    
+    // Retry on specific status codes
+    return this.retryConfig.retryableStatuses.includes(error.response.status)
+  }
+
+  private getRetryDelay(retryCount: number): number {
+    // Exponential backoff: 1s, 2s, 4s
+    return this.retryConfig.retryDelay * Math.pow(2, retryCount - 1)
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms))
+  }
+
+  private generateRequestId(config: AxiosRequestConfig): string {
+    const method = config.method?.toUpperCase()
+    const url = config.url
+    const params = JSON.stringify(config.params || {})
+    return `${method}-${url}-${params}`
+  }
+
   private getToken(): string | null {
     if (typeof window === 'undefined') return null
-    const token = localStorage.getItem('token')
-    console.log('Getting token:', token ? 'Token exists' : 'No token')
-    return token
+    return localStorage.getItem('token')
   }
 
   setToken(token: string) {
     if (typeof window !== 'undefined') {
-      console.log('Setting token in localStorage')
       localStorage.setItem('token', token)
     }
   }
 
   removeToken() {
     if (typeof window !== 'undefined') {
-      console.log('Removing token from localStorage')
       localStorage.removeItem('token')
     }
   }
 
-  // Auth
+  // ===================================
+  // CACHING UTILITIES
+  // ===================================
+
+  private getCacheKey(endpoint: string, params?: any): string {
+    return `${endpoint}-${JSON.stringify(params || {})}`
+  }
+
+  private getFromCache(key: string): any | null {
+    const entry = this.cache.get(key)
+    
+    if (!entry) return null
+    
+    const now = Date.now()
+    if (now - entry.timestamp > entry.expiresIn) {
+      this.cache.delete(key)
+      return null
+    }
+    
+    return entry.data
+  }
+
+  private setCache(key: string, data: any, expiresIn: number = 60000) {
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      expiresIn
+    })
+  }
+
+  private invalidateCache(pattern?: string) {
+    if (!pattern) {
+      this.cache.clear()
+      return
+    }
+    
+    const keys = Array.from(this.cache.keys())
+    keys.forEach(key => {
+      if (key.includes(pattern)) {
+        this.cache.delete(key)
+      }
+    })
+  }
+
+  private startCacheCleanup() {
+    if (typeof window === 'undefined') return
+    
+    setInterval(() => {
+      const now = Date.now()
+      const entries = Array.from(this.cache.entries())
+      
+      entries.forEach(([key, entry]) => {
+        if (now - entry.timestamp > entry.expiresIn) {
+          this.cache.delete(key)
+        }
+      })
+    }, 60000) // Clean every minute
+  }
+
+  // ===================================
+  // REQUEST DEDUPLICATION
+  // ===================================
+
+  private async withDeduplication<T>(
+    key: string, 
+    request: () => Promise<T>
+  ): Promise<T> {
+    const pending = this.pendingRequests.get(key)
+    
+    if (pending) {
+      // Return existing promise
+      return pending.promise as Promise<T>
+    }
+    
+    // Create new request
+    const promise = request()
+    
+    this.pendingRequests.set(key, {
+      promise,
+      timestamp: Date.now()
+    })
+    
+    try {
+      const result = await promise
+      return result
+    } finally {
+      this.pendingRequests.delete(key)
+    }
+  }
+
+  // ===================================
+  // CACHED API METHODS
+  // ===================================
+
+  // Auth (no cache)
   async login(email: string, password: string): Promise<ApiResponse> {
-    console.log('Calling login API...')
     return this.client.post('/auth/login', { email, password })
   }
 
   async register(email: string, password: string): Promise<ApiResponse> {
-    console.log('Calling register API...')
     return this.client.post('/auth/register', { email, password })
   }
 
-  // User
+  // User (cache 30s)
   async getProfile(): Promise<ApiResponse> {
-    return this.client.get('/user/profile')
+    const cacheKey = this.getCacheKey('/user/profile')
+    const cached = this.getFromCache(cacheKey)
+    
+    if (cached) return cached
+    
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get('/user/profile')
+      this.setCache(cacheKey, data, 30000)
+      return data
+    })
   }
 
-  // Balance
+  // Balance (cache 5s)
   async getCurrentBalance(): Promise<ApiResponse> {
-    return this.client.get('/balance/current')
+    const cacheKey = this.getCacheKey('/balance/current')
+    const cached = this.getFromCache(cacheKey)
+    
+    if (cached) return cached
+    
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get('/balance/current')
+      this.setCache(cacheKey, data, 5000)
+      return data
+    })
   }
 
   async getBalanceHistory(page = 1, limit = 20): Promise<ApiResponse> {
-    return this.client.get(`/balance?page=${page}&limit=${limit}`)
+    const cacheKey = this.getCacheKey('/balance', { page, limit })
+    const cached = this.getFromCache(cacheKey)
+    
+    if (cached) return cached
+    
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get(`/balance?page=${page}&limit=${limit}`)
+      this.setCache(cacheKey, data, 10000)
+      return data
+    })
   }
 
   async createBalanceEntry(data: { 
@@ -116,54 +308,108 @@ class ApiClient {
     amount: number
     description?: string 
   }): Promise<ApiResponse> {
-    return this.client.post('/balance', data)
+    const result = await this.client.post('/balance', data)
+    
+    // Invalidate balance cache
+    this.invalidateCache('/balance')
+    
+    return result
   }
 
-  // Assets
+  // Assets (cache 60s)
   async getAssets(activeOnly = false): Promise<ApiResponse> {
-    return this.client.get(`/assets?activeOnly=${activeOnly}`)
+    const cacheKey = this.getCacheKey('/assets', { activeOnly })
+    const cached = this.getFromCache(cacheKey)
+    
+    if (cached) return cached
+    
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get(`/assets?activeOnly=${activeOnly}`)
+      this.setCache(cacheKey, data, 60000)
+      return data
+    })
   }
 
   async getAssetById(id: string): Promise<ApiResponse> {
-    return this.client.get(`/assets/${id}`)
+    const cacheKey = this.getCacheKey(`/assets/${id}`)
+    const cached = this.getFromCache(cacheKey)
+    
+    if (cached) return cached
+    
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get(`/assets/${id}`)
+      this.setCache(cacheKey, data, 60000)
+      return data
+    })
   }
 
+  // Price (cache 2s - frequently updated)
   async getCurrentPrice(assetId: string): Promise<ApiResponse> {
-    return this.client.get(`/assets/${assetId}/price`)
+    const cacheKey = this.getCacheKey(`/assets/${assetId}/price`)
+    const cached = this.getFromCache(cacheKey)
+    
+    if (cached) return cached
+    
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get(`/assets/${assetId}/price`)
+      this.setCache(cacheKey, data, 2000) // Very short cache
+      return data
+    })
   }
 
+  // Asset management (admin)
   async createAsset(data: any): Promise<ApiResponse> {
-    return this.client.post('/assets', data)
+    const result = await this.client.post('/assets', data)
+    this.invalidateCache('/assets')
+    return result
   }
 
   async updateAsset(id: string, data: any): Promise<ApiResponse> {
-    return this.client.put(`/assets/${id}`, data)
+    const result = await this.client.put(`/assets/${id}`, data)
+    this.invalidateCache('/assets')
+    return result
   }
 
   async deleteAsset(id: string): Promise<ApiResponse> {
-    return this.client.delete(`/assets/${id}`)
+    const result = await this.client.delete(`/assets/${id}`)
+    this.invalidateCache('/assets')
+    return result
   }
 
-  // Binary Orders
+  // Binary Orders (no cache on list, short cache on detail)
   async createOrder(data: {
     asset_id: string
     direction: 'CALL' | 'PUT'
     amount: number
     duration: number
   }): Promise<ApiResponse> {
-    return this.client.post('/binary-orders', data)
+    const result = await this.client.post('/binary-orders', data)
+    
+    // Invalidate orders and balance
+    this.invalidateCache('/binary-orders')
+    this.invalidateCache('/balance')
+    
+    return result
   }
 
   async getOrders(status?: string, page = 1, limit = 20): Promise<ApiResponse> {
-    const params = new URLSearchParams()
-    if (status) params.append('status', status)
-    params.append('page', page.toString())
-    params.append('limit', limit.toString())
-    return this.client.get(`/binary-orders?${params.toString()}`)
+    // Don't cache orders list (needs to be fresh for active orders)
+    return this.client.get(
+      `/binary-orders?${status ? `status=${status}&` : ''}page=${page}&limit=${limit}`
+    )
   }
 
   async getOrderById(id: string): Promise<ApiResponse> {
-    return this.client.get(`/binary-orders/${id}`)
+    const cacheKey = this.getCacheKey(`/binary-orders/${id}`)
+    const cached = this.getFromCache(cacheKey)
+    
+    if (cached) return cached
+    
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get(`/binary-orders/${id}`)
+      this.setCache(cacheKey, data, 3000)
+      return data
+    })
   }
 
   // Admin - Users
@@ -185,6 +431,11 @@ class ApiClient {
 
   async deleteUser(id: string): Promise<ApiResponse> {
     return this.client.delete(`/admin/users/${id}`)
+  }
+
+  // Manual cache control
+  clearCache(pattern?: string) {
+    this.invalidateCache(pattern)
   }
 }
 
