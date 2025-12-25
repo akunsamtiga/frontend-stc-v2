@@ -669,168 +669,6 @@ const handleTouchEnd = () => {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section id="testimonials" className="py-20 sm:py-32 relative">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl sm:text-5xl font-bold mb-6">
-              Dipercaya <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Ribuan</span> Trader
-            </h2>
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              Lihat apa kata trader sukses tentang kami
-            </p>
-          </div>
-
-          {/* Desktop Version */}
-          <div className="hidden sm:block max-w-4xl mx-auto">
-            <div className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl p-8 sm:p-12 backdrop-blur-xl">
-              <div className="text-center animate-fade-in">
-                <div className="text-6xl mb-6">{testimonials[activeTestimonial].avatar}</div>
-                
-                <div className="flex justify-center gap-1 mb-6">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-
-                <p className="text-xl text-gray-300 mb-6 leading-relaxed">
-                  "{testimonials[activeTestimonial].content}"
-                </p>
-
-                <div className="inline-flex items-center gap-3 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full mb-4">
-                  <TrendingUp className="w-4 h-4 text-emerald-400" />
-                  <span className="text-sm font-bold text-emerald-400">
-                    {testimonials[activeTestimonial].profit} Keuntungan
-                  </span>
-                </div>
-
-                <div className="font-semibold text-lg mb-1">
-                  {testimonials[activeTestimonial].name}
-                </div>
-                <div className="text-gray-400">
-                  {testimonials[activeTestimonial].role}
-                </div>
-              </div>
-
-              <div className="flex justify-center gap-2 mt-8">
-                {testimonials.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setActiveTestimonial(index)}
-                    className={`h-1.5 rounded-full transition-all ${
-                      index === activeTestimonial 
-                        ? 'bg-blue-500 w-8' 
-                        : 'bg-gray-700 w-1.5 hover:bg-gray-600'
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Mobile Premium Card Design */}
-          <div className="sm:hidden">
-  <div className="relative">
-    {testimonials.map((testimonial, index) => (
-      <div 
-        key={index}
-        className={`transition-all duration-500 ${
-          index === activeTestimonial 
-            ? 'opacity-100 scale-100 relative z-10' 
-            : 'opacity-0 scale-95 absolute inset-0 pointer-events-none'
-        }`}
-      >
-        {/* Modern Clean Card */}
-        <div className="mx-4 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-6 overflow-hidden">
-          {/* Content */}
-          <div className="space-y-4">
-            {/* Avatar & Stars - Compact */}
-            <div className="flex items-center justify-between">
-              <div className="text-5xl">{testimonial.avatar}</div>
-              <div className="flex gap-0.5">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                ))}
-              </div>
-            </div>
-
-            {/* Quote - Clean Typography */}
-            <div className="relative py-2">
-              <p className="text-base text-gray-200 leading-relaxed italic">
-                "{testimonial.content}"
-              </p>
-            </div>
-
-            {/* Stats - Compact Grid */}
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-800/50">
-              <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-3">
-                <div className="text-xs text-gray-400 mb-1">Keuntungan</div>
-                <div className="text-lg font-bold text-emerald-400">{testimonial.profit}</div>
-              </div>
-              <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-3">
-                <div className="text-xs text-gray-400 mb-1">Durasi</div>
-                <div className="text-lg font-bold text-blue-400">{testimonial.duration}</div>
-              </div>
-            </div>
-
-            {/* User Info - Clean */}
-            <div className="pt-3 border-t border-gray-800/50">
-              <h4 className="font-bold text-lg">{testimonial.name}</h4>
-              <p className="text-sm text-gray-400">{testimonial.role}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <Globe className="w-3 h-3 text-gray-500" />
-                <span className="text-xs text-gray-500">{testimonial.location}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    ))}
-  </div>
-
-  {/* Clean Mobile Controls - DIPERBAIKI */}
-  <div className="flex items-center justify-between mt-6 px-4">
-    <button
-      onClick={() => setActiveTestimonial((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1))}
-      className="w-10 h-10 bg-[#1e293b] hover:bg-[#334155] rounded-lg flex items-center justify-center transition-all border border-gray-700 active:scale-95"
-    >
-      <ChevronLeft className="w-5 h-5" />
-    </button>
-
-    {/* Minimal Dots - DIPERBAIKI (ukuran lebih kecil) */}
-    <div className="flex gap-2">
-      {testimonials.map((_, index) => (
-        <button
-          key={index}
-          onClick={() => setActiveTestimonial(index)}
-          className="transition-all duration-300"
-        >
-          {index === activeTestimonial ? (
-            <div className="w-8 h-2 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full"></div>
-          ) : (
-            <div className="w-2 h-2 bg-gray-700 hover:bg-gray-600 rounded-full"></div>
-          )}
-        </button>
-      ))}
-    </div>
-
-    <button
-      onClick={() => setActiveTestimonial((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1))}
-      className="w-10 h-10 bg-[#1e293b] hover:bg-[#334155] rounded-lg flex items-center justify-center transition-all border border-gray-700 active:scale-95"
-    >
-      <ChevronRight className="w-5 h-5" />
-    </button>
-  </div>
-
-  {/* Counter - Minimal */}
-  <div className="mt-4 text-center">
-    <span className="text-xs text-gray-500">
-      {activeTestimonial + 1} / {testimonials.length}
-    </span>
-  </div>
-</div>
-        </div>
-      </section>
 
       {/* How It Works Section */}
 <section id="how-it-works" className="py-20 sm:py-32 relative overflow-hidden">
@@ -1074,6 +912,170 @@ const handleTouchEnd = () => {
     </div>
   </div>
 </section>
+
+      {/* Testimonials */}
+      <section id="testimonials" className="py-20 sm:py-32 relative">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl sm:text-5xl font-bold mb-6">
+              Dipercaya <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Ribuan</span> Trader
+            </h2>
+            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+              Lihat apa kata trader sukses tentang kami
+            </p>
+          </div>
+
+          {/* Desktop Version */}
+          <div className="hidden sm:block max-w-4xl mx-auto">
+            <div className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl p-8 sm:p-12 backdrop-blur-xl">
+              <div className="text-center animate-fade-in">
+                <div className="text-6xl mb-6">{testimonials[activeTestimonial].avatar}</div>
+                
+                <div className="flex justify-center gap-1 mb-6">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+
+                <p className="text-xl text-gray-300 mb-6 leading-relaxed">
+                  "{testimonials[activeTestimonial].content}"
+                </p>
+
+                <div className="inline-flex items-center gap-3 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full mb-4">
+                  <TrendingUp className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm font-bold text-emerald-400">
+                    {testimonials[activeTestimonial].profit} Keuntungan
+                  </span>
+                </div>
+
+                <div className="font-semibold text-lg mb-1">
+                  {testimonials[activeTestimonial].name}
+                </div>
+                <div className="text-gray-400">
+                  {testimonials[activeTestimonial].role}
+                </div>
+              </div>
+
+              <div className="flex justify-center gap-2 mt-8">
+                {testimonials.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setActiveTestimonial(index)}
+                    className={`h-1.5 rounded-full transition-all ${
+                      index === activeTestimonial 
+                        ? 'bg-blue-500 w-8' 
+                        : 'bg-gray-700 w-1.5 hover:bg-gray-600'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Premium Card Design */}
+          <div className="sm:hidden">
+  <div className="relative">
+    {testimonials.map((testimonial, index) => (
+      <div 
+        key={index}
+        className={`transition-all duration-500 ${
+          index === activeTestimonial 
+            ? 'opacity-100 scale-100 relative z-10' 
+            : 'opacity-0 scale-95 absolute inset-0 pointer-events-none'
+        }`}
+      >
+        {/* Modern Clean Card */}
+        <div className="mx-4 bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-2xl p-6 overflow-hidden">
+          {/* Content */}
+          <div className="space-y-4">
+            {/* Avatar & Stars - Compact */}
+            <div className="flex items-center justify-between">
+              <div className="text-5xl">{testimonial.avatar}</div>
+              <div className="flex gap-0.5">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                ))}
+              </div>
+            </div>
+
+            {/* Quote - Clean Typography */}
+            <div className="relative py-2">
+              <p className="text-base text-gray-200 leading-relaxed italic">
+                "{testimonial.content}"
+              </p>
+            </div>
+
+            {/* Stats - Compact Grid */}
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-800/50">
+              <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-3">
+                <div className="text-xs text-gray-400 mb-1">Keuntungan</div>
+                <div className="text-lg font-bold text-emerald-400">{testimonial.profit}</div>
+              </div>
+              <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-3">
+                <div className="text-xs text-gray-400 mb-1">Durasi</div>
+                <div className="text-lg font-bold text-blue-400">{testimonial.duration}</div>
+              </div>
+            </div>
+
+            {/* User Info - Clean */}
+            <div className="pt-3 border-t border-gray-800/50">
+              <h4 className="font-bold text-lg">{testimonial.name}</h4>
+              <p className="text-sm text-gray-400">{testimonial.role}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <Globe className="w-3 h-3 text-gray-500" />
+                <span className="text-xs text-gray-500">{testimonial.location}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+
+  {/* Clean Mobile Controls - DIPERBAIKI */}
+  <div className="flex items-center justify-between mt-6 px-4">
+    <button
+      onClick={() => setActiveTestimonial((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1))}
+      className="w-10 h-10 bg-[#1e293b] hover:bg-[#334155] rounded-lg flex items-center justify-center transition-all border border-gray-700 active:scale-95"
+    >
+      <ChevronLeft className="w-5 h-5" />
+    </button>
+
+    {/* Minimal Dots - DIPERBAIKI (ukuran lebih kecil) */}
+    <div className="flex gap-2">
+      {testimonials.map((_, index) => (
+        <button
+          key={index}
+          onClick={() => setActiveTestimonial(index)}
+          className="transition-all duration-300"
+        >
+          {index === activeTestimonial ? (
+            <div className="w-8 h-2 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full"></div>
+          ) : (
+            <div className="w-2 h-2 bg-gray-700 hover:bg-gray-600 rounded-full"></div>
+          )}
+        </button>
+      ))}
+    </div>
+
+    <button
+      onClick={() => setActiveTestimonial((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1))}
+      className="w-10 h-10 bg-[#1e293b] hover:bg-[#334155] rounded-lg flex items-center justify-center transition-all border border-gray-700 active:scale-95"
+    >
+      <ChevronRight className="w-5 h-5" />
+    </button>
+  </div>
+
+  {/* Counter - Minimal */}
+  <div className="mt-4 text-center">
+    <span className="text-xs text-gray-500">
+      {activeTestimonial + 1} / {testimonials.length}
+    </span>
+  </div>
+</div>
+        </div>
+      </section>
+
 
       {/* CTA Section */}
 {/* CTA Section - Modern Futuristic */}
