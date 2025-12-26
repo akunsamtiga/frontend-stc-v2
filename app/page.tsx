@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 import EnhancedFooter from '@/components/EnhancedFooter'
 import Image from 'next/image'
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
+import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'framer-motion'
 import { 
   TrendingUp, 
   Zap, 
@@ -27,13 +27,216 @@ import {
   DollarSign,
   ChevronLeft,
   ChevronRight,
-  Check,
+  CheckCircle2,
   CreditCard,
   Building2,
   Smartphone
 } from 'lucide-react'
 
-// Live Trading Ticker Component
+// Modern Floating Particles Background
+const FloatingParticles = () => {
+  const particles = Array.from({ length: 20 }, (_, i) => ({
+    id: i,
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    size: Math.random() * 4 + 2,
+    duration: Math.random() * 20 + 10,
+    delay: Math.random() * 5
+  }))
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {particles.map((particle) => (
+        <motion.div
+          key={particle.id}
+          className="absolute rounded-full bg-blue-500/20"
+          style={{
+            left: `${particle.x}%`,
+            top: `${particle.y}%`,
+            width: particle.size,
+            height: particle.size,
+          }}
+          animate={{
+            y: [0, -30, 0],
+            opacity: [0.2, 0.5, 0.2],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: particle.duration,
+            repeat: Infinity,
+            delay: particle.delay,
+            ease: "easeInOut"
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
+// Modern Trust Badge with Motion
+const ModernTrustBadge = () => {
+  const [count, setCount] = useState(0)
+  const targetCount = 50000
+
+  useEffect(() => {
+    const duration = 2000
+    const steps = 60
+    const increment = targetCount / steps
+    let current = 0
+
+    const timer = setInterval(() => {
+      current += increment
+      if (current >= targetCount) {
+        setCount(targetCount)
+        clearInterval(timer)
+      } else {
+        setCount(Math.floor(current))
+      }
+    }, duration / steps)
+
+    return () => clearInterval(timer)
+  }, [])
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.3 }}
+      className="inline-flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 backdrop-blur-xl border border-white/10 rounded-2xl shadow-lg hover:shadow-xl transition-shadow group"
+    >
+      {/* Animated Icon Container */}
+      <motion.div 
+        className="relative"
+        whileHover={{ rotate: 360 }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
+        <div className="relative w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+          <Users className="w-5 h-5 text-white" />
+        </div>
+      </motion.div>
+
+      {/* Content */}
+      <div className="flex flex-col">
+        <motion.div 
+          className="flex items-baseline gap-1"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400 tabular-nums">
+            {count.toLocaleString()}+
+          </span>
+        </motion.div>
+        <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+          Trader Terpercaya
+        </span>
+      </div>
+
+      {/* Pulse Effect */}
+      <motion.div
+        className="absolute inset-0 rounded-2xl border-2 border-blue-500/50"
+        animate={{
+          scale: [1, 1.05, 1],
+          opacity: [0.5, 0, 0.5],
+        }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      />
+    </motion.div>
+  )
+}
+
+// Payment Methods Section
+const PaymentMethods = () => {
+  const paymentMethods = [
+    { name: 'Visa', icon: CreditCard, color: 'from-blue-600 to-blue-400' },
+    { name: 'Mastercard', icon: CreditCard, color: 'from-orange-600 to-red-500' },
+    { name: 'Bank Transfer', icon: Building2, color: 'from-green-600 to-emerald-500' },
+    { name: 'E-Wallet', icon: Smartphone, color: 'from-purple-600 to-pink-500' },
+    { name: 'QRIS', icon: Smartphone, color: 'from-cyan-600 to-blue-500' },
+  ]
+
+  const ref = useRef(null)
+  const isInView = useInView(ref, { once: true, margin: "-100px" })
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 30 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.6 }}
+      className="mt-12 pt-12 border-t border-gray-800/50"
+    >
+      <div className="text-center mb-8">
+        <motion.p 
+          className="text-sm text-gray-400 mb-6"
+          initial={{ opacity: 0 }}
+          animate={isInView ? { opacity: 1 } : {}}
+          transition={{ delay: 0.2 }}
+        >
+          Metode Pembayaran yang Didukung
+        </motion.p>
+        
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          {paymentMethods.map((method, index) => (
+            <motion.div
+              key={method.name}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={isInView ? { opacity: 1, scale: 1 } : {}}
+              transition={{ delay: 0.1 * index, duration: 0.4 }}
+              whileHover={{ scale: 1.05, y: -5 }}
+              className="group relative"
+            >
+              {/* Glow effect */}
+              <div className={`absolute inset-0 bg-gradient-to-r ${method.color} opacity-0 group-hover:opacity-20 blur-xl transition-opacity rounded-xl`} />
+              
+              {/* Card */}
+              <div className="relative px-6 py-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl hover:border-white/20 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 bg-gradient-to-br ${method.color} rounded-lg flex items-center justify-center shadow-lg`}>
+                    <method.icon className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="text-sm font-semibold text-gray-300 group-hover:text-white transition-colors">
+                    {method.name}
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* Security Badges */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={isInView ? { opacity: 1 } : {}}
+        transition={{ delay: 0.6 }}
+        className="flex items-center justify-center gap-6 text-xs text-gray-500"
+      >
+        <div className="flex items-center gap-2">
+          <Shield className="w-4 h-4 text-green-400" />
+          <span>SSL Encrypted</span>
+        </div>
+        <div className="w-px h-4 bg-gray-700" />
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-blue-400" />
+          <span>PCI DSS Compliant</span>
+        </div>
+        <div className="w-px h-4 bg-gray-700" />
+        <div className="flex items-center gap-2">
+          <Shield className="w-4 h-4 text-purple-400" />
+          <span>Licensed & Regulated</span>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+// Live Trading Ticker with Motion
 const LiveTradingTicker = () => {
   const [trades, setTrades] = useState([
     { user: 'Ahmad***', asset: 'EUR/USD', profit: 8500, time: '2 detik lalu' },
@@ -45,12 +248,10 @@ const LiveTradingTicker = () => {
     const names = [
       'Ahmad***', 'Siti***', 'Budi***', 'Rina***', 'Deni***', 'Maya***',
       'Andi***', 'Fitri***', 'Joko***', 'Dewi***', 'Agus***', 'Lina***',
-      'Rudi***', 'Nur***', 'Hadi***', 'Sari***', 'Yudi***', 'Tini***'
     ]
     const assets = [
       'EUR/USD', 'BTC/USD', 'IDX_STC', 'GBP/JPY', 'XAU/USD',
       'USD/JPY', 'ETH/USD', 'AUD/USD', 'NZD/USD', 'USD/CHF',
-      'EUR/GBP', 'BTC/ETH', 'LTC/USD', 'XRP/USD', 'DOT/USD'
     ]
     
     const interval = setInterval(() => {
@@ -71,45 +272,44 @@ const LiveTradingTicker = () => {
     <motion.div 
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.6, delay: 0.8 }}
-      className="hidden lg:block absolute top-24 right-8 w-72 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl z-10"
+      transition={{ duration: 0.6, delay: 0.4 }}
+      className="hidden lg:block absolute top-24 right-8 w-72 bg-[#0a0e17]/95 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-4 shadow-2xl z-10"
     >
       <div className="flex items-center gap-2 mb-3">
         <motion.div 
-          animate={{ scale: [1, 1.2, 1] }}
+          className="w-2 h-2 bg-green-400 rounded-full"
+          animate={{ scale: [1, 1.2, 1], opacity: [1, 0.5, 1] }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="w-2 h-2 bg-emerald-400 rounded-full"
         />
         <span className="text-xs font-semibold text-gray-300">Transaksi Live</span>
       </div>
-      <div className="space-y-2">
-        <AnimatePresence mode="popLayout">
-          {trades.map((trade, i) => (
-            <motion.div
-              key={`${trade.user}-${trade.time}-${i}`}
-              initial={{ opacity: 0, y: -20, scale: 0.8 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 100, scale: 0.8 }}
-              transition={{ duration: 0.3 }}
-              className="flex items-center justify-between p-2 bg-emerald-500/5 border border-emerald-500/20 rounded-lg"
-            >
-              <div className="flex-1">
-                <div className="text-xs font-medium text-gray-200">{trade.user}</div>
-                <div className="text-[10px] text-gray-400">{trade.asset}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-xs font-bold text-emerald-400">+Rp {trade.profit.toLocaleString()}</div>
-                <div className="text-[10px] text-gray-500">{trade.time}</div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+      
+      <AnimatePresence mode="popLayout">
+        {trades.map((trade, i) => (
+          <motion.div
+            key={`${trade.user}-${trade.time}-${i}`}
+            initial={{ opacity: 0, y: -20, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.3 }}
+            className="flex items-center justify-between p-2 bg-green-500/5 border border-green-500/20 rounded-lg mb-2 last:mb-0"
+          >
+            <div className="flex-1">
+              <div className="text-xs font-medium text-gray-200">{trade.user}</div>
+              <div className="text-[10px] text-gray-400">{trade.asset}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs font-bold text-green-400">+Rp {trade.profit.toLocaleString()}</div>
+              <div className="text-[10px] text-gray-500">{trade.time}</div>
+            </div>
+          </motion.div>
+        ))}
+      </AnimatePresence>
     </motion.div>
   )
 }
 
-// Animated Trading Chart Preview
+// Animated Trading Chart
 const AnimatedTradingChart = () => {
   const [bars, setBars] = useState<number[]>([])
 
@@ -132,10 +332,10 @@ const AnimatedTradingChart = () => {
       {bars.map((height, i) => (
         <motion.div
           key={i}
+          className="flex-1 bg-gradient-to-t from-emerald-500/50 to-blue-500/50 rounded-t"
           initial={{ height: 0 }}
           animate={{ height: `${height}%` }}
-          transition={{ duration: 1, ease: "easeOut" }}
-          className="flex-1 bg-gradient-to-t from-emerald-500/50 to-blue-500/50 rounded-t"
+          transition={{ duration: 0.8, ease: "easeOut" }}
           style={{ opacity: i < 5 ? 0.3 : 1 }}
         />
       ))}
@@ -143,172 +343,26 @@ const AnimatedTradingChart = () => {
   )
 }
 
-// Floating Price Cards
+// Floating Price Cards with Motion
 const FloatingPriceCard = ({ symbol, price, change, delay, style }: any) => (
   <motion.div
     initial={{ opacity: 0, scale: 0.8 }}
-    animate={{ 
-      opacity: 1, 
-      scale: 1,
-      y: [0, -10, 0]
-    }}
-    transition={{ 
-      opacity: { duration: 0.5, delay },
-      scale: { duration: 0.5, delay },
-      y: { duration: 3, repeat: Infinity, ease: "easeInOut" }
-    }}
-    className="hidden lg:block absolute bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-3 shadow-2xl"
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ delay, duration: 0.5 }}
+    whileHover={{ scale: 1.05, y: -5 }}
+    className="hidden lg:block absolute bg-[#0a0e17]/95 backdrop-blur-xl border border-gray-800/50 rounded-xl p-3 shadow-2xl"
     style={style}
   >
     <div className="text-xs text-gray-400 mb-1">{symbol}</div>
     <div className="text-lg font-bold font-mono mb-1">{price}</div>
     <div className={`text-xs font-semibold flex items-center gap-1 ${
-      change > 0 ? 'text-emerald-400' : 'text-red-400'
+      change > 0 ? 'text-green-400' : 'text-red-400'
     }`}>
       {change > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
       {change > 0 ? '+' : ''}{change}%
     </div>
   </motion.div>
 )
-
-// Modern Trust Badge Component
-const TrustBadge = () => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="inline-flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-emerald-500/10 border border-white/10 rounded-full backdrop-blur-xl"
-    >
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        className="relative w-8 h-8"
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-emerald-400 rounded-full opacity-20 blur-sm" />
-        <div className="absolute inset-1 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full flex items-center justify-center">
-          <Shield className="w-4 h-4 text-white" />
-        </div>
-      </motion.div>
-      
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-white">50K+</span>
-        <div className="w-px h-4 bg-white/20" />
-        <span className="text-sm text-gray-300">Trader Dipercaya</span>
-      </div>
-      
-      <motion.div
-        animate={{ scale: [1, 1.2, 1] }}
-        transition={{ duration: 2, repeat: Infinity }}
-        className="flex items-center gap-1"
-      >
-        {[...Array(5)].map((_, i) => (
-          <Star key={i} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-        ))}
-      </motion.div>
-    </motion.div>
-  )
-}
-
-// Payment Methods Component
-const PaymentMethods = () => {
-  const methods = [
-    { name: 'Bank Transfer', icon: Building2 },
-    { name: 'E-Wallet', icon: Smartphone },
-    { name: 'Credit Card', icon: CreditCard },
-  ]
-
-  const logos = [
-    { name: 'BCA', color: 'from-blue-600 to-blue-400' },
-    { name: 'Mandiri', color: 'from-yellow-600 to-yellow-400' },
-    { name: 'BNI', color: 'from-orange-600 to-orange-400' },
-    { name: 'BRI', color: 'from-blue-700 to-blue-500' },
-    { name: 'OVO', color: 'from-purple-600 to-purple-400' },
-    { name: 'GoPay', color: 'from-green-600 to-green-400' },
-    { name: 'DANA', color: 'from-blue-500 to-cyan-400' },
-    { name: 'Visa', color: 'from-blue-600 to-blue-400' },
-    { name: 'Mastercard', color: 'from-red-600 to-orange-400' },
-  ]
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.6 }}
-      className="mt-16 pt-12 border-t border-white/10"
-    >
-      <div className="text-center mb-8">
-        <h3 className="text-lg font-semibold text-white mb-2">Metode Pembayaran</h3>
-        <p className="text-sm text-gray-400">Deposit aman dengan berbagai pilihan pembayaran</p>
-      </div>
-
-      {/* Desktop */}
-      <div className="hidden sm:block">
-        <div className="flex flex-wrap items-center justify-center gap-4">
-          {logos.map((logo, i) => (
-            <motion.div
-              key={logo.name}
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.05 }}
-              whileHover={{ scale: 1.05, y: -2 }}
-              className="group relative"
-            >
-              <div className={`w-24 h-14 bg-gradient-to-br ${logo.color} rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg border border-white/20 transition-all group-hover:shadow-xl`}>
-                {logo.name}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      {/* Mobile - Scrolling */}
-      <div className="sm:hidden relative">
-        <div className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
-          {logos.map((logo, i) => (
-            <motion.div
-              key={logo.name}
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.05 }}
-              className="snap-center flex-shrink-0"
-            >
-              <div className={`w-20 h-12 bg-gradient-to-br ${logo.color} rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-lg border border-white/20`}>
-                {logo.name}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6, delay: 0.3 }}
-        className="mt-6 flex items-center justify-center gap-6 text-sm text-gray-400"
-      >
-        <div className="flex items-center gap-2">
-          <Check className="w-4 h-4 text-emerald-400" />
-          <span>Instan</span>
-        </div>
-        <div className="w-px h-4 bg-white/20" />
-        <div className="flex items-center gap-2">
-          <Shield className="w-4 h-4 text-blue-400" />
-          <span>Aman</span>
-        </div>
-        <div className="w-px h-4 bg-white/20" />
-        <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-yellow-400" />
-          <span>Otomatis</span>
-        </div>
-      </motion.div>
-    </motion.div>
-  )
-}
 
 export default function LandingPage() {
   const router = useRouter()
@@ -320,12 +374,12 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(false)
   const [activeTestimonial, setActiveTestimonial] = useState(0)
   const [activeFeature, setActiveFeature] = useState(0)
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [touchStart, setTouchStart] = useState(0)
   const [touchEnd, setTouchEnd] = useState(0)
 
   const { scrollYProgress } = useScroll()
-  const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0])
-  const scale = useTransform(scrollYProgress, [0, 0.2], [1, 0.95])
+  const y = useTransform(scrollYProgress, [0, 1], [0, 100])
 
   useEffect(() => {
     if (user) {
@@ -345,6 +399,18 @@ export default function LandingPage() {
       setActiveFeature((prev) => (prev + 1) % features.length)
     }, 4000)
     return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({
+        x: (e.clientX / window.innerWidth) * 20,
+        y: (e.clientY / window.innerHeight) * 20
+      })
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -491,25 +557,21 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0e17] text-white overflow-hidden">
-      {/* Animated Background */}
+      {/* Animated Background with Particles */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <FloatingParticles />
         <motion.div 
-          animate={{ 
-            scale: [1, 1.2, 1],
-            rotate: [0, 90, 0]
-          }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
           className="absolute top-1/4 -left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px]"
+          style={{ x: mousePosition.x, y: mousePosition.y }}
+          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 8, repeat: Infinity }}
         />
         <motion.div 
-          animate={{ 
-            scale: [1.2, 1, 1.2],
-            rotate: [90, 0, 90]
-          }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
           className="absolute bottom-1/4 -right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px]"
+          style={{ x: -mousePosition.x, y: -mousePosition.y }}
+          animate={{ scale: [1.2, 1, 1.2], opacity: [0.5, 0.3, 0.5] }}
+          transition={{ duration: 8, repeat: Infinity, delay: 1 }}
         />
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
       </div>
 
       {/* Navigation */}
@@ -517,20 +579,21 @@ export default function LandingPage() {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6 }}
-        className="fixed top-0 left-0 right-0 z-50 bg-[#0a0e17]/80 backdrop-blur-xl border-b border-white/10"
+        className="fixed top-0 left-0 right-0 z-50 bg-[#0a0e17]/80 backdrop-blur-xl border-b border-gray-800/50"
       >
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-20">
             <motion.div 
-              whileHover={{ scale: 1.05 }}
               className="flex items-center gap-3 group cursor-pointer"
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.2 }}
             >
               <div className="relative w-10 h-10 flex-shrink-0">
                 <Image
                   src="/stc-logo.png"
                   alt="STC AutoTrade"
                   fill
-                  className="object-contain transform group-hover:scale-110 transition-transform rounded-md"
+                  className="object-contain rounded-md"
                   priority
                 />
               </div>
@@ -546,11 +609,11 @@ export default function LandingPage() {
                 <motion.a
                   key={item}
                   href={`#${item.toLowerCase().replace(' ', '-')}`}
+                  className="text-sm text-gray-400 hover:text-white transition-colors relative group"
+                  whileHover={{ y: -2 }}
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: i * 0.1 }}
-                  whileHover={{ y: -2 }}
-                  className="text-sm text-gray-400 hover:text-white transition-colors relative group"
+                  transition={{ delay: i * 0.1 }}
                 >
                   {item}
                   <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
@@ -558,20 +621,19 @@ export default function LandingPage() {
               ))}
             </div>
 
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-              className="flex items-center gap-3"
+              transition={{ delay: 0.3 }}
             >
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
                 onClick={() => {
                   setIsLogin(true)
                   setShowAuthModal(true)
                 }}
-                className="px-6 py-2.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-semibold text-white shadow-lg transition-colors border border-white/10"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg text-sm font-semibold text-white shadow-lg transition-all"
               >
                 Masuk
               </motion.button>
@@ -586,20 +648,22 @@ export default function LandingPage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div className="space-y-8">
-              <TrustBadge />
+              <ModernTrustBadge />
 
               <motion.h1 
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
                 className="text-5xl sm:text-6xl md:text-7xl font-bold leading-tight"
               >
                 Trading Binary Option dengan
                 <motion.span 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.8, delay: 0.4 }}
                   className="block mt-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-emerald-400 to-cyan-400"
+                  animate={{ 
+                    backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+                  }}
+                  transition={{ duration: 5, repeat: Infinity }}
+                  style={{ backgroundSize: '200% 200%' }}
                 >
                   Kecepatan Kilat
                 </motion.span>
@@ -608,7 +672,7 @@ export default function LandingPage() {
               <motion.p 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.4 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
                 className="text-lg sm:text-xl text-gray-400 leading-relaxed"
               >
                 Eksekusi order dalam <span className="text-emerald-400 font-semibold">milidetik</span>, 
@@ -619,17 +683,17 @@ export default function LandingPage() {
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.6 }}
+                transition={{ duration: 0.8, delay: 0.6 }}
                 className="flex flex-row gap-3 sm:gap-4"
               >
                 <motion.button
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
                   onClick={() => {
                     setIsLogin(true)
                     setShowAuthModal(true)
                   }}
-                  className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-white text-gray-900 hover:bg-gray-100 rounded-xl text-sm sm:text-lg font-semibold transition-all shadow-lg"
+                  whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(59, 130, 246, 0.3)" }}
+                  whileTap={{ scale: 0.95 }}
+                  className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl text-sm sm:text-lg font-semibold text-white transition-all shadow-lg"
                 >
                   <span className="flex items-center justify-center gap-2">
                     <span className="hidden sm:inline">Masuk untuk Trading</span>
@@ -639,9 +703,9 @@ export default function LandingPage() {
                 </motion.button>
 
                 <motion.button 
-                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/30 rounded-xl text-sm sm:text-lg font-semibold transition-all backdrop-blur-sm"
+                  className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-white/5 hover:bg-white/10 border border-gray-700 hover:border-gray-600 rounded-xl text-sm sm:text-lg font-semibold transition-all backdrop-blur-sm"
                 >
                   <span className="flex items-center justify-center gap-2">
                     <Activity className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
@@ -655,21 +719,24 @@ export default function LandingPage() {
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.8 }}
+                transition={{ duration: 0.8, delay: 0.8 }}
                 className="grid grid-cols-4 gap-4 pt-8"
               >
                 {stats.map((stat, index) => (
                   <motion.div 
                     key={index}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.4, delay: 0.8 + index * 0.1 }}
                     whileHover={{ scale: 1.1, y: -5 }}
-                    className="text-center cursor-default"
+                    className="text-center cursor-default group"
                   >
-                    <stat.icon className="w-6 h-6 text-blue-400 mx-auto mb-2" />
-                    <div className="text-xl font-bold">{stat.value}</div>
-                    <div className="text-xs text-gray-500">{stat.label}</div>
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 1 + index * 0.1, type: "spring" }}
+                    >
+                      <stat.icon className="w-6 h-6 text-blue-400 mx-auto mb-2 group-hover:text-emerald-400 transition-colors" />
+                      <div className="text-xl font-bold">{stat.value}</div>
+                      <div className="text-xs text-gray-500">{stat.label}</div>
+                    </motion.div>
                   </motion.div>
                 ))}
               </motion.div>
@@ -708,15 +775,20 @@ export default function LandingPage() {
 
               {/* Main Trading Interface */}
               <motion.div 
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ scale: 1.02, rotateY: 2 }}
                 transition={{ duration: 0.3 }}
-                className="relative bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-3xl p-6 shadow-2xl backdrop-blur-xl"
+                className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl p-6 shadow-2xl backdrop-blur-xl"
+                style={{ transformStyle: "preserve-3d" }}
               >
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-blue-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30">
+                    <motion.div 
+                      animate={{ rotate: [0, 360] }}
+                      transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                      className="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-blue-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30"
+                    >
                       <TrendingUp className="w-6 h-6 text-emerald-400" />
-                    </div>
+                    </motion.div>
                     <div>
                       <div className="text-sm text-gray-400">EUR/USD</div>
                       <div className="text-3xl font-bold font-mono">1.0856</div>
@@ -729,7 +801,7 @@ export default function LandingPage() {
                     </div>
                     <div className="text-xs text-gray-500 flex items-center gap-1">
                       <motion.div 
-                        animate={{ scale: [1, 1.2, 1] }}
+                        animate={{ scale: [1, 1.3, 1] }}
                         transition={{ duration: 2, repeat: Infinity }}
                         className="w-1.5 h-1.5 bg-emerald-400 rounded-full"
                       />
@@ -738,7 +810,7 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                <div className="bg-white/5 rounded-2xl mb-6 overflow-hidden border border-white/10">
+                <div className="bg-[#0a0e17] rounded-2xl mb-6 overflow-hidden border border-gray-800/50">
                   <AnimatedTradingChart />
                 </div>
 
@@ -746,9 +818,14 @@ export default function LandingPage() {
                   <motion.button 
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="group relative bg-gradient-to-br from-emerald-500/20 to-green-500/20 hover:from-emerald-500/30 hover:to-green-500/30 border border-emerald-500/30 rounded-xl p-6 transition-all overflow-hidden"
+                    className="group relative bg-gradient-to-br from-emerald-500/20 to-green-500/20 border border-emerald-500/30 rounded-xl p-6 transition-all overflow-hidden"
                   >
-                    <div className="absolute inset-0 bg-emerald-500/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
+                    <motion.div
+                      className="absolute inset-0 bg-emerald-500/20"
+                      initial={{ y: "100%" }}
+                      whileHover={{ y: 0 }}
+                      transition={{ duration: 0.3 }}
+                    />
                     <TrendingUp className="w-8 h-8 text-emerald-400 mx-auto mb-2 relative z-10 group-hover:scale-110 transition-transform" />
                     <div className="font-bold text-lg text-emerald-400 relative z-10">BELI</div>
                     <div className="text-xs text-gray-400 relative z-10">Profit +95%</div>
@@ -757,9 +834,14 @@ export default function LandingPage() {
                   <motion.button 
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="group relative bg-gradient-to-br from-red-500/20 to-pink-500/20 hover:from-red-500/30 hover:to-pink-500/30 border border-red-500/30 rounded-xl p-6 transition-all overflow-hidden"
+                    className="group relative bg-gradient-to-br from-red-500/20 to-pink-500/20 border border-red-500/30 rounded-xl p-6 transition-all overflow-hidden"
                   >
-                    <div className="absolute inset-0 bg-red-500/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
+                    <motion.div
+                      className="absolute inset-0 bg-red-500/20"
+                      initial={{ y: "100%" }}
+                      whileHover={{ y: 0 }}
+                      transition={{ duration: 0.3 }}
+                    />
                     <TrendingDown className="w-8 h-8 text-red-400 mx-auto mb-2 relative z-10 group-hover:scale-110 transition-transform" />
                     <div className="font-bold text-lg text-red-400 relative z-10">JUAL</div>
                     <div className="text-xs text-gray-400 relative z-10">Profit +95%</div>
@@ -774,54 +856,57 @@ export default function LandingPage() {
       {/* Features Section */}
       <section id="fitur" className="py-20 sm:py-32 relative">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="text-center mb-16">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.5, type: "spring" }}
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full mb-6"
             >
-              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
+              <motion.div 
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="w-1.5 h-1.5 bg-blue-400 rounded-full"
+              />
               <span className="text-sm font-medium text-blue-400">Teknologi Terdepan</span>
             </motion.div>
-            <motion.h2 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight"
-            >
+            <h2 className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight">
               Mengapa Memilih Kami
-            </motion.h2>
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-lg text-gray-400 max-w-2xl mx-auto"
-            >
+            </h2>
+            <p className="text-lg text-gray-400 max-w-2xl mx-auto">
               Platform trading dengan teknologi dan keamanan terbaik
-            </motion.p>
-          </div>
+            </p>
+          </motion.div>
 
           {/* Desktop Grid */}
           <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
-              <motion.div 
+              <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 whileHover={{ y: -10, scale: 1.02 }}
-                className="group relative bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-all duration-300 overflow-hidden"
+                className="group relative bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-6 hover:border-gray-700 transition-all duration-300 overflow-hidden cursor-pointer"
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+                <motion.div 
+                  className={`absolute inset-0 bg-gradient-to-br ${feature.gradient}`}
+                  initial={{ opacity: 0 }}
+                  whileHover={{ opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                />
                 
                 <div className="relative z-10">
                   <motion.div 
-                    whileHover={{ rotate: 360 }}
+                    whileHover={{ rotate: 360, scale: 1.1 }}
                     transition={{ duration: 0.6 }}
                     className={`inline-flex w-14 h-14 ${feature.bgColor} ${feature.borderColor} border-2 rounded-2xl items-center justify-center mb-4`}
                   >
@@ -832,16 +917,17 @@ export default function LandingPage() {
                   <p className="text-gray-400 text-sm leading-relaxed">{feature.description}</p>
 
                   <motion.div 
+                    className={`h-1 ${feature.bgColor} rounded-full mt-6`}
                     initial={{ width: 48 }}
                     whileHover={{ width: 80 }}
-                    className={`h-1 ${feature.bgColor} rounded-full mt-6`}
+                    transition={{ duration: 0.3 }}
                   />
                 </div>
               </motion.div>
             ))}
           </div>
 
-          {/* Mobile */}
+          {/* Mobile Stack */}
           <div className="sm:hidden relative">
             <div 
               className="relative overflow-hidden"
@@ -852,10 +938,10 @@ export default function LandingPage() {
               <div className="relative min-h-[220px]">
                 <AnimatePresence mode="wait">
                   {features.map((feature, index) => {
-                    const isActive = index === activeFeature
+                    if (index !== activeFeature) return null
                     
-                    return isActive ? (
-                      <motion.div
+                    return (
+                      <motion.div 
                         key={index}
                         initial={{ opacity: 0, x: 100 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -863,7 +949,7 @@ export default function LandingPage() {
                         transition={{ duration: 0.3 }}
                         className="mx-4"
                       >
-                        <div className="relative h-full bg-white/5 border border-white/10 rounded-xl p-5 overflow-hidden">
+                        <div className="relative h-full bg-[#0a0e17] border border-gray-800/50 rounded-xl p-5 overflow-hidden">
                           <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-5`}></div>
                           
                           <div className="relative h-full flex flex-col">
@@ -885,7 +971,7 @@ export default function LandingPage() {
                           </div>
                         </div>
                       </motion.div>
-                    ) : null
+                    )
                   })}
                 </AnimatePresence>
               </div>
@@ -902,17 +988,15 @@ export default function LandingPage() {
                     <motion.div 
                       animate={{
                         width: index === activeFeature ? 28 : 6,
-                        backgroundColor: index === activeFeature ? 'rgb(59 130 246)' : 'rgb(55 65 81)'
+                        height: 6,
                       }}
-                      className="h-1.5 rounded-full"
+                      className={`rounded-full ${
+                        index === activeFeature ? feature.bgColor : 'bg-gray-700'
+                      }`}
                     />
                   </button>
                 ))}
               </div>
-            </div>
-
-            <div className="mt-3 text-center text-xs text-gray-500">
-              Swipe untuk melihat lebih banyak
             </div>
           </div>
         </div>
@@ -921,40 +1005,45 @@ export default function LandingPage() {
       {/* How It Works */}
       <section id="cara-kerja" className="py-20 sm:py-32 relative overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="text-center mb-20">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-20"
+          >
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
               viewport={{ once: true }}
+              transition={{ type: "spring", duration: 0.5 }}
               className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/20 rounded-full mb-6"
             >
-              <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse"></div>
+              <motion.div 
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="w-1.5 h-1.5 bg-purple-400 rounded-full"
+              />
               <span className="text-sm font-medium text-purple-400">Mulai dalam 3 langkah mudah</span>
             </motion.div>
-            <motion.h2 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight"
-            >
+            <h2 className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight">
               Cara Kerja Platform
-            </motion.h2>
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="text-lg text-gray-400 max-w-2xl mx-auto"
-            >
+            </h2>
+            <p className="text-lg text-gray-400 max-w-2xl mx-auto">
               Trading menjadi mudah dengan sistem otomatis kami
-            </motion.p>
-          </div>
+            </p>
+          </motion.div>
 
           {/* Desktop Timeline */}
           <div className="hidden lg:block max-w-5xl mx-auto">
             <div className="relative">
-              <div className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 bg-gradient-to-b from-purple-500/20 via-pink-500/20 to-blue-500/20"></div>
+              <motion.div 
+                initial={{ scaleY: 0 }}
+                whileInView={{ scaleY: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1.5 }}
+                className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 bg-gradient-to-b from-purple-500/20 via-pink-500/20 to-blue-500/20 origin-top"
+              />
 
               <div className="space-y-24">
                 {[
@@ -962,56 +1051,68 @@ export default function LandingPage() {
                   { icon: DollarSign, title: 'Deposit & Pilih Strategi', desc: 'Deposit mulai dari Rp 100.000. Pilih strategi trading otomatis sesuai profil risiko Anda.', tags: ['Minimal rendah', 'Auto trading'], color: 'pink', num: 2, side: 'right' },
                   { icon: TrendingUp, title: 'Trading & Profit', desc: 'Sistem kami trading otomatis 24/7. Pantau profit real-time dan tarik keuntungan kapan saja.', tags: ['Trading 24/7', 'Profit 95%'], color: 'blue', num: 3, side: 'left' }
                 ].map((step, i) => (
-                  <motion.div
+                  <motion.div 
                     key={i}
                     initial={{ opacity: 0, x: step.side === 'left' ? -50 : 50 }}
                     whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
+                    viewport={{ once: true, margin: "-100px" }}
                     transition={{ duration: 0.6, delay: i * 0.2 }}
-                    className="relative flex items-center"
-                    style={{ flexDirection: step.side === 'right' ? 'row-reverse' : 'row' }}
+                    className={`relative flex items-center ${step.side === 'right' ? 'flex-row-reverse' : ''}`}
                   >
-                    <motion.div 
-                      whileHover={{ scale: 1.05 }}
-                      className="w-[calc(50%-3rem)] mr-auto"
-                      style={{ marginLeft: step.side === 'right' ? 'auto' : '0', marginRight: step.side === 'right' ? '0' : 'auto' }}
-                    >
-                      <div className="bg-white/5 border border-white/10 rounded-2xl p-8 hover:border-white/20 transition-all">
+                    <div className={`w-[calc(50%-3rem)] ${step.side === 'left' ? 'mr-auto' : 'ml-auto'}`}>
+                      <motion.div 
+                        whileHover={{ scale: 1.02, y: -5 }}
+                        className={`bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-8 hover:border-${step.color}-500/30 transition-all`}
+                      >
                         <div className="flex items-start gap-4">
-                          <div className={`w-12 h-12 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-xl flex items-center justify-center flex-shrink-0`}>
+                          <motion.div 
+                            whileHover={{ rotate: 360 }}
+                            transition={{ duration: 0.6 }}
+                            className={`w-12 h-12 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-xl flex items-center justify-center flex-shrink-0`}
+                          >
                             <step.icon className={`w-6 h-6 text-${step.color}-400`} />
-                          </div>
+                          </motion.div>
                           <div className="flex-1">
                             <h3 className="text-xl font-bold mb-2">{step.title}</h3>
                             <p className="text-gray-400 text-sm leading-relaxed mb-4">{step.desc}</p>
                             <div className="flex flex-wrap gap-2">
                               {step.tags.map((tag, j) => (
-                                <span key={j} className={`px-3 py-1 bg-${step.color}-500/10 border border-${step.color}-500/20 rounded-full text-xs text-${step.color}-400`}>{tag}</span>
+                                <motion.span
+                                  key={j}
+                                  initial={{ opacity: 0, scale: 0.8 }}
+                                  whileInView={{ opacity: 1, scale: 1 }}
+                                  viewport={{ once: true }}
+                                  transition={{ delay: 0.6 + j * 0.1 }}
+                                  whileHover={{ scale: 1.05 }}
+                                  className={`px-3 py-1 bg-${step.color}-500/10 border border-${step.color}-500/20 rounded-full text-xs text-${step.color}-400`}
+                                >
+                                  {tag}
+                                </motion.span>
                               ))}
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </motion.div>
+                      </motion.div>
+                    </div>
 
-                    <div className="absolute left-1/2 -translate-x-1/2 z-10">
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        whileInView={{ scale: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.4, delay: i * 0.2 + 0.3 }}
-                        className="relative w-16 h-16"
-                      >
+                    <motion.div 
+                      initial={{ scale: 0 }}
+                      whileInView={{ scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.3 + i * 0.2, type: "spring" }}
+                      className="absolute left-1/2 -translate-x-1/2 z-10"
+                    >
+                      <div className="relative w-16 h-16">
                         <motion.div 
-                          animate={{ scale: [1, 1.2, 1] }}
+                          animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
                           transition={{ duration: 2, repeat: Infinity, delay: i * 0.5 }}
                           className={`absolute inset-0 bg-${step.color}-500/20 rounded-full`}
                         />
                         <div className={`absolute inset-2 bg-[#0a0e17] rounded-full border-2 border-${step.color}-500/50 flex items-center justify-center`}>
                           <span className={`text-xl font-bold text-${step.color}-400`}>{step.num}</span>
                         </div>
-                      </motion.div>
-                    </div>
+                      </div>
+                    </motion.div>
                   </motion.div>
                 ))}
               </div>
@@ -1025,29 +1126,35 @@ export default function LandingPage() {
               { icon: DollarSign, title: 'Deposit & Pilih Strategi', desc: 'Deposit minimal Rp 100K dan pilih strategi auto trading', color: 'pink', num: 2 },
               { icon: TrendingUp, title: 'Trading & Profit', desc: 'Sistem trading otomatis 24/7 dengan profit hingga 95%', color: 'blue', num: 3 }
             ].map((step, i) => (
-              <motion.div
+              <motion.div 
                 key={i}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: i * 0.1 }}
                 className="flex gap-4 relative"
               >
-                {i < 2 && <div className="absolute left-7 top-16 w-px h-6 bg-gray-800"></div>}
+                {i < 2 && (
+                  <motion.div 
+                    initial={{ scaleY: 0 }}
+                    whileInView={{ scaleY: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.3 }}
+                    className="absolute left-7 top-16 w-px h-6 bg-gray-800 origin-top"
+                  />
+                )}
                 
                 <div className="flex-shrink-0">
-                  <motion.div
-                    whileHover={{ scale: 1.1 }}
+                  <motion.div 
+                    whileHover={{ rotate: 360 }}
+                    transition={{ duration: 0.6 }}
                     className={`relative w-14 h-14 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-full flex items-center justify-center`}
                   >
                     <span className={`text-lg font-bold text-${step.color}-400`}>{step.num}</span>
                   </motion.div>
                 </div>
                 
-                <motion.div 
-                  whileHover={{ x: 5 }}
-                  className="flex-1 bg-white/5 border border-white/10 rounded-xl p-4"
-                >
+                <div className="flex-1 bg-[#0a0e17] border border-gray-800/50 rounded-xl p-4">
                   <div className="flex items-center gap-3 mb-2">
                     <div className={`w-10 h-10 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-lg flex items-center justify-center`}>
                       <step.icon className={`w-5 h-5 text-${step.color}-400`} />
@@ -1055,7 +1162,7 @@ export default function LandingPage() {
                     <h3 className="font-bold">{step.title}</h3>
                   </div>
                   <p className="text-sm text-gray-400 leading-relaxed">{step.desc}</p>
-                </motion.div>
+                </div>
               </motion.div>
             ))}
           </div>
@@ -1065,35 +1172,34 @@ export default function LandingPage() {
       {/* Testimonials */}
       <section id="testimoni" className="py-20 sm:py-32 relative">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="text-center mb-16">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
               viewport={{ once: true }}
+              transition={{ type: "spring" }}
               className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6"
             >
-              <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+              <motion.div 
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="w-1.5 h-1.5 bg-emerald-400 rounded-full"
+              />
               <span className="text-sm font-medium text-emerald-400">Testimoni Trader</span>
             </motion.div>
-            <motion.h2 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight"
-            >
+            <h2 className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight">
               Dipercaya Ribuan Trader
-            </motion.h2>
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="text-lg text-gray-400 max-w-2xl mx-auto"
-            >
+            </h2>
+            <p className="text-lg text-gray-400 max-w-2xl mx-auto">
               Lihat apa kata trader sukses tentang kami
-            </motion.p>
-          </div>
+            </p>
+          </motion.div>
 
           {/* Desktop */}
           <div className="hidden sm:block max-w-3xl mx-auto">
@@ -1104,12 +1210,13 @@ export default function LandingPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.5 }}
-                className="relative bg-white/5 border border-white/10 rounded-2xl p-12"
+                className="relative bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-12"
               >
                 <div className="text-center">
                   <motion.div 
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
+                    transition={{ type: "spring", duration: 0.6 }}
                     className="text-6xl mb-6"
                   >
                     {testimonials[activeTestimonial].avatar}
@@ -1128,32 +1235,36 @@ export default function LandingPage() {
                     ))}
                   </div>
 
-                  <p className="text-xl text-gray-200 mb-8 leading-relaxed">
+                  <motion.p 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-xl text-gray-200 mb-8 leading-relaxed"
+                  >
                     "{testimonials[activeTestimonial].content}"
-                  </p>
+                  </motion.p>
 
-                  <div className="flex items-center justify-center gap-6 mb-6">
-                    <motion.div 
-                      whileHover={{ scale: 1.05 }}
-                      className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg"
-                    >
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="flex items-center justify-center gap-6 mb-6"
+                  >
+                    <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
                       <div className="text-sm text-gray-400 mb-1">Keuntungan</div>
                       <div className="text-lg font-bold text-emerald-400">
                         {testimonials[activeTestimonial].profit}
                       </div>
-                    </motion.div>
-                    <motion.div 
-                      whileHover={{ scale: 1.05 }}
-                      className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg"
-                    >
+                    </div>
+                    <div className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                       <div className="text-sm text-gray-400 mb-1">Durasi</div>
                       <div className="text-lg font-bold text-blue-400">
                         {testimonials[activeTestimonial].duration}
                       </div>
-                    </motion.div>
-                  </div>
+                    </div>
+                  </motion.div>
 
-                  <div className="pt-6 border-t border-white/10">
+                  <div className="pt-6 border-t border-gray-800/50">
                     <div className="font-bold text-lg mb-1">
                       {testimonials[activeTestimonial].name}
                     </div>
@@ -1162,27 +1273,32 @@ export default function LandingPage() {
                     </div>
                   </div>
                 </div>
-
-                <div className="flex justify-center gap-2 mt-8">
-                  {testimonials.map((_, index) => (
-                    <motion.button
-                      key={index}
-                      onClick={() => setActiveTestimonial(index)}
-                      whileHover={{ scale: 1.2 }}
-                      className="transition-all duration-300"
-                    >
-                      <motion.div 
-                        animate={{
-                          width: index === activeTestimonial ? 32 : 8,
-                          backgroundColor: index === activeTestimonial ? 'rgb(16 185 129)' : 'rgb(55 65 81)'
-                        }}
-                        className="h-2 rounded-full"
-                      />
-                    </motion.button>
-                  ))}
-                </div>
               </motion.div>
             </AnimatePresence>
+
+            <div className="flex justify-center gap-2 mt-8">
+              {testimonials.map((_, index) => (
+                <motion.button
+                  key={index}
+                  onClick={() => setActiveTestimonial(index)}
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="transition-all duration-300"
+                >
+                  <motion.div 
+                    animate={{
+                      width: index === activeTestimonial ? 32 : 8,
+                      height: 8,
+                    }}
+                    className={`rounded-full ${
+                      index === activeTestimonial 
+                        ? 'bg-gradient-to-r from-blue-500 to-emerald-500' 
+                        : 'bg-gray-700 hover:bg-gray-600'
+                    }`}
+                  />
+                </motion.button>
+              ))}
+            </div>
           </div>
 
           {/* Mobile */}
@@ -1194,7 +1310,7 @@ export default function LandingPage() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -50 }}
                 transition={{ duration: 0.3 }}
-                className="mx-4 bg-white/5 border border-white/10 rounded-2xl p-6"
+                className="mx-4 bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-6"
               >
                 <div className="flex items-center justify-between mb-6">
                   <div className="text-5xl">{testimonials[activeTestimonial].avatar}</div>
@@ -1209,7 +1325,7 @@ export default function LandingPage() {
                   "{testimonials[activeTestimonial].content}"
                 </p>
 
-                <div className="grid grid-cols-2 gap-3 mb-6 pb-6 border-b border-white/10">
+                <div className="grid grid-cols-2 gap-3 mb-6 pb-6 border-b border-gray-800/50">
                   <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-3 text-center">
                     <div className="text-xs text-gray-400 mb-1">Keuntungan</div>
                     <div className="text-lg font-bold text-emerald-400">{testimonials[activeTestimonial].profit}</div>
@@ -1229,9 +1345,10 @@ export default function LandingPage() {
 
             <div className="flex items-center justify-between mt-6 px-4">
               <motion.button
+                whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setActiveTestimonial((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1))}
-                className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center transition-all border border-white/10"
+                className="w-10 h-10 bg-[#1e293b] hover:bg-[#334155] rounded-lg flex items-center justify-center transition-all border border-gray-700"
               >
                 <ChevronLeft className="w-5 h-5" />
               </motion.button>
@@ -1242,69 +1359,87 @@ export default function LandingPage() {
                     key={index}
                     onClick={() => setActiveTestimonial(index)}
                     whileHover={{ scale: 1.2 }}
-                    className="transition-all duration-300"
+                    whileTap={{ scale: 0.9 }}
                   >
-                    <motion.div 
+                    <motion.div
                       animate={{
                         width: index === activeTestimonial ? 32 : 8,
-                        backgroundColor: index === activeTestimonial ? 'rgb(16 185 129)' : 'rgb(55 65 81)'
+                        height: 8,
                       }}
-                      className="h-2 rounded-full"
+                      className={`rounded-full ${
+                        index === activeTestimonial 
+                          ? 'bg-gradient-to-r from-blue-500 to-emerald-500' 
+                          : 'bg-gray-700'
+                      }`}
                     />
                   </motion.button>
                 ))}
               </div>
 
               <motion.button
+                whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setActiveTestimonial((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1))}
-                className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center transition-all border border-white/10"
+                className="w-10 h-10 bg-[#1e293b] hover:bg-[#334155] rounded-lg flex items-center justify-center transition-all border border-gray-700"
               >
                 <ChevronRight className="w-5 h-5" />
               </motion.button>
-            </div>
-
-            <div className="mt-4 text-center">
-              <span className="text-xs text-gray-500">
-                {activeTestimonial + 1} / {testimonials.length}
-              </span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* CTA Section with Payment Methods */}
       <section className="py-20 sm:py-32 relative">
         <div className="container mx-auto px-4 sm:px-6">
           <motion.div
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.6 }}
-            className="relative bg-white/5 border border-white/10 rounded-3xl overflow-hidden"
+            className="relative bg-[#0a0e17] border border-gray-800/50 rounded-3xl overflow-hidden"
           >
+            {/* Animated Grid Background */}
             <div className="absolute inset-0">
-              <motion.div
+              <motion.div 
                 animate={{ 
-                  backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
+                  backgroundPosition: ['0px 0px', '40px 40px'],
                 }}
-                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-emerald-500/5"
-                style={{ backgroundSize: '200% 200%' }}
+                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-0" 
+                style={{
+                  backgroundImage: `
+                    linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px)
+                  `,
+                  backgroundSize: '40px 40px'
+                }}
               />
               
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px]"></div>
+              <motion.div 
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.05, 0.1, 0.05],
+                }}
+                transition={{ duration: 8, repeat: Infinity }}
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px]"
+              />
             </div>
 
-            {/* Desktop */}
+            {/* Desktop Content */}
             <div className="hidden sm:block relative z-10 px-16 py-20 text-center">
               <motion.div 
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
+                initial={{ scale: 0 }}
+                whileInView={{ scale: 1 }}
                 viewport={{ once: true }}
+                transition={{ type: "spring" }}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full mb-8"
               >
-                <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
+                <motion.div 
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="w-1.5 h-1.5 bg-blue-400 rounded-full"
+                />
                 <span className="text-sm font-medium text-blue-400">Platform Trading Terpercaya</span>
               </motion.div>
 
@@ -1312,7 +1447,7 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: 0.1 }}
+                transition={{ delay: 0.2 }}
                 className="text-5xl font-bold mb-6 tracking-tight"
               >
                 Mulai Trading Hari Ini
@@ -1322,44 +1457,51 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: 0.2 }}
+                transition={{ delay: 0.3 }}
                 className="text-lg text-gray-400 mb-10 max-w-xl mx-auto"
               >
                 Bergabung dengan 50.000+ trader profesional di seluruh dunia
               </motion.p>
-
-              <motion.button
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.3 }}
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  setIsLogin(true)
-                  setShowAuthModal(true)
-                }}
-                className="group inline-flex items-center gap-3 px-8 py-4 bg-white text-gray-900 rounded-xl font-semibold hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl"
-              >
-                <span>Masuk Sekarang</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </motion.button>
 
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.4 }}
-                className="flex items-center justify-center gap-8 mt-12 pt-8 border-t border-white/10"
+              >
+                <motion.button
+                  onClick={() => {
+                    setIsLogin(true)
+                    setShowAuthModal(true)
+                  }}
+                  whileHover={{ scale: 1.05, boxShadow: "0 20px 60px rgba(59, 130, 246, 0.3)" }}
+                  whileTap={{ scale: 0.95 }}
+                  className="group inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl font-semibold shadow-lg transition-all"
+                >
+                  <span>Masuk Sekarang</span>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </motion.button>
+              </motion.div>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.6 }}
+                className="flex items-center justify-center gap-8 mt-12 pt-8 border-t border-gray-800/50"
               >
                 {[
-                  { value: '50K+', label: 'Trader Aktif' },
-                  { value: '$2.5M', label: 'Volume Harian' },
-                  { value: '95%', label: 'Max Profit' }
+                  { label: 'Trader Aktif', value: '50K+' },
+                  { label: 'Volume Harian', value: '$2.5M' },
+                  { label: 'Max Profit', value: '95%' }
                 ].map((stat, i) => (
-                  <motion.div
+                  <motion.div 
                     key={i}
-                    whileHover={{ scale: 1.1 }}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.7 + i * 0.1 }}
+                    whileHover={{ scale: 1.1, y: -5 }}
                     className="text-center"
                   >
                     <div className="text-2xl font-bold mb-1">{stat.value}</div>
@@ -1369,43 +1511,70 @@ export default function LandingPage() {
               </motion.div>
             </div>
 
-            {/* Mobile */}
+            {/* Mobile Content */}
             <div className="sm:hidden relative z-10 p-8 text-center">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full mb-6">
+              <motion.div 
+                initial={{ scale: 0 }}
+                whileInView={{ scale: 1 }}
+                viewport={{ once: true }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full mb-6"
+              >
                 <div className="w-1 h-1 bg-blue-400 rounded-full animate-pulse"></div>
                 <span className="text-xs font-medium text-blue-400">Platform Terpercaya</span>
-              </div>
+              </motion.div>
 
-              <h2 className="text-3xl font-bold mb-4 tracking-tight">
+              <motion.h2 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="text-3xl font-bold mb-4 tracking-tight"
+              >
                 Mulai Trading<br />Hari Ini
-              </h2>
+              </motion.h2>
               
-              <p className="text-sm text-gray-400 mb-8">
+              <motion.p 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="text-sm text-gray-400 mb-8"
+              >
                 Bergabung dengan 50.000+ trader profesional
-              </p>
+              </motion.p>
 
               <motion.button
-                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3 }}
                 onClick={() => {
                   setIsLogin(true)
                   setShowAuthModal(true)
                 }}
-                className="group w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white text-gray-900 rounded-xl font-semibold hover:bg-gray-100 active:bg-gray-200 transition-all shadow-lg"
+                whileTap={{ scale: 0.95 }}
+                className="group w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl font-semibold shadow-lg"
               >
                 <span>Masuk Sekarang</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </motion.button>
 
-              <div className="grid grid-cols-3 gap-4 mt-8 pt-6 border-t border-white/10">
+              <div className="grid grid-cols-3 gap-4 mt-8 pt-6 border-t border-gray-800/50">
                 {[
-                  { value: '50K+', label: 'Trader' },
-                  { value: '$2.5M', label: 'Volume' },
-                  { value: '95%', label: 'Profit' }
+                  { label: 'Trader', value: '50K+' },
+                  { label: 'Volume', value: '$2.5M' },
+                  { label: 'Profit', value: '95%' }
                 ].map((stat, i) => (
-                  <div key={i} className="text-center">
+                  <motion.div 
+                    key={i}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.4 + i * 0.1 }}
+                    className="text-center"
+                  >
                     <div className="text-xl font-bold mb-0.5">{stat.value}</div>
                     <div className="text-[10px] text-gray-500">{stat.label}</div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </div>
@@ -1416,6 +1585,7 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Footer */}
       <EnhancedFooter />
 
       {/* Auth Modal */}
@@ -1426,18 +1596,18 @@ export default function LandingPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" 
               onClick={() => setShowAuthModal(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
             />
 
-            <motion.div 
-              initial={{ x: '100%' }}
+            <motion.div
+              initial={{ x: "100%" }}
               animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-gradient-to-b from-[#0f1419] to-[#0a0e17] z-50 shadow-2xl overflow-y-auto"
             >
-              <div className="sticky top-0 z-10 bg-gradient-to-b from-[#0f1419] to-transparent backdrop-blur-xl border-b border-white/10 p-6">
+              <div className="sticky top-0 z-10 bg-gradient-to-b from-[#0f1419] to-transparent backdrop-blur-xl border-b border-gray-800/50 p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="relative w-10 h-10">
@@ -1465,29 +1635,27 @@ export default function LandingPage() {
               </div>
 
               <div className="p-6">
-                <div className="flex gap-2 p-1 bg-white/5 rounded-xl mb-6">
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
+                <div className="flex gap-2 p-1 bg-[#0a0e17] rounded-xl mb-6">
+                  <button
                     onClick={() => setIsLogin(true)}
                     className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
                       isLogin
-                        ? 'bg-white text-gray-900 shadow-lg'
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
                         : 'text-gray-400 hover:text-white'
                     }`}
                   >
                     Masuk
-                  </motion.button>
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
+                  </button>
+                  <button
                     onClick={() => setIsLogin(false)}
                     className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
                       !isLogin
-                        ? 'bg-white text-gray-900 shadow-lg'
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
                         : 'text-gray-400 hover:text-white'
                     }`}
                   >
                     Daftar
-                  </motion.button>
+                  </button>
                 </div>
 
                 <div className="mb-6">
@@ -1513,7 +1681,7 @@ export default function LandingPage() {
                       placeholder="anda@example.com"
                       required
                       disabled={loading}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                       autoComplete="email"
                     />
                   </div>
@@ -1529,21 +1697,25 @@ export default function LandingPage() {
                       placeholder="••••••••"
                       required
                       disabled={loading}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                       autoComplete="current-password"
                     />
                   </div>
 
                   <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                     type="submit"
                     disabled={loading}
-                    className="w-full px-6 py-3.5 bg-white text-gray-900 hover:bg-gray-100 rounded-lg text-lg font-semibold transition-colors shadow-lg disabled:opacity-50 mt-6"
+                    whileHover={{ scale: loading ? 1 : 1.02 }}
+                    whileTap={{ scale: loading ? 1 : 0.98 }}
+                    className="w-full px-6 py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg text-lg font-semibold text-white transition-all shadow-lg disabled:opacity-50 mt-6"
                   >
                     {loading ? (
                       <span className="flex items-center justify-center gap-2">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+                        <motion.div 
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          className="rounded-full h-5 w-5 border-b-2 border-white"
+                        />
                         Memproses...
                       </span>
                     ) : (
@@ -1576,7 +1748,7 @@ export default function LandingPage() {
 
                 <div className="relative my-6">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-white/10"></div>
+                    <div className="w-full border-t border-gray-800"></div>
                   </div>
                   <div className="relative flex justify-center text-sm">
                     <span className="px-4 bg-[#0f1419] text-gray-400">Atau lanjutkan dengan</span>
@@ -1587,7 +1759,7 @@ export default function LandingPage() {
                   <motion.button 
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-[#0a0e17] border border-gray-800 rounded-lg hover:bg-[#1a1f2e] transition-colors"
                   >
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -1600,7 +1772,7 @@ export default function LandingPage() {
                   <motion.button 
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-[#0a0e17] border border-gray-800 rounded-lg hover:bg-[#1a1f2e] transition-colors"
                   >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/>
@@ -1617,19 +1789,19 @@ export default function LandingPage() {
                     className="mt-6 space-y-3"
                   >
                     {[
-                      { text: 'Akun demo gratis $10,000', color: 'emerald' },
-                      { text: 'Tanpa kartu kredit', color: 'blue' },
-                      { text: 'Dukungan pelanggan 24/7', color: 'purple' }
+                      { icon: '✓', text: 'Akun demo gratis $10,000', color: 'emerald' },
+                      { icon: '✓', text: 'Tanpa kartu kredit', color: 'blue' },
+                      { icon: '✓', text: 'Dukungan pelanggan 24/7', color: 'purple' }
                     ].map((item, i) => (
                       <motion.div
                         key={i}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 + i * 0.1 }}
+                        transition={{ delay: 0.4 + i * 0.1 }}
                         className="flex items-center gap-3 text-sm"
                       >
                         <div className={`w-6 h-6 bg-${item.color}-500/20 rounded-lg flex items-center justify-center`}>
-                          <Check className={`w-4 h-4 text-${item.color}-400`} />
+                          <span className={`text-${item.color}-400 font-bold`}>{item.icon}</span>
                         </div>
                         <span className="text-gray-300">{item.text}</span>
                       </motion.div>
