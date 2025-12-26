@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 import EnhancedFooter from '@/components/EnhancedFooter'
 import Image from 'next/image'
-import { motion, useScroll, useTransform, useSpring, useInView, AnimatePresence } from 'framer-motion'
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import { 
   TrendingUp, 
   Zap, 
@@ -28,200 +28,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
-  Building2,
   CreditCard,
+  Building2,
   Smartphone
 } from 'lucide-react'
 
-// Modern Trust Badge Component
-const ModernTrustBadge = () => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl"
-    >
-      {/* Animated pulse indicator */}
-      <div className="relative flex items-center justify-center">
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.5, 0.8, 0.5],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className="absolute w-3 h-3 bg-emerald-400 rounded-full blur-sm"
-        />
-        <div className="w-2 h-2 bg-emerald-400 rounded-full relative z-10" />
-      </div>
-
-      {/* User avatars stack */}
-      <div className="flex -space-x-2">
-        {[...Array(3)].map((_, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.1, duration: 0.4 }}
-            className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 border-2 border-[#0a0e17] flex items-center justify-center text-xs font-bold"
-          >
-            {String.fromCharCode(65 + i)}
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Text content */}
-      <div className="flex flex-col">
-        <motion.span 
-          className="text-sm font-semibold text-white leading-none"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          50,000+ Active Traders
-        </motion.span>
-        <motion.span 
-          className="text-[10px] text-gray-400 leading-none mt-0.5"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-        >
-          Trading in real-time
-        </motion.span>
-      </div>
-
-      {/* Verified badge */}
-      <motion.div
-        initial={{ scale: 0, rotate: -180 }}
-        animate={{ scale: 1, rotate: 0 }}
-        transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
-        className="ml-1"
-      >
-        <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
-          <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-        </div>
-      </motion.div>
-    </motion.div>
-  )
-}
-
-// Payment Methods Section
-const PaymentMethods = () => {
-  const paymentMethods = [
-    { name: 'Visa', logo: '💳' },
-    { name: 'Mastercard', logo: '💳' },
-    { name: 'Bank Transfer', logo: '🏦' },
-    { name: 'E-Wallet', logo: '📱' },
-    { name: 'QRIS', logo: '📊' },
-    { name: 'Crypto', logo: '₿' },
-  ]
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.6 }}
-      className="mt-16 pt-12 border-t border-white/5"
-    >
-      <motion.div 
-        className="text-center mb-8"
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-      >
-        <p className="text-sm text-gray-400 mb-4">Metode Pembayaran yang Didukung</p>
-      </motion.div>
-
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 max-w-3xl mx-auto">
-        {paymentMethods.map((method, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, scale: 0.8 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: index * 0.1, duration: 0.4 }}
-            whileHover={{ scale: 1.05, y: -2 }}
-            className="group"
-          >
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer">
-              <div className="text-3xl text-center mb-2 group-hover:scale-110 transition-transform">
-                {method.logo}
-              </div>
-              <p className="text-[10px] text-gray-400 text-center font-medium">
-                {method.name}
-              </p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ delay: 0.8 }}
-        className="flex items-center justify-center gap-6 mt-8 text-xs text-gray-500"
-      >
-        <div className="flex items-center gap-2">
-          <Shield className="w-4 h-4 text-emerald-400" />
-          <span>Secure Payment</span>
-        </div>
-        <div className="w-px h-4 bg-white/10" />
-        <div className="flex items-center gap-2">
-          <CreditCard className="w-4 h-4 text-blue-400" />
-          <span>Instant Deposit</span>
-        </div>
-        <div className="w-px h-4 bg-white/10" />
-        <div className="flex items-center gap-2">
-          <Check className="w-4 h-4 text-purple-400" />
-          <span>Verified</span>
-        </div>
-      </motion.div>
-    </motion.div>
-  )
-}
-
-// Animated Number Counter
-const AnimatedCounter = ({ value, suffix = '' }: { value: string; suffix?: string }) => {
-  const [count, setCount] = useState(0)
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true })
-
-  useEffect(() => {
-    if (isInView) {
-      const numericValue = parseInt(value.replace(/\D/g, ''))
-      let start = 0
-      const duration = 2000
-      const increment = numericValue / (duration / 16)
-
-      const timer = setInterval(() => {
-        start += increment
-        if (start >= numericValue) {
-          setCount(numericValue)
-          clearInterval(timer)
-        } else {
-          setCount(Math.floor(start))
-        }
-      }, 16)
-
-      return () => clearInterval(timer)
-    }
-  }, [isInView, value])
-
-  return (
-    <span ref={ref}>
-      {value.includes('K') ? `${count}K` : value.includes('M') ? `$${(count / 1000000).toFixed(1)}M` : `${count}%`}
-      {suffix}
-    </span>
-  )
-}
-
-// Live Trading Ticker with Motion
+// Live Trading Ticker Component
 const LiveTradingTicker = () => {
   const [trades, setTrades] = useState([
     { user: 'Ahmad***', asset: 'EUR/USD', profit: 8500, time: '2 detik lalu' },
@@ -230,8 +42,16 @@ const LiveTradingTicker = () => {
   ])
 
   useEffect(() => {
-    const names = ['Ahmad***', 'Siti***', 'Budi***', 'Rina***', 'Deni***', 'Maya***']
-    const assets = ['EUR/USD', 'BTC/USD', 'IDX_STC', 'GBP/JPY', 'XAU/USD']
+    const names = [
+      'Ahmad***', 'Siti***', 'Budi***', 'Rina***', 'Deni***', 'Maya***',
+      'Andi***', 'Fitri***', 'Joko***', 'Dewi***', 'Agus***', 'Lina***',
+      'Rudi***', 'Nur***', 'Hadi***', 'Sari***', 'Yudi***', 'Tini***'
+    ]
+    const assets = [
+      'EUR/USD', 'BTC/USD', 'IDX_STC', 'GBP/JPY', 'XAU/USD',
+      'USD/JPY', 'ETH/USD', 'AUD/USD', 'NZD/USD', 'USD/CHF',
+      'EUR/GBP', 'BTC/ETH', 'LTC/USD', 'XRP/USD', 'DOT/USD'
+    ]
     
     const interval = setInterval(() => {
       const newTrade = {
@@ -248,11 +68,11 @@ const LiveTradingTicker = () => {
   }, [])
 
   return (
-    <motion.div
+    <motion.div 
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.6, delay: 0.3 }}
-      className="hidden lg:block absolute top-24 right-8 w-72 bg-[#0a0e17]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl z-10"
+      transition={{ duration: 0.6, delay: 0.8 }}
+      className="hidden lg:block absolute top-24 right-8 w-72 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl z-10"
     >
       <div className="flex items-center gap-2 mb-3">
         <motion.div 
@@ -260,7 +80,7 @@ const LiveTradingTicker = () => {
           transition={{ duration: 2, repeat: Infinity }}
           className="w-2 h-2 bg-emerald-400 rounded-full"
         />
-        <span className="text-xs font-semibold text-gray-300">Live Transactions</span>
+        <span className="text-xs font-semibold text-gray-300">Transaksi Live</span>
       </div>
       <div className="space-y-2">
         <AnimatePresence mode="popLayout">
@@ -269,8 +89,8 @@ const LiveTradingTicker = () => {
               key={`${trade.user}-${trade.time}-${i}`}
               initial={{ opacity: 0, y: -20, scale: 0.8 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              exit={{ opacity: 0, x: 100, scale: 0.8 }}
+              transition={{ duration: 0.3 }}
               className="flex items-center justify-between p-2 bg-emerald-500/5 border border-emerald-500/20 rounded-lg"
             >
               <div className="flex-1">
@@ -278,13 +98,7 @@ const LiveTradingTicker = () => {
                 <div className="text-[10px] text-gray-400">{trade.asset}</div>
               </div>
               <div className="text-right">
-                <motion.div 
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="text-xs font-bold text-emerald-400"
-                >
-                  +Rp {trade.profit.toLocaleString()}
-                </motion.div>
+                <div className="text-xs font-bold text-emerald-400">+Rp {trade.profit.toLocaleString()}</div>
                 <div className="text-[10px] text-gray-500">{trade.time}</div>
               </div>
             </motion.div>
@@ -295,7 +109,7 @@ const LiveTradingTicker = () => {
   )
 }
 
-// Animated Trading Chart
+// Animated Trading Chart Preview
 const AnimatedTradingChart = () => {
   const [bars, setBars] = useState<number[]>([])
 
@@ -304,7 +118,10 @@ const AnimatedTradingChart = () => {
     setBars(initialBars)
 
     const interval = setInterval(() => {
-      setBars(prev => [...prev.slice(1), Math.random() * 80 + 20])
+      setBars(prev => {
+        const newBars = [...prev.slice(1), Math.random() * 80 + 20]
+        return newBars
+      })
     }, 1000)
 
     return () => clearInterval(interval)
@@ -317,7 +134,7 @@ const AnimatedTradingChart = () => {
           key={i}
           initial={{ height: 0 }}
           animate={{ height: `${height}%` }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 1, ease: "easeOut" }}
           className="flex-1 bg-gradient-to-t from-emerald-500/50 to-blue-500/50 rounded-t"
           style={{ opacity: i < 5 ? 0.3 : 1 }}
         />
@@ -326,14 +143,21 @@ const AnimatedTradingChart = () => {
   )
 }
 
-// Floating Price Card with Motion
+// Floating Price Cards
 const FloatingPriceCard = ({ symbol, price, change, delay, style }: any) => (
   <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay, duration: 0.6 }}
-    whileHover={{ scale: 1.05, y: -5 }}
-    className="hidden lg:block absolute bg-[#0a0e17]/95 backdrop-blur-xl border border-white/10 rounded-xl p-3 shadow-2xl"
+    initial={{ opacity: 0, scale: 0.8 }}
+    animate={{ 
+      opacity: 1, 
+      scale: 1,
+      y: [0, -10, 0]
+    }}
+    transition={{ 
+      opacity: { duration: 0.5, delay },
+      scale: { duration: 0.5, delay },
+      y: { duration: 3, repeat: Infinity, ease: "easeInOut" }
+    }}
+    className="hidden lg:block absolute bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-3 shadow-2xl"
     style={style}
   >
     <div className="text-xs text-gray-400 mb-1">{symbol}</div>
@@ -346,6 +170,145 @@ const FloatingPriceCard = ({ symbol, price, change, delay, style }: any) => (
     </div>
   </motion.div>
 )
+
+// Modern Trust Badge Component
+const TrustBadge = () => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="inline-flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-emerald-500/10 border border-white/10 rounded-full backdrop-blur-xl"
+    >
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+        className="relative w-8 h-8"
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-emerald-400 rounded-full opacity-20 blur-sm" />
+        <div className="absolute inset-1 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full flex items-center justify-center">
+          <Shield className="w-4 h-4 text-white" />
+        </div>
+      </motion.div>
+      
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-semibold text-white">50K+</span>
+        <div className="w-px h-4 bg-white/20" />
+        <span className="text-sm text-gray-300">Trader Dipercaya</span>
+      </div>
+      
+      <motion.div
+        animate={{ scale: [1, 1.2, 1] }}
+        transition={{ duration: 2, repeat: Infinity }}
+        className="flex items-center gap-1"
+      >
+        {[...Array(5)].map((_, i) => (
+          <Star key={i} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+        ))}
+      </motion.div>
+    </motion.div>
+  )
+}
+
+// Payment Methods Component
+const PaymentMethods = () => {
+  const methods = [
+    { name: 'Bank Transfer', icon: Building2 },
+    { name: 'E-Wallet', icon: Smartphone },
+    { name: 'Credit Card', icon: CreditCard },
+  ]
+
+  const logos = [
+    { name: 'BCA', color: 'from-blue-600 to-blue-400' },
+    { name: 'Mandiri', color: 'from-yellow-600 to-yellow-400' },
+    { name: 'BNI', color: 'from-orange-600 to-orange-400' },
+    { name: 'BRI', color: 'from-blue-700 to-blue-500' },
+    { name: 'OVO', color: 'from-purple-600 to-purple-400' },
+    { name: 'GoPay', color: 'from-green-600 to-green-400' },
+    { name: 'DANA', color: 'from-blue-500 to-cyan-400' },
+    { name: 'Visa', color: 'from-blue-600 to-blue-400' },
+    { name: 'Mastercard', color: 'from-red-600 to-orange-400' },
+  ]
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6 }}
+      className="mt-16 pt-12 border-t border-white/10"
+    >
+      <div className="text-center mb-8">
+        <h3 className="text-lg font-semibold text-white mb-2">Metode Pembayaran</h3>
+        <p className="text-sm text-gray-400">Deposit aman dengan berbagai pilihan pembayaran</p>
+      </div>
+
+      {/* Desktop */}
+      <div className="hidden sm:block">
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          {logos.map((logo, i) => (
+            <motion.div
+              key={logo.name}
+              initial={{ opacity: 0, scale: 0.8 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: i * 0.05 }}
+              whileHover={{ scale: 1.05, y: -2 }}
+              className="group relative"
+            >
+              <div className={`w-24 h-14 bg-gradient-to-br ${logo.color} rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg border border-white/20 transition-all group-hover:shadow-xl`}>
+                {logo.name}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* Mobile - Scrolling */}
+      <div className="sm:hidden relative">
+        <div className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
+          {logos.map((logo, i) => (
+            <motion.div
+              key={logo.name}
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: i * 0.05 }}
+              className="snap-center flex-shrink-0"
+            >
+              <div className={`w-20 h-12 bg-gradient-to-br ${logo.color} rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-lg border border-white/20`}>
+                {logo.name}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6, delay: 0.3 }}
+        className="mt-6 flex items-center justify-center gap-6 text-sm text-gray-400"
+      >
+        <div className="flex items-center gap-2">
+          <Check className="w-4 h-4 text-emerald-400" />
+          <span>Instan</span>
+        </div>
+        <div className="w-px h-4 bg-white/20" />
+        <div className="flex items-center gap-2">
+          <Shield className="w-4 h-4 text-blue-400" />
+          <span>Aman</span>
+        </div>
+        <div className="w-px h-4 bg-white/20" />
+        <div className="flex items-center gap-2">
+          <Zap className="w-4 h-4 text-yellow-400" />
+          <span>Otomatis</span>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
 
 export default function LandingPage() {
   const router = useRouter()
@@ -361,14 +324,13 @@ export default function LandingPage() {
   const [touchEnd, setTouchEnd] = useState(0)
 
   const { scrollYProgress } = useScroll()
-  const scaleX = useSpring(scrollYProgress, {
-    stiffness: 100,
-    damping: 30,
-    restDelta: 0.001
-  })
+  const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0])
+  const scale = useTransform(scrollYProgress, [0, 0.2], [1, 0.95])
 
   useEffect(() => {
-    if (user) router.push('/trading')
+    if (user) {
+      router.push('/trading')
+    }
   }, [user, router])
 
   useEffect(() => {
@@ -385,13 +347,28 @@ export default function LandingPage() {
     return () => clearInterval(interval)
   }, [])
 
-  const handleTouchStart = (e: React.TouchEvent) => setTouchStart(e.targetTouches[0].clientX)
-  const handleTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
   const handleTouchEnd = () => {
     if (!touchStart || !touchEnd) return
+    
     const distance = touchStart - touchEnd
-    if (distance > 50) setActiveFeature((prev) => (prev + 1) % features.length)
-    if (distance < -50) setActiveFeature((prev) => (prev === 0 ? features.length - 1 : prev - 1))
+    const isLeftSwipe = distance > 50
+    const isRightSwipe = distance < -50
+
+    if (isLeftSwipe) {
+      setActiveFeature((prev) => (prev + 1) % features.length)
+    }
+    if (isRightSwipe) {
+      setActiveFeature((prev) => (prev === 0 ? features.length - 1 : prev - 1))
+    }
+
     setTouchStart(0)
     setTouchEnd(0)
   }
@@ -401,7 +378,10 @@ export default function LandingPage() {
     setLoading(true)
 
     try {
-      const response = isLogin ? await api.login(email, password) : await api.register(email, password)
+      const response = isLogin
+        ? await api.login(email, password)
+        : await api.register(email, password)
+
       const userData = response.user || response.data?.user
       const token = response.token || response.data?.token
 
@@ -412,10 +392,17 @@ export default function LandingPage() {
 
       setAuth(userData, token)
       api.setToken(token)
+
       toast.success(response.message || 'Login berhasil!')
       router.replace('/trading')
     } catch (error: any) {
-      toast.error(error.response?.data?.error || error.response?.data?.message || error.message || 'Autentikasi gagal')
+      const errorMessage = 
+        error.response?.data?.error || 
+        error.response?.data?.message ||
+        error.message || 
+        'Autentikasi gagal'
+      
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -504,69 +491,66 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0e17] text-white overflow-hidden">
-      {/* Progress Bar */}
-      <motion.div
-        className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 origin-left z-[100]"
-        style={{ scaleX }}
-      />
-
       {/* Animated Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          animate={{
+        <motion.div 
+          animate={{ 
             scale: [1, 1.2, 1],
-            opacity: [0.05, 0.1, 0.05],
+            rotate: [0, 90, 0]
           }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
           className="absolute top-1/4 -left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px]"
         />
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.05, 0.1, 0.05],
+        <motion.div 
+          animate={{ 
+            scale: [1.2, 1, 1.2],
+            rotate: [90, 0, 90]
           }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 1
-          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
           className="absolute bottom-1/4 -right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px]"
         />
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
       </div>
 
       {/* Navigation */}
-      <motion.nav
+      <motion.nav 
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="fixed top-0 left-0 right-0 z-50 bg-[#0a0e17]/80 backdrop-blur-xl border-b border-white/5"
+        transition={{ duration: 0.6 }}
+        className="fixed top-0 left-0 right-0 z-50 bg-[#0a0e17]/80 backdrop-blur-xl border-b border-white/10"
       >
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-20">
             <motion.div 
+              whileHover={{ scale: 1.05 }}
               className="flex items-center gap-3 group cursor-pointer"
-              whileHover={{ scale: 1.02 }}
             >
               <div className="relative w-10 h-10 flex-shrink-0">
-                <Image src="/stc-logo.png" alt="STC AutoTrade" fill className="object-contain transform group-hover:scale-110 transition-transform rounded-md" priority />
+                <Image
+                  src="/stc-logo.png"
+                  alt="STC AutoTrade"
+                  fill
+                  className="object-contain transform group-hover:scale-110 transition-transform rounded-md"
+                  priority
+                />
               </div>
               <div>
-                <span className="text-xl font-bold text-white">STC AutoTrade</span>
+                <span className="text-xl font-bold text-white">
+                  STC AutoTrade
+                </span>
               </div>
             </motion.div>
 
             <div className="hidden md:flex items-center gap-8">
               {['Fitur', 'Cara Kerja', 'Testimoni'].map((item, i) => (
                 <motion.a
-                  key={i}
+                  key={item}
                   href={`#${item.toLowerCase().replace(' ', '-')}`}
-                  className="text-sm text-gray-400 hover:text-white transition-colors relative group"
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: i * 0.1 }}
                   whileHover={{ y: -2 }}
+                  className="text-sm text-gray-400 hover:text-white transition-colors relative group"
                 >
                   {item}
                   <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
@@ -574,14 +558,24 @@ export default function LandingPage() {
               ))}
             </div>
 
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => { setIsLogin(true); setShowAuthModal(true) }}
-              className="px-6 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-lg text-sm font-semibold text-white shadow-lg transition-all border border-white/10"
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
+              className="flex items-center gap-3"
             >
-              Masuk
-            </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setIsLogin(true)
+                  setShowAuthModal(true)
+                }}
+                className="px-6 py-2.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-semibold text-white shadow-lg transition-colors border border-white/10"
+              >
+                Masuk
+              </motion.button>
+            </motion.div>
           </div>
         </div>
       </motion.nav>
@@ -590,32 +584,31 @@ export default function LandingPage() {
       <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32 overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left Content */}
             <div className="space-y-8">
-              <ModernTrustBadge />
+              <TrustBadge />
 
-              <motion.h1
-                initial={{ opacity: 0, y: 30 }}
+              <motion.h1 
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ duration: 0.6, delay: 0.2 }}
                 className="text-5xl sm:text-6xl md:text-7xl font-bold leading-tight"
               >
                 Trading Binary Option dengan
-                <motion.span
+                <motion.span 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.8, delay: 0.4 }}
                   className="block mt-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-emerald-400 to-cyan-400"
-                  animate={{
-                    backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
-                  }}
-                  transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-                  style={{ backgroundSize: '200% 200%' }}
                 >
                   Kecepatan Kilat
                 </motion.span>
               </motion.h1>
 
-              <motion.p
+              <motion.p 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
                 className="text-lg sm:text-xl text-gray-400 leading-relaxed"
               >
                 Eksekusi order dalam <span className="text-emerald-400 font-semibold">milidetik</span>, 
@@ -623,17 +616,20 @@ export default function LandingPage() {
                 dan trading dengan <span className="text-cyan-400 font-semibold">percaya diri 24/7</span>.
               </motion.p>
 
-              <motion.div
+              <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.6 }}
+                transition={{ duration: 0.6, delay: 0.6 }}
                 className="flex flex-row gap-3 sm:gap-4"
               >
                 <motion.button
-                  whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(59, 130, 246, 0.3)" }}
+                  whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => { setIsLogin(true); setShowAuthModal(true) }}
-                  className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600 rounded-xl text-sm sm:text-lg font-semibold text-white transition-all shadow-lg"
+                  onClick={() => {
+                    setIsLogin(true)
+                    setShowAuthModal(true)
+                  }}
+                  className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-white text-gray-900 hover:bg-gray-100 rounded-xl text-sm sm:text-lg font-semibold transition-all shadow-lg"
                 >
                   <span className="flex items-center justify-center gap-2">
                     <span className="hidden sm:inline">Masuk untuk Trading</span>
@@ -642,10 +638,10 @@ export default function LandingPage() {
                   </span>
                 </motion.button>
 
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
+                <motion.button 
+                  whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.95 }}
-                  className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl text-sm sm:text-lg font-semibold transition-all backdrop-blur-sm"
+                  className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/30 rounded-xl text-sm sm:text-lg font-semibold transition-all backdrop-blur-sm"
                 >
                   <span className="flex items-center justify-center gap-2">
                     <Activity className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
@@ -655,70 +651,84 @@ export default function LandingPage() {
                 </motion.button>
               </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.8 }}
+              {/* Stats Row */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.8 }}
                 className="grid grid-cols-4 gap-4 pt-8"
               >
                 {stats.map((stat, index) => (
-                  <motion.div
+                  <motion.div 
                     key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.9 + index * 0.1 }}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.4, delay: 0.8 + index * 0.1 }}
                     whileHover={{ scale: 1.1, y: -5 }}
                     className="text-center cursor-default"
                   >
                     <stat.icon className="w-6 h-6 text-blue-400 mx-auto mb-2" />
-                    <div className="text-xl font-bold">
-                      <AnimatedCounter value={stat.value} />
-                    </div>
+                    <div className="text-xl font-bold">{stat.value}</div>
                     <div className="text-xs text-gray-500">{stat.label}</div>
                   </motion.div>
                 ))}
               </motion.div>
             </div>
 
-            <div className="relative">
+            {/* Right - Trading Platform Preview */}
+            <motion.div 
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="relative"
+            >
               <LiveTradingTicker />
-              <FloatingPriceCard symbol="EUR/USD" price="1.0856" change={2.3} delay={0.5} style={{ top: '10%', left: '-10%' }} />
-              <FloatingPriceCard symbol="BTC/USD" price="68,342" change={-1.2} delay={0.7} style={{ top: '60%', left: '-5%' }} />
-              <FloatingPriceCard symbol="IDX_STC" price="7,289" change={0.8} delay={0.9} style={{ bottom: '10%', right: '-10%' }} />
 
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.8, delay: 0.4 }}
+              <FloatingPriceCard 
+                symbol="EUR/USD" 
+                price="1.0856" 
+                change={2.3} 
+                delay={0.6}
+                style={{ top: '10%', left: '-10%' }}
+              />
+              <FloatingPriceCard 
+                symbol="BTC/USD" 
+                price="68,342" 
+                change={-1.2} 
+                delay={0.8}
+                style={{ top: '60%', left: '-5%' }}
+              />
+              <FloatingPriceCard 
+                symbol="IDX_STC" 
+                price="7,289" 
+                change={0.8} 
+                delay={1}
+                style={{ bottom: '10%', right: '-10%' }}
+              />
+
+              {/* Main Trading Interface */}
+              <motion.div 
                 whileHover={{ scale: 1.02 }}
-                className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-white/10 rounded-3xl p-6 shadow-2xl backdrop-blur-xl"
+                transition={{ duration: 0.3 }}
+                className="relative bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-3xl p-6 shadow-2xl backdrop-blur-xl"
               >
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
-                    <motion.div
-                      animate={{ rotate: [0, 360] }}
-                      transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                      className="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-blue-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30"
-                    >
+                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-blue-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30">
                       <TrendingUp className="w-6 h-6 text-emerald-400" />
-                    </motion.div>
+                    </div>
                     <div>
                       <div className="text-sm text-gray-400">EUR/USD</div>
                       <div className="text-3xl font-bold font-mono">1.0856</div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.6, type: "spring" }}
-                      className="flex items-center gap-1 text-emerald-400 text-lg font-semibold"
-                    >
+                    <div className="flex items-center gap-1 text-emerald-400 text-lg font-semibold">
                       <TrendingUp className="w-5 h-5" />
                       +2.3%
-                    </motion.div>
+                    </div>
                     <div className="text-xs text-gray-500 flex items-center gap-1">
-                      <motion.div
+                      <motion.div 
                         animate={{ scale: [1, 1.2, 1] }}
                         transition={{ duration: 2, repeat: Infinity }}
                         className="w-1.5 h-1.5 bg-emerald-400 rounded-full"
@@ -728,86 +738,90 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                <div className="bg-[#0a0e17] rounded-2xl mb-6 overflow-hidden border border-white/5">
+                <div className="bg-white/5 rounded-2xl mb-6 overflow-hidden border border-white/10">
                   <AnimatedTradingChart />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <motion.button
-                    whileHover={{ scale: 1.05, boxShadow: "0 10px 30px rgba(16, 185, 129, 0.3)" }}
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="group relative bg-gradient-to-br from-emerald-500/20 to-green-500/20 hover:from-emerald-500/30 hover:to-green-500/30 border border-emerald-500/30 rounded-xl p-6 transition-all overflow-hidden"
                   >
-                    <TrendingUp className="w-8 h-8 text-emerald-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                    <div className="font-bold text-lg text-emerald-400">BELI</div>
-                    <div className="text-xs text-gray-400">Profit +95%</div>
+                    <div className="absolute inset-0 bg-emerald-500/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
+                    <TrendingUp className="w-8 h-8 text-emerald-400 mx-auto mb-2 relative z-10 group-hover:scale-110 transition-transform" />
+                    <div className="font-bold text-lg text-emerald-400 relative z-10">BELI</div>
+                    <div className="text-xs text-gray-400 relative z-10">Profit +95%</div>
                   </motion.button>
 
-                  <motion.button
-                    whileHover={{ scale: 1.05, boxShadow: "0 10px 30px rgba(239, 68, 68, 0.3)" }}
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="group relative bg-gradient-to-br from-red-500/20 to-pink-500/20 hover:from-red-500/30 hover:to-pink-500/30 border border-red-500/30 rounded-xl p-6 transition-all overflow-hidden"
                   >
-                    <TrendingDown className="w-8 h-8 text-red-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                    <div className="font-bold text-lg text-red-400">JUAL</div>
-                    <div className="text-xs text-gray-400">Profit +95%</div>
+                    <div className="absolute inset-0 bg-red-500/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
+                    <TrendingDown className="w-8 h-8 text-red-400 mx-auto mb-2 relative z-10 group-hover:scale-110 transition-transform" />
+                    <div className="font-bold text-lg text-red-400 relative z-10">JUAL</div>
+                    <div className="text-xs text-gray-400 relative z-10">Profit +95%</div>
                   </motion.button>
                 </div>
               </motion.div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 sm:py-32 relative">
+      <section id="fitur" className="py-20 sm:py-32 relative">
         <div className="container mx-auto px-4 sm:px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-16"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
+          <div className="text-center mb-16">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full mb-6"
             >
-              <motion.div
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="w-1.5 h-1.5 bg-blue-400 rounded-full"
-              />
+              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
               <span className="text-sm font-medium text-blue-400">Teknologi Terdepan</span>
             </motion.div>
-            <h2 className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight">
+            <motion.h2 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight"
+            >
               Mengapa Memilih Kami
-            </h2>
-            <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+            </motion.h2>
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="text-lg text-gray-400 max-w-2xl mx-auto"
+            >
               Platform trading dengan teknologi dan keamanan terbaik
-            </p>
-          </motion.div>
+            </motion.p>
+          </div>
 
+          {/* Desktop Grid */}
           <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
-              <motion.div
+              <motion.div 
                 key={index}
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.1, duration: 0.6 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
                 whileHover={{ y: -10, scale: 1.02 }}
-                className="group relative bg-[#0a0e17] border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-all overflow-hidden"
+                className="group relative bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-all duration-300 overflow-hidden"
               >
-                <motion.div
-                  className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}
-                />
+                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
                 
                 <div className="relative z-10">
-                  <motion.div
-                    whileHover={{ rotate: 360, scale: 1.1 }}
+                  <motion.div 
+                    whileHover={{ rotate: 360 }}
                     transition={{ duration: 0.6 }}
                     className={`inline-flex w-14 h-14 ${feature.bgColor} ${feature.borderColor} border-2 rounded-2xl items-center justify-center mb-4`}
                   >
@@ -817,9 +831,9 @@ export default function LandingPage() {
                   <h3 className="text-xl font-bold mb-3 tracking-tight">{feature.title}</h3>
                   <p className="text-gray-400 text-sm leading-relaxed">{feature.description}</p>
 
-                  <motion.div
-                    initial={{ width: '3rem' }}
-                    whileHover={{ width: '5rem' }}
+                  <motion.div 
+                    initial={{ width: 48 }}
+                    whileHover={{ width: 80 }}
                     className={`h-1 ${feature.bgColor} rounded-full mt-6`}
                   />
                 </div>
@@ -827,9 +841,9 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* Mobile Features */}
+          {/* Mobile */}
           <div className="sm:hidden relative">
-            <div
+            <div 
               className="relative overflow-hidden"
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
@@ -838,8 +852,9 @@ export default function LandingPage() {
               <div className="relative min-h-[220px]">
                 <AnimatePresence mode="wait">
                   {features.map((feature, index) => {
-                    if (index !== activeFeature) return null
-                    return (
+                    const isActive = index === activeFeature
+                    
+                    return isActive ? (
                       <motion.div
                         key={index}
                         initial={{ opacity: 0, x: 100 }}
@@ -848,8 +863,8 @@ export default function LandingPage() {
                         transition={{ duration: 0.3 }}
                         className="mx-4"
                       >
-                        <div className="relative h-full bg-[#0a0e17] border border-white/10 rounded-xl p-5">
-                          <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-5 rounded-xl`} />
+                        <div className="relative h-full bg-white/5 border border-white/10 rounded-xl p-5 overflow-hidden">
+                          <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-5`}></div>
                           
                           <div className="relative h-full flex flex-col">
                             <div className="flex items-start justify-between mb-4">
@@ -866,11 +881,11 @@ export default function LandingPage() {
                               <p className="text-sm text-gray-400 leading-relaxed">{feature.description}</p>
                             </div>
 
-                            <div className={`h-0.5 w-16 ${feature.bgColor} rounded-full mt-4`} />
+                            <div className={`h-0.5 w-16 ${feature.bgColor} rounded-full mt-4`}></div>
                           </div>
                         </div>
                       </motion.div>
-                    )
+                    ) : null
                   })}
                 </AnimatePresence>
               </div>
@@ -884,83 +899,96 @@ export default function LandingPage() {
                     onClick={() => setActiveFeature(index)}
                     className="transition-all duration-300"
                   >
-                    <motion.div
+                    <motion.div 
                       animate={{
-                        width: index === activeFeature ? '1.75rem' : '0.375rem',
+                        width: index === activeFeature ? 28 : 6,
+                        backgroundColor: index === activeFeature ? 'rgb(59 130 246)' : 'rgb(55 65 81)'
                       }}
-                      className={`h-1.5 rounded-full ${
-                        index === activeFeature ? feature.bgColor : 'bg-gray-700'
-                      }`}
+                      className="h-1.5 rounded-full"
                     />
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div className="mt-3 text-center text-xs text-gray-500">
+              Swipe untuk melihat lebih banyak
             </div>
           </div>
         </div>
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-20 sm:py-32 relative overflow-hidden">
+      <section id="cara-kerja" className="py-20 sm:py-32 relative overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-20"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
+          <div className="text-center mb-20">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/10 border border-purple-500/20 rounded-full mb-6"
             >
-              <motion.div
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="w-1.5 h-1.5 bg-purple-400 rounded-full"
-              />
+              <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse"></div>
               <span className="text-sm font-medium text-purple-400">Mulai dalam 3 langkah mudah</span>
             </motion.div>
-            <h2 className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight">Cara Kerja Platform</h2>
-            <p className="text-lg text-gray-400 max-w-2xl mx-auto">Trading menjadi mudah dengan sistem otomatis kami</p>
-          </motion.div>
+            <motion.h2 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight"
+            >
+              Cara Kerja Platform
+            </motion.h2>
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="text-lg text-gray-400 max-w-2xl mx-auto"
+            >
+              Trading menjadi mudah dengan sistem otomatis kami
+            </motion.p>
+          </div>
 
-          {/* Steps */}
+          {/* Desktop Timeline */}
           <div className="hidden lg:block max-w-5xl mx-auto">
             <div className="relative">
-              <div className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 bg-gradient-to-b from-purple-500/20 via-pink-500/20 to-blue-500/20" />
+              <div className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 bg-gradient-to-b from-purple-500/20 via-pink-500/20 to-blue-500/20"></div>
 
               <div className="space-y-24">
                 {[
-                  { icon: Users, title: 'Daftar & Verifikasi', desc: 'Buat akun dalam 2 menit. Verifikasi identitas untuk keamanan maksimal dan mulai dengan akun demo gratis.', color: 'purple', num: 1 },
-                  { icon: DollarSign, title: 'Deposit & Pilih Strategi', desc: 'Deposit mulai dari Rp 100.000. Pilih strategi trading otomatis sesuai profil risiko Anda.', color: 'pink', num: 2 },
-                  { icon: TrendingUp, title: 'Trading & Profit', desc: 'Sistem kami trading otomatis 24/7. Pantau profit real-time dan tarik keuntungan kapan saja.', color: 'blue', num: 3 }
+                  { icon: Users, title: 'Daftar & Verifikasi', desc: 'Buat akun dalam 2 menit. Verifikasi identitas untuk keamanan maksimal dan mulai dengan akun demo gratis.', tags: ['Registrasi cepat', 'Demo $10K'], color: 'purple', num: 1, side: 'left' },
+                  { icon: DollarSign, title: 'Deposit & Pilih Strategi', desc: 'Deposit mulai dari Rp 100.000. Pilih strategi trading otomatis sesuai profil risiko Anda.', tags: ['Minimal rendah', 'Auto trading'], color: 'pink', num: 2, side: 'right' },
+                  { icon: TrendingUp, title: 'Trading & Profit', desc: 'Sistem kami trading otomatis 24/7. Pantau profit real-time dan tarik keuntungan kapan saja.', tags: ['Trading 24/7', 'Profit 95%'], color: 'blue', num: 3, side: 'left' }
                 ].map((step, i) => (
                   <motion.div
                     key={i}
-                    initial={{ opacity: 0, x: i % 2 === 0 ? -50 : 50 }}
+                    initial={{ opacity: 0, x: step.side === 'left' ? -50 : 50 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.6, delay: i * 0.2 }}
-                    className={`relative flex items-center ${i % 2 !== 0 ? 'flex-row-reverse' : ''}`}
+                    className="relative flex items-center"
+                    style={{ flexDirection: step.side === 'right' ? 'row-reverse' : 'row' }}
                   >
-                    <motion.div
-                      whileHover={{ scale: 1.02, y: -5 }}
-                      className={`w-[calc(50%-3rem)] ${i % 2 === 0 ? 'mr-auto' : 'ml-auto'}`}
+                    <motion.div 
+                      whileHover={{ scale: 1.05 }}
+                      className="w-[calc(50%-3rem)] mr-auto"
+                      style={{ marginLeft: step.side === 'right' ? 'auto' : '0', marginRight: step.side === 'right' ? '0' : 'auto' }}
                     >
-                      <div className="bg-[#0a0e17] border border-white/10 rounded-2xl p-8 hover:border-white/20 transition-all">
+                      <div className="bg-white/5 border border-white/10 rounded-2xl p-8 hover:border-white/20 transition-all">
                         <div className="flex items-start gap-4">
-                          <motion.div
-                            whileHover={{ rotate: 360 }}
-                            transition={{ duration: 0.6 }}
-                            className={`w-12 h-12 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-xl flex items-center justify-center flex-shrink-0`}
-                          >
+                          <div className={`w-12 h-12 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-xl flex items-center justify-center flex-shrink-0`}>
                             <step.icon className={`w-6 h-6 text-${step.color}-400`} />
-                          </motion.div>
+                          </div>
                           <div className="flex-1">
                             <h3 className="text-xl font-bold mb-2">{step.title}</h3>
-                            <p className="text-gray-400 text-sm leading-relaxed">{step.desc}</p>
+                            <p className="text-gray-400 text-sm leading-relaxed mb-4">{step.desc}</p>
+                            <div className="flex flex-wrap gap-2">
+                              {step.tags.map((tag, j) => (
+                                <span key={j} className={`px-3 py-1 bg-${step.color}-500/10 border border-${step.color}-500/20 rounded-full text-xs text-${step.color}-400`}>{tag}</span>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -971,12 +999,12 @@ export default function LandingPage() {
                         initial={{ scale: 0 }}
                         whileInView={{ scale: 1 }}
                         viewport={{ once: true }}
-                        transition={{ delay: i * 0.2 + 0.3, type: "spring" }}
+                        transition={{ duration: 0.4, delay: i * 0.2 + 0.3 }}
                         className="relative w-16 h-16"
                       >
-                        <motion.div
-                          animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
-                          transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
+                        <motion.div 
+                          animate={{ scale: [1, 1.2, 1] }}
+                          transition={{ duration: 2, repeat: Infinity, delay: i * 0.5 }}
                           className={`absolute inset-0 bg-${step.color}-500/20 rounded-full`}
                         />
                         <div className={`absolute inset-2 bg-[#0a0e17] rounded-full border-2 border-${step.color}-500/50 flex items-center justify-center`}>
@@ -990,7 +1018,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Mobile Steps */}
+          {/* Mobile */}
           <div className="lg:hidden space-y-6">
             {[
               { icon: Users, title: 'Daftar & Verifikasi', desc: 'Buat akun dalam 2 menit dengan verifikasi aman', color: 'purple', num: 1 },
@@ -999,13 +1027,13 @@ export default function LandingPage() {
             ].map((step, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, x: -30 }}
-                whileInView={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
                 className="flex gap-4 relative"
               >
-                {i < 2 && <div className="absolute left-7 top-16 w-px h-6 bg-gray-800" />}
+                {i < 2 && <div className="absolute left-7 top-16 w-px h-6 bg-gray-800"></div>}
                 
                 <div className="flex-shrink-0">
                   <motion.div
@@ -1016,9 +1044,9 @@ export default function LandingPage() {
                   </motion.div>
                 </div>
                 
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  className="flex-1 bg-[#0a0e17] border border-white/10 rounded-xl p-4"
+                <motion.div 
+                  whileHover={{ x: 5 }}
+                  className="flex-1 bg-white/5 border border-white/10 rounded-xl p-4"
                 >
                   <div className="flex items-center gap-3 mb-2">
                     <div className={`w-10 h-10 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-lg flex items-center justify-center`}>
@@ -1035,47 +1063,53 @@ export default function LandingPage() {
       </section>
 
       {/* Testimonials */}
-      <section id="testimonials" className="py-20 sm:py-32 relative">
+      <section id="testimoni" className="py-20 sm:py-32 relative">
         <div className="container mx-auto px-4 sm:px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
+          <div className="text-center mb-16">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6"
             >
-              <motion.div
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="w-1.5 h-1.5 bg-emerald-400 rounded-full"
-              />
+              <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
               <span className="text-sm font-medium text-emerald-400">Testimoni Trader</span>
             </motion.div>
-            <h2 className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight">Dipercaya Ribuan Trader</h2>
-            <p className="text-lg text-gray-400 max-w-2xl mx-auto">Lihat apa kata trader sukses tentang kami</p>
-          </motion.div>
+            <motion.h2 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight"
+            >
+              Dipercaya Ribuan Trader
+            </motion.h2>
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="text-lg text-gray-400 max-w-2xl mx-auto"
+            >
+              Lihat apa kata trader sukses tentang kami
+            </motion.p>
+          </div>
 
-          {/* Desktop Testimonial */}
+          {/* Desktop */}
           <div className="hidden sm:block max-w-3xl mx-auto">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTestimonial}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.5 }}
-                className="relative bg-[#0a0e17] border border-white/10 rounded-2xl p-12"
+                className="relative bg-white/5 border border-white/10 rounded-2xl p-12"
               >
                 <div className="text-center">
-                  <motion.div
+                  <motion.div 
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 200 }}
                     className="text-6xl mb-6"
                   >
                     {testimonials[activeTestimonial].avatar}
@@ -1094,20 +1128,13 @@ export default function LandingPage() {
                     ))}
                   </div>
 
-                  <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="text-xl text-gray-200 mb-8 leading-relaxed"
-                  >
+                  <p className="text-xl text-gray-200 mb-8 leading-relaxed">
                     "{testimonials[activeTestimonial].content}"
-                  </motion.p>
+                  </p>
 
                   <div className="flex items-center justify-center gap-6 mb-6">
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.4 }}
+                    <motion.div 
+                      whileHover={{ scale: 1.05 }}
                       className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg"
                     >
                       <div className="text-sm text-gray-400 mb-1">Keuntungan</div>
@@ -1115,10 +1142,8 @@ export default function LandingPage() {
                         {testimonials[activeTestimonial].profit}
                       </div>
                     </motion.div>
-                    <motion.div
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.5 }}
+                    <motion.div 
+                      whileHover={{ scale: 1.05 }}
                       className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg"
                     >
                       <div className="text-sm text-gray-400 mb-1">Durasi</div>
@@ -1128,15 +1153,14 @@ export default function LandingPage() {
                     </motion.div>
                   </div>
 
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.6 }}
-                    className="pt-6 border-t border-white/10"
-                  >
-                    <div className="font-bold text-lg mb-1">{testimonials[activeTestimonial].name}</div>
-                    <div className="text-gray-400 text-sm">{testimonials[activeTestimonial].role}</div>
-                  </motion.div>
+                  <div className="pt-6 border-t border-white/10">
+                    <div className="font-bold text-lg mb-1">
+                      {testimonials[activeTestimonial].name}
+                    </div>
+                    <div className="text-gray-400 text-sm">
+                      {testimonials[activeTestimonial].role}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex justify-center gap-2 mt-8">
@@ -1145,17 +1169,14 @@ export default function LandingPage() {
                       key={index}
                       onClick={() => setActiveTestimonial(index)}
                       whileHover={{ scale: 1.2 }}
-                      whileTap={{ scale: 0.9 }}
+                      className="transition-all duration-300"
                     >
-                      <motion.div
+                      <motion.div 
                         animate={{
-                          width: index === activeTestimonial ? '2rem' : '0.5rem',
+                          width: index === activeTestimonial ? 32 : 8,
+                          backgroundColor: index === activeTestimonial ? 'rgb(16 185 129)' : 'rgb(55 65 81)'
                         }}
-                        className={`h-2 rounded-full transition-all ${
-                          index === activeTestimonial 
-                            ? 'bg-gradient-to-r from-blue-500 to-emerald-500' 
-                            : 'bg-gray-700 hover:bg-gray-600'
-                        }`}
+                        className="h-2 rounded-full"
                       />
                     </motion.button>
                   ))}
@@ -1164,51 +1185,46 @@ export default function LandingPage() {
             </AnimatePresence>
           </div>
 
-          {/* Mobile Testimonial */}
+          {/* Mobile */}
           <div className="sm:hidden">
             <AnimatePresence mode="wait">
-              {testimonials.map((testimonial, index) => {
-                if (index !== activeTestimonial) return null
-                return (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, x: 100 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -100 }}
-                    transition={{ duration: 0.3 }}
-                    className="mx-4"
-                  >
-                    <div className="bg-[#0a0e17] border border-white/10 rounded-2xl p-6">
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="text-5xl">{testimonial.avatar}</div>
-                        <div className="flex gap-0.5">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          ))}
-                        </div>
-                      </div>
+              <motion.div
+                key={activeTestimonial}
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                transition={{ duration: 0.3 }}
+                className="mx-4 bg-white/5 border border-white/10 rounded-2xl p-6"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <div className="text-5xl">{testimonials[activeTestimonial].avatar}</div>
+                  <div className="flex gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                </div>
 
-                      <p className="text-base text-gray-200 leading-relaxed mb-6 italic">"{testimonial.content}"</p>
+                <p className="text-base text-gray-200 leading-relaxed mb-6 italic">
+                  "{testimonials[activeTestimonial].content}"
+                </p>
 
-                      <div className="grid grid-cols-2 gap-3 mb-6 pb-6 border-b border-white/10">
-                        <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-3 text-center">
-                          <div className="text-xs text-gray-400 mb-1">Keuntungan</div>
-                          <div className="text-lg font-bold text-emerald-400">{testimonial.profit}</div>
-                        </div>
-                        <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-3 text-center">
-                          <div className="text-xs text-gray-400 mb-1">Durasi</div>
-                          <div className="text-lg font-bold text-blue-400">{testimonial.duration}</div>
-                        </div>
-                      </div>
+                <div className="grid grid-cols-2 gap-3 mb-6 pb-6 border-b border-white/10">
+                  <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-3 text-center">
+                    <div className="text-xs text-gray-400 mb-1">Keuntungan</div>
+                    <div className="text-lg font-bold text-emerald-400">{testimonials[activeTestimonial].profit}</div>
+                  </div>
+                  <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-3 text-center">
+                    <div className="text-xs text-gray-400 mb-1">Durasi</div>
+                    <div className="text-lg font-bold text-blue-400">{testimonials[activeTestimonial].duration}</div>
+                  </div>
+                </div>
 
-                      <div>
-                        <h4 className="font-bold text-lg mb-1">{testimonial.name}</h4>
-                        <p className="text-sm text-gray-400">{testimonial.role}</p>
-                      </div>
-                    </div>
-                  </motion.div>
-                )
-              })}
+                <div>
+                  <h4 className="font-bold text-lg mb-1">{testimonials[activeTestimonial].name}</h4>
+                  <p className="text-sm text-gray-400">{testimonials[activeTestimonial].role}</p>
+                </div>
+              </motion.div>
             </AnimatePresence>
 
             <div className="flex items-center justify-between mt-6 px-4">
@@ -1222,16 +1238,20 @@ export default function LandingPage() {
 
               <div className="flex gap-2">
                 {testimonials.map((_, index) => (
-                  <button key={index} onClick={() => setActiveTestimonial(index)}>
-                    <motion.div
+                  <motion.button
+                    key={index}
+                    onClick={() => setActiveTestimonial(index)}
+                    whileHover={{ scale: 1.2 }}
+                    className="transition-all duration-300"
+                  >
+                    <motion.div 
                       animate={{
-                        width: index === activeTestimonial ? '2rem' : '0.5rem',
+                        width: index === activeTestimonial ? 32 : 8,
+                        backgroundColor: index === activeTestimonial ? 'rgb(16 185 129)' : 'rgb(55 65 81)'
                       }}
-                      className={`h-2 rounded-full ${
-                        index === activeTestimonial ? 'bg-gradient-to-r from-blue-500 to-emerald-500' : 'bg-gray-700'
-                      }`}
+                      className="h-2 rounded-full"
                     />
-                  </button>
+                  </motion.button>
                 ))}
               </div>
 
@@ -1243,56 +1263,52 @@ export default function LandingPage() {
                 <ChevronRight className="w-5 h-5" />
               </motion.button>
             </div>
+
+            <div className="mt-4 text-center">
+              <span className="text-xs text-gray-500">
+                {activeTestimonial + 1} / {testimonials.length}
+              </span>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section with Payment Methods */}
+      {/* CTA Section */}
       <section className="py-20 sm:py-32 relative">
         <div className="container mx-auto px-4 sm:px-6">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="relative bg-[#0a0e17] border border-white/10 rounded-3xl overflow-hidden"
+            className="relative bg-white/5 border border-white/10 rounded-3xl overflow-hidden"
           >
             <div className="absolute inset-0">
-              <div className="absolute inset-0" style={{
-                backgroundImage: `
-                  linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
-                  linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px)
-                `,
-                backgroundSize: '40px 40px'
-              }} />
-              
               <motion.div
-                animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.05, 0.1, 0.05],
+                animate={{ 
+                  backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
                 }}
-                transition={{ duration: 8, repeat: Infinity }}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px]"
+                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-emerald-500/5"
+                style={{ backgroundSize: '200% 200%' }}
               />
+              
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px]"></div>
             </div>
 
-            {/* Desktop Content */}
+            {/* Desktop */}
             <div className="hidden sm:block relative z-10 px-16 py-20 text-center">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full mb-8"
               >
-                <motion.div
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="w-1.5 h-1.5 bg-blue-400 rounded-full"
-                />
+                <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
                 <span className="text-sm font-medium text-blue-400">Platform Trading Terpercaya</span>
               </motion.div>
 
-              <motion.h2
+              <motion.h2 
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -1302,7 +1318,7 @@ export default function LandingPage() {
                 Mulai Trading Hari Ini
               </motion.h2>
               
-              <motion.p
+              <motion.p 
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -1313,22 +1329,25 @@ export default function LandingPage() {
               </motion.p>
 
               <motion.button
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.3 }}
-                whileHover={{ scale: 1.05, boxShadow: "0 20px 60px rgba(255, 255, 255, 0.2)" }}
+                whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => { setIsLogin(true); setShowAuthModal(true) }}
-                className="group inline-flex items-center gap-3 px-8 py-4 bg-white text-gray-900 rounded-xl font-semibold transition-all shadow-lg"
+                onClick={() => {
+                  setIsLogin(true)
+                  setShowAuthModal(true)
+                }}
+                className="group inline-flex items-center gap-3 px-8 py-4 bg-white text-gray-900 rounded-xl font-semibold hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl"
               >
                 <span>Masuk Sekarang</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </motion.button>
 
               <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.4 }}
                 className="flex items-center justify-center gap-8 mt-12 pt-8 border-t border-white/10"
@@ -1340,61 +1359,38 @@ export default function LandingPage() {
                 ].map((stat, i) => (
                   <motion.div
                     key={i}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.5 + i * 0.1 }}
-                    whileHover={{ scale: 1.05 }}
+                    whileHover={{ scale: 1.1 }}
                     className="text-center"
                   >
-                    <div className="text-2xl font-bold mb-1">
-                      <AnimatedCounter value={stat.value} />
-                    </div>
+                    <div className="text-2xl font-bold mb-1">{stat.value}</div>
                     <div className="text-xs text-gray-500">{stat.label}</div>
                   </motion.div>
                 ))}
               </motion.div>
             </div>
 
-            {/* Mobile Content */}
+            {/* Mobile */}
             <div className="sm:hidden relative z-10 p-8 text-center">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full mb-6"
-              >
-                <motion.div
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="w-1 h-1 bg-blue-400 rounded-full"
-                />
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full mb-6">
+                <div className="w-1 h-1 bg-blue-400 rounded-full animate-pulse"></div>
                 <span className="text-xs font-medium text-blue-400">Platform Terpercaya</span>
-              </motion.div>
+              </div>
 
-              <motion.h2
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="text-3xl font-bold mb-4 tracking-tight"
-              >
+              <h2 className="text-3xl font-bold mb-4 tracking-tight">
                 Mulai Trading<br />Hari Ini
-              </motion.h2>
+              </h2>
               
-              <motion.p
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                className="text-sm text-gray-400 mb-8"
-              >
+              <p className="text-sm text-gray-400 mb-8">
                 Bergabung dengan 50.000+ trader profesional
-              </motion.p>
+              </p>
 
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => { setIsLogin(true); setShowAuthModal(true) }}
-                className="group w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white text-gray-900 rounded-xl font-semibold transition-all shadow-lg"
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setIsLogin(true)
+                  setShowAuthModal(true)
+                }}
+                className="group w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white text-gray-900 rounded-xl font-semibold hover:bg-gray-100 active:bg-gray-200 transition-all shadow-lg"
               >
                 <span>Masuk Sekarang</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -1406,23 +1402,15 @@ export default function LandingPage() {
                   { value: '$2.5M', label: 'Volume' },
                   { value: '95%', label: 'Profit' }
                 ].map((stat, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.1 }}
-                    className="text-center"
-                  >
-                    <div className="text-xl font-bold mb-0.5">
-                      <AnimatedCounter value={stat.value} />
-                    </div>
+                  <div key={i} className="text-center">
+                    <div className="text-xl font-bold mb-0.5">{stat.value}</div>
                     <div className="text-[10px] text-gray-500">{stat.label}</div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             </div>
 
+            {/* Payment Methods */}
             <PaymentMethods />
           </motion.div>
         </div>
@@ -1434,26 +1422,31 @@ export default function LandingPage() {
       <AnimatePresence>
         {showAuthModal && (
           <>
-            <motion.div
+            <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
               onClick={() => setShowAuthModal(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
             />
 
-            <motion.div
+            <motion.div 
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               className="fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-gradient-to-b from-[#0f1419] to-[#0a0e17] z-50 shadow-2xl overflow-y-auto"
             >
               <div className="sticky top-0 z-10 bg-gradient-to-b from-[#0f1419] to-transparent backdrop-blur-xl border-b border-white/10 p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="relative w-10 h-10">
-                      <Image src="/stc-logo.png" alt="STC AutoTrade" fill className="object-contain rounded-md" />
+                      <Image
+                        src="/stc-logo.png"
+                        alt="STC AutoTrade"
+                        fill
+                        className="object-contain rounded-md"
+                      />
                     </div>
                     <div>
                       <h2 className="text-xl font-bold">STC AutoTrade</h2>
@@ -1472,23 +1465,29 @@ export default function LandingPage() {
               </div>
 
               <div className="p-6">
-                <div className="flex gap-2 p-1 bg-[#0a0e17] rounded-xl mb-6">
-                  <button
+                <div className="flex gap-2 p-1 bg-white/5 rounded-xl mb-6">
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => setIsLogin(true)}
                     className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
-                      isLogin ? 'bg-white/10 text-white shadow-lg border border-white/10' : 'text-gray-400 hover:text-white'
+                      isLogin
+                        ? 'bg-white text-gray-900 shadow-lg'
+                        : 'text-gray-400 hover:text-white'
                     }`}
                   >
                     Masuk
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => setIsLogin(false)}
                     className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
-                      !isLogin ? 'bg-white/10 text-white shadow-lg border border-white/10' : 'text-gray-400 hover:text-white'
+                      !isLogin
+                        ? 'bg-white text-gray-900 shadow-lg'
+                        : 'text-gray-400 hover:text-white'
                     }`}
                   >
                     Daftar
-                  </button>
+                  </motion.button>
                 </div>
 
                 <div className="mb-6">
@@ -1496,13 +1495,17 @@ export default function LandingPage() {
                     {isLogin ? 'Selamat Datang Kembali!' : 'Buat Akun'}
                   </h3>
                   <p className="text-gray-400">
-                    {isLogin ? 'Masuk untuk melanjutkan trading' : 'Bergabung dengan ribuan trader sukses'}
+                    {isLogin 
+                      ? 'Masuk untuk melanjutkan trading' 
+                      : 'Bergabung dengan ribuan trader sukses'}
                   </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Alamat Email</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Alamat Email
+                    </label>
                     <input
                       type="email"
                       value={email}
@@ -1510,12 +1513,15 @@ export default function LandingPage() {
                       placeholder="anda@example.com"
                       required
                       disabled={loading}
-                      className="w-full bg-[#0a0e17] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      autoComplete="email"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Password
+                    </label>
                     <input
                       type="password"
                       value={password}
@@ -1523,20 +1529,21 @@ export default function LandingPage() {
                       placeholder="••••••••"
                       required
                       disabled={loading}
-                      className="w-full bg-[#0a0e17] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      autoComplete="current-password"
                     />
                   </div>
 
                   <motion.button
-                    type="submit"
-                    disabled={loading}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full px-6 py-3.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600 rounded-lg text-lg font-semibold text-white transition-all shadow-lg disabled:opacity-50 mt-6"
+                    type="submit"
+                    disabled={loading}
+                    className="w-full px-6 py-3.5 bg-white text-gray-900 hover:bg-gray-100 rounded-lg text-lg font-semibold transition-colors shadow-lg disabled:opacity-50 mt-6"
                   >
                     {loading ? (
                       <span className="flex items-center justify-center gap-2">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
                         Memproses...
                       </span>
                     ) : (
@@ -1547,8 +1554,9 @@ export default function LandingPage() {
 
                 {isLogin && (
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
                     className="mt-6 p-4 bg-gradient-to-br from-blue-500/10 to-emerald-500/10 border border-blue-500/20 rounded-xl"
                   >
                     <div className="flex items-start gap-3">
@@ -1563,6 +1571,69 @@ export default function LandingPage() {
                         </div>
                       </div>
                     </div>
+                  </motion.div>
+                )}
+
+                <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-white/10"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-4 bg-[#0f1419] text-gray-400">Atau lanjutkan dengan</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <motion.button 
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                    </svg>
+                    <span className="text-sm font-medium">Google</span>
+                  </motion.button>
+                  <motion.button 
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/>
+                    </svg>
+                    <span className="text-sm font-medium">Facebook</span>
+                  </motion.button>
+                </div>
+
+                {!isLogin && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="mt-6 space-y-3"
+                  >
+                    {[
+                      { text: 'Akun demo gratis $10,000', color: 'emerald' },
+                      { text: 'Tanpa kartu kredit', color: 'blue' },
+                      { text: 'Dukungan pelanggan 24/7', color: 'purple' }
+                    ].map((item, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3 + i * 0.1 }}
+                        className="flex items-center gap-3 text-sm"
+                      >
+                        <div className={`w-6 h-6 bg-${item.color}-500/20 rounded-lg flex items-center justify-center`}>
+                          <Check className={`w-4 h-4 text-${item.color}-400`} />
+                        </div>
+                        <span className="text-gray-300">{item.text}</span>
+                      </motion.div>
+                    ))}
                   </motion.div>
                 )}
 
