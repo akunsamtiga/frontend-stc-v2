@@ -1139,8 +1139,9 @@ const handleTouchEnd = () => {
             </p>
           </div>
 
-          <div className="max-w-5xl mx-auto">
-            <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-6 gap-3 sm:gap-4">
+          <div className="max-w-5xl mx-auto space-y-3 sm:space-y-4">
+            {/* Baris 1 - 6 items */}
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-4">
               {[
                 { name: 'Mandiri', logo: '/mandiri.webp' },
                 { name: 'BRI', logo: '/bri.webp' },
@@ -1148,6 +1149,24 @@ const handleTouchEnd = () => {
                 { name: 'GoPay', logo: '/gopay.webp' },
                 { name: 'OVO', logo: '/ovo.webp' },
                 { name: 'DANA', logo: '/dana.webp' },
+              ].map((item) => (
+                <div key={item.name} className="bg-white border border-gray-200 rounded-lg sm:rounded-xl p-4 sm:p-6 transition-all hover:shadow-md">
+                  <div className="relative h-8 sm:h-12 flex items-center justify-center">
+                    <Image 
+                      src={item.logo} 
+                      alt={item.name}
+                      width={120}
+                      height={40}
+                      className="h-full w-auto object-contain"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Baris 2 - 5 items */}
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 sm:gap-4">
+              {[
                 { name: 'LinkAja', logo: '/linkaja.webp' },
                 { name: 'Visa', logo: '/visa.webp' },
                 { name: 'Mastercard', logo: '/mastercard.webp' },
