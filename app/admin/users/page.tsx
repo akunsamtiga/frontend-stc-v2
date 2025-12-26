@@ -17,14 +17,20 @@ import {
   Eye,
   X,
   Check,
-  AlertTriangle
+  AlertTriangle,
+  Shield,
+  CheckCircle,
+  XCircle,
+  Calendar
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatCurrency } from '@/lib/utils'
 
+// ✅ FIXED: Type with proper null handling
 interface UserData {
   id: string
   email: string
-  role: string
+  role: string | null | undefined
   isActive: boolean
   createdAt: string
   currentBalance?: number
@@ -69,14 +75,52 @@ export default function AdminUsersPage() {
   const loadUsers = async () => {
     try {
       const response = await api.getAllUsersWithBalance()
-      const usersList = response?.data?.users || response?.users || []
-      setUsers(usersList)
+      const rawUsers = response?.data?.users || response?.users || []
+      
+      // ✅ FIXED: Sanitize all user data to prevent crashes
+      const sanitizedUsers = rawUsers.map((u: any) => ({
+        id: u.id || '',
+        email: u.email || 'No email',
+        role: u.role || 'user', // ✅ Default to 'user' if undefined
+        isActive: u.isActive !== undefined ? u.isActive : true,
+        createdAt: u.createdAt || new Date().toISOString(),
+        currentBalance: u.currentBalance || 0,
+      }))
+      
+      setUsers(sanitizedUsers)
     } catch (error) {
       console.error('Failed to load users:', error)
       toast.error('Failed to load users')
+      setUsers([])
     } finally {
       setLoading(false)
     }
+  }
+
+  // ✅ FIXED: Safe role formatting function
+  const formatRole = (role: string | null | undefined): string => {
+    if (!role) return 'User'
+    return role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+  }
+
+  // ✅ FIXED: Safe role color function
+  const getRoleColor = (role: string | null | undefined): string => {
+    if (!role) return 'bg-gray-500/10 text-gray-400'
+    
+    switch (role.toLowerCase()) {
+      case 'super_admin':
+        return 'bg-red-500/10 text-red-400'
+      case 'admin':
+        return 'bg-purple-500/10 text-purple-400'
+      default:
+        return 'bg-blue-500/10 text-blue-400'
+    }
+  }
+
+  // ✅ FIXED: Safe role check function
+  const getUserRole = (role: string | null | undefined): string => {
+    if (!role) return 'user'
+    return role.toLowerCase()
   }
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -162,9 +206,21 @@ export default function AdminUsersPage() {
   // Filter users
   const filteredUsers = users.filter(u => {
     const matchesSearch = u.email.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesRole = filterRole === 'all' || u.role === filterRole
+    const userRole = getUserRole(u.role)
+    const matchesRole = filterRole === 'all' || userRole === filterRole
     return matchesSearch && matchesRole
   })
+
+  // Stats
+  const stats = {
+    total: users.length,
+    active: users.filter(u => u.isActive).length,
+    admins: users.filter(u => {
+      const role = getUserRole(u.role)
+      return role === 'super_admin' || role === 'admin'
+    }).length,
+    totalBalance: users.reduce((sum, u) => sum + (u.currentBalance || 0), 0),
+  }
 
   if (loading) {
     return (
@@ -173,7 +229,7 @@ export default function AdminUsersPage() {
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
           <div className="text-center">
             <div className="w-12 h-12 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-            <div className="text-sm text-gray-400">Loading...</div>
+            <div className="text-sm text-gray-400">Loading users...</div>
           </div>
         </div>
       </div>
@@ -188,20 +244,57 @@ export default function AdminUsersPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
+            <div className="flex items-center gap-3 mb-2">
               <Users className="w-8 h-8 text-blue-400" />
-              User Management
-            </h1>
-            <p className="text-gray-400">{users.length} total users</p>
+              <h1 className="text-3xl font-bold">User Management</h1>
+            </div>
+            <p className="text-gray-400">Manage platform users and permissions</p>
           </div>
           
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-xl font-semibold transition-all"
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-blue-600 hover:to-emerald-600 rounded-xl font-semibold shadow-lg transition-all"
           >
             <Plus className="w-5 h-5" />
             Create User
           </button>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <Users className="w-5 h-5 text-blue-400" />
+              <span className="text-sm text-gray-400">Total Users</span>
+            </div>
+            <div className="text-3xl font-bold">{stats.total}</div>
+          </div>
+
+          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <CheckCircle className="w-5 h-5 text-green-400" />
+              <span className="text-sm text-gray-400">Active</span>
+            </div>
+            <div className="text-3xl font-bold text-green-400">{stats.active}</div>
+          </div>
+
+          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <Shield className="w-5 h-5 text-purple-400" />
+              <span className="text-sm text-gray-400">Admins</span>
+            </div>
+            <div className="text-3xl font-bold text-purple-400">{stats.admins}</div>
+          </div>
+
+          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <DollarSign className="w-5 h-5 text-yellow-400" />
+              <span className="text-sm text-gray-400">Total Balance</span>
+            </div>
+            <div className="text-2xl font-bold font-mono text-yellow-400">
+              {formatCurrency(stats.totalBalance)}
+            </div>
+          </div>
         </div>
 
         {/* Filters */}
@@ -212,7 +305,7 @@ export default function AdminUsersPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by email..."
+              placeholder="Search users by email..."
               className="w-full bg-[#0f1419] border border-gray-800/50 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500/50 transition-colors"
             />
           </div>
@@ -234,174 +327,188 @@ export default function AdminUsersPage() {
 
         {/* Users Table */}
         <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl overflow-hidden">
-          {/* Desktop Table */}
-          <div className="hidden lg:block overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="text-left text-xs text-gray-500 border-b border-gray-800/50">
-                  <th className="py-4 px-6 font-medium">Email</th>
-                  <th className="py-4 px-6 font-medium">Role</th>
-                  <th className="py-4 px-6 font-medium text-right">Balance</th>
-                  <th className="py-4 px-6 font-medium text-center">Status</th>
-                  <th className="py-4 px-6 font-medium text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-800/30">
-                {filteredUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-[#1a1f2e] transition-colors">
-                    <td className="py-4 px-6">
-                      <div className="font-medium">{u.email}</div>
-                      <div className="text-xs text-gray-500">
-                        {new Date(u.createdAt).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
-                        u.role === 'super_admin' ? 'bg-red-500/10 text-red-400' :
-                        u.role === 'admin' ? 'bg-purple-500/10 text-purple-400' :
-                        'bg-blue-500/10 text-blue-400'
-                      }`}>
-                        {u.role.replace('_', ' ').toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-right font-mono">
-                      {new Intl.NumberFormat('id-ID', { 
-                        style: 'currency', 
-                        currency: 'IDR',
-                        minimumFractionDigits: 0 
-                      }).format(u.currentBalance || 0)}
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="flex justify-center">
-                        <button
-                          onClick={() => handleToggleActive(u.id, u.isActive)}
-                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                            u.isActive 
-                              ? 'bg-green-500/10 text-green-400 hover:bg-green-500/20' 
-                              : 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                          }`}
-                        >
-                          {u.isActive ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                          {u.isActive ? 'Active' : 'Inactive'}
-                        </button>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => router.push(`/admin/users/${u.id}`)}
-                          className="p-2 hover:bg-blue-500/10 rounded-lg transition-colors"
-                          title="View Details"
-                        >
-                          <Eye className="w-4 h-4 text-blue-400" />
-                        </button>
-                        
-                        {user.role === 'super_admin' && (
-                          <button
-                            onClick={() => {
-                              setSelectedUser(u)
-                              setShowBalanceModal(true)
-                            }}
-                            className="p-2 hover:bg-emerald-500/10 rounded-lg transition-colors"
-                            title="Manage Balance"
-                          >
-                            <DollarSign className="w-4 h-4 text-emerald-400" />
-                          </button>
-                        )}
-                        
-                        {user.role === 'super_admin' && u.role !== 'super_admin' && (
-                          <button
-                            onClick={() => {
-                              setSelectedUser(u)
-                              setShowDeleteModal(true)
-                            }}
-                            className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
-                            title="Delete User"
-                          >
-                            <Trash2 className="w-4 h-4 text-red-400" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {filteredUsers.length === 0 ? (
+            <div className="text-center py-20">
+              <Users className="w-16 h-16 mx-auto mb-4 text-gray-700 opacity-20" />
+              <p className="text-gray-400 mb-1">No users found</p>
+              <p className="text-sm text-gray-500">
+                {searchQuery ? 'Try a different search query' : 'Add your first user to get started'}
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Desktop Table */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-xs text-gray-500 border-b border-gray-800/50">
+                      <th className="py-4 px-6 font-medium">User</th>
+                      <th className="py-4 px-6 font-medium">Role</th>
+                      <th className="py-4 px-6 font-medium text-right">Balance</th>
+                      <th className="py-4 px-6 font-medium text-center">Status</th>
+                      <th className="py-4 px-6 font-medium text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800/30">
+                    {filteredUsers.map((u) => (
+                      <tr key={u.id} className="hover:bg-[#1a1f2e] transition-colors">
+                        <td className="py-4 px-6">
+                          <div className="font-medium">{u.email}</div>
+                          <div className="text-xs text-gray-500 flex items-center gap-2 mt-1">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(u.createdAt).toLocaleDateString('id-ID', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${getRoleColor(u.role)}`}>
+                            <Shield className="w-3 h-3" />
+                            {formatRole(u.role)}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-right font-mono font-bold">
+                          {formatCurrency(u.currentBalance || 0)}
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex justify-center">
+                            <button
+                              onClick={() => handleToggleActive(u.id, u.isActive)}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                                u.isActive 
+                                  ? 'bg-green-500/10 text-green-400 hover:bg-green-500/20' 
+                                  : 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                              }`}
+                            >
+                              {u.isActive ? (
+                                <>
+                                  <CheckCircle className="w-3 h-3" />
+                                  Active
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle className="w-3 h-3" />
+                                  Inactive
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => router.push(`/admin/users/${u.id}`)}
+                              className="p-2 hover:bg-blue-500/10 rounded-lg transition-colors group"
+                              title="View Details"
+                            >
+                              <Eye className="w-4 h-4 text-blue-400 group-hover:text-blue-300" />
+                            </button>
+                            
+                            {user.role === 'super_admin' && (
+                              <button
+                                onClick={() => {
+                                  setSelectedUser(u)
+                                  setShowBalanceModal(true)
+                                }}
+                                className="p-2 hover:bg-emerald-500/10 rounded-lg transition-colors group"
+                                title="Manage Balance"
+                              >
+                                <DollarSign className="w-4 h-4 text-emerald-400 group-hover:text-emerald-300" />
+                              </button>
+                            )}
+                            
+                            {user.role === 'super_admin' && getUserRole(u.role) !== 'super_admin' && (
+                              <button
+                                onClick={() => {
+                                  setSelectedUser(u)
+                                  setShowDeleteModal(true)
+                                }}
+                                className="p-2 hover:bg-red-500/10 rounded-lg transition-colors group"
+                                title="Delete User"
+                              >
+                                <Trash2 className="w-4 h-4 text-red-400 group-hover:text-red-300" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-          {/* Mobile Cards */}
-          <div className="lg:hidden space-y-3 p-4">
-            {filteredUsers.map((u) => (
-              <div
-                key={u.id}
-                className="bg-[#1a1f2e] border border-gray-800/50 rounded-xl p-4"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <div className="font-medium mb-1">{u.email}</div>
-                    <div className="flex items-center gap-2">
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                        u.role === 'super_admin' ? 'bg-red-500/10 text-red-400' :
-                        u.role === 'admin' ? 'bg-purple-500/10 text-purple-400' :
-                        'bg-blue-500/10 text-blue-400'
-                      }`}>
-                        {u.role.replace('_', ' ')}
-                      </span>
+              {/* Mobile Cards */}
+              <div className="lg:hidden space-y-3 p-4">
+                {filteredUsers.map((u) => (
+                  <div
+                    key={u.id}
+                    className="bg-[#1a1f2e] border border-gray-800/50 rounded-xl p-4"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate mb-2">{u.email}</div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${getRoleColor(u.role)}`}>
+                            <Shield className="w-3 h-3" />
+                            {formatRole(u.role)}
+                          </span>
+                          
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                            u.isActive ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+                          }`}>
+                            {u.isActive ? (
+                              <>
+                                <CheckCircle className="w-3 h-3" />
+                                Active
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="w-3 h-3" />
+                                Inactive
+                              </>
+                            )}
+                          </span>
+                        </div>
+                      </div>
                       
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                        u.isActive ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
-                      }`}>
-                        {u.isActive ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                        {u.isActive ? 'Active' : 'Inactive'}
+                      <ChevronRight className="w-5 h-5 text-gray-600 flex-shrink-0 ml-2" />
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm mb-3 pb-3 border-b border-gray-800/50">
+                      <span className="text-gray-400">Balance</span>
+                      <span className="font-mono font-bold">
+                        {formatCurrency(u.currentBalance || 0)}
                       </span>
                     </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => router.push(`/admin/users/${u.id}`)}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg text-sm font-medium text-blue-400 transition-all"
+                      >
+                        <Eye className="w-4 h-4" />
+                        View
+                      </button>
+                      
+                      {user.role === 'super_admin' && (
+                        <button
+                          onClick={() => {
+                            setSelectedUser(u)
+                            setShowBalanceModal(true)
+                          }}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg text-sm font-medium text-emerald-400 transition-all"
+                        >
+                          <DollarSign className="w-4 h-4" />
+                          Balance
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  
-                  <ChevronRight className="w-5 h-5 text-gray-600" />
-                </div>
-
-                <div className="flex items-center justify-between text-sm mb-3">
-                  <span className="text-gray-400">Balance</span>
-                  <span className="font-mono font-bold">
-                    {new Intl.NumberFormat('id-ID', { 
-                      style: 'currency', 
-                      currency: 'IDR',
-                      minimumFractionDigits: 0 
-                    }).format(u.currentBalance || 0)}
-                  </span>
-                </div>
-
-                <div className="flex gap-2 pt-3 border-t border-gray-800/50">
-                  <button
-                    onClick={() => router.push(`/admin/users/${u.id}`)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg text-sm font-medium text-blue-400 transition-all"
-                  >
-                    <Eye className="w-4 h-4" />
-                    View
-                  </button>
-                  
-                  {user.role === 'super_admin' && (
-                    <button
-                      onClick={() => {
-                        setSelectedUser(u)
-                        setShowBalanceModal(true)
-                      }}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg text-sm font-medium text-emerald-400 transition-all"
-                    >
-                      <DollarSign className="w-4 h-4" />
-                      Balance
-                    </button>
-                  )}
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-
-          {filteredUsers.length === 0 && (
-            <div className="text-center py-16">
-              <Users className="w-16 h-16 mx-auto mb-4 text-gray-700 opacity-20" />
-              <p className="text-gray-400">No users found</p>
-            </div>
+            </>
           )}
         </div>
       </div>
@@ -414,7 +521,7 @@ export default function AdminUsersPage() {
             onClick={() => setShowCreateModal(false)}
           />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-[#0f1419] border border-gray-800/50 rounded-2xl shadow-2xl">
+            <div className="w-full max-w-md bg-[#0f1419] border border-gray-800/50 rounded-2xl shadow-2xl animate-scale-in">
               <div className="p-6 border-b border-gray-800/50">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold">Create New User</h2>
@@ -437,7 +544,7 @@ export default function AdminUsersPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50"
+                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50 transition-colors"
                     placeholder="user@example.com"
                   />
                 </div>
@@ -452,9 +559,12 @@ export default function AdminUsersPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={8}
-                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50"
-                    placeholder="Min. 8 characters"
+                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50 transition-colors"
+                    placeholder="Minimum 8 characters"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Must contain uppercase, lowercase, and number/special character
+                  </p>
                 </div>
 
                 <div>
@@ -464,7 +574,7 @@ export default function AdminUsersPage() {
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50"
+                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50 transition-colors"
                   >
                     <option value="user">User</option>
                     <option value="admin">Admin</option>
@@ -477,9 +587,16 @@ export default function AdminUsersPage() {
                 <button
                   type="submit"
                   disabled={processing}
-                  className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50 py-3 rounded-xl font-semibold transition-all"
+                  className="w-full bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-blue-600 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-xl font-semibold transition-all"
                 >
-                  {processing ? 'Creating...' : 'Create User'}
+                  {processing ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                      Creating...
+                    </span>
+                  ) : (
+                    'Create User'
+                  )}
                 </button>
               </form>
             </div>
@@ -495,7 +612,7 @@ export default function AdminUsersPage() {
             onClick={() => setShowBalanceModal(false)}
           />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-[#0f1419] border border-gray-800/50 rounded-2xl shadow-2xl">
+            <div className="w-full max-w-md bg-[#0f1419] border border-gray-800/50 rounded-2xl shadow-2xl animate-scale-in">
               <div className="p-6 border-b border-gray-800/50">
                 <div className="flex items-center justify-between">
                   <div>
@@ -517,11 +634,7 @@ export default function AdminUsersPage() {
                     Current Balance
                   </label>
                   <div className="text-2xl font-bold font-mono">
-                    {new Intl.NumberFormat('id-ID', { 
-                      style: 'currency', 
-                      currency: 'IDR',
-                      minimumFractionDigits: 0 
-                    }).format(selectedUser.currentBalance || 0)}
+                    {formatCurrency(selectedUser.currentBalance || 0)}
                   </div>
                 </div>
 
@@ -535,7 +648,7 @@ export default function AdminUsersPage() {
                       onClick={() => setBalanceType('deposit')}
                       className={`py-3 rounded-xl font-medium transition-all ${
                         balanceType === 'deposit'
-                          ? 'bg-green-500 text-white'
+                          ? 'bg-green-500 text-white shadow-lg'
                           : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
                       }`}
                     >
@@ -546,7 +659,7 @@ export default function AdminUsersPage() {
                       onClick={() => setBalanceType('withdrawal')}
                       className={`py-3 rounded-xl font-medium transition-all ${
                         balanceType === 'withdrawal'
-                          ? 'bg-red-500 text-white'
+                          ? 'bg-red-500 text-white shadow-lg'
                           : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
                       }`}
                     >
@@ -557,7 +670,7 @@ export default function AdminUsersPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Amount
+                    Amount (IDR)
                   </label>
                   <input
                     type="number"
@@ -566,8 +679,8 @@ export default function AdminUsersPage() {
                     required
                     min="0"
                     step="1000"
-                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 font-mono focus:outline-none focus:border-blue-500/50"
-                    placeholder="0"
+                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 text-lg font-mono focus:outline-none focus:border-blue-500/50 transition-colors"
+                    placeholder="10000"
                   />
                 </div>
 
@@ -580,7 +693,7 @@ export default function AdminUsersPage() {
                     value={balanceDescription}
                     onChange={(e) => setBalanceDescription(e.target.value)}
                     required
-                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50"
+                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50 transition-colors"
                     placeholder="Admin adjustment"
                   />
                 </div>
@@ -588,13 +701,20 @@ export default function AdminUsersPage() {
                 <button
                   type="submit"
                   disabled={processing}
-                  className={`w-full py-3 rounded-xl font-semibold transition-all ${
+                  className={`w-full py-3 rounded-xl font-semibold transition-all shadow-lg ${
                     balanceType === 'deposit'
                       ? 'bg-green-500 hover:bg-green-600'
                       : 'bg-red-500 hover:bg-red-600'
-                  } disabled:opacity-50`}
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  {processing ? 'Processing...' : `Confirm ${balanceType === 'deposit' ? 'Deposit' : 'Withdrawal'}`}
+                  {processing ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                      Processing...
+                    </span>
+                  ) : (
+                    `Confirm ${balanceType === 'deposit' ? 'Deposit' : 'Withdrawal'}`
+                  )}
                 </button>
               </form>
             </div>
@@ -610,7 +730,7 @@ export default function AdminUsersPage() {
             onClick={() => setShowDeleteModal(false)}
           />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-[#0f1419] border border-red-500/30 rounded-2xl shadow-2xl">
+            <div className="w-full max-w-md bg-[#0f1419] border border-red-500/30 rounded-2xl shadow-2xl animate-scale-in">
               <div className="p-6 border-b border-gray-800/50">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center">
@@ -618,7 +738,7 @@ export default function AdminUsersPage() {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold">Delete User</h2>
-                    <p className="text-sm text-gray-400">This action cannot be undone</p>
+                    <p className="text-sm text-red-400">This action cannot be undone</p>
                   </div>
                 </div>
               </div>
@@ -626,6 +746,10 @@ export default function AdminUsersPage() {
               <div className="p-6">
                 <p className="text-gray-300 mb-6">
                   Are you sure you want to delete <span className="font-bold text-white">{selectedUser.email}</span>?
+                  <br />
+                  <span className="text-sm text-gray-400 mt-2 block">
+                    All user data including balance and trading history will be permanently deleted.
+                  </span>
                 </p>
 
                 <div className="flex gap-3">
@@ -638,9 +762,16 @@ export default function AdminUsersPage() {
                   <button
                     onClick={handleDeleteUser}
                     disabled={processing}
-                    className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 disabled:opacity-50 rounded-xl font-semibold transition-all"
+                    className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold transition-all"
                   >
-                    {processing ? 'Deleting...' : 'Delete'}
+                    {processing ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                        Deleting...
+                      </span>
+                    ) : (
+                      'Delete User'
+                    )}
                   </button>
                 </div>
               </div>
@@ -648,6 +779,23 @@ export default function AdminUsersPage() {
           </div>
         </>
       )}
+
+      <style jsx>{`
+        @keyframes scale-in {
+          from {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        .animate-scale-in {
+          animation: scale-in 0.2s ease-out;
+        }
+      `}</style>
     </div>
   )
 }
