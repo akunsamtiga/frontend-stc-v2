@@ -1,4 +1,4 @@
-// app/trading/page.tsx - FIXED VERSION (No completed orders in chart)
+// app/trading/page.tsx - INSTANT ORDER COMPLETION DETECTION
 'use client'
 
 import { useEffect, useState, useCallback, memo, useRef } from 'react'
@@ -100,7 +100,12 @@ export default function TradingPage() {
   const [activeOrders, setActiveOrders] = useState<BinaryOrder[]>([])
   const [completedOrders, setCompletedOrders] = useState<BinaryOrder[]>([])
   const [notificationOrder, setNotificationOrder] = useState<BinaryOrder | null>(null)
+  
+  // ✅ NEW: Track order states untuk instant detection
   const previousOrdersRef = useRef<Map<string, BinaryOrder>>(new Map())
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const nearExpiryCheckRef = useRef<NodeJS.Timeout | null>(null)
+  
   const [showAssetMenu, setShowAssetMenu] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showHistorySidebar, setShowHistorySidebar] = useState(false)
@@ -111,23 +116,19 @@ export default function TradingPage() {
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [walletLoading, setWalletLoading] = useState(false)
 
-  // Load data on mount
+  // ✅ Load data on mount
   useEffect(() => {
     if (!user) {
       router.push('/')
       return
     }
     
-    // Load data and prefetch default asset
     const initializeData = async () => {
       await loadData()
       
-      // Prefetch default asset untuk instant chart loading
       if (selectedAsset && selectedAsset.realtimeDbPath) {
         const pathParts = selectedAsset.realtimeDbPath.split('/') || []
         const assetPath = pathParts.slice(0, -1).join('/') || `/${selectedAsset.symbol.toLowerCase()}`
-        
-        // Prefetch in background (tidak blocking UI)
         prefetchDefaultAsset(assetPath).catch(console.error)
       }
     }
@@ -135,6 +136,7 @@ export default function TradingPage() {
     initializeData()
   }, [user, router])
 
+  // ✅ Price subscription
   useEffect(() => {
     if (!selectedAsset) return
 
@@ -144,7 +146,7 @@ export default function TradingPage() {
       console.log('📡 Subscribing to price:', selectedAsset.realtimeDbPath)
       
       unsubscribe = subscribeToPriceUpdates(selectedAsset.realtimeDbPath, (data) => {
-        console.log('💰 Price update:', data.price) // Debug log
+        console.log('💰 Price update:', data.price)
         setCurrentPrice(data)
         addPriceToHistory(data)
       })
@@ -158,65 +160,179 @@ export default function TradingPage() {
     }
   }, [selectedAsset?.id])
 
-  // Auto-refresh active orders every 5 seconds
+  // ✅ ULTRA-AGGRESSIVE POLLING dengan adaptive interval
   useEffect(() => {
     if (!user) return
 
-    const interval = setInterval(() => {
-      loadData()
-    }, 5000)
+    const startAdaptivePolling = () => {
+      // Clear existing interval
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+      }
+      
+      const poll = async () => {
+        try {
+          const ordersRes = await api.getOrders(undefined, 1, 100)
+          const allOrders = ordersRes?.data?.orders || ordersRes?.orders || []
+          
+          const active = allOrders.filter((o: BinaryOrder) => o.status === 'ACTIVE')
+          const completed = allOrders.filter((o: BinaryOrder) => 
+            o.status === 'WON' || o.status === 'LOST'
+          )
 
-    return () => clearInterval(interval)
-  }, [user])
+          // ✅ INSTANT DETECTION - Check for status changes
+          detectOrderCompletion(active, completed)
+
+          setActiveOrders(active)
+          setCompletedOrders(completed.slice(0, 10))
+
+        } catch (error) {
+          console.error('Polling error:', error)
+        }
+      }
+
+      // ✅ Tentukan interval berdasarkan active orders
+      const getPollingInterval = () => {
+        const hasActiveOrders = activeOrders.length > 0
+        
+        // Cek apakah ada order yang akan expire dalam 10 detik
+        const hasNearExpiry = activeOrders.some(order => {
+          const timeLeft = new Date(order.exit_time!).getTime() - Date.now()
+          return timeLeft > 0 && timeLeft < 10000 // < 10 seconds
+        })
+
+        if (hasNearExpiry) {
+          return 1000 // ✅ SUPER FAST: 1 detik saat order hampir selesai
+        } else if (hasActiveOrders) {
+          return 2000 // ✅ FAST: 2 detik saat ada active orders
+        } else {
+          return 5000 // ✅ NORMAL: 5 detik saat tidak ada active orders
+        }
+      }
+
+      // Initial poll
+      poll()
+
+      // Start polling with adaptive interval
+      const interval = getPollingInterval()
+      pollingIntervalRef.current = setInterval(poll, interval)
+      
+      console.log(`🔄 Polling started: ${interval}ms interval`)
+    }
+
+    startAdaptivePolling()
+
+    // ✅ Restart polling dengan interval baru saat activeOrders berubah
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+      }
+    }
+  }, [user, activeOrders.length]) // Re-run saat jumlah active orders berubah
+
+  // ✅ CLIENT-SIDE COUNTDOWN CHECK - cek setiap detik
+  useEffect(() => {
+    if (activeOrders.length === 0) {
+      if (nearExpiryCheckRef.current) {
+        clearInterval(nearExpiryCheckRef.current)
+      }
+      return
+    }
+
+    nearExpiryCheckRef.current = setInterval(() => {
+      const now = Date.now()
+      
+      activeOrders.forEach(order => {
+        const exitTime = new Date(order.exit_time!).getTime()
+        const timeLeft = exitTime - now
+
+        // ✅ Jika order sudah melewati waktu expiry
+        if (timeLeft <= 0) {
+          console.log(`⏰ Order ${order.id} should be expired! Forcing refresh...`)
+          // Force refresh immediate
+          loadData()
+        }
+        
+        // ✅ Jika order akan expire dalam 3 detik, polling lebih agresif
+        if (timeLeft > 0 && timeLeft < 3000) {
+          console.log(`⚡ Order ${order.id} expiring in ${Math.round(timeLeft/1000)}s - Forcing check...`)
+          loadData()
+        }
+      })
+    }, 1000) // Check setiap detik
+
+    return () => {
+      if (nearExpiryCheckRef.current) {
+        clearInterval(nearExpiryCheckRef.current)
+      }
+    }
+  }, [activeOrders])
+
+  // ✅ INSTANT DETECTION function
+  const detectOrderCompletion = useCallback((active: BinaryOrder[], completed: BinaryOrder[]) => {
+    // Update previousOrders dengan active orders saat ini
+    active.forEach((order: BinaryOrder) => {
+      previousOrdersRef.current.set(order.id, order)
+    })
+
+    // Check untuk newly completed orders
+    completed.forEach((order: BinaryOrder) => {
+      const previousOrder = previousOrdersRef.current.get(order.id)
+      
+      // ✅ Jika order sebelumnya ACTIVE dan sekarang completed
+      if (previousOrder && previousOrder.status === 'ACTIVE' && 
+          (order.status === 'WON' || order.status === 'LOST')) {
+        
+        console.log('🎯 INSTANT DETECTION! Order completed:', order.id, order.status)
+        
+        // Show notification immediately
+        setNotificationOrder(order)
+        
+        // Play sound
+        if (typeof window !== 'undefined') {
+          const audio = new Audio(order.status === 'WON' ? '/sounds/win.mp3' : '/sounds/lose.mp3')
+          audio.volume = 0.3
+          audio.play().catch(e => console.log('Audio play failed:', e))
+        }
+        
+        // Remove from tracking
+        previousOrdersRef.current.delete(order.id)
+        
+        // Force balance refresh
+        setTimeout(() => {
+          api.getCurrentBalance().then(res => {
+            const newBalance = res?.data?.balance || res?.balance || 0
+            setBalance(newBalance)
+          })
+        }, 500)
+      }
+    })
+  }, [])
 
   const loadData = useCallback(async () => {
     try {
       const [assetsRes, balanceRes, ordersRes] = await Promise.all([
         api.getAssets(true),
         api.getCurrentBalance(),
-        api.getOrders(undefined, 1, 100), // Get ALL orders
+        api.getOrders(undefined, 1, 100),
       ])
 
       const assetsList = assetsRes?.data?.assets || assetsRes?.assets || []
       const currentBalance = balanceRes?.data?.balance || balanceRes?.balance || 0
       const allOrders = ordersRes?.data?.orders || ordersRes?.orders || []
 
-      // Separate active and completed orders
       const active = allOrders.filter((o: BinaryOrder) => o.status === 'ACTIVE')
       const completed = allOrders.filter((o: BinaryOrder) => 
         o.status === 'WON' || o.status === 'LOST'
       )
 
-      // DETECT ORDER STATUS CHANGES FOR NOTIFICATION
-      active.forEach((order: BinaryOrder) => {
-        previousOrdersRef.current.set(order.id, order)
-      })
-
-      // Check for newly completed orders
-      completed.forEach((order: BinaryOrder) => {
-        const previousOrder = previousOrdersRef.current.get(order.id)
-        
-        // If order was ACTIVE before and now completed, show notification
-        if (previousOrder && previousOrder.status === 'ACTIVE' && 
-            (order.status === 'WON' || order.status === 'LOST')) {
-          console.log('🎯 Order completed! Showing notification:', order)
-          setNotificationOrder(order)
-          
-          // Play sound (optional)
-          if (typeof window !== 'undefined') {
-            const audio = new Audio(order.status === 'WON' ? '/sounds/win.mp3' : '/sounds/lose.mp3')
-            audio.volume = 0.3
-            audio.play().catch(e => console.log('Audio play failed:', e))
-          }
-          
-          previousOrdersRef.current.delete(order.id)
-        }
-      })
+      // ✅ Check for completions
+      detectOrderCompletion(active, completed)
 
       setAssets(assetsList)
       setBalance(currentBalance)
       setActiveOrders(active)
-      setCompletedOrders(completed.slice(0, 10)) // Keep last 10 completed for notification only
+      setCompletedOrders(completed.slice(0, 10))
 
       if (assetsList.length > 0 && !selectedAsset) {
         setSelectedAsset(assetsList[0])
@@ -228,7 +344,7 @@ export default function TradingPage() {
       setActiveOrders([])
       setCompletedOrders([])
     }
-  }, [selectedAsset])
+  }, [selectedAsset, detectOrderCompletion])
 
   const handlePlaceOrder = useCallback(async (direction: 'CALL' | 'PUT') => {
     if (!selectedAsset) {
@@ -256,8 +372,8 @@ export default function TradingPage() {
       toast.success(`${direction} order placed successfully!`)
       setBalance((prev) => prev - amount)
       
-      // Reload data immediately to update active orders
-      setTimeout(loadData, 500)
+      // ✅ Reload immediately
+      setTimeout(loadData, 300)
     } catch (error: any) {
       const errorMsg = error?.response?.data?.error || 'Failed to place order'
       toast.error(errorMsg)
@@ -621,9 +737,7 @@ export default function TradingPage() {
       {/* Mobile Trading Panel */}
       <div className="lg:hidden bg-[#0f1419] border-t border-gray-800/50 p-3">
         <div className="space-y-3">
-          {/* Amount & Duration */}
           <div className="grid grid-cols-2 gap-3">
-            {/* Amount with Dropdown */}
             <div className="relative">
               <label className="text-xs text-gray-400 mb-1.5 block font-medium">Amount</label>
               <div className="relative">
@@ -643,7 +757,6 @@ export default function TradingPage() {
                 </button>
               </div>
 
-              {/* Quick Amount Dropdown */}
               {showAmountDropdown && (
                 <>
                   <div 
@@ -670,7 +783,6 @@ export default function TradingPage() {
               )}
             </div>
 
-            {/* Duration */}
             <div className="relative">
               <label className="text-xs text-gray-400 mb-1.5 block font-medium">Duration</label>
               <select
@@ -685,7 +797,6 @@ export default function TradingPage() {
             </div>
           </div>
 
-          {/* Potential Payout */}
           {selectedAsset && (
             <div className="flex justify-center">
               <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-full px-4 py-2">
@@ -698,7 +809,6 @@ export default function TradingPage() {
             </div>
           )}
 
-          {/* Trade Buttons */}
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => handlePlaceOrder('CALL')}
