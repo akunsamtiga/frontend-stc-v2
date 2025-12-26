@@ -9,15 +9,11 @@ import {
   Mail, 
   Shield, 
   Calendar,
-  CheckCircle,
-  XCircle,
-  Settings,
   Lock,
   Bell,
   Eye,
   EyeOff,
-  Save,
-  LogOut
+  Save
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -54,7 +50,6 @@ export default function ProfilePage() {
 
     setLoading(true)
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500))
       toast.success('Password updated successfully!')
       setCurrentPassword('')
@@ -75,116 +70,72 @@ export default function ProfilePage() {
 
   if (!user) return null
 
+  const tabs = [
+    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'security', label: 'Security', icon: Lock },
+    { id: 'preferences', label: 'Preferences', icon: Bell }
+  ]
+
   return (
-    <div className="min-h-screen bg-[#0a0e17]">
+    <div className="min-h-screen bg-[#fafafa]">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-6 max-w-6xl">
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
         {/* Page Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Account Settings</h1>
-          <p className="text-sm text-gray-400">Manage your account information and preferences</p>
+        <div className="mb-8">
+          <h1 className="flat-section-title">Account Settings</h1>
+          <p className="flat-section-description">Manage your account information and preferences</p>
         </div>
 
         <div className="grid lg:grid-cols-12 gap-6">
-          {/* Sidebar - Profile Card */}
-          <div className="lg:col-span-4 space-y-6">
+          {/* Sidebar */}
+          <div className="lg:col-span-4">
             {/* User Card */}
-            <div className="bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-emerald-500/20 border border-blue-500/30 rounded-2xl p-6 backdrop-blur-xl animate-fade-in-up">
+            <div className="flat-card mb-6">
               <div className="flex flex-col items-center text-center">
-                <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
-                  <User className="w-12 h-12 text-white" />
+                <div className="w-20 h-20 rounded-full bg-blue-500 text-white flex items-center justify-center text-2xl font-bold mb-4">
+                  {user.email[0].toUpperCase()}
                 </div>
-                <h2 className="text-xl font-bold mb-1">{user.email}</h2>
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/20 border border-blue-500/30 rounded-full">
-                  <Shield className="w-4 h-4 text-blue-400" />
-                  <span className="text-sm font-medium text-blue-400 capitalize">
-                    {user.role.replace('_', ' ')}
-                  </span>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">{user.email}</h3>
+                <div className="flat-badge flat-badge-primary">
+                  {user.role.replace('_', ' ')}
                 </div>
-                
-                <div className="flex items-center gap-2 mt-4">
-                  <div className={`w-2 h-2 rounded-full ${user.isActive ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
-                  <span className={`text-sm font-medium ${user.isActive ? 'text-green-400' : 'text-red-400'}`}>
+                <div className="flex items-center gap-2 mt-4 text-sm">
+                  <div className={`w-2 h-2 rounded-full ${user.isActive ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <span className={user.isActive ? 'text-green-700' : 'text-red-700'}>
                     {user.isActive ? 'Active' : 'Inactive'}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Navigation Tabs - Mobile */}
-            <div className="lg:hidden bg-[#0f1419] border border-gray-800/50 rounded-xl p-2">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setActiveTab('profile')}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-all ${
-                    activeTab === 'profile'
-                      ? 'bg-gradient-to-r from-blue-500 to-emerald-500 text-white shadow-lg'
-                      : 'text-gray-400 hover:bg-[#1a1f2e]'
-                  }`}
-                >
-                  <User className="w-4 h-4" />
-                  <span className="text-sm font-medium">Profile</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab('security')}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-all ${
-                    activeTab === 'security'
-                      ? 'bg-gradient-to-r from-blue-500 to-emerald-500 text-white shadow-lg'
-                      : 'text-gray-400 hover:bg-[#1a1f2e]'
-                  }`}
-                >
-                  <Lock className="w-4 h-4" />
-                  <span className="text-sm font-medium">Security</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Navigation Tabs - Desktop */}
-            <div className="hidden lg:block bg-[#0f1419] border border-gray-800/50 rounded-xl overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-              <button
-                onClick={() => setActiveTab('profile')}
-                className={`w-full flex items-center gap-3 px-4 py-3 transition-all border-l-4 ${
-                  activeTab === 'profile'
-                    ? 'bg-[#1a1f2e] border-blue-500 text-white'
-                    : 'border-transparent text-gray-400 hover:bg-[#1a1f2e]'
-                }`}
-              >
-                <User className="w-5 h-5" />
-                <span className="font-medium">Profile Info</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('security')}
-                className={`w-full flex items-center gap-3 px-4 py-3 transition-all border-l-4 ${
-                  activeTab === 'security'
-                    ? 'bg-[#1a1f2e] border-blue-500 text-white'
-                    : 'border-transparent text-gray-400 hover:bg-[#1a1f2e]'
-                }`}
-              >
-                <Lock className="w-5 h-5" />
-                <span className="font-medium">Security</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('preferences')}
-                className={`w-full flex items-center gap-3 px-4 py-3 transition-all border-l-4 ${
-                  activeTab === 'preferences'
-                    ? 'bg-[#1a1f2e] border-blue-500 text-white'
-                    : 'border-transparent text-gray-400 hover:bg-[#1a1f2e]'
-                }`}
-              >
-                <Settings className="w-5 h-5" />
-                <span className="font-medium">Preferences</span>
-              </button>
+            {/* Navigation Tabs */}
+            <div className="flat-card p-2 space-y-1">
+              {tabs.map((tab) => {
+                const Icon = tab.icon
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                      activeTab === tab.id
+                        ? 'bg-gray-100 text-gray-900 font-medium'
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span>{tab.label}</span>
+                  </button>
+                )
+              })}
             </div>
 
             {/* Logout Button */}
             <button
               onClick={handleLogout}
-              className="hidden lg:flex w-full items-center justify-center gap-2 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 font-medium transition-all animate-fade-in-up"
-              style={{ animationDelay: '0.2s' }}
+              className="mt-6 w-full flat-btn flat-btn-danger"
             >
-              <LogOut className="w-5 h-5" />
-              <span>Logout</span>
+              Logout
             </button>
           </div>
 
@@ -192,66 +143,67 @@ export default function ProfilePage() {
           <div className="lg:col-span-8">
             {/* Profile Tab */}
             {activeTab === 'profile' && (
-              <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6 animate-fade-in-up">
-                <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                  <User className="w-6 h-6 text-blue-400" />
-                  Profile Information
-                </h3>
+              <div className="flat-card">
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Profile Information</h3>
 
                 <div className="space-y-4">
                   {/* Email */}
-                  <div className="flex items-center gap-4 p-4 bg-[#1a1f2e] border border-gray-800/50 rounded-xl">
-                    <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Mail className="w-6 h-6 text-blue-400" />
+                  <div className="flat-list-item">
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                        <Mail className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm text-gray-500 mb-1">Email Address</div>
+                        <div className="font-medium text-gray-900">{user.email}</div>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm text-gray-400 mb-1">Email Address</div>
-                      <div className="font-medium truncate">{user.email}</div>
-                    </div>
-                    <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+                    <div className="flat-badge flat-badge-success">Verified</div>
                   </div>
 
                   {/* Role */}
-                  <div className="flex items-center gap-4 p-4 bg-[#1a1f2e] border border-gray-800/50 rounded-xl">
-                    <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Shield className="w-6 h-6 text-purple-400" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-sm text-gray-400 mb-1">Account Type</div>
-                      <div className="font-medium capitalize">{user.role.replace('_', ' ')}</div>
+                  <div className="flat-list-item">
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                        <Shield className="w-5 h-5 text-purple-600" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm text-gray-500 mb-1">Account Type</div>
+                        <div className="font-medium text-gray-900 capitalize">{user.role.replace('_', ' ')}</div>
+                      </div>
                     </div>
                   </div>
 
                   {/* Status */}
-                  <div className="flex items-center gap-4 p-4 bg-[#1a1f2e] border border-gray-800/50 rounded-xl">
-                    <div className={`w-12 h-12 ${user.isActive ? 'bg-green-500/20' : 'bg-red-500/20'} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                      {user.isActive ? (
-                        <CheckCircle className="w-6 h-6 text-green-400" />
-                      ) : (
-                        <XCircle className="w-6 h-6 text-red-400" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-sm text-gray-400 mb-1">Account Status</div>
-                      <div className={`font-medium ${user.isActive ? 'text-green-400' : 'text-red-400'}`}>
-                        {user.isActive ? 'Active' : 'Inactive'}
+                  <div className="flat-list-item">
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className={`w-10 h-10 ${user.isActive ? 'bg-green-50' : 'bg-red-50'} rounded-lg flex items-center justify-center`}>
+                        <div className={`w-3 h-3 rounded-full ${user.isActive ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm text-gray-500 mb-1">Account Status</div>
+                        <div className={`font-medium ${user.isActive ? 'text-green-700' : 'text-red-700'}`}>
+                          {user.isActive ? 'Active' : 'Inactive'}
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Member Since */}
-                  <div className="flex items-center gap-4 p-4 bg-[#1a1f2e] border border-gray-800/50 rounded-xl">
-                    <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Calendar className="w-6 h-6 text-emerald-400" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-sm text-gray-400 mb-1">Member Since</div>
-                      <div className="font-medium">
-                        {new Date().toLocaleDateString('en-US', { 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric' 
-                        })}
+                  <div className="flat-list-item">
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center">
+                        <Calendar className="w-5 h-5 text-gray-600" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm text-gray-500 mb-1">Member Since</div>
+                        <div className="font-medium text-gray-900">
+                          {new Date().toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          })}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -261,15 +213,12 @@ export default function ProfilePage() {
 
             {/* Security Tab */}
             {activeTab === 'security' && (
-              <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6 animate-fade-in-up">
-                <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                  <Lock className="w-6 h-6 text-blue-400" />
-                  Security Settings
-                </h3>
+              <div className="flat-card">
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Security Settings</h3>
 
                 <form onSubmit={handlePasswordChange} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Current Password
                     </label>
                     <div className="relative">
@@ -277,33 +226,28 @@ export default function ProfilePage() {
                         type={showPassword ? 'text' : 'password'}
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
-                        className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 pr-12 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        className="w-full"
                         placeholder="Enter current password"
                         required
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
-                        {showPassword ? (
-                          <EyeOff className="w-5 h-5" />
-                        ) : (
-                          <Eye className="w-5 h-5" />
-                        )}
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       New Password
                     </label>
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                       placeholder="Enter new password"
                       required
                     />
@@ -313,14 +257,13 @@ export default function ProfilePage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Confirm New Password
                     </label>
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                       placeholder="Confirm new password"
                       required
                     />
@@ -329,7 +272,7 @@ export default function ProfilePage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-blue-600 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed px-6 py-3 rounded-xl font-semibold text-white transition-all shadow-lg mt-6"
+                    className="w-full flat-btn flat-btn-primary flex items-center justify-center gap-2"
                   >
                     {loading ? (
                       <>
@@ -346,18 +289,16 @@ export default function ProfilePage() {
                 </form>
 
                 {/* Two-Factor Authentication */}
-                <div className="mt-6 pt-6 border-t border-gray-800/50">
-                  <div className="flex items-center justify-between p-4 bg-[#1a1f2e] border border-gray-800/50 rounded-xl">
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-                        <Shield className="w-6 h-6 text-yellow-400" />
-                      </div>
+                      <Shield className="w-5 h-5 text-gray-600" />
                       <div>
-                        <div className="font-medium mb-1">Two-Factor Authentication</div>
-                        <div className="text-sm text-gray-400">Add extra security to your account</div>
+                        <div className="font-medium text-gray-900">Two-Factor Authentication</div>
+                        <div className="text-sm text-gray-500">Add extra security to your account</div>
                       </div>
                     </div>
-                    <button className="px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 rounded-lg text-yellow-400 text-sm font-medium transition-all">
+                    <button className="flat-btn flat-btn-secondary text-sm">
                       Enable
                     </button>
                   </div>
@@ -367,95 +308,66 @@ export default function ProfilePage() {
 
             {/* Preferences Tab */}
             {activeTab === 'preferences' && (
-              <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6 animate-fade-in-up">
-                <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                  <Settings className="w-6 h-6 text-blue-400" />
-                  Preferences
-                </h3>
+              <div className="flat-card">
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Preferences</h3>
 
                 <div className="space-y-4">
-                  {/* Notifications */}
-                  <div className="flex items-center justify-between p-4 bg-[#1a1f2e] border border-gray-800/50 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                        <Bell className="w-6 h-6 text-blue-400" />
+                  {/* Email Notifications */}
+                  <div className="flat-list-item">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                        <Bell className="w-5 h-5 text-blue-600" />
                       </div>
                       <div>
-                        <div className="font-medium mb-1">Email Notifications</div>
-                        <div className="text-sm text-gray-400">Receive trading alerts via email</div>
+                        <div className="font-medium text-gray-900">Email Notifications</div>
+                        <div className="text-sm text-gray-500">Receive trading alerts via email</div>
                       </div>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-blue-500 peer-checked:to-emerald-500"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
 
                   {/* Trade Alerts */}
-                  <div className="flex items-center justify-between p-4 bg-[#1a1f2e] border border-gray-800/50 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
-                        <Bell className="w-6 h-6 text-green-400" />
+                  <div className="flat-list-item">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                        <Bell className="w-5 h-5 text-green-600" />
                       </div>
                       <div>
-                        <div className="font-medium mb-1">Trade Alerts</div>
-                        <div className="text-sm text-gray-400">Get notified on trade outcomes</div>
+                        <div className="font-medium text-gray-900">Trade Alerts</div>
+                        <div className="text-sm text-gray-500">Get notified on trade outcomes</div>
                       </div>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" className="sr-only peer" defaultChecked />
-                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-blue-500 peer-checked:to-emerald-500"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
 
                   {/* Sound Effects */}
-                  <div className="flex items-center justify-between p-4 bg-[#1a1f2e] border border-gray-800/50 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                        <Settings className="w-6 h-6 text-purple-400" />
+                  <div className="flat-list-item">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                        <Bell className="w-5 h-5 text-purple-600" />
                       </div>
                       <div>
-                        <div className="font-medium mb-1">Sound Effects</div>
-                        <div className="text-sm text-gray-400">Play sounds on trade events</div>
+                        <div className="font-medium text-gray-900">Sound Effects</div>
+                        <div className="text-sm text-gray-500">Play sounds on trade events</div>
                       </div>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-blue-500 peer-checked:to-emerald-500"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
                 </div>
               </div>
             )}
-
-            {/* Mobile Logout Button */}
-            <button
-              onClick={handleLogout}
-              className="lg:hidden w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 font-medium transition-all mt-6"
-            >
-              <LogOut className="w-5 h-5" />
-              <span>Logout</span>
-            </button>
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes fade-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .animate-fade-in-up {
-          animation: fade-in-up 0.6s ease-out;
-        }
-      `}</style>
     </div>
   )
 }
