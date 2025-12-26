@@ -303,7 +303,7 @@ const handleTouchEnd = () => {
       role: 'Trader Profesional',
       content: 'Platform yang mengubah permainan! Cepat, handal, dan menguntungkan. Saya konsisten profit selama 6 bulan.',
       rating: 5,
-      avatar: 'ðŸ‘¨â€ðŸ’¼',
+      avatar: '👨‍💼',
       profit: '+285%',
       location: 'Jakarta',
       duration: '6 bulan'
@@ -313,7 +313,7 @@ const handleTouchEnd = () => {
       role: 'Trader Paruh Waktu',
       content: 'Sebagai pemula, tampilan interface memudahkan trading. Dukungan hebat dan materi edukasi membantu saya sukses!',
       rating: 5,
-      avatar: 'ðŸ‘©â€ðŸ’»',
+      avatar: '👩‍💻',
       profit: '+142%',
       location: 'Surabaya',
       duration: '3 bulan'
@@ -323,7 +323,7 @@ const handleTouchEnd = () => {
       role: 'Investor Berpengalaman',
       content: 'Platform trading terbaik yang pernah saya gunakan. Kecepatan, keamanan, dan tingkat profit tak tertandingi.',
       rating: 5,
-      avatar: 'ðŸ‘¨â€ðŸŽ“',
+      avatar: '👨‍🎓',
       profit: '+378%',
       location: 'Bandung',
       duration: '1 tahun'
@@ -1123,7 +1123,119 @@ const handleTouchEnd = () => {
         </div>
       </section>
 
+      {/* Payment Methods Section */}
+      <section className="py-16 sm:py-20 relative border-t border-gray-800/50">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-500/10 border border-gray-500/20 rounded-full mb-6">
+              <Shield className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-xs font-medium text-gray-400">Metode Pembayaran Aman</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3 tracking-tight">
+              Deposit & Penarikan Mudah
+            </h2>
+            <p className="text-sm text-gray-400 max-w-xl mx-auto">
+              Berbagai pilihan metode pembayaran untuk kemudahan transaksi Anda
+            </p>
+          </div>
 
+          <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8">
+            {[
+              { 
+                title: 'Bank Transfer', 
+                cols: 'sm:grid-cols-4',
+                items: [
+                  { name: 'BCA', logo: 'https://cdn.worldvectorlogo.com/logos/bca.svg' },
+                  { name: 'Mandiri', logo: 'https://cdn.worldvectorlogo.com/logos/bank-mandiri.svg' },
+                  { name: 'BRI', logo: 'https://cdn.worldvectorlogo.com/logos/bri.svg' },
+                  { name: 'BNI', logo: 'https://cdn.worldvectorlogo.com/logos/bni.svg' },
+                ]
+              },
+              { 
+                title: 'E-Wallet', 
+                cols: 'sm:grid-cols-4',
+                items: [
+                  { name: 'GoPay', logo: 'https://cdn.worldvectorlogo.com/logos/gopay-1.svg' },
+                  { name: 'OVO', logo: 'https://cdn.worldvectorlogo.com/logos/ovo-1.svg' },
+                  { name: 'DANA', logo: 'https://cdn.worldvectorlogo.com/logos/dana-1.svg' },
+                  { name: 'LinkAja', logo: 'https://cdn.worldvectorlogo.com/logos/linkaja.svg' },
+                ]
+              },
+            ].map((section) => (
+              <div key={section.title}>
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <div className="hidden sm:block h-px flex-1 bg-gray-800"></div>
+                  <span className="sm:inline text-center w-full sm:w-auto">{section.title}</span>
+                  <div className="hidden sm:block h-px flex-1 bg-gray-800"></div>
+                </div>
+                <div className={`grid grid-cols-2 ${section.cols} gap-3 sm:gap-4`}>
+                  {section.items.map((item) => (
+                    <div key={item.name} className="group bg-white/5 border border-gray-800/50 rounded-lg sm:rounded-xl p-4 sm:p-6 hover:bg-white/10 hover:border-gray-700 transition-all">
+                      <div className="relative h-8 sm:h-12 flex items-center justify-center">
+                        <img 
+                          src={item.logo} 
+                          alt={item.name}
+                          className="h-full w-auto object-contain filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
+              {[
+                { 
+                  title: 'Kartu Kredit/Debit', 
+                  mobile: 'Kartu', 
+                  items: [
+                    { name: 'Visa', logo: 'https://cdn.worldvectorlogo.com/logos/visa-10.svg' },
+                    { name: 'Mastercard', logo: 'https://cdn.worldvectorlogo.com/logos/mastercard-4.svg' }
+                  ]
+                },
+                { 
+                  title: 'Cryptocurrency', 
+                  mobile: 'Crypto', 
+                  items: [
+                    { name: 'Bitcoin', logo: 'https://cdn.worldvectorlogo.com/logos/bitcoin-6.svg' },
+                    { name: 'Ethereum', logo: 'https://cdn.worldvectorlogo.com/logos/ethereum-1.svg' }
+                  ]
+                }
+              ].map((section) => (
+                <div key={section.title}>
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 sm:mb-4 text-center sm:text-left">
+                    <span className="sm:hidden">{section.mobile}</span>
+                    <span className="hidden sm:inline">{section.title}</span>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-2 sm:gap-3">
+                    {section.items.map((item) => (
+                      <div key={item.name} className="group bg-white/5 border border-gray-800/50 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:bg-white/10 hover:border-gray-700 transition-all">
+                        <div className="relative h-6 sm:h-10 flex items-center justify-center">
+                          <img 
+                            src={item.logo} 
+                            alt={item.name}
+                            className="h-full w-auto object-contain filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-12 text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full">
+              <Shield className="w-4 h-4 text-green-400" />
+              <span className="text-xs text-green-400 font-medium">
+                Semua transaksi dilindungi enkripsi SSL 256-bit
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>      
       {/* Footer */}
       <EnhancedFooter />
 
@@ -1221,7 +1333,7 @@ const handleTouchEnd = () => {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                    placeholder="••••••••"
                     required
                     disabled={loading}
                     className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
