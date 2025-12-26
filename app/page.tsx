@@ -588,6 +588,7 @@ const handleTouchEnd = () => {
     </div>
 
     {/* Mobile - Modern Stack with Clean Indicators */}
+    {/* Mobile - Compact Stack */}
     <div className="sm:hidden relative">
       <div 
         className="relative overflow-hidden"
@@ -595,7 +596,7 @@ const handleTouchEnd = () => {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="relative min-h-[340px]">
+        <div className="relative min-h-[220px]">
           {features.map((feature, index) => {
             const isActive = index === activeFeature
             const offset = index - activeFeature
@@ -614,33 +615,29 @@ const handleTouchEnd = () => {
                 }`}
               >
                 <div className="mx-4 h-full">
-                  <div className="relative h-full bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-6 overflow-hidden">
+                  <div className="relative h-full bg-[#0a0e17] border border-gray-800/50 rounded-xl p-5 overflow-hidden">
                     {/* Subtle bg gradient */}
                     <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-5`}></div>
                     
                     <div className="relative h-full flex flex-col">
-                      {/* Icon - Clean */}
-                      <div className="mb-6">
-                        <div className={`inline-flex w-16 h-16 ${feature.bgColor} ${feature.borderColor} border-2 rounded-2xl items-center justify-center`}>
-                          <feature.icon className={`w-8 h-8 ${feature.color}`} />
+                      {/* Header: Icon + Number */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className={`w-12 h-12 ${feature.bgColor} ${feature.borderColor} border rounded-xl flex items-center justify-center`}>
+                          <feature.icon className={`w-6 h-6 ${feature.color}`} />
+                        </div>
+                        <div className={`w-7 h-7 ${feature.bgColor} rounded-lg flex items-center justify-center border ${feature.borderColor}`}>
+                          <span className={`text-xs font-bold ${feature.color}`}>{index + 1}</span>
                         </div>
                       </div>
 
-                      {/* Content */}
-                      <div className="flex-1 space-y-3">
-                        <h3 className="text-2xl font-bold tracking-tight">{feature.title}</h3>
-                        <p className="text-gray-400 leading-relaxed">{feature.description}</p>
+                      {/* Content - Compact */}
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold tracking-tight mb-2">{feature.title}</h3>
+                        <p className="text-sm text-gray-400 leading-relaxed">{feature.description}</p>
                       </div>
 
-                      {/* Number badge - minimal */}
-                      <div className="absolute top-4 right-4">
-                        <div className={`w-8 h-8 ${feature.bgColor} rounded-lg flex items-center justify-center border ${feature.borderColor}`}>
-                          <span className={`text-sm font-bold ${feature.color}`}>{index + 1}</span>
-                        </div>
-                      </div>
-
-                      {/* Bottom accent */}
-                      <div className={`h-1 w-20 ${feature.bgColor} rounded-full mt-6`}></div>
+                      {/* Bottom accent - thinner */}
+                      <div className={`h-0.5 w-16 ${feature.bgColor} rounded-full mt-4`}></div>
                     </div>
                   </div>
                 </div>
@@ -650,8 +647,8 @@ const handleTouchEnd = () => {
         </div>
       </div>
 
-      {/* Clean Progress Dots - Smaller */}
-      <div className="mt-6 px-4">
+      {/* Clean Progress Dots */}
+      <div className="mt-5 px-4">
         <div className="flex items-center justify-center gap-2">
           {features.map((feature, index) => (
             <button
@@ -661,8 +658,8 @@ const handleTouchEnd = () => {
             >
               <div className={`transition-all duration-300 rounded-full ${
                 index === activeFeature 
-                  ? `w-8 h-2 ${feature.bgColor}` 
-                  : 'w-2 h-2 bg-gray-700 hover:bg-gray-600'
+                  ? `w-7 h-1.5 ${feature.bgColor}` 
+                  : 'w-1.5 h-1.5 bg-gray-700 hover:bg-gray-600'
               }`}></div>
             </button>
           ))}
@@ -670,7 +667,7 @@ const handleTouchEnd = () => {
       </div>
 
       {/* Swipe hint */}
-      <div className="mt-4 text-center text-xs text-gray-500">
+      <div className="mt-3 text-center text-xs text-gray-500">
         Swipe untuk melihat lebih banyak
       </div>
     </div>
