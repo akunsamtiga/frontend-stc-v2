@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
-import { Poppins, JetBrains_Mono } from 'next/font/google'
+import { IBM_Plex_Sans, JetBrains_Mono } from 'next/font/google'
 import { Toaster } from 'sonner'
 import './globals.css'
 
-const poppins = Poppins({ 
-  weight: ['300', '400', '500', '600', '700', '800'],
+const ibmPlexSans = IBM_Plex_Sans({ 
+  weight: ['300', '400', '500', '600', '700'],
   subsets: ['latin'],
-  variable: '--font-poppins',
+  variable: '--font-ibm',
 })
 
 const jetbrainsMono = JetBrains_Mono({ 
@@ -31,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-        <html lang="id" className={`${poppins.variable} ${jetbrainsMono.variable}`}>      <head>
+        <html lang="id" className={`${ibmPlexSans.variable} ${jetbrainsMono.variable}`}>      <head>
         <link rel="icon" href="/stc.ico" sizes="any" />
       </head>
       <body>
