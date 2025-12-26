@@ -1123,7 +1123,7 @@ const handleTouchEnd = () => {
         </div>
       </section>
 
-      {/* Payment Methods Section */}
+{/* Payment Methods Section */}
       <section className="py-16 sm:py-20 relative border-t border-gray-800/50">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
@@ -1141,26 +1141,8 @@ const handleTouchEnd = () => {
 
           <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8">
             {[
-              { 
-                title: 'Bank Transfer', 
-                cols: 'sm:grid-cols-4',
-                items: [
-                  { name: 'BCA', logo: 'https://cdn.worldvectorlogo.com/logos/bca.svg' },
-                  { name: 'Mandiri', logo: 'https://cdn.worldvectorlogo.com/logos/bank-mandiri.svg' },
-                  { name: 'BRI', logo: 'https://cdn.worldvectorlogo.com/logos/bri.svg' },
-                  { name: 'BNI', logo: 'https://cdn.worldvectorlogo.com/logos/bni.svg' },
-                ]
-              },
-              { 
-                title: 'E-Wallet', 
-                cols: 'sm:grid-cols-4',
-                items: [
-                  { name: 'GoPay', logo: 'https://cdn.worldvectorlogo.com/logos/gopay-1.svg' },
-                  { name: 'OVO', logo: 'https://cdn.worldvectorlogo.com/logos/ovo-1.svg' },
-                  { name: 'DANA', logo: 'https://cdn.worldvectorlogo.com/logos/dana-1.svg' },
-                  { name: 'LinkAja', logo: 'https://cdn.worldvectorlogo.com/logos/linkaja.svg' },
-                ]
-              },
+              { title: 'Bank Transfer', items: ['bca', 'mandiri', 'bri', 'bni'], cols: 'sm:grid-cols-4' },
+              { title: 'E-Wallet', items: ['gopay', 'ovo', 'dana', 'linkaja'], cols: 'sm:grid-cols-4' },
             ].map((section) => (
               <div key={section.title}>
                 <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -1170,13 +1152,10 @@ const handleTouchEnd = () => {
                 </div>
                 <div className={`grid grid-cols-2 ${section.cols} gap-3 sm:gap-4`}>
                   {section.items.map((item) => (
-                    <div key={item.name} className="group bg-white/5 border border-gray-800/50 rounded-lg sm:rounded-xl p-4 sm:p-6 hover:bg-white/10 hover:border-gray-700 transition-all">
+                    <div key={item} className="group bg-white/5 border border-gray-800/50 rounded-lg sm:rounded-xl p-4 sm:p-6 hover:bg-white/10 hover:border-gray-700 transition-all">
                       <div className="relative h-8 sm:h-12 flex items-center justify-center">
-                        <img 
-                          src={item.logo} 
-                          alt={item.name}
-                          className="h-full w-auto object-contain filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all"
-                        />
+                        <Image src={`/${item}.webp`} alt={item.toUpperCase()} width={120} height={40}
+                          className="object-contain filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
                       </div>
                     </div>
                   ))}
@@ -1186,22 +1165,8 @@ const handleTouchEnd = () => {
 
             <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
               {[
-                { 
-                  title: 'Kartu Kredit/Debit', 
-                  mobile: 'Kartu', 
-                  items: [
-                    { name: 'Visa', logo: 'https://cdn.worldvectorlogo.com/logos/visa-10.svg' },
-                    { name: 'Mastercard', logo: 'https://cdn.worldvectorlogo.com/logos/mastercard-4.svg' }
-                  ]
-                },
-                { 
-                  title: 'Cryptocurrency', 
-                  mobile: 'Crypto', 
-                  items: [
-                    { name: 'Bitcoin', logo: 'https://cdn.worldvectorlogo.com/logos/bitcoin-6.svg' },
-                    { name: 'Ethereum', logo: 'https://cdn.worldvectorlogo.com/logos/ethereum-1.svg' }
-                  ]
-                }
+                { title: 'Kartu Kredit/Debit', mobile: 'Kartu', items: ['visa', 'mastercard'] },
+                { title: 'Cryptocurrency', mobile: 'Crypto', items: ['bitcoin', 'ethereum'] }
               ].map((section) => (
                 <div key={section.title}>
                   <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 sm:mb-4 text-center sm:text-left">
@@ -1210,13 +1175,10 @@ const handleTouchEnd = () => {
                   </div>
                   <div className="grid sm:grid-cols-2 gap-2 sm:gap-3">
                     {section.items.map((item) => (
-                      <div key={item.name} className="group bg-white/5 border border-gray-800/50 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:bg-white/10 hover:border-gray-700 transition-all">
+                      <div key={item} className="group bg-white/5 border border-gray-800/50 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:bg-white/10 hover:border-gray-700 transition-all">
                         <div className="relative h-6 sm:h-10 flex items-center justify-center">
-                          <img 
-                            src={item.logo} 
-                            alt={item.name}
-                            className="h-full w-auto object-contain filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all"
-                          />
+                          <Image src={`/${item}.webp`} alt={item} width={80} height={30}
+                            className="object-contain filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
                         </div>
                       </div>
                     ))}
@@ -1235,7 +1197,8 @@ const handleTouchEnd = () => {
             </div>
           </div>
         </div>
-      </section>      
+      </section>
+      
       {/* Footer */}
       <EnhancedFooter />
 
