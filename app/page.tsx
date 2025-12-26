@@ -1124,7 +1124,7 @@ const handleTouchEnd = () => {
       </section>
 
 {/* Payment Methods Section */}
-      <section className="py-16 sm:py-20 relative border-t border-gray-800/50 overflow-hidden">
+      <section className="py-16 sm:py-20 relative border-t border-gray-800/50">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-500/10 border border-gray-500/20 rounded-full mb-6">
@@ -1139,62 +1139,37 @@ const handleTouchEnd = () => {
             </p>
           </div>
 
-          {/* Scrolling Payment Logos */}
-          <div className="relative mb-12">
-            {/* Gradient Overlays */}
-            <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-[#0a0e17] to-transparent z-10"></div>
-            <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-[#0a0e17] to-transparent z-10"></div>
-            
-            {/* Scrolling Container */}
-            <div className="overflow-hidden">
-              <div className="flex animate-scroll-infinite">
-                {/* First Set */}
-                {[
-                  { name: 'BCA', logo: 'https://cdn.worldvectorlogo.com/logos/bca.svg' },
-                  { name: 'Mandiri', logo: 'https://cdn.worldvectorlogo.com/logos/bank-mandiri.svg' },
-                  { name: 'BRI', logo: 'https://cdn.worldvectorlogo.com/logos/bri.svg' },
-                  { name: 'BNI', logo: 'https://cdn.worldvectorlogo.com/logos/bni.svg' },
-                  { name: 'GoPay', logo: 'https://cdn.worldvectorlogo.com/logos/gopay-1.svg' },
-                  { name: 'OVO', logo: 'https://cdn.worldvectorlogo.com/logos/ovo-1.svg' },
-                  { name: 'DANA', logo: 'https://cdn.worldvectorlogo.com/logos/dana-1.svg' },
-                  { name: 'LinkAja', logo: 'https://cdn.worldvectorlogo.com/logos/linkaja.svg' },
-                  { name: 'Visa', logo: 'https://cdn.worldvectorlogo.com/logos/visa-10.svg' },
-                  { name: 'Mastercard', logo: 'https://cdn.worldvectorlogo.com/logos/mastercard-4.svg' },
-                  { name: 'Bitcoin', logo: 'https://cdn.worldvectorlogo.com/logos/bitcoin-6.svg' },
-                  { name: 'Ethereum', logo: 'https://cdn.worldvectorlogo.com/logos/ethereum-1.svg' },
-                ].concat([
-                  { name: 'BCA', logo: 'https://cdn.worldvectorlogo.com/logos/bca.svg' },
-                  { name: 'Mandiri', logo: 'https://cdn.worldvectorlogo.com/logos/bank-mandiri.svg' },
-                  { name: 'BRI', logo: 'https://cdn.worldvectorlogo.com/logos/bri.svg' },
-                  { name: 'BNI', logo: 'https://cdn.worldvectorlogo.com/logos/bni.svg' },
-                  { name: 'GoPay', logo: 'https://cdn.worldvectorlogo.com/logos/gopay-1.svg' },
-                  { name: 'OVO', logo: 'https://cdn.worldvectorlogo.com/logos/ovo-1.svg' },
-                  { name: 'DANA', logo: 'https://cdn.worldvectorlogo.com/logos/dana-1.svg' },
-                  { name: 'LinkAja', logo: 'https://cdn.worldvectorlogo.com/logos/linkaja.svg' },
-                  { name: 'Visa', logo: 'https://cdn.worldvectorlogo.com/logos/visa-10.svg' },
-                  { name: 'Mastercard', logo: 'https://cdn.worldvectorlogo.com/logos/mastercard-4.svg' },
-                  { name: 'Bitcoin', logo: 'https://cdn.worldvectorlogo.com/logos/bitcoin-6.svg' },
-                  { name: 'Ethereum', logo: 'https://cdn.worldvectorlogo.com/logos/ethereum-1.svg' },
-                ]).map((item, index) => (
-                  <div 
-                    key={`${item.name}-${index}`}
-                    className="flex-shrink-0 mx-6 bg-white/5 border border-gray-800/50 rounded-xl p-6 w-40"
-                  >
-                    <div className="h-12 flex items-center justify-center">
-                      <img 
-                        src={item.logo} 
-                        alt={item.name}
-                        className="h-full w-auto object-contain"
-                      />
-                    </div>
+          <div className="max-w-5xl mx-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+              {[
+                { name: 'Mandiri', logo: '/mandiri.webp' },
+                { name: 'BRI', logo: '/bri.webp' },
+                { name: 'BNI', logo: '/bni.webp' },
+                { name: 'GoPay', logo: '/gopay.webp' },
+                { name: 'OVO', logo: '/ovo.webp' },
+                { name: 'DANA', logo: '/dana.webp' },
+                { name: 'LinkAja', logo: '/linkaja.webp' },
+                { name: 'Visa', logo: '/visa.webp' },
+                { name: 'Mastercard', logo: '/mastercard.webp' },
+                { name: 'Bitcoin', logo: '/bitcoin.webp' },
+                { name: 'Ethereum', logo: '/ethereum.webp' },
+              ].map((item) => (
+                <div key={item.name} className="bg-white/5 border border-gray-800/50 rounded-lg sm:rounded-xl p-4 sm:p-6 transition-all">
+                  <div className="relative h-8 sm:h-12 flex items-center justify-center">
+                    <Image 
+                      src={item.logo} 
+                      alt={item.name}
+                      width={120}
+                      height={40}
+                      className="h-full w-auto object-contain"
+                    />
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Trust Badge */}
-          <div className="text-center">
+          <div className="mt-12 text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full">
               <Shield className="w-4 h-4 text-green-400" />
               <span className="text-xs text-green-400 font-medium">
@@ -1203,25 +1178,6 @@ const handleTouchEnd = () => {
             </div>
           </div>
         </div>
-
-        <style jsx>{`
-          @keyframes scroll-infinite {
-            0% {
-              transform: translateX(0);
-            }
-            100% {
-              transform: translateX(-50%);
-            }
-          }
-
-          .animate-scroll-infinite {
-            animation: scroll-infinite 40s linear infinite;
-          }
-
-          .animate-scroll-infinite:hover {
-            animation-play-state: paused;
-          }
-        `}</style>
       </section>
       
       {/* Footer */}
