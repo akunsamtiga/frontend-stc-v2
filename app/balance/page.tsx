@@ -15,7 +15,10 @@ import {
   TrendingDown,
   DollarSign,
   Minus,
-  X
+  X,
+  Receipt,
+  PiggyBank,
+  CreditCard
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -142,7 +145,7 @@ export default function BalancePage() {
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
           <div className="text-center">
             <div className="w-12 h-12 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-            <div className="text-sm text-gray-500">Loading...</div>
+            <div className="text-sm text-gray-500">Loading your wallet...</div>
           </div>
         </div>
       </div>
@@ -150,139 +153,186 @@ export default function BalancePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-emerald-50/30">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Header */}
-        <div className="flat-section-header">
-          <div>
-            <h1 className="flat-section-title">Wallet</h1>
-            <p className="flat-section-description">Manage your funds</p>
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Header with Breadcrumb */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+            <span>Dashboard</span>
+            <span>/</span>
+            <span className="text-gray-900 font-medium">Wallet</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-xl flex items-center justify-center">
+              <Wallet className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">My Wallet</h1>
+              <p className="text-gray-500">Manage your funds securely</p>
+            </div>
           </div>
         </div>
 
-        {/* Balance Card */}
-        <div className="max-w-2xl mx-auto mb-8">
-          <div className="flat-card text-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-50 border border-green-200 rounded-full mb-4">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-xs font-medium text-green-700">Available Balance</span>
-            </div>
+        {/* Main Balance Card - Featured */}
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-500 to-emerald-500 rounded-3xl p-8 shadow-2xl">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-24 -translate-x-24"></div>
             
-            <div className="text-5xl font-bold text-gray-900 mb-2 font-mono">
-              {formatCurrency(balance)}
-            </div>
-            
-            <p className="text-sm text-gray-500 mb-6">Ready for trading</p>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={() => setShowDeposit(true)}
-                className="flat-btn flat-btn-success flex items-center gap-2"
-              >
-                <ArrowDownToLine className="w-4 h-4" />
-                <span>Deposit</span>
-              </button>
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 text-blue-100 mb-2">
+                <PiggyBank className="w-4 h-4" />
+                <span className="text-sm font-medium">Available Balance</span>
+              </div>
               
-              <button
-                onClick={() => setShowWithdraw(true)}
-                className="flat-btn flat-btn-danger flex items-center gap-2"
-              >
-                <ArrowUpFromLine className="w-4 h-4" />
-                <span>Withdraw</span>
-              </button>
+              <div className="text-5xl md:text-6xl font-bold text-white mb-6 font-mono tracking-tight">
+                {formatCurrency(balance)}
+              </div>
+              
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => setShowDeposit(true)}
+                  className="flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-xl font-semibold hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl"
+                >
+                  <ArrowDownToLine className="w-5 h-5" />
+                  <span>Deposit</span>
+                </button>
+                
+                <button
+                  onClick={() => setShowWithdraw(true)}
+                  className="flex items-center gap-2 px-6 py-3 bg-white/10 text-white rounded-xl font-semibold hover:bg-white/20 transition-all backdrop-blur-sm border border-white/20"
+                >
+                  <ArrowUpFromLine className="w-5 h-5" />
+                  <span>Withdraw</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="flat-stat-card">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-green-600" />
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-green-600" />
               </div>
-              <span className="flat-stat-label">Deposits</span>
+              <div className="flex-1">
+                <div className="text-sm text-gray-500 mb-1">Total Deposits</div>
+                <div className="text-xl font-bold text-gray-900">
+                  {formatCurrency(stats.totalDeposits)}
+                </div>
+              </div>
             </div>
-            <div className="flat-stat-value">{formatCurrency(stats.totalDeposits)}</div>
           </div>
 
-          <div className="flat-stat-card">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
-                <TrendingDown className="w-5 h-5 text-red-600" />
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center">
+                <TrendingDown className="w-6 h-6 text-red-600" />
               </div>
-              <span className="flat-stat-label">Withdrawals</span>
+              <div className="flex-1">
+                <div className="text-sm text-gray-500 mb-1">Total Withdrawals</div>
+                <div className="text-xl font-bold text-gray-900">
+                  {formatCurrency(stats.totalWithdrawals)}
+                </div>
+              </div>
             </div>
-            <div className="flat-stat-value">{formatCurrency(stats.totalWithdrawals)}</div>
           </div>
 
-          <div className="flat-stat-card">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-blue-600" />
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-blue-600" />
               </div>
-              <span className="flat-stat-label">Wins</span>
+              <div className="flex-1">
+                <div className="text-sm text-gray-500 mb-1">Trading Wins</div>
+                <div className="text-xl font-bold text-gray-900">
+                  {formatCurrency(stats.totalWins)}
+                </div>
+              </div>
             </div>
-            <div className="flat-stat-value">{formatCurrency(stats.totalWins)}</div>
           </div>
 
-          <div className="flat-stat-card">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
-                <Minus className="w-5 h-5 text-orange-600" />
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center">
+                <Minus className="w-6 h-6 text-orange-600" />
               </div>
-              <span className="flat-stat-label">Losses</span>
+              <div className="flex-1">
+                <div className="text-sm text-gray-500 mb-1">Trading Losses</div>
+                <div className="text-xl font-bold text-gray-900">
+                  {formatCurrency(stats.totalLosses)}
+                </div>
+              </div>
             </div>
-            <div className="flat-stat-value">{formatCurrency(stats.totalLosses)}</div>
           </div>
         </div>
 
         {/* Transaction History */}
-        <div className="flat-card">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-gray-900">Recent Transactions</h2>
-            <span className="text-sm text-gray-500">{walletTransactions.length} total</span>
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+          <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-transparent">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Receipt className="w-5 h-5 text-gray-600" />
+                <h2 className="text-xl font-bold text-gray-900">Transaction History</h2>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-full">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span className="text-sm font-medium text-blue-700">{walletTransactions.length} transactions</span>
+              </div>
+            </div>
           </div>
 
-          {walletTransactions.length === 0 ? (
-            <div className="text-center py-16">
-              <Wallet className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-gray-500 mb-1">No transactions yet</p>
-              <p className="text-sm text-gray-400">Your wallet activity will appear here</p>
-            </div>
-          ) : (
-            <div className="space-y-0">
-              {walletTransactions.map((tx) => (
-                <div key={tx.id} className="flat-list-item">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                      tx.type === 'deposit' ? 'bg-green-50' : 'bg-red-50'
-                    }`}>
-                      {tx.type === 'deposit' ? (
-                        <ArrowDownToLine className="w-5 h-5 text-green-600" />
-                      ) : (
-                        <ArrowUpFromLine className="w-5 h-5 text-red-600" />
-                      )}
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900 capitalize">{tx.type}</div>
-                      <div className="text-sm text-gray-500">{formatDate(tx.createdAt)}</div>
-                    </div>
-                  </div>
-                  
-                  <div className={`text-xl font-bold font-mono ${
-                    tx.type === 'deposit' ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {tx.type === 'deposit' ? '+' : '-'}
-                    {formatCurrency(tx.amount)}
-                  </div>
+          <div className="p-6">
+            {walletTransactions.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Wallet className="w-10 h-10 text-gray-300" />
                 </div>
-              ))}
-            </div>
-          )}
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No transactions yet</h3>
+                <p className="text-gray-500 mb-6">Your wallet activity will appear here</p>
+                <button
+                  onClick={() => setShowDeposit(true)}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors"
+                >
+                  <ArrowDownToLine className="w-5 h-5" />
+                  Make Your First Deposit
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {walletTransactions.map((tx, index) => (
+                  <div key={tx.id} className="group flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-all">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                        tx.type === 'deposit' ? 'bg-green-50 group-hover:bg-green-100' : 'bg-red-50 group-hover:bg-red-100'
+                      } transition-colors`}>
+                        {tx.type === 'deposit' ? (
+                          <ArrowDownToLine className="w-6 h-6 text-green-600" />
+                        ) : (
+                          <ArrowUpFromLine className="w-6 h-6 text-red-600" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900 capitalize mb-1">{tx.type}</div>
+                        <div className="text-sm text-gray-500">{formatDate(tx.createdAt)}</div>
+                      </div>
+                    </div>
+                    
+                    <div className={`text-2xl font-bold font-mono ${
+                      tx.type === 'deposit' ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {tx.type === 'deposit' ? '+' : '-'}
+                      {formatCurrency(tx.amount)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -290,20 +340,25 @@ export default function BalancePage() {
       {showDeposit && (
         <>
           <div 
-            className="fixed inset-0 bg-black/20 z-50" 
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 animate-fade-in" 
             onClick={() => setShowDeposit(false)}
           />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-flat-lg">
-              <div className="p-6 border-b border-gray-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl animate-slide-up">
+              <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">Deposit Funds</h2>
-                    <p className="text-sm text-gray-500 mt-1">Add money to your wallet</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
+                      <ArrowDownToLine className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">Add Funds</h2>
+                      <p className="text-sm text-gray-500">Deposit money to your wallet</p>
+                    </div>
                   </div>
                   <button
                     onClick={() => setShowDeposit(false)}
-                    className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
                   >
                     <X className="w-5 h-5 text-gray-500" />
                   </button>
@@ -312,27 +367,29 @@ export default function BalancePage() {
 
               <div className="p-6 space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Enter Amount</label>
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0"
-                    className="w-full text-center text-2xl font-bold font-mono"
-                    autoFocus
-                  />
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Enter Amount (IDR)</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="0"
+                      className="w-full text-center text-3xl font-bold font-mono bg-gray-50 border-2 border-gray-200 rounded-2xl py-4 focus:border-green-500 focus:bg-white transition-all"
+                      autoFocus
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Quick Select</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Quick Select</label>
                   <div className="grid grid-cols-3 gap-2">
                     {quickAmounts.map((preset) => (
                       <button
                         key={preset}
                         onClick={() => setAmount(preset.toString())}
-                        className={`py-3 rounded-lg text-sm font-medium transition-all ${
+                        className={`py-3 rounded-xl text-sm font-semibold transition-all ${
                           amount === preset.toString()
-                            ? 'bg-green-500 text-white'
+                            ? 'bg-green-500 text-white shadow-lg scale-105'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
                         }`}
                       >
@@ -345,9 +402,16 @@ export default function BalancePage() {
                 <button
                   onClick={handleDeposit}
                   disabled={loading}
-                  className="w-full flat-btn flat-btn-success"
+                  className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
                 >
-                  {loading ? 'Processing...' : 'Confirm Deposit'}
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Processing...
+                    </span>
+                  ) : (
+                    'Confirm Deposit'
+                  )}
                 </button>
               </div>
             </div>
@@ -359,20 +423,25 @@ export default function BalancePage() {
       {showWithdraw && (
         <>
           <div 
-            className="fixed inset-0 bg-black/20 z-50" 
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 animate-fade-in" 
             onClick={() => setShowWithdraw(false)}
           />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-flat-lg">
-              <div className="p-6 border-b border-gray-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl animate-slide-up">
+              <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">Withdraw Funds</h2>
-                    <p className="text-sm text-gray-500 mt-1">Max: {formatCurrency(balance)}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center">
+                      <ArrowUpFromLine className="w-6 h-6 text-red-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">Withdraw Funds</h2>
+                      <p className="text-sm text-gray-500">Max: {formatCurrency(balance)}</p>
+                    </div>
                   </div>
                   <button
                     onClick={() => setShowWithdraw(false)}
-                    className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
                   >
                     <X className="w-5 h-5 text-gray-500" />
                   </button>
@@ -381,28 +450,30 @@ export default function BalancePage() {
 
               <div className="p-6 space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Enter Amount</label>
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0"
-                    max={balance}
-                    className="w-full text-center text-2xl font-bold font-mono"
-                    autoFocus
-                  />
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Enter Amount (IDR)</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="0"
+                      max={balance}
+                      className="w-full text-center text-3xl font-bold font-mono bg-gray-50 border-2 border-gray-200 rounded-2xl py-4 focus:border-red-500 focus:bg-white transition-all"
+                      autoFocus
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Quick Select</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Quick Select</label>
                   <div className="grid grid-cols-3 gap-2">
                     {quickAmounts.filter(p => p <= balance).map((preset) => (
                       <button
                         key={preset}
                         onClick={() => setAmount(preset.toString())}
-                        className={`py-3 rounded-lg text-sm font-medium transition-all ${
+                        className={`py-3 rounded-xl text-sm font-semibold transition-all ${
                           amount === preset.toString()
-                            ? 'bg-red-500 text-white'
+                            ? 'bg-red-500 text-white shadow-lg scale-105'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
                         }`}
                       >
@@ -415,9 +486,16 @@ export default function BalancePage() {
                 <button
                   onClick={handleWithdraw}
                   disabled={loading}
-                  className="w-full flat-btn flat-btn-danger"
+                  className="w-full bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
                 >
-                  {loading ? 'Processing...' : 'Confirm Withdrawal'}
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Processing...
+                    </span>
+                  ) : (
+                    'Confirm Withdrawal'
+                  )}
                 </button>
               </div>
             </div>

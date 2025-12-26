@@ -11,22 +11,20 @@ import {
   Search,
   Filter,
   ChevronRight,
-  Edit,
-  Trash2,
-  DollarSign,
   Eye,
   X,
-  Check,
-  AlertTriangle,
+  DollarSign,
+  Trash2,
   Shield,
   CheckCircle,
   XCircle,
-  Calendar
+  Calendar,
+  UserCog,
+  TrendingUp
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
 
-// ✅ FIXED: Type with proper null handling
 interface UserData {
   id: string
   email: string
@@ -77,11 +75,10 @@ export default function AdminUsersPage() {
       const response = await api.getAllUsersWithBalance()
       const rawUsers = response?.data?.users || response?.users || []
       
-      // ✅ FIXED: Sanitize all user data to prevent crashes
       const sanitizedUsers = rawUsers.map((u: any) => ({
         id: u.id || '',
         email: u.email || 'No email',
-        role: u.role || 'user', // ✅ Default to 'user' if undefined
+        role: u.role || 'user',
         isActive: u.isActive !== undefined ? u.isActive : true,
         createdAt: u.createdAt || new Date().toISOString(),
         currentBalance: u.currentBalance || 0,
@@ -97,27 +94,24 @@ export default function AdminUsersPage() {
     }
   }
 
-  // ✅ FIXED: Safe role formatting function
   const formatRole = (role: string | null | undefined): string => {
     if (!role) return 'User'
     return role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
   }
 
-  // ✅ FIXED: Safe role color function
   const getRoleColor = (role: string | null | undefined): string => {
-    if (!role) return 'bg-gray-500/10 text-gray-400'
+    if (!role) return 'bg-gray-100 text-gray-700 border-gray-200'
     
     switch (role.toLowerCase()) {
       case 'super_admin':
-        return 'bg-red-500/10 text-red-400'
+        return 'bg-red-50 text-red-700 border-red-200'
       case 'admin':
-        return 'bg-purple-500/10 text-purple-400'
+        return 'bg-purple-50 text-purple-700 border-purple-200'
       default:
-        return 'bg-blue-500/10 text-blue-400'
+        return 'bg-blue-50 text-blue-700 border-blue-200'
     }
   }
 
-  // ✅ FIXED: Safe role check function
   const getUserRole = (role: string | null | undefined): string => {
     if (!role) return 'user'
     return role.toLowerCase()
@@ -224,12 +218,12 @@ export default function AdminUsersPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0e17]">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30">
         <Navbar />
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
           <div className="text-center">
-            <div className="w-12 h-12 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-            <div className="text-sm text-gray-400">Loading users...</div>
+            <div className="w-12 h-12 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+            <div className="text-sm text-gray-500">Loading users...</div>
           </div>
         </div>
       </div>
@@ -237,62 +231,87 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e17]">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30">
       <Navbar />
 
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <Users className="w-8 h-8 text-blue-400" />
-              <h1 className="text-3xl font-bold">User Management</h1>
-            </div>
-            <p className="text-gray-400">Manage platform users and permissions</p>
+        <div className="mb-8">
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+            <span>Admin</span>
+            <span>/</span>
+            <span className="text-gray-900 font-medium">User Management</span>
           </div>
-          
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-blue-600 hover:to-emerald-600 rounded-xl font-semibold shadow-lg transition-all"
-          >
-            <Plus className="w-5 h-5" />
-            Create User
-          </button>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
+                <UserCog className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
+                <p className="text-gray-500">Manage users and permissions</p>
+              </div>
+            </div>
+            
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all"
+            >
+              <Plus className="w-5 h-5" />
+              Add User
+            </button>
+          </div>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <Users className="w-5 h-5 text-blue-400" />
-              <span className="text-sm text-gray-400">Total Users</span>
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                <Users className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <div className="text-sm text-gray-500 mb-1">Total Users</div>
+                <div className="text-3xl font-bold text-gray-900">{stats.total}</div>
+              </div>
             </div>
-            <div className="text-3xl font-bold">{stats.total}</div>
           </div>
 
-          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <CheckCircle className="w-5 h-5 text-green-400" />
-              <span className="text-sm text-gray-400">Active</span>
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <div className="text-sm text-gray-500 mb-1">Active</div>
+                <div className="text-3xl font-bold text-green-600">{stats.active}</div>
+              </div>
             </div>
-            <div className="text-3xl font-bold text-green-400">{stats.active}</div>
           </div>
 
-          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <Shield className="w-5 h-5 text-purple-400" />
-              <span className="text-sm text-gray-400">Admins</span>
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
+                <Shield className="w-6 h-6 text-purple-600" />
+              </div>
+              <div className="flex-1">
+                <div className="text-sm text-gray-500 mb-1">Admins</div>
+                <div className="text-3xl font-bold text-purple-600">{stats.admins}</div>
+              </div>
             </div>
-            <div className="text-3xl font-bold text-purple-400">{stats.admins}</div>
           </div>
 
-          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <DollarSign className="w-5 h-5 text-yellow-400" />
-              <span className="text-sm text-gray-400">Total Balance</span>
-            </div>
-            <div className="text-2xl font-bold font-mono text-yellow-400">
-              {formatCurrency(stats.totalBalance)}
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 bg-yellow-50 rounded-xl flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-yellow-600" />
+              </div>
+              <div className="flex-1">
+                <div className="text-sm text-gray-500 mb-1">Total Balance</div>
+                <div className="text-lg font-bold text-yellow-600 font-mono">
+                  {formatCurrency(stats.totalBalance)}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -300,22 +319,22 @@ export default function AdminUsersPage() {
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search users by email..."
-              className="w-full bg-[#0f1419] border border-gray-800/50 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500/50 transition-colors"
+              className="w-full bg-white border-2 border-gray-200 rounded-xl pl-12 pr-4 py-3 focus:border-blue-500 focus:bg-white transition-all shadow-sm"
             />
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Filter className="w-5 h-5 text-gray-500" />
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
-              className="bg-[#0f1419] border border-gray-800/50 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50 transition-colors"
+              className="bg-white border-2 border-gray-200 rounded-xl px-4 py-3 font-medium focus:border-blue-500 transition-all shadow-sm"
             >
               <option value="all">All Roles</option>
               <option value="super_admin">Super Admin</option>
@@ -326,14 +345,25 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Users Table */}
-        <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
           {filteredUsers.length === 0 ? (
             <div className="text-center py-20">
-              <Users className="w-16 h-16 mx-auto mb-4 text-gray-700 opacity-20" />
-              <p className="text-gray-400 mb-1">No users found</p>
-              <p className="text-sm text-gray-500">
+              <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Users className="w-10 h-10 text-gray-300" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No users found</h3>
+              <p className="text-gray-500 mb-6">
                 {searchQuery ? 'Try a different search query' : 'Add your first user to get started'}
               </p>
+              {!searchQuery && (
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors"
+                >
+                  <Plus className="w-5 h-5" />
+                  Add First User
+                </button>
+              )}
             </div>
           ) : (
             <>
@@ -341,45 +371,54 @@ export default function AdminUsersPage() {
               <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="text-left text-xs text-gray-500 border-b border-gray-800/50">
-                      <th className="py-4 px-6 font-medium">User</th>
-                      <th className="py-4 px-6 font-medium">Role</th>
-                      <th className="py-4 px-6 font-medium text-right">Balance</th>
-                      <th className="py-4 px-6 font-medium text-center">Status</th>
-                      <th className="py-4 px-6 font-medium text-center">Actions</th>
+                    <tr className="text-left text-xs font-semibold text-gray-600 border-b border-gray-100 bg-gray-50">
+                      <th className="py-4 px-6">User</th>
+                      <th className="py-4 px-6">Role</th>
+                      <th className="py-4 px-6 text-right">Balance</th>
+                      <th className="py-4 px-6 text-center">Status</th>
+                      <th className="py-4 px-6 text-center">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-800/30">
+                  <tbody className="divide-y divide-gray-50">
                     {filteredUsers.map((u) => (
-                      <tr key={u.id} className="hover:bg-[#1a1f2e] transition-colors">
+                      <tr key={u.id} className="hover:bg-gray-50 transition-colors group">
                         <td className="py-4 px-6">
-                          <div className="font-medium">{u.email}</div>
-                          <div className="text-xs text-gray-500 flex items-center gap-2 mt-1">
-                            <Calendar className="w-3 h-3" />
-                            {new Date(u.createdAt).toLocaleDateString('id-ID', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
-                            })}
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold">
+                              {u.email[0].toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-gray-900">{u.email}</div>
+                              <div className="text-xs text-gray-500 flex items-center gap-1.5 mt-0.5">
+                                <Calendar className="w-3 h-3" />
+                                {new Date(u.createdAt).toLocaleDateString('id-ID', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}
+                              </div>
+                            </div>
                           </div>
                         </td>
                         <td className="py-4 px-6">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${getRoleColor(u.role)}`}>
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border ${getRoleColor(u.role)}`}>
                             <Shield className="w-3 h-3" />
                             {formatRole(u.role)}
                           </span>
                         </td>
-                        <td className="py-4 px-6 text-right font-mono font-bold">
-                          {formatCurrency(u.currentBalance || 0)}
+                        <td className="py-4 px-6 text-right">
+                          <div className="font-mono font-bold text-gray-900">
+                            {formatCurrency(u.currentBalance || 0)}
+                          </div>
                         </td>
                         <td className="py-4 px-6">
                           <div className="flex justify-center">
                             <button
                               onClick={() => handleToggleActive(u.id, u.isActive)}
-                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                                 u.isActive 
-                                  ? 'bg-green-500/10 text-green-400 hover:bg-green-500/20' 
-                                  : 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                                  ? 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200' 
+                                  : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
                               }`}
                             >
                               {u.isActive ? (
@@ -397,13 +436,13 @@ export default function AdminUsersPage() {
                           </div>
                         </td>
                         <td className="py-4 px-6">
-                          <div className="flex items-center justify-center gap-2">
+                          <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => router.push(`/admin/users/${u.id}`)}
-                              className="p-2 hover:bg-blue-500/10 rounded-lg transition-colors group"
+                              className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
                               title="View Details"
                             >
-                              <Eye className="w-4 h-4 text-blue-400 group-hover:text-blue-300" />
+                              <Eye className="w-4 h-4 text-blue-600" />
                             </button>
                             
                             {user.role === 'super_admin' && (
@@ -412,10 +451,10 @@ export default function AdminUsersPage() {
                                   setSelectedUser(u)
                                   setShowBalanceModal(true)
                                 }}
-                                className="p-2 hover:bg-emerald-500/10 rounded-lg transition-colors group"
+                                className="p-2 hover:bg-green-50 rounded-lg transition-colors"
                                 title="Manage Balance"
                               >
-                                <DollarSign className="w-4 h-4 text-emerald-400 group-hover:text-emerald-300" />
+                                <DollarSign className="w-4 h-4 text-green-600" />
                               </button>
                             )}
                             
@@ -425,10 +464,10 @@ export default function AdminUsersPage() {
                                   setSelectedUser(u)
                                   setShowDeleteModal(true)
                                 }}
-                                className="p-2 hover:bg-red-500/10 rounded-lg transition-colors group"
+                                className="p-2 hover:bg-red-50 rounded-lg transition-colors"
                                 title="Delete User"
                               >
-                                <Trash2 className="w-4 h-4 text-red-400 group-hover:text-red-300" />
+                                <Trash2 className="w-4 h-4 text-red-600" />
                               </button>
                             )}
                           </div>
@@ -444,49 +483,56 @@ export default function AdminUsersPage() {
                 {filteredUsers.map((u) => (
                   <div
                     key={u.id}
-                    className="bg-[#1a1f2e] border border-gray-800/50 rounded-xl p-4"
+                    className="bg-gray-50 border border-gray-100 rounded-2xl p-4 hover:shadow-lg transition-all"
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate mb-2">{u.email}</div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${getRoleColor(u.role)}`}>
-                            <Shield className="w-3 h-3" />
-                            {formatRole(u.role)}
-                          </span>
-                          
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                            u.isActive ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
-                          }`}>
-                            {u.isActive ? (
-                              <>
-                                <CheckCircle className="w-3 h-3" />
-                                Active
-                              </>
-                            ) : (
-                              <>
-                                <XCircle className="w-3 h-3" />
-                                Inactive
-                              </>
-                            )}
-                          </span>
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0">
+                          {u.email[0].toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-gray-900 truncate mb-1">{u.email}</div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold border ${getRoleColor(u.role)}`}>
+                              <Shield className="w-3 h-3" />
+                              {formatRole(u.role)}
+                            </span>
+                            
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold ${
+                              u.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            }`}>
+                              {u.isActive ? (
+                                <>
+                                  <CheckCircle className="w-3 h-3" />
+                                  Active
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle className="w-3 h-3" />
+                                  Inactive
+                                </>
+                              )}
+                            </span>
+                          </div>
                         </div>
                       </div>
                       
-                      <ChevronRight className="w-5 h-5 text-gray-600 flex-shrink-0 ml-2" />
+                      <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0 ml-2" />
                     </div>
 
-                    <div className="flex items-center justify-between text-sm mb-3 pb-3 border-b border-gray-800/50">
-                      <span className="text-gray-400">Balance</span>
-                      <span className="font-mono font-bold">
-                        {formatCurrency(u.currentBalance || 0)}
-                      </span>
+                    <div className="bg-white rounded-xl p-3 mb-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500">Balance</span>
+                        <span className="font-mono font-bold text-lg text-gray-900">
+                          {formatCurrency(u.currentBalance || 0)}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="flex gap-2">
                       <button
                         onClick={() => router.push(`/admin/users/${u.id}`)}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg text-sm font-medium text-blue-400 transition-all"
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-sm font-semibold text-blue-700 transition-all"
                       >
                         <Eye className="w-4 h-4" />
                         View
@@ -498,7 +544,7 @@ export default function AdminUsersPage() {
                             setSelectedUser(u)
                             setShowBalanceModal(true)
                           }}
-                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg text-sm font-medium text-emerald-400 transition-all"
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-50 hover:bg-green-100 border border-green-200 rounded-xl text-sm font-semibold text-green-700 transition-all"
                         >
                           <DollarSign className="w-4 h-4" />
                           Balance
@@ -517,26 +563,34 @@ export default function AdminUsersPage() {
       {showCreateModal && (
         <>
           <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" 
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 animate-fade-in" 
             onClick={() => setShowCreateModal(false)}
           />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-[#0f1419] border border-gray-800/50 rounded-2xl shadow-2xl animate-scale-in">
-              <div className="p-6 border-b border-gray-800/50">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl animate-slide-up">
+              <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold">Create New User</h2>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                      <Plus className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">Create New User</h2>
+                      <p className="text-sm text-gray-500">Add a new user account</p>
+                    </div>
+                  </div>
                   <button
                     onClick={() => setShowCreateModal(false)}
-                    className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#1a1f2e] transition-colors"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-5 h-5 text-gray-500" />
                   </button>
                 </div>
               </div>
 
               <form onSubmit={handleCreateUser} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
                     Email
                   </label>
                   <input
@@ -544,13 +598,13 @@ export default function AdminUsersPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50 transition-colors"
+                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-blue-500 focus:bg-white transition-all"
                     placeholder="user@example.com"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
                     Password
                   </label>
                   <input
@@ -559,22 +613,22 @@ export default function AdminUsersPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={8}
-                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50 transition-colors"
+                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-blue-500 focus:bg-white transition-all"
                     placeholder="Minimum 8 characters"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 mt-2">
                     Must contain uppercase, lowercase, and number/special character
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
                     Role
                   </label>
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50 transition-colors"
+                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 font-medium focus:border-blue-500 focus:bg-white transition-all"
                   >
                     <option value="user">User</option>
                     <option value="admin">Admin</option>
@@ -587,11 +641,11 @@ export default function AdminUsersPage() {
                 <button
                   type="submit"
                   disabled={processing}
-                  className="w-full bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-blue-600 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-xl font-semibold transition-all"
+                  className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
                 >
                   {processing ? (
                     <span className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                       Creating...
                     </span>
                   ) : (
@@ -608,48 +662,51 @@ export default function AdminUsersPage() {
       {showBalanceModal && selectedUser && (
         <>
           <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" 
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 animate-fade-in" 
             onClick={() => setShowBalanceModal(false)}
           />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-[#0f1419] border border-gray-800/50 rounded-2xl shadow-2xl animate-scale-in">
-              <div className="p-6 border-b border-gray-800/50">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl animate-slide-up">
+              <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold mb-1">Manage Balance</h2>
-                    <p className="text-sm text-gray-400">{selectedUser.email}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
+                      <DollarSign className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">Manage Balance</h2>
+                      <p className="text-sm text-gray-500">{selectedUser.email}</p>
+                    </div>
                   </div>
                   <button
                     onClick={() => setShowBalanceModal(false)}
-                    className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#1a1f2e] transition-colors"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-5 h-5 text-gray-500" />
                   </button>
                 </div>
               </div>
 
               <form onSubmit={handleManageBalance} className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Current Balance
-                  </label>
-                  <div className="text-2xl font-bold font-mono">
+                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
+                  <div className="text-sm text-gray-500 mb-1">Current Balance</div>
+                  <div className="text-3xl font-bold font-mono text-gray-900">
                     {formatCurrency(selectedUser.currentBalance || 0)}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
                     Type
                   </label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={() => setBalanceType('deposit')}
-                      className={`py-3 rounded-xl font-medium transition-all ${
+                      className={`py-3 rounded-xl font-bold transition-all ${
                         balanceType === 'deposit'
-                          ? 'bg-green-500 text-white shadow-lg'
-                          : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
+                          ? 'bg-green-500 text-white shadow-lg scale-105'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-2 border-gray-200'
                       }`}
                     >
                       Deposit
@@ -657,10 +714,10 @@ export default function AdminUsersPage() {
                     <button
                       type="button"
                       onClick={() => setBalanceType('withdrawal')}
-                      className={`py-3 rounded-xl font-medium transition-all ${
+                      className={`py-3 rounded-xl font-bold transition-all ${
                         balanceType === 'withdrawal'
-                          ? 'bg-red-500 text-white shadow-lg'
-                          : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
+                          ? 'bg-red-500 text-white shadow-lg scale-105'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-2 border-gray-200'
                       }`}
                     >
                       Withdrawal
@@ -669,7 +726,7 @@ export default function AdminUsersPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
                     Amount (IDR)
                   </label>
                   <input
@@ -679,13 +736,13 @@ export default function AdminUsersPage() {
                     required
                     min="0"
                     step="1000"
-                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 text-lg font-mono focus:outline-none focus:border-blue-500/50 transition-colors"
+                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 text-xl font-mono focus:border-green-500 focus:bg-white transition-all"
                     placeholder="10000"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
                     Description
                   </label>
                   <input
@@ -693,7 +750,7 @@ export default function AdminUsersPage() {
                     value={balanceDescription}
                     onChange={(e) => setBalanceDescription(e.target.value)}
                     required
-                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50 transition-colors"
+                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-green-500 focus:bg-white transition-all"
                     placeholder="Admin adjustment"
                   />
                 </div>
@@ -701,15 +758,15 @@ export default function AdminUsersPage() {
                 <button
                   type="submit"
                   disabled={processing}
-                  className={`w-full py-3 rounded-xl font-semibold transition-all shadow-lg ${
+                  className={`w-full py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl disabled:opacity-50 ${
                     balanceType === 'deposit'
-                      ? 'bg-green-500 hover:bg-green-600'
-                      : 'bg-red-500 hover:bg-red-600'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white'
+                      : 'bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white'
+                  }`}
                 >
                   {processing ? (
                     <span className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                       Processing...
                     </span>
                   ) : (
@@ -726,47 +783,49 @@ export default function AdminUsersPage() {
       {showDeleteModal && selectedUser && (
         <>
           <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" 
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 animate-fade-in" 
             onClick={() => setShowDeleteModal(false)}
           />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-[#0f1419] border border-red-500/30 rounded-2xl shadow-2xl animate-scale-in">
-              <div className="p-6 border-b border-gray-800/50">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl animate-slide-up border-2 border-red-200">
+              <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center">
-                    <AlertTriangle className="w-6 h-6 text-red-400" />
+                  <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center">
+                    <Trash2 className="w-6 h-6 text-red-600" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold">Delete User</h2>
-                    <p className="text-sm text-red-400">This action cannot be undone</p>
+                    <h2 className="text-xl font-bold text-gray-900">Delete User</h2>
+                    <p className="text-sm text-red-600">This action cannot be undone</p>
                   </div>
                 </div>
               </div>
 
               <div className="p-6">
-                <p className="text-gray-300 mb-6">
-                  Are you sure you want to delete <span className="font-bold text-white">{selectedUser.email}</span>?
-                  <br />
-                  <span className="text-sm text-gray-400 mt-2 block">
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6">
+                  <p className="text-gray-700">
+                    Are you sure you want to delete{' '}
+                    <span className="font-bold text-gray-900">{selectedUser.email}</span>?
+                  </p>
+                  <p className="text-sm text-gray-600 mt-2">
                     All user data including balance and trading history will be permanently deleted.
-                  </span>
-                </p>
+                  </p>
+                </div>
 
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowDeleteModal(false)}
-                    className="flex-1 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 rounded-xl font-medium transition-all"
+                    className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 border-2 border-gray-200 rounded-xl font-bold transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleDeleteUser}
                     disabled={processing}
-                    className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold transition-all"
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
                   >
                     {processing ? (
                       <span className="flex items-center justify-center gap-2">
-                        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                         Deleting...
                       </span>
                     ) : (
@@ -779,23 +838,6 @@ export default function AdminUsersPage() {
           </div>
         </>
       )}
-
-      <style jsx>{`
-        @keyframes scale-in {
-          from {
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        .animate-scale-in {
-          animation: scale-in 0.2s ease-out;
-        }
-      `}</style>
     </div>
   )
 }

@@ -101,7 +101,7 @@ export default function EnhancedFooter() {
               <Link href="/" className="inline-flex items-center gap-3 mb-6 group">
                 <div className="relative w-10 h-10 flex-shrink-0">
                   <Image
-                    src="/logo-stc.png"
+                    src="/stc-logo.png"
                     alt="STC AutoTrade"
                     fill
                     className="object-contain transform group-hover:scale-105 transition-transform"
