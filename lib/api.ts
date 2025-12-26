@@ -412,9 +412,21 @@ class ApiClient {
     })
   }
 
-  // Admin - Users
+  // ===================================
+  // ADMIN ENDPOINTS
+  // ===================================
+
+  // Admin - User Management
   async getAllUsers(page = 1, limit = 50): Promise<ApiResponse> {
     return this.client.get(`/admin/users?page=${page}&limit=${limit}`)
+  }
+
+  async getAllUsersWithBalance(): Promise<ApiResponse> {
+    return this.client.get('/admin/users/with-balance')
+  }
+
+  async getAdminUserById(id: string): Promise<ApiResponse> {
+    return this.client.get(`/admin/users/${id}`)
   }
 
   async createUser(data: { 
@@ -431,6 +443,33 @@ class ApiClient {
 
   async deleteUser(id: string): Promise<ApiResponse> {
     return this.client.delete(`/admin/users/${id}`)
+  }
+
+  // Admin - Balance Management
+  async manageUserBalance(userId: string, data: {
+    type: 'deposit' | 'withdrawal'
+    amount: number
+    description: string
+  }): Promise<ApiResponse> {
+    return this.client.post(`/admin/users/${userId}/balance`, data)
+  }
+
+  async getUserBalance(userId: string): Promise<ApiResponse> {
+    return this.client.get(`/admin/users/${userId}/balance`)
+  }
+
+  // Admin - User History & Stats
+  async getUserHistory(userId: string): Promise<ApiResponse> {
+    return this.client.get(`/admin/users/${userId}/history`)
+  }
+
+  async getUserTradingStats(userId: string): Promise<ApiResponse> {
+    return this.client.get(`/admin/users/${userId}/trading-stats`)
+  }
+
+  // Admin - System Statistics
+  async getSystemStatistics(): Promise<ApiResponse> {
+    return this.client.get('/admin/statistics')
   }
 
   // Manual cache control

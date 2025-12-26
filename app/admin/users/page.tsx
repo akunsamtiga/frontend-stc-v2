@@ -5,49 +5,75 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import Navbar from '@/components/Navbar'
-import { User } from '@/types'
-import { formatDate } from '@/lib/utils'
-import { UserPlus, Edit2, Trash2, Shield, Mail, CheckCircle, XCircle } from 'lucide-react'
+import { 
+  Users, 
+  Plus,
+  Search,
+  Filter,
+  ChevronRight,
+  Edit,
+  Trash2,
+  DollarSign,
+  Eye,
+  X,
+  Check,
+  AlertTriangle
+} from 'lucide-react'
 import { toast } from 'sonner'
+
+interface UserData {
+  id: string
+  email: string
+  role: string
+  isActive: boolean
+  createdAt: string
+  currentBalance?: number
+}
 
 export default function AdminUsersPage() {
   const router = useRouter()
-  const currentUser = useAuthStore((state) => state.user)
-  const [users, setUsers] = useState<User[]>([])
+  const user = useAuthStore((state) => state.user)
+  const [users, setUsers] = useState<UserData[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterRole, setFilterRole] = useState<string>('all')
+  
+  // Modals
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [showBalanceModal, setShowBalanceModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
   
   // Form states
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<'user' | 'admin' | 'super_admin'>('user')
-  const [isActive, setIsActive] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
+  const [role, setRole] = useState('user')
+  const [balanceType, setBalanceType] = useState<'deposit' | 'withdrawal'>('deposit')
+  const [balanceAmount, setBalanceAmount] = useState('')
+  const [balanceDescription, setBalanceDescription] = useState('')
+  const [processing, setProcessing] = useState(false)
 
   useEffect(() => {
-    if (!currentUser) {
+    if (!user) {
       router.push('/')
       return
     }
-    if (currentUser.role !== 'super_admin' && currentUser.role !== 'admin') {
+    if (user.role !== 'super_admin' && user.role !== 'admin') {
       router.push('/trading')
       return
     }
-
+    
     loadUsers()
-  }, [currentUser, router])
+  }, [user, router])
 
   const loadUsers = async () => {
-    setLoading(true)
     try {
-      const response = await api.getAllUsers()
+      const response = await api.getAllUsersWithBalance()
       const usersList = response?.data?.users || response?.users || []
       setUsers(usersList)
     } catch (error) {
       console.error('Failed to load users:', error)
-      setUsers([])
+      toast.error('Failed to load users')
     } finally {
       setLoading(false)
     }
@@ -55,166 +81,326 @@ export default function AdminUsersPage() {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitting(true)
+    setProcessing(true)
+
     try {
       await api.createUser({ email, password, role })
       toast.success('User created successfully!')
-      resetForm()
       setShowCreateModal(false)
+      setEmail('')
+      setPassword('')
+      setRole('user')
       loadUsers()
-    } catch (error) {
-      console.error('Failed to create user:', error)
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to create user')
     } finally {
-      setSubmitting(false)
+      setProcessing(false)
     }
   }
 
-  const handleUpdateUser = async (e: React.FormEvent) => {
+  const handleManageBalance = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedUser) return
 
-    setSubmitting(true)
-    try {
-      const updateData: any = { role, isActive }
-      if (password) updateData.password = password
-
-      await api.updateUser(selectedUser.id, updateData)
-      toast.success('User updated successfully!')
-      resetForm()
-      setShowEditModal(false)
-      loadUsers()
-    } catch (error) {
-      console.error('Failed to update user:', error)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const handleDeleteUser = async (user: User) => {
-    if (user.id === currentUser?.id) {
-      toast.error('Cannot delete your own account')
+    const amount = parseFloat(balanceAmount)
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Invalid amount')
       return
     }
 
-    if (!confirm(`Are you sure you want to delete ${user.email}?`)) return
+    setProcessing(true)
 
     try {
-      await api.deleteUser(user.id)
-      toast.success('User deleted successfully!')
+      await api.manageUserBalance(selectedUser.id, {
+        type: balanceType,
+        amount,
+        description: balanceDescription
+      })
+      
+      toast.success(`${balanceType === 'deposit' ? 'Deposit' : 'Withdrawal'} successful!`)
+      setShowBalanceModal(false)
+      setBalanceAmount('')
+      setBalanceDescription('')
       loadUsers()
-    } catch (error) {
-      console.error('Failed to delete user:', error)
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to manage balance')
+    } finally {
+      setProcessing(false)
     }
   }
 
-  const openEditModal = (user: User) => {
-    setSelectedUser(user)
-    setEmail(user.email)
-    setPassword('')
-    setRole(user.role)
-    setIsActive(user.isActive)
-    setShowEditModal(true)
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return
+
+    setProcessing(true)
+
+    try {
+      await api.deleteUser(selectedUser.id)
+      toast.success('User deleted successfully!')
+      setShowDeleteModal(false)
+      setSelectedUser(null)
+      loadUsers()
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to delete user')
+    } finally {
+      setProcessing(false)
+    }
   }
 
-  const resetForm = () => {
-    setEmail('')
-    setPassword('')
-    setRole('user')
-    setIsActive(true)
-    setSelectedUser(null)
+  const handleToggleActive = async (userId: string, currentStatus: boolean) => {
+    try {
+      await api.updateUser(userId, { isActive: !currentStatus })
+      toast.success('User status updated!')
+      loadUsers()
+    } catch (error: any) {
+      toast.error('Failed to update user status')
+    }
   }
 
-  if (!currentUser || (currentUser.role !== 'super_admin' && currentUser.role !== 'admin')) {
-    return null
+  if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) return null
+
+  // Filter users
+  const filteredUsers = users.filter(u => {
+    const matchesSearch = u.email.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesRole = filterRole === 'all' || u.role === filterRole
+    return matchesSearch && matchesRole
+  })
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0a0e17]">
+        <Navbar />
+        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+          <div className="text-center">
+            <div className="w-12 h-12 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+            <div className="text-sm text-gray-400">Loading...</div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#0a0e17]">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">User Management</h1>
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
+              <Users className="w-8 h-8 text-blue-400" />
+              User Management
+            </h1>
+            <p className="text-gray-400">{users.length} total users</p>
+          </div>
+          
           <button
             onClick={() => setShowCreateModal(true)}
-            className="btn btn-primary flex items-center gap-2"
+            className="flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-xl font-semibold transition-all"
           >
-            <UserPlus className="w-4 h-4" />
+            <Plus className="w-5 h-5" />
             Create User
           </button>
         </div>
 
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by email..."
+              className="w-full bg-[#0f1419] border border-gray-800/50 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500/50 transition-colors"
+            />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Filter className="w-5 h-5 text-gray-500" />
+            <select
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              className="bg-[#0f1419] border border-gray-800/50 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50 transition-colors"
+            >
+              <option value="all">All Roles</option>
+              <option value="super_admin">Super Admin</option>
+              <option value="admin">Admin</option>
+              <option value="user">User</option>
+            </select>
+          </div>
+        </div>
+
         {/* Users Table */}
-        <div className="card">
-          {loading ? (
-            <div className="text-center py-12 text-gray-400">Loading...</div>
-          ) : users.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">No users found</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="text-left py-3 px-4 text-sm text-gray-400">Email</th>
-                    <th className="text-center py-3 px-4 text-sm text-gray-400">Role</th>
-                    <th className="text-center py-3 px-4 text-sm text-gray-400">Status</th>
-                    <th className="text-left py-3 px-4 text-sm text-gray-400">Created</th>
-                    <th className="text-center py-3 px-4 text-sm text-gray-400">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => (
-                    <tr key={user.id} className="border-b border-gray-700/50 hover:bg-background-tertiary transition-colors">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <Mail className="w-4 h-4 text-gray-400" />
-                          {user.email}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary/20 text-primary rounded-full text-sm">
-                          <Shield className="w-3 h-3" />
-                          {user.role.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        {user.isActive ? (
-                          <span className="inline-flex items-center gap-1 text-success">
-                            <CheckCircle className="w-4 h-4" />
-                            Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-danger">
-                            <XCircle className="w-4 h-4" />
-                            Inactive
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-400">
-                        {formatDate(user.createdAt)}
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
+        <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl overflow-hidden">
+          {/* Desktop Table */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-xs text-gray-500 border-b border-gray-800/50">
+                  <th className="py-4 px-6 font-medium">Email</th>
+                  <th className="py-4 px-6 font-medium">Role</th>
+                  <th className="py-4 px-6 font-medium text-right">Balance</th>
+                  <th className="py-4 px-6 font-medium text-center">Status</th>
+                  <th className="py-4 px-6 font-medium text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-800/30">
+                {filteredUsers.map((u) => (
+                  <tr key={u.id} className="hover:bg-[#1a1f2e] transition-colors">
+                    <td className="py-4 px-6">
+                      <div className="font-medium">{u.email}</div>
+                      <div className="text-xs text-gray-500">
+                        {new Date(u.createdAt).toLocaleDateString()}
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
+                        u.role === 'super_admin' ? 'bg-red-500/10 text-red-400' :
+                        u.role === 'admin' ? 'bg-purple-500/10 text-purple-400' :
+                        'bg-blue-500/10 text-blue-400'
+                      }`}>
+                        {u.role.replace('_', ' ').toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-right font-mono">
+                      {new Intl.NumberFormat('id-ID', { 
+                        style: 'currency', 
+                        currency: 'IDR',
+                        minimumFractionDigits: 0 
+                      }).format(u.currentBalance || 0)}
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex justify-center">
+                        <button
+                          onClick={() => handleToggleActive(u.id, u.isActive)}
+                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                            u.isActive 
+                              ? 'bg-green-500/10 text-green-400 hover:bg-green-500/20' 
+                              : 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                          }`}
+                        >
+                          {u.isActive ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                          {u.isActive ? 'Active' : 'Inactive'}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => router.push(`/admin/users/${u.id}`)}
+                          className="p-2 hover:bg-blue-500/10 rounded-lg transition-colors"
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4 text-blue-400" />
+                        </button>
+                        
+                        {user.role === 'super_admin' && (
                           <button
-                            onClick={() => openEditModal(user)}
-                            className="p-2 hover:bg-primary/20 rounded-lg transition-colors"
+                            onClick={() => {
+                              setSelectedUser(u)
+                              setShowBalanceModal(true)
+                            }}
+                            className="p-2 hover:bg-emerald-500/10 rounded-lg transition-colors"
+                            title="Manage Balance"
                           >
-                            <Edit2 className="w-4 h-4 text-primary" />
+                            <DollarSign className="w-4 h-4 text-emerald-400" />
                           </button>
-                          {user.id !== currentUser?.id && (
-                            <button
-                              onClick={() => handleDeleteUser(user)}
-                              className="p-2 hover:bg-danger/20 rounded-lg transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4 text-danger" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        )}
+                        
+                        {user.role === 'super_admin' && u.role !== 'super_admin' && (
+                          <button
+                            onClick={() => {
+                              setSelectedUser(u)
+                              setShowDeleteModal(true)
+                            }}
+                            className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+                            title="Delete User"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-400" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="lg:hidden space-y-3 p-4">
+            {filteredUsers.map((u) => (
+              <div
+                key={u.id}
+                className="bg-[#1a1f2e] border border-gray-800/50 rounded-xl p-4"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="font-medium mb-1">{u.email}</div>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                        u.role === 'super_admin' ? 'bg-red-500/10 text-red-400' :
+                        u.role === 'admin' ? 'bg-purple-500/10 text-purple-400' :
+                        'bg-blue-500/10 text-blue-400'
+                      }`}>
+                        {u.role.replace('_', ' ')}
+                      </span>
+                      
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                        u.isActive ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+                      }`}>
+                        {u.isActive ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                        {u.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <ChevronRight className="w-5 h-5 text-gray-600" />
+                </div>
+
+                <div className="flex items-center justify-between text-sm mb-3">
+                  <span className="text-gray-400">Balance</span>
+                  <span className="font-mono font-bold">
+                    {new Intl.NumberFormat('id-ID', { 
+                      style: 'currency', 
+                      currency: 'IDR',
+                      minimumFractionDigits: 0 
+                    }).format(u.currentBalance || 0)}
+                  </span>
+                </div>
+
+                <div className="flex gap-2 pt-3 border-t border-gray-800/50">
+                  <button
+                    onClick={() => router.push(`/admin/users/${u.id}`)}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg text-sm font-medium text-blue-400 transition-all"
+                  >
+                    <Eye className="w-4 h-4" />
+                    View
+                  </button>
+                  
+                  {user.role === 'super_admin' && (
+                    <button
+                      onClick={() => {
+                        setSelectedUser(u)
+                        setShowBalanceModal(true)
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg text-sm font-medium text-emerald-400 transition-all"
+                    >
+                      <DollarSign className="w-4 h-4" />
+                      Balance
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {filteredUsers.length === 0 && (
+            <div className="text-center py-16">
+              <Users className="w-16 h-16 mx-auto mb-4 text-gray-700 opacity-20" />
+              <p className="text-gray-400">No users found</p>
             </div>
           )}
         </div>
@@ -222,117 +408,245 @@ export default function AdminUsersPage() {
 
       {/* Create User Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="card max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-4">Create New User</h2>
-            <form onSubmit={handleCreateUser} className="space-y-4">
-              <div className="input-group">
-                <label className="input-label">Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoFocus
-                />
+        <>
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" 
+            onClick={() => setShowCreateModal(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-[#0f1419] border border-gray-800/50 rounded-2xl shadow-2xl">
+              <div className="p-6 border-b border-gray-800/50">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold">Create New User</h2>
+                  <button
+                    onClick={() => setShowCreateModal(false)}
+                    className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#1a1f2e] transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
-              <div className="input-group">
-                <label className="input-label">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Role</label>
-                <select value={role} onChange={(e) => setRole(e.target.value as any)}>
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                  {currentUser?.role === 'super_admin' && (
-                    <option value="super_admin">Super Admin</option>
-                  )}
-                </select>
-              </div>
-              <div className="flex gap-3">
-                <button type="submit" disabled={submitting} className="btn btn-primary flex-1">
-                  {submitting ? 'Creating...' : 'Create User'}
-                </button>
+
+              <form onSubmit={handleCreateUser} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50"
+                    placeholder="user@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50"
+                    placeholder="Min. 8 characters"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Role
+                  </label>
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50"
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                    {user.role === 'super_admin' && (
+                      <option value="super_admin">Super Admin</option>
+                    )}
+                  </select>
+                </div>
+
                 <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateModal(false)
-                    resetForm()
-                  }}
-                  className="btn btn-secondary"
+                  type="submit"
+                  disabled={processing}
+                  className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50 py-3 rounded-xl font-semibold transition-all"
                 >
-                  Cancel
+                  {processing ? 'Creating...' : 'Create User'}
                 </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
-      {/* Edit User Modal */}
-      {showEditModal && selectedUser && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="card max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-4">Edit User</h2>
-            <form onSubmit={handleUpdateUser} className="space-y-4">
-              <div className="input-group">
-                <label className="input-label">Email</label>
-                <input type="email" value={email} disabled className="opacity-50" />
+      {/* Balance Management Modal */}
+      {showBalanceModal && selectedUser && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" 
+            onClick={() => setShowBalanceModal(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-[#0f1419] border border-gray-800/50 rounded-2xl shadow-2xl">
+              <div className="p-6 border-b border-gray-800/50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold mb-1">Manage Balance</h2>
+                    <p className="text-sm text-gray-400">{selectedUser.email}</p>
+                  </div>
+                  <button
+                    onClick={() => setShowBalanceModal(false)}
+                    className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#1a1f2e] transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
-              <div className="input-group">
-                <label className="input-label">New Password (leave empty to keep current)</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter new password..."
-                />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Role</label>
-                <select value={role} onChange={(e) => setRole(e.target.value as any)}>
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                  {currentUser?.role === 'super_admin' && (
-                    <option value="super_admin">Super Admin</option>
-                  )}
-                </select>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                  className="w-4 h-4"
-                />
-                <label htmlFor="isActive" className="text-sm">Active Account</label>
-              </div>
-              <div className="flex gap-3">
-                <button type="submit" disabled={submitting} className="btn btn-primary flex-1">
-                  {submitting ? 'Updating...' : 'Update User'}
-                </button>
+
+              <form onSubmit={handleManageBalance} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Current Balance
+                  </label>
+                  <div className="text-2xl font-bold font-mono">
+                    {new Intl.NumberFormat('id-ID', { 
+                      style: 'currency', 
+                      currency: 'IDR',
+                      minimumFractionDigits: 0 
+                    }).format(selectedUser.currentBalance || 0)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Type
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setBalanceType('deposit')}
+                      className={`py-3 rounded-xl font-medium transition-all ${
+                        balanceType === 'deposit'
+                          ? 'bg-green-500 text-white'
+                          : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
+                      }`}
+                    >
+                      Deposit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBalanceType('withdrawal')}
+                      className={`py-3 rounded-xl font-medium transition-all ${
+                        balanceType === 'withdrawal'
+                          ? 'bg-red-500 text-white'
+                          : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
+                      }`}
+                    >
+                      Withdrawal
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Amount
+                  </label>
+                  <input
+                    type="number"
+                    value={balanceAmount}
+                    onChange={(e) => setBalanceAmount(e.target.value)}
+                    required
+                    min="0"
+                    step="1000"
+                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 font-mono focus:outline-none focus:border-blue-500/50"
+                    placeholder="0"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    value={balanceDescription}
+                    onChange={(e) => setBalanceDescription(e.target.value)}
+                    required
+                    className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50"
+                    placeholder="Admin adjustment"
+                  />
+                </div>
+
                 <button
-                  type="button"
-                  onClick={() => {
-                    setShowEditModal(false)
-                    resetForm()
-                  }}
-                  className="btn btn-secondary"
+                  type="submit"
+                  disabled={processing}
+                  className={`w-full py-3 rounded-xl font-semibold transition-all ${
+                    balanceType === 'deposit'
+                      ? 'bg-green-500 hover:bg-green-600'
+                      : 'bg-red-500 hover:bg-red-600'
+                  } disabled:opacity-50`}
                 >
-                  Cancel
+                  {processing ? 'Processing...' : `Confirm ${balanceType === 'deposit' ? 'Deposit' : 'Withdrawal'}`}
                 </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
-        </div>
+        </>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && selectedUser && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" 
+            onClick={() => setShowDeleteModal(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-[#0f1419] border border-red-500/30 rounded-2xl shadow-2xl">
+              <div className="p-6 border-b border-gray-800/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center">
+                    <AlertTriangle className="w-6 h-6 text-red-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold">Delete User</h2>
+                    <p className="text-sm text-gray-400">This action cannot be undone</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <p className="text-gray-300 mb-6">
+                  Are you sure you want to delete <span className="font-bold text-white">{selectedUser.email}</span>?
+                </p>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDeleteModal(false)}
+                    className="flex-1 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 rounded-xl font-medium transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteUser}
+                    disabled={processing}
+                    className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 disabled:opacity-50 rounded-xl font-semibold transition-all"
+                  >
+                    {processing ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   )
