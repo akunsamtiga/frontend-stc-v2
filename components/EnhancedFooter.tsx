@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Mail,
   Send,
@@ -77,7 +78,7 @@ export default function EnhancedFooter() {
   }
 
   return (
-    <footer className="relative bg-[#0a0e17] border-t border-gray-800/50 overflow-hidden">
+    <footer className="relative bg-[#0a0e17] border-t border-white/5 overflow-hidden">
       {/* Subtle Background Pattern */}
       <div className="absolute inset-0 opacity-[0.02] pointer-events-none">
         <div 
@@ -96,33 +97,59 @@ export default function EnhancedFooter() {
         {/* Main Content */}
         <div className="py-12 sm:py-16">
           <div className="grid md:grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-12">
-            {/* Brand Column - Takes 2 columns on large screens */}
-            <div className="lg:col-span-2">
+            {/* Brand Column */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="lg:col-span-2"
+            >
               <Link href="/" className="inline-flex items-center gap-3 mb-6 group">
-                <div className="relative w-10 h-10 flex-shrink-0">
+                <motion.div
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                  className="relative w-10 h-10 flex-shrink-0"
+                >
                   <Image
                     src="/stc-logo.png"
                     alt="STC AutoTrade"
                     fill
-                    className="object-contain transform group-hover:scale-105 transition-transform rounded-md"
+                    className="object-contain rounded-md"
                     priority
                   />
-                </div>
+                </motion.div>
                 <div>
                   <span className="text-lg font-bold text-white">STC AutoTrade</span>
                   <div className="flex items-center gap-1 mt-0.5">
-                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="w-1.5 h-1.5 bg-emerald-400 rounded-full"
+                    />
                     <span className="text-[10px] text-gray-500 uppercase tracking-wider">Live Trading</span>
                   </div>
                 </div>
               </Link>
 
-              <p className="text-sm text-gray-400 leading-relaxed mb-6">
+              <motion.p
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="text-sm text-gray-400 leading-relaxed mb-6"
+              >
                 Platform trading binary option profesional dengan teknologi terdepan dan keamanan maksimal.
-              </p>
+              </motion.p>
 
               {/* Newsletter Form */}
-              <div className="mb-6">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3 }}
+                className="mb-6"
+              >
                 <label className="block text-xs font-medium text-gray-400 mb-2">
                   Subscribe to Newsletter
                 </label>
@@ -133,173 +160,199 @@ export default function EnhancedFooter() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Enter your email"
-                      className="w-full bg-white/5 border border-gray-800/50 rounded-lg px-4 py-3 pr-12 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-700 focus:border-gray-700 transition-all"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 pr-12 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                       disabled={loading}
                     />
-                    <button
+                    <motion.button
                       type="submit"
                       disabled={loading}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
                       className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/10 hover:bg-white/20 rounded-md flex items-center justify-center transition-colors disabled:opacity-50"
                       aria-label="Subscribe"
                     >
                       {loading ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b border-white"></div>
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                        />
                       ) : (
                         <Send className="w-4 h-4" />
                       )}
-                    </button>
+                    </motion.button>
                   </div>
                 </form>
-              </div>
+              </motion.div>
 
               {/* Social Links */}
-              <div className="flex items-center gap-3">
+              <motion.div
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.4 }}
+                className="flex items-center gap-3"
+              >
                 {socialLinks.map((social, index) => (
-                  <a
+                  <motion.a
                     key={index}
                     href={social.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 border border-gray-800/50 text-gray-400 ${social.color} transition-all hover:bg-white/10 hover:border-gray-700`}
+                    initial={{ opacity: 0, scale: 0 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.5 + index * 0.05 }}
+                    whileHover={{ scale: 1.2, y: -3 }}
+                    whileTap={{ scale: 0.9 }}
+                    className={`w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-gray-400 ${social.color} transition-all`}
                     aria-label={social.label}
                   >
                     <social.icon className="w-4 h-4" />
-                  </a>
+                  </motion.a>
                 ))}
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
 
             {/* Links Columns - Desktop Only */}
-            <div className="hidden md:block">
-              <h4 className="text-sm font-semibold mb-4 text-gray-200">Platform</h4>
-              <ul className="space-y-2.5">
-                {footerLinks.platform.map((link, index) => (
-                  <li key={index}>
-                    <a
-                      href={link.href}
-                      className="text-sm text-gray-400 hover:text-white transition-colors inline-block"
+            {Object.entries(footerLinks).map(([key, links], columnIndex) => (
+              <motion.div
+                key={key}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 * (columnIndex + 1), duration: 0.6 }}
+                className="hidden md:block"
+              >
+                <h4 className="text-sm font-semibold mb-4 text-gray-200 capitalize">{key}</h4>
+                <ul className="space-y-2.5">
+                  {links.map((link, index) => (
+                    <motion.li
+                      key={index}
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.1 * (columnIndex + 1) + 0.05 * index }}
                     >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="hidden md:block">
-              <h4 className="text-sm font-semibold mb-4 text-gray-200">Company</h4>
-              <ul className="space-y-2.5">
-                {footerLinks.company.map((link, index) => (
-                  <li key={index}>
-                    <a
-                      href={link.href}
-                      className="text-sm text-gray-400 hover:text-white transition-colors inline-block"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="hidden md:block">
-              <h4 className="text-sm font-semibold mb-4 text-gray-200">Resources</h4>
-              <ul className="space-y-2.5">
-                {footerLinks.resources.map((link, index) => (
-                  <li key={index}>
-                    <a
-                      href={link.href}
-                      className="text-sm text-gray-400 hover:text-white transition-colors inline-block"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="hidden md:block">
-              <h4 className="text-sm font-semibold mb-4 text-gray-200">Legal</h4>
-              <ul className="space-y-2.5">
-                {footerLinks.legal.map((link, index) => (
-                  <li key={index}>
-                    <a
-                      href={link.href}
-                      className="text-sm text-gray-400 hover:text-white transition-colors inline-block"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                      <motion.a
+                        href={link.href}
+                        whileHover={{ x: 3, color: '#ffffff' }}
+                        className="text-sm text-gray-400 transition-colors inline-block"
+                      >
+                        {link.label}
+                      </motion.a>
+                    </motion.li>
+                  ))}
+                </ul>
+              </motion.div>
+            ))}
           </div>
 
           {/* Mobile Accordion */}
           <div className="md:hidden mt-8 space-y-3">
-            {Object.entries(footerLinks).map(([key, links]) => (
-              <div key={key} className="border-b border-gray-800/50 pb-3 last:border-0">
+            {Object.entries(footerLinks).map(([key, links], index) => (
+              <motion.div
+                key={key}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.05 }}
+                className="border-b border-white/5 pb-3 last:border-0"
+              >
                 <button
                   onClick={() => toggleSection(key)}
                   className="w-full flex items-center justify-between text-left py-2"
                 >
                   <span className="text-sm font-semibold text-gray-200 capitalize">{key}</span>
-                  {expandedSection === key ? (
-                    <ChevronUp className="w-4 h-4 text-gray-400 transition-transform" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-gray-400 transition-transform" />
-                  )}
+                  <motion.div
+                    animate={{ rotate: expandedSection === key ? 180 : 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                  </motion.div>
                 </button>
                 
-                <div 
-                  className={`overflow-hidden transition-all duration-300 ${
-                    expandedSection === key ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-                  }`}
-                >
-                  <ul className="mt-3 space-y-2 pl-2">
-                    {links.map((link, index) => (
-                      <li key={index}>
-                        <a
-                          href={link.href}
-                          className="text-sm text-gray-400 hover:text-white transition-colors inline-block py-1"
-                        >
-                          {link.label}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
+                <AnimatePresence>
+                  {expandedSection === key && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden"
+                    >
+                      <ul className="mt-3 space-y-2 pl-2">
+                        {links.map((link, linkIndex) => (
+                          <motion.li
+                            key={linkIndex}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: linkIndex * 0.05 }}
+                          >
+                            <a
+                              href={link.href}
+                              className="text-sm text-gray-400 hover:text-white transition-colors inline-block py-1"
+                            >
+                              {link.label}
+                            </a>
+                          </motion.li>
+                        ))}
+                      </ul>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             ))}
           </div>
         </div>
 
         {/* Bottom Bar */}
-        <div className="py-6 border-t border-gray-800/50">
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="py-6 border-t border-white/5"
+        >
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-sm text-gray-500 text-center md:text-left">
               © {new Date().getFullYear()} STC AutoTrade. All rights reserved.
             </div>
 
             <div className="flex items-center gap-4 text-xs text-gray-500">
-              <div className="flex items-center gap-1.5">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-1.5"
+              >
                 <Shield className="w-3.5 h-3.5 text-emerald-400" />
                 <span>SSL Secured</span>
-              </div>
-              <div className="w-px h-3 bg-gray-800"></div>
-              <div className="flex items-center gap-1.5">
+              </motion.div>
+              <div className="w-px h-3 bg-white/10"></div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-1.5"
+              >
                 <Shield className="w-3.5 h-3.5 text-blue-400" />
                 <span>Licensed</span>
-              </div>
+              </motion.div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Risk Warning - Minimal */}
-        <div className="pb-6">
+        {/* Risk Warning */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="pb-6"
+        >
           <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <Shield className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+              >
+                <Shield className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+              </motion.div>
               <div className="flex-1">
                 <h5 className="text-xs font-semibold text-yellow-400 mb-1">Risk Warning</h5>
                 <p className="text-xs text-gray-400 leading-relaxed">
@@ -308,7 +361,7 @@ export default function EnhancedFooter() {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </footer>
   )
