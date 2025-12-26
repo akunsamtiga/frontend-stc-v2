@@ -535,7 +535,7 @@ export default function TradingPage() {
                   type="number"
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
-                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-center text-sm font-mono font-bold focus:outline-none focus:border-blue-500/50 transition-colors"
+                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-center text-sm font-mono font-bold text-white focus:outline-none focus:border-blue-500/50 transition-colors"
                   min="1000"
                   step="1000"
                 />
@@ -549,7 +549,7 @@ export default function TradingPage() {
                 <select
                   value={duration}
                   onChange={(e) => setDuration(Number(e.target.value))}
-                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-center text-sm font-bold focus:outline-none focus:border-blue-500/50 transition-colors"
+                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-center text-sm font-bold text-white focus:outline-none focus:border-blue-500/50 transition-colors"
                 >
                   {DURATIONS.map((d) => (
                     <option key={d} value={d}>{d}m</option>
@@ -631,7 +631,7 @@ export default function TradingPage() {
                   type="number"
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
-                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg pl-3 pr-9 py-2.5 text-center text-sm font-mono font-bold focus:outline-none focus:border-blue-500/50"
+                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg pl-3 pr-9 py-2.5 text-center text-sm font-mono font-bold text-white focus:outline-none focus:border-blue-500/50"
                   min="1000"
                   step="1000"
                 />
@@ -676,7 +676,7 @@ export default function TradingPage() {
               <select
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2.5 text-center text-sm font-bold focus:outline-none focus:border-blue-500/50 appearance-none cursor-pointer"
+                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2.5 text-center text-sm font-bold text-white focus:outline-none focus:border-blue-500/50 appearance-none cursor-pointer"
               >
                 {DURATIONS.map((d) => (
                   <option key={d} value={d}>{d}m</option>
@@ -831,7 +831,7 @@ export default function TradingPage() {
                       setShowMobileMenu(false)
                     }
                   }}
-                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500/50"
+                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
                 >
                   {assets.map((asset) => (
                     <option key={asset.id} value={asset.id}>
