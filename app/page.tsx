@@ -155,18 +155,41 @@ export default function LandingPage() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
 const [touchStart, setTouchStart] = useState(0)
 const [touchEnd, setTouchEnd] = useState(0)
-const [showStockity, setShowStockity] = useState(false)
+const [logoPhase, setLogoPhase] = useState<'stc-logo-in' | 'stc-text-in' | 'stc-hold' | 'stc-text-out' | 'stc-logo-out' | 'stockity-logo-in' | 'stockity-text-in' | 'stockity-hold' | 'stockity-text-out' | 'stockity-logo-out'>('stc-logo-in')
 
 useEffect(() => {
-  // Interval dinamis: 6 detik untuk STC (showStockity=false), 4 detik untuk Stockity (showStockity=true)
-  const duration = showStockity ? 4000 : 8000
-  
+  const phaseTimings = {
+    'stc-logo-in': 1000,        // Logo STC muncul
+    'stc-text-in': 1000,        // Teks STC slide in
+    'stc-hold': 4000,           // Hold STC
+    'stc-text-out': 1000,       // Teks STC slide out
+    'stc-logo-out': 1000,       // Logo STC hilang
+    'stockity-logo-in': 1000,   // Logo Stockity muncul
+    'stockity-text-in': 1000,   // Teks Stockity slide in
+    'stockity-hold': 4000,      // Hold Stockity
+    'stockity-text-out': 1000,  // Teks Stockity slide out
+    'stockity-logo-out': 1000,  // Logo Stockity hilang
+  }
+
+  const nextPhase = {
+    'stc-logo-in': 'stc-text-in',
+    'stc-text-in': 'stc-hold',
+    'stc-hold': 'stc-text-out',
+    'stc-text-out': 'stc-logo-out',
+    'stc-logo-out': 'stockity-logo-in',
+    'stockity-logo-in': 'stockity-text-in',
+    'stockity-text-in': 'stockity-hold',
+    'stockity-hold': 'stockity-text-out',
+    'stockity-text-out': 'stockity-logo-out',
+    'stockity-logo-out': 'stc-logo-in',
+  } as const
+
   const timeout = setTimeout(() => {
-    setShowStockity(prev => !prev)
-  }, duration)
-  
+    setLogoPhase(nextPhase[logoPhase])
+  }, phaseTimings[logoPhase])
+
   return () => clearTimeout(timeout)
-}, [showStockity]) // Dependency pada showStockity agar re-run setiap kali berubah
+}, [logoPhase])
 
   useEffect(() => {
     if (user) {
@@ -370,65 +393,70 @@ const handleTouchEnd = () => {
   <div className="container mx-auto px-4 sm:px-6">
     <div className="flex items-center justify-between h-20">
       {/* Logo dengan animasi sequence */}
-      <div className="relative h-12 w-52 overflow-hidden">
-        {/* STC AutoTrade */}
-        <div 
-          className={`flex items-center gap-3 absolute left-0 top-0 ${
-            showStockity ? 'pointer-events-none' : 'pointer-events-auto'
-          }`}
-        >
-          {/* Logo STC */}
-          <div className={`relative w-10 h-10 flex-shrink-0 ${
-            showStockity ? 'animate-logo-bounce-out' : 'animate-logo-bounce-in'
-          }`}>
-            <Image
-              src="/stc-logo.png"
-              alt="STC AutoTrade"
-              fill
-              className="object-contain rounded-md"
-              priority
-            />
-          </div>
-          
-          {/* Text STC */}
-          <div className="flex overflow-hidden">
-            <span className={`text-xl font-bold text-white whitespace-nowrap ${
-              showStockity ? 'animate-text-slide-out' : 'animate-text-slide-in'
-            }`}>
-              STC AutoTrade
-            </span>
-          </div>
-        </div>
-
-        {/* By Stockity */}
-        <div 
-          className={`flex items-center gap-3 absolute left-0 top-0 ${
-            showStockity ? 'pointer-events-auto' : 'pointer-events-none'
-          }`}
-        >
-          {/* Logo Stockity */}
-          <div className={`relative w-10 h-10 flex-shrink-0 ${
-            showStockity ? 'animate-logo-bounce-in' : 'animate-logo-bounce-out'
-          }`}>
-            <Image
-              src="/stockity.png"
-              alt="Stockity"
-              fill
-              className="object-contain rounded-md"
-              priority
-            />
-          </div>
-          
-          {/* Text Stockity */}
-          <div className="flex overflow-hidden">
-            <span className={`text-xl font-bold text-white whitespace-nowrap ${
-              showStockity ? 'animate-text-slide-in' : 'animate-text-slide-out'
-            }`}>
-              By Stockity
-            </span>
-          </div>
-        </div>
+      {/* Logo dengan animasi sequence */}
+<div className="relative h-12 w-52 overflow-hidden">
+  {/* STC AutoTrade - hanya visible di fase STC */}
+  {logoPhase.startsWith('stc-') && (
+    <div className="flex items-center gap-3 absolute left-0 top-0">
+      {/* Logo STC */}
+      <div className={`relative w-10 h-10 flex-shrink-0 ${
+        logoPhase === 'stc-logo-in' ? 'animate-logo-bounce-in' :
+        logoPhase === 'stc-logo-out' ? 'animate-logo-bounce-out' : ''
+      }`}>
+        <Image
+          src="/stc-logo.png"
+          alt="STC AutoTrade"
+          fill
+          className="object-contain rounded-md"
+          priority
+        />
       </div>
+      
+      {/* Text STC - hanya show setelah logo in */}
+      {(logoPhase !== 'stc-logo-in' && logoPhase !== 'stc-logo-out') && (
+        <div className="flex overflow-hidden">
+          <span className={`text-xl font-bold text-white whitespace-nowrap ${
+            logoPhase === 'stc-text-in' ? 'animate-text-slide-in' :
+            logoPhase === 'stc-text-out' ? 'animate-text-slide-out' : ''
+          }`}>
+            STC AutoTrade
+          </span>
+        </div>
+      )}
+    </div>
+  )}
+
+  {/* By Stockity - hanya visible di fase Stockity */}
+  {logoPhase.startsWith('stockity-') && (
+    <div className="flex items-center gap-3 absolute left-0 top-0">
+      {/* Logo Stockity */}
+      <div className={`relative w-10 h-10 flex-shrink-0 ${
+        logoPhase === 'stockity-logo-in' ? 'animate-logo-bounce-in' :
+        logoPhase === 'stockity-logo-out' ? 'animate-logo-bounce-out' : ''
+      }`}>
+        <Image
+          src="/stockity.png"
+          alt="Stockity"
+          fill
+          className="object-contain rounded-md"
+          priority
+        />
+      </div>
+      
+      {/* Text Stockity - hanya show setelah logo in */}
+      {(logoPhase !== 'stockity-logo-in' && logoPhase !== 'stockity-logo-out') && (
+        <div className="flex overflow-hidden">
+          <span className={`text-xl font-bold text-white whitespace-nowrap ${
+            logoPhase === 'stockity-text-in' ? 'animate-text-slide-in' :
+            logoPhase === 'stockity-text-out' ? 'animate-text-slide-out' : ''
+          }`}>
+            By Stockity
+          </span>
+        </div>
+      )}
+    </div>
+  )}
+</div>
 
       {/* Desktop Menu */}
       <div className="hidden md:flex items-center gap-8">
@@ -1810,6 +1838,77 @@ const handleTouchEnd = () => {
   ::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(to bottom, #2563eb, #059669);
   }
+
+  @keyframes text-slide-out {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes text-slide-in {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes logo-bounce-out {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  40% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes logo-bounce-in {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.25);
+    opacity: 1;
+  }
+  80% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-text-slide-out {
+  animation: text-slide-out 1s ease-in-out forwards;
+}
+
+.animate-text-slide-in {
+  animation: text-slide-in 1s ease-in-out forwards;
+}
+
+.animate-logo-bounce-out {
+  animation: logo-bounce-out 1s ease-in-out forwards;
+}
+
+.animate-logo-bounce-in {
+  animation: logo-bounce-in 1s ease-in-out forwards;
+}
 `}</style>
     </div>
   )
