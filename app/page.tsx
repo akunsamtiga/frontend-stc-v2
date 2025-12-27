@@ -1506,6 +1506,15 @@ const handleTouchEnd = () => {
     }
   }
 
+  @keyframes marquee-seamless {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee-seamless {
+  animation: marquee-seamless 30s linear infinite;
+}
+  
   @keyframes slide-in-right {
     from {
       opacity: 0;
@@ -1606,6 +1615,7 @@ const handleTouchEnd = () => {
   ::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(to bottom, #2563eb, #059669);
   }
+
 `}</style>
     </div>
   )
