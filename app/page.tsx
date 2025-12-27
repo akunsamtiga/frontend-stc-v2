@@ -159,16 +159,16 @@ const [logoPhase, setLogoPhase] = useState<'stc-logo-in' | 'stc-text-in' | 'stc-
 
 useEffect(() => {
   const phaseTimings = {
-    'stc-logo-in': 1000,        // Logo STC muncul
-    'stc-text-in': 1000,        // Teks STC slide in
-    'stc-hold': 4000,           // Hold STC
-    'stc-text-out': 1000,       // Teks STC slide out
-    'stc-logo-out': 1000,       // Logo STC hilang
-    'stockity-logo-in': 1000,   // Logo Stockity muncul
-    'stockity-text-in': 1000,   // Teks Stockity slide in
+    'stc-logo-in': 800,        // Logo STC muncul
+    'stc-text-in': 800,        // Teks STC slide in
+    'stc-hold': 8000,           // Hold STC
+    'stc-text-out': 800,       // Teks STC slide out
+    'stc-logo-out': 800,       // Logo STC hilang
+    'stockity-logo-in': 800,   // Logo Stockity muncul
+    'stockity-text-in': 800,   // Teks Stockity slide in
     'stockity-hold': 4000,      // Hold Stockity
-    'stockity-text-out': 1000,  // Teks Stockity slide out
-    'stockity-logo-out': 1000,  // Logo Stockity hilang
+    'stockity-text-out': 800,  // Teks Stockity slide out
+    'stockity-logo-out': 800,  // Logo Stockity hilang
   }
 
   const nextPhase = {

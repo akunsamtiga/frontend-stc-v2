@@ -1,3 +1,4 @@
+// types/index.ts - UPDATED with Real/Demo support
 export interface User {
   id: string
   email: string
@@ -20,9 +21,11 @@ export interface Asset {
   updatedAt?: string
 }
 
+// ✅ UPDATED: Added accountType
 export interface BinaryOrder {
   id: string
   user_id: string
+  accountType: 'real' | 'demo' // ✅ NEW
   asset_id: string
   asset_name: string
   direction: 'CALL' | 'PUT'
@@ -38,10 +41,12 @@ export interface BinaryOrder {
   createdAt: string
 }
 
+// ✅ UPDATED: Added accountType
 export interface Balance {
   id: string
   user_id: string
-  type: 'deposit' | 'withdrawal' | 'win' | 'lose' | 'order_debit' | 'order_profit'  // ← UPDATE
+  accountType: 'real' | 'demo' // ✅ NEW
+  type: 'deposit' | 'withdrawal' | 'win' | 'lose' | 'order_debit' | 'order_profit'
   amount: number
   description?: string
   createdAt: string
@@ -66,3 +71,14 @@ export interface ApiResponse<T = any> {
   data?: T
   error?: string
 }
+
+// ✅ NEW: Balance summary interface
+export interface BalanceSummary {
+  realBalance: number
+  demoBalance: number
+  realTransactions: number
+  demoTransactions: number
+}
+
+// ✅ NEW: Account type type
+export type AccountType = 'real' | 'demo'

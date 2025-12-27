@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { BinaryOrder } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { X, TrendingUp, TrendingDown, Clock, RefreshCw, Filter } from 'lucide-react'
+import { X, TrendingUp, TrendingDown, Clock, RefreshCw, Filter, Wallet } from 'lucide-react'
 
 interface HistorySidebarProps {
   isOpen: boolean
@@ -14,21 +14,28 @@ interface HistorySidebarProps {
 export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps) {
   const [orders, setOrders] = useState<BinaryOrder[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [accountFilter, setAccountFilter] = useState<'all' | 'real' | 'demo'>('all')
 
   useEffect(() => {
     if (isOpen) {
       loadOrders()
     }
-  }, [isOpen, filter])
+  }, [isOpen, statusFilter, accountFilter])
 
   const loadOrders = async () => {
     setLoading(true)
     try {
-      const status = filter === 'all' ? undefined : filter
+      const status = statusFilter === 'all' ? undefined : statusFilter
       const response = await api.getOrders(status, 1, 50)
       
-      const ordersList = response?.data?.orders || response?.orders || []
+      let ordersList = response?.data?.orders || response?.orders || []
+      
+      // Filter by account type if not 'all'
+      if (accountFilter !== 'all') {
+        ordersList = ordersList.filter((o: BinaryOrder) => o.accountType === accountFilter)
+      }
+      
       setOrders(ordersList)
     } catch (error) {
       console.error('Failed to load orders:', error)
@@ -39,6 +46,14 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
   }
 
   if (!isOpen) return null
+
+  // Calculate stats
+  const stats = {
+    total: orders.length,
+    won: orders.filter(o => o.status === 'WON').length,
+    lost: orders.filter(o => o.status === 'LOST').length,
+    active: orders.filter(o => o.status === 'ACTIVE').length,
+  }
 
   return (
     <>
@@ -74,21 +89,74 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
           </div>
         </div>
 
-        {/* Filter */}
-        <div className="p-4 border-b border-gray-800/50">
-          <div className="flex items-center gap-2 text-xs">
-            <Filter className="w-3 h-3 text-gray-400" />
-            <span className="text-gray-400">Filter:</span>
+        {/* Stats Summary */}
+        <div className="p-4 border-b border-gray-800/50 bg-[#0a0e17]">
+          <div className="grid grid-cols-4 gap-2">
+            <div className="bg-[#1a1f2e] rounded-lg p-2 text-center border border-gray-800/50">
+              <div className="text-xs text-gray-400 mb-1">Total</div>
+              <div className="text-lg font-bold">{stats.total}</div>
+            </div>
+            <div className="bg-green-500/10 rounded-lg p-2 text-center border border-green-500/20">
+              <div className="text-xs text-gray-400 mb-1">Won</div>
+              <div className="text-lg font-bold text-green-400">{stats.won}</div>
+            </div>
+            <div className="bg-red-500/10 rounded-lg p-2 text-center border border-red-500/20">
+              <div className="text-xs text-gray-400 mb-1">Lost</div>
+              <div className="text-lg font-bold text-red-400">{stats.lost}</div>
+            </div>
+            <div className="bg-blue-500/10 rounded-lg p-2 text-center border border-blue-500/20">
+              <div className="text-xs text-gray-400 mb-1">Active</div>
+              <div className="text-lg font-bold text-blue-400">{stats.active}</div>
+            </div>
           </div>
-          <div className="flex gap-2 mt-2">
+        </div>
+
+        {/* Account Type Filter */}
+        <div className="p-4 border-b border-gray-800/50">
+          <div className="flex items-center gap-2 text-xs mb-2">
+            <Wallet className="w-3 h-3 text-gray-400" />
+            <span className="text-gray-400 font-medium">Account Type:</span>
+          </div>
+          <div className="flex gap-2">
+            {[
+              { id: 'all', label: 'All', color: 'gray' },
+              { id: 'real', label: 'Real', color: 'green' },
+              { id: 'demo', label: 'Demo', color: 'blue' }
+            ].map((type) => (
+              <button
+                key={type.id}
+                onClick={() => setAccountFilter(type.id as any)}
+                className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                  accountFilter === type.id
+                    ? type.id === 'real'
+                      ? 'bg-green-500 text-white shadow-lg shadow-green-500/30'
+                      : type.id === 'demo'
+                      ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
+                      : 'bg-purple-500 text-white shadow-lg shadow-purple-500/30'
+                    : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
+                }`}
+              >
+                {type.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Status Filter */}
+        <div className="p-4 border-b border-gray-800/50">
+          <div className="flex items-center gap-2 text-xs mb-2">
+            <Filter className="w-3 h-3 text-gray-400" />
+            <span className="text-gray-400 font-medium">Status:</span>
+          </div>
+          <div className="flex gap-2">
             {['all', 'ACTIVE', 'WON', 'LOST'].map((f) => (
               <button
                 key={f}
-                onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  filter === f
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#232936]'
+                onClick={() => setStatusFilter(f)}
+                className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                  statusFilter === f
+                    ? 'bg-blue-500 text-white shadow-lg'
+                    : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
                 }`}
               >
                 {f.charAt(0) + f.slice(1).toLowerCase()}
@@ -111,7 +179,9 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
               <div className="text-center text-gray-400">
                 <Clock className="w-12 h-12 mx-auto mb-3 opacity-20" />
                 <p className="text-sm">
-                  {filter === 'all' ? 'No trades yet' : `No ${filter.toLowerCase()} trades`}
+                  {statusFilter === 'all' && accountFilter === 'all' 
+                    ? 'No trades yet' 
+                    : `No ${statusFilter !== 'all' ? statusFilter.toLowerCase() : ''} trades ${accountFilter !== 'all' ? `in ${accountFilter} account` : ''}`}
                 </p>
               </div>
             </div>
@@ -136,7 +206,16 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                       )}
                     </div>
                     <div>
-                      <div className="text-sm font-semibold">{order.asset_name}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-semibold">{order.asset_name}</div>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                          order.accountType === 'real'
+                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                            : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                        }`}>
+                          {order.accountType?.toUpperCase() || 'DEMO'}
+                        </span>
+                      </div>
                       <div className="text-xs text-gray-400">{formatDate(order.createdAt)}</div>
                     </div>
                   </div>
@@ -172,6 +251,10 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                       <Clock className="w-3 h-3" />
                       {order.duration}m
                     </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Profit Rate</span>
+                    <span className="text-green-400 font-semibold">+{order.profitRate}%</span>
                   </div>
                   {order.profit !== null && order.profit !== undefined && (
                     <div className="flex items-center justify-between pt-2 border-t border-gray-800/50">
@@ -217,6 +300,24 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
 
         .animate-fade-in {
           animation: fade-in 0.2s ease-out;
+        }
+
+        /* Custom Scrollbar */
+        .overflow-y-auto::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .overflow-y-auto::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+          background: rgba(75, 85, 99, 0.5);
+          border-radius: 3px;
+        }
+
+        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+          background: rgba(75, 85, 99, 0.7);
         }
       `}</style>
     </>

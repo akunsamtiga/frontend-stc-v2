@@ -1,15 +1,15 @@
-// app/trading/page.tsx - INSTANT ORDER COMPLETION DETECTION
+// app/trading/page.tsx - COMPLETE with Real/Demo Account Support
 'use client'
 
 import { useEffect, useState, useCallback, memo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useAuthStore } from '@/store/auth'
-import { useTradingStore, useSelectedAsset, useCurrentPrice } from '@/store/trading'
+import { useTradingStore, useSelectedAsset, useCurrentPrice, useSelectedAccountType, useTradingActions } from '@/store/trading'
 import { api } from '@/lib/api'
 import { subscribeToPriceUpdates } from '@/lib/firebase'
 import { toast } from 'sonner'
-import { Asset, BinaryOrder } from '@/types'
+import { Asset, BinaryOrder, AccountType } from '@/types'
 import { formatCurrency, DURATIONS } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 import { prefetchDefaultAsset } from '@/lib/firebase'
@@ -91,10 +91,12 @@ export default function TradingPage() {
   
   const selectedAsset = useSelectedAsset()
   const currentPrice = useCurrentPrice()
-  const { setSelectedAsset, setCurrentPrice, addPriceToHistory } = useTradingStore()
+  const selectedAccountType = useSelectedAccountType()
+  const { setSelectedAsset, setCurrentPrice, addPriceToHistory, setSelectedAccountType } = useTradingActions()
 
   const [assets, setAssets] = useState<Asset[]>([])
-  const [balance, setBalance] = useState(0)
+  const [realBalance, setRealBalance] = useState(0)
+  const [demoBalance, setDemoBalance] = useState(0)
   const [amount, setAmount] = useState(10000)
   const [duration, setDuration] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -102,7 +104,7 @@ export default function TradingPage() {
   const [completedOrders, setCompletedOrders] = useState<BinaryOrder[]>([])
   const [notificationOrder, setNotificationOrder] = useState<BinaryOrder | null>(null)
   
-  // ✅ NEW: Track order states untuk instant detection
+  // Track order states untuk instant detection
   const previousOrdersRef = useRef<Map<string, BinaryOrder>>(new Map())
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const nearExpiryCheckRef = useRef<NodeJS.Timeout | null>(null)
@@ -117,7 +119,10 @@ export default function TradingPage() {
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [walletLoading, setWalletLoading] = useState(false)
 
-  // ✅ Load data on mount
+  // Get current balance based on selected account type
+  const currentBalance = selectedAccountType === 'real' ? realBalance : demoBalance
+
+  // Load data on mount
   useEffect(() => {
     if (!user) {
       router.push('/')
@@ -137,7 +142,7 @@ export default function TradingPage() {
     initializeData()
   }, [user, router])
 
-  // ✅ Price subscription
+  // Price subscription
   useEffect(() => {
     if (!selectedAsset) return
 
@@ -161,12 +166,11 @@ export default function TradingPage() {
     }
   }, [selectedAsset?.id])
 
-  // ✅ ULTRA-AGGRESSIVE POLLING dengan adaptive interval
+  // ULTRA-AGGRESSIVE POLLING dengan adaptive interval
   useEffect(() => {
     if (!user) return
 
     const startAdaptivePolling = () => {
-      // Clear existing interval
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current)
       }
@@ -181,7 +185,6 @@ export default function TradingPage() {
             o.status === 'WON' || o.status === 'LOST'
           )
 
-          // ✅ INSTANT DETECTION - Check for status changes
           detectOrderCompletion(active, completed)
 
           setActiveOrders(active)
@@ -192,29 +195,25 @@ export default function TradingPage() {
         }
       }
 
-      // ✅ Tentukan interval berdasarkan active orders
       const getPollingInterval = () => {
         const hasActiveOrders = activeOrders.length > 0
         
-        // Cek apakah ada order yang akan expire dalam 10 detik
         const hasNearExpiry = activeOrders.some(order => {
           const timeLeft = new Date(order.exit_time!).getTime() - Date.now()
-          return timeLeft > 0 && timeLeft < 10000 // < 10 seconds
+          return timeLeft > 0 && timeLeft < 10000
         })
 
         if (hasNearExpiry) {
-          return 1000 // ✅ SUPER FAST: 1 detik saat order hampir selesai
+          return 1000
         } else if (hasActiveOrders) {
-          return 2000 // ✅ FAST: 2 detik saat ada active orders
+          return 2000
         } else {
-          return 5000 // ✅ NORMAL: 5 detik saat tidak ada active orders
+          return 5000
         }
       }
 
-      // Initial poll
       poll()
 
-      // Start polling with adaptive interval
       const interval = getPollingInterval()
       pollingIntervalRef.current = setInterval(poll, interval)
       
@@ -223,15 +222,14 @@ export default function TradingPage() {
 
     startAdaptivePolling()
 
-    // ✅ Restart polling dengan interval baru saat activeOrders berubah
     return () => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current)
       }
     }
-  }, [user, activeOrders.length]) // Re-run saat jumlah active orders berubah
+  }, [user, activeOrders.length])
 
-  // ✅ CLIENT-SIDE COUNTDOWN CHECK - cek setiap detik
+  // CLIENT-SIDE COUNTDOWN CHECK
   useEffect(() => {
     if (activeOrders.length === 0) {
       if (nearExpiryCheckRef.current) {
@@ -247,20 +245,17 @@ export default function TradingPage() {
         const exitTime = new Date(order.exit_time!).getTime()
         const timeLeft = exitTime - now
 
-        // ✅ Jika order sudah melewati waktu expiry
         if (timeLeft <= 0) {
           console.log(`⏰ Order ${order.id} should be expired! Forcing refresh...`)
-          // Force refresh immediate
           loadData()
         }
         
-        // ✅ Jika order akan expire dalam 3 detik, polling lebih agresif
         if (timeLeft > 0 && timeLeft < 3000) {
           console.log(`⚡ Order ${order.id} expiring in ${Math.round(timeLeft/1000)}s - Forcing check...`)
           loadData()
         }
       })
-    }, 1000) // Check setiap detik
+    }, 1000)
 
     return () => {
       if (nearExpiryCheckRef.current) {
@@ -269,41 +264,37 @@ export default function TradingPage() {
     }
   }, [activeOrders])
 
-  // ✅ INSTANT DETECTION function
+  // INSTANT DETECTION function
   const detectOrderCompletion = useCallback((active: BinaryOrder[], completed: BinaryOrder[]) => {
-    // Update previousOrders dengan active orders saat ini
     active.forEach((order: BinaryOrder) => {
       previousOrdersRef.current.set(order.id, order)
     })
 
-    // Check untuk newly completed orders
     completed.forEach((order: BinaryOrder) => {
       const previousOrder = previousOrdersRef.current.get(order.id)
       
-      // ✅ Jika order sebelumnya ACTIVE dan sekarang completed
       if (previousOrder && previousOrder.status === 'ACTIVE' && 
           (order.status === 'WON' || order.status === 'LOST')) {
         
         console.log('🎯 INSTANT DETECTION! Order completed:', order.id, order.status)
         
-        // Show notification immediately
         setNotificationOrder(order)
         
-        // Play sound
         if (typeof window !== 'undefined') {
           const audio = new Audio(order.status === 'WON' ? '/sounds/win.mp3' : '/sounds/lose.mp3')
           audio.volume = 0.3
           audio.play().catch(e => console.log('Audio play failed:', e))
         }
         
-        // Remove from tracking
         previousOrdersRef.current.delete(order.id)
         
-        // Force balance refresh
         setTimeout(() => {
-          api.getCurrentBalance().then(res => {
-            const newBalance = res?.data?.balance || res?.balance || 0
-            setBalance(newBalance)
+          api.getBothBalances().then(res => {
+            const balances = res?.data || res
+            const newRealBalance = balances?.realBalance || 0
+            const newDemoBalance = balances?.demoBalance || 0
+            setRealBalance(newRealBalance)
+            setDemoBalance(newDemoBalance)
           })
         }, 500)
       }
@@ -312,14 +303,18 @@ export default function TradingPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [assetsRes, balanceRes, ordersRes] = await Promise.all([
+      const [assetsRes, balancesRes, ordersRes] = await Promise.all([
         api.getAssets(true),
-        api.getCurrentBalance(),
+        api.getBothBalances(),
         api.getOrders(undefined, 1, 100),
       ])
 
       const assetsList = assetsRes?.data?.assets || assetsRes?.assets || []
-      const currentBalance = balanceRes?.data?.balance || balanceRes?.balance || 0
+      
+      const balances = balancesRes?.data || balancesRes
+      const currentRealBalance = balances?.realBalance || 0
+      const currentDemoBalance = balances?.demoBalance || 0
+      
       const allOrders = ordersRes?.data?.orders || ordersRes?.orders || []
 
       const active = allOrders.filter((o: BinaryOrder) => o.status === 'ACTIVE')
@@ -327,11 +322,11 @@ export default function TradingPage() {
         o.status === 'WON' || o.status === 'LOST'
       )
 
-      // ✅ Check for completions
       detectOrderCompletion(active, completed)
 
       setAssets(assetsList)
-      setBalance(currentBalance)
+      setRealBalance(currentRealBalance)
+      setDemoBalance(currentDemoBalance)
       setActiveOrders(active)
       setCompletedOrders(completed.slice(0, 10))
 
@@ -341,7 +336,8 @@ export default function TradingPage() {
     } catch (error) {
       console.error('Failed to load data:', error)
       setAssets([])
-      setBalance(0)
+      setRealBalance(0)
+      setDemoBalance(0)
       setActiveOrders([])
       setCompletedOrders([])
     }
@@ -356,24 +352,32 @@ export default function TradingPage() {
       toast.error('Invalid amount')
       return
     }
-    if (amount > balance) {
-      toast.error('Insufficient balance')
+    
+    const currentBalance = selectedAccountType === 'real' ? realBalance : demoBalance
+    
+    if (amount > currentBalance) {
+      toast.error(`Insufficient ${selectedAccountType} balance`)
       return
     }
 
     setLoading(true)
     try {
       await api.createOrder({
+        accountType: selectedAccountType,
         asset_id: selectedAsset.id,
         direction,
         amount,
         duration,
       })
 
-      toast.success(`${direction} order placed successfully!`)
-      setBalance((prev) => prev - amount)
+      toast.success(`${direction} order placed successfully on ${selectedAccountType} account!`)
       
-      // ✅ Reload immediately
+      if (selectedAccountType === 'real') {
+        setRealBalance((prev) => prev - amount)
+      } else {
+        setDemoBalance((prev) => prev - amount)
+      }
+      
       setTimeout(loadData, 300)
     } catch (error: any) {
       const errorMsg = error?.response?.data?.error || 'Failed to place order'
@@ -381,7 +385,7 @@ export default function TradingPage() {
     } finally {
       setLoading(false)
     }
-  }, [selectedAsset, amount, balance, duration, loadData])
+  }, [selectedAsset, amount, selectedAccountType, realBalance, demoBalance, duration, loadData])
 
   const handleDeposit = async () => {
     const amt = parseFloat(depositAmount)
@@ -393,11 +397,12 @@ export default function TradingPage() {
     setWalletLoading(true)
     try {
       await api.createBalanceEntry({
+        accountType: selectedAccountType,
         type: 'deposit',
         amount: amt,
-        description: 'Deposit',
+        description: `Deposit to ${selectedAccountType} account`,
       })
-      toast.success('Deposit successful!')
+      toast.success(`Deposit to ${selectedAccountType} account successful!`)
       setDepositAmount('')
       setShowWalletModal(false)
       loadData()
@@ -415,7 +420,10 @@ export default function TradingPage() {
       toast.error('Invalid amount')
       return
     }
-    if (amt > balance) {
+    
+    const currentBalance = selectedAccountType === 'real' ? realBalance : demoBalance
+    
+    if (amt > currentBalance) {
       toast.error('Insufficient balance')
       return
     }
@@ -423,11 +431,12 @@ export default function TradingPage() {
     setWalletLoading(true)
     try {
       await api.createBalanceEntry({
+        accountType: selectedAccountType,
         type: 'withdrawal',
         amount: amt,
-        description: 'Withdrawal',
+        description: `Withdrawal from ${selectedAccountType} account`,
       })
-      toast.success('Withdrawal successful!')
+      toast.success(`Withdrawal from ${selectedAccountType} account successful!`)
       setWithdrawAmount('')
       setShowWalletModal(false)
       loadData()
@@ -507,9 +516,15 @@ export default function TradingPage() {
 
           <div className="flex-1"></div>
 
-          {/* Balance & Actions */}
-          <div className="flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
-            <span className="text-sm font-mono font-bold">{formatCurrency(balance)}</span>
+          {/* Balance Display with Account Type Indicator */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
+              <div className={`w-2 h-2 rounded-full ${
+                selectedAccountType === 'real' ? 'bg-green-400' : 'bg-blue-400'
+              } animate-pulse`}></div>
+              <span className="text-xs text-gray-400 font-medium uppercase">{selectedAccountType}</span>
+              <span className="text-sm font-mono font-bold">{formatCurrency(currentBalance)}</span>
+            </div>
           </div>
 
           <button
@@ -584,7 +599,10 @@ export default function TradingPage() {
           </div>
 
           <div className="flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
-            <span className="text-sm font-mono font-bold">{formatCurrency(balance)}</span>
+            <div className={`w-2 h-2 rounded-full ${
+              selectedAccountType === 'real' ? 'bg-green-400' : 'bg-blue-400'
+            } animate-pulse`}></div>
+            <span className="text-xs font-mono font-bold">{formatCurrency(currentBalance)}</span>
           </div>
 
           <div className="flex items-center gap-2 justify-end w-16">
@@ -606,7 +624,6 @@ export default function TradingPage() {
         </div>
       </div>
 
-      {/* Main Content */}
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden min-h-0">
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
@@ -635,6 +652,39 @@ export default function TradingPage() {
         {/* Trading Panel - Desktop */}
         <div className="hidden lg:block w-64 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
           <div className="h-full flex flex-col p-4 space-y-4 overflow-hidden">
+            {/* Account Type Selector */}
+            <div className="bg-[#1a1f2e] rounded-xl px-3 py-2 border border-gray-800/50">
+              <div className="text-[10px] text-gray-500 text-center leading-none mb-2">Account Type</div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setSelectedAccountType('demo')}
+                  className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                    selectedAccountType === 'demo'
+                      ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20'
+                      : 'bg-[#0f1419] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <span>DEMO</span>
+                    <span className="font-mono text-[10px]">{formatCurrency(demoBalance)}</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setSelectedAccountType('real')}
+                  className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                    selectedAccountType === 'real'
+                      ? 'bg-green-500 text-white shadow-lg shadow-green-500/20'
+                      : 'bg-[#0f1419] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <span>REAL</span>
+                    <span className="font-mono text-[10px]">{formatCurrency(realBalance)}</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
             {/* Amount Input */}
             <div className="bg-[#1a1f2e] rounded-xl px-3 py-2">
               <div className="text-[10px] text-gray-500 text-center leading-none">Amount</div>
@@ -728,6 +778,39 @@ export default function TradingPage() {
       {/* Mobile Trading Panel */}
       <div className="lg:hidden bg-[#0f1419] border-t border-gray-800/50 p-3">
         <div className="space-y-3">
+          {/* Account Type Selector - Mobile */}
+          <div className="bg-[#1a1f2e] border border-gray-800/50 rounded-xl p-3">
+            <div className="text-xs text-gray-400 text-center mb-2 font-medium">Select Account</div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setSelectedAccountType('demo')}
+                className={`px-3 py-3 rounded-lg text-xs font-bold transition-all ${
+                  selectedAccountType === 'demo'
+                    ? 'bg-blue-500 text-white shadow-lg'
+                    : 'bg-[#0f1419] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
+                }`}
+              >
+                <div className="flex flex-col items-center gap-1">
+                  <span>DEMO</span>
+                  <span className="font-mono text-[10px]">{formatCurrency(demoBalance)}</span>
+                </div>
+              </button>
+              <button
+                onClick={() => setSelectedAccountType('real')}
+                className={`px-3 py-3 rounded-lg text-xs font-bold transition-all ${
+                  selectedAccountType === 'real'
+                    ? 'bg-green-500 text-white shadow-lg'
+                    : 'bg-[#0f1419] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
+                }`}
+              >
+                <div className="flex flex-col items-center gap-1">
+                  <span>REAL</span>
+                  <span className="font-mono text-[10px]">{formatCurrency(realBalance)}</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="relative">
               <label className="text-xs text-gray-400 mb-1.5 block font-medium">Amount</label>
@@ -848,10 +931,16 @@ export default function TradingPage() {
                 </button>
               </div>
 
-              <div className="bg-gradient-to-br from-blue-500/10 to-purple-600/10 border border-blue-500/20 rounded-2xl p-6 mb-6">
-                <div className="text-sm text-gray-400 mb-2">Current Balance</div>
-                <div className="text-4xl font-bold font-mono mb-1">{formatCurrency(balance)}</div>
-                <div className="text-xs text-gray-500">Available for trading</div>
+              {/* Both Balances Display */}
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl p-4">
+                  <div className="text-xs text-gray-400 mb-1">REAL Balance</div>
+                  <div className="text-2xl font-bold font-mono text-green-400">{formatCurrency(realBalance)}</div>
+                </div>
+                <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-xl p-4">
+                  <div className="text-xs text-gray-400 mb-1">DEMO Balance</div>
+                  <div className="text-2xl font-bold font-mono text-blue-400">{formatCurrency(demoBalance)}</div>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

@@ -17,14 +17,16 @@ import {
   RefreshCw,
   Award,
   BarChart3,
-  CalendarClock
+  CalendarClock,
+  Wallet
 } from 'lucide-react'
 
 export default function HistoryPage() {
   const router = useRouter()
   const user = useAuthStore((state) => state.user)
   const [orders, setOrders] = useState<BinaryOrder[]>([])
-  const [filter, setFilter] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [accountFilter, setAccountFilter] = useState<'all' | 'real' | 'demo'>('all')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
@@ -34,14 +36,20 @@ export default function HistoryPage() {
       return
     }
     loadOrders()
-  }, [user, filter])
+  }, [user, statusFilter, accountFilter])
 
   const loadOrders = async () => {
     try {
-      const status = filter === 'all' ? undefined : filter
+      const status = statusFilter === 'all' ? undefined : statusFilter
       const response = await api.getOrders(status, 1, 100)
       
-      const ordersList = response?.data?.orders || response?.orders || []
+      let ordersList = response?.data?.orders || response?.orders || []
+      
+      // Filter by account type if not 'all'
+      if (accountFilter !== 'all') {
+        ordersList = ordersList.filter((o: BinaryOrder) => o.accountType === accountFilter)
+      }
+      
       setOrders(ordersList)
     } catch (error) {
       console.error('Failed to load orders:', error)
@@ -59,6 +67,7 @@ export default function HistoryPage() {
 
   if (!user) return null
 
+  // Calculate stats based on filters
   const stats = {
     total: orders.length,
     won: orders.filter(o => o.status === 'WON').length,
@@ -113,6 +122,39 @@ export default function HistoryPage() {
               <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${refreshing ? 'animate-spin' : ''}`} />
               <span className="text-sm sm:text-base font-medium hidden xs:inline">Refresh</span>
             </button>
+          </div>
+        </div>
+
+        {/* Account Type Filter - NEW */}
+        <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-100 shadow-sm mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+              <span className="text-xs sm:text-sm text-gray-600 font-semibold">Account Type:</span>
+            </div>
+            <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
+              {[
+                { id: 'all', label: 'All Accounts', color: 'gray' },
+                { id: 'real', label: 'Real Account', color: 'green' },
+                { id: 'demo', label: 'Demo Account', color: 'blue' }
+              ].map((account) => (
+                <button
+                  key={account.id}
+                  onClick={() => setAccountFilter(account.id as any)}
+                  className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
+                    accountFilter === account.id
+                      ? account.id === 'real'
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/30'
+                        : account.id === 'demo'
+                        ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/30'
+                        : 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-lg shadow-purple-500/30'
+                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+                  }`}
+                >
+                  {account.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -180,7 +222,14 @@ export default function HistoryPage() {
             <div className="relative z-10 text-center">
               <div className="flex items-center justify-center gap-2 text-white/80 mb-2">
                 <Award className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="text-xs sm:text-sm font-medium">Total Profit & Loss</span>
+                <span className="text-xs sm:text-sm font-medium">
+                  Total P&L 
+                  {accountFilter !== 'all' && (
+                    <span className="ml-1">
+                      ({accountFilter === 'real' ? 'Real' : 'Demo'} Account)
+                    </span>
+                  )}
+                </span>
               </div>
               <div className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white font-mono">
                 {totalProfit >= 0 ? '+' : ''}{formatCurrency(totalProfit)}
@@ -189,11 +238,11 @@ export default function HistoryPage() {
           </div>
         </div>
 
-        {/* Filters - Responsive */}
+        {/* Status Filters - Responsive */}
         <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 overflow-x-auto pb-2 scrollbar-hide">
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
-            <span className="text-xs sm:text-sm text-gray-600 font-semibold">Filter:</span>
+            <span className="text-xs sm:text-sm text-gray-600 font-semibold">Status:</span>
           </div>
           {[
             { id: 'all', label: 'All', count: stats.total },
@@ -203,9 +252,9 @@ export default function HistoryPage() {
           ].map((f) => (
             <button
               key={f.id}
-              onClick={() => setFilter(f.id)}
+              onClick={() => setStatusFilter(f.id)}
               className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
-                filter === f.id
+                statusFilter === f.id
                   ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
                   : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
               }`}
@@ -223,10 +272,12 @@ export default function HistoryPage() {
                 <Activity className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300" />
               </div>
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
-                {filter === 'all' ? 'No trades yet' : `No ${filter.toLowerCase()} trades`}
+                {statusFilter === 'all' && accountFilter === 'all' 
+                  ? 'No trades yet' 
+                  : `No ${statusFilter !== 'all' ? statusFilter.toLowerCase() : ''} trades ${accountFilter !== 'all' ? `in ${accountFilter} account` : ''}`}
               </h3>
               <p className="text-sm sm:text-base text-gray-500 mb-4 sm:mb-6">Your trading history will appear here</p>
-              {filter === 'all' && (
+              {statusFilter === 'all' && accountFilter === 'all' && (
                 <button
                   onClick={() => router.push('/trading')}
                   className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-blue-500 text-white rounded-lg sm:rounded-xl text-sm sm:text-base font-medium hover:bg-blue-600 transition-colors"
@@ -245,6 +296,7 @@ export default function HistoryPage() {
                     <tr className="text-left text-xs font-semibold text-gray-600 border-b border-gray-100 bg-gray-50">
                       <th className="py-4 px-6">Time</th>
                       <th className="py-4 px-6">Asset</th>
+                      <th className="py-4 px-6 text-center">Account</th>
                       <th className="py-4 px-6 text-center">Type</th>
                       <th className="py-4 px-6 text-right">Amount</th>
                       <th className="py-4 px-6 text-right">Entry → Exit</th>
@@ -273,6 +325,16 @@ export default function HistoryPage() {
                         <td className="py-4 px-6">
                           <div className="font-semibold text-gray-900">{order.asset_name}</div>
                           <div className="text-xs text-green-600 font-medium">+{order.profitRate}% profit rate</div>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold ${
+                            order.accountType === 'real'
+                              ? 'bg-green-100 text-green-700 border border-green-200'
+                              : 'bg-blue-100 text-blue-700 border border-blue-200'
+                          }`}>
+                            <Wallet className="w-3 h-3" />
+                            {order.accountType?.toUpperCase() || 'DEMO'}
+                          </span>
                         </td>
                         <td className="py-4 px-6 text-center">
                           {order.direction === 'CALL' ? (
@@ -345,7 +407,16 @@ export default function HistoryPage() {
                           )}
                         </div>
                         <div>
-                          <div className="text-sm sm:text-base font-bold text-gray-900">{order.asset_name}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm sm:text-base font-bold text-gray-900">{order.asset_name}</div>
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                              order.accountType === 'real'
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {order.accountType?.toUpperCase() || 'DEMO'}
+                            </span>
+                          </div>
                           <div className="text-xs text-gray-500">
                             {new Date(order.createdAt).toLocaleDateString('en-US', { 
                               month: 'short', 
