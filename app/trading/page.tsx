@@ -457,7 +457,7 @@ export default function TradingPage() {
   return (
     <div className="h-screen flex flex-col bg-[#0a0e17] text-white overflow-hidden">
       {/* Top Bar */}
-<div className="h-16 bg-[#0f1419] border-b border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">
+<div className="h-20 bg-[#0f1419] border-b border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">
         {/* Desktop Layout */}
         <div className="hidden lg:flex items-center gap-4 w-full">
           <div className="flex items-center gap-2">
@@ -473,21 +473,23 @@ export default function TradingPage() {
           </div>
 
           {/* Asset Menu */}
-          <div className="relative">
-            <button
-              onClick={() => setShowAssetMenu(!showAssetMenu)}
-              className="flex items-center gap-2 bg-[#1a1f2e] hover:bg-[#232936] px-3 py-1.5 rounded-lg transition-colors border border-gray-800/50"
-            >
-              {selectedAsset ? (
-                <>
-                  <span className="text-sm font-medium">{selectedAsset.symbol}</span>
-                  <span className="text-xs font-bold text-green-400">+{selectedAsset.profitRate}%</span>
-                </>
-              ) : (
-                <span className="text-sm text-gray-400">Select Asset</span>
-              )}
-              <ChevronDown className="w-4 h-4 text-gray-400" />
-            </button>
+<div className="relative">
+  <button
+    onClick={() => setShowAssetMenu(!showAssetMenu)}
+    className="flex items-center gap-2 bg-[#1a1f2e] hover:bg-[#232936] px-4 py-2.5 rounded-lg transition-colors border border-gray-800/50"
+  >
+    {selectedAsset ? (
+      <>
+        <span className="text-sm font-medium">{selectedAsset.symbol}</span>
+        <span className="text-xs font-bold text-green-400">+{selectedAsset.profitRate}%</span>
+      </>
+    ) : (
+      <span className="text-sm text-gray-400">Select Asset</span>
+    )}
+    <ChevronDown className="w-4 h-4 text-gray-400" />
+  </button>
+  
+
 
             {showAssetMenu && (
               <>
@@ -519,17 +521,12 @@ export default function TradingPage() {
 <div className="relative">
   <button
     onClick={() => setShowAccountMenu(!showAccountMenu)}
-    className="flex flex-col items-start gap-0.5 bg-[#1a1f2e] hover:bg-[#232936] px-3 py-2 rounded-lg transition-colors border border-gray-800/50 min-w-[140px]"
+    className="flex items-center gap-2 bg-[#1a1f2e] hover:bg-[#232936] px-4 py-2.5 rounded-lg transition-colors border border-gray-800/50"
   >
-    <div className="flex items-center gap-1.5 w-full">
-      <span className="text-xs text-gray-400">
-        Akun {selectedAccountType === 'real' ? 'Real' : 'Demo'}
-      </span>
-      <ChevronDown className="w-3.5 h-3.5 text-gray-400 ml-auto" />
-    </div>
-    <div className="text-sm font-bold font-mono text-white">
-      {formatCurrency(currentBalance)}
-    </div>
+    <span className="text-sm font-medium">
+      Akun {selectedAccountType === 'real' ? 'Real' : 'Demo'}
+    </span>
+    <ChevronDown className="w-4 h-4 text-gray-400" />
   </button>
 
   {showAccountMenu && (
@@ -574,10 +571,16 @@ export default function TradingPage() {
     </>
   )}
 </div>
-
           <div className="flex-1"></div>
 
-        
+        <div className="flex items-center gap-2">
+  <div className="flex items-center gap-2 bg-[#1a1f2e] px-4 py-2.5 rounded-lg border border-gray-800/50">
+    <Wallet className="w-4 h-4 text-gray-400" />
+    <span className="text-base font-mono font-bold">{formatCurrency(currentBalance)}</span>
+  </div>
+</div>
+
+
 
           <button
             onClick={() => router.push('/balance')}
