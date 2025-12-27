@@ -457,7 +457,7 @@ export default function TradingPage() {
   return (
     <div className="h-screen flex flex-col bg-[#0a0e17] text-white overflow-hidden">
       {/* Top Bar */}
-      <div className="h-14 bg-[#0f1419] border-b border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">
+<div className="h-16 bg-[#0f1419] border-b border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">
         {/* Desktop Layout */}
         <div className="hidden lg:flex items-center gap-4 w-full">
           <div className="flex items-center gap-2">
@@ -515,67 +515,69 @@ export default function TradingPage() {
             )}
           </div>
 
-          {/* Account Type Menu */}
-          <div className="relative">
-            <button
-              onClick={() => setShowAccountMenu(!showAccountMenu)}
-              className="flex items-center gap-2 bg-[#1a1f2e] hover:bg-[#232936] px-3 py-1.5 rounded-lg transition-colors border border-gray-800/50"
-            >
-              <div className={`w-2 h-2 rounded-full ${
-                selectedAccountType === 'real' ? 'bg-green-400' : 'bg-blue-400'
-              } animate-pulse`}></div>
-              <span className="text-sm font-medium uppercase">{selectedAccountType}</span>
-              <ChevronDown className="w-4 h-4 text-gray-400" />
-            </button>
+{/* Account Type Menu */}
+<div className="relative">
+  <button
+    onClick={() => setShowAccountMenu(!showAccountMenu)}
+    className="flex flex-col items-start gap-0.5 bg-[#1a1f2e] hover:bg-[#232936] px-3 py-2 rounded-lg transition-colors border border-gray-800/50 min-w-[140px]"
+  >
+    <div className="flex items-center gap-1.5 w-full">
+      <span className="text-xs text-gray-400">
+        Akun {selectedAccountType === 'real' ? 'Real' : 'Demo'}
+      </span>
+      <ChevronDown className="w-3.5 h-3.5 text-gray-400 ml-auto" />
+    </div>
+    <div className="text-sm font-bold font-mono text-white">
+      {formatCurrency(currentBalance)}
+    </div>
+  </button>
 
-            {showAccountMenu && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowAccountMenu(false)} />
-                <div className="absolute top-full left-0 mt-2 w-48 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden">
-                  <button
-                    onClick={() => {
-                      setSelectedAccountType('demo')
-                      setShowAccountMenu(false)
-                    }}
-                    className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#232936] transition-colors border-b border-gray-800/30 ${
-                      selectedAccountType === 'demo' ? 'bg-[#232936]' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-                      <span className="text-sm font-medium">DEMO</span>
-                    </div>
-                    <span className="text-xs font-mono text-gray-400">{formatCurrency(demoBalance)}</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedAccountType('real')
-                      setShowAccountMenu(false)
-                    }}
-                    className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#232936] transition-colors ${
-                      selectedAccountType === 'real' ? 'bg-[#232936]' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                      <span className="text-sm font-medium">REAL</span>
-                    </div>
-                    <span className="text-xs font-mono text-gray-400">{formatCurrency(realBalance)}</span>
-                  </button>
-                </div>
-              </>
-            )}
+  {showAccountMenu && (
+    <>
+      <div className="fixed inset-0 z-40" onClick={() => setShowAccountMenu(false)} />
+      <div className="absolute top-full left-0 mt-2 w-52 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden">
+        <button
+          onClick={() => {
+            setSelectedAccountType('demo')
+            setShowAccountMenu(false)
+          }}
+          className={`w-full flex flex-col items-start gap-1 px-4 py-3 hover:bg-[#232936] transition-colors border-b border-gray-800/30 ${
+            selectedAccountType === 'demo' ? 'bg-[#232936]' : ''
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+            <span className="text-xs text-gray-400">Akun Demo</span>
           </div>
+          <span className="text-sm font-bold font-mono text-white pl-4">
+            {formatCurrency(demoBalance)}
+          </span>
+        </button>
+        <button
+          onClick={() => {
+            setSelectedAccountType('real')
+            setShowAccountMenu(false)
+          }}
+          className={`w-full flex flex-col items-start gap-1 px-4 py-3 hover:bg-[#232936] transition-colors ${
+            selectedAccountType === 'real' ? 'bg-[#232936]' : ''
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-400"></div>
+            <span className="text-xs text-gray-400">Akun Real</span>
+          </div>
+          <span className="text-sm font-bold font-mono text-white pl-4">
+            {formatCurrency(realBalance)}
+          </span>
+        </button>
+      </div>
+    </>
+  )}
+</div>
 
           <div className="flex-1"></div>
 
-          {/* Balance Display */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
-              <Wallet className="w-4 h-4 text-gray-400" />
-              <span className="text-sm font-mono font-bold">{formatCurrency(currentBalance)}</span>
-            </div>
-          </div>
+        
 
           <button
             onClick={() => router.push('/balance')}
