@@ -630,57 +630,39 @@ export default function TradingPage() {
           </div>
         </div>
 
-        {/* Trading Panel - Desktop */}
-        <div className="hidden lg:block w-72 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
+{/* Trading Panel - Desktop */}
+        <div className="hidden lg:block w-64 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
           <div className="h-full flex flex-col p-4 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-gray-400 mb-1.5 block font-medium">Amount</label>
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(Number(e.target.value))}
-                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-center text-sm font-mono font-bold text-white focus:outline-none focus:border-blue-500/50 transition-colors"
-                  min="1000"
-                  step="1000"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs text-gray-400 mb-1.5 block font-medium flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  Time (m)
-                </label>
-                <select
-                  value={duration}
-                  onChange={(e) => setDuration(Number(e.target.value))}
-                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-center text-sm font-bold text-white focus:outline-none focus:border-blue-500/50 transition-colors"
-                >
-                  {DURATIONS.map((d) => (
-                    <option key={d} value={d}>{d}m</option>
-                  ))}
-                </select>
-              </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1.5 block font-medium">Amount</label>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(Number(e.target.value))}
+                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2.5 text-center text-sm font-mono font-bold text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+                min="1000"
+                step="1000"
+              />
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              {[10000, 50000, 100000].map((preset) => (
-                <button
-                  key={preset}
-                  onClick={() => setAmount(preset)}
-                  className={`py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    amount === preset
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
-                  }`}
-                >
-                  {preset >= 1000000 ? `${preset/1000000}M` : `${preset/1000}K`}
-                </button>
-              ))}
+            <div>
+              <label className="text-xs text-gray-400 mb-1.5 block font-medium flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                Time (m)
+              </label>
+              <select
+                value={duration}
+                onChange={(e) => setDuration(Number(e.target.value))}
+                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2.5 text-center text-sm font-bold text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+              >
+                {DURATIONS.map((d) => (
+                  <option key={d} value={d}>{d}m</option>
+                ))}
+              </select>
             </div>
 
             {selectedAsset && (
-              <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg px-3 py-2">
+              <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg px-3 py-2.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-gray-400">Pendapatan</span>
                   <div className="flex items-center gap-2">
