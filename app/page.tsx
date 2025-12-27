@@ -406,7 +406,7 @@ const handleTouchEnd = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-30 pb-20 sm:pt-36 sm:pb-32 overflow-hidden">
+      <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32 overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
@@ -1455,9 +1455,9 @@ const handleTouchEnd = () => {
 
               <p className="mt-6 text-xs text-center text-gray-500 leading-relaxed">
                 Dengan melanjutkan, Anda menyetujui{' '}
-                <a href="#" className="text-blue-400 hover:text-blue-300">Syarat & Ketentuan</a>
+                <a href="https://stockity.id/information/agreement" className="text-blue-400 hover:text-blue-300">Syarat & Ketentuan</a>
                 {' '}dan{' '}
-                <a href="#" className="text-blue-400 hover:text-blue-300">Kebijakan Privasi</a> kami
+                <a href="https://stockity.id/information/privacy" className="text-blue-400 hover:text-blue-300">Kebijakan Privasi</a> kami
               </p>
             </div>
           </div>
