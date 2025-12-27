@@ -110,6 +110,7 @@ export default function TradingPage() {
   const nearExpiryCheckRef = useRef<NodeJS.Timeout | null>(null)
   
   const [showAssetMenu, setShowAssetMenu] = useState(false)
+  const [showAccountMenu, setShowAccountMenu] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showHistorySidebar, setShowHistorySidebar] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
@@ -514,15 +515,64 @@ export default function TradingPage() {
             )}
           </div>
 
-          <div className="flex-1"></div>
-
-          {/* Balance Display with Account Type Indicator */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
+          {/* Account Type Menu */}
+          <div className="relative">
+            <button
+              onClick={() => setShowAccountMenu(!showAccountMenu)}
+              className="flex items-center gap-2 bg-[#1a1f2e] hover:bg-[#232936] px-3 py-1.5 rounded-lg transition-colors border border-gray-800/50"
+            >
               <div className={`w-2 h-2 rounded-full ${
                 selectedAccountType === 'real' ? 'bg-green-400' : 'bg-blue-400'
               } animate-pulse`}></div>
-              <span className="text-xs text-gray-400 font-medium uppercase">{selectedAccountType}</span>
+              <span className="text-sm font-medium uppercase">{selectedAccountType}</span>
+              <ChevronDown className="w-4 h-4 text-gray-400" />
+            </button>
+
+            {showAccountMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowAccountMenu(false)} />
+                <div className="absolute top-full left-0 mt-2 w-48 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden">
+                  <button
+                    onClick={() => {
+                      setSelectedAccountType('demo')
+                      setShowAccountMenu(false)
+                    }}
+                    className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#232936] transition-colors border-b border-gray-800/30 ${
+                      selectedAccountType === 'demo' ? 'bg-[#232936]' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+                      <span className="text-sm font-medium">DEMO</span>
+                    </div>
+                    <span className="text-xs font-mono text-gray-400">{formatCurrency(demoBalance)}</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedAccountType('real')
+                      setShowAccountMenu(false)
+                    }}
+                    className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#232936] transition-colors ${
+                      selectedAccountType === 'real' ? 'bg-[#232936]' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                      <span className="text-sm font-medium">REAL</span>
+                    </div>
+                    <span className="text-xs font-mono text-gray-400">{formatCurrency(realBalance)}</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="flex-1"></div>
+
+          {/* Balance Display */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
+              <Wallet className="w-4 h-4 text-gray-400" />
               <span className="text-sm font-mono font-bold">{formatCurrency(currentBalance)}</span>
             </div>
           </div>
@@ -652,39 +702,6 @@ export default function TradingPage() {
         {/* Trading Panel - Desktop */}
         <div className="hidden lg:block w-64 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
           <div className="h-full flex flex-col p-4 space-y-4 overflow-hidden">
-            {/* Account Type Selector */}
-            <div className="bg-[#1a1f2e] rounded-xl px-3 py-2 border border-gray-800/50">
-              <div className="text-[10px] text-gray-500 text-center leading-none mb-2">Account Type</div>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setSelectedAccountType('demo')}
-                  className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${
-                    selectedAccountType === 'demo'
-                      ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20'
-                      : 'bg-[#0f1419] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-1">
-                    <span>DEMO</span>
-                    <span className="font-mono text-[10px]">{formatCurrency(demoBalance)}</span>
-                  </div>
-                </button>
-                <button
-                  onClick={() => setSelectedAccountType('real')}
-                  className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${
-                    selectedAccountType === 'real'
-                      ? 'bg-green-500 text-white shadow-lg shadow-green-500/20'
-                      : 'bg-[#0f1419] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-1">
-                    <span>REAL</span>
-                    <span className="font-mono text-[10px]">{formatCurrency(realBalance)}</span>
-                  </div>
-                </button>
-              </div>
-            </div>
-
             {/* Amount Input */}
             <div className="bg-[#1a1f2e] rounded-xl px-3 py-2">
               <div className="text-[10px] text-gray-500 text-center leading-none">Amount</div>
@@ -1073,56 +1090,55 @@ export default function TradingPage() {
               >
                 <LogOut className="w-4 h-4" />
                 <span>Logout</span>
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+</button>
+</div>
+</div>
+</>
+)}
+  {/* History Sidebar */}
+  {showHistorySidebar && (
+    <HistorySidebar 
+      isOpen={showHistorySidebar} 
+      onClose={() => setShowHistorySidebar(false)} 
+    />
+  )}
 
-      {/* History Sidebar */}
-      {showHistorySidebar && (
-        <HistorySidebar 
-          isOpen={showHistorySidebar} 
-          onClose={() => setShowHistorySidebar(false)} 
-        />
-      )}
+  {/* ORDER NOTIFICATION */}
+  <OrderNotification 
+    order={notificationOrder}
+    onClose={() => setNotificationOrder(null)}
+  />
 
-      {/* ORDER NOTIFICATION */}
-      <OrderNotification 
-        order={notificationOrder}
-        onClose={() => setNotificationOrder(null)}
-      />
+  {process.env.NODE_ENV === 'development' && <RealtimeMonitor />}
 
-      {process.env.NODE_ENV === 'development' && <RealtimeMonitor />}
-    
-      <style jsx>{`
-        @keyframes slide-left {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
-        }
+  <style jsx>{`
+    @keyframes slide-left {
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
+    }
 
-        @keyframes slide-up {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
-        }
+    @keyframes slide-up {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
 
-        @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
+    @keyframes fade-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
 
-        .animate-slide-left {
-          animation: slide-left 0.3s ease-out;
-        }
+    .animate-slide-left {
+      animation: slide-left 0.3s ease-out;
+    }
 
-        .animate-slide-up {
-          animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
+    .animate-slide-up {
+      animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
 
-        .animate-fade-in {
-          animation: fade-in 0.2s ease-out;
-        }
-      `}</style>
-    </div>
-  )
+    .animate-fade-in {
+      animation: fade-in 0.2s ease-out;
+    }
+  `}</style>
+</div>
+)
 }
