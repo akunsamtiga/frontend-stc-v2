@@ -631,7 +631,7 @@ const handleTouchEnd = () => {
             }`}
           >
             <div className="mx-4 h-full">
-              <div className="relative h-full bg-[#0a0e17] border border-gray-800/50 rounded-xl p-4 overflow-hidden">
+              <div className={`relative h-full bg-[#0a0e17] border ${feature.borderColor} rounded-xl p-4 overflow-hidden`}>
                 {/* Subtle bg gradient */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-5`}></div>
                 
@@ -730,7 +730,7 @@ const handleTouchEnd = () => {
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <span className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-xs text-purple-400">Registrasi cepat</span>
-                      <span className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-xs text-purple-400">Demo $10K</span>
+                      <span className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-xs text-purple-400">Demo Rp10.000.000</span>
                     </div>
                   </div>
                 </div>
