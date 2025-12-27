@@ -368,7 +368,7 @@ const handleTouchEnd = () => {
 {/* Navigation */}
 <nav className="fixed top-0 left-0 right-0 z-50 bg-[#1a1f2e]/95 backdrop-blur-xl border-b border-gray-700/50">
   <div className="container mx-auto px-4 sm:px-6">
-    <div className="flex items-center justify-between h-20">
+    <div className="flex items-center justify-between h-18">
       {/* Logo dengan animasi sequence */}
       <div className="relative h-12 w-52 overflow-visible">
         {/* STC AutoTrade */}
@@ -1723,6 +1723,136 @@ const handleTouchEnd = () => {
 
 .animate-fade-in-right {
   animation: fade-in-right 0.8s ease-out;
+}
+  /* Logo Animations - Sequence */
+@keyframes logo-exit {
+  0% {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+@keyframes logo-enter {
+  0% {
+    opacity: 0;
+    pointer-events: none;
+  }
+  60% {
+    opacity: 0;
+    pointer-events: none;
+  }
+  100% {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* Text slide animations */
+@keyframes text-slide-out {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+@keyframes text-slide-in {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Logo bounce animations */
+@keyframes logo-bounce-out {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  30% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes logo-bounce-in {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  85% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-logo-exit {
+  animation: logo-exit 1.2s ease-in-out forwards;
+}
+
+.animate-logo-enter {
+  animation: logo-enter 1.2s ease-in-out forwards;
+}
+
+.animate-text-slide-out {
+  animation: text-slide-out 1.2s ease-in-out forwards;
+}
+
+.animate-text-slide-in {
+  animation: text-slide-in 1.2s ease-in-out forwards;
+}
+
+.animate-logo-bounce-out {
+  animation: logo-bounce-out 1.2s ease-in-out forwards;
+}
+
+.animate-logo-bounce-in {
+  animation: logo-bounce-in 1.2s ease-in-out forwards;
 }
 `}</style>
     </div>
