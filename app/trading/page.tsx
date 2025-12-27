@@ -636,53 +636,49 @@ export default function TradingPage() {
         <div className="hidden lg:block w-64 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
           <div className="h-full flex flex-col p-4 space-y-4 overflow-hidden">
             {/* Amount Input */}
-            <div>
-              <div className="flex items-center gap-1.5">
+            <div className="bg-[#1a1f2e] rounded-xl px-3 py-2.5">
+              <div className="text-[10px] text-gray-500 mb-1.5 text-center">Amount</div>
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => setAmount(prev => Math.max(1000, prev - 10000))}
-                  className="w-8 h-10 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
+                  className="hover:bg-[#232936] rounded-lg p-1.5 transition-colors flex-shrink-0"
                 >
-                  <Minus className="w-3.5 h-3.5" />
+                  <Minus className="w-4 h-4" />
                 </button>
                 
-                <div className="flex-1 min-w-0 bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-3 py-2 transition-colors">
-                  <div className="text-[10px] text-gray-500 mb-0.5">Amount</div>
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(Number(e.target.value))}
-                    className="w-full bg-transparent text-center text-sm font-mono font-bold text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    min="1000"
-                    step="1000"
-                  />
-                </div>
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(Number(e.target.value))}
+                  className="flex-1 min-w-0 bg-transparent text-center text-sm font-mono font-bold text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  min="1000"
+                  step="1000"
+                />
                 
                 <button
                   onClick={() => setAmount(prev => prev + 10000)}
-                  className="w-8 h-10 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
+                  className="hover:bg-[#232936] rounded-lg p-1.5 transition-colors flex-shrink-0"
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
             {/* Duration Select */}
-            <div>
-              <div className="bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-3 py-2 transition-colors">
-                <div className="text-[10px] text-gray-500 mb-0.5">Duration</div>
-                <select
-                  value={duration}
-                  onChange={(e) => setDuration(Number(e.target.value))}
-                  className="w-full bg-transparent text-center text-sm font-bold text-white focus:outline-none appearance-none cursor-pointer"
-                  style={{
-                    backgroundImage: 'none'
-                  }}
-                >
-                  {DURATIONS.map((d) => (
-                    <option key={d} value={d}>{d} minute{d > 1 ? 's' : ''}</option>
-                  ))}
-                </select>
-              </div>
+            <div className="bg-[#1a1f2e] rounded-xl px-3 py-2.5">
+              <div className="text-[10px] text-gray-500 mb-1.5 text-center">Duration</div>
+              <select
+                value={duration}
+                onChange={(e) => setDuration(Number(e.target.value))}
+                className="w-full bg-transparent text-center text-sm font-bold text-white focus:outline-none appearance-none cursor-pointer"
+                style={{
+                  backgroundImage: 'none'
+                }}
+              >
+                {DURATIONS.map((d) => (
+                  <option key={d} value={d}>{d} minute{d > 1 ? 's' : ''}</option>
+                ))}
+              </select>
             </div>
 
             {/* Payout Info */}
