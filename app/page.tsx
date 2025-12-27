@@ -158,12 +158,15 @@ const [touchEnd, setTouchEnd] = useState(0)
 const [showStockity, setShowStockity] = useState(false)
 
 useEffect(() => {
-  const interval = setInterval(() => {
-    setShowStockity(prev => !prev)
-  }, 4000) // Toggle setiap 4 detik
+  // Interval dinamis: 6 detik untuk STC (showStockity=false), 4 detik untuk Stockity (showStockity=true)
+  const duration = showStockity ? 4000 : 6000
   
-  return () => clearInterval(interval)
-}, [])
+  const timeout = setTimeout(() => {
+    setShowStockity(prev => !prev)
+  }, duration)
+  
+  return () => clearTimeout(timeout)
+}, [showStockity]) // Dependency pada showStockity agar re-run setiap kali berubah
 
   useEffect(() => {
     if (user) {
@@ -366,27 +369,32 @@ const handleTouchEnd = () => {
 <nav className="fixed top-0 left-0 right-0 z-50 bg-[#1a1f2e]/95 backdrop-blur-xl border-b border-gray-700/50">
   <div className="container mx-auto px-4 sm:px-6">
     <div className="flex items-center justify-between h-20">
-      {/* Logo dengan animasi transisi - GANTI BAGIAN INI */}
-      <div className="relative h-12 w-52 overflow-hidden">
+      {/* Logo dengan animasi sequence */}
+      <div className="relative h-12 w-52 overflow-visible">
         {/* STC AutoTrade */}
         <div 
-          className={`flex items-center gap-3 group cursor-pointer absolute left-0 top-0 transition-all duration-700 ease-out ${
-            showStockity 
-              ? 'opacity-0 -translate-y-4 scale-95 pointer-events-none' 
-              : 'opacity-100 translate-y-0 scale-100'
+          className={`flex items-center gap-3 absolute left-0 top-0 ${
+            showStockity ? 'animate-logo-exit' : 'animate-logo-enter'
           }`}
         >
-          <div className="relative w-10 h-10 flex-shrink-0">
+          {/* Logo STC */}
+          <div className={`relative w-10 h-10 flex-shrink-0 ${
+            showStockity ? 'animate-logo-bounce-out' : 'animate-logo-bounce-in'
+          }`}>
             <Image
               src="/stc-logo.png"
               alt="STC AutoTrade"
               fill
-              className="object-contain transform group-hover:scale-110 transition-transform rounded-md"
+              className="object-contain rounded-md"
               priority
             />
           </div>
-          <div>
-            <span className="text-xl font-bold text-white whitespace-nowrap">
+          
+          {/* Text STC */}
+          <div className="flex overflow-hidden">
+            <span className={`text-xl font-bold text-white whitespace-nowrap ${
+              showStockity ? 'animate-text-slide-out' : 'animate-text-slide-in'
+            }`}>
               STC AutoTrade
             </span>
           </div>
@@ -394,30 +402,35 @@ const handleTouchEnd = () => {
 
         {/* By Stockity */}
         <div 
-          className={`flex items-center gap-3 group cursor-pointer absolute left-0 top-0 transition-all duration-700 ease-out ${
-            showStockity 
-              ? 'opacity-100 translate-y-0 scale-100' 
-              : 'opacity-0 translate-y-4 scale-95 pointer-events-none'
+          className={`flex items-center gap-3 absolute left-0 top-0 ${
+            showStockity ? 'animate-logo-enter' : 'animate-logo-exit'
           }`}
         >
-          <div className="relative w-10 h-10 flex-shrink-0">
+          {/* Logo Stockity */}
+          <div className={`relative w-10 h-10 flex-shrink-0 ${
+            showStockity ? 'animate-logo-bounce-in' : 'animate-logo-bounce-out'
+          }`}>
             <Image
-              src="/stc-logo.png"
-              alt="By Stockity"
+              src="/stockity.png"
+              alt="Stockity"
               fill
-              className="object-contain transform group-hover:scale-110 transition-transform rounded-md"
+              className="object-contain rounded-md"
               priority
             />
           </div>
-          <div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400 whitespace-nowrap">
+          
+          {/* Text Stockity - WARNA PUTIH */}
+          <div className="flex overflow-hidden">
+            <span className={`text-xl font-bold text-white whitespace-nowrap ${
+              showStockity ? 'animate-text-slide-in' : 'animate-text-slide-out'
+            }`}>
               By Stockity
             </span>
           </div>
         </div>
       </div>
 
-      {/* Desktop Menu - TIDAK BERUBAH */}
+      {/* Desktop Menu */}
       <div className="hidden md:flex items-center gap-8">
         <a href="#features" className="text-sm text-gray-300 hover:text-white transition-colors relative group">
           Fitur
@@ -433,7 +446,7 @@ const handleTouchEnd = () => {
         </a>
       </div>
 
-      {/* Auth Button - TIDAK BERUBAH */}
+      {/* Auth Button */}
       <div className="flex items-center gap-3">
         <button
           onClick={() => {
