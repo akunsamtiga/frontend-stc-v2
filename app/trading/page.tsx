@@ -638,7 +638,7 @@ export default function TradingPage() {
             {/* Amount Input */}
             <div className="bg-[#1a1f2e] rounded-xl px-3 py-2">
               <div className="text-[10px] text-gray-500 text-center leading-none">Amount</div>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => setAmount(prev => Math.max(1000, prev - 10000))}
                   className="hover:bg-[#232936] rounded-lg p-1.5 transition-colors flex-shrink-0"
@@ -670,7 +670,7 @@ export default function TradingPage() {
               <select
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full bg-transparent border-0 text-center text-base text-white focus:outline-none focus:ring-0 appearance-none cursor-pointer my-4"
+                className="w-full bg-transparent border-0 text-center text-base text-white focus:outline-none focus:ring-0 appearance-none cursor-pointer my-0"
                 style={{
                   backgroundImage: 'none'
                 }}
