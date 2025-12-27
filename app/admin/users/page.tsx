@@ -57,6 +57,8 @@ export default function AdminUsersPage() {
   const [balanceDescription, setBalanceDescription] = useState('')
   const [processing, setProcessing] = useState(false)
 
+  const [accountType, setAccountType] = useState<'real' | 'demo'>('demo')
+
   useEffect(() => {
     if (!user) {
       router.push('/')
@@ -150,6 +152,7 @@ export default function AdminUsersPage() {
 
     try {
       await api.manageUserBalance(selectedUser.id, {
+        accountType,  
         type: balanceType,
         amount,
         description: balanceDescription
