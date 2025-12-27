@@ -604,90 +604,89 @@ const handleTouchEnd = () => {
       ))}
     </div>
 
-    {/* Mobile - Modern Stack with Clean Indicators */}
     {/* Mobile - Compact Stack */}
-    <div className="sm:hidden relative">
-      <div 
-        className="relative overflow-hidden"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        <div className="relative min-h-[220px]">
-          {features.map((feature, index) => {
-            const isActive = index === activeFeature
-            const offset = index - activeFeature
-            
-            return (
-              <div 
-                key={index}
-                className={`absolute inset-0 transition-all duration-500 ease-out ${
-                  isActive 
-                    ? 'opacity-100 scale-100 z-30 translate-x-0' 
-                    : offset === -1
-                    ? 'opacity-0 scale-95 z-10 -translate-x-full'
-                    : offset === 1
-                    ? 'opacity-0 scale-95 z-10 translate-x-full'
-                    : 'opacity-0 scale-90 z-0'
-                }`}
-              >
-                <div className="mx-4 h-full">
-                  <div className="relative h-full bg-[#0a0e17] border border-gray-800/50 rounded-xl p-5 overflow-hidden">
-                    {/* Subtle bg gradient */}
-                    <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-5`}></div>
-                    
-                    <div className="relative h-full flex flex-col">
-                      {/* Header: Icon + Number */}
-                      <div className="flex items-start justify-between mb-4">
-                        <div className={`w-12 h-12 ${feature.bgColor} ${feature.borderColor} border rounded-xl flex items-center justify-center`}>
-                          <feature.icon className={`w-6 h-6 ${feature.color}`} />
-                        </div>
-                        <div className={`w-7 h-7 ${feature.bgColor} rounded-lg flex items-center justify-center border ${feature.borderColor}`}>
-                          <span className={`text-xs font-bold ${feature.color}`}>{index + 1}</span>
-                        </div>
-                      </div>
-
-                      {/* Content - Compact */}
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold tracking-tight mb-2">{feature.title}</h3>
-                        <p className="text-sm text-gray-400 leading-relaxed">{feature.description}</p>
-                      </div>
-
-                      {/* Bottom accent - thinner */}
-                      <div className={`h-0.5 w-16 ${feature.bgColor} rounded-full mt-4`}></div>
+<div className="sm:hidden relative">
+  <div 
+    className="relative overflow-hidden"
+    onTouchStart={handleTouchStart}
+    onTouchMove={handleTouchMove}
+    onTouchEnd={handleTouchEnd}
+  >
+    <div className="relative min-h-[160px]">
+      {features.map((feature, index) => {
+        const isActive = index === activeFeature
+        const offset = index - activeFeature
+        
+        return (
+          <div 
+            key={index}
+            className={`absolute inset-0 transition-all duration-500 ease-out ${
+              isActive 
+                ? 'opacity-100 scale-100 z-30 translate-x-0' 
+                : offset === -1
+                ? 'opacity-0 scale-95 z-10 -translate-x-full'
+                : offset === 1
+                ? 'opacity-0 scale-95 z-10 translate-x-full'
+                : 'opacity-0 scale-90 z-0'
+            }`}
+          >
+            <div className="mx-4 h-full">
+              <div className="relative h-full bg-[#0a0e17] border border-gray-800/50 rounded-xl p-4 overflow-hidden">
+                {/* Subtle bg gradient */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-5`}></div>
+                
+                <div className="relative h-full flex flex-col">
+                  {/* Header: Icon + Number */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className={`w-10 h-10 ${feature.bgColor} ${feature.borderColor} border rounded-lg flex items-center justify-center`}>
+                      <feature.icon className={`w-5 h-5 ${feature.color}`} />
+                    </div>
+                    <div className={`w-6 h-6 ${feature.bgColor} rounded-md flex items-center justify-center border ${feature.borderColor}`}>
+                      <span className={`text-xs font-bold ${feature.color}`}>{index + 1}</span>
                     </div>
                   </div>
+
+                  {/* Content - Compact */}
+                  <div className="flex-1">
+                    <h3 className="text-base font-bold tracking-tight mb-1.5">{feature.title}</h3>
+                    <p className="text-sm text-gray-400 leading-snug">{feature.description}</p>
+                  </div>
+
+                  {/* Bottom accent - thinner */}
+                  <div className={`h-0.5 w-12 ${feature.bgColor} rounded-full mt-3`}></div>
                 </div>
               </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Clean Progress Dots */}
-      <div className="mt-5 px-4">
-        <div className="flex items-center justify-center gap-2">
-          {features.map((feature, index) => (
-            <button
-              key={index}
-              onClick={() => setActiveFeature(index)}
-              className="transition-all duration-300"
-            >
-              <div className={`transition-all duration-300 rounded-full ${
-                index === activeFeature 
-                  ? `w-7 h-1.5 ${feature.bgColor}` 
-                  : 'w-1.5 h-1.5 bg-gray-700 hover:bg-gray-600'
-              }`}></div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Swipe hint */}
-      <div className="mt-3 text-center text-xs text-gray-500">
-        Swipe untuk melihat lebih banyak
-      </div>
+            </div>
+          </div>
+        )
+      })}
     </div>
+  </div>
+
+  {/* Clean Progress Dots */}
+  <div className="mt-5 px-4">
+    <div className="flex items-center justify-center gap-2">
+      {features.map((feature, index) => (
+        <button
+          key={index}
+          onClick={() => setActiveFeature(index)}
+          className="transition-all duration-300"
+        >
+          <div className={`transition-all duration-300 rounded-full ${
+            index === activeFeature 
+              ? `w-7 h-1.5 ${feature.bgColor}` 
+              : 'w-1.5 h-1.5 bg-gray-700 hover:bg-gray-600'
+          }`}></div>
+        </button>
+      ))}
+    </div>
+  </div>
+
+  {/* Swipe hint */}
+  <div className="mt-3 text-center text-xs text-gray-500">
+    Swipe untuk melihat lebih banyak
+  </div>
+</div>
   </div>
 </section>
 
