@@ -476,7 +476,7 @@ export default function TradingPage() {
 <div className="relative">
   <button
     onClick={() => setShowAssetMenu(!showAssetMenu)}
-    className="flex items-center gap-2 bg-[#232936] hover:bg-[#2a3142] px-4 py-2.5 rounded-lg transition-colors border border-gray-800/50"
+    className="flex items-center gap-2 bg-[#2f3648] hover:bg-[#3a4360] px-4 py-2.5 rounded-lg transition-colors border border-gray-800/50"
   >
     {selectedAsset ? (
       <>
@@ -587,7 +587,7 @@ export default function TradingPage() {
 
 <button
   onClick={() => setShowHistorySidebar(true)}
-  className="flex items-center gap-2 px-4 py-2.5 bg-[#232936] hover:bg-[#2a3142] rounded-lg transition-colors border border-gray-800/50"
+  className="flex items-center gap-2 px-4 py-2.5 bg-[#2f3648] hover:bg-[#3a4360] rounded-lg transition-colors border border-gray-800/50"
 >
   <History className="w-4 h-4" />
   <span className="text-sm">History</span>
