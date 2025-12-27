@@ -473,46 +473,47 @@ export default function TradingPage() {
   </div>
 
   {/* Asset Menu */}
-  <div className="relative">
-    <button
-      onClick={() => setShowAssetMenu(!showAssetMenu)}
-      className="flex items-center gap-2 bg-[#0f1419] hover:bg-[#232936] px-4 py-2.5 rounded-lg transition-colors border border-gray-800/50"
-    >
-      {selectedAsset ? (
-        <>
-          <span className="text-sm font-medium">{selectedAsset.symbol}</span>
-          <span className="text-xs font-bold text-green-400">+{selectedAsset.profitRate}%</span>
-        </>
-      ) : (
-        <span className="text-sm text-gray-400">Select Asset</span>
-      )}
-    </button>
-
-    {showAssetMenu && (
+<div className="relative">
+  <button
+    onClick={() => setShowAssetMenu(!showAssetMenu)}
+    className="flex items-center gap-2 bg-[#232936] hover:bg-[#2a3142] px-4 py-2.5 rounded-lg transition-colors border border-gray-800/50"
+  >
+    {selectedAsset ? (
       <>
-        <div className="fixed inset-0 z-40" onClick={() => setShowAssetMenu(false)} />
-        <div className="absolute top-full left-0 mt-2 w-64 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 max-h-80 overflow-y-auto">
-          {assets.map((asset) => (
-            <button
-              key={asset.id}
-              onClick={() => {
-                setSelectedAsset(asset)
-                setShowAssetMenu(false)
-              }}
-              className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#232936] transition-colors border-b border-gray-800/30 last:border-0 ${
-                selectedAsset?.id === asset.id ? 'bg-[#232936]' : ''
-              }`}
-            >
-              <div className="text-left">
-                <div className="text-sm font-medium">{asset.symbol}</div>
-              </div>
-              <div className="text-xs font-bold text-green-400">+{asset.profitRate}%</div>
-            </button>
-          ))}
-        </div>
+        <span className="text-sm font-medium">{selectedAsset.symbol}</span>
+        <span className="text-xs font-bold text-green-400">+{selectedAsset.profitRate}%</span>
       </>
+    ) : (
+      <span className="text-sm text-gray-400">Select Asset</span>
     )}
-  </div>
+  </button>
+
+  {showAssetMenu && (
+    <>
+      <div className="fixed inset-0 z-40" onClick={() => setShowAssetMenu(false)} />
+      <div className="absolute top-full left-0 mt-2 w-64 bg-[#232936] border border-gray-800/50 rounded-lg shadow-2xl z-50 max-h-80 overflow-y-auto">
+        {assets.map((asset) => (
+          <button
+            key={asset.id}
+            onClick={() => {
+              setSelectedAsset(asset)
+              setShowAssetMenu(false)
+            }}
+            className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 last:border-0 ${
+              selectedAsset?.id === asset.id ? 'bg-[#2a3142]' : ''
+            }`}
+          >
+            <div className="text-left">
+              <div className="text-sm font-medium">{asset.symbol}</div>
+            </div>
+            <div className="text-xs font-bold text-green-400">+{asset.profitRate}%</div>
+          </button>
+        ))}
+      </div>
+    </>
+  )}
+</div>
+
 
   <div className="flex-1"></div>
 
@@ -520,7 +521,7 @@ export default function TradingPage() {
 <div className="relative">
   <button
     onClick={() => setShowAccountMenu(!showAccountMenu)}
-    className="flex flex-col items-start gap-0.5 hover:bg-[#1a1f2e] px-3 py-2 rounded-lg transition-colors"
+    className="flex flex-col items-start gap-0.5 hover:bg-[#232936] px-3 py-2 rounded-lg transition-colors"
   >
     <div className="flex items-center gap-1.5">
       <span className="text-xs text-gray-400">
@@ -536,19 +537,19 @@ export default function TradingPage() {
   {showAccountMenu && (
     <>
       <div className="fixed inset-0 z-40" onClick={() => setShowAccountMenu(false)} />
-      <div className="absolute top-full right-0 mt-2 w-52 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden">
+      <div className="absolute top-full right-0 mt-2 w-52 bg-[#232936] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden">
         <button
           onClick={() => {
             setSelectedAccountType('demo')
             setShowAccountMenu(false)
           }}
-          className={`w-full flex flex-col items-start gap-1 px-4 py-3 hover:bg-[#232936] transition-colors border-b border-gray-800/30 ${
-            selectedAccountType === 'demo' ? 'bg-[#232936]' : ''
+          className={`w-full flex flex-col items-start gap-1 px-4 py-3 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 ${
+            selectedAccountType === 'demo' ? 'bg-[#2a3142]' : ''
           }`}
         >
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-            <span className="text-xs text-gray-400">Akun Demo</span>
+            <span className="text-xs text-white font-light antialiased">Akun Demo</span>
           </div>
           <span className="text-base font-bold font-mono text-white pl-4">
             {formatCurrency(demoBalance)}
@@ -559,13 +560,13 @@ export default function TradingPage() {
             setSelectedAccountType('real')
             setShowAccountMenu(false)
           }}
-          className={`w-full flex flex-col items-start gap-1 px-4 py-3 hover:bg-[#232936] transition-colors ${
-            selectedAccountType === 'real' ? 'bg-[#232936]' : ''
+          className={`w-full flex flex-col items-start gap-1 px-4 py-3 hover:bg-[#2a3142] transition-colors ${
+            selectedAccountType === 'real' ? 'bg-[#2a3142]' : ''
           }`}
         >
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-400"></div>
-            <span className="text-xs text-gray-400">Akun Real</span>
+            <span className="text-xs text-white font-light antialiased">Akun Real</span>
           </div>
           <span className="text-base font-bold font-mono text-white pl-4">
             {formatCurrency(realBalance)}
@@ -576,7 +577,7 @@ export default function TradingPage() {
   )}
 </div>
 
-  <button
+<button
   onClick={() => router.push('/balance')}
   className="flex items-center gap-2 px-4 py-2.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded-lg transition-colors group"
 >
@@ -586,7 +587,7 @@ export default function TradingPage() {
 
 <button
   onClick={() => setShowHistorySidebar(true)}
-  className="flex items-center gap-2 px-4 py-2.5 bg-[#0f1419] hover:bg-[#232936] rounded-lg transition-colors border border-gray-800/50"
+  className="flex items-center gap-2 px-4 py-2.5 bg-[#232936] hover:bg-[#2a3142] rounded-lg transition-colors border border-gray-800/50"
 >
   <History className="w-4 h-4" />
   <span className="text-sm">History</span>
