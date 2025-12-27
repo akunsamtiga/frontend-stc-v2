@@ -252,10 +252,10 @@ const handleTouchEnd = () => {
   }
 
   const stats = [
-    { label: 'Trader Aktif', value: '50K+', icon: Users },
-    { label: 'Volume Harian', value: '$2.5M', icon: DollarSign },
-    { label: 'Win Rate', value: '87%', icon: Target },
-    { label: 'Negara', value: '150+', icon: Globe },
+    { label: 'Trader Aktif', value: '2K+', icon: Users },
+    { label: 'Volume Harian', value: '$3K', icon: DollarSign },
+    { label: 'Win Rate', value: '94%', icon: Target },
+    { label: 'Negara', value: '15+', icon: Globe },
   ]
 
   const features = [
@@ -1124,12 +1124,12 @@ const handleTouchEnd = () => {
       </section>
 
 {/* Payment Methods Section */}
-      <section className="py-16 sm:py-20 relative border-t border-gray-800/50">
+      <section className="py-16 sm:py-20 relative border-t border-yellow-800/50">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-500/10 border border-gray-500/20 rounded-full mb-6">
-              <Shield className="w-3.5 h-3.5 text-gray-400" />
-              <span className="text-xs font-medium text-gray-400">Metode Pembayaran Aman</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full mb-6">
+              <Shield className="w-3.5 h-3.5 text-yellow-400" />
+              <span className="text-xs font-medium text-yellow-400">Metode Pembayaran Aman</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold mb-3 tracking-tight">
               Deposit & Penarikan Mudah
