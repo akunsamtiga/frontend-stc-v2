@@ -649,9 +649,6 @@ export default function TradingPage() {
           </div>
 
           <div className="flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
-            <div className={`w-2 h-2 rounded-full ${
-              selectedAccountType === 'real' ? 'bg-green-400' : 'bg-blue-400'
-            } animate-pulse`}></div>
             <span className="text-xs font-mono font-bold">{formatCurrency(currentBalance)}</span>
           </div>
 
