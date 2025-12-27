@@ -637,8 +637,8 @@ export default function TradingPage() {
           <div className="h-full flex flex-col p-4 space-y-4 overflow-hidden">
             {/* Amount Input */}
             <div className="bg-[#1a1f2e] rounded-xl px-3 py-2">
-              <div className="text-[10px] text-gray-500 mb-0.5 text-center">Amount</div>
-              <div className="flex items-center gap-2">
+              <div className="text-[10px] text-gray-500 text-center leading-none">Amount</div>
+              <div className="flex items-center gap-2 mt-1">
                 <button
                   onClick={() => setAmount(prev => Math.max(1000, prev - 10000))}
                   className="hover:bg-[#232936] rounded-lg p-1.5 transition-colors flex-shrink-0"
@@ -650,7 +650,7 @@ export default function TradingPage() {
                   type="number"
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
-                  className="flex-1 min-w-0 bg-transparent border-0 text-center text-sm font-mono font-bold text-white focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="flex-1 min-w-0 bg-transparent border-0 text-center text-base font-mono text-white focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   min="1000"
                   step="1000"
                 />
@@ -666,11 +666,11 @@ export default function TradingPage() {
 
             {/* Duration Select */}
             <div className="bg-[#1a1f2e] rounded-xl px-3 py-2">
-              <div className="text-[10px] text-gray-500 mb-0.5 text-center">Duration</div>
+              <div className="text-[10px] text-gray-500 text-center leading-none">Duration</div>
               <select
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full bg-transparent border-0 text-center text-sm font-bold text-white focus:outline-none focus:ring-0 appearance-none cursor-pointer"
+                className="w-full bg-transparent border-0 text-center text-base text-white focus:outline-none focus:ring-0 appearance-none cursor-pointer mt-1"
                 style={{
                   backgroundImage: 'none'
                 }}
