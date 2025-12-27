@@ -392,71 +392,75 @@ const handleTouchEnd = () => {
 <nav className="fixed top-0 left-0 right-0 z-50 bg-[#1a1f2e]/95 backdrop-blur-xl border-b border-gray-700/50">
   <div className="container mx-auto px-4 sm:px-6">
     <div className="flex items-center justify-between h-20">
-      {/* Logo dengan animasi sequence */}
-      {/* Logo dengan animasi sequence */}
-<div className="relative h-12 w-52 overflow-hidden">
-  {/* STC AutoTrade - hanya visible di fase STC */}
-  {logoPhase.startsWith('stc-') && (
-    <div className="flex items-center gap-3 absolute left-0 top-0">
-      {/* Logo STC */}
-      <div className={`relative w-10 h-10 flex-shrink-0 ${
-        logoPhase === 'stc-logo-in' ? 'animate-logo-bounce-in' :
-        logoPhase === 'stc-logo-out' ? 'animate-logo-bounce-out' : ''
-      }`}>
-        <Image
-          src="/stc-logo.png"
-          alt="STC AutoTrade"
-          fill
-          className="object-contain rounded-md"
-          priority
-        />
-      </div>
       
-      {/* Text STC - hanya show setelah logo in */}
-      {(logoPhase !== 'stc-logo-in' && logoPhase !== 'stc-logo-out') && (
-        <div className="flex overflow-hidden">
-          <span className={`text-xl font-bold text-white whitespace-nowrap ${
-            logoPhase === 'stc-text-in' ? 'animate-text-slide-in' :
-            logoPhase === 'stc-text-out' ? 'animate-text-slide-out' : ''
-          }`}>
-            STC AutoTrade
-          </span>
-        </div>
-      )}
-    </div>
-  )}
+      {/* Logo dengan animasi sequence */}
+      <div className="relative h-12 w-52 overflow-visible">
+        {/* STC AutoTrade - hanya visible di fase STC */}
+        {logoPhase.startsWith('stc-') && (
+          <div className="flex items-center gap-3 absolute left-0 top-0">
+            {/* Logo STC */}
+            <div className={`relative w-10 h-10 flex-shrink-0 overflow-visible ${
+              logoPhase === 'stc-logo-in' ? 'animate-logo-bounce-in' :
+              logoPhase === 'stc-logo-out' ? 'animate-logo-bounce-out' : 
+              'opacity-100'
+            }`}>
+              <Image
+                src="/stc-logo.png"
+                alt="STC AutoTrade"
+                fill
+                className="object-contain rounded-md"
+                priority
+              />
+            </div>
+            
+            {/* Text STC - hanya show setelah logo in */}
+            {(logoPhase !== 'stc-logo-in' && logoPhase !== 'stc-logo-out') && (
+              <div className="flex overflow-hidden">
+                <span className={`text-xl font-bold text-white whitespace-nowrap ${
+                  logoPhase === 'stc-text-in' ? 'animate-text-slide-in' :
+                  logoPhase === 'stc-text-out' ? 'animate-text-slide-out' : 
+                  'opacity-100 translate-x-0'
+                }`}>
+                  STC AutoTrade
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
-  {/* By Stockity - hanya visible di fase Stockity */}
-  {logoPhase.startsWith('stockity-') && (
-    <div className="flex items-center gap-3 absolute left-0 top-0">
-      {/* Logo Stockity */}
-      <div className={`relative w-10 h-10 flex-shrink-0 ${
-        logoPhase === 'stockity-logo-in' ? 'animate-logo-bounce-in' :
-        logoPhase === 'stockity-logo-out' ? 'animate-logo-bounce-out' : ''
-      }`}>
-        <Image
-          src="/stockity.png"
-          alt="Stockity"
-          fill
-          className="object-contain rounded-md"
-          priority
-        />
+        {/* By Stockity - hanya visible di fase Stockity */}
+        {logoPhase.startsWith('stockity-') && (
+          <div className="flex items-center gap-3 absolute left-0 top-0">
+            {/* Logo Stockity */}
+            <div className={`relative w-10 h-10 flex-shrink-0 overflow-visible ${
+              logoPhase === 'stockity-logo-in' ? 'animate-logo-bounce-in' :
+              logoPhase === 'stockity-logo-out' ? 'animate-logo-bounce-out' : 
+              'opacity-100'
+            }`}>
+              <Image
+                src="/stockity.png"
+                alt="Stockity"
+                fill
+                className="object-contain rounded-md"
+                priority
+              />
+            </div>
+            
+            {/* Text Stockity - hanya show setelah logo in */}
+            {(logoPhase !== 'stockity-logo-in' && logoPhase !== 'stockity-logo-out') && (
+              <div className="flex overflow-hidden">
+                <span className={`text-xl font-bold text-white whitespace-nowrap ${
+                  logoPhase === 'stockity-text-in' ? 'animate-text-slide-in' :
+                  logoPhase === 'stockity-text-out' ? 'animate-text-slide-out' : 
+                  'opacity-100 translate-x-0'
+                }`}>
+                  By Stockity
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
-      
-      {/* Text Stockity - hanya show setelah logo in */}
-      {(logoPhase !== 'stockity-logo-in' && logoPhase !== 'stockity-logo-out') && (
-        <div className="flex overflow-hidden">
-          <span className={`text-xl font-bold text-white whitespace-nowrap ${
-            logoPhase === 'stockity-text-in' ? 'animate-text-slide-in' :
-            logoPhase === 'stockity-text-out' ? 'animate-text-slide-out' : ''
-          }`}>
-            By Stockity
-          </span>
-        </div>
-      )}
-    </div>
-  )}
-</div>
 
       {/* Desktop Menu */}
       <div className="hidden md:flex items-center gap-8">
@@ -487,6 +491,7 @@ const handleTouchEnd = () => {
           Daftar
         </button>
       </div>
+      
     </div>
   </div>
 </nav>
@@ -1648,15 +1653,16 @@ const handleTouchEnd = () => {
 
   /* Logo Sequence Animations */
   @keyframes text-slide-out {
-    0% {
-      transform: translateX(0);
-      opacity: 1;
-    }
-    100% {
-      transform: translateX(100%);
-      opacity: 0;
-    }
+  0% {
+    transform: translateX(0);
+    opacity: 1;
   }
+  100% {
+    transform: translateX(-100%);  /* Ke kiri, bukan ke kanan */
+    opacity: 0;
+  }
+}
+
 
   @keyframes text-slide-in {
     0% {
