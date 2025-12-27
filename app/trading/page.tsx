@@ -548,7 +548,6 @@ export default function TradingPage() {
           }`}
         >
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-blue-400"></div>
             <span className="text-xs text-white font-light antialiased">Akun Demo</span>
           </div>
           <span className="text-base font-bold font-mono text-white pl-4">
@@ -565,7 +564,6 @@ export default function TradingPage() {
           }`}
         >
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-400"></div>
             <span className="text-xs text-white font-light antialiased">Akun Real</span>
           </div>
           <span className="text-base font-bold font-mono text-white pl-4">
