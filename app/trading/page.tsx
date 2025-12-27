@@ -15,8 +15,8 @@ import dynamic from 'next/dynamic'
 import { prefetchDefaultAsset } from '@/lib/firebase'
 
 import { 
-  TrendingUp,
-  TrendingDown,
+  ArrowUp,
+  ArrowDown,
   Clock,
   Wallet,
   History,
@@ -64,9 +64,9 @@ const PriceTicker = memo(({ asset, price }: { asset: Asset; price: any }) => {
             price.change >= 0 ? 'text-green-400' : 'text-red-400'
           }`}>
             {price.change >= 0 ? (
-              <TrendingUp className="w-4 h-4" />
+              <ArrowUp className="w-4 h-4" />
             ) : (
-              <TrendingDown className="w-4 h-4" />
+              <ArrowDown className="w-4 h-4" />
             )}
             <span>
               {price.change >= 0 ? '+' : ''}{price.change.toFixed(3)}
@@ -766,7 +766,7 @@ export default function TradingPage() {
                   disabled={loading || !selectedAsset}
                   className="bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-green-500/20"
                 >
-                  <TrendingUp className="w-6 h-6" />
+                  <ArrowUp className="w-6 h-6" />
                 </button>
 
                 <button
@@ -774,7 +774,7 @@ export default function TradingPage() {
                   disabled={loading || !selectedAsset}
                   className="bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-red-500/20"
                 >
-                  <TrendingDown className="w-6 h-6" />
+                  <ArrowDown className="w-6 h-6" />
                 </button>
               </div>
 
@@ -903,7 +903,7 @@ export default function TradingPage() {
               disabled={loading || !selectedAsset}
               className="bg-green-500 hover:bg-green-600 active:bg-green-700 disabled:opacity-50 py-3.5 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
             >
-              <TrendingUp className="w-5 h-5" />
+              <ArrowUp className="w-5 h-5" />
               <span>BUY</span>
             </button>
             <button
@@ -911,7 +911,7 @@ export default function TradingPage() {
               disabled={loading || !selectedAsset}
               className="bg-red-500 hover:bg-red-600 active:bg-red-700 disabled:opacity-50 py-3.5 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
             >
-              <TrendingDown className="w-5 h-5" />
+              <ArrowDown className="w-5 h-5" />
               <span>SELL</span>
             </button>
           </div>
