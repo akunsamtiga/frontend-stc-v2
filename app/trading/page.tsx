@@ -577,10 +577,10 @@ export default function TradingPage() {
 
 <button
   onClick={() => router.push('/balance')}
-  className="flex items-center gap-2 px-4 py-2.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded-lg transition-colors group"
+  className="flex items-center gap-2 px-4 py-2.5 bg-green hover:bg-green-500 border border-green-500/30 rounded-lg transition-colors group"
 >
-  <Wallet className="w-4 h-4 text-green-400 group-hover:text-green-300" />
-  <span className="text-sm font-medium text-green-400 group-hover:text-green-300">Deposit</span>
+  <Wallet className="w-4 h-4 text-white" />
+  <span className="text-sm font-medium text-white">Deposit</span>
 </button>
 
 <button
