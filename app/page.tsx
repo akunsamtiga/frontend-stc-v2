@@ -1519,7 +1519,6 @@ const handleTouchEnd = () => {
       )}
 
       <style jsx>{`
-  /* ===== GRADIENT & BACKGROUND ANIMATIONS ===== */
   @keyframes gradient {
     0%, 100% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
@@ -1540,7 +1539,6 @@ const handleTouchEnd = () => {
     to { transform: rotate(360deg); }
   }
 
-  /* ===== FADE & SLIDE ANIMATIONS ===== */
   @keyframes fade-in {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -1579,6 +1577,11 @@ const handleTouchEnd = () => {
     }
   }
 
+  @keyframes marquee-seamless {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
   @keyframes slide-in-right {
     from {
       opacity: 0;
@@ -1591,8 +1594,12 @@ const handleTouchEnd = () => {
   }
 
   @keyframes slide-left {
-    from { transform: translateX(100%); }
-    to { transform: translateX(0); }
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
   }
 
   @keyframes scale-in {
@@ -1606,37 +1613,46 @@ const handleTouchEnd = () => {
     }
   }
 
-  /* ===== MARQUEE ANIMATION ===== */
-  @keyframes marquee-seamless {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-  }
-
-  /* ===== NAVBAR LOGO & TEXT ANIMATIONS ===== */
-  @keyframes logo-bounce-in {
+  @keyframes logo-exit {
     0% {
-      transform: scale(0);
-      opacity: 0;
-    }
-    60% {
-      transform: scale(1.15);
-    }
-    100% {
-      transform: scale(1);
       opacity: 1;
-    }
-  }
-
-  @keyframes logo-bounce-out {
-    0% {
-      transform: scale(1);
-      opacity: 1;
+      pointer-events: auto;
     }
     50% {
-      transform: scale(1.1);
+      opacity: 1;
     }
     100% {
-      transform: scale(0);
+      opacity: 0;
+      pointer-events: none;
+    }
+  }
+
+  @keyframes logo-enter {
+    0% {
+      opacity: 0;
+      pointer-events: none;
+    }
+    70% {
+      opacity: 0;
+      pointer-events: none;
+    }
+    100% {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  @keyframes text-slide-out {
+    0% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    25% {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    100% {
+      transform: translateX(100%);
       opacity: 0;
     }
   }
@@ -1646,24 +1662,61 @@ const handleTouchEnd = () => {
       transform: translateX(-100%);
       opacity: 0;
     }
+    70% {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
     100% {
       transform: translateX(0);
       opacity: 1;
     }
   }
 
-  @keyframes text-slide-out {
+  @keyframes logo-bounce-out {
     0% {
-      transform: translateX(0);
+      transform: scale(1);
       opacity: 1;
     }
+    25% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    40% {
+      transform: scale(1.15);
+      opacity: 1;
+    }
+    55% {
+      transform: scale(0);
+      opacity: 0;
+    }
     100% {
-      transform: translateX(100%);
+      transform: scale(0);
       opacity: 0;
     }
   }
 
-  /* ===== ANIMATION UTILITY CLASSES ===== */
+  @keyframes logo-bounce-in {
+    0% {
+      transform: scale(0);
+      opacity: 0;
+    }
+    55% {
+      transform: scale(0);
+      opacity: 0;
+    }
+    70% {
+      transform: scale(1.25);
+      opacity: 1;
+    }
+    85% {
+      transform: scale(0.95);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
   .animate-gradient {
     background-size: 200% 200%;
     animation: gradient 3s ease infinite;
@@ -1713,25 +1766,30 @@ const handleTouchEnd = () => {
     animation: marquee-seamless 30s linear infinite;
   }
 
-  /* ===== NAVBAR ANIMATION CLASSES ===== */
-  .animate-logo-enter {
-    animation: logo-bounce-in 0.4s ease-out forwards;
-  }
-
   .animate-logo-exit {
-    animation: logo-bounce-out 0.4s ease-in 0.3s forwards;
+    animation: logo-exit 1.4s ease-in-out forwards;
   }
 
-  .animate-text-enter {
-    animation: text-slide-in 0.5s ease-out 0.3s forwards;
-    opacity: 0;
+  .animate-logo-enter {
+    animation: logo-enter 1.4s ease-in-out forwards;
   }
 
-  .animate-text-exit {
-    animation: text-slide-out 0.4s ease-in forwards;
+  .animate-text-slide-out {
+    animation: text-slide-out 1.4s ease-in-out forwards;
   }
 
-  /* ===== SCROLLBAR STYLES ===== */
+  .animate-text-slide-in {
+    animation: text-slide-in 1.4s ease-in-out forwards;
+  }
+
+  .animate-logo-bounce-out {
+    animation: logo-bounce-out 1.4s ease-in-out forwards;
+  }
+
+  .animate-logo-bounce-in {
+    animation: logo-bounce-in 1.4s ease-in-out forwards;
+  }
+
   html {
     scroll-behavior: smooth;
   }
