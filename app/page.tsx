@@ -155,6 +155,15 @@ export default function LandingPage() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
 const [touchStart, setTouchStart] = useState(0)
 const [touchEnd, setTouchEnd] = useState(0)
+const [showStockity, setShowStockity] = useState(false)
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    setShowStockity(prev => !prev)
+  }, 4000) // Toggle setiap 4 detik
+  
+  return () => clearInterval(interval)
+}, [])
 
   useEffect(() => {
     if (user) {
@@ -353,27 +362,62 @@ const handleTouchEnd = () => {
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
       </div>
 
-      {/* Navigation */}
+{/* Navigation */}
 <nav className="fixed top-0 left-0 right-0 z-50 bg-[#1a1f2e]/95 backdrop-blur-xl border-b border-gray-700/50">
   <div className="container mx-auto px-4 sm:px-6">
     <div className="flex items-center justify-between h-20">
-      <div className="flex items-center gap-3 group cursor-pointer">
-        <div className="relative w-10 h-10 flex-shrink-0">
-          <Image
-            src="/stc-logo.png"
-            alt="STC AutoTrade"
-            fill
-            className="object-contain transform group-hover:scale-110 transition-transform rounded-md"
-            priority
-          />
+      {/* Logo dengan animasi transisi - GANTI BAGIAN INI */}
+      <div className="relative h-12 w-52 overflow-hidden">
+        {/* STC AutoTrade */}
+        <div 
+          className={`flex items-center gap-3 group cursor-pointer absolute left-0 top-0 transition-all duration-700 ease-out ${
+            showStockity 
+              ? 'opacity-0 -translate-y-4 scale-95 pointer-events-none' 
+              : 'opacity-100 translate-y-0 scale-100'
+          }`}
+        >
+          <div className="relative w-10 h-10 flex-shrink-0">
+            <Image
+              src="/stc-logo.png"
+              alt="STC AutoTrade"
+              fill
+              className="object-contain transform group-hover:scale-110 transition-transform rounded-md"
+              priority
+            />
+          </div>
+          <div>
+            <span className="text-xl font-bold text-white whitespace-nowrap">
+              STC AutoTrade
+            </span>
+          </div>
         </div>
-        <div>
-          <span className="text-xl font-bold text-white">
-            STC AutoTrade
-          </span>
+
+        {/* By Stockity */}
+        <div 
+          className={`flex items-center gap-3 group cursor-pointer absolute left-0 top-0 transition-all duration-700 ease-out ${
+            showStockity 
+              ? 'opacity-100 translate-y-0 scale-100' 
+              : 'opacity-0 translate-y-4 scale-95 pointer-events-none'
+          }`}
+        >
+          <div className="relative w-10 h-10 flex-shrink-0">
+            <Image
+              src="/stc-logo.png"
+              alt="By Stockity"
+              fill
+              className="object-contain transform group-hover:scale-110 transition-transform rounded-md"
+              priority
+            />
+          </div>
+          <div>
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400 whitespace-nowrap">
+              By Stockity
+            </span>
+          </div>
         </div>
       </div>
 
+      {/* Desktop Menu - TIDAK BERUBAH */}
       <div className="hidden md:flex items-center gap-8">
         <a href="#features" className="text-sm text-gray-300 hover:text-white transition-colors relative group">
           Fitur
@@ -389,6 +433,7 @@ const handleTouchEnd = () => {
         </a>
       </div>
 
+      {/* Auth Button - TIDAK BERUBAH */}
       <div className="flex items-center gap-3">
         <button
           onClick={() => {
