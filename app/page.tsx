@@ -379,7 +379,7 @@ const handleTouchEnd = () => {
         >
           {/* Logo STC */}
           <div className={`relative w-10 h-10 flex-shrink-0 ${
-            showStockity ? 'animate-logo-exit' : 'animate-logo-enter'
+            showStockity ? 'animate-logo-bounce-out' : 'animate-logo-bounce-in'
           }`}>
             <Image
               src="/stc-logo.png"
@@ -393,7 +393,7 @@ const handleTouchEnd = () => {
           {/* Text STC */}
           <div className="flex overflow-hidden">
             <span className={`text-xl font-bold text-white whitespace-nowrap ${
-              showStockity ? 'animate-text-exit' : 'animate-text-enter'
+              showStockity ? 'animate-text-slide-out' : 'animate-text-slide-in'
             }`}>
               STC AutoTrade
             </span>
@@ -408,7 +408,7 @@ const handleTouchEnd = () => {
         >
           {/* Logo Stockity */}
           <div className={`relative w-10 h-10 flex-shrink-0 ${
-            showStockity ? 'animate-logo-enter' : 'animate-logo-exit'
+            showStockity ? 'animate-logo-bounce-in' : 'animate-logo-bounce-out'
           }`}>
             <Image
               src="/stockity.png"
@@ -422,7 +422,7 @@ const handleTouchEnd = () => {
           {/* Text Stockity */}
           <div className="flex overflow-hidden">
             <span className={`text-xl font-bold text-white whitespace-nowrap ${
-              showStockity ? 'animate-text-enter' : 'animate-text-exit'
+              showStockity ? 'animate-text-slide-in' : 'animate-text-slide-out'
             }`}>
               By Stockity
             </span>
