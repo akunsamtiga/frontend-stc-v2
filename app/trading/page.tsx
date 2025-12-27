@@ -607,6 +607,7 @@ export default function TradingPage() {
       </div>
 
       {/* Main Content */}
+      {/* Main Content */}
       <div className="flex-1 flex overflow-hidden min-h-0">
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           {selectedAsset && currentPrice && (
@@ -633,32 +634,32 @@ export default function TradingPage() {
 
         {/* Trading Panel - Desktop */}
         <div className="hidden lg:block w-64 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
-          <div className="h-full flex flex-col p-4 space-y-4">
+          <div className="h-full flex flex-col p-4 space-y-4 overflow-hidden">
             {/* Amount Input */}
             <div>
               <label className="text-xs text-gray-400 mb-2 block font-medium">Amount</label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setAmount(prev => Math.max(1000, prev - 10000))}
-                  className="w-9 h-9 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
+                  className="w-8 h-9 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
                 >
-                  <Minus className="w-4 h-4" />
+                  <Minus className="w-3.5 h-3.5" />
                 </button>
                 
                 <input
                   type="number"
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
-                  className="flex-1 bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-3 py-2.5 text-center text-sm font-mono font-bold text-white focus:outline-none focus:border-blue-500/50 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="flex-1 min-w-0 bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-2 py-2.5 text-center text-sm font-mono font-bold text-white focus:outline-none focus:border-blue-500/50 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   min="1000"
                   step="1000"
                 />
                 
                 <button
                   onClick={() => setAmount(prev => prev + 10000)}
-                  className="w-9 h-9 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
+                  className="w-8 h-9 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
