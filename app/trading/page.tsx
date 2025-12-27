@@ -631,15 +631,16 @@ export default function TradingPage() {
           </div>
         </div>
 
-{/* Trading Panel - Desktop */}
+        {/* Trading Panel - Desktop */}
         <div className="hidden lg:block w-64 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
-          <div className="h-full flex flex-col p-4 space-y-3">
+          <div className="h-full flex flex-col p-4 space-y-4">
+            {/* Amount Input */}
             <div>
-              <label className="text-xs text-gray-400 mb-1.5 block font-medium">Amount</label>
+              <label className="text-xs text-gray-400 mb-2 block font-medium">Amount</label>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setAmount(prev => Math.max(1000, prev - 10000))}
-                  className="w-10 h-10 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 rounded-lg flex items-center justify-center transition-colors"
+                  className="w-9 h-9 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
                 >
                   <Minus className="w-4 h-4" />
                 </button>
@@ -648,28 +649,33 @@ export default function TradingPage() {
                   type="number"
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
-                  className="flex-1 bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2.5 text-center text-sm font-mono font-bold text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+                  className="flex-1 bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-3 py-2.5 text-center text-sm font-mono font-bold text-white focus:outline-none focus:border-blue-500/50 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   min="1000"
                   step="1000"
                 />
                 
                 <button
                   onClick={() => setAmount(prev => prev + 10000)}
-                  className="w-10 h-10 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 rounded-lg flex items-center justify-center transition-colors"
+                  className="w-9 h-9 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
             </div>
+
+            {/* Time Select */}
             <div>
-              <label className="text-xs text-gray-400 mb-1.5 block font-medium flex items-center gap-1">
+              <label className="text-xs text-gray-400 mb-2 block font-medium flex items-center gap-1">
                 <Clock className="w-3 h-3" />
                 Time (m)
               </label>
               <select
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2.5 text-center text-sm font-bold text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-3 py-2.5 text-center text-sm font-bold text-white focus:outline-none focus:border-blue-500/50 transition-colors appearance-none cursor-pointer"
+                style={{
+                  backgroundImage: 'none'
+                }}
               >
                 {DURATIONS.map((d) => (
                   <option key={d} value={d}>{d}m</option>
@@ -677,8 +683,9 @@ export default function TradingPage() {
               </select>
             </div>
 
+            {/* Payout Info */}
             {selectedAsset && (
-              <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg px-3 py-2.5">
+              <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl px-3 py-3">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-gray-400">Pendapatan</span>
                   <div className="flex items-center gap-2">
@@ -689,14 +696,13 @@ export default function TradingPage() {
               </div>
             )}
 
-            <div className="flex-1"></div>
-
+            {/* Buy/Sell Buttons */}
             <div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handlePlaceOrder('CALL')}
                   disabled={loading || !selectedAsset}
-                  className="bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-green-500/20"
+                  className="bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-green-500/20"
                 >
                   <TrendingUp className="w-6 h-6" />
                 </button>
@@ -704,14 +710,14 @@ export default function TradingPage() {
                 <button
                   onClick={() => handlePlaceOrder('PUT')}
                   disabled={loading || !selectedAsset}
-                  className="bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-red-500/20"
+                  className="bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-red-500/20"
                 >
                   <TrendingDown className="w-6 h-6" />
                 </button>
               </div>
 
               {loading && (
-                <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-2 mt-2">
+                <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-2 mt-3">
                   <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-400"></div>
                   Processing...
                 </div>
