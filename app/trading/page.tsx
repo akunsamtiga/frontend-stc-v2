@@ -733,7 +733,7 @@ export default function TradingPage() {
 
             {/* Duration Select */}
             <div className="bg-[#1a1f2e] rounded-xl px-3 py-0">
-              <div className="text-[10px] text-gray-500 text-center leading-none mt-1">Duration</div>
+              <div className="text-[10px] text-gray-500 text-center leading-none pt-2">Duration</div>
               <select
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
