@@ -159,7 +159,7 @@ const [showStockity, setShowStockity] = useState(false)
 
 useEffect(() => {
   // Interval dinamis: 6 detik untuk STC (showStockity=false), 4 detik untuk Stockity (showStockity=true)
-  const duration = showStockity ? 4000 : 6000
+  const duration = showStockity ? 4000 : 8000
   
   const timeout = setTimeout(() => {
     setShowStockity(prev => !prev)
@@ -368,18 +368,18 @@ const handleTouchEnd = () => {
 {/* Navigation */}
 <nav className="fixed top-0 left-0 right-0 z-50 bg-[#1a1f2e]/95 backdrop-blur-xl border-b border-gray-700/50">
   <div className="container mx-auto px-4 sm:px-6">
-    <div className="flex items-center justify-between h-19">
+    <div className="flex items-center justify-between h-20">
       {/* Logo dengan animasi sequence */}
-      <div className="relative h-12 w-52 overflow-visible">
+      <div className="relative h-12 w-52 overflow-hidden">
         {/* STC AutoTrade */}
         <div 
           className={`flex items-center gap-3 absolute left-0 top-0 ${
-            showStockity ? 'animate-logo-exit' : 'animate-logo-enter'
+            showStockity ? 'pointer-events-none' : 'pointer-events-auto'
           }`}
         >
           {/* Logo STC */}
           <div className={`relative w-10 h-10 flex-shrink-0 ${
-            showStockity ? 'animate-logo-bounce-out' : 'animate-logo-bounce-in'
+            showStockity ? 'animate-logo-exit' : 'animate-logo-enter'
           }`}>
             <Image
               src="/stc-logo.png"
@@ -393,7 +393,7 @@ const handleTouchEnd = () => {
           {/* Text STC */}
           <div className="flex overflow-hidden">
             <span className={`text-xl font-bold text-white whitespace-nowrap ${
-              showStockity ? 'animate-text-slide-out' : 'animate-text-slide-in'
+              showStockity ? 'animate-text-exit' : 'animate-text-enter'
             }`}>
               STC AutoTrade
             </span>
@@ -403,12 +403,12 @@ const handleTouchEnd = () => {
         {/* By Stockity */}
         <div 
           className={`flex items-center gap-3 absolute left-0 top-0 ${
-            showStockity ? 'animate-logo-enter' : 'animate-logo-exit'
+            showStockity ? 'pointer-events-auto' : 'pointer-events-none'
           }`}
         >
           {/* Logo Stockity */}
           <div className={`relative w-10 h-10 flex-shrink-0 ${
-            showStockity ? 'animate-logo-bounce-in' : 'animate-logo-bounce-out'
+            showStockity ? 'animate-logo-enter' : 'animate-logo-exit'
           }`}>
             <Image
               src="/stockity.png"
@@ -419,10 +419,10 @@ const handleTouchEnd = () => {
             />
           </div>
           
-          {/* Text Stockity - WARNA PUTIH */}
+          {/* Text Stockity */}
           <div className="flex overflow-hidden">
             <span className={`text-xl font-bold text-white whitespace-nowrap ${
-              showStockity ? 'animate-text-slide-in' : 'animate-text-slide-out'
+              showStockity ? 'animate-text-enter' : 'animate-text-exit'
             }`}>
               By Stockity
             </span>
@@ -1519,6 +1519,7 @@ const handleTouchEnd = () => {
       )}
 
       <style jsx>{`
+  /* ===== GRADIENT & BACKGROUND ANIMATIONS ===== */
   @keyframes gradient {
     0%, 100% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
@@ -1528,8 +1529,6 @@ const handleTouchEnd = () => {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-20px); }
   }
-
-
 
   @keyframes pulse-slow {
     0%, 100% { opacity: 0.05; }
@@ -1541,6 +1540,7 @@ const handleTouchEnd = () => {
     to { transform: rotate(360deg); }
   }
 
+  /* ===== FADE & SLIDE ANIMATIONS ===== */
   @keyframes fade-in {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -1579,15 +1579,6 @@ const handleTouchEnd = () => {
     }
   }
 
-  @keyframes marquee-seamless {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-.animate-marquee-seamless {
-  animation: marquee-seamless 30s linear infinite;
-}
-
   @keyframes slide-in-right {
     from {
       opacity: 0;
@@ -1600,12 +1591,8 @@ const handleTouchEnd = () => {
   }
 
   @keyframes slide-left {
-    from {
-      transform: translateX(100%);
-    }
-    to {
-      transform: translateX(0);
-    }
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
   }
 
   @keyframes scale-in {
@@ -1619,6 +1606,64 @@ const handleTouchEnd = () => {
     }
   }
 
+  /* ===== MARQUEE ANIMATION ===== */
+  @keyframes marquee-seamless {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* ===== NAVBAR LOGO & TEXT ANIMATIONS ===== */
+  @keyframes logo-bounce-in {
+    0% {
+      transform: scale(0);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(1.15);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes logo-bounce-out {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(0);
+      opacity: 0;
+    }
+  }
+
+  @keyframes text-slide-in {
+    0% {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    100% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes text-slide-out {
+    0% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+
+  /* ===== ANIMATION UTILITY CLASSES ===== */
   .animate-gradient {
     background-size: 200% 200%;
     animation: gradient 3s ease infinite;
@@ -1664,6 +1709,29 @@ const handleTouchEnd = () => {
     animation: scale-in 0.3s ease-out;
   }
 
+  .animate-marquee-seamless {
+    animation: marquee-seamless 30s linear infinite;
+  }
+
+  /* ===== NAVBAR ANIMATION CLASSES ===== */
+  .animate-logo-enter {
+    animation: logo-bounce-in 0.4s ease-out forwards;
+  }
+
+  .animate-logo-exit {
+    animation: logo-bounce-out 0.4s ease-in 0.3s forwards;
+  }
+
+  .animate-text-enter {
+    animation: text-slide-in 0.5s ease-out 0.3s forwards;
+    opacity: 0;
+  }
+
+  .animate-text-exit {
+    animation: text-slide-out 0.4s ease-in forwards;
+  }
+
+  /* ===== SCROLLBAR STYLES ===== */
   html {
     scroll-behavior: smooth;
   }
@@ -1684,177 +1752,6 @@ const handleTouchEnd = () => {
   ::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(to bottom, #2563eb, #059669);
   }
-/* Hapus animasi berat, hanya keep yang simple */
-@keyframes gradient {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fade-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradient 3s ease infinite;
-}
-
-.animate-fade-in-up {
-  animation: fade-in-up 0.6s ease-out;
-}
-
-.animate-fade-in-right {
-  animation: fade-in-right 0.8s ease-out;
-}
-/* Logo Animations - Sequence dengan timing yang lebih jelas */
-@keyframes logo-exit {
-  0% {
-    opacity: 1;
-    pointer-events: auto;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    pointer-events: none;
-  }
-}
-
-@keyframes logo-enter {
-  0% {
-    opacity: 0;
-    pointer-events: none;
-  }
-  70% {
-    opacity: 0;
-    pointer-events: none;
-  }
-  100% {
-    opacity: 1;
-    pointer-events: auto;
-  }
-}
-
-/* Text slide animations - Teks keluar ke KANAN */
-@keyframes text-slide-out {
-  0% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  25% {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  100% {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-}
-
-/* Text slide in - Teks masuk dari KIRI ke KANAN */
-@keyframes text-slide-in {
-  0% {
-    transform: translateX(-100%);
-    opacity: 0;
-  }
-  70% {
-    transform: translateX(-100%);
-    opacity: 0;
-  }
-  100% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-/* Logo bounce animations - timing lebih jelas */
-@keyframes logo-bounce-out {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  25% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  40% {
-    transform: scale(1.15);
-    opacity: 1;
-  }
-  55% {
-    transform: scale(0);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(0);
-    opacity: 0;
-  }
-}
-
-@keyframes logo-bounce-in {
-  0% {
-    transform: scale(0);
-    opacity: 0;
-  }
-  55% {
-    transform: scale(0);
-    opacity: 0;
-  }
-  70% {
-    transform: scale(1.25);
-    opacity: 1;
-  }
-  85% {
-    transform: scale(0.95);
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.animate-logo-exit {
-  animation: logo-exit 1.4s ease-in-out forwards;
-}
-
-.animate-logo-enter {
-  animation: logo-enter 1.4s ease-in-out forwards;
-}
-
-.animate-text-slide-out {
-  animation: text-slide-out 1.4s ease-in-out forwards;
-}
-
-.animate-text-slide-in {
-  animation: text-slide-in 1.4s ease-in-out forwards;
-}
-
-.animate-logo-bounce-out {
-  animation: logo-bounce-out 1.4s ease-in-out forwards;
-}
-
-.animate-logo-bounce-in {
-  animation: logo-bounce-in 1.4s ease-in-out forwards;
-}
 `}</style>
     </div>
   )
