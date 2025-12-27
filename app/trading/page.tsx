@@ -636,8 +636,8 @@ export default function TradingPage() {
         <div className="hidden lg:block w-64 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
           <div className="h-full flex flex-col p-4 space-y-4 overflow-hidden">
             {/* Amount Input */}
-            <div className="bg-[#1a1f2e] rounded-xl px-3 py-2.5">
-              <div className="text-[10px] text-gray-500 mb-1.5 text-center">Amount</div>
+            <div className="bg-[#1a1f2e] rounded-xl px-3 py-2">
+              <div className="text-[10px] text-gray-500 mb-0.5 text-center">Amount</div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setAmount(prev => Math.max(1000, prev - 10000))}
@@ -650,7 +650,7 @@ export default function TradingPage() {
                   type="number"
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
-                  className="flex-1 min-w-0 bg-transparent text-center text-sm font-mono font-bold text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="flex-1 min-w-0 bg-transparent border-0 text-center text-sm font-mono font-bold text-white focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   min="1000"
                   step="1000"
                 />
@@ -665,12 +665,12 @@ export default function TradingPage() {
             </div>
 
             {/* Duration Select */}
-            <div className="bg-[#1a1f2e] rounded-xl px-3 py-2.5">
-              <div className="text-[10px] text-gray-500 mb-1.5 text-center">Duration</div>
+            <div className="bg-[#1a1f2e] rounded-xl px-3 py-2">
+              <div className="text-[10px] text-gray-500 mb-0.5 text-center">Duration</div>
               <select
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full bg-transparent text-center text-sm font-bold text-white focus:outline-none appearance-none cursor-pointer"
+                className="w-full bg-transparent border-0 text-center text-sm font-bold text-white focus:outline-none focus:ring-0 appearance-none cursor-pointer"
                 style={{
                   backgroundImage: 'none'
                 }}
