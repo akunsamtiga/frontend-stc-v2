@@ -1186,7 +1186,7 @@ const handleTouchEnd = () => {
             </div>
           </div>
 
-          {/* Mobile Marquee */}
+{/* Mobile Marquee */}
           <div className="sm:hidden overflow-hidden relative">
             {/* Gradient overlays */}
             <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-[#0a0e17] to-transparent z-10 pointer-events-none"></div>
@@ -1195,7 +1195,7 @@ const handleTouchEnd = () => {
             <div className="flex animate-marquee-seamless">
               {/* Render 2 sets identik untuk seamless loop */}
               {[...Array(2)].map((_, setIndex) => (
-                <div key={`set-${setIndex}`} className="flex gap-3 flex-shrink-0 pr-3">
+                <div key={`set-${setIndex}`} className="flex gap-3 flex-shrink-0">
                   {[
                     { name: 'BCA', logo: '/bca.webp' },
                     { name: 'Mandiri', logo: '/mandiri.webp' },
@@ -1209,7 +1209,7 @@ const handleTouchEnd = () => {
                     { name: 'Mastercard', logo: '/mastercard.webp' },
                     { name: 'Bitcoin', logo: '/bitcoin.webp' },
                   ].map((item, idx) => (
-                    <div key={`${setIndex}-${idx}`} className="flex-shrink-0 w-24 bg-white border border-gray-200 rounded-lg p-3">
+                    <div key={`${setIndex}-${idx}`} className="flex-shrink-0 w-24 bg-white border border-gray-200 rounded-lg p-3 mr-3">
                       <div className="relative h-10 flex items-center justify-center">
                         <Image 
                           src={item.logo} 
@@ -1225,7 +1225,7 @@ const handleTouchEnd = () => {
               ))}
             </div>
           </div>
-
+          
           <div className="mt-12 text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full">
               <Shield className="w-4 h-4 text-green-400" />
@@ -1453,10 +1453,7 @@ const handleTouchEnd = () => {
     50% { transform: translateY(-20px); }
   }
 
-  @keyframes marquee {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-  }
+
 
   @keyframes pulse-slow {
     0%, 100% { opacity: 0.05; }
@@ -1514,7 +1511,7 @@ const handleTouchEnd = () => {
 .animate-marquee-seamless {
   animation: marquee-seamless 30s linear infinite;
 }
-  
+
   @keyframes slide-in-right {
     from {
       opacity: 0;
@@ -1589,10 +1586,6 @@ const handleTouchEnd = () => {
 
   .animate-scale-in {
     animation: scale-in 0.3s ease-out;
-  }
-
-  .animate-marquee {
-    animation: marquee 15s linear infinite;
   }
 
   html {

@@ -113,9 +113,9 @@ export default function EnhancedFooter() {
                   <div className="flex items-center gap-1 mt-0.5">
                     <span className="text-[10px] uppercase tracking-wider">
                       <span className="text-gray-400 lowercase mr-1">by</span>
-                      <span className="text-blue-500 italic font-bold">Stockity</span>
+                      <span className="text-blue-400 italic font-bold">Stockity</span>
                     </span>
-                  <div className="w-1 h-1 bg-blue-500 rounded-full animate-pulse"></div>
+                  <div className="w-1 h-1 bg-blue-400 rounded-full animate-pulse"></div>
                   </div>
                 </div>
               </Link>
