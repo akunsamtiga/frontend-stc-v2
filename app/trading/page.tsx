@@ -457,188 +457,183 @@ export default function TradingPage() {
   return (
     <div className="h-screen flex flex-col bg-[#0a0e17] text-white overflow-hidden">
       {/* Top Bar */}
-<div className="h-20 bg-[#0f1419] border-b border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">
-        {/* Desktop Layout */}
-        <div className="hidden lg:flex items-center gap-4 w-full">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 relative">
-              <Image 
-                src="/stc-logo.png" 
-                alt="STC Logo" 
-                fill
-                className="object-contain rounded-md"
-              />
-            </div>
-            <span className="font-bold text-sm">STC AutoTrade</span>
-          </div>
-
-          {/* Asset Menu */}
-<div className="relative">
-  <button
-    onClick={() => setShowAssetMenu(!showAssetMenu)}
-    className="flex items-center gap-2 bg-[#1a1f2e] hover:bg-[#232936] px-4 py-2.5 rounded-lg transition-colors border border-gray-800/50"
-  >
-    {selectedAsset ? (
-      <>
-        <span className="text-sm font-medium">{selectedAsset.symbol}</span>
-        <span className="text-xs font-bold text-green-400">+{selectedAsset.profitRate}%</span>
-      </>
-    ) : (
-      <span className="text-sm text-gray-400">Select Asset</span>
-    )}
-    <ChevronDown className="w-4 h-4 text-gray-400" />
-  </button>
-  
-
-
-            {showAssetMenu && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowAssetMenu(false)} />
-                <div className="absolute top-full left-0 mt-2 w-64 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 max-h-80 overflow-y-auto">
-                  {assets.map((asset) => (
-                    <button
-                      key={asset.id}
-                      onClick={() => {
-                        setSelectedAsset(asset)
-                        setShowAssetMenu(false)
-                      }}
-                      className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#232936] transition-colors border-b border-gray-800/30 last:border-0 ${
-                        selectedAsset?.id === asset.id ? 'bg-[#232936]' : ''
-                      }`}
-                    >
-                      <div className="text-left">
-                        <div className="text-sm font-medium">{asset.symbol}</div>
-                      </div>
-                      <div className="text-xs font-bold text-green-400">+{asset.profitRate}%</div>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-
-{/* Account Type Menu */}
-<div className="relative">
-  <button
-    onClick={() => setShowAccountMenu(!showAccountMenu)}
-    className="flex items-center gap-2 bg-[#1a1f2e] hover:bg-[#232936] px-4 py-2.5 rounded-lg transition-colors border border-gray-800/50"
-  >
-    <span className="text-sm font-medium">
-      Akun {selectedAccountType === 'real' ? 'Real' : 'Demo'}
-    </span>
-    <ChevronDown className="w-4 h-4 text-gray-400" />
-  </button>
-
-  {showAccountMenu && (
-    <>
-      <div className="fixed inset-0 z-40" onClick={() => setShowAccountMenu(false)} />
-      <div className="absolute top-full left-0 mt-2 w-52 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden">
-        <button
-          onClick={() => {
-            setSelectedAccountType('demo')
-            setShowAccountMenu(false)
-          }}
-          className={`w-full flex flex-col items-start gap-1 px-4 py-3 hover:bg-[#232936] transition-colors border-b border-gray-800/30 ${
-            selectedAccountType === 'demo' ? 'bg-[#232936]' : ''
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-            <span className="text-xs text-gray-400">Akun Demo</span>
-          </div>
-          <span className="text-sm font-bold font-mono text-white pl-4">
-            {formatCurrency(demoBalance)}
-          </span>
-        </button>
-        <button
-          onClick={() => {
-            setSelectedAccountType('real')
-            setShowAccountMenu(false)
-          }}
-          className={`w-full flex flex-col items-start gap-1 px-4 py-3 hover:bg-[#232936] transition-colors ${
-            selectedAccountType === 'real' ? 'bg-[#232936]' : ''
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-400"></div>
-            <span className="text-xs text-gray-400">Akun Real</span>
-          </div>
-          <span className="text-sm font-bold font-mono text-white pl-4">
-            {formatCurrency(realBalance)}
-          </span>
-        </button>
-      </div>
-    </>
-  )}
-</div>
-          <div className="flex-1"></div>
-
-        <div className="flex items-center gap-2">
-  <div className="flex items-center gap-2 bg-[#1a1f2e] px-4 py-2.5 rounded-lg border border-gray-800/50">
-    <Wallet className="w-4 h-4 text-gray-400" />
-    <span className="text-base font-mono font-bold">{formatCurrency(currentBalance)}</span>
+<div className="h-20 bg-[#0f1419] border-b border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">        
+{/* Desktop Layout */}
+<div className="hidden lg:flex items-center gap-4 w-full">
+  <div className="flex items-center gap-2">
+    <div className="w-7 h-7 relative">
+      <Image 
+        src="/stc-logo.png" 
+        alt="STC Logo" 
+        fill
+        className="object-contain rounded-md"
+      />
+    </div>
+    <span className="font-bold text-sm">STC AutoTrade</span>
   </div>
-</div>
 
+  {/* Asset Menu */}
+  <div className="relative">
+    <button
+      onClick={() => setShowAssetMenu(!showAssetMenu)}
+      className="flex items-center gap-2 bg-[#1a1f2e] hover:bg-[#232936] px-4 py-2.5 rounded-lg transition-colors border border-gray-800/50"
+    >
+      {selectedAsset ? (
+        <>
+          <span className="text-sm font-medium">{selectedAsset.symbol}</span>
+          <span className="text-xs font-bold text-green-400">+{selectedAsset.profitRate}%</span>
+        </>
+      ) : (
+        <span className="text-sm text-gray-400">Select Asset</span>
+      )}
+      <ChevronDown className="w-4 h-4 text-gray-400" />
+    </button>
 
-
-          <button
-            onClick={() => router.push('/balance')}
-            className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded-lg transition-colors group"
-          >
-            <Wallet className="w-4 h-4 text-green-400 group-hover:text-green-300" />
-            <span className="text-sm font-medium text-green-400 group-hover:text-green-300">Deposit</span>
-          </button>
-
-          <button
-            onClick={() => setShowHistorySidebar(true)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors border border-gray-800/50"
-          >
-            <History className="w-4 h-4" />
-            <span className="text-sm">History</span>
-          </button>
-
-          {/* User Menu */}
-          <div className="relative">
+    {showAssetMenu && (
+      <>
+        <div className="fixed inset-0 z-40" onClick={() => setShowAssetMenu(false)} />
+        <div className="absolute top-full left-0 mt-2 w-64 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 max-h-80 overflow-y-auto">
+          {assets.map((asset) => (
             <button
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="w-8 h-8 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity"
+              key={asset.id}
+              onClick={() => {
+                setSelectedAsset(asset)
+                setShowAssetMenu(false)
+              }}
+              className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#232936] transition-colors border-b border-gray-800/30 last:border-0 ${
+                selectedAsset?.id === asset.id ? 'bg-[#232936]' : ''
+              }`}
             >
-              <span className="text-xs font-bold">{user.email[0].toUpperCase()}</span>
+              <div className="text-left">
+                <div className="text-sm font-medium">{asset.symbol}</div>
+              </div>
+              <div className="text-xs font-bold text-green-400">+{asset.profitRate}%</div>
             </button>
+          ))}
+        </div>
+      </>
+    )}
+  </div>
 
-            {showUserMenu && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
-                <div className="absolute top-full right-0 mt-2 w-56 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50">
-                  <div className="px-4 py-3 border-b border-gray-800/30">
-                    <div className="text-sm font-medium truncate">{user.email}</div>
-                    <div className="text-xs text-gray-400 mt-1">{user.role}</div>
-                  </div>
-                  <button
-                    onClick={() => router.push('/profile')}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#232936] transition-colors text-left"
-                  >
-                    <Settings className="w-4 h-4" />
-                    <span className="text-sm">Settings</span>
-                  </button>
-                  <div className="border-t border-gray-800/30">
-                    <button
-                      onClick={() => {
-                        logout()
-                        router.push('/')
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors text-left text-red-400"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span className="text-sm">Logout</span>
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
+  <div className="flex-1"></div>
+
+  {/* Account Type + Balance - Digabung di Kanan */}
+  <div className="relative">
+    <button
+      onClick={() => setShowAccountMenu(!showAccountMenu)}
+      className="flex flex-col items-start gap-0.5 bg-[#1a1f2e] hover:bg-[#232936] px-4 py-2 rounded-lg transition-colors border border-gray-800/50 min-w-[160px]"
+    >
+      <div className="flex items-center gap-1.5 w-full">
+        <span className="text-xs text-gray-400">
+          Akun {selectedAccountType === 'real' ? 'Real' : 'Demo'}
+        </span>
+        <ChevronDown className="w-3.5 h-3.5 text-gray-400 ml-auto" />
+      </div>
+      <div className="text-base font-bold font-mono text-white">
+        {formatCurrency(currentBalance)}
+      </div>
+    </button>
+
+    {showAccountMenu && (
+      <>
+        <div className="fixed inset-0 z-40" onClick={() => setShowAccountMenu(false)} />
+        <div className="absolute top-full right-0 mt-2 w-56 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden">
+          <button
+            onClick={() => {
+              setSelectedAccountType('demo')
+              setShowAccountMenu(false)
+            }}
+            className={`w-full flex flex-col items-start gap-1 px-4 py-3 hover:bg-[#232936] transition-colors border-b border-gray-800/30 ${
+              selectedAccountType === 'demo' ? 'bg-[#232936]' : ''
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+              <span className="text-xs text-gray-400">Akun Demo</span>
+            </div>
+            <span className="text-base font-bold font-mono text-white pl-4">
+              {formatCurrency(demoBalance)}
+            </span>
+          </button>
+          <button
+            onClick={() => {
+              setSelectedAccountType('real')
+              setShowAccountMenu(false)
+            }}
+            className={`w-full flex flex-col items-start gap-1 px-4 py-3 hover:bg-[#232936] transition-colors ${
+              selectedAccountType === 'real' ? 'bg-[#232936]' : ''
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-green-400"></div>
+              <span className="text-xs text-gray-400">Akun Real</span>
+            </div>
+            <span className="text-base font-bold font-mono text-white pl-4">
+              {formatCurrency(realBalance)}
+            </span>
+          </button>
+        </div>
+      </>
+    )}
+  </div>
+
+  <button
+    onClick={() => router.push('/balance')}
+    className="flex items-center gap-2 px-4 py-2.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded-lg transition-colors group"
+  >
+    <Wallet className="w-4 h-4 text-green-400 group-hover:text-green-300" />
+    <span className="text-sm font-medium text-green-400 group-hover:text-green-300">Deposit</span>
+  </button>
+
+  <button
+    onClick={() => setShowHistorySidebar(true)}
+    className="flex items-center gap-2 px-4 py-2.5 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors border border-gray-800/50"
+  >
+    <History className="w-4 h-4" />
+    <span className="text-sm">History</span>
+  </button>
+
+  {/* User Menu */}
+  <div className="relative">
+    <button
+      onClick={() => setShowUserMenu(!showUserMenu)}
+      className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity"
+    >
+      <span className="text-sm font-bold">{user.email[0].toUpperCase()}</span>
+    </button>
+
+    {showUserMenu && (
+      <>
+        <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+        <div className="absolute top-full right-0 mt-2 w-56 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50">
+          <div className="px-4 py-3 border-b border-gray-800/30">
+            <div className="text-sm font-medium truncate">{user.email}</div>
+            <div className="text-xs text-gray-400 mt-1">{user.role}</div>
+          </div>
+          <button
+            onClick={() => router.push('/profile')}
+            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#232936] transition-colors text-left"
+          >
+            <Settings className="w-4 h-4" />
+            <span className="text-sm">Settings</span>
+          </button>
+          <div className="border-t border-gray-800/30">
+            <button
+              onClick={() => {
+                logout()
+                router.push('/')
+              }}
+              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors text-left text-red-400"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="text-sm">Logout</span>
+            </button>
           </div>
         </div>
+      </>
+    )}
+  </div>
+</div>
 
         {/* Mobile Layout */}
         <div className="flex lg:hidden items-center justify-between w-full">
