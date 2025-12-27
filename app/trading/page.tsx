@@ -461,7 +461,7 @@ export default function TradingPage() {
 {/* Desktop Layout */}
 <div className="hidden lg:flex items-center gap-4 w-full">
   <div className="flex items-center gap-3">
-    <div className="w-10 h-10 relative">
+    <div className="w-8 h-8 relative">
       <Image 
         src="/stc-logo.png" 
         alt="STC Logo" 
@@ -577,20 +577,20 @@ export default function TradingPage() {
 </div>
 
   <button
-    onClick={() => router.push('/balance')}
-    className="flex items-center gap-2 px-4 py-2.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded-lg transition-colors group"
-  >
-    <Wallet className="w-4 h-4 text-green-400 group-hover:text-green-300" />
-    <span className="text-sm font-medium text-green-400 group-hover:text-green-300">Deposit</span>
-  </button>
+  onClick={() => router.push('/balance')}
+  className="flex items-center gap-2 px-4 py-2.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded-lg transition-colors group"
+>
+  <Wallet className="w-4 h-4 text-green-400 group-hover:text-green-300" />
+  <span className="text-sm font-medium text-green-400 group-hover:text-green-300">Deposit</span>
+</button>
 
-  <button
-    onClick={() => setShowHistorySidebar(true)}
-    className="flex items-center gap-2 px-4 py-2.5 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors border border-gray-800/50"
-  >
-    <History className="w-4 h-4" />
-    <span className="text-sm">History</span>
-  </button>
+<button
+  onClick={() => setShowHistorySidebar(true)}
+  className="flex items-center gap-2 px-4 py-2.5 bg-[#0f1419] hover:bg-[#232936] rounded-lg transition-colors border border-gray-800/50"
+>
+  <History className="w-4 h-4" />
+  <span className="text-sm">History</span>
+</button>
 
   {/* User Menu */}
   <div className="relative">
