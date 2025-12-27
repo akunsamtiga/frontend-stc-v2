@@ -1468,161 +1468,170 @@ const handleTouchEnd = () => {
       )}
 
       <style jsx>{`
-        @keyframes gradient {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
+  @keyframes gradient {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
 
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-20px); }
-        }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+  }
 
-        @keyframes pulse-slow {
-          0%, 100% { opacity: 0.05; }
-          50% { opacity: 0.15; }
-        }
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
 
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
+  @keyframes pulse-slow {
+    0%, 100% { opacity: 0.05; }
+    50% { opacity: 0.15; }
+  }
 
-        @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
 
-        @keyframes fade-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
 
-        @keyframes fade-in-right {
-          from {
-            opacity: 0;
-            transform: translateX(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 
-        @keyframes slide-in-left {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
+  @keyframes fade-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
 
-        @keyframes slide-in-right {
-          from {
-            opacity: 0;
-            transform: translateX(50px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
+  @keyframes slide-in-left {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
 
-        @keyframes slide-left {
-          from {
-            transform: translateX(100%);
-          }
-          to {
-            transform: translateX(0);
-          }
-        }
+  @keyframes slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(50px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
 
-        @keyframes scale-in {
-          from {
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
+  @keyframes slide-left {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
 
-        .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradient 3s ease infinite;
-        }
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
 
-        .animate-float {
-          animation: float 6s ease-in-out infinite;
-        }
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 3s ease infinite;
+  }
 
-        .animate-pulse-slow {
-          animation: pulse-slow 4s ease-in-out infinite;
-        }
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
 
-        .animate-spin-slow {
-          animation: spin-slow 3s linear infinite;
-        }
+  .animate-pulse-slow {
+    animation: pulse-slow 4s ease-in-out infinite;
+  }
 
-        .animate-fade-in {
-          animation: fade-in 0.3s ease-out;
-        }
+  .animate-spin-slow {
+    animation: spin-slow 3s linear infinite;
+  }
 
-        .animate-fade-in-up {
-          animation: fade-in-up 0.6s ease-out;
-        }
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
 
-        .animate-fade-in-right {
-          animation: fade-in-right 0.8s ease-out;
-        }
+  .animate-fade-in-up {
+    animation: fade-in-up 0.6s ease-out;
+  }
 
-        .animate-slide-in-left {
-          animation: slide-in-left 0.6s ease-out;
-        }
+  .animate-fade-in-right {
+    animation: fade-in-right 0.8s ease-out;
+  }
 
-        .animate-slide-in-right {
-          animation: slide-in-right 0.8s ease-out;
-        }
+  .animate-slide-in-left {
+    animation: slide-in-left 0.6s ease-out;
+  }
 
-        .animate-slide-left {
-          animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
+  .animate-slide-in-right {
+    animation: slide-in-right 0.8s ease-out;
+  }
 
-        .animate-scale-in {
-          animation: scale-in 0.3s ease-out;
-        }
+  .animate-slide-left {
+    animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
 
-        html {
-          scroll-behavior: smooth;
-        }
+  .animate-scale-in {
+    animation: scale-in 0.3s ease-out;
+  }
 
-        ::-webkit-scrollbar {
-          width: 8px;
-        }
+  .animate-marquee {
+    animation: marquee 30s linear infinite;
+  }
 
-        ::-webkit-scrollbar-track {
-          background: #0a0e17;
-        }
+  html {
+    scroll-behavior: smooth;
+  }
 
-        ::-webkit-scrollbar-thumb {
-          background: linear-gradient(to bottom, #3b82f6, #10b981);
-          border-radius: 4px;
-        }
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
 
-        ::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(to bottom, #2563eb, #059669);
-        }
-      `}</style>
+  ::-webkit-scrollbar-track {
+    background: #0a0e17;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, #3b82f6, #10b981);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to bottom, #2563eb, #059669);
+  }
+`}</style>
     </div>
   )
 }
