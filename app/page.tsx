@@ -368,7 +368,7 @@ const handleTouchEnd = () => {
 {/* Navigation */}
 <nav className="fixed top-0 left-0 right-0 z-50 bg-[#1a1f2e]/95 backdrop-blur-xl border-b border-gray-700/50">
   <div className="container mx-auto px-4 sm:px-6">
-    <div className="flex items-center justify-between h-20">
+    <div className="flex items-center justify-between h-19">
       {/* Logo dengan animasi sequence */}
       <div className="relative h-12 w-52 overflow-visible">
         {/* STC AutoTrade */}
