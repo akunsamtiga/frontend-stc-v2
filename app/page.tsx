@@ -1547,6 +1547,7 @@ const handleTouchEnd = () => {
       )}
 
       <style jsx>{`
+  /* Core Animations */
   @keyframes gradient {
     0%, 100% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
@@ -1567,6 +1568,7 @@ const handleTouchEnd = () => {
     to { transform: rotate(360deg); }
   }
 
+  /* Fade Animations */
   @keyframes fade-in {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -1594,6 +1596,7 @@ const handleTouchEnd = () => {
     }
   }
 
+  /* Slide Animations */
   @keyframes slide-in-left {
     from {
       opacity: 0;
@@ -1603,11 +1606,6 @@ const handleTouchEnd = () => {
       opacity: 1;
       transform: translateX(0);
     }
-  }
-
-  @keyframes marquee-seamless {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
   }
 
   @keyframes slide-in-right {
@@ -1630,6 +1628,13 @@ const handleTouchEnd = () => {
     }
   }
 
+  /* Marquee Animation */
+  @keyframes marquee-seamless {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* Scale Animation */
   @keyframes scale-in {
     from {
       opacity: 0;
@@ -1641,43 +1646,11 @@ const handleTouchEnd = () => {
     }
   }
 
-  @keyframes logo-exit {
-    0% {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    50% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 0;
-      pointer-events: none;
-    }
-  }
-
-  @keyframes logo-enter {
-    0% {
-      opacity: 0;
-      pointer-events: none;
-    }
-    70% {
-      opacity: 0;
-      pointer-events: none;
-    }
-    100% {
-      opacity: 1;
-      pointer-events: auto;
-    }
-  }
-
+  /* Logo Sequence Animations */
   @keyframes text-slide-out {
     0% {
       transform: translateX(0);
       opacity: 1;
-    }
-    25% {
-      transform: translateX(100%);
-      opacity: 0;
     }
     100% {
       transform: translateX(100%);
@@ -1687,10 +1660,6 @@ const handleTouchEnd = () => {
 
   @keyframes text-slide-in {
     0% {
-      transform: translateX(-100%);
-      opacity: 0;
-    }
-    70% {
       transform: translateX(-100%);
       opacity: 0;
     }
@@ -1705,17 +1674,9 @@ const handleTouchEnd = () => {
       transform: scale(1);
       opacity: 1;
     }
-    25% {
-      transform: scale(1);
-      opacity: 1;
-    }
     40% {
       transform: scale(1.15);
       opacity: 1;
-    }
-    55% {
-      transform: scale(0);
-      opacity: 0;
     }
     100% {
       transform: scale(0);
@@ -1728,15 +1689,11 @@ const handleTouchEnd = () => {
       transform: scale(0);
       opacity: 0;
     }
-    55% {
-      transform: scale(0);
-      opacity: 0;
-    }
-    70% {
+    60% {
       transform: scale(1.25);
       opacity: 1;
     }
-    85% {
+    80% {
       transform: scale(0.95);
     }
     100% {
@@ -1745,6 +1702,7 @@ const handleTouchEnd = () => {
     }
   }
 
+  /* Animation Utility Classes */
   .animate-gradient {
     background-size: 200% 200%;
     animation: gradient 3s ease infinite;
@@ -1794,30 +1752,23 @@ const handleTouchEnd = () => {
     animation: marquee-seamless 30s linear infinite;
   }
 
-  .animate-logo-exit {
-    animation: logo-exit 1.4s ease-in-out forwards;
-  }
-
-  .animate-logo-enter {
-    animation: logo-enter 1.4s ease-in-out forwards;
-  }
-
   .animate-text-slide-out {
-    animation: text-slide-out 1.4s ease-in-out forwards;
+    animation: text-slide-out 1s ease-in-out forwards;
   }
 
   .animate-text-slide-in {
-    animation: text-slide-in 1.4s ease-in-out forwards;
+    animation: text-slide-in 1s ease-in-out forwards;
   }
 
   .animate-logo-bounce-out {
-    animation: logo-bounce-out 1.4s ease-in-out forwards;
+    animation: logo-bounce-out 1s ease-in-out forwards;
   }
 
   .animate-logo-bounce-in {
-    animation: logo-bounce-in 1.4s ease-in-out forwards;
+    animation: logo-bounce-in 1s ease-in-out forwards;
   }
 
+  /* Global Styles */
   html {
     scroll-behavior: smooth;
   }
@@ -1838,77 +1789,6 @@ const handleTouchEnd = () => {
   ::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(to bottom, #2563eb, #059669);
   }
-
-  @keyframes text-slide-out {
-  0% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-}
-
-@keyframes text-slide-in {
-  0% {
-    transform: translateX(-100%);
-    opacity: 0;
-  }
-  100% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes logo-bounce-out {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  40% {
-    transform: scale(1.15);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(0);
-    opacity: 0;
-  }
-}
-
-@keyframes logo-bounce-in {
-  0% {
-    transform: scale(0);
-    opacity: 0;
-  }
-  60% {
-    transform: scale(1.25);
-    opacity: 1;
-  }
-  80% {
-    transform: scale(0.95);
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.animate-text-slide-out {
-  animation: text-slide-out 1s ease-in-out forwards;
-}
-
-.animate-text-slide-in {
-  animation: text-slide-in 1s ease-in-out forwards;
-}
-
-.animate-logo-bounce-out {
-  animation: logo-bounce-out 1s ease-in-out forwards;
-}
-
-.animate-logo-bounce-in {
-  animation: logo-bounce-in 1s ease-in-out forwards;
-}
 `}</style>
     </div>
   )
