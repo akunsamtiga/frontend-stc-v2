@@ -1187,7 +1187,6 @@ const handleTouchEnd = () => {
           </div>
 
           {/* Mobile Marquee */}
-{/* Mobile Marquee */}
           <div className="sm:hidden overflow-hidden relative">
             {/* Gradient overlays */}
             <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-[#0a0e17] to-transparent z-10 pointer-events-none"></div>
@@ -1226,7 +1225,7 @@ const handleTouchEnd = () => {
               ))}
             </div>
           </div>
-          
+
           <div className="mt-12 text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full">
               <Shield className="w-4 h-4 text-green-400" />
