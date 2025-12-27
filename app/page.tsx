@@ -368,7 +368,7 @@ const handleTouchEnd = () => {
 {/* Navigation */}
 <nav className="fixed top-0 left-0 right-0 z-50 bg-[#1a1f2e]/95 backdrop-blur-xl border-b border-gray-700/50">
   <div className="container mx-auto px-4 sm:px-6">
-    <div className="flex items-center justify-between h-18">
+    <div className="flex items-center justify-between h-20">
       {/* Logo dengan animasi sequence */}
       <div className="relative h-12 w-52 overflow-visible">
         {/* STC AutoTrade */}
@@ -627,7 +627,7 @@ const handleTouchEnd = () => {
         <span className="text-sm font-medium text-blue-400">Teknologi Terdepan</span>
       </div>
       <h2 className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight">
-        Mengapa Memilih Kami
+        Menghadirkan Solusi
       </h2>
       <p className="text-lg text-gray-400 max-w-2xl mx-auto">
         Platform trading dengan teknologi dan keamanan terbaik
