@@ -470,7 +470,6 @@ export default function TradingPage() {
               {selectedAsset ? (
                 <>
                   <span className="text-sm font-medium">{selectedAsset.symbol}</span>
-                  <span className="text-xs text-gray-400">{selectedAsset.name}</span>
                   <span className="text-xs font-bold text-green-400">+{selectedAsset.profitRate}%</span>
                 </>
               ) : (
