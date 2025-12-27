@@ -1192,57 +1192,35 @@ const handleTouchEnd = () => {
             <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-[#0a0e17] to-transparent z-10"></div>
             <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#0a0e17] to-transparent z-10"></div>
             
-            <div className="flex gap-3 animate-marquee">
-              {/* First set */}
-              {[
-                { name: 'BCA', logo: '/bca.webp' },
-                { name: 'Mandiri', logo: '/mandiri.webp' },
-                { name: 'BRI', logo: '/bri.webp' },
-                { name: 'BNI', logo: '/bni.webp' },
-                { name: 'GoPay', logo: '/gopay.webp' },
-                { name: 'OVO', logo: '/ovo.webp' },
-                { name: 'DANA', logo: '/dana.webp' },
-                { name: 'LinkAja', logo: '/linkaja.webp' },
-                { name: 'Visa', logo: '/visa.webp' },
-                { name: 'Mastercard', logo: '/mastercard.webp' },
-                { name: 'Bitcoin', logo: '/bitcoin.webp' },
-              ].map((item, idx) => (
-                <div key={`first-${idx}`} className="flex-shrink-0 w-24 bg-white border border-gray-200 rounded-lg p-3">
-                  <div className="relative h-10 flex items-center justify-center">
-                    <Image 
-                      src={item.logo} 
-                      alt={item.name}
-                      width={80}
-                      height={32}
-                      className="h-full w-auto object-contain"
-                    />
-                  </div>
-                </div>
-              ))}
-              {/* Duplicate set for seamless loop */}
-              {[
-                { name: 'BCA', logo: '/bca.webp' },
-                { name: 'Mandiri', logo: '/mandiri.webp' },
-                { name: 'BRI', logo: '/bri.webp' },
-                { name: 'BNI', logo: '/bni.webp' },
-                { name: 'GoPay', logo: '/gopay.webp' },
-                { name: 'OVO', logo: '/ovo.webp' },
-                { name: 'DANA', logo: '/dana.webp' },
-                { name: 'LinkAja', logo: '/linkaja.webp' },
-                { name: 'Visa', logo: '/visa.webp' },
-                { name: 'Mastercard', logo: '/mastercard.webp' },
-                { name: 'Bitcoin', logo: '/bitcoin.webp' },
-              ].map((item, idx) => (
-                <div key={`second-${idx}`} className="flex-shrink-0 w-24 bg-white border border-gray-200 rounded-lg p-3">
-                  <div className="relative h-10 flex items-center justify-center">
-                    <Image 
-                      src={item.logo} 
-                      alt={item.name}
-                      width={80}
-                      height={32}
-                      className="h-full w-auto object-contain"
-                    />
-                  </div>
+            <div className="flex gap-3 animate-marquee-seamless">
+              {/* Render 3 sets untuk seamless loop */}
+              {[...Array(3)].map((_, setIndex) => (
+                <div key={`set-${setIndex}`} className="flex gap-3 flex-shrink-0">
+                  {[
+                    { name: 'BCA', logo: '/bca.webp' },
+                    { name: 'Mandiri', logo: '/mandiri.webp' },
+                    { name: 'BRI', logo: '/bri.webp' },
+                    { name: 'BNI', logo: '/bni.webp' },
+                    { name: 'GoPay', logo: '/gopay.webp' },
+                    { name: 'OVO', logo: '/ovo.webp' },
+                    { name: 'DANA', logo: '/dana.webp' },
+                    { name: 'LinkAja', logo: '/linkaja.webp' },
+                    { name: 'Visa', logo: '/visa.webp' },
+                    { name: 'Mastercard', logo: '/mastercard.webp' },
+                    { name: 'Bitcoin', logo: '/bitcoin.webp' },
+                  ].map((item, idx) => (
+                    <div key={`${setIndex}-${idx}`} className="flex-shrink-0 w-24 bg-white border border-gray-200 rounded-lg p-3">
+                      <div className="relative h-10 flex items-center justify-center">
+                        <Image 
+                          src={item.logo} 
+                          alt={item.name}
+                          width={80}
+                          height={32}
+                          className="h-full w-auto object-contain"
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>

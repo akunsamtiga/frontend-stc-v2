@@ -18,6 +18,7 @@ export const metadata: Metadata = {
   title: 'STC AutoTrade',
   description: 'Platform trading binary option dengan eksekusi kilat, profit hingga 95%, dan keamanan maksimal. Dipercaya 50.000+ trader.',
   keywords: ['binary option', 'trading', 'IDX_STC', 'forex', 'crypto', 'STC AutoTrade'],
+  themeColor: '#0a0e17', 
   icons: {
     icon: '/stc.ico',
     shortcut: '/stc.ico',
@@ -34,6 +35,7 @@ export default function RootLayout({
     <html lang="id" className={`${ibmPlexSans.variable} ${jetbrainsMono.variable}`}>
       <head>
         <link rel="icon" href="/stc.ico" sizes="any" />
+        <meta name="theme-color" content="#0a0e17" />
       </head>
       <body>
         {children}
