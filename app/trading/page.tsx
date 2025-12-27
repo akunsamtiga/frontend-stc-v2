@@ -25,6 +25,7 @@ import {
   ChevronDown,
   X,
   Menu,
+  Minus,
   Plus,
   ArrowDownToLine,
   ArrowUpFromLine
@@ -635,16 +636,31 @@ export default function TradingPage() {
           <div className="h-full flex flex-col p-4 space-y-3">
             <div>
               <label className="text-xs text-gray-400 mb-1.5 block font-medium">Amount</label>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(Number(e.target.value))}
-                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2.5 text-center text-sm font-mono font-bold text-white focus:outline-none focus:border-blue-500/50 transition-colors"
-                min="1000"
-                step="1000"
-              />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setAmount(prev => Math.max(1000, prev - 10000))}
+                  className="w-10 h-10 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 rounded-lg flex items-center justify-center transition-colors"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+                
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(Number(e.target.value))}
+                  className="flex-1 bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2.5 text-center text-sm font-mono font-bold text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+                  min="1000"
+                  step="1000"
+                />
+                
+                <button
+                  onClick={() => setAmount(prev => prev + 10000)}
+                  className="w-10 h-10 bg-[#1a1f2e] hover:bg-[#232936] border border-gray-800/50 rounded-lg flex items-center justify-center transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-
             <div>
               <label className="text-xs text-gray-400 mb-1.5 block font-medium flex items-center gap-1">
                 <Clock className="w-3 h-3" />
