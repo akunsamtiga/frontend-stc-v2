@@ -471,6 +471,7 @@ export default function TradingPage() {
                 <>
                   <span className="text-sm font-medium">{selectedAsset.symbol}</span>
                   <span className="text-xs text-gray-400">{selectedAsset.name}</span>
+                  <span className="text-xs font-bold text-green-400">+{selectedAsset.profitRate}%</span>
                 </>
               ) : (
                 <span className="text-sm text-gray-400">Select Asset</span>
@@ -495,7 +496,6 @@ export default function TradingPage() {
                     >
                       <div className="text-left">
                         <div className="text-sm font-medium">{asset.symbol}</div>
-                        <div className="text-xs text-gray-400">{asset.name}</div>
                       </div>
                       <div className="text-xs font-bold text-green-400">+{asset.profitRate}%</div>
                     </button>
@@ -509,7 +509,6 @@ export default function TradingPage() {
 
           {/* Balance & Actions */}
           <div className="flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
-            <Wallet className="w-4 h-4 text-blue-400" />
             <span className="text-sm font-mono font-bold">{formatCurrency(balance)}</span>
           </div>
 
@@ -517,7 +516,7 @@ export default function TradingPage() {
             onClick={() => router.push('/balance')}
             className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded-lg transition-colors group"
           >
-            <Plus className="w-4 h-4 text-green-400 group-hover:text-green-300" />
+            <Wallet className="w-4 h-4 text-green-400 group-hover:text-green-300" />
             <span className="text-sm font-medium text-green-400 group-hover:text-green-300">Deposit</span>
           </button>
 
@@ -635,15 +634,6 @@ export default function TradingPage() {
         {/* Trading Panel - Desktop */}
         <div className="hidden lg:block w-72 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
           <div className="h-full flex flex-col p-4 space-y-3">
-            <div className="pb-3 border-b border-gray-800/50">
-              <h3 className="text-xs font-semibold text-gray-400">Quick Trade</h3>
-              {selectedAsset && (
-                <div className="text-xs text-gray-500 mt-1">
-                  Rate: <span className="text-green-400 font-bold">+{selectedAsset.profitRate}%</span>
-                </div>
-              )}
-            </div>
-
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-gray-400 mb-1.5 block font-medium">Amount</label>

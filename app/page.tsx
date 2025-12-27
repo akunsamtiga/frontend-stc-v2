@@ -255,7 +255,7 @@ const handleTouchEnd = () => {
   const stats = [
     { label: 'Trader Aktif', value: '2K+', icon: Users },
     { label: 'Volume Harian', value: '$3K', icon: DollarSign },
-    { label: 'Win Rate', value: '94%', icon: Target },
+    { label: 'Win Rate', value: '95%', icon: Target },
     { label: 'Negara', value: '15+', icon: Globe },
   ]
 
@@ -354,191 +354,210 @@ const handleTouchEnd = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0e17]/80 backdrop-blur-xl border-b border-gray-800/50">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-20">
-            <div className="flex items-center gap-3 group cursor-pointer">
-              <div className="relative w-10 h-10 flex-shrink-0">
-                <Image
-                  src="/stc-logo.png"
-                  alt="STC AutoTrade"
-                  fill
-                  className="object-contain transform group-hover:scale-110 transition-transform rounded-md"
-                  priority
-                />
+<nav className="fixed top-0 left-0 right-0 z-50 bg-[#1a1f2e]/95 backdrop-blur-xl border-b border-gray-700/50">
+  <div className="container mx-auto px-4 sm:px-6">
+    <div className="flex items-center justify-between h-20">
+      <div className="flex items-center gap-3 group cursor-pointer">
+        <div className="relative w-10 h-10 flex-shrink-0">
+          <Image
+            src="/stc-logo.png"
+            alt="STC AutoTrade"
+            fill
+            className="object-contain transform group-hover:scale-110 transition-transform rounded-md"
+            priority
+          />
+        </div>
+        <div>
+          <span className="text-xl font-bold text-white">
+            STC AutoTrade
+          </span>
+        </div>
+      </div>
+
+      <div className="hidden md:flex items-center gap-8">
+        <a href="#features" className="text-sm text-gray-300 hover:text-white transition-colors relative group">
+          Fitur
+          <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
+        </a>
+        <a href="#how-it-works" className="text-sm text-gray-300 hover:text-white transition-colors relative group">
+          Cara Kerja
+          <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
+        </a>
+        <a href="#testimonials" className="text-sm text-gray-300 hover:text-white transition-colors relative group">
+          Testimoni
+          <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
+        </a>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => {
+            setIsLogin(false)
+            setShowAuthModal(true)
+          }}
+          className="flex items-center gap-2 px-6 py-2.5 bg-[#2d3748] hover:bg-[#3d4758] rounded-lg text-sm font-semibold text-white shadow-lg transition-colors border border-gray-600"
+        >
+          <UserPlus className="w-4 h-4" />
+          Daftar
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+{/* Hero Section */}
+<section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32 overflow-hidden">
+  {/* Background with Blur Effects */}
+  <div className="absolute inset-0 overflow-hidden">
+    {/* Base gradient */}
+    <div className="absolute inset-0 bg-gradient-to-b from-[#1a1f2e] via-[#0f1419] to-[#0a0e17]"></div>
+    
+    {/* Blurred glowing orbs */}
+    <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px]"></div>
+    <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-600/8 rounded-full blur-[100px]"></div>
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-600/8 rounded-full blur-[100px]"></div>
+    
+    {/* Simple grid */}
+    <div 
+      className="absolute inset-0 opacity-[0.03]"
+      style={{
+        backgroundImage: `
+          linear-gradient(rgba(59, 130, 246, 0.4) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(59, 130, 246, 0.4) 1px, transparent 1px)
+        `,
+        backgroundSize: '60px 60px',
+      }}
+    ></div>
+  </div>
+  
+  <div className="container mx-auto px-4 sm:px-6 relative z-10">
+    <div className="grid lg:grid-cols-2 gap-12 items-center">
+      {/* Left Content */}
+      <div className="space-y-8">
+        <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold leading-tight">
+          Trading Binary Option dengan
+          <span className="block mt-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-emerald-400 to-cyan-400">
+            Kecepatan Kilat
+          </span>
+        </h1>
+
+        <p className="text-lg sm:text-xl text-gray-400 leading-relaxed">
+          Eksekusi order dalam <span className="text-emerald-400 font-semibold">milidetik</span>, 
+          dapatkan profit hingga <span className="text-blue-400 font-semibold">95%</span>, 
+          dan trading dengan <span className="text-cyan-400 font-semibold">percaya diri 24/7</span>.
+        </p>
+
+        <div className="flex flex-row gap-3 sm:gap-4">
+          <button
+            onClick={() => {
+              setIsLogin(true)
+              setShowAuthModal(true)
+            }}
+            className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 rounded-xl text-sm sm:text-lg font-semibold text-white transition-colors shadow-lg"
+          >
+            <span className="flex items-center justify-center gap-2">
+              <span className="hidden sm:inline">Masuk untuk Trading</span>
+              <span className="sm:hidden">Masuk</span>
+              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
+            </span>
+          </button>
+
+          <button className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-white/5 hover:bg-white/10 border border-gray-700 hover:border-gray-600 rounded-xl text-sm sm:text-lg font-semibold transition-colors backdrop-blur-sm">
+            <span className="flex items-center justify-center gap-2">
+              <Activity className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
+              <span className="hidden sm:inline">Lihat Demo</span>
+              <span className="sm:hidden">Demo</span>
+            </span>
+          </button>
+        </div>
+
+        {/* Stats Row */}
+        <div className="grid grid-cols-4 gap-4 pt-8">
+          {stats.map((stat, index) => (
+            <div 
+              key={index} 
+              className="text-center transform hover:scale-105 transition-transform cursor-default bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-gray-800/50"
+            >
+              <stat.icon className="w-6 h-6 text-blue-400 mx-auto mb-2" />
+              <div className="text-xl font-bold">{stat.value}</div>
+              <div className="text-xs text-gray-500">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Right - Trading Platform Preview */}
+      <div className="relative">
+        <LiveTradingTicker />
+
+        <FloatingPriceCard 
+          symbol="EUR/USD" 
+          price="1.0856" 
+          change={2.3} 
+          delay={0}
+          style={{ top: '10%', left: '-10%' }}
+        />
+        <FloatingPriceCard 
+          symbol="BTC/USD" 
+          price="68,342" 
+          change={-1.2} 
+          delay={0.5}
+          style={{ top: '60%', left: '-5%' }}
+        />
+        <FloatingPriceCard 
+          symbol="IDX_STC" 
+          price="7,289" 
+          change={0.8} 
+          delay={1}
+          style={{ bottom: '10%', right: '-10%' }}
+        />
+
+        {/* Main Trading Interface */}
+        <div className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl p-6 shadow-2xl backdrop-blur-xl hover:scale-[1.02] transition-transform duration-300">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-blue-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30">
+                <TrendingUp className="w-6 h-6 text-emerald-400" />
               </div>
               <div>
-                <span className="text-xl font-bold text-white">
-                  STC AutoTrade
-                </span>
+                <div className="text-sm text-gray-400">EUR/USD</div>
+                <div className="text-3xl font-bold font-mono">1.0856</div>
               </div>
             </div>
-
-            <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-sm text-gray-400 hover:text-white transition-colors relative group">
-                Fitur
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
-              </a>
-              <a href="#how-it-works" className="text-sm text-gray-400 hover:text-white transition-colors relative group">
-                Cara Kerja
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
-              </a>
-              <a href="#testimonials" className="text-sm text-gray-400 hover:text-white transition-colors relative group">
-                Testimoni
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
-              </a>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => {
-                  setIsLogin(false)
-                  setShowAuthModal(true)
-                }}
-                className="flex items-center gap-2 px-6 py-2.5 bg-[#1e293b] hover:bg-[#334155] rounded-lg text-sm font-semibold text-white shadow-lg transition-colors border border-gray-700"
-              >
-                <UserPlus className="w-4 h-4" />
-                Daftar
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32 overflow-hidden">
-        <div className="container mx-auto px-4 sm:px-6 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left Content */}
-            <div className="space-y-8 animate-fade-in-up">
-              
-              <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold leading-tight">
-                Trading Binary Option dengan
-                <span className="block mt-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-emerald-400 to-cyan-400 animate-gradient">
-                  Kecepatan Kilat
-                </span>
-              </h1>
-
-              <p className="text-lg sm:text-xl text-gray-400 leading-relaxed">
-                Eksekusi order dalam <span className="text-emerald-400 font-semibold">milidetik</span>, 
-                dapatkan profit hingga <span className="text-blue-400 font-semibold">95%</span>, 
-                dan trading dengan <span className="text-cyan-400 font-semibold">percaya diri 24/7</span>.
-              </p>
-
-              <div className="flex flex-row gap-3 sm:gap-4">
-                <button
-                  onClick={() => {
-                    setIsLogin(true)
-                    setShowAuthModal(true)
-                  }}
-                  className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-[#1e293b] hover:bg-[#334155] rounded-xl text-sm sm:text-lg font-semibold text-white transition-colors border border-gray-700 shadow-lg"
-                >
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="hidden sm:inline">Masuk untuk Trading</span>
-                    <span className="sm:hidden">Masuk</span>
-                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
-                  </span>
-                </button>
-
-                <button className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-white/5 hover:bg-white/10 border border-gray-700 hover:border-gray-600 rounded-xl text-sm sm:text-lg font-semibold transition-all backdrop-blur-sm">
-                  <span className="flex items-center justify-center gap-2">
-                    <Activity className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
-                    <span className="hidden sm:inline">Lihat Demo</span>
-                    <span className="sm:hidden">Demo</span>
-                  </span>
-                </button>
+            <div className="text-right">
+              <div className="flex items-center gap-1 text-emerald-400 text-lg font-semibold">
+                <TrendingUp className="w-5 h-5" />
+                +2.3%
               </div>
-
-              {/* Stats Row */}
-              <div className="grid grid-cols-4 gap-4 pt-8">
-                {stats.map((stat, index) => (
-                  <div 
-                    key={index} 
-                    className="text-center transform hover:scale-110 transition-transform cursor-default"
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
-                    <stat.icon className="w-6 h-6 text-blue-400 mx-auto mb-2" />
-                    <div className="text-xl font-bold">{stat.value}</div>
-                    <div className="text-xs text-gray-500">{stat.label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Right - Trading Platform Preview */}
-            <div className="relative animate-fade-in-right">
-              <LiveTradingTicker />
-
-              <FloatingPriceCard 
-                symbol="EUR/USD" 
-                price="1.0856" 
-                change={2.3} 
-                delay={0}
-                style={{ top: '10%', left: '-10%' }}
-              />
-              <FloatingPriceCard 
-                symbol="BTC/USD" 
-                price="68,342" 
-                change={-1.2} 
-                delay={0.5}
-                style={{ top: '60%', left: '-5%' }}
-              />
-              <FloatingPriceCard 
-                symbol="IDX_STC" 
-                price="7,289" 
-                change={0.8} 
-                delay={1}
-                style={{ bottom: '10%', right: '-10%' }}
-              />
-
-              {/* Main Trading Interface */}
-              <div className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl p-6 shadow-2xl backdrop-blur-xl transform hover:scale-105 transition-transform duration-500">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-blue-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30">
-                      <TrendingUp className="w-6 h-6 text-emerald-400" />
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-400">EUR/USD</div>
-                      <div className="text-3xl font-bold font-mono">1.0856</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="flex items-center gap-1 text-emerald-400 text-lg font-semibold">
-                      <TrendingUp className="w-5 h-5" />
-                      +2.3%
-                    </div>
-                    <div className="text-xs text-gray-500 flex items-center gap-1">
-                      <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
-                      Live
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-[#0a0e17] rounded-2xl mb-6 overflow-hidden border border-gray-800/50">
-                  <AnimatedTradingChart />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <button className="group relative bg-gradient-to-br from-emerald-500/20 to-green-500/20 hover:from-emerald-500/30 hover:to-green-500/30 border border-emerald-500/30 rounded-xl p-6 transition-all overflow-hidden">
-                    <div className="absolute inset-0 bg-emerald-500/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
-                    <TrendingUp className="w-8 h-8 text-emerald-400 mx-auto mb-2 relative z-10 group-hover:scale-110 transition-transform" />
-                    <div className="font-bold text-lg text-emerald-400 relative z-10">BELI</div>
-                    <div className="text-xs text-gray-400 relative z-10">Profit +95%</div>
-                  </button>
-
-                  <button className="group relative bg-gradient-to-br from-red-500/20 to-pink-500/20 hover:from-red-500/30 hover:to-pink-500/30 border border-red-500/30 rounded-xl p-6 transition-all overflow-hidden">
-                    <div className="absolute inset-0 bg-red-500/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
-                    <TrendingDown className="w-8 h-8 text-red-400 mx-auto mb-2 relative z-10 group-hover:scale-110 transition-transform" />
-                    <div className="font-bold text-lg text-red-400 relative z-10">JUAL</div>
-                    <div className="text-xs text-gray-400 relative z-10">Profit +95%</div>
-                  </button>
-                </div>
+              <div className="text-xs text-gray-500 flex items-center gap-1">
+                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+                Live
               </div>
             </div>
           </div>
+
+          <div className="bg-[#0a0e17] rounded-2xl mb-6 overflow-hidden border border-gray-800/50">
+            <AnimatedTradingChart />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <button className="group relative bg-gradient-to-br from-emerald-500/20 to-green-500/20 hover:from-emerald-500/30 hover:to-green-500/30 border border-emerald-500/30 rounded-xl p-6 transition-colors overflow-hidden">
+              <TrendingUp className="w-8 h-8 text-emerald-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+              <div className="font-bold text-lg text-emerald-400">BELI</div>
+              <div className="text-xs text-gray-400">Profit +95%</div>
+            </button>
+
+            <button className="group relative bg-gradient-to-br from-red-500/20 to-pink-500/20 hover:from-red-500/30 hover:to-pink-500/30 border border-red-500/30 rounded-xl p-6 transition-colors overflow-hidden">
+              <TrendingDown className="w-8 h-8 text-red-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+              <div className="font-bold text-lg text-red-400">JUAL</div>
+              <div className="text-xs text-gray-400">Profit +95%</div>
+            </button>
+          </div>
         </div>
-      </section>
+      </div>
+    </div>
+  </div>
+</section>
 
       {/* Features Section - Modern Minimalist */}
       <section id="features" className="py-16 sm:py-20 relative border-t border-blue-800/50">
@@ -1054,12 +1073,12 @@ const handleTouchEnd = () => {
               {/* Trust Indicators - Minimal */}
               <div className="flex items-center justify-center gap-8 mt-12 pt-8 border-t border-gray-800/50">
                 <div className="text-center">
-                  <div className="text-2xl font-bold mb-1">50K+</div>
+                  <div className="text-2xl font-bold mb-1">2K+</div>
                   <div className="text-xs text-gray-500">Trader Aktif</div>
                 </div>
                 <div className="w-px h-10 bg-gray-800"></div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold mb-1">$2.5M</div>
+                  <div className="text-2xl font-bold mb-1">$3K</div>
                   <div className="text-xs text-gray-500">Volume Harian</div>
                 </div>
                 <div className="w-px h-10 bg-gray-800"></div>
@@ -1225,7 +1244,7 @@ const handleTouchEnd = () => {
               ))}
             </div>
           </div>
-          
+
           <div className="mt-12 text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full">
               <Shield className="w-4 h-4 text-green-400" />
@@ -1608,7 +1627,46 @@ const handleTouchEnd = () => {
   ::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(to bottom, #2563eb, #059669);
   }
+/* Hapus animasi berat, hanya keep yang simple */
+@keyframes gradient {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
 
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 3s ease infinite;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out;
+}
+
+.animate-fade-in-right {
+  animation: fade-in-right 0.8s ease-out;
+}
 `}</style>
     </div>
   )
