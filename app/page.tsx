@@ -1172,7 +1172,7 @@ const handleTouchEnd = () => {
                 { name: 'Visa', logo: '/visa.webp' },
                 { name: 'Mastercard', logo: '/mastercard.webp' },
                 { name: 'Bitcoin', logo: '/bitcoin.webp' },
-                { name: 'Ethereum', logo: '/ethereum.webp' },
+                { name: 'BCA', logo: '/bca.webp' },
               ].map((item) => (
                 <div key={item.name} className="bg-white border border-gray-200 rounded-xl p-6 transition-all hover:shadow-md">
                   <div className="relative h-12 flex items-center justify-center">
