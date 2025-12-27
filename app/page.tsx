@@ -435,11 +435,11 @@ const handleTouchEnd = () => {
       {/* Left Content */}
       <div className="space-y-8">
         <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold leading-tight">
-          Trading Binary Option dengan
-          <span className="block mt-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-emerald-400 to-cyan-400">
-            Kecepatan Kilat
-          </span>
-        </h1>
+              Trading Binary Option dengan
+              <span className="block mt-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-emerald-400 to-cyan-400 animate-gradient bg-[length:200%_auto]">
+                Kecepatan Kilat
+              </span>
+            </h1>
 
         <p className="text-lg sm:text-xl text-gray-400 leading-relaxed">
           Eksekusi order dalam <span className="text-emerald-400 font-semibold">milidetik</span>, 
