@@ -18,11 +18,21 @@ export const metadata: Metadata = {
   title: 'STC AutoTrade',
   description: 'Platform trading binary option dengan eksekusi kilat, profit hingga 95%, dan keamanan maksimal. Dipercaya 50.000+ trader.',
   keywords: ['binary option', 'trading', 'IDX_STC', 'forex', 'crypto', 'STC AutoTrade'],
-  themeColor: '#0a0e17', 
+  themeColor: '#0f1419', 
   icons: {
     icon: '/stc.ico',
     shortcut: '/stc.ico',
     apple: '/stc.ico',
+  },
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'STC AutoTrade',
   },
 }
 
@@ -35,9 +45,23 @@ export default function RootLayout({
     <html lang="id" className={`${ibmPlexSans.variable} ${jetbrainsMono.variable}`}>
       <head>
         <link rel="icon" href="/stc.ico" sizes="any" />
-        <meta name="theme-color" content="#0a0e17" />
+        {/* Dark theme for mobile browsers */}
+        <meta name="theme-color" content="#0f1419" />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1419" />
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0f1419" />
+        
+        {/* Apple specific */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        
+        {/* Android Chrome */}
+        <meta name="mobile-web-app-capable" content="yes" />
+        
+        {/* Microsoft */}
+        <meta name="msapplication-TileColor" content="#0f1419" />
+        <meta name="msapplication-navbutton-color" content="#0f1419" />
       </head>
-      <body>
+      <body className="bg-[#0a0e17] text-white">
         {children}
         <Toaster 
           position="top-right" 
