@@ -1608,7 +1608,7 @@ const handleTouchEnd = () => {
   }
 
   .animate-marquee {
-    animation: marquee 30s linear infinite;
+    animation: marquee 15s linear infinite;
   }
 
   html {
