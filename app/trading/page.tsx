@@ -469,7 +469,7 @@ export default function TradingPage() {
         className="object-contain rounded-md"
       />
     </div>
-    <span className="font-bold text-lg">STC AutoTrade</span>
+    <span className="font-bold text-xl">STC AutoTrade</span>
   </div>
 
   {/* Asset Menu */}
