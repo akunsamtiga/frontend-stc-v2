@@ -23,6 +23,7 @@ import {
   X,
   Sparkles,
   Activity,
+  UserPlus,
   DollarSign,
   ChevronLeft,
   ChevronRight
@@ -391,12 +392,13 @@ const handleTouchEnd = () => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => {
-                  setIsLogin(true)
+                  setIsLogin(false)
                   setShowAuthModal(true)
                 }}
-                className="px-6 py-2.5 bg-[#1e293b] hover:bg-[#334155] rounded-lg text-sm font-semibold text-white shadow-lg transition-colors border border-gray-700"
+                className="flex items-center gap-2 px-6 py-2.5 bg-[#1e293b] hover:bg-[#334155] rounded-lg text-sm font-semibold text-white shadow-lg transition-colors border border-gray-700"
               >
-                Masuk
+                <UserPlus className="w-4 h-4" />
+                Daftar
               </button>
             </div>
           </div>
@@ -404,16 +406,12 @@ const handleTouchEnd = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32 overflow-hidden">
+      <section className="relative pt-30 pb-20 sm:pt-36 sm:pb-32 overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div className="space-y-8 animate-fade-in-up">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500/20 to-emerald-500/20 border border-blue-500/30 rounded-full backdrop-blur-sm animate-slide-in-left">
-                <Sparkles className="w-4 h-4 text-blue-400 animate-spin-slow" />
-                <span className="text-sm font-medium">Dipercaya 50.000+ trader</span>
-              </div>
-
+              
               <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold leading-tight">
                 Trading Binary Option dengan
                 <span className="block mt-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-emerald-400 to-cyan-400 animate-gradient">
@@ -543,7 +541,7 @@ const handleTouchEnd = () => {
       </section>
 
       {/* Features Section - Modern Minimalist */}
-<section id="features" className="py-20 sm:py-32 relative">
+      <section id="features" className="py-16 sm:py-20 relative border-t border-blue-800/50">
   <div className="container mx-auto px-4 sm:px-6">
     {/* Header */}
     <div className="text-center mb-16 animate-fade-in-up">
@@ -676,7 +674,7 @@ const handleTouchEnd = () => {
 
 
 {/* How It Works - Modern Clean Timeline */}
-<section id="how-it-works" className="py-20 sm:py-32 relative overflow-hidden">
+<section id="how-it-works" className="py-16 sm:py-20 relative border-t border-purple-800/50 overflow-hidden">
   <div className="container mx-auto px-4 sm:px-6">
     {/* Header */}
     <div className="text-center mb-20 animate-fade-in-up">
@@ -831,7 +829,7 @@ const handleTouchEnd = () => {
 </section>
 
 {/* Testimonials - Modern Clean Design */}
-<section id="testimonials" className="py-20 sm:py-32 relative">
+<section id="testimonials" className="py-16 sm:py-20 relative border-t border-green-800/50">
   <div className="container mx-auto px-4 sm:px-6">
     {/* Header */}
     <div className="text-center mb-16">
@@ -1006,8 +1004,7 @@ const handleTouchEnd = () => {
 </section>
 
       {/* CTA Section */}
-{/* CTA Section - Modern Futuristic */}
-      <section className="py-20 sm:py-32 relative">
+      <section className="py-16 sm:py-20 relative border-t border-blue-800/50">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="relative bg-[#0a0e17] border border-gray-800/50 rounded-3xl overflow-hidden">
             {/* Futuristic Grid Background */}
@@ -1435,7 +1432,7 @@ const handleTouchEnd = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
-                    <span className="text-gray-300">Akun demo gratis $10,000</span>
+                    <span className="text-gray-300">Akun demo gratis Rp 10.000.000</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
                     <div className="w-6 h-6 bg-blue-500/20 rounded-lg flex items-center justify-center">

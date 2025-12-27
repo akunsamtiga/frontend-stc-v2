@@ -7,9 +7,8 @@ import {
   Mail,
   Send,
   Facebook,
-  Twitter,
+  MessageCircle,
   Instagram,
-  Linkedin,
   Youtube,
   Shield,
   ChevronDown,
@@ -22,8 +21,7 @@ export default function EnhancedFooter() {
   const [loading, setLoading] = useState(false)
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
 
-  const handleSubscribe = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubscribe = () => {
     if (!email) {
       toast.error('Please enter your email')
       return
@@ -37,39 +35,41 @@ export default function EnhancedFooter() {
     }, 1000)
   }
 
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSubscribe()
+    }
+  }
+
   const footerLinks = {
     platform: [
-      { label: 'Trading', href: '/trading' },
-      { label: 'Assets', href: '#assets' },
-      { label: 'Mobile App', href: '#mobile' },
-      { label: 'API Docs', href: '#api' },
-    ],
-    company: [
-      { label: 'About Us', href: '#about' },
-      { label: 'Careers', href: '#careers' },
-      { label: 'Blog', href: '#blog' },
-      { label: 'Contact', href: '#contact' },
-    ],
-    resources: [
-      { label: 'Help Center', href: '#help' },
-      { label: 'Trading Guide', href: '#guide' },
-      { label: 'Tutorials', href: '#tutorials' },
-      { label: 'Community', href: '#community' },
+      { label: 'Status', href: 'https://stockity.id/information/pricing' },
+      { label: 'Tentang Kami', href: 'https://stockity.id/information/about' },
+      { label: 'Pusat Bantuan', href: 'https://supportnow.zendesk.com/hc/id?utm_source=hc_burger_menu&utm_medium=referral&utm_campaign=not_logged_in' },
+      { label: 'Turnamen', href: 'https://stockity.id/information/tournaments' },
     ],
     legal: [
-      { label: 'Terms', href: '#terms' },
-      { label: 'Privacy', href: '#privacy' },
-      { label: 'Risk Warning', href: '#risk' },
-      { label: 'Licenses', href: '#licenses' },
+      { label: 'Kebijakan AML', href: 'https://stockity.id/id/static/aml-policy-stockity.pdf' },
+      { label: 'Perjanjian Klien', href: 'https://stockity.id/information/agreement' },
+      { label: 'Perjanjian Copy Trading', href: 'https://stockity.id/information/copy-trading-agreement' },
     ],
   }
 
   const socialLinks = [
-    { icon: Facebook, href: '#', label: 'Facebook', color: 'hover:text-blue-400' },
-    { icon: Twitter, href: '#', label: 'Twitter', color: 'hover:text-blue-400' },
-    { icon: Instagram, href: '#', label: 'Instagram', color: 'hover:text-pink-400' },
-    { icon: Linkedin, href: '#', label: 'LinkedIn', color: 'hover:text-blue-500' },
-    { icon: Youtube, href: '#', label: 'YouTube', color: 'hover:text-red-500' },
+    { icon: Facebook, href: 'https://www.facebook.com/profile.php?id=61576277923484', label: 'Facebook', color: 'hover:text-blue-400' },
+    { icon: Instagram, href: 'https://www.instagram.com/stockity_id/', label: 'Instagram', color: 'hover:text-pink-400' },
+    { icon: MessageCircle, href: 'https://t.me/+gj1bIkhkGRBhNzIy', label: 'Telegram', color: 'hover:text-blue-400' },
+    { icon: Youtube, href: 'https://www.youtube.com/@Stockity_channel', label: 'YouTube', color: 'hover:text-red-500' },
+    { 
+      icon: () => (
+        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
+          <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+        </svg>
+      ), 
+      href: 'https://www.tiktok.com/@stockity_indonesian', 
+      label: 'TikTok', 
+      color: 'hover:text-white' 
+    },
   ]
 
   const toggleSection = (section: string) => {
@@ -95,7 +95,7 @@ export default function EnhancedFooter() {
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
         {/* Main Content */}
         <div className="py-12 sm:py-16">
-          <div className="grid md:grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-12">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
             {/* Brand Column - Takes 2 columns on large screens */}
             <div className="lg:col-span-2">
               <Link href="/" className="inline-flex items-center gap-3 mb-6 group">
@@ -111,8 +111,11 @@ export default function EnhancedFooter() {
                 <div>
                   <span className="text-lg font-bold text-white">STC AutoTrade</span>
                   <div className="flex items-center gap-1 mt-0.5">
-                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-[10px] text-gray-500 uppercase tracking-wider">Live Trading</span>
+                    <span className="text-[10px] uppercase tracking-wider">
+                      <span className="text-gray-400 lowercase mr-1">by</span>
+                      <span className="text-blue-500 italic font-bold">Stockity</span>
+                    </span>
+                  <div className="w-1 h-1 bg-blue-500 rounded-full animate-pulse"></div>
                   </div>
                 </div>
               </Link>
@@ -126,46 +129,48 @@ export default function EnhancedFooter() {
                 <label className="block text-xs font-medium text-gray-400 mb-2">
                   Subscribe to Newsletter
                 </label>
-                <form onSubmit={handleSubscribe}>
-                  <div className="relative">
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Enter your email"
-                      className="w-full bg-white/5 border border-gray-800/50 rounded-lg px-4 py-3 pr-12 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-700 focus:border-gray-700 transition-all"
-                      disabled={loading}
-                    />
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/10 hover:bg-white/20 rounded-md flex items-center justify-center transition-colors disabled:opacity-50"
-                      aria-label="Subscribe"
-                    >
-                      {loading ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b border-white"></div>
-                      ) : (
-                        <Send className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                </form>
+                <div className="relative">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Enter your email"
+                    className="w-full bg-white/5 border border-gray-800/50 rounded-lg px-4 py-3 pr-12 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-700 focus:border-gray-700 transition-all"
+                    disabled={loading}
+                  />
+                  <button
+                    onClick={handleSubscribe}
+                    disabled={loading}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/10 hover:bg-white/20 rounded-md flex items-center justify-center transition-colors disabled:opacity-50"
+                    aria-label="Subscribe"
+                  >
+                    {loading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b border-white"></div>
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Social Links */}
               <div className="flex items-center gap-3">
-                {socialLinks.map((social, index) => (
-                  <a
-                    key={index}
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 border border-gray-800/50 text-gray-400 ${social.color} transition-all hover:bg-white/10 hover:border-gray-700`}
-                    aria-label={social.label}
-                  >
-                    <social.icon className="w-4 h-4" />
-                  </a>
-                ))}
+                {socialLinks.map((social, index) => {
+                  const IconComponent = social.icon
+                  return (
+                    <a
+                      key={index}
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 border border-gray-800/50 text-gray-400 ${social.color} transition-all hover:bg-white/10 hover:border-gray-700`}
+                      aria-label={social.label}
+                    >
+                      <IconComponent className="w-4 h-4" />
+                    </a>
+                  )
+                })}
               </div>
             </div>
 
@@ -174,38 +179,6 @@ export default function EnhancedFooter() {
               <h4 className="text-sm font-semibold mb-4 text-gray-200">Platform</h4>
               <ul className="space-y-2.5">
                 {footerLinks.platform.map((link, index) => (
-                  <li key={index}>
-                    <a
-                      href={link.href}
-                      className="text-sm text-gray-400 hover:text-white transition-colors inline-block"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="hidden md:block">
-              <h4 className="text-sm font-semibold mb-4 text-gray-200">Company</h4>
-              <ul className="space-y-2.5">
-                {footerLinks.company.map((link, index) => (
-                  <li key={index}>
-                    <a
-                      href={link.href}
-                      className="text-sm text-gray-400 hover:text-white transition-colors inline-block"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="hidden md:block">
-              <h4 className="text-sm font-semibold mb-4 text-gray-200">Resources</h4>
-              <ul className="space-y-2.5">
-                {footerLinks.resources.map((link, index) => (
                   <li key={index}>
                     <a
                       href={link.href}
@@ -283,12 +256,26 @@ export default function EnhancedFooter() {
 
             <div className="flex items-center gap-4 text-xs text-gray-500">
               <div className="flex items-center gap-1.5">
-                <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                <div className="relative w-3.5 h-3.5 flex-shrink-0">
+                  <Image
+                    src="/ssl.png"
+                    alt="SSL Secured"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
                 <span>SSL Secured</span>
               </div>
               <div className="w-px h-3 bg-gray-800"></div>
               <div className="flex items-center gap-1.5">
-                <Shield className="w-3.5 h-3.5 text-blue-400" />
+                <div className="relative w-3.5 h-3.5 flex-shrink-0">
+                  <Image
+                    src="/license.png"
+                    alt="Licensed"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
                 <span>Licensed</span>
               </div>
             </div>

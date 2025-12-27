@@ -15,7 +15,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'STC AutoTrade - Platform Trading Binary Option Profesional',
+  title: 'STC AutoTrade',
   description: 'Platform trading binary option dengan eksekusi kilat, profit hingga 95%, dan keamanan maksimal. Dipercaya 50.000+ trader.',
   keywords: ['binary option', 'trading', 'IDX_STC', 'forex', 'crypto', 'STC AutoTrade'],
   icons: {
@@ -31,7 +31,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-        <html lang="id" className={`${ibmPlexSans.variable} ${jetbrainsMono.variable}`}>      <head>
+    <html lang="id" className={`${ibmPlexSans.variable} ${jetbrainsMono.variable}`}>
+      <head>
         <link rel="icon" href="/stc.ico" sizes="any" />
       </head>
       <body>
