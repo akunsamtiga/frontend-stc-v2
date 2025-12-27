@@ -1724,13 +1724,13 @@ const handleTouchEnd = () => {
 .animate-fade-in-right {
   animation: fade-in-right 0.8s ease-out;
 }
-  /* Logo Animations - Sequence */
+/* Logo Animations - Sequence dengan timing yang lebih jelas */
 @keyframes logo-exit {
   0% {
     opacity: 1;
     pointer-events: auto;
   }
-  40% {
+  50% {
     opacity: 1;
   }
   100% {
@@ -1744,7 +1744,7 @@ const handleTouchEnd = () => {
     opacity: 0;
     pointer-events: none;
   }
-  60% {
+  70% {
     opacity: 0;
     pointer-events: none;
   }
@@ -1754,29 +1754,30 @@ const handleTouchEnd = () => {
   }
 }
 
-/* Text slide animations */
+/* Text slide animations - Teks keluar ke KANAN */
 @keyframes text-slide-out {
   0% {
     transform: translateX(0);
     opacity: 1;
   }
-  50% {
-    transform: translateX(-100%);
+  25% {
+    transform: translateX(100%);
     opacity: 0;
   }
   100% {
-    transform: translateX(-100%);
+    transform: translateX(100%);
     opacity: 0;
   }
 }
 
+/* Text slide in - Teks masuk dari KIRI ke KANAN */
 @keyframes text-slide-in {
   0% {
-    transform: translateX(100%);
+    transform: translateX(-100%);
     opacity: 0;
   }
-  50% {
-    transform: translateX(100%);
+  70% {
+    transform: translateX(-100%);
     opacity: 0;
   }
   100% {
@@ -1785,21 +1786,21 @@ const handleTouchEnd = () => {
   }
 }
 
-/* Logo bounce animations */
+/* Logo bounce animations - timing lebih jelas */
 @keyframes logo-bounce-out {
   0% {
     transform: scale(1);
     opacity: 1;
   }
-  30% {
+  25% {
     transform: scale(1);
     opacity: 1;
   }
-  50% {
-    transform: scale(1.1);
+  40% {
+    transform: scale(1.15);
     opacity: 1;
   }
-  70% {
+  55% {
     transform: scale(0);
     opacity: 0;
   }
@@ -1814,16 +1815,16 @@ const handleTouchEnd = () => {
     transform: scale(0);
     opacity: 0;
   }
-  50% {
+  55% {
     transform: scale(0);
     opacity: 0;
   }
   70% {
-    transform: scale(1.2);
+    transform: scale(1.25);
     opacity: 1;
   }
   85% {
-    transform: scale(0.9);
+    transform: scale(0.95);
   }
   100% {
     transform: scale(1);
@@ -1832,27 +1833,27 @@ const handleTouchEnd = () => {
 }
 
 .animate-logo-exit {
-  animation: logo-exit 1.2s ease-in-out forwards;
+  animation: logo-exit 1.4s ease-in-out forwards;
 }
 
 .animate-logo-enter {
-  animation: logo-enter 1.2s ease-in-out forwards;
+  animation: logo-enter 1.4s ease-in-out forwards;
 }
 
 .animate-text-slide-out {
-  animation: text-slide-out 1.2s ease-in-out forwards;
+  animation: text-slide-out 1.4s ease-in-out forwards;
 }
 
 .animate-text-slide-in {
-  animation: text-slide-in 1.2s ease-in-out forwards;
+  animation: text-slide-in 1.4s ease-in-out forwards;
 }
 
 .animate-logo-bounce-out {
-  animation: logo-bounce-out 1.2s ease-in-out forwards;
+  animation: logo-bounce-out 1.4s ease-in-out forwards;
 }
 
 .animate-logo-bounce-in {
-  animation: logo-bounce-in 1.2s ease-in-out forwards;
+  animation: logo-bounce-in 1.4s ease-in-out forwards;
 }
 `}</style>
     </div>
