@@ -139,9 +139,9 @@ export default function AdminDashboard() {
               </div>
               <span className="text-xs sm:text-sm text-gray-500 font-medium">Total Users</span>
             </div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">{stats?.users.total || 0}</div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">{stats?.users?.total || 0}</div>
             <div className="text-xs sm:text-sm text-gray-500 mt-1">
-              {stats?.users.active || 0} active
+              {stats?.users?.active || 0} active
             </div>
           </div>
 
@@ -153,9 +153,9 @@ export default function AdminDashboard() {
               </div>
               <span className="text-xs sm:text-sm text-gray-500 font-medium">Total Orders</span>
             </div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">{stats?.trading.totalOrders || 0}</div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">{stats?.trading?.totalOrders || 0}</div>
             <div className="text-xs sm:text-sm text-gray-500 mt-1">
-              {stats?.trading.activeOrders || 0} active
+              {stats?.trading?.activeOrders || 0} active
             </div>
           </div>
 
@@ -167,9 +167,9 @@ export default function AdminDashboard() {
               </div>
               <span className="text-xs sm:text-sm text-gray-500 font-medium">Win Rate</span>
             </div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">{stats?.trading.winRate || 0}%</div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">{stats?.trading?.winRate || 0}%</div>
             <div className="text-xs sm:text-sm text-green-600 mt-1">
-              {stats?.trading.wonOrders || 0} wins
+              {stats?.trading?.wonOrders || 0} wins
             </div>
           </div>
 
@@ -187,7 +187,7 @@ export default function AdminDashboard() {
                 currency: 'IDR',
                 minimumFractionDigits: 0,
                 notation: 'compact'
-              }).format(stats?.financial.netFlow || 0)}
+              }).format(stats?.financial?.netFlow || 0)}
             </div>
             <div className="text-xs sm:text-sm text-gray-500 mt-1">
               Deposits - Withdrawals
@@ -239,31 +239,31 @@ export default function AdminDashboard() {
                     currency: 'IDR',
                     minimumFractionDigits: 0,
                     notation: 'compact'
-                  }).format(stats?.trading.totalVolume || 0)}
+                  }).format(stats?.trading?.totalVolume || 0)}
                 </span>
               </div>
               <div className="flex items-center justify-between py-2 sm:py-3 border-b border-gray-100">
                 <span className="text-xs sm:text-sm text-gray-600">Total Profit</span>
                 <span className={`text-sm sm:text-base font-mono font-bold ${
-                  (stats?.trading.totalProfit || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                  (stats?.trading?.totalProfit || 0) >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
                   {new Intl.NumberFormat('id-ID', { 
                     style: 'currency', 
                     currency: 'IDR',
                     minimumFractionDigits: 0 
-                  }).format(stats?.trading.totalProfit || 0)}
+                  }).format(stats?.trading?.totalProfit || 0)}
                 </span>
               </div>
               <div className="flex items-center justify-between py-2 sm:py-3 border-b border-gray-100">
                 <span className="text-xs sm:text-sm text-gray-600">Won Orders</span>
                 <span className="text-sm sm:text-base font-mono font-bold text-green-600">
-                  {stats?.trading.wonOrders || 0}
+                  {stats?.trading?.wonOrders || 0}
                 </span>
               </div>
               <div className="flex items-center justify-between py-2 sm:py-3">
                 <span className="text-xs sm:text-sm text-gray-600">Lost Orders</span>
                 <span className="text-sm sm:text-base font-mono font-bold text-red-600">
-                  {stats?.trading.lostOrders || 0}
+                  {stats?.trading?.lostOrders || 0}
                 </span>
               </div>
             </div>
@@ -284,7 +284,7 @@ export default function AdminDashboard() {
                     currency: 'IDR',
                     minimumFractionDigits: 0,
                     notation: 'compact'
-                  }).format(stats?.financial.totalDeposits || 0)}
+                  }).format(stats?.financial?.totalDeposits || 0)}
                 </span>
               </div>
               <div className="flex items-center justify-between py-2 sm:py-3 border-b border-gray-100">
@@ -295,20 +295,20 @@ export default function AdminDashboard() {
                     currency: 'IDR',
                     minimumFractionDigits: 0,
                     notation: 'compact'
-                  }).format(stats?.financial.totalWithdrawals || 0)}
+                  }).format(stats?.financial?.totalWithdrawals || 0)}
                 </span>
               </div>
               <div className="flex items-center justify-between py-2 sm:py-3">
                 <span className="text-xs sm:text-sm text-gray-600">Net Flow</span>
                 <span className={`text-sm sm:text-base font-mono font-bold ${
-                  (stats?.financial.netFlow || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                  (stats?.financial?.netFlow || 0) >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
                   {new Intl.NumberFormat('id-ID', { 
                     style: 'currency', 
                     currency: 'IDR',
                     minimumFractionDigits: 0,
                     notation: 'compact'
-                  }).format(stats?.financial.netFlow || 0)}
+                  }).format(stats?.financial?.netFlow || 0)}
                 </span>
               </div>
             </div>
@@ -334,28 +334,28 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="text-center p-3 sm:p-4 bg-blue-50 rounded-lg border border-blue-100">
               <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">
-                {((stats?.users.active || 0) / (stats?.users.total || 1) * 100).toFixed(0)}%
+                {((stats?.users?.active || 0) / (stats?.users?.total || 1) * 100).toFixed(0)}%
               </div>
               <div className="text-xs text-gray-600">Active Users</div>
             </div>
             
             <div className="text-center p-3 sm:p-4 bg-green-50 rounded-lg border border-green-100">
               <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-1">
-                {stats?.trading.winRate || 0}%
+                {stats?.trading?.winRate || 0}%
               </div>
               <div className="text-xs text-gray-600">Win Rate</div>
             </div>
             
             <div className="text-center p-3 sm:p-4 bg-purple-50 rounded-lg border border-purple-100">
               <div className="text-2xl sm:text-3xl font-bold text-purple-600 mb-1">
-                {stats?.trading.activeOrders || 0}
+                {stats?.trading?.activeOrders || 0}
               </div>
               <div className="text-xs text-gray-600">Active Orders</div>
             </div>
             
             <div className="text-center p-3 sm:p-4 bg-yellow-50 rounded-lg border border-yellow-100">
               <div className="text-2xl sm:text-3xl font-bold text-yellow-600 mb-1">
-                {stats?.users.admins || 0}
+                {stats?.users?.admins || 0}
               </div>
               <div className="text-xs text-gray-600">Admins</div>
             </div>

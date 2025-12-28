@@ -1,4 +1,4 @@
-// app/balance/page.tsx - COMPLETE REWRITE with Real/Demo Support
+// app/balance/page.tsx - COMPLETE REWRITE with Real/Demo Support - FIXED
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -27,16 +27,13 @@ export default function BalancePage() {
   const router = useRouter()
   const user = useAuthStore((state) => state.user)
   
-  // ✅ Separate balances
   const [realBalance, setRealBalance] = useState(0)
   const [demoBalance, setDemoBalance] = useState(0)
   
   const [allTransactions, setAllTransactions] = useState<BalanceType[]>([])
   
-  // ✅ Selected account for transaction history view
   const [selectedAccount, setSelectedAccount] = useState<AccountType | 'all'>('all')
   
-  // ✅ Selected account for deposit/withdraw
   const [transactionAccount, setTransactionAccount] = useState<AccountType>('demo')
   
   const [showDeposit, setShowDeposit] = useState(false)
@@ -55,10 +52,9 @@ export default function BalancePage() {
 
   const loadData = async () => {
     try {
-      // ✅ Load both balances and all transactions
       const [balancesRes, historyRes] = await Promise.all([
         api.getBothBalances(),
-        api.getBalanceHistory(1, 100), // Get more for filtering
+        api.getBalanceHistory(1, 100),
       ])
       
       const balances = balancesRes?.data || balancesRes
@@ -139,39 +135,37 @@ export default function BalancePage() {
 
   const quickAmounts = [10000, 50000, 100000, 250000, 500000, 1000000]
 
-  // ✅ Filter transactions by selected account
   const filteredTransactions = selectedAccount === 'all' 
     ? allTransactions 
-    : allTransactions.filter(t => t.accountType === selectedAccount)
+    : allTransactions.filter(t => (t.accountType || 'demo') === selectedAccount)
 
-  // ✅ Calculate stats per account
   const realStats = {
     totalDeposits: allTransactions
-      .filter(t => t.accountType === 'real' && t.type === 'deposit')
+      .filter(t => (t.accountType || 'demo') === 'real' && t.type === 'deposit')
       .reduce((sum, t) => sum + t.amount, 0),
     totalWithdrawals: allTransactions
-      .filter(t => t.accountType === 'real' && t.type === 'withdrawal')
+      .filter(t => (t.accountType || 'demo') === 'real' && t.type === 'withdrawal')
       .reduce((sum, t) => sum + t.amount, 0),
     totalWins: allTransactions
-      .filter(t => t.accountType === 'real' && (t.type === 'win' || t.type === 'order_profit'))
+      .filter(t => (t.accountType || 'demo') === 'real' && (t.type === 'win' || t.type === 'order_profit'))
       .reduce((sum, t) => sum + t.amount, 0),
     totalLosses: allTransactions
-      .filter(t => t.accountType === 'real' && (t.type === 'lose' || t.type === 'order_debit'))
+      .filter(t => (t.accountType || 'demo') === 'real' && (t.type === 'lose' || t.type === 'order_debit'))
       .reduce((sum, t) => sum + t.amount, 0),
   }
 
   const demoStats = {
     totalDeposits: allTransactions
-      .filter(t => t.accountType === 'demo' && t.type === 'deposit')
+      .filter(t => (t.accountType || 'demo') === 'demo' && t.type === 'deposit')
       .reduce((sum, t) => sum + t.amount, 0),
     totalWithdrawals: allTransactions
-      .filter(t => t.accountType === 'demo' && t.type === 'withdrawal')
+      .filter(t => (t.accountType || 'demo') === 'demo' && t.type === 'withdrawal')
       .reduce((sum, t) => sum + t.amount, 0),
     totalWins: allTransactions
-      .filter(t => t.accountType === 'demo' && (t.type === 'win' || t.type === 'order_profit'))
+      .filter(t => (t.accountType || 'demo') === 'demo' && (t.type === 'win' || t.type === 'order_profit'))
       .reduce((sum, t) => sum + t.amount, 0),
     totalLosses: allTransactions
-      .filter(t => t.accountType === 'demo' && (t.type === 'lose' || t.type === 'order_debit'))
+      .filter(t => (t.accountType || 'demo') === 'demo' && (t.type === 'lose' || t.type === 'order_debit'))
       .reduce((sum, t) => sum + t.amount, 0),
   }
 
@@ -192,7 +186,7 @@ export default function BalancePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-emerald-50/30">
+    <div className="min-h-screen bg-[#fafafa]">
       <Navbar />
 
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-7xl">
@@ -214,7 +208,7 @@ export default function BalancePage() {
           </div>
         </div>
 
-        {/* ✅ DUAL BALANCE CARDS */}
+        {/* DUAL BALANCE CARDS */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-8">
           {/* Real Balance Card */}
           <div className="relative overflow-hidden bg-gradient-to-br from-green-600 via-green-500 to-emerald-500 rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-2xl">
@@ -329,12 +323,12 @@ export default function BalancePage() {
               </div>
             </div>
 
-            {/* ✅ Account Filter */}
+            {/* Account Filter */}
             <div className="flex gap-2 overflow-x-auto pb-2">
               {[
                 { id: 'all', label: 'All', count: allTransactions.length },
-                { id: 'real', label: 'Real', count: allTransactions.filter(t => t.accountType === 'real').length },
-                { id: 'demo', label: 'Demo', count: allTransactions.filter(t => t.accountType === 'demo').length }
+                { id: 'real', label: 'Real', count: allTransactions.filter(t => (t.accountType || 'demo') === 'real').length },
+                { id: 'demo', label: 'Demo', count: allTransactions.filter(t => (t.accountType || 'demo') === 'demo').length }
               ].map((filter) => (
                 <button
                   key={filter.id}
@@ -381,11 +375,11 @@ export default function BalancePage() {
                         <div className="flex items-center gap-2 mb-0.5">
                           <div className="text-sm sm:text-base font-semibold text-gray-900 capitalize">{tx.type}</div>
                           <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                            tx.accountType === 'real' 
+                            (tx.accountType || 'demo') === 'real' 
                               ? 'bg-green-100 text-green-700' 
                               : 'bg-blue-100 text-blue-700'
                           }`}>
-                            {tx.accountType.toUpperCase()}
+                            {(tx.accountType || 'demo').toUpperCase()}
                           </span>
                         </div>
                         <div className="text-xs sm:text-sm text-gray-500 truncate">{formatDate(tx.createdAt)}</div>
