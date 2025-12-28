@@ -130,41 +130,54 @@ export default function TradingPage() {
     }
     
     const initializeData = async () => {
-      await loadData()
-      
-      if (selectedAsset && selectedAsset.realtimeDbPath) {
-        const pathParts = selectedAsset.realtimeDbPath.split('/') || []
-        const assetPath = pathParts.slice(0, -1).join('/') || `/${selectedAsset.symbol.toLowerCase()}`
-        prefetchDefaultAsset(assetPath).catch(console.error)
-      }
+  await loadData()
+  
+  if (selectedAsset && selectedAsset.realtimeDbPath) {
+    let basePath = selectedAsset.realtimeDbPath
+    
+    // Remove /current_price if exists
+    if (basePath.endsWith('/current_price')) {
+      basePath = basePath.replace('/current_price', '')
     }
+    
+    prefetchDefaultAsset(basePath).catch(console.error)
+  }
+}
     
     initializeData()
   }, [user, router])
 
   // Price subscription
-  useEffect(() => {
-    if (!selectedAsset) return
+useEffect(() => {
+  if (!selectedAsset) return
 
-    let unsubscribe: (() => void) | undefined
+  let unsubscribe: (() => void) | undefined
 
-    if (selectedAsset.dataSource === 'realtime_db' && selectedAsset.realtimeDbPath) {
-      console.log('📡 Subscribing to price:', selectedAsset.realtimeDbPath)
-      
-      unsubscribe = subscribeToPriceUpdates(selectedAsset.realtimeDbPath, (data) => {
-        console.log('💰 Price update:', data.price)
-        setCurrentPrice(data)
-        addPriceToHistory(data)
-      })
+  if (selectedAsset.dataSource === 'realtime_db' && selectedAsset.realtimeDbPath) {
+    // ✅ FIX: Ensure path includes /current_price
+    let pricePath = selectedAsset.realtimeDbPath
+    
+    // If path doesn't end with /current_price, append it
+    if (!pricePath.endsWith('/current_price')) {
+      pricePath = `${pricePath}/current_price`
     }
+    
+    console.log('📡 Subscribing to price:', pricePath)
+    
+    unsubscribe = subscribeToPriceUpdates(pricePath, (data) => {
+      console.log('💰 Price update:', data.price)
+      setCurrentPrice(data)
+      addPriceToHistory(data)
+    })
+  }
 
-    return () => {
-      if (unsubscribe) {
-        console.log('🔕 Unsubscribing from price updates')
-        unsubscribe()
-      }
+  return () => {
+    if (unsubscribe) {
+      console.log('🔕 Unsubscribing from price updates')
+      unsubscribe()
     }
-  }, [selectedAsset?.id])
+  }
+}, [selectedAsset?.id])
 
   // ULTRA-AGGRESSIVE POLLING dengan adaptive interval
   useEffect(() => {

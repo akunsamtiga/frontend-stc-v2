@@ -645,9 +645,12 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       }
 
       try {
-        const pathParts = selectedAsset.realtimeDbPath?.split('/') || []
-        const assetPath = pathParts.slice(0, -1).join('/') || `/${selectedAsset.symbol.toLowerCase()}`
+        let assetPath = selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`
 
+        if (assetPath.endsWith('/current_price')) {
+          assetPath = assetPath.replace('/current_price', '')
+        }
+        
         setLoadingProgress(30)
 
         const data = await fetchHistoricalData(assetPath, timeframe)

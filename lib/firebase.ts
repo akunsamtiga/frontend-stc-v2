@@ -260,7 +260,15 @@ export async function fetchHistoricalData(
       return []
     }
 
-    const cacheKey = `${assetPath}-${timeframe}`
+    // ✅ FIX: Clean path first
+    let basePath = assetPath
+    
+    // Remove /current_price if exists
+    if (basePath.endsWith('/current_price')) {
+      basePath = basePath.replace('/current_price', '')
+    }
+    
+    const cacheKey = `${basePath}-${timeframe}`
 
     // 1️⃣ Check memory cache (instant)
     const memCached = memoryCache.get(cacheKey)
@@ -285,9 +293,9 @@ export async function fetchHistoricalData(
     }
 
     // 3️⃣ Check if prefetching in progress
-    if (prefetchManager.isPrefetching(assetPath, timeframe)) {
+    if (prefetchManager.isPrefetching(basePath, timeframe)) {
       console.log(`⏳ Waiting for prefetch: ${timeframe}`)
-      await prefetchManager.waitForPrefetch(assetPath, timeframe)
+      await prefetchManager.waitForPrefetch(basePath, timeframe)
       
       // Try cache again after prefetch
       const cachedAfterPrefetch = memoryCache.get(cacheKey)
@@ -299,8 +307,11 @@ export async function fetchHistoricalData(
     // 4️⃣ Fetch from Firebase (optimized query)
     console.log(`🔥 Fetching from Firebase: ${timeframe}`)
     
-    const ohlcPath = `${assetPath}/${config.path}`
+    // ✅ FIX: Use cleaned basePath
+    const ohlcPath = `${basePath}/${config.path}`
     const ohlcRef = ref(database, ohlcPath)
+    
+    console.log(`📊 OHLC Path: ${ohlcPath}`) // Debug log
     
     // Use limitToLast for better performance
     const limitedQuery = query(ohlcRef, limitToLast(config.barsToFetch))
@@ -308,7 +319,7 @@ export async function fetchHistoricalData(
     const snapshot = await get(limitedQuery)
     
     if (!snapshot.exists()) {
-      console.warn(`No data at: ${ohlcPath}`)
+      console.warn(`⚠️ No data at: ${ohlcPath}`)
       return []
     }
 
@@ -316,7 +327,7 @@ export async function fetchHistoricalData(
     const result = processHistoricalData(rawData, config.barsToFetch)
     
     if (result.length === 0) {
-      console.warn(`No valid data after processing`)
+      console.warn(`⚠️ No valid data after processing`)
       return []
     }
     
@@ -333,7 +344,7 @@ export async function fetchHistoricalData(
     return result
 
   } catch (error: any) {
-    console.error('Fetch error:', error.message)
+    console.error('❌ Fetch error:', error.message)
     return []
   }
 }
@@ -398,8 +409,19 @@ export function subscribeToOHLCUpdates(
     return () => {}
   }
 
-  const ohlcPath = `${assetPath}/${config.path}`
+  // ✅ FIX: Clean path first
+  let basePath = assetPath
+  
+  // Remove /current_price if exists
+  if (basePath.endsWith('/current_price')) {
+    basePath = basePath.replace('/current_price', '')
+  }
+  
+  // ✅ FIX: Use cleaned basePath
+  const ohlcPath = `${basePath}/${config.path}`
   const ohlcRef = ref(database, ohlcPath)
+  
+  console.log(`🔥 Subscribing to OHLC: ${ohlcPath}`) // Debug log
   
   let lastBarTimestamp: number | null = null
   let updateCount = 0
@@ -434,8 +456,10 @@ export function subscribeToOHLCUpdates(
       updateCount++
       
       // Invalidate cache on new bar
-      const cacheKey = `${assetPath}-${timeframe}`
+      const cacheKey = `${basePath}-${timeframe}`
       memoryCache.delete(cacheKey)
+      
+      console.log(`🆕 New ${timeframe} bar: ${barTimestamp}`) // Debug log
     }
     
     const barData = {
@@ -452,7 +476,7 @@ export function subscribeToOHLCUpdates(
     throttledCallback(barData)
 
   }, (error) => {
-    console.error(`OHLC subscription error (${timeframe}):`, error)
+    console.error(`❌ OHLC subscription error (${timeframe}):`, error)
   })
 
   return () => {
@@ -517,12 +541,19 @@ export function subscribeToPriceUpdates(
 // ===================================
 
 export async function prefetchDefaultAsset(assetPath: string): Promise<void> {
-  console.log(`🚀 Prefetching default asset: ${assetPath}`)
+  // ✅ FIX: Clean path first
+  let basePath = assetPath
+  
+  if (basePath.endsWith('/current_price')) {
+    basePath = basePath.replace('/current_price', '')
+  }
+  
+  console.log(`🚀 Prefetching default asset: ${basePath}`)
   
   // Prefetch most used timeframes in parallel
   const timeframes: Timeframe[] = ['1m', '5m', '15m']
   
-  await prefetchManager.prefetch(assetPath, timeframes)
+  await prefetchManager.prefetch(basePath, timeframes)
   
   console.log(`✅ Default asset prefetched`)
 }
