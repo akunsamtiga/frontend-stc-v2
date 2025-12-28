@@ -19,8 +19,7 @@ import {
   CheckCircle,
   XCircle,
   Calendar,
-  UserCog,
-  TrendingUp
+  UserCog
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
@@ -56,7 +55,6 @@ export default function AdminUsersPage() {
   const [balanceAmount, setBalanceAmount] = useState('')
   const [balanceDescription, setBalanceDescription] = useState('')
   const [processing, setProcessing] = useState(false)
-
   const [accountType, setAccountType] = useState<'real' | 'demo'>('demo')
 
   useEffect(() => {
@@ -221,7 +219,7 @@ export default function AdminUsersPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30">
+      <div className="min-h-screen bg-[#fafafa]">
         <Navbar />
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
           <div className="text-center">
@@ -234,110 +232,108 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30">
+    <div className="min-h-screen bg-[#fafafa]">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-7xl">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+        <div className="mb-4 sm:mb-8">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 mb-2">
             <span>Admin</span>
             <span>/</span>
             <span className="text-gray-900 font-medium">User Management</span>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
-                <UserCog className="w-6 h-6 text-white" />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-50 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                <UserCog className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-500" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
-                <p className="text-gray-500">Manage users and permissions</p>
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">User Management</h1>
+                <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Manage users and permissions</p>
               </div>
             </div>
             
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all"
+              className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
             >
-              <Plus className="w-5 h-5" />
-              Add User
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline">Add User</span>
+              <span className="sm:hidden">Add</span>
             </button>
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-shadow">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-600" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-8">
+          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-100 hover:shadow-lg transition-shadow">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
               </div>
-              <div className="flex-1">
-                <div className="text-sm text-gray-500 mb-1">Total Users</div>
-                <div className="text-3xl font-bold text-gray-900">{stats.total}</div>
-              </div>
+              <span className="text-xs sm:text-sm text-gray-500 font-medium">Total Users</span>
             </div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">{stats.total}</div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-shadow">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-green-600" />
+          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-100 hover:shadow-lg transition-shadow">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
               </div>
-              <div className="flex-1">
-                <div className="text-sm text-gray-500 mb-1">Active</div>
-                <div className="text-3xl font-bold text-green-600">{stats.active}</div>
-              </div>
+              <span className="text-xs sm:text-sm text-gray-500 font-medium">Active</span>
             </div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-green-600">{stats.active}</div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-shadow">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
-                <Shield className="w-6 h-6 text-purple-600" />
+          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-100 hover:shadow-lg transition-shadow">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
               </div>
-              <div className="flex-1">
-                <div className="text-sm text-gray-500 mb-1">Admins</div>
-                <div className="text-3xl font-bold text-purple-600">{stats.admins}</div>
-              </div>
+              <span className="text-xs sm:text-sm text-gray-500 font-medium">Admins</span>
             </div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-purple-600">{stats.admins}</div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-shadow">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-yellow-50 rounded-xl flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-yellow-600" />
+          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-100 hover:shadow-lg transition-shadow">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-yellow-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
               </div>
-              <div className="flex-1">
-                <div className="text-sm text-gray-500 mb-1">Total Balance</div>
-                <div className="text-lg font-bold text-yellow-600 font-mono">
-                  {formatCurrency(stats.totalBalance)}
-                </div>
-              </div>
+              <span className="text-xs sm:text-sm text-gray-500 font-medium">Total Balance</span>
+            </div>
+            <div className="text-base sm:text-xl font-bold text-yellow-600 font-mono">
+              {new Intl.NumberFormat('id-ID', { 
+                style: 'currency', 
+                currency: 'IDR',
+                minimumFractionDigits: 0,
+                notation: 'compact'
+              }).format(stats.totalBalance)}
             </div>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search users by email..."
-              className="w-full bg-white border-2 border-gray-200 rounded-xl pl-12 pr-4 py-3 focus:border-blue-500 focus:bg-white transition-all shadow-sm"
+              className="w-full bg-white border-2 border-gray-200 rounded-xl pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 focus:border-blue-500 focus:bg-white transition-all shadow-sm text-sm sm:text-base"
             />
           </div>
           
-          <div className="flex items-center gap-3">
-            <Filter className="w-5 h-5 text-gray-500" />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
-              className="bg-white border-2 border-gray-200 rounded-xl px-4 py-3 font-medium focus:border-blue-500 transition-all shadow-sm"
+              className="bg-white border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 font-medium focus:border-blue-500 transition-all shadow-sm text-sm sm:text-base"
             >
               <option value="all">All Roles</option>
               <option value="super_admin">Super Admin</option>
@@ -348,22 +344,22 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Users Table */}
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+        <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
           {filteredUsers.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Users className="w-10 h-10 text-gray-300" />
+            <div className="text-center py-12 sm:py-20">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Users className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No users found</h3>
-              <p className="text-gray-500 mb-6">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No users found</h3>
+              <p className="text-sm text-gray-500 mb-6">
                 {searchQuery ? 'Try a different search query' : 'Add your first user to get started'}
               </p>
               {!searchQuery && (
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors"
+                  className="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors text-sm sm:text-base"
                 >
-                  <Plus className="w-5 h-5" />
+                  <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
                   Add First User
                 </button>
               )}
@@ -387,7 +383,7 @@ export default function AdminUsersPage() {
                       <tr key={u.id} className="hover:bg-gray-50 transition-colors group">
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold">
+                            <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center text-white font-bold">
                               {u.email[0].toUpperCase()}
                             </div>
                             <div>
@@ -411,7 +407,11 @@ export default function AdminUsersPage() {
                         </td>
                         <td className="py-4 px-6 text-right">
                           <div className="font-mono font-bold text-gray-900">
-                            {formatCurrency(u.currentBalance || 0)}
+                            {new Intl.NumberFormat('id-ID', { 
+                              style: 'currency', 
+                              currency: 'IDR',
+                              minimumFractionDigits: 0 
+                            }).format(u.currentBalance || 0)}
                           </div>
                         </td>
                         <td className="py-4 px-6">
@@ -439,7 +439,7 @@ export default function AdminUsersPage() {
                           </div>
                         </td>
                         <td className="py-4 px-6">
-                          <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => router.push(`/admin/users/${u.id}`)}
                               className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
@@ -482,19 +482,19 @@ export default function AdminUsersPage() {
               </div>
 
               {/* Mobile Cards */}
-              <div className="lg:hidden space-y-3 p-4">
+              <div className="lg:hidden space-y-3 p-3 sm:p-4">
                 {filteredUsers.map((u) => (
                   <div
                     key={u.id}
-                    className="bg-gray-50 border border-gray-100 rounded-2xl p-4 hover:shadow-lg transition-all"
+                    className="bg-gray-50 border border-gray-100 rounded-xl sm:rounded-2xl p-3 sm:p-4 hover:shadow-lg transition-all"
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0">
                           {u.email[0].toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-gray-900 truncate mb-1">{u.email}</div>
+                          <div className="font-semibold text-sm sm:text-base text-gray-900 truncate mb-1">{u.email}</div>
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold border ${getRoleColor(u.role)}`}>
                               <Shield className="w-3 h-3" />
@@ -525,9 +525,14 @@ export default function AdminUsersPage() {
 
                     <div className="bg-white rounded-xl p-3 mb-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500">Balance</span>
-                        <span className="font-mono font-bold text-lg text-gray-900">
-                          {formatCurrency(u.currentBalance || 0)}
+                        <span className="text-xs sm:text-sm text-gray-500">Balance</span>
+                        <span className="font-mono font-bold text-base sm:text-lg text-gray-900">
+                          {new Intl.NumberFormat('id-ID', { 
+                            style: 'currency', 
+                            currency: 'IDR',
+                            minimumFractionDigits: 0,
+                            notation: 'compact'
+                          }).format(u.currentBalance || 0)}
                         </span>
                       </div>
                     </div>
@@ -535,7 +540,7 @@ export default function AdminUsersPage() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => router.push(`/admin/users/${u.id}`)}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-sm font-semibold text-blue-700 transition-all"
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-xs sm:text-sm font-semibold text-blue-700 transition-all"
                       >
                         <Eye className="w-4 h-4" />
                         View
@@ -547,7 +552,7 @@ export default function AdminUsersPage() {
                             setSelectedUser(u)
                             setShowBalanceModal(true)
                           }}
-                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-50 hover:bg-green-100 border border-green-200 rounded-xl text-sm font-semibold text-green-700 transition-all"
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-50 hover:bg-green-100 border border-green-200 rounded-xl text-xs sm:text-sm font-semibold text-green-700 transition-all"
                         >
                           <DollarSign className="w-4 h-4" />
                           Balance
@@ -570,28 +575,28 @@ export default function AdminUsersPage() {
             onClick={() => setShowCreateModal(false)}
           />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl animate-slide-up">
-              <div className="p-6 border-b border-gray-100">
+            <div className="w-full max-w-md bg-white rounded-2xl sm:rounded-3xl shadow-2xl animate-slide-up">
+              <div className="p-4 sm:p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
-                      <Plus className="w-6 h-6 text-blue-600" />
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                      <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-gray-900">Create New User</h2>
-                      <p className="text-sm text-gray-500">Add a new user account</p>
+                      <h2 className="text-lg sm:text-xl font-bold text-gray-900">Create New User</h2>
+                      <p className="text-xs sm:text-sm text-gray-500">Add a new user account</p>
                     </div>
                   </div>
                   <button
                     onClick={() => setShowCreateModal(false)}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
+                    className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
                   >
-                    <X className="w-5 h-5 text-gray-500" />
+                    <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
                   </button>
                 </div>
               </div>
 
-              <form onSubmit={handleCreateUser} className="p-6 space-y-4">
+              <form onSubmit={handleCreateUser} className="p-4 sm:p-6 space-y-3 sm:space-y-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">
                     Email
@@ -601,7 +606,7 @@ export default function AdminUsersPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-blue-500 focus:bg-white transition-all"
+                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 focus:border-blue-500 focus:bg-white transition-all text-sm sm:text-base"
                     placeholder="user@example.com"
                   />
                 </div>
@@ -616,7 +621,7 @@ export default function AdminUsersPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={8}
-                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-blue-500 focus:bg-white transition-all"
+                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 focus:border-blue-500 focus:bg-white transition-all text-sm sm:text-base"
                     placeholder="Minimum 8 characters"
                   />
                   <p className="text-xs text-gray-500 mt-2">
@@ -631,7 +636,7 @@ export default function AdminUsersPage() {
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 font-medium focus:border-blue-500 focus:bg-white transition-all"
+                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 font-medium focus:border-blue-500 focus:bg-white transition-all text-sm sm:text-base"
                   >
                     <option value="user">User</option>
                     <option value="admin">Admin</option>
@@ -644,11 +649,11 @@ export default function AdminUsersPage() {
                 <button
                   type="submit"
                   disabled={processing}
-                  className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 sm:py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 text-sm sm:text-base"
                 >
                   {processing ? (
                     <span className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                       Creating...
                     </span>
                   ) : (
@@ -669,32 +674,36 @@ export default function AdminUsersPage() {
             onClick={() => setShowBalanceModal(false)}
           />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl animate-slide-up">
-              <div className="p-6 border-b border-gray-100">
+            <div className="w-full max-w-md bg-white rounded-2xl sm:rounded-3xl shadow-2xl animate-slide-up">
+              <div className="p-4 sm:p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
-                      <DollarSign className="w-6 h-6 text-green-600" />
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-50 rounded-xl flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-gray-900">Manage Balance</h2>
-                      <p className="text-sm text-gray-500">{selectedUser.email}</p>
+                      <h2 className="text-lg sm:text-xl font-bold text-gray-900">Manage Balance</h2>
+                      <p className="text-xs sm:text-sm text-gray-500">{selectedUser.email}</p>
                     </div>
                   </div>
                   <button
                     onClick={() => setShowBalanceModal(false)}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
+                    className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
                   >
-                    <X className="w-5 h-5 text-gray-500" />
+                    <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
                   </button>
                 </div>
               </div>
 
-              <form onSubmit={handleManageBalance} className="p-6 space-y-4">
-                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
-                  <div className="text-sm text-gray-500 mb-1">Current Balance</div>
-                  <div className="text-3xl font-bold font-mono text-gray-900">
-                    {formatCurrency(selectedUser.currentBalance || 0)}
+              <form onSubmit={handleManageBalance} className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+                <div className="bg-gray-50 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-200">
+                  <div className="text-xs sm:text-sm text-gray-500 mb-1">Current Balance</div>
+                  <div className="text-2xl sm:text-3xl font-bold font-mono text-gray-900">
+                    {new Intl.NumberFormat('id-ID', { 
+                      style: 'currency', 
+                      currency: 'IDR',
+                      minimumFractionDigits: 0 
+                    }).format(selectedUser.currentBalance || 0)}
                   </div>
                 </div>
 
@@ -702,11 +711,11 @@ export default function AdminUsersPage() {
                   <label className="block text-sm font-bold text-gray-700 mb-2">
                     Type
                   </label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
                     <button
                       type="button"
                       onClick={() => setBalanceType('deposit')}
-                      className={`py-3 rounded-xl font-bold transition-all ${
+                      className={`py-2.5 sm:py-3 rounded-xl font-bold transition-all text-sm sm:text-base ${
                         balanceType === 'deposit'
                           ? 'bg-green-500 text-white shadow-lg scale-105'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-2 border-gray-200'
@@ -717,7 +726,7 @@ export default function AdminUsersPage() {
                     <button
                       type="button"
                       onClick={() => setBalanceType('withdrawal')}
-                      className={`py-3 rounded-xl font-bold transition-all ${
+                      className={`py-2.5 sm:py-3 rounded-xl font-bold transition-all text-sm sm:text-base ${
                         balanceType === 'withdrawal'
                           ? 'bg-red-500 text-white shadow-lg scale-105'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-2 border-gray-200'
@@ -739,7 +748,7 @@ export default function AdminUsersPage() {
                     required
                     min="0"
                     step="1000"
-                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 text-xl font-mono focus:border-green-500 focus:bg-white transition-all"
+                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-lg sm:text-xl font-mono focus:border-green-500 focus:bg-white transition-all"
                     placeholder="10000"
                   />
                 </div>
@@ -753,7 +762,7 @@ export default function AdminUsersPage() {
                     value={balanceDescription}
                     onChange={(e) => setBalanceDescription(e.target.value)}
                     required
-                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-green-500 focus:bg-white transition-all"
+                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 focus:border-green-500 focus:bg-white transition-all text-sm sm:text-base"
                     placeholder="Admin adjustment"
                   />
                 </div>
@@ -761,15 +770,15 @@ export default function AdminUsersPage() {
                 <button
                   type="submit"
                   disabled={processing}
-                  className={`w-full py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl disabled:opacity-50 ${
+                  className={`w-full py-3 sm:py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl disabled:opacity-50 text-sm sm:text-base ${
                     balanceType === 'deposit'
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white'
-                      : 'bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white'
+                      ? 'bg-green-500 hover:bg-green-600 text-white'
+                      : 'bg-red-500 hover:bg-red-600 text-white'
                   }`}
                 >
                   {processing ? (
                     <span className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                       Processing...
                     </span>
                   ) : (
@@ -790,45 +799,45 @@ export default function AdminUsersPage() {
             onClick={() => setShowDeleteModal(false)}
           />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl animate-slide-up border-2 border-red-200">
-              <div className="p-6 border-b border-gray-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center">
-                    <Trash2 className="w-6 h-6 text-red-600" />
+            <div className="w-full max-w-md bg-white rounded-2xl sm:rounded-3xl shadow-2xl animate-slide-up border-2 border-red-200">
+              <div className="p-4 sm:p-6 border-b border-gray-100">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-50 rounded-xl flex items-center justify-center">
+                    <Trash2 className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">Delete User</h2>
-                    <p className="text-sm text-red-600">This action cannot be undone</p>
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-900">Delete User</h2>
+                    <p className="text-xs sm:text-sm text-red-600">This action cannot be undone</p>
                   </div>
                 </div>
               </div>
 
-              <div className="p-6">
-                <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6">
-                  <p className="text-gray-700">
+              <div className="p-4 sm:p-6">
+                <div className="bg-red-50 border border-red-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6">
+                  <p className="text-sm sm:text-base text-gray-700">
                     Are you sure you want to delete{' '}
                     <span className="font-bold text-gray-900">{selectedUser.email}</span>?
                   </p>
-                  <p className="text-sm text-gray-600 mt-2">
+                  <p className="text-xs sm:text-sm text-gray-600 mt-2">
                     All user data including balance and trading history will be permanently deleted.
                   </p>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-2 sm:gap-3">
                   <button
                     onClick={() => setShowDeleteModal(false)}
-                    className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 border-2 border-gray-200 rounded-xl font-bold transition-all"
+                    className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-100 hover:bg-gray-200 border-2 border-gray-200 rounded-xl font-bold transition-all text-sm sm:text-base"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleDeleteUser}
                     disabled={processing}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                    className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 text-sm sm:text-base"
                   >
                     {processing ? (
                       <span className="flex items-center justify-center gap-2">
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                         Deleting...
                       </span>
                     ) : (

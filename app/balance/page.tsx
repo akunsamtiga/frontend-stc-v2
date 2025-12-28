@@ -1,4 +1,4 @@
-// app/balance/page.tsx - Flat Design Version
+// app/balance/page.tsx - With Skeleton Loading
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -12,8 +12,6 @@ import {
   Wallet, 
   ArrowDownToLine,
   ArrowUpFromLine,
-  TrendingUp,
-  TrendingDown,
   X,
   Receipt,
   PiggyBank,
@@ -21,6 +19,118 @@ import {
   DollarSign
 } from 'lucide-react'
 import { toast } from 'sonner'
+
+// Skeleton Components
+const BalanceCardSkeleton = () => (
+  <div className="lg:col-span-1 bg-gray-200 rounded-[16px] sm:rounded-[20px] min-h-[280px] sm:min-h-[300px] lg:min-h-[320px] animate-pulse">
+    <div className="p-4 sm:p-5 lg:p-6 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-4 sm:mb-6 lg:mb-8">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-10 h-8 sm:w-12 sm:h-10 bg-gray-300 rounded-md sm:rounded-lg"></div>
+          <div className="w-6 h-6 bg-gray-300 rounded"></div>
+        </div>
+        <div className="w-16 h-6 bg-gray-300 rounded-md"></div>
+      </div>
+      
+      <div className="mb-4 sm:mb-6 lg:mb-8">
+        <div className="h-3 bg-gray-300 rounded w-32 mb-2"></div>
+        <div className="h-4 bg-gray-300 rounded w-40"></div>
+      </div>
+      
+      <div className="mb-auto">
+        <div className="h-3 bg-gray-300 rounded w-36 mb-2"></div>
+        <div className="h-10 bg-gray-300 rounded w-48"></div>
+      </div>
+      
+      <div className="mt-4 sm:mt-6 lg:mt-8">
+        <div className="h-3 bg-gray-300 rounded w-24 mb-1"></div>
+        <div className="h-4 bg-gray-300 rounded w-32"></div>
+      </div>
+    </div>
+  </div>
+)
+
+const ActionCardSkeleton = () => (
+  <div className="lg:col-span-1 bg-white rounded-xl border border-gray-200 p-4 sm:p-5 min-h-[280px] sm:min-h-[300px] lg:min-h-[320px] animate-pulse">
+    <div className="h-4 bg-gray-200 rounded w-40 mb-3 sm:mb-4"></div>
+    <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4 flex-1">
+      <div className="h-32 bg-gray-100 rounded-xl"></div>
+      <div className="h-32 bg-gray-100 rounded-xl"></div>
+    </div>
+    <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-3 border-t border-gray-200">
+      <div className="text-center">
+        <div className="h-3 bg-gray-200 rounded w-20 mx-auto mb-2"></div>
+        <div className="h-5 bg-gray-200 rounded w-24 mx-auto"></div>
+      </div>
+      <div className="text-center">
+        <div className="h-3 bg-gray-200 rounded w-20 mx-auto mb-2"></div>
+        <div className="h-5 bg-gray-200 rounded w-24 mx-auto"></div>
+      </div>
+    </div>
+  </div>
+)
+
+const TransactionSkeleton = () => (
+  <div className="flex items-center justify-between p-3 sm:p-4 rounded-xl border border-gray-100 gap-3 animate-pulse">
+    <div className="flex items-center gap-3 sm:gap-4 flex-1">
+      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-xl flex-shrink-0"></div>
+      <div className="flex-1">
+        <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+        <div className="h-3 bg-gray-200 rounded w-32"></div>
+      </div>
+    </div>
+    <div className="h-6 bg-gray-200 rounded w-28 flex-shrink-0"></div>
+  </div>
+)
+
+const LoadingSkeleton = () => (
+  <div className="min-h-screen bg-[#fafafa]">
+    <Navbar />
+    <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 max-w-7xl">
+      {/* Header Skeleton */}
+      <div className="mb-4 sm:mb-6 animate-pulse">
+        <div className="h-3 bg-gray-200 rounded w-48 mb-2"></div>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-200 rounded-xl"></div>
+          <div>
+            <div className="h-6 bg-gray-200 rounded w-32 mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded w-56"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Balance Cards Skeleton */}
+      <div className="mb-4 sm:mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <BalanceCardSkeleton />
+          <ActionCardSkeleton />
+          <BalanceCardSkeleton />
+          <ActionCardSkeleton />
+        </div>
+      </div>
+
+      {/* Transaction History Skeleton */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+        <div className="p-4 sm:p-6 border-b border-gray-200 animate-pulse">
+          <div className="flex items-center justify-between mb-4">
+            <div className="h-5 bg-gray-200 rounded w-40"></div>
+          </div>
+          <div className="flex gap-2">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-8 bg-gray-200 rounded-xl w-24"></div>
+            ))}
+          </div>
+        </div>
+
+        <div className="p-4 sm:p-6 space-y-2">
+          {[...Array(5)].map((_, i) => (
+            <TransactionSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+)
 
 export default function BalancePage() {
   const router = useRouter()
@@ -171,17 +281,7 @@ export default function BalancePage() {
   if (!user) return null
 
   if (initialLoading) {
-    return (
-      <div className="min-h-screen bg-[#fafafa]">
-        <Navbar />
-        <div className="flex items-center justify-center h-[calc(100vh-64px)] px-4">
-          <div className="text-center">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-3 sm:mb-4"></div>
-            <div className="text-xs sm:text-sm text-gray-500">Loading your wallet...</div>
-          </div>
-        </div>
-      </div>
-    )
+    return <LoadingSkeleton />
   }
 
   return (

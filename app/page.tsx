@@ -1212,11 +1212,11 @@ const handleTouchEnd = () => {
               {/* Trust Indicators - Compact */}
               <div className="grid grid-cols-3 gap-4 mt-8 pt-6 border-t border-gray-800/50">
                 <div className="text-center">
-                  <div className="text-xl font-bold mb-0.5">50K+</div>
+                  <div className="text-xl font-bold mb-0.5">2K+</div>
                   <div className="text-[10px] text-gray-500">Trader</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl font-bold mb-0.5">$2.5M</div>
+                  <div className="text-xl font-bold mb-0.5">$3K</div>
                   <div className="text-[10px] text-gray-500">Volume</div>
                 </div>
                 <div className="text-center">

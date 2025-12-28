@@ -23,6 +23,162 @@ import {
   ChevronRight
 } from 'lucide-react'
 
+// Skeleton Components
+const StatCardSkeleton = () => (
+  <div className="bg-white rounded-xl p-4 border border-gray-200 animate-pulse">
+    <div className="flex items-center gap-2 mb-2">
+      <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+      <div className="h-3 bg-gray-200 rounded w-24"></div>
+    </div>
+    <div className="h-8 bg-gray-200 rounded w-16 mb-2"></div>
+    <div className="h-3 bg-gray-200 rounded w-20"></div>
+  </div>
+)
+
+const TableRowSkeleton = () => (
+  <tr className="border-b border-gray-100 animate-pulse">
+    <td className="py-3 px-4">
+      <div className="h-4 bg-gray-200 rounded w-32"></div>
+    </td>
+    <td className="py-3 px-4">
+      <div className="h-4 bg-gray-200 rounded w-20 mb-1"></div>
+      <div className="h-3 bg-gray-200 rounded w-12"></div>
+    </td>
+    <td className="py-3 px-4">
+      <div className="h-6 bg-gray-200 rounded w-16 mx-auto"></div>
+    </td>
+    <td className="py-3 px-4">
+      <div className="h-6 bg-gray-200 rounded w-16 mx-auto"></div>
+    </td>
+    <td className="py-3 px-4">
+      <div className="h-4 bg-gray-200 rounded w-24 ml-auto"></div>
+    </td>
+    <td className="py-3 px-4">
+      <div className="h-4 bg-gray-200 rounded w-20 mx-auto"></div>
+    </td>
+    <td className="py-3 px-4">
+      <div className="h-4 bg-gray-200 rounded w-20 mx-auto"></div>
+    </td>
+    <td className="py-3 px-4">
+      <div className="h-6 bg-gray-200 rounded w-16 mx-auto"></div>
+    </td>
+    <td className="py-3 px-4">
+      <div className="h-6 bg-gray-200 rounded w-16 mx-auto"></div>
+    </td>
+    <td className="py-3 px-4">
+      <div className="h-4 bg-gray-200 rounded w-24 ml-auto"></div>
+    </td>
+  </tr>
+)
+
+const MobileCardSkeleton = () => (
+  <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 animate-pulse">
+    <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-2">
+        <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+        <div>
+          <div className="h-4 bg-gray-200 rounded w-24 mb-1"></div>
+          <div className="h-3 bg-gray-200 rounded w-32"></div>
+        </div>
+      </div>
+      <div className="h-6 bg-gray-200 rounded w-16"></div>
+    </div>
+    <div className="grid grid-cols-2 gap-2 mb-3">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="bg-white rounded-lg p-2">
+          <div className="h-3 bg-gray-200 rounded w-16 mb-1"></div>
+          <div className="h-4 bg-gray-200 rounded w-20"></div>
+        </div>
+      ))}
+    </div>
+    <div className="bg-white rounded-lg p-2">
+      <div className="h-3 bg-gray-200 rounded w-20 mb-2"></div>
+      <div className="h-6 bg-gray-200 rounded w-24"></div>
+    </div>
+  </div>
+)
+
+const LoadingSkeleton = () => (
+  <div className="min-h-screen bg-[#fafafa]">
+    <Navbar />
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-7xl">
+      {/* Header Skeleton */}
+      <div className="mb-6 animate-pulse">
+        <div className="h-3 bg-gray-200 rounded w-48 mb-2"></div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gray-200 rounded-xl"></div>
+            <div>
+              <div className="h-6 bg-gray-200 rounded w-40 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-56"></div>
+            </div>
+          </div>
+          <div className="h-10 bg-gray-200 rounded-lg w-28"></div>
+        </div>
+      </div>
+
+      {/* Stats Grid Skeleton */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        {[...Array(5)].map((_, i) => (
+          <StatCardSkeleton key={i} />
+        ))}
+      </div>
+
+      {/* Filters Skeleton */}
+      <div className="bg-white rounded-xl p-4 border border-gray-200 mb-6 animate-pulse">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-4 bg-gray-200 rounded w-20"></div>
+            <div className="flex gap-2">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-8 bg-gray-200 rounded-lg w-16"></div>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-4 bg-gray-200 rounded w-20"></div>
+            <div className="flex gap-2">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-8 bg-gray-200 rounded-lg w-16"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Table Skeleton */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        {/* Desktop */}
+        <div className="hidden lg:block overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                {['Time', 'Asset', 'Account', 'Type', 'Amount', 'Entry', 'Exit', 'Duration', 'Status', 'P&L'].map((header) => (
+                  <th key={header} className="text-left text-xs font-semibold text-gray-600 py-3 px-4">
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[...Array(8)].map((_, i) => (
+                <TableRowSkeleton key={i} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile */}
+        <div className="lg:hidden space-y-3 p-3">
+          {[...Array(5)].map((_, i) => (
+            <MobileCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+)
+
 export default function HistoryPage() {
   const router = useRouter()
   const user = useAuthStore((state) => state.user)
@@ -32,7 +188,6 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   
-  // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalOrders, setTotalOrders] = useState(0)
@@ -87,10 +242,14 @@ export default function HistoryPage() {
     } else {
       setAccountFilter(filter as 'all' | 'real' | 'demo')
     }
-    setCurrentPage(1) // Reset to first page when filter changes
+    setCurrentPage(1)
   }
 
   if (!user) return null
+
+  if (loading) {
+    return <LoadingSkeleton />
+  }
 
   const stats = {
     total: totalOrders,
@@ -101,20 +260,6 @@ export default function HistoryPage() {
 
   const winRate = totalOrders > 0 ? ((stats.won / totalOrders) * 100).toFixed(1) : '0'
   const totalProfit = orders.reduce((sum, o) => sum + (o.profit || 0), 0)
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#fafafa]">
-        <Navbar />
-        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-          <div className="text-center">
-            <div className="w-12 h-12 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-            <div className="text-sm text-gray-500">Loading history...</div>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
@@ -519,7 +664,6 @@ export default function HistoryPage() {
                       <div className="flex items-center gap-1">
                         {[...Array(totalPages)].map((_, index) => {
                           const page = index + 1
-                          // Show first page, last page, current page, and pages around current
                           if (
                             page === 1 ||
                             page === totalPages ||

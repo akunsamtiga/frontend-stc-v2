@@ -41,6 +41,104 @@ interface SystemStats {
   }
 }
 
+// Skeleton Components
+const StatCardSkeleton = () => (
+  <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-100 animate-pulse">
+    <div className="flex items-center gap-2 sm:gap-3 mb-2">
+      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-200 rounded-lg"></div>
+      <div className="h-3 bg-gray-200 rounded w-24"></div>
+    </div>
+    <div className="h-10 bg-gray-200 rounded w-20 mb-2"></div>
+    <div className="h-3 bg-gray-200 rounded w-16"></div>
+  </div>
+)
+
+const QuickActionSkeleton = () => (
+  <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-100 animate-pulse">
+    <div className="flex items-start gap-3 sm:gap-4">
+      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-lg flex-shrink-0"></div>
+      <div className="flex-1 min-w-0">
+        <div className="h-4 bg-gray-200 rounded w-32 mb-2"></div>
+        <div className="h-3 bg-gray-200 rounded w-40"></div>
+      </div>
+      <div className="w-5 h-5 bg-gray-200 rounded flex-shrink-0"></div>
+    </div>
+  </div>
+)
+
+const StatRowSkeleton = () => (
+  <div className="flex items-center justify-between py-2 sm:py-3 border-b border-gray-100 animate-pulse">
+    <div className="h-3 bg-gray-200 rounded w-24"></div>
+    <div className="h-4 bg-gray-200 rounded w-32"></div>
+  </div>
+)
+
+const LoadingSkeleton = () => (
+  <div className="min-h-screen bg-[#fafafa]">
+    <Navbar />
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-7xl">
+      {/* Header Skeleton */}
+      <div className="mb-4 sm:mb-8 animate-pulse">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-200 rounded-lg sm:rounded-xl"></div>
+          <div>
+            <div className="h-6 sm:h-8 bg-gray-200 rounded w-48 mb-2"></div>
+            <div className="h-3 sm:h-4 bg-gray-200 rounded w-56 hidden sm:block"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Grid Skeleton */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-8">
+        {[...Array(4)].map((_, i) => (
+          <StatCardSkeleton key={i} />
+        ))}
+      </div>
+
+      {/* Quick Actions Skeleton */}
+      <div className="mb-4 sm:mb-8">
+        <div className="h-5 sm:h-6 bg-gray-200 rounded w-32 mb-3 sm:mb-4 animate-pulse"></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          {[...Array(3)].map((_, i) => (
+            <QuickActionSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+
+      {/* Overview Cards Skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-8">
+        {[...Array(2)].map((_, idx) => (
+          <div key={idx} className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-100 shadow-sm animate-pulse">
+            <div className="h-5 sm:h-6 bg-gray-200 rounded w-40 mb-4 sm:mb-6"></div>
+            <div className="space-y-3 sm:space-y-4">
+              {[...Array(4)].map((_, i) => (
+                <StatRowSkeleton key={i} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* System Health Skeleton */}
+      <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-100 shadow-sm animate-pulse">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-3">
+          <div className="h-5 sm:h-6 bg-gray-200 rounded w-32"></div>
+          <div className="h-4 bg-gray-200 rounded w-24"></div>
+        </div>
+        
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="text-center p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-100">
+              <div className="h-8 sm:h-10 bg-gray-200 rounded w-16 mx-auto mb-1"></div>
+              <div className="h-3 bg-gray-200 rounded w-20 mx-auto"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+)
+
 export default function AdminDashboard() {
   const router = useRouter()
   const user = useAuthStore((state) => state.user)
@@ -74,17 +172,7 @@ export default function AdminDashboard() {
   if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) return null
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#fafafa]">
-        <Navbar />
-        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-          <div className="text-center">
-            <div className="w-12 h-12 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-            <div className="text-sm text-gray-500">Loading...</div>
-          </div>
-        </div>
-      </div>
-    )
+    return <LoadingSkeleton />
   }
 
   const quickActions = [

@@ -20,12 +20,93 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
+// Skeleton Components
+const ProfileCardSkeleton = () => (
+  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm animate-pulse">
+    <div className="flex flex-col items-center text-center">
+      <div className="w-20 h-20 rounded-full bg-gray-200 mb-4"></div>
+      <div className="h-5 bg-gray-200 rounded w-40 mb-2"></div>
+      <div className="h-6 bg-gray-200 rounded w-32 mb-3"></div>
+      <div className="flex items-center gap-2">
+        <div className="w-2 h-2 rounded-full bg-gray-200"></div>
+        <div className="h-3 bg-gray-200 rounded w-24"></div>
+      </div>
+    </div>
+  </div>
+)
+
+const NavigationSkeleton = () => (
+  <div className="bg-white rounded-xl border border-gray-200 p-2 shadow-sm space-y-2 animate-pulse">
+    {[...Array(3)].map((_, i) => (
+      <div key={i} className="h-12 bg-gray-100 rounded-lg"></div>
+    ))}
+  </div>
+)
+
+const InfoCardSkeleton = () => (
+  <div className="p-5 rounded-xl border border-gray-200 animate-pulse">
+    <div className="flex items-center gap-4">
+      <div className="w-12 h-12 bg-gray-200 rounded-xl flex-shrink-0"></div>
+      <div className="flex-1">
+        <div className="h-3 bg-gray-200 rounded w-20 mb-2"></div>
+        <div className="h-4 bg-gray-200 rounded w-32"></div>
+      </div>
+      <div className="h-6 bg-gray-200 rounded w-20 flex-shrink-0"></div>
+    </div>
+  </div>
+)
+
+const LoadingSkeleton = () => (
+  <div className="min-h-screen bg-[#fafafa]">
+    <Navbar />
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-7xl">
+      {/* Header Skeleton */}
+      <div className="mb-6 animate-pulse">
+        <div className="h-3 bg-gray-200 rounded w-48 mb-2"></div>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gray-200 rounded-xl"></div>
+          <div>
+            <div className="h-6 bg-gray-200 rounded w-40 mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded w-56"></div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-12 gap-6">
+        {/* Sidebar Skeleton */}
+        <div className="lg:col-span-4 space-y-6">
+          <ProfileCardSkeleton />
+          <NavigationSkeleton />
+          <div className="h-12 bg-gray-200 rounded-xl animate-pulse"></div>
+        </div>
+
+        {/* Main Content Skeleton */}
+        <div className="lg:col-span-8">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-200 animate-pulse">
+              <div className="h-5 bg-gray-200 rounded w-40 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-64"></div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {[...Array(4)].map((_, i) => (
+                <InfoCardSkeleton key={i} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)
+
 export default function ProfilePage() {
   const router = useRouter()
   const { user, logout } = useAuthStore()
   const [activeTab, setActiveTab] = useState('profile')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
 
   // Form states
   const [currentPassword, setCurrentPassword] = useState('')
@@ -40,7 +121,15 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) {
       router.push('/')
+      return
     }
+    
+    // Simulate initial data loading
+    const timer = setTimeout(() => {
+      setInitialLoading(false)
+    }, 800)
+
+    return () => clearTimeout(timer)
   }, [user, router])
 
   const handlePasswordChange = async (e: React.FormEvent) => {
@@ -77,6 +166,10 @@ export default function ProfilePage() {
   }
 
   if (!user) return null
+
+  if (initialLoading) {
+    return <LoadingSkeleton />
+  }
 
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },

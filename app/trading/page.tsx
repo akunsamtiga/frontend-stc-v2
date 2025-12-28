@@ -30,7 +30,6 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine
 } from 'lucide-react'
-import RealtimeMonitor from '@/components/RealtimeMonitor'
 import OrderNotification from '@/components/OrderNotification'
 
 const TradingChart = dynamic(() => import('@/components/TradingChart'), {
@@ -1103,8 +1102,6 @@ export default function TradingPage() {
     order={notificationOrder}
     onClose={() => setNotificationOrder(null)}
   />
-
-  {process.env.NODE_ENV === 'development' && <RealtimeMonitor />}
 
   <style jsx>{`
     @keyframes slide-left {

@@ -66,54 +66,65 @@ export default function AdminSettingsPage() {
   if (!user || user.role !== 'super_admin') return null
 
   return (
-    <div className="min-h-screen bg-[#0a0e17]">
+    <div className="min-h-screen bg-[#fafafa]">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-4xl">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <SettingsIcon className="w-8 h-8 text-emerald-400" />
-            <h1 className="text-3xl font-bold">System Settings</h1>
+        <div className="mb-4 sm:mb-8">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 mb-2">
+            <span>Admin</span>
+            <span>/</span>
+            <span className="text-gray-900 font-medium">System Settings</span>
           </div>
-          <p className="text-gray-400">Configure platform settings and preferences</p>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-50 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+              <SettingsIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-green-500" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">System Settings</h1>
+              <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Configure platform settings and preferences</p>
+            </div>
+          </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Trading Settings */}
-          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <DollarSign className="w-5 h-5 text-green-400" />
-              <h2 className="text-xl font-bold">Trading Configuration</h2>
+          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-100 shadow-sm">
+            <div className="flex items-center gap-2 mb-4 sm:mb-6">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+              </div>
+              <h2 className="text-base sm:text-xl font-bold text-gray-900">Trading Configuration</h2>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2">
                   Minimum Order Amount (IDR)
                 </label>
                 <input
                   type="number"
                   value={settings.minOrderAmount}
                   onChange={(e) => setSettings({...settings, minOrderAmount: parseInt(e.target.value)})}
-                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:bg-white transition-all text-sm sm:text-base font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2">
                   Maximum Order Amount (IDR)
                 </label>
                 <input
                   type="number"
                   value={settings.maxOrderAmount}
                   onChange={(e) => setSettings({...settings, maxOrderAmount: parseInt(e.target.value)})}
-                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:bg-white transition-all text-sm sm:text-base font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2">
                   Default Profit Rate (%)
                 </label>
                 <input
@@ -122,26 +133,28 @@ export default function AdminSettingsPage() {
                   onChange={(e) => setSettings({...settings, defaultProfitRate: parseInt(e.target.value)})}
                   min="0"
                   max="100"
-                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:bg-white transition-all text-sm sm:text-base font-mono"
                 />
               </div>
             </div>
           </div>
 
           {/* System Settings */}
-          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <Globe className="w-5 h-5 text-blue-400" />
-              <h2 className="text-xl font-bold">System Configuration</h2>
+          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-100 shadow-sm">
+            <div className="flex items-center gap-2 mb-4 sm:mb-6">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                <Globe className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
+              </div>
+              <h2 className="text-base sm:text-xl font-bold text-gray-900">System Configuration</h2>
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-[#1a1f2e] border border-gray-800/50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <Activity className="w-5 h-5 text-yellow-400" />
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />
                   <div>
-                    <div className="font-medium mb-1">Maintenance Mode</div>
-                    <div className="text-sm text-gray-400">Temporarily disable trading</div>
+                    <div className="text-sm sm:text-base font-semibold text-gray-900 mb-0.5">Maintenance Mode</div>
+                    <div className="text-xs sm:text-sm text-gray-500">Temporarily disable trading</div>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -151,16 +164,16 @@ export default function AdminSettingsPage() {
                     onChange={(e) => setSettings({...settings, maintenanceMode: e.target.checked})}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-blue-500 peer-checked:to-emerald-500"></div>
+                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
                 </label>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-[#1a1f2e] border border-gray-800/50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <Shield className="w-5 h-5 text-green-400" />
+              <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
                   <div>
-                    <div className="font-medium mb-1">New Registrations</div>
-                    <div className="text-sm text-gray-400">Allow new users to register</div>
+                    <div className="text-sm sm:text-base font-semibold text-gray-900 mb-0.5">New Registrations</div>
+                    <div className="text-xs sm:text-sm text-gray-500">Allow new users to register</div>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -170,16 +183,16 @@ export default function AdminSettingsPage() {
                     onChange={(e) => setSettings({...settings, allowNewRegistrations: e.target.checked})}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-blue-500 peer-checked:to-emerald-500"></div>
+                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
                 </label>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-[#1a1f2e] border border-gray-800/50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <Lock className="w-5 h-5 text-purple-400" />
+              <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
                   <div>
-                    <div className="font-medium mb-1">Email Verification</div>
-                    <div className="text-sm text-gray-400">Require email verification for new accounts</div>
+                    <div className="text-sm sm:text-base font-semibold text-gray-900 mb-0.5">Email Verification</div>
+                    <div className="text-xs sm:text-sm text-gray-500">Require email verification for new accounts</div>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -189,26 +202,28 @@ export default function AdminSettingsPage() {
                     onChange={(e) => setSettings({...settings, requireEmailVerification: e.target.checked})}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-blue-500 peer-checked:to-emerald-500"></div>
+                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
                 </label>
               </div>
             </div>
           </div>
 
           {/* Notification Settings */}
-          <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <Bell className="w-5 h-5 text-yellow-400" />
-              <h2 className="text-xl font-bold">Notifications</h2>
+          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-100 shadow-sm">
+            <div className="flex items-center gap-2 mb-4 sm:mb-6">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-yellow-50 rounded-lg flex items-center justify-center">
+                <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />
+              </div>
+              <h2 className="text-base sm:text-xl font-bold text-gray-900">Notifications</h2>
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-[#1a1f2e] border border-gray-800/50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <Bell className="w-5 h-5 text-blue-400" />
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
                   <div>
-                    <div className="font-medium mb-1">Email Notifications</div>
-                    <div className="text-sm text-gray-400">Send email notifications to users</div>
+                    <div className="text-sm sm:text-base font-semibold text-gray-900 mb-0.5">Email Notifications</div>
+                    <div className="text-xs sm:text-sm text-gray-500">Send email notifications to users</div>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -218,16 +233,16 @@ export default function AdminSettingsPage() {
                     onChange={(e) => setSettings({...settings, emailNotifications: e.target.checked})}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-blue-500 peer-checked:to-emerald-500"></div>
+                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
                 </label>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-[#1a1f2e] border border-gray-800/50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <Activity className="w-5 h-5 text-green-400" />
+              <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
                   <div>
-                    <div className="font-medium mb-1">Trade Alerts</div>
-                    <div className="text-sm text-gray-400">Notify users about trade outcomes</div>
+                    <div className="text-sm sm:text-base font-semibold text-gray-900 mb-0.5">Trade Alerts</div>
+                    <div className="text-xs sm:text-sm text-gray-500">Notify users about trade outcomes</div>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -237,16 +252,16 @@ export default function AdminSettingsPage() {
                     onChange={(e) => setSettings({...settings, tradeAlerts: e.target.checked})}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-blue-500 peer-checked:to-emerald-500"></div>
+                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
                 </label>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-[#1a1f2e] border border-gray-800/50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <Shield className="w-5 h-5 text-red-400" />
+              <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
                   <div>
-                    <div className="font-medium mb-1">System Alerts</div>
-                    <div className="text-sm text-gray-400">Critical system notifications</div>
+                    <div className="text-sm sm:text-base font-semibold text-gray-900 mb-0.5">System Alerts</div>
+                    <div className="text-xs sm:text-sm text-gray-500">Critical system notifications</div>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -256,7 +271,7 @@ export default function AdminSettingsPage() {
                     onChange={(e) => setSettings({...settings, systemAlerts: e.target.checked})}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-blue-500 peer-checked:to-emerald-500"></div>
+                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
                 </label>
               </div>
             </div>
@@ -266,16 +281,16 @@ export default function AdminSettingsPage() {
           <button
             onClick={handleSave}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-blue-600 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed px-6 py-4 rounded-xl font-semibold text-white transition-all shadow-lg"
+            className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-bold text-white transition-all shadow-lg hover:shadow-xl text-sm sm:text-base"
           >
             {loading ? (
               <>
-                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 Saving...
               </>
             ) : (
               <>
-                <Save className="w-5 h-5" />
+                <Save className="w-4 h-4 sm:w-5 sm:h-5" />
                 Save Settings
               </>
             )}
