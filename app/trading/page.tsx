@@ -678,14 +678,14 @@ export default function TradingPage() {
             </div>
           )}
 
-          <div className="flex-1 bg-[#0a0e17] relative" style={{ minHeight: '400px' }}>
+          <div className="flex-1 bg-[#0a0e17] relative overflow-hidden">
             {selectedAsset ? (
               <TradingChart 
                 activeOrders={activeOrders}
                 currentPrice={currentPrice?.price}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center text-gray-500">
                   <div className="text-sm">Select an asset to view chart</div>
                 </div>

@@ -790,7 +790,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   }
 
   return (
-    <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : 'h-full'}`}>
+  <div className={`relative h-full ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : ''}`}>
       {/* Desktop Controls */}
       <DesktopControls
         timeframe={timeframe}
@@ -838,10 +838,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
       {/* Chart Container */}
       <div 
-        ref={chartContainerRef} 
-        className="w-full h-full bg-[#0a0e17]"
-        style={{ minHeight: '400px' }}
-      />
+  ref={chartContainerRef} 
+  className="absolute inset-0 bg-[#0a0e17]"
+/>
 
       {/* Order Ticker - HANYA UNTUK ACTIVE ORDERS */}
       <OrderTicker orders={activeOrders} currentPrice={currentPrice} />
