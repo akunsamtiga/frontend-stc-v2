@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import Navbar from '@/components/Navbar'
+import AssetFormModal from '@/components/admin/AssetFormModal'
+import AssetDetailModal from '@/components/admin/AssetDetailModal'
+import DeleteConfirmModal from '@/components/admin/DeleteConfirmModal'
 import { 
   Package, 
   Plus, 
@@ -13,7 +16,9 @@ import {
   CheckCircle,
   XCircle,
   TrendingUp,
-  Activity
+  Activity,
+  Eye,
+  Settings as SettingsIcon
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -24,8 +29,26 @@ interface Asset {
   profitRate: number
   isActive: boolean
   dataSource: string
+  realtimeDbPath?: string
+  apiEndpoint?: string
   description?: string
+  simulatorSettings?: {
+    initialPrice: number
+    dailyVolatilityMin: number
+    dailyVolatilityMax: number
+    secondVolatilityMin: number
+    secondVolatilityMax: number
+    minPrice?: number
+    maxPrice?: number
+  }
+  tradingSettings?: {
+    minOrderAmount: number
+    maxOrderAmount: number
+    allowedDurations: number[]
+  }
   createdAt: string
+  updatedAt?: string
+  createdBy?: string
 }
 
 export default function AdminAssetsPage() {
@@ -33,6 +56,14 @@ export default function AdminAssetsPage() {
   const user = useAuthStore((state) => state.user)
   const [assets, setAssets] = useState<Asset[]>([])
   const [loading, setLoading] = useState(true)
+  
+  // Modal states
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDetailModal, setShowDetailModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
 
   useEffect(() => {
     if (!user) {
@@ -49,6 +80,7 @@ export default function AdminAssetsPage() {
 
   const loadAssets = async () => {
     try {
+      setLoading(true)
       const response = await api.getAssets(false)
       const assetData = response?.data || response
       setAssets(assetData.assets || [])
@@ -57,6 +89,52 @@ export default function AdminAssetsPage() {
       toast.error('Failed to load assets')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleCreate = () => {
+    setSelectedAsset(null)
+    setShowCreateModal(true)
+  }
+
+  const handleEdit = (asset: Asset) => {
+    setSelectedAsset(asset)
+    setShowEditModal(true)
+  }
+
+  const handleViewDetail = (asset: Asset) => {
+    setSelectedAsset(asset)
+    setShowDetailModal(true)
+  }
+
+  const handleDelete = (asset: Asset) => {
+    setSelectedAsset(asset)
+    setShowDeleteModal(true)
+  }
+
+  const handleCreateSuccess = () => {
+    setShowCreateModal(false)
+    loadAssets()
+    toast.success('Asset created successfully')
+  }
+
+  const handleEditSuccess = () => {
+    setShowEditModal(false)
+    loadAssets()
+    toast.success('Asset updated successfully')
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedAsset) return
+
+    try {
+      await api.deleteAsset(selectedAsset.id)
+      setShowDeleteModal(false)
+      setSelectedAsset(null)
+      loadAssets()
+      toast.success('Asset deleted successfully')
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to delete asset')
     }
   }
 
@@ -95,18 +173,20 @@ export default function AdminAssetsPage() {
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Asset Management</h1>
-                <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Configure trading assets and profit rates</p>
+                <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Configure trading assets and settings</p>
               </div>
             </div>
 
-            <button
-              onClick={() => toast.info('Create asset feature coming soon')}
-              className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
-            >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="hidden sm:inline">Add Asset</span>
-              <span className="sm:hidden">Add</span>
-            </button>
+            {user.role === 'super_admin' && (
+              <button
+                onClick={handleCreate}
+                className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
+              >
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Add Asset</span>
+                <span className="sm:hidden">Add</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -158,13 +238,15 @@ export default function AdminAssetsPage() {
               </div>
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No assets configured</h3>
               <p className="text-sm text-gray-500 mb-6">Add your first trading asset to get started</p>
-              <button
-                onClick={() => toast.info('Create asset feature coming soon')}
-                className="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 transition-colors text-sm sm:text-base"
-              >
-                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-                Add First Asset
-              </button>
+              {user.role === 'super_admin' && (
+                <button
+                  onClick={handleCreate}
+                  className="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 transition-colors text-sm sm:text-base"
+                >
+                  <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                  Add First Asset
+                </button>
+              )}
             </div>
           ) : (
             <>
@@ -219,19 +301,31 @@ export default function AdminAssetsPage() {
                       </span>
 
                       <button
-                        onClick={() => toast.info('Edit feature coming soon')}
-                        className="p-2 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        onClick={() => handleViewDetail(asset)}
+                        className="p-2 hover:bg-purple-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        title="View Details"
                       >
-                        <Edit className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                        <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
                       </button>
 
                       {user.role === 'super_admin' && (
-                        <button
-                          onClick={() => toast.info('Delete feature coming soon')}
-                          className="p-2 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                        >
-                          <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
-                        </button>
+                        <>
+                          <button
+                            onClick={() => handleEdit(asset)}
+                            className="p-2 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                            title="Edit Asset"
+                          >
+                            <Edit className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                          </button>
+
+                          <button
+                            onClick={() => handleDelete(asset)}
+                            className="p-2 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                            title="Delete Asset"
+                          >
+                            <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -295,20 +389,29 @@ export default function AdminAssetsPage() {
 
                     <div className="flex gap-2">
                       <button
-                        onClick={() => toast.info('Edit feature coming soon')}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-sm font-semibold text-blue-700 transition-all"
+                        onClick={() => handleViewDetail(asset)}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg text-sm font-semibold text-purple-700 transition-all"
                       >
-                        <Edit className="w-4 h-4" />
-                        Edit
+                        <Eye className="w-4 h-4" />
+                        Details
                       </button>
                       
                       {user.role === 'super_admin' && (
-                        <button
-                          onClick={() => toast.info('Delete feature coming soon')}
-                          className="flex items-center justify-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-sm font-semibold text-red-700 transition-all"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <>
+                          <button
+                            onClick={() => handleEdit(asset)}
+                            className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-sm font-semibold text-blue-700 transition-all"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          
+                          <button
+                            onClick={() => handleDelete(asset)}
+                            className="flex items-center justify-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-sm font-semibold text-red-700 transition-all"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -318,6 +421,47 @@ export default function AdminAssetsPage() {
           )}
         </div>
       </div>
+
+      {/* Modals */}
+      {showCreateModal && (
+        <AssetFormModal
+          mode="create"
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={handleCreateSuccess}
+        />
+      )}
+
+      {showEditModal && selectedAsset && (
+        <AssetFormModal
+          mode="edit"
+          asset={selectedAsset}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={handleEditSuccess}
+        />
+      )}
+
+      {showDetailModal && selectedAsset && (
+        <AssetDetailModal
+          asset={selectedAsset}
+          onClose={() => setShowDetailModal(false)}
+          onEdit={user.role === 'super_admin' ? () => {
+            setShowDetailModal(false)
+            handleEdit(selectedAsset)
+          } : undefined}
+        />
+      )}
+
+      {showDeleteModal && selectedAsset && (
+        <DeleteConfirmModal
+          title="Delete Asset"
+          message={`Are you sure you want to delete "${selectedAsset.name}"? This action cannot be undone.`}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => {
+            setShowDeleteModal(false)
+            setSelectedAsset(null)
+          }}
+        />
+      )}
     </div>
   )
 }
