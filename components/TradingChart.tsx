@@ -1,4 +1,4 @@
-// components/TradingChart.tsx - OPTIMIZED VERSION
+// components/TradingChart.tsx - FIXED VERSION
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
@@ -15,8 +15,6 @@ import {
   Activity,
   TrendingUp,
   TrendingDown,
-  ChevronLeft,
-  ChevronRight,
   ChevronDown
 } from 'lucide-react'
 
@@ -35,7 +33,29 @@ interface TradingChartProps {
 }
 
 // ===================================
-// MOBILE CONTROLS COMPONENT (DROPDOWN)
+// HELPER: Clean Asset Path
+// ===================================
+function cleanAssetPath(path: string): string {
+  if (!path) return ''
+  
+  // Remove /current_price suffix if exists
+  if (path.endsWith('/current_price')) {
+    path = path.replace('/current_price', '')
+  }
+  
+  // Remove trailing slash
+  path = path.replace(/\/$/, '')
+  
+  // Ensure starts with /
+  if (!path.startsWith('/')) {
+    path = '/' + path
+  }
+  
+  return path
+}
+
+// ===================================
+// MOBILE CONTROLS
 // ===================================
 const MobileControls = memo(({ 
   timeframe, 
@@ -51,7 +71,6 @@ const MobileControls = memo(({
 
   const timeframes: Timeframe[] = ['1m', '5m', '15m', '1h', '4h', '1d']
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -67,7 +86,6 @@ const MobileControls = memo(({
 
   return (
     <div className="lg:hidden absolute top-2 left-2 z-10" ref={dropdownRef}>
-      {/* Trigger Button - Compact */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg hover:bg-black/50 transition-all"
@@ -80,10 +98,8 @@ const MobileControls = memo(({
         <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {/* Dropdown Menu */}
       {isOpen && (
         <div className="absolute top-full left-0 mt-1 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl overflow-hidden animate-scale-in min-w-[200px]">
-          {/* Timeframes */}
           <div className="p-2 border-b border-gray-800/50">
             <div className="text-[10px] font-semibold text-gray-400 mb-1.5 px-2">Timeframe</div>
             <div className="grid grid-cols-3 gap-1">
@@ -107,7 +123,6 @@ const MobileControls = memo(({
             </div>
           </div>
 
-          {/* Chart Type */}
           <div className="p-2 border-b border-gray-800/50">
             <div className="text-[10px] font-semibold text-gray-400 mb-1.5 px-2">Chart Type</div>
             <div className="flex gap-1">
@@ -142,7 +157,6 @@ const MobileControls = memo(({
             </div>
           </div>
 
-          {/* Actions */}
           <div className="p-2">
             <div className="flex gap-1">
               <button
@@ -175,7 +189,7 @@ const MobileControls = memo(({
 MobileControls.displayName = 'MobileControls'
 
 // ===================================
-// DESKTOP CONTROLS COMPONENT
+// DESKTOP CONTROLS
 // ===================================
 const DesktopControls = memo(({ 
   timeframe, 
@@ -260,7 +274,7 @@ const DesktopControls = memo(({
 DesktopControls.displayName = 'DesktopControls'
 
 // ===================================
-// ORDER TICKER (IN CHART - COMPACT)
+// ORDER TICKER
 // ===================================
 const OrderTicker = memo(({ orders, currentPrice }: { orders: BinaryOrder[], currentPrice?: number }) => {
   if (orders.length === 0) return null
@@ -282,23 +296,19 @@ const OrderTicker = memo(({ orders, currentPrice }: { orders: BinaryOrder[], cur
                   : 'bg-red-500/20 border-red-500/50'
               }`}
             >
-              {/* Icon & Direction */}
               {order.direction === 'CALL' ? (
                 <TrendingUp className="w-4 h-4 text-green-400 flex-shrink-0" />
               ) : (
                 <TrendingDown className="w-4 h-4 text-red-400 flex-shrink-0" />
               )}
 
-              {/* Asset & Entry Price */}
               <div className="text-xs">
                 <div className="font-semibold leading-tight">{order.asset_name}</div>
                 <div className="text-gray-300 font-mono text-[10px]">{order.entry_price.toFixed(3)}</div>
               </div>
 
-              {/* Divider */}
               <div className="w-px h-6 bg-white/10"></div>
 
-              {/* Status */}
               <div className="text-xs">
                 <div className={`font-bold leading-tight ${isWinning ? 'text-green-400' : 'text-red-400'}`}>
                   {isWinning ? 'WIN' : 'LOSE'}
@@ -306,10 +316,8 @@ const OrderTicker = memo(({ orders, currentPrice }: { orders: BinaryOrder[], cur
                 <div className="text-gray-300 font-mono text-[10px]">{timeLeft}</div>
               </div>
 
-              {/* Divider */}
               <div className="w-px h-6 bg-white/10"></div>
 
-              {/* Amount */}
               <div className="text-xs text-right">
                 <div className="text-gray-400 text-[10px] leading-tight">Amount</div>
                 <div className="font-bold font-mono leading-tight">{formatCurrency(order.amount)}</div>
@@ -325,7 +333,7 @@ const OrderTicker = memo(({ orders, currentPrice }: { orders: BinaryOrder[], cur
 OrderTicker.displayName = 'OrderTicker'
 
 // ===================================
-// MAIN CHART COMPONENT
+// MAIN CHART
 // ===================================
 const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
@@ -353,7 +361,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   const [loadingProgress, setLoadingProgress] = useState(0)
 
   // ===================================
-  // UPDATE CURRENT PRICE LINE
+  // UPDATE PRICE LINE
   // ===================================
   const updateCurrentPriceLine = useCallback((price: number) => {
     if (!candleSeriesRef.current || !chartRef.current) return
@@ -372,8 +380,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           currentPriceLineRef.current = candleSeriesRef.current.createPriceLine({
             price: price,
             color: '#3b82f6',
-            lineWidth: 1, // 👈 TIPIS
-            lineStyle: 2, // 👈 DASHED
+            lineWidth: 1,
+            lineStyle: 2,
             axisLabelVisible: true,
             title: 'Current',
             lineVisible: true,
@@ -492,12 +500,12 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         },
         grid: {
           vertLines: { 
-            color: 'rgba(255, 255, 255, 0.08)', // 👈 LEBIH TEBAL
+            color: 'rgba(255, 255, 255, 0.08)',
             style: 0,
             visible: true
           },
           horzLines: { 
-            color: 'rgba(255, 255, 255, 0.08)', // 👈 LEBIH TEBAL
+            color: 'rgba(255, 255, 255, 0.08)',
             style: 0,
             visible: true
           },
@@ -620,7 +628,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   }, [chartType])
 
   // ===================================
-  // LOAD DATA & SUBSCRIBE
+  // LOAD DATA & SUBSCRIBE - FIXED
   // ===================================
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
@@ -645,11 +653,14 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       }
 
       try {
+        // ✅ CRITICAL: Clean path first
         let assetPath = selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`
+        assetPath = cleanAssetPath(assetPath)
 
-        if (assetPath.endsWith('/current_price')) {
-          assetPath = assetPath.replace('/current_price', '')
-        }
+        console.log('📊 Loading chart data:')
+        console.log('   Asset:', selectedAsset.symbol)
+        console.log('   Asset path (clean):', assetPath)
+        console.log('   Timeframe:', timeframe)
         
         setLoadingProgress(30)
 
@@ -660,7 +671,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         setLoadingProgress(60)
 
         if (!data || data.length === 0) {
-          setError('No data available. Check simulator.')
+          setError('No data available. Check if simulator is running.')
           setIsLoading(false)
           return
         }
@@ -694,6 +705,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         setLoadingProgress(100)
         setIsLoading(false)
 
+        // ✅ Subscribe to OHLC updates
         unsubscribeOHLCRef.current = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
           if (isCancelled || !candleSeriesRef.current || !lineSeriesRef.current) return
 
@@ -714,19 +726,18 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           lineSeriesRef.current.update(lineUpdate)
         })
         
-        if (selectedAsset.realtimeDbPath) {
-          unsubscribePriceRef.current = subscribeToPriceUpdates(
-            selectedAsset.realtimeDbPath, 
-            (priceData) => {
-              if (isCancelled) return
-              updateCurrentPriceLine(priceData.price)
-            }
-          )
-        }
+        // ✅ Subscribe to price updates
+        unsubscribePriceRef.current = subscribeToPriceUpdates(
+          assetPath,
+          (priceData) => {
+            if (isCancelled) return
+            updateCurrentPriceLine(priceData.price)
+          }
+        )
 
       } catch (err: any) {
         if (isCancelled) return
-        console.error('Error loading data:', err)
+        console.error('❌ Error loading data:', err)
         setError(err.message || 'Failed to load chart data')
         setIsLoading(false)
       }
@@ -793,7 +804,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   }
 
   return (
-  <div className={`relative h-full ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : ''}`}>
+    <div className={`relative h-full ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : ''}`}>
       {/* Desktop Controls */}
       <DesktopControls
         timeframe={timeframe}
@@ -841,17 +852,17 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
       {/* Chart Container */}
       <div 
-  ref={chartContainerRef} 
-  className="absolute inset-0 bg-[#0a0e17]"
-/>
+        ref={chartContainerRef} 
+        className="absolute inset-0 bg-[#0a0e17]"
+      />
 
-      {/* Order Ticker - HANYA UNTUK ACTIVE ORDERS */}
+      {/* Order Ticker */}
       <OrderTicker orders={activeOrders} currentPrice={currentPrice} />
 
+      {/* Loading Overlay */}
       {isLoading && (
         <div className="absolute inset-0 bg-[#0a0e17]/95 z-20">
           <div className="h-full flex flex-col p-6">
-            {/* Chart Header Skeleton */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex gap-2">
                 <div className="w-12 h-8 bg-gray-800 rounded animate-pulse"></div>
@@ -861,7 +872,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
               <div className="w-24 h-8 bg-gray-800 rounded animate-pulse" style={{ animationDelay: '300ms' }}></div>
             </div>
             
-            {/* Animated Chart Bars */}
             <div className="flex-1 flex items-end gap-1">
               {[...Array(30)].map((_, i) => (
                 <div
@@ -876,7 +886,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
               ))}
             </div>
             
-            {/* Loading Text */}
             <div className="mt-4 text-center">
               <div className="text-sm text-gray-400 mb-2">
                 Loading {timeframe} chart data...
@@ -924,15 +933,15 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         .animate-scale-in {
           animation: scale-in 0.2s ease-out;
         }
-          @keyframes loading-bar {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-  }
-  
-  .animate-loading-bar {
-    animation: loading-bar 1.5s ease-in-out infinite;
-  }
 
+        @keyframes loading-bar {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        
+        .animate-loading-bar {
+          animation: loading-bar 1.5s ease-in-out infinite;
+        }
       `}</style>
     </div>
   )

@@ -1,4 +1,4 @@
-// lib/firebase.ts - ULTRA-FAST VERSION WITH AGGRESSIVE CACHING & PREFETCHING
+// lib/firebase.ts - FIXED VERSION with Proper Path Handling
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
 import { getDatabase, Database, ref, onValue, off, query, limitToLast, get } from 'firebase/database'
 
@@ -32,22 +32,66 @@ if (typeof window !== 'undefined') {
 export { database, ref, onValue, off, query, limitToLast, get }
 
 // ===================================
+// PATH UTILITY - CRITICAL FIX
+// ===================================
+
+/**
+ * ✅ Clean asset path - removes /current_price if exists
+ * Backend stores: /idx_stc (without /current_price)
+ * Simulator stores: /idx_stc/current_price and /idx_stc/ohlc_1m
+ */
+function cleanAssetPath(path: string): string {
+  if (!path) return ''
+  
+  // Remove /current_price suffix if exists
+  if (path.endsWith('/current_price')) {
+    path = path.replace('/current_price', '')
+  }
+  
+  // Remove trailing slash
+  path = path.replace(/\/$/, '')
+  
+  // Ensure starts with /
+  if (!path.startsWith('/')) {
+    path = '/' + path
+  }
+  
+  return path
+}
+
+/**
+ * ✅ Get price path - always append /current_price
+ */
+function getPricePath(assetPath: string): string {
+  const clean = cleanAssetPath(assetPath)
+  return `${clean}/current_price`
+}
+
+/**
+ * ✅ Get OHLC path - append /ohlc_timeframe
+ */
+function getOHLCPath(assetPath: string, timeframe: string): string {
+  const clean = cleanAssetPath(assetPath)
+  return `${clean}/ohlc_${timeframe}`
+}
+
+// ===================================
 // TYPES & CONFIG
 // ===================================
 
 type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
 
 const TIMEFRAME_CONFIG: Record<Timeframe, { path: string; barsToFetch: number; cacheTTL: number }> = {
-  '1m': { path: 'ohlc_1m', barsToFetch: 100, cacheTTL: 5000 },      // 5s
-  '5m': { path: 'ohlc_5m', barsToFetch: 100, cacheTTL: 15000 },     // 15s
-  '15m': { path: 'ohlc_15m', barsToFetch: 150, cacheTTL: 30000 },   // 30s
-  '1h': { path: 'ohlc_1h', barsToFetch: 150, cacheTTL: 60000 },     // 1m
-  '4h': { path: 'ohlc_4h', barsToFetch: 100, cacheTTL: 120000 },    // 2m
-  '1d': { path: 'ohlc_1d', barsToFetch: 60, cacheTTL: 300000 }      // 5m
+  '1m': { path: 'ohlc_1m', barsToFetch: 100, cacheTTL: 5000 },
+  '5m': { path: 'ohlc_5m', barsToFetch: 100, cacheTTL: 15000 },
+  '15m': { path: 'ohlc_15m', barsToFetch: 150, cacheTTL: 30000 },
+  '1h': { path: 'ohlc_1h', barsToFetch: 150, cacheTTL: 60000 },
+  '4h': { path: 'ohlc_4h', barsToFetch: 100, cacheTTL: 120000 },
+  '1d': { path: 'ohlc_1d', barsToFetch: 60, cacheTTL: 300000 }
 }
 
 // ===================================
-// INDEXEDDB PERSISTENT CACHE
+// INDEXEDDB CACHE
 // ===================================
 
 class IndexedDBCache {
@@ -118,19 +162,6 @@ class IndexedDBCache {
     })
   }
 
-  async delete(key: string): Promise<void> {
-    await this.init()
-    if (!this.db) return
-
-    return new Promise((resolve) => {
-      const transaction = this.db!.transaction([this.storeName], 'readwrite')
-      const store = transaction.objectStore(this.storeName)
-      store.delete(key)
-      transaction.oncomplete = () => resolve()
-      transaction.onerror = () => resolve()
-    })
-  }
-
   async clear(): Promise<void> {
     await this.init()
     if (!this.db) return
@@ -171,7 +202,7 @@ class IndexedDBCache {
 
 const idbCache = new IndexedDBCache()
 
-// Auto cleanup every 5 minutes
+// Auto cleanup
 if (typeof window !== 'undefined') {
   setInterval(() => {
     idbCache.cleanup().catch(console.error)
@@ -179,7 +210,7 @@ if (typeof window !== 'undefined') {
 }
 
 // ===================================
-// IN-MEMORY CACHE (FAST ACCESS)
+// MEMORY CACHE
 // ===================================
 
 interface CacheEntry {
@@ -191,58 +222,7 @@ interface CacheEntry {
 const memoryCache = new Map<string, CacheEntry>()
 
 // ===================================
-// PREFETCH MANAGER
-// ===================================
-
-class PrefetchManager {
-  private prefetchQueue = new Set<string>()
-  private prefetching = new Map<string, Promise<any>>()
-  
-  async prefetch(assetPath: string, timeframes: Timeframe[]): Promise<void> {
-    const promises = timeframes.map(tf => {
-      const key = `${assetPath}-${tf}`
-      
-      // Skip if already prefetching
-      if (this.prefetchQueue.has(key) || this.prefetching.has(key)) {
-        return Promise.resolve()
-      }
-      
-      this.prefetchQueue.add(key)
-      const promise = fetchHistoricalData(assetPath, tf)
-        .then(() => {
-          this.prefetchQueue.delete(key)
-          this.prefetching.delete(key)
-        })
-        .catch(() => {
-          this.prefetchQueue.delete(key)
-          this.prefetching.delete(key)
-        })
-      
-      this.prefetching.set(key, promise)
-      return promise
-    })
-
-    await Promise.allSettled(promises)
-  }
-
-  isPrefetching(assetPath: string, timeframe: Timeframe): boolean {
-    const key = `${assetPath}-${timeframe}`
-    return this.prefetchQueue.has(key) || this.prefetching.has(key)
-  }
-
-  async waitForPrefetch(assetPath: string, timeframe: Timeframe): Promise<void> {
-    const key = `${assetPath}-${timeframe}`
-    const promise = this.prefetching.get(key)
-    if (promise) {
-      await promise
-    }
-  }
-}
-
-const prefetchManager = new PrefetchManager()
-
-// ===================================
-// OPTIMIZED FETCH WITH MULTI-LEVEL CACHE
+// FETCH HISTORICAL DATA - FIXED
 // ===================================
 
 export async function fetchHistoricalData(
@@ -256,33 +236,31 @@ export async function fetchHistoricalData(
   try {
     const config = TIMEFRAME_CONFIG[timeframe]
     if (!config) {
-      console.error(`Invalid timeframe: ${timeframe}`)
+      console.error(`❌ Invalid timeframe: ${timeframe}`)
       return []
     }
 
-    // ✅ FIX: Clean path first
-    let basePath = assetPath
-    
-    // Remove /current_price if exists
-    if (basePath.endsWith('/current_price')) {
-      basePath = basePath.replace('/current_price', '')
-    }
-    
+    // ✅ CRITICAL: Clean path first
+    const basePath = cleanAssetPath(assetPath)
     const cacheKey = `${basePath}-${timeframe}`
 
-    // 1️⃣ Check memory cache (instant)
+    console.log(`📊 Fetching historical data:`)
+    console.log(`   Asset path (input): ${assetPath}`)
+    console.log(`   Asset path (clean): ${basePath}`)
+    console.log(`   Timeframe: ${timeframe}`)
+
+    // 1️⃣ Memory cache
     const memCached = memoryCache.get(cacheKey)
     if (memCached && (Date.now() - memCached.timestamp) < memCached.ttl) {
       console.log(`⚡ Memory cache hit: ${timeframe} (${memCached.data.length} bars)`)
       return memCached.data
     }
 
-    // 2️⃣ Check IndexedDB cache (fast)
+    // 2️⃣ IndexedDB cache
     const idbCached = await idbCache.get(cacheKey)
     if (idbCached) {
       console.log(`💾 IndexedDB cache hit: ${timeframe} (${idbCached.length} bars)`)
       
-      // Update memory cache
       memoryCache.set(cacheKey, {
         data: idbCached,
         timestamp: Date.now(),
@@ -292,34 +270,22 @@ export async function fetchHistoricalData(
       return idbCached
     }
 
-    // 3️⃣ Check if prefetching in progress
-    if (prefetchManager.isPrefetching(basePath, timeframe)) {
-      console.log(`⏳ Waiting for prefetch: ${timeframe}`)
-      await prefetchManager.waitForPrefetch(basePath, timeframe)
-      
-      // Try cache again after prefetch
-      const cachedAfterPrefetch = memoryCache.get(cacheKey)
-      if (cachedAfterPrefetch) {
-        return cachedAfterPrefetch.data
-      }
-    }
-
-    // 4️⃣ Fetch from Firebase (optimized query)
+    // 3️⃣ Fetch from Firebase
     console.log(`🔥 Fetching from Firebase: ${timeframe}`)
     
-    // ✅ FIX: Use cleaned basePath
-    const ohlcPath = `${basePath}/${config.path}`
+    // ✅ Use helper function to get OHLC path
+    const ohlcPath = getOHLCPath(basePath, timeframe)
+    
+    console.log(`   OHLC path: ${ohlcPath}`)
+    
     const ohlcRef = ref(database, ohlcPath)
-    
-    console.log(`📊 OHLC Path: ${ohlcPath}`) // Debug log
-    
-    // Use limitToLast for better performance
     const limitedQuery = query(ohlcRef, limitToLast(config.barsToFetch))
     
     const snapshot = await get(limitedQuery)
     
     if (!snapshot.exists()) {
       console.warn(`⚠️ No data at: ${ohlcPath}`)
+      console.warn(`   Make sure simulator is running and path is correct`)
       return []
     }
 
@@ -331,7 +297,7 @@ export async function fetchHistoricalData(
       return []
     }
     
-    // Store in both caches
+    // Store in caches
     memoryCache.set(cacheKey, {
       data: result,
       timestamp: Date.now(),
@@ -345,6 +311,8 @@ export async function fetchHistoricalData(
 
   } catch (error: any) {
     console.error('❌ Fetch error:', error.message)
+    console.error('   Path:', assetPath)
+    console.error('   Timeframe:', timeframe)
     return []
   }
 }
@@ -391,7 +359,7 @@ function processHistoricalData(data: any, limit: number): any[] {
 }
 
 // ===================================
-// SUBSCRIBE TO OHLC (RAF THROTTLED)
+// SUBSCRIBE TO OHLC - FIXED
 // ===================================
 
 export function subscribeToOHLCUpdates(
@@ -405,23 +373,20 @@ export function subscribeToOHLCUpdates(
 
   const config = TIMEFRAME_CONFIG[timeframe]
   if (!config) {
-    console.error(`Invalid timeframe: ${timeframe}`)
+    console.error(`❌ Invalid timeframe: ${timeframe}`)
     return () => {}
   }
 
-  // ✅ FIX: Clean path first
-  let basePath = assetPath
+  // ✅ CRITICAL: Clean path and use helper
+  const basePath = cleanAssetPath(assetPath)
+  const ohlcPath = getOHLCPath(basePath, timeframe)
   
-  // Remove /current_price if exists
-  if (basePath.endsWith('/current_price')) {
-    basePath = basePath.replace('/current_price', '')
-  }
+  console.log(`🔥 Subscribing to OHLC:`)
+  console.log(`   Asset path (input): ${assetPath}`)
+  console.log(`   Asset path (clean): ${basePath}`)
+  console.log(`   OHLC path: ${ohlcPath}`)
   
-  // ✅ FIX: Use cleaned basePath
-  const ohlcPath = `${basePath}/${config.path}`
   const ohlcRef = ref(database, ohlcPath)
-  
-  console.log(`🔥 Subscribing to OHLC: ${ohlcPath}`) // Debug log
   
   let lastBarTimestamp: number | null = null
   let updateCount = 0
@@ -459,7 +424,7 @@ export function subscribeToOHLCUpdates(
       const cacheKey = `${basePath}-${timeframe}`
       memoryCache.delete(cacheKey)
       
-      console.log(`🆕 New ${timeframe} bar: ${barTimestamp}`) // Debug log
+      console.log(`🆕 New ${timeframe} bar: ${barTimestamp}`)
     }
     
     const barData = {
@@ -489,20 +454,28 @@ export function subscribeToOHLCUpdates(
 }
 
 // ===================================
-// SUBSCRIBE TO CURRENT PRICE (RAF THROTTLED)
+// SUBSCRIBE TO PRICE - FIXED
 // ===================================
 
 export function subscribeToPriceUpdates(
-  path: string,
+  assetPath: string,
   callback: (data: any) => void
 ): () => void {
   if (typeof window === 'undefined' || !database) {
     return () => {}
   }
 
-  const priceRef = ref(database, path)
+  // ✅ CRITICAL: Use helper to get price path
+  const pricePath = getPricePath(assetPath)
+  
+  console.log(`🔥 Subscribing to price:`)
+  console.log(`   Asset path (input): ${assetPath}`)
+  console.log(`   Price path: ${pricePath}`)
+  
+  const priceRef = ref(database, pricePath)
   
   let rafId: number | null = null
+  let updateCount = 0
   
   const throttledCallback = (data: any) => {
     if (rafId) {
@@ -515,8 +488,6 @@ export function subscribeToPriceUpdates(
     })
   }
   
-  let updateCount = 0
-  
   const unsubscribe = onValue(priceRef, (snapshot) => {
     const data = snapshot.val()
     if (data) {
@@ -524,7 +495,7 @@ export function subscribeToPriceUpdates(
       throttledCallback(data)
     }
   }, (error) => {
-    console.error('Price subscription error:', error)
+    console.error('❌ Price subscription error:', error)
   })
 
   return () => {
@@ -537,23 +508,23 @@ export function subscribeToPriceUpdates(
 }
 
 // ===================================
-// PREFETCH DEFAULT ASSET (AUTO)
+// PREFETCH
 // ===================================
 
 export async function prefetchDefaultAsset(assetPath: string): Promise<void> {
-  // ✅ FIX: Clean path first
-  let basePath = assetPath
+  const basePath = cleanAssetPath(assetPath)
   
-  if (basePath.endsWith('/current_price')) {
-    basePath = basePath.replace('/current_price', '')
-  }
+  console.log(`🚀 Prefetching default asset:`)
+  console.log(`   Asset path (input): ${assetPath}`)
+  console.log(`   Asset path (clean): ${basePath}`)
   
-  console.log(`🚀 Prefetching default asset: ${basePath}`)
-  
-  // Prefetch most used timeframes in parallel
   const timeframes: Timeframe[] = ['1m', '5m', '15m']
   
-  await prefetchManager.prefetch(basePath, timeframes)
+  const promises = timeframes.map(tf => 
+    fetchHistoricalData(basePath, tf)
+  )
+  
+  await Promise.allSettled(promises)
   
   console.log(`✅ Default asset prefetched`)
 }
@@ -581,19 +552,7 @@ export async function clearDataCache(pattern?: string): Promise<void> {
 }
 
 // ===================================
-// PREFETCH MULTIPLE TIMEFRAMES
-// ===================================
-
-export async function prefetchTimeframes(
-  assetPath: string,
-  timeframes: Timeframe[]
-): Promise<void> {
-  await prefetchManager.prefetch(assetPath, timeframes)
-  console.log(`✅ Prefetched ${timeframes.length} timeframes`)
-}
-
-// ===================================
-// GET CACHE STATISTICS
+// CACHE STATS
 // ===================================
 
 export function getCacheStats(): any {
