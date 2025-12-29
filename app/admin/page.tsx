@@ -289,8 +289,7 @@ export default function AdminDashboard() {
                 ? 'bg-blue-500 text-white'
                 : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
             }`}
-          >
-            🔄 Combined
+          >Combined
           </button>
           <button
             onClick={() => setAccountFilter('real')}
@@ -299,8 +298,7 @@ export default function AdminDashboard() {
                 ? 'bg-green-500 text-white'
                 : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
             }`}
-          >
-            💰 Real Account
+          >Real Account
           </button>
           <button
             onClick={() => setAccountFilter('demo')}
@@ -309,8 +307,7 @@ export default function AdminDashboard() {
                 ? 'bg-purple-500 text-white'
                 : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
             }`}
-          >
-            🎮 Demo Account
+          >Demo Account
           </button>
         </div>
 
@@ -586,7 +583,7 @@ export default function AdminDashboard() {
                   <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
                     <DollarSign className="w-5 h-5 text-green-600" />
                   </div>
-                  <h3 className="font-bold text-gray-900">💰 Real Account</h3>
+                  <h3 className="font-bold text-gray-900">Real Account</h3>
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
@@ -617,7 +614,7 @@ export default function AdminDashboard() {
                   <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
                     <Activity className="w-5 h-5 text-purple-600" />
                   </div>
-                  <h3 className="font-bold text-gray-900">🎮 Demo Account</h3>
+                  <h3 className="font-bold text-gray-900">Demo Account</h3>
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">

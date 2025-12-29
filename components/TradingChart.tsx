@@ -1,4 +1,4 @@
-// components/TradingChart.tsx - FIXED VERSION
+// components/TradingChart.tsx - REALTIME OPTIMIZED
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
@@ -32,31 +32,20 @@ interface TradingChartProps {
   currentPrice?: number
 }
 
-// ===================================
-// HELPER: Clean Asset Path
-// ===================================
+// Clean asset path
 function cleanAssetPath(path: string): string {
   if (!path) return ''
-  
-  // Remove /current_price suffix if exists
   if (path.endsWith('/current_price')) {
     path = path.replace('/current_price', '')
   }
-  
-  // Remove trailing slash
   path = path.replace(/\/$/, '')
-  
-  // Ensure starts with /
   if (!path.startsWith('/')) {
     path = '/' + path
   }
-  
   return path
 }
 
-// ===================================
-// MOBILE CONTROLS
-// ===================================
+// Mobile Controls Component
 const MobileControls = memo(({ 
   timeframe, 
   chartType, 
@@ -188,9 +177,7 @@ const MobileControls = memo(({
 
 MobileControls.displayName = 'MobileControls'
 
-// ===================================
-// DESKTOP CONTROLS
-// ===================================
+// Desktop Controls Component
 const DesktopControls = memo(({ 
   timeframe, 
   chartType, 
@@ -236,7 +223,7 @@ const DesktopControls = memo(({
         <button
           onClick={() => onChartTypeChange('line')}
           disabled={isLoading}
-          className={`px-2 py-0.5 text-xs font-semibold rounded transition-all ${
+          className={`flex-1 px-2 py-0.5 text-xs font-semibold rounded transition-all ${
             chartType === 'line'
               ? 'bg-blue-500/70 text-white shadow-sm'
               : 'text-gray-300 hover:text-white hover:bg-white/10'
@@ -273,9 +260,7 @@ const DesktopControls = memo(({
 
 DesktopControls.displayName = 'DesktopControls'
 
-// ===================================
-// ORDER TICKER
-// ===================================
+// Order Ticker Component
 const OrderTicker = memo(({ orders, currentPrice }: { orders: BinaryOrder[], currentPrice?: number }) => {
   if (orders.length === 0) return null
 
@@ -332,9 +317,7 @@ const OrderTicker = memo(({ orders, currentPrice }: { orders: BinaryOrder[], cur
 
 OrderTicker.displayName = 'OrderTicker'
 
-// ===================================
-// MAIN CHART
-// ===================================
+// Main Chart Component
 const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -347,7 +330,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   
   const mountedRef = useRef(false)
   const orderMarkersRef = useRef<Map<string, OrderMarker>>(new Map())
-  const rafIdRef = useRef<number | null>(null)
   
   const { selectedAsset } = useTradingStore()
 
@@ -360,17 +342,11 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   const [lastPrice, setLastPrice] = useState<number | null>(null)
   const [loadingProgress, setLoadingProgress] = useState(0)
 
-  // ===================================
-  // UPDATE PRICE LINE
-  // ===================================
+  // ✅ REALTIME: Update price line with RAF optimization
   const updateCurrentPriceLine = useCallback((price: number) => {
     if (!candleSeriesRef.current || !chartRef.current) return
     
-    if (rafIdRef.current) {
-      cancelAnimationFrame(rafIdRef.current)
-    }
-    
-    rafIdRef.current = requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
       try {
         if (currentPriceLineRef.current && candleSeriesRef.current) {
           candleSeriesRef.current.removePriceLine(currentPriceLineRef.current)
@@ -395,9 +371,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     })
   }, [])
 
-  // ===================================
-  // ORDER MARKERS
-  // ===================================
+  // Order markers management
   const updateOrderMarker = useCallback((order: BinaryOrder) => {
     if (!candleSeriesRef.current || !chartRef.current) return
 
@@ -441,9 +415,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     })
   }, [])
 
-  // ===================================
-  // UPDATE ORDERS
-  // ===================================
+  // Update orders
   useEffect(() => {
     if (!chartRef.current || !candleSeriesRef.current) return
 
@@ -467,18 +439,14 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     })
   }, [activeOrders, updateOrderMarker])
 
-  // ===================================
-  // UPDATE CURRENT PRICE
-  // ===================================
+  // ✅ REALTIME: Update current price immediately
   useEffect(() => {
     if (currentPrice && isInitialized) {
       updateCurrentPriceLine(currentPrice)
     }
   }, [currentPrice, isInitialized, updateCurrentPriceLine])
 
-  // ===================================
-  // INITIALIZE CHART
-  // ===================================
+  // Initialize chart
   useEffect(() => {
     if (mountedRef.current) return
     
@@ -581,10 +549,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           unsubscribePriceRef.current = null
         }
         
-        if (rafIdRef.current) {
-          cancelAnimationFrame(rafIdRef.current)
-        }
-        
         if (currentPriceLineRef.current && candleSeriesRef.current) {
           candleSeriesRef.current.removePriceLine(currentPriceLineRef.current)
         }
@@ -612,9 +576,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [])
 
-  // ===================================
-  // CHART TYPE CHANGE
-  // ===================================
+  // Chart type change
   useEffect(() => {
     if (!candleSeriesRef.current || !lineSeriesRef.current) return
 
@@ -627,9 +589,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [chartType])
 
-  // ===================================
-  // LOAD DATA & SUBSCRIBE - FIXED
-  // ===================================
+  // ✅ REALTIME: Load data & subscribe
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
       return
@@ -653,14 +613,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       }
 
       try {
-        // ✅ CRITICAL: Clean path first
         let assetPath = selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`
         assetPath = cleanAssetPath(assetPath)
 
-        console.log('📊 Loading chart data:')
-        console.log('   Asset:', selectedAsset.symbol)
-        console.log('   Asset path (clean):', assetPath)
-        console.log('   Timeframe:', timeframe)
+        console.log('📊 Loading chart data:', assetPath, timeframe)
         
         setLoadingProgress(30)
 
@@ -705,7 +661,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         setLoadingProgress(100)
         setIsLoading(false)
 
-        // ✅ Subscribe to OHLC updates
+        // ✅ REALTIME: Subscribe to OHLC updates
         unsubscribeOHLCRef.current = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
           if (isCancelled || !candleSeriesRef.current || !lineSeriesRef.current) return
 
@@ -726,7 +682,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           lineSeriesRef.current.update(lineUpdate)
         })
         
-        // ✅ Subscribe to price updates
+        // ✅ REALTIME: Subscribe to price updates
         unsubscribePriceRef.current = subscribeToPriceUpdates(
           assetPath,
           (priceData) => {
@@ -758,9 +714,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [selectedAsset?.id, timeframe, isInitialized, updateCurrentPriceLine])
 
-  // ===================================
-  // HANDLERS
-  // ===================================
+  // Handlers
   const handleRefresh = useCallback(() => {
     if (!selectedAsset) return
     
@@ -789,9 +743,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     setChartType(type)
   }, [])
 
-  // ===================================
-  // RENDER
-  // ===================================
   if (!selectedAsset) {
     return (
       <div className="h-full flex items-center justify-center bg-[#0a0e17]">
@@ -805,7 +756,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
   return (
     <div className={`relative h-full ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : ''}`}>
-      {/* Desktop Controls */}
       <DesktopControls
         timeframe={timeframe}
         chartType={chartType}
@@ -818,7 +768,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         isFullscreen={isFullscreen}
       />
 
-      {/* Mobile Controls */}
       <MobileControls
         timeframe={timeframe}
         chartType={chartType}
@@ -829,7 +778,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         onRefresh={handleRefresh}
       />
 
-      {/* Chart Info */}
       <div className="absolute top-2 right-2 z-10 bg-black/15 backdrop-blur-md border border-white/5 rounded-md px-2 py-1">
         <div className="text-[10px] text-gray-300 flex items-center gap-1.5">
           <span className="font-semibold">{selectedAsset.symbol}</span>
@@ -850,16 +798,13 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         </div>
       </div>
 
-      {/* Chart Container */}
       <div 
         ref={chartContainerRef} 
         className="absolute inset-0 bg-[#0a0e17]"
       />
 
-      {/* Order Ticker */}
       <OrderTicker orders={activeOrders} currentPrice={currentPrice} />
 
-      {/* Loading Overlay */}
       {isLoading && (
         <div className="absolute inset-0 bg-[#0a0e17]/95 z-20">
           <div className="h-full flex flex-col p-6">
@@ -901,7 +846,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         </div>
       )}
 
-      {/* Error Overlay */}
       {!isLoading && error && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#0a0e17]/90 z-20">
           <div className="text-center max-w-md px-6">
