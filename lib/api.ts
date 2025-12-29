@@ -510,8 +510,29 @@ class ApiClient {
   }
 
   async getSystemStatistics(): Promise<ApiResponse> {
-    return this.client.get('/admin/statistics')
+    const cacheKey = this.getCacheKey('/admin/statistics')
+    const cached = this.getFromCache(cacheKey)
+    
+    // Shorter cache for admin stats (5 seconds)
+    if (cached) {
+      const age = Date.now() - cached.timestamp
+      if (age < 5000) {
+        return cached.data
+      }
+    }
+    
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get('/admin/statistics')
+      
+      // ✅ Log the response structure for debugging
+      console.log('📊 System Statistics Response:', data)
+      
+      // Cache for 5 seconds
+      this.setCache(cacheKey, data, 5000)
+      return data
+    })
   }
+
 
   clearCache(pattern?: string) {
     this.invalidateCache(pattern)

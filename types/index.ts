@@ -21,11 +21,10 @@ export interface Asset {
   updatedAt?: string
 }
 
-// ✅ UPDATED: Added accountType
 export interface BinaryOrder {
   id: string
   user_id: string
-  accountType: 'real' | 'demo' // ✅ NEW
+  accountType: 'real' | 'demo'
   asset_id: string
   asset_name: string
   direction: 'CALL' | 'PUT'
@@ -41,11 +40,10 @@ export interface BinaryOrder {
   createdAt: string
 }
 
-// ✅ UPDATED: Added accountType
 export interface Balance {
   id: string
   user_id: string
-  accountType: 'real' | 'demo' // ✅ NEW
+  accountType: 'real' | 'demo'
   type: 'deposit' | 'withdrawal' | 'win' | 'lose' | 'order_debit' | 'order_profit'
   amount: number
   description?: string
@@ -72,7 +70,6 @@ export interface ApiResponse<T = any> {
   error?: string
 }
 
-// ✅ NEW: Balance summary interface
 export interface BalanceSummary {
   realBalance: number
   demoBalance: number
@@ -80,5 +77,51 @@ export interface BalanceSummary {
   demoTransactions: number
 }
 
-// ✅ NEW: Account type type
 export type AccountType = 'real' | 'demo'
+
+// ✅ NEW: System Statistics with Real/Demo separation
+export interface SystemStatistics {
+  users: {
+    total: number
+    active: number
+    admins: number
+  }
+  realAccount: {
+    trading: {
+      totalOrders: number
+      activeOrders: number
+      wonOrders: number
+      lostOrders: number
+      winRate: number
+      totalVolume: number
+      totalProfit: number
+    }
+    financial: {
+      totalDeposits: number
+      totalWithdrawals: number
+      netFlow: number
+    }
+  }
+  demoAccount: {
+    trading: {
+      totalOrders: number
+      activeOrders: number
+      wonOrders: number
+      lostOrders: number
+      winRate: number
+      totalVolume: number
+      totalProfit: number
+    }
+    financial: {
+      totalDeposits: number
+      totalWithdrawals: number
+      netFlow: number
+    }
+  }
+  combined: {
+    totalOrders: number
+    totalVolume: number
+    totalProfit: number
+  }
+  timestamp: string
+}
