@@ -1,4 +1,4 @@
-// components/TradingChart.tsx - REALTIME OPTIMIZED
+// components/TradingChart.tsx - ENHANCED with Simulator Detection
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
@@ -7,6 +7,7 @@ import { useTradingStore } from '@/store/trading'
 import { fetchHistoricalData, subscribeToOHLCUpdates, subscribeToPriceUpdates } from '@/lib/firebase'
 import { BinaryOrder } from '@/types'
 import { formatCurrency, calculateTimeLeft } from '@/lib/utils'
+import { database, ref, get } from '@/lib/firebase'
 import { 
   Maximize2, 
   Minimize2, 
@@ -15,17 +16,13 @@ import {
   Activity,
   TrendingUp,
   TrendingDown,
-  ChevronDown
+  ChevronDown,
+  AlertTriangle,
+  Server
 } from 'lucide-react'
 
 type ChartType = 'line' | 'candle'
 type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
-
-interface OrderMarker {
-  order: BinaryOrder
-  entryMarker: any
-  entryLine: any
-}
 
 interface TradingChartProps {
   activeOrders?: BinaryOrder[]
@@ -44,6 +41,124 @@ function cleanAssetPath(path: string): string {
   }
   return path
 }
+
+// Check if simulator is running
+async function checkSimulatorStatus(assetPath: string): Promise<{
+  isRunning: boolean
+  hasCurrentPrice: boolean
+  hasOHLC: boolean
+  message: string
+}> {
+  if (!database) {
+    return { 
+      isRunning: false, 
+      hasCurrentPrice: false, 
+      hasOHLC: false,
+      message: 'Firebase not initialized' 
+    }
+  }
+
+  try {
+    const basePath = cleanAssetPath(assetPath)
+    
+    // Check current_price
+    const priceRef = ref(database, `${basePath}/current_price`)
+    const priceSnapshot = await get(priceRef)
+    const hasCurrentPrice = priceSnapshot.exists()
+    
+    // Check ohlc_1m
+    const ohlcRef = ref(database, `${basePath}/ohlc_1m`)
+    const ohlcSnapshot = await get(ohlcRef)
+    const hasOHLC = ohlcSnapshot.exists()
+    
+    const isRunning = hasCurrentPrice && hasOHLC
+    
+    let message = ''
+    if (!hasCurrentPrice && !hasOHLC) {
+      message = 'Simulator not running - no data found'
+    } else if (!hasCurrentPrice) {
+      message = 'Missing current_price data'
+    } else if (!hasOHLC) {
+      message = 'Missing OHLC data'
+    } else {
+      message = 'Simulator running'
+    }
+    
+    return { isRunning, hasCurrentPrice, hasOHLC, message }
+  } catch (error) {
+    console.error('Simulator check error:', error)
+    return { 
+      isRunning: false, 
+      hasCurrentPrice: false, 
+      hasOHLC: false,
+      message: 'Check failed: ' + (error as Error).message 
+    }
+  }
+}
+
+// Simulator Status Component
+const SimulatorStatus = memo(({ 
+  status, 
+  onRetry 
+}: { 
+  status: { isRunning: boolean; message: string } | null
+  onRetry: () => void
+}) => {
+  if (!status) return null
+  
+  if (status.isRunning) {
+    return (
+      <div className="absolute top-12 right-2 z-10">
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/20 border border-green-500/50 rounded-lg backdrop-blur-md">
+          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+          <span className="text-xs text-green-400 font-medium">Live</span>
+        </div>
+      </div>
+    )
+  }
+  
+  return (
+    <div className="absolute inset-0 flex items-center justify-center bg-[#0a0e17]/95 z-20">
+      <div className="text-center max-w-md px-6">
+        <div className="w-16 h-16 bg-red-500/10 border-2 border-red-500/30 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Server className="w-8 h-8 text-red-400" />
+        </div>
+        
+        <div className="text-lg font-bold text-red-400 mb-2">
+          Simulator Not Running
+        </div>
+        
+        <div className="text-sm text-gray-400 mb-1">
+          {status.message}
+        </div>
+        
+        <div className="text-xs text-gray-500 mb-6">
+          Please start the data simulator on your server to view real-time data
+        </div>
+        
+        <div className="bg-[#1a1f2e] border border-gray-800/50 rounded-lg p-4 mb-4 text-left">
+          <div className="text-xs font-semibold text-gray-300 mb-2">Quick Fix:</div>
+          <div className="text-xs text-gray-400 space-y-1 font-mono">
+            <div>1. SSH to your server</div>
+            <div>2. Navigate to simulator directory</div>
+            <div>3. Run: <span className="text-blue-400">node simulator.js</span></div>
+            <div>4. Check Firebase console for data</div>
+          </div>
+        </div>
+        
+        <button 
+          onClick={onRetry}
+          className="px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2 mx-auto"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Check Again
+        </button>
+      </div>
+    </div>
+  )
+})
+
+SimulatorStatus.displayName = 'SimulatorStatus'
 
 // Mobile Controls Component
 const MobileControls = memo(({ 
@@ -177,7 +292,7 @@ const MobileControls = memo(({
 
 MobileControls.displayName = 'MobileControls'
 
-// Desktop Controls Component
+// Desktop Controls
 const DesktopControls = memo(({ 
   timeframe, 
   chartType, 
@@ -329,7 +444,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   const unsubscribePriceRef = useRef<(() => void) | null>(null)
   
   const mountedRef = useRef(false)
-  const orderMarkersRef = useRef<Map<string, OrderMarker>>(new Map())
+  const orderMarkersRef = useRef<Map<string, any>>(new Map())
   
   const { selectedAsset } = useTradingStore()
 
@@ -340,11 +455,28 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const [lastPrice, setLastPrice] = useState<number | null>(null)
-  const [loadingProgress, setLoadingProgress] = useState(0)
+  const [simulatorStatus, setSimulatorStatus] = useState<{
+    isRunning: boolean
+    hasCurrentPrice: boolean
+    hasOHLC: boolean
+    message: string
+  } | null>(null)
 
-  // ✅ REALTIME: Update price line with RAF optimization
+  // Check simulator status
+  const checkSimulator = useCallback(async () => {
+    if (!selectedAsset?.realtimeDbPath) return
+    
+    const status = await checkSimulatorStatus(selectedAsset.realtimeDbPath)
+    setSimulatorStatus(status)
+    
+    if (!status.isRunning) {
+      console.error('🚨 Simulator not running:', status.message)
+    }
+  }, [selectedAsset?.realtimeDbPath])
+
+  // Update price line with RAF optimization
   const updateCurrentPriceLine = useCallback((price: number) => {
-    if (!candleSeriesRef.current || !chartRef.current) return
+    if (!candleSeriesRef.current || !chartRef.current || !price) return
     
     requestAnimationFrame(() => {
       try {
@@ -370,81 +502,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       }
     })
   }, [])
-
-  // Order markers management
-  const updateOrderMarker = useCallback((order: BinaryOrder) => {
-    if (!candleSeriesRef.current || !chartRef.current) return
-
-    const existingMarker = orderMarkersRef.current.get(order.id)
-    if (existingMarker && order.status === 'ACTIVE') return
-
-    const entryTime = Math.floor(new Date(order.entry_time).getTime() / 1000) as Time
-    const isCall = order.direction === 'CALL'
-
-    if (existingMarker) {
-      if (existingMarker.entryLine && candleSeriesRef.current) {
-        candleSeriesRef.current.removePriceLine(existingMarker.entryLine)
-      }
-    }
-
-    const entryMarker = {
-      time: entryTime,
-      position: isCall ? 'belowBar' as const : 'aboveBar' as const,
-      color: isCall ? '#10b981' : '#ef4444',
-      shape: isCall ? 'arrowUp' as const : 'arrowDown' as const,
-      text: `${order.direction} ${formatCurrency(order.amount)}`,
-      size: 2
-    }
-
-    const entryLine = candleSeriesRef.current.createPriceLine({
-      price: order.entry_price,
-      color: isCall ? '#10b981' : '#ef4444',
-      lineWidth: 2,
-      lineStyle: 2,
-      axisLabelVisible: true,
-      title: `${order.direction} Entry`
-    })
-
-    const existingMarkers = candleSeriesRef.current.markers() || []
-    candleSeriesRef.current.setMarkers([...existingMarkers, entryMarker])
-
-    orderMarkersRef.current.set(order.id, {
-      order,
-      entryMarker,
-      entryLine
-    })
-  }, [])
-
-  // Update orders
-  useEffect(() => {
-    if (!chartRef.current || !candleSeriesRef.current) return
-
-    const currentOrderIds = new Set(activeOrders.map(o => o.id))
-    
-    orderMarkersRef.current.forEach((marker, orderId) => {
-      if (!currentOrderIds.has(orderId)) {
-        if (marker.entryLine && candleSeriesRef.current) {
-          candleSeriesRef.current.removePriceLine(marker.entryLine)
-        }
-        orderMarkersRef.current.delete(orderId)
-      }
-    })
-
-    if (candleSeriesRef.current) {
-      candleSeriesRef.current.setMarkers([])
-    }
-
-    activeOrders.forEach(order => {
-      updateOrderMarker(order)
-    })
-  }, [activeOrders, updateOrderMarker])
-
-  // ✅ REALTIME: Update current price immediately
-  useEffect(() => {
-    if (currentPrice && isInitialized) {
-      updateCurrentPriceLine(currentPrice)
-    }
-  }, [currentPrice, isInitialized, updateCurrentPriceLine])
 
   // Initialize chart
   useEffect(() => {
@@ -480,26 +537,13 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         },
         crosshair: {
           mode: CrosshairMode.Normal,
-          vertLine: {
-            color: 'rgba(255, 255, 255, 0.3)',
-            width: 1,
-            style: 3,
-          },
-          horzLine: {
-            color: 'rgba(255, 255, 255, 0.3)',
-            width: 1,
-            style: 3,
-          },
         },
         rightPriceScale: {
           borderColor: 'rgba(255, 255, 255, 0.1)',
-          borderVisible: true,
         },
         timeScale: {
           borderColor: 'rgba(255, 255, 255, 0.1)',
-          borderVisible: true,
           timeVisible: true,
-          secondsVisible: false,
         },
       })
 
@@ -541,33 +585,17 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         
         if (unsubscribeOHLCRef.current) {
           unsubscribeOHLCRef.current()
-          unsubscribeOHLCRef.current = null
         }
-        
         if (unsubscribePriceRef.current) {
           unsubscribePriceRef.current()
-          unsubscribePriceRef.current = null
         }
-        
-        if (currentPriceLineRef.current && candleSeriesRef.current) {
-          candleSeriesRef.current.removePriceLine(currentPriceLineRef.current)
-        }
-        
-        orderMarkersRef.current.forEach((marker) => {
-          if (marker.entryLine && candleSeriesRef.current) {
-            candleSeriesRef.current.removePriceLine(marker.entryLine)
-          }
-        })
-        orderMarkersRef.current.clear()
         
         mountedRef.current = false
         setIsInitialized(false)
         
         try {
           chart.remove()
-        } catch (e) {
-          // Ignore
-        }
+        } catch (e) {}
       }
     } catch (err: any) {
       console.error('Chart init error:', err)
@@ -589,7 +617,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [chartType])
 
-  // ✅ REALTIME: Load data & subscribe
+  // Load data & subscribe
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
       return
@@ -600,7 +628,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     const loadChartData = async () => {
       setIsLoading(true)
       setError(null)
-      setLoadingProgress(0)
+
+      // Check simulator first
+      await checkSimulator()
 
       if (unsubscribeOHLCRef.current) {
         unsubscribeOHLCRef.current()
@@ -616,18 +646,12 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         let assetPath = selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`
         assetPath = cleanAssetPath(assetPath)
 
-        console.log('📊 Loading chart data:', assetPath, timeframe)
-        
-        setLoadingProgress(30)
-
         const data = await fetchHistoricalData(assetPath, timeframe)
 
         if (isCancelled) return
 
-        setLoadingProgress(60)
-
         if (!data || data.length === 0) {
-          setError('No data available. Check if simulator is running.')
+          setError('No data available. Please check if the simulator is running.')
           setIsLoading(false)
           return
         }
@@ -647,8 +671,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
         if (isCancelled) return
 
-        setLoadingProgress(90)
-
         if (candleSeriesRef.current && lineSeriesRef.current) {
           candleSeriesRef.current.setData(candleData)
           lineSeriesRef.current.setData(lineData)
@@ -658,10 +680,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           }
         }
 
-        setLoadingProgress(100)
         setIsLoading(false)
 
-        // ✅ REALTIME: Subscribe to OHLC updates
+        // Subscribe to updates
         unsubscribeOHLCRef.current = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
           if (isCancelled || !candleSeriesRef.current || !lineSeriesRef.current) return
 
@@ -682,18 +703,17 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           lineSeriesRef.current.update(lineUpdate)
         })
         
-        // ✅ REALTIME: Subscribe to price updates
         unsubscribePriceRef.current = subscribeToPriceUpdates(
           assetPath,
           (priceData) => {
-            if (isCancelled) return
+            if (isCancelled || !priceData?.price) return
             updateCurrentPriceLine(priceData.price)
           }
         )
 
       } catch (err: any) {
         if (isCancelled) return
-        console.error('❌ Error loading data:', err)
+        console.error('Error loading data:', err)
         setError(err.message || 'Failed to load chart data')
         setIsLoading(false)
       }
@@ -705,25 +725,31 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       isCancelled = true
       if (unsubscribeOHLCRef.current) {
         unsubscribeOHLCRef.current()
-        unsubscribeOHLCRef.current = null
       }
       if (unsubscribePriceRef.current) {
         unsubscribePriceRef.current()
-        unsubscribePriceRef.current = null
       }
     }
-  }, [selectedAsset?.id, timeframe, isInitialized, updateCurrentPriceLine])
+  }, [selectedAsset?.id, timeframe, isInitialized, updateCurrentPriceLine, checkSimulator])
+
+  // Update current price
+  useEffect(() => {
+    if (currentPrice && isInitialized) {
+      updateCurrentPriceLine(currentPrice)
+    }
+  }, [currentPrice, isInitialized, updateCurrentPriceLine])
 
   // Handlers
   const handleRefresh = useCallback(() => {
     if (!selectedAsset) return
+    checkSimulator()
     
     const currentAsset = selectedAsset
     useTradingStore.setState({ selectedAsset: null })
     setTimeout(() => {
       useTradingStore.setState({ selectedAsset: currentAsset })
     }, 100)
-  }, [selectedAsset])
+  }, [selectedAsset, checkSimulator])
 
   const handleFitContent = useCallback(() => {
     if (chartRef.current) {
@@ -783,12 +809,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           <span className="font-semibold">{selectedAsset.symbol}</span>
           <span className="text-gray-500">•</span>
           <span className="text-gray-400">{timeframe}</span>
-          {activeOrders.length > 0 && (
-            <>
-              <span className="text-gray-500">•</span>
-              <span className="text-blue-400 font-semibold">{activeOrders.length} Active</span>
-            </>
-          )}
           {lastPrice && (
             <>
               <span className="text-gray-500">•</span>
@@ -797,6 +817,12 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           )}
         </div>
       </div>
+
+      {/* Simulator Status Indicator */}
+      <SimulatorStatus 
+        status={simulatorStatus} 
+        onRetry={checkSimulator}
+      />
 
       <div 
         ref={chartContainerRef} 
@@ -807,57 +833,11 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
       {isLoading && (
         <div className="absolute inset-0 bg-[#0a0e17]/95 z-20">
-          <div className="h-full flex flex-col p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex gap-2">
-                <div className="w-12 h-8 bg-gray-800 rounded animate-pulse"></div>
-                <div className="w-12 h-8 bg-gray-800 rounded animate-pulse" style={{ animationDelay: '100ms' }}></div>
-                <div className="w-12 h-8 bg-gray-800 rounded animate-pulse" style={{ animationDelay: '200ms' }}></div>
-              </div>
-              <div className="w-24 h-8 bg-gray-800 rounded animate-pulse" style={{ animationDelay: '300ms' }}></div>
+          <div className="h-full flex flex-col items-center justify-center p-6">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mb-4"></div>
+            <div className="text-sm text-gray-400">
+              Loading {timeframe} chart data...
             </div>
-            
-            <div className="flex-1 flex items-end gap-1">
-              {[...Array(30)].map((_, i) => (
-                <div
-                  key={i}
-                  className="flex-1 bg-gradient-to-t from-blue-500/20 to-blue-500/5 rounded-t animate-pulse"
-                  style={{
-                    height: `${20 + Math.random() * 80}%`,
-                    animationDelay: `${i * 30}ms`,
-                    animationDuration: '1.5s'
-                  }}
-                />
-              ))}
-            </div>
-            
-            <div className="mt-4 text-center">
-              <div className="text-sm text-gray-400 mb-2">
-                Loading {timeframe} chart data...
-              </div>
-              <div className="w-48 h-1 bg-gray-800 rounded-full mx-auto overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 animate-loading-bar"></div>
-              </div>
-              <div className="text-xs text-gray-500 mt-2">
-                {loadingProgress}% complete
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {!isLoading && error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#0a0e17]/90 z-20">
-          <div className="text-center max-w-md px-6">
-            <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3 opacity-30" />
-            <div className="text-sm font-medium text-red-400 mb-2">Failed to Load Chart</div>
-            <div className="text-xs text-gray-500 mb-4">{error}</div>
-            <button 
-              onClick={handleRefresh}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white text-xs font-medium transition-colors"
-            >
-              Try Again
-            </button>
           </div>
         </div>
       )}
@@ -876,15 +856,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
         .animate-scale-in {
           animation: scale-in 0.2s ease-out;
-        }
-
-        @keyframes loading-bar {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-        
-        .animate-loading-bar {
-          animation: loading-bar 1.5s ease-in-out infinite;
         }
       `}</style>
     </div>
