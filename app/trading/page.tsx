@@ -154,21 +154,15 @@ useEffect(() => {
   let unsubscribe: (() => void) | undefined
 
   if (selectedAsset.dataSource === 'realtime_db' && selectedAsset.realtimeDbPath) {
-    // ✅ FIX: Ensure path includes /current_price
-    let pricePath = selectedAsset.realtimeDbPath
-    
-    // If path doesn't end with /current_price, append it
-    if (!pricePath.endsWith('/current_price')) {
-      pricePath = `${pricePath}/current_price`
-    }
-    
-    console.log('📡 Subscribing to price:', pricePath)
-    
-    unsubscribe = subscribeToPriceUpdates(pricePath, (data) => {
-      console.log('💰 Price update:', data.price)
-      setCurrentPrice(data)
-      addPriceToHistory(data)
-    })
+    // ✅ FIXED: No manual path handling
+    unsubscribe = subscribeToPriceUpdates(
+      selectedAsset.realtimeDbPath, // Pass as-is
+      (data) => {
+        console.log('💰 Price update:', data.price)
+        setCurrentPrice(data)
+        addPriceToHistory(data)
+      }
+    )
   }
 
   return () => {
