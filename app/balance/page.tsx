@@ -1,4 +1,3 @@
-// app/balance/page.tsx - With Skeleton Loading
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -20,19 +19,18 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-// Skeleton Components
 const BalanceCardSkeleton = () => (
-  <div className="lg:col-span-1 bg-gray-200 rounded-[16px] sm:rounded-[20px] min-h-[280px] sm:min-h-[300px] lg:min-h-[320px] animate-pulse">
-    <div className="p-4 sm:p-5 lg:p-6 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-4 sm:mb-6 lg:mb-8">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="w-10 h-8 sm:w-12 sm:h-10 bg-gray-300 rounded-md sm:rounded-lg"></div>
+  <div className="lg:col-span-1 bg-gray-200 rounded-2xl min-h-[260px] sm:min-h-[280px] lg:min-h-[320px] animate-pulse">
+    <div className="p-5 sm:p-6 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-10 bg-gray-300 rounded-lg"></div>
           <div className="w-6 h-6 bg-gray-300 rounded"></div>
         </div>
         <div className="w-16 h-6 bg-gray-300 rounded-md"></div>
       </div>
       
-      <div className="mb-4 sm:mb-6 lg:mb-8">
+      <div className="mb-6">
         <div className="h-3 bg-gray-300 rounded w-32 mb-2"></div>
         <div className="h-4 bg-gray-300 rounded w-40"></div>
       </div>
@@ -42,7 +40,7 @@ const BalanceCardSkeleton = () => (
         <div className="h-10 bg-gray-300 rounded w-48"></div>
       </div>
       
-      <div className="mt-4 sm:mt-6 lg:mt-8">
+      <div className="mt-6">
         <div className="h-3 bg-gray-300 rounded w-24 mb-1"></div>
         <div className="h-4 bg-gray-300 rounded w-32"></div>
       </div>
@@ -51,13 +49,13 @@ const BalanceCardSkeleton = () => (
 )
 
 const ActionCardSkeleton = () => (
-  <div className="lg:col-span-1 bg-white rounded-xl border border-gray-200 p-4 sm:p-5 min-h-[280px] sm:min-h-[300px] lg:min-h-[320px] animate-pulse">
-    <div className="h-4 bg-gray-200 rounded w-40 mb-3 sm:mb-4"></div>
-    <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4 flex-1">
+  <div className="lg:col-span-1 bg-white rounded-2xl border border-gray-200 p-5 min-h-[260px] sm:min-h-[280px] lg:min-h-[320px] animate-pulse">
+    <div className="h-4 bg-gray-200 rounded w-40 mb-4"></div>
+    <div className="grid grid-cols-2 gap-3 mb-4 flex-1">
       <div className="h-32 bg-gray-100 rounded-xl"></div>
       <div className="h-32 bg-gray-100 rounded-xl"></div>
     </div>
-    <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-3 border-t border-gray-200">
+    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-200">
       <div className="text-center">
         <div className="h-3 bg-gray-200 rounded w-20 mx-auto mb-2"></div>
         <div className="h-5 bg-gray-200 rounded w-24 mx-auto"></div>
@@ -71,9 +69,9 @@ const ActionCardSkeleton = () => (
 )
 
 const TransactionSkeleton = () => (
-  <div className="flex items-center justify-between p-3 sm:p-4 rounded-xl border border-gray-100 gap-3 animate-pulse">
-    <div className="flex items-center gap-3 sm:gap-4 flex-1">
-      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-xl flex-shrink-0"></div>
+  <div className="flex items-center justify-between p-4 rounded-xl border border-gray-100 gap-3 animate-pulse">
+    <div className="flex items-center gap-4 flex-1">
+      <div className="w-12 h-12 bg-gray-200 rounded-xl flex-shrink-0"></div>
       <div className="flex-1">
         <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
         <div className="h-3 bg-gray-200 rounded w-32"></div>
@@ -86,12 +84,11 @@ const TransactionSkeleton = () => (
 const LoadingSkeleton = () => (
   <div className="min-h-screen bg-[#fafafa]">
     <Navbar />
-    <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 max-w-7xl">
-      {/* Header Skeleton */}
-      <div className="mb-4 sm:mb-6 animate-pulse">
+    <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl">
+      <div className="mb-6 animate-pulse">
         <div className="h-3 bg-gray-200 rounded w-48 mb-2"></div>
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-200 rounded-xl"></div>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gray-200 rounded-xl"></div>
           <div>
             <div className="h-6 bg-gray-200 rounded w-32 mb-2"></div>
             <div className="h-4 bg-gray-200 rounded w-56"></div>
@@ -99,9 +96,8 @@ const LoadingSkeleton = () => (
         </div>
       </div>
 
-      {/* Balance Cards Skeleton */}
-      <div className="mb-4 sm:mb-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <BalanceCardSkeleton />
           <ActionCardSkeleton />
           <BalanceCardSkeleton />
@@ -109,9 +105,8 @@ const LoadingSkeleton = () => (
         </div>
       </div>
 
-      {/* Transaction History Skeleton */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-        <div className="p-4 sm:p-6 border-b border-gray-200 animate-pulse">
+        <div className="p-6 border-b border-gray-200 animate-pulse">
           <div className="flex items-center justify-between mb-4">
             <div className="h-5 bg-gray-200 rounded w-40"></div>
           </div>
@@ -122,7 +117,7 @@ const LoadingSkeleton = () => (
           </div>
         </div>
 
-        <div className="p-4 sm:p-6 space-y-2">
+        <div className="p-6 space-y-2">
           {[...Array(5)].map((_, i) => (
             <TransactionSkeleton key={i} />
           ))}
@@ -255,12 +250,6 @@ export default function BalancePage() {
     totalWithdrawals: allTransactions
       .filter(t => (t.accountType || 'demo') === 'real' && t.type === 'withdrawal')
       .reduce((sum, t) => sum + t.amount, 0),
-    totalWins: allTransactions
-      .filter(t => (t.accountType || 'demo') === 'real' && (t.type === 'win' || t.type === 'order_profit'))
-      .reduce((sum, t) => sum + t.amount, 0),
-    totalLosses: allTransactions
-      .filter(t => (t.accountType || 'demo') === 'real' && (t.type === 'lose' || t.type === 'order_debit'))
-      .reduce((sum, t) => sum + t.amount, 0),
   }
 
   const demoStats = {
@@ -269,12 +258,6 @@ export default function BalancePage() {
       .reduce((sum, t) => sum + t.amount, 0),
     totalWithdrawals: allTransactions
       .filter(t => (t.accountType || 'demo') === 'demo' && t.type === 'withdrawal')
-      .reduce((sum, t) => sum + t.amount, 0),
-    totalWins: allTransactions
-      .filter(t => (t.accountType || 'demo') === 'demo' && (t.type === 'win' || t.type === 'order_profit'))
-      .reduce((sum, t) => sum + t.amount, 0),
-    totalLosses: allTransactions
-      .filter(t => (t.accountType || 'demo') === 'demo' && (t.type === 'lose' || t.type === 'order_debit'))
       .reduce((sum, t) => sum + t.amount, 0),
   }
 
@@ -288,39 +271,33 @@ export default function BalancePage() {
     <div className="min-h-screen bg-[#fafafa]">
       <Navbar />
 
-      <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 max-w-7xl">
-        {/* Header */}
-        <div className="mb-4 sm:mb-6">
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 mb-2">
+      <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
             <span>Dashboard</span>
             <span>/</span>
             <span className="text-gray-900 font-medium">Wallet</span>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Wallet className="w-5 h-5 text-white" />
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Wallet</h1>
-              <p className="text-xs sm:text-sm text-gray-500">Manage your Real and Demo funds</p>
+              <p className="text-sm text-gray-500">Manage your Real and Demo funds</p>
             </div>
           </div>
         </div>
 
-        {/* DUAL BALANCE CARDS - Single Row Layout */}
-        <div className="mb-4 sm:mb-6">
-          {/* Unified Grid - All Cards in One Layout */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {/* Real Card - Portrait */}
-            <div className="lg:col-span-1 relative overflow-hidden bg-gradient-to-br from-emerald-500 via-teal-600 to-green-700 rounded-[16px] sm:rounded-[20px] p-4 sm:p-5 lg:p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-1 min-h-[280px] sm:min-h-[300px] lg:min-h-[320px] group">
-              {/* Animated Background Pattern */}
+        <div className="mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="lg:col-span-1 relative overflow-hidden bg-gradient-to-br from-emerald-500 via-teal-600 to-green-700 rounded-2xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-1 min-h-[260px] sm:min-h-[280px] lg:min-h-[320px] group">
               <div className="absolute inset-0 opacity-10">
                 <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_50%)]"></div>
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-white rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div>
                 <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-emerald-300 rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div>
               </div>
 
-              {/* Decorative Lines */}
               <div className="absolute inset-0 opacity-5">
                 <div className="absolute top-1/4 left-0 w-full h-px bg-gradient-to-r from-transparent via-white to-transparent"></div>
                 <div className="absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-white to-transparent"></div>
@@ -328,46 +305,41 @@ export default function BalancePage() {
               </div>
 
               <div className="relative z-10 h-full flex flex-col">
-                {/* Header with Premium Chip */}
-                <div className="flex items-center justify-between mb-4 sm:mb-6 lg:mb-8">
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    {/* Realistic Chip */}
-                    <div className="relative w-10 h-8 sm:w-12 sm:h-10 bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-500 rounded-md sm:rounded-lg shadow-lg">
-                      <div className="absolute inset-1 bg-gradient-to-br from-yellow-200 to-amber-400 rounded-sm sm:rounded-md"></div>
-                      <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-[1.5px] sm:gap-[2px] p-1.5 sm:p-2">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-12 h-10 bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-500 rounded-lg shadow-lg">
+                      <div className="absolute inset-1 bg-gradient-to-br from-yellow-200 to-amber-400 rounded-md"></div>
+                      <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-[2px] p-2">
                         {[...Array(9)].map((_, i) => (
                           <div key={i} className="bg-amber-600/30 rounded-[1px]"></div>
                         ))}
                       </div>
                     </div>
-                    {/* Contactless Icon */}
-                    <div className="flex flex-col gap-0.5 sm:gap-1">
+                    <div className="flex flex-col gap-1">
                       {[...Array(3)].map((_, i) => (
                         <div key={i} className="flex gap-1">
-                          <div className={`w-1 h-1 sm:w-1.5 sm:h-1.5 border-2 border-white/40 rounded-full transform rotate-45 ${i === 0 ? 'opacity-100' : i === 1 ? 'opacity-70' : 'opacity-40'}`}></div>
+                          <div className={`w-1.5 h-1.5 border-2 border-white/40 rounded-full transform rotate-45 ${i === 0 ? 'opacity-100' : i === 1 ? 'opacity-70' : 'opacity-40'}`}></div>
                         </div>
                       ))}
                     </div>
                   </div>
-                  <div className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white/20 backdrop-blur-xl rounded-md sm:rounded-lg border border-white/30 shadow-lg">
-                    <span className="text-[9px] sm:text-[11px] font-black text-white tracking-[0.15em] drop-shadow-sm">REAL</span>
+                  <div className="px-3 py-1.5 bg-white/20 backdrop-blur-xl rounded-lg border border-white/30 shadow-lg">
+                    <span className="text-[11px] font-black text-white tracking-[0.15em] drop-shadow-sm">REAL</span>
                   </div>
                 </div>
 
-                {/* Account Number with Style */}
-                <div className="mb-4 sm:mb-6 lg:mb-8">
-                  <div className="text-white/70 text-[9px] sm:text-[10px] font-bold tracking-[0.2em] mb-1 sm:mb-2">ACCOUNT NUMBER</div>
-                  <div className="font-mono text-sm sm:text-base text-white tracking-[0.2em] sm:tracking-[0.3em] drop-shadow-md flex items-center gap-2 sm:gap-3">
+                <div className="mb-6">
+                  <div className="text-white/70 text-[10px] font-bold tracking-[0.2em] mb-2">ACCOUNT NUMBER</div>
+                  <div className="font-mono text-base text-white tracking-[0.3em] drop-shadow-md flex items-center gap-3 flex-wrap">
                     <span className="opacity-60">••••</span>
-                    <span className="opacity-60 hidden xs:inline">••••</span>
+                    <span className="opacity-60">••••</span>
                     <span className="opacity-60 hidden sm:inline">••••</span>
                     <span className="font-bold">{String(user.id).slice(-4).padStart(4, '0')}</span>
                   </div>
                 </div>
 
-                {/* Balance - Large & Bold */}
                 <div className="mb-auto">
-                  <div className="text-white/70 text-[9px] sm:text-[10px] font-bold tracking-[0.2em] mb-1 sm:mb-2">AVAILABLE BALANCE</div>
+                  <div className="text-white/70 text-[10px] font-bold tracking-[0.2em] mb-2">AVAILABLE BALANCE</div>
                   <div className="flex items-baseline gap-2">
                     <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white font-mono tracking-tight drop-shadow-lg break-all">
                       {formatCurrency(realBalance)}
@@ -375,52 +347,49 @@ export default function BalancePage() {
                   </div>
                 </div>
 
-                {/* Footer with Holder Name */}
-                <div className="mt-4 sm:mt-6 lg:mt-8 flex items-end justify-between gap-2">
+                <div className="mt-6 flex items-end justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="text-white/60 text-[8px] sm:text-[9px] font-bold tracking-[0.2em] mb-0.5 sm:mb-1">CARD HOLDER</div>
-                    <div className="text-xs sm:text-sm font-black text-white uppercase tracking-wider drop-shadow-md truncate">
+                    <div className="text-white/60 text-[9px] font-bold tracking-[0.2em] mb-1">CARD HOLDER</div>
+                    <div className="text-sm font-black text-white uppercase tracking-wider drop-shadow-md truncate">
                       {user.email.split('@')[0].substring(0, 15)}
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <div className="text-white/60 text-[8px] sm:text-[9px] font-bold tracking-[0.2em] mb-0.5 sm:mb-1">VALID THRU</div>
-                    <div className="text-[10px] sm:text-xs font-bold text-white tracking-wider">12/28</div>
+                    <div className="text-white/60 text-[9px] font-bold tracking-[0.2em] mb-1">VALID THRU</div>
+                    <div className="text-xs font-bold text-white tracking-wider">12/28</div>
                   </div>
                 </div>
 
-                {/* Network Logo - Premium Style */}
-                <div className="absolute bottom-4 right-4 sm:bottom-5 sm:right-5 lg:bottom-6 lg:right-6 flex items-center gap-1">
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white/90 shadow-lg flex items-center justify-center backdrop-blur-sm">
-                    <Wallet className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-600" />
+                <div className="absolute bottom-6 right-6 flex items-center gap-1">
+                  <div className="w-8 h-8 rounded-full bg-white/90 shadow-lg flex items-center justify-center backdrop-blur-sm">
+                    <Wallet className="w-4 h-4 text-emerald-600" />
                   </div>
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-emerald-400/90 shadow-lg -ml-2 sm:-ml-3 flex items-center justify-center backdrop-blur-sm">
-                    <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                  <div className="w-8 h-8 rounded-full bg-emerald-400/90 shadow-lg -ml-3 flex items-center justify-center backdrop-blur-sm">
+                    <DollarSign className="w-4 h-4 text-white" />
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Real Info - Deposit & Withdraw */}
-            <div className="lg:col-span-1 bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-sm min-h-[280px] sm:min-h-[300px] lg:min-h-[320px] flex flex-col">
-              <h3 className="text-xs sm:text-sm font-bold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
-                <Wallet className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
+            <div className="lg:col-span-1 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm min-h-[260px] sm:min-h-[280px] lg:min-h-[320px] flex flex-col">
+              <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Wallet className="w-4 h-4 text-green-600" />
                 Real Account Actions
               </h3>
               
-              <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4 flex-1">
+              <div className="grid grid-cols-2 gap-3 mb-4 flex-1">
                 <button
                   onClick={() => {
                     setTransactionAccount('real')
                     setShowDeposit(true)
                   }}
-                  className="flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-3 sm:p-4 bg-green-50 hover:bg-green-100 border-2 border-green-200 rounded-xl transition-all group"
+                  className="flex flex-col items-center justify-center gap-2 p-4 bg-green-50 hover:bg-green-100 active:bg-green-200 border-2 border-green-200 rounded-xl transition-all group min-h-[120px] touch-manipulation"
                 >
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <ArrowDownToLine className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                  <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <ArrowDownToLine className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-xs sm:text-sm font-semibold text-gray-900">Deposit</div>
-                  <div className="text-[10px] sm:text-xs text-gray-500">Add funds</div>
+                  <div className="text-sm font-semibold text-gray-900">Deposit</div>
+                  <div className="text-xs text-gray-500">Add funds</div>
                 </button>
 
                 <button
@@ -428,38 +397,35 @@ export default function BalancePage() {
                     setTransactionAccount('real')
                     setShowWithdraw(true)
                   }}
-                  className="flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-3 sm:p-4 bg-red-50 hover:bg-red-100 border-2 border-red-200 rounded-xl transition-all group"
+                  className="flex flex-col items-center justify-center gap-2 p-4 bg-red-50 hover:bg-red-100 active:bg-red-200 border-2 border-red-200 rounded-xl transition-all group min-h-[120px] touch-manipulation"
                 >
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <ArrowUpFromLine className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                  <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <ArrowUpFromLine className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-xs sm:text-sm font-semibold text-gray-900">Withdraw</div>
-                  <div className="text-[10px] sm:text-xs text-gray-500">Cash out</div>
+                  <div className="text-sm font-semibold text-gray-900">Withdraw</div>
+                  <div className="text-xs text-gray-500">Cash out</div>
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-3 border-t border-gray-200">
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-200">
                 <div className="text-center">
-                  <div className="text-[10px] sm:text-xs text-gray-500 mb-1">Total Deposits</div>
-                  <div className="text-sm sm:text-base lg:text-lg font-bold text-green-600">{formatCurrency(realStats.totalDeposits)}</div>
+                  <div className="text-xs text-gray-500 mb-1">Total Deposits</div>
+                  <div className="text-base lg:text-lg font-bold text-green-600">{formatCurrency(realStats.totalDeposits)}</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-[10px] sm:text-xs text-gray-500 mb-1">Total Withdrawals</div>
-                  <div className="text-sm sm:text-base lg:text-lg font-bold text-red-600">{formatCurrency(realStats.totalWithdrawals)}</div>
+                  <div className="text-xs text-gray-500 mb-1">Total Withdrawals</div>
+                  <div className="text-base lg:text-lg font-bold text-red-600">{formatCurrency(realStats.totalWithdrawals)}</div>
                 </div>
               </div>
             </div>
 
-            {/* Demo Card - Portrait */}
-            <div className="lg:col-span-1 relative overflow-hidden bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-700 rounded-[16px] sm:rounded-[20px] p-4 sm:p-5 lg:p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-1 min-h-[280px] sm:min-h-[300px] lg:min-h-[320px] group">
-              {/* Animated Background Pattern */}
+            <div className="lg:col-span-1 relative overflow-hidden bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-700 rounded-2xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-1 min-h-[260px] sm:min-h-[280px] lg:min-h-[320px] group">
               <div className="absolute inset-0 opacity-10">
                 <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_50%)]"></div>
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-white rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div>
                 <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-300 rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div>
               </div>
 
-              {/* Decorative Lines */}
               <div className="absolute inset-0 opacity-5">
                 <div className="absolute top-1/4 left-0 w-full h-px bg-gradient-to-r from-transparent via-white to-transparent"></div>
                 <div className="absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-white to-transparent"></div>
@@ -467,46 +433,41 @@ export default function BalancePage() {
               </div>
 
               <div className="relative z-10 h-full flex flex-col">
-                {/* Header with Premium Chip */}
-                <div className="flex items-center justify-between mb-4 sm:mb-6 lg:mb-8">
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    {/* Realistic Chip */}
-                    <div className="relative w-10 h-8 sm:w-12 sm:h-10 bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-500 rounded-md sm:rounded-lg shadow-lg">
-                      <div className="absolute inset-1 bg-gradient-to-br from-yellow-200 to-amber-400 rounded-sm sm:rounded-md"></div>
-                      <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-[1.5px] sm:gap-[2px] p-1.5 sm:p-2">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-12 h-10 bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-500 rounded-lg shadow-lg">
+                      <div className="absolute inset-1 bg-gradient-to-br from-yellow-200 to-amber-400 rounded-md"></div>
+                      <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-[2px] p-2">
                         {[...Array(9)].map((_, i) => (
                           <div key={i} className="bg-amber-600/30 rounded-[1px]"></div>
                         ))}
                       </div>
                     </div>
-                    {/* Contactless Icon */}
-                    <div className="flex flex-col gap-0.5 sm:gap-1">
+                    <div className="flex flex-col gap-1">
                       {[...Array(3)].map((_, i) => (
                         <div key={i} className="flex gap-1">
-                          <div className={`w-1 h-1 sm:w-1.5 sm:h-1.5 border-2 border-white/40 rounded-full transform rotate-45 ${i === 0 ? 'opacity-100' : i === 1 ? 'opacity-70' : 'opacity-40'}`}></div>
+                          <div className={`w-1.5 h-1.5 border-2 border-white/40 rounded-full transform rotate-45 ${i === 0 ? 'opacity-100' : i === 1 ? 'opacity-70' : 'opacity-40'}`}></div>
                         </div>
                       ))}
                     </div>
                   </div>
-                  <div className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white/20 backdrop-blur-xl rounded-md sm:rounded-lg border border-white/30 shadow-lg">
-                    <span className="text-[9px] sm:text-[11px] font-black text-white tracking-[0.15em] drop-shadow-sm">DEMO</span>
+                  <div className="px-3 py-1.5 bg-white/20 backdrop-blur-xl rounded-lg border border-white/30 shadow-lg">
+                    <span className="text-[11px] font-black text-white tracking-[0.15em] drop-shadow-sm">DEMO</span>
                   </div>
                 </div>
 
-                {/* Account Number with Style */}
-                <div className="mb-4 sm:mb-6 lg:mb-8">
-                  <div className="text-white/70 text-[9px] sm:text-[10px] font-bold tracking-[0.2em] mb-1 sm:mb-2">ACCOUNT NUMBER</div>
-                  <div className="font-mono text-sm sm:text-base text-white tracking-[0.2em] sm:tracking-[0.3em] drop-shadow-md flex items-center gap-2 sm:gap-3">
+                <div className="mb-6">
+                  <div className="text-white/70 text-[10px] font-bold tracking-[0.2em] mb-2">ACCOUNT NUMBER</div>
+                  <div className="font-mono text-base text-white tracking-[0.3em] drop-shadow-md flex items-center gap-3 flex-wrap">
                     <span className="opacity-60">••••</span>
-                    <span className="opacity-60 hidden xs:inline">••••</span>
+                    <span className="opacity-60">••••</span>
                     <span className="opacity-60 hidden sm:inline">••••</span>
                     <span className="font-bold">{String(user.id + 1000).slice(-4).padStart(4, '0')}</span>
                   </div>
                 </div>
 
-                {/* Balance - Large & Bold */}
                 <div className="mb-auto">
-                  <div className="text-white/70 text-[9px] sm:text-[10px] font-bold tracking-[0.2em] mb-1 sm:mb-2">AVAILABLE BALANCE</div>
+                  <div className="text-white/70 text-[10px] font-bold tracking-[0.2em] mb-2">AVAILABLE BALANCE</div>
                   <div className="flex items-baseline gap-2">
                     <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white font-mono tracking-tight drop-shadow-lg break-all">
                       {formatCurrency(demoBalance)}
@@ -514,52 +475,49 @@ export default function BalancePage() {
                   </div>
                 </div>
 
-                {/* Footer with Holder Name */}
-                <div className="mt-4 sm:mt-6 lg:mt-8 flex items-end justify-between gap-2">
+                <div className="mt-6 flex items-end justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="text-white/60 text-[8px] sm:text-[9px] font-bold tracking-[0.2em] mb-0.5 sm:mb-1">CARD HOLDER</div>
-                    <div className="text-xs sm:text-sm font-black text-white uppercase tracking-wider drop-shadow-md truncate">
+                    <div className="text-white/60 text-[9px] font-bold tracking-[0.2em] mb-1">CARD HOLDER</div>
+                    <div className="text-sm font-black text-white uppercase tracking-wider drop-shadow-md truncate">
                       {user.email.split('@')[0].substring(0, 15)}
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <div className="text-white/60 text-[8px] sm:text-[9px] font-bold tracking-[0.2em] mb-0.5 sm:mb-1">VALID THRU</div>
-                    <div className="text-[10px] sm:text-xs font-bold text-white tracking-wider">12/28</div>
+                    <div className="text-white/60 text-[9px] font-bold tracking-[0.2em] mb-1">VALID THRU</div>
+                    <div className="text-xs font-bold text-white tracking-wider">12/28</div>
                   </div>
                 </div>
 
-                {/* Network Logo - Premium Style */}
-                <div className="absolute bottom-4 right-4 sm:bottom-5 sm:right-5 lg:bottom-6 lg:right-6 flex items-center gap-1">
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white/90 shadow-lg flex items-center justify-center backdrop-blur-sm">
-                    <PiggyBank className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+                <div className="absolute bottom-6 right-6 flex items-center gap-1">
+                  <div className="w-8 h-8 rounded-full bg-white/90 shadow-lg flex items-center justify-center backdrop-blur-sm">
+                    <PiggyBank className="w-4 h-4 text-blue-600" />
                   </div>
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-400/90 shadow-lg -ml-2 sm:-ml-3 flex items-center justify-center backdrop-blur-sm">
-                    <Target className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                  <div className="w-8 h-8 rounded-full bg-blue-400/90 shadow-lg -ml-3 flex items-center justify-center backdrop-blur-sm">
+                    <Target className="w-4 h-4 text-white" />
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Demo Info - Deposit & Withdraw */}
-            <div className="lg:col-span-1 bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-sm min-h-[280px] sm:min-h-[300px] lg:min-h-[320px] flex flex-col">
-              <h3 className="text-xs sm:text-sm font-bold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
-                <PiggyBank className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+            <div className="lg:col-span-1 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm min-h-[260px] sm:min-h-[280px] lg:min-h-[320px] flex flex-col">
+              <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <PiggyBank className="w-4 h-4 text-blue-600" />
                 Demo Account Actions
               </h3>
               
-              <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4 flex-1">
+              <div className="grid grid-cols-2 gap-3 mb-4 flex-1">
                 <button
                   onClick={() => {
                     setTransactionAccount('demo')
                     setShowDeposit(true)
                   }}
-                  className="flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-3 sm:p-4 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 rounded-xl transition-all group"
+                  className="flex flex-col items-center justify-center gap-2 p-4 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 border-2 border-blue-200 rounded-xl transition-all group min-h-[120px] touch-manipulation"
                 >
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <ArrowDownToLine className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <ArrowDownToLine className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-xs sm:text-sm font-semibold text-gray-900">Add Funds</div>
-                  <div className="text-[10px] sm:text-xs text-gray-500">Top up demo</div>
+                  <div className="text-sm font-semibold text-gray-900">Add Funds</div>
+                  <div className="text-xs text-gray-500">Top up demo</div>
                 </button>
 
                 <button
@@ -567,42 +525,40 @@ export default function BalancePage() {
                     setTransactionAccount('demo')
                     setShowWithdraw(true)
                   }}
-                  className="flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-3 sm:p-4 bg-orange-50 hover:bg-orange-100 border-2 border-orange-200 rounded-xl transition-all group"
+                  className="flex flex-col items-center justify-center gap-2 p-4 bg-orange-50 hover:bg-orange-100 active:bg-orange-200 border-2 border-orange-200 rounded-xl transition-all group min-h-[120px] touch-manipulation"
                 >
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <ArrowUpFromLine className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                  <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <ArrowUpFromLine className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-xs sm:text-sm font-semibold text-gray-900">Remove</div>
-                  <div className="text-[10px] sm:text-xs text-gray-500">Reduce demo</div>
+                  <div className="text-sm font-semibold text-gray-900">Remove</div>
+                  <div className="text-xs text-gray-500">Reduce demo</div>
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-3 border-t border-gray-200">
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-200">
                 <div className="text-center">
-                  <div className="text-[10px] sm:text-xs text-gray-500 mb-1">Total Deposits</div>
-                  <div className="text-sm sm:text-base lg:text-lg font-bold text-blue-600">{formatCurrency(demoStats.totalDeposits)}</div>
+                  <div className="text-xs text-gray-500 mb-1">Total Deposits</div>
+                  <div className="text-base lg:text-lg font-bold text-blue-600">{formatCurrency(demoStats.totalDeposits)}</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-[10px] sm:text-xs text-gray-500 mb-1">Total Withdrawals</div>
-                  <div className="text-sm sm:text-base lg:text-lg font-bold text-orange-600">{formatCurrency(demoStats.totalWithdrawals)}</div>
+                  <div className="text-xs text-gray-500 mb-1">Total Withdrawals</div>
+                  <div className="text-base lg:text-lg font-bold text-orange-600">{formatCurrency(demoStats.totalWithdrawals)}</div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Transaction History */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-          <div className="p-4 sm:p-6 border-b border-gray-200">
+          <div className="p-5 sm:p-6 border-b border-gray-200">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <Receipt className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+              <div className="flex items-center gap-3">
+                <Receipt className="w-5 h-5 text-gray-600" />
                 <h2 className="text-lg sm:text-xl font-bold text-gray-900">Transaction History</h2>
               </div>
             </div>
 
-            {/* Account Filter */}
-            <div className="flex gap-2 overflow-x-auto pb-2 -mb-2">
+            <div className="flex gap-2 overflow-x-auto pb-2 -mb-2 scrollbar-hide">
               {[
                 { id: 'all', label: 'All', count: allTransactions.length },
                 { id: 'real', label: 'Real', count: allTransactions.filter(t => (t.accountType || 'demo') === 'real').length },
@@ -611,10 +567,10 @@ export default function BalancePage() {
                 <button
                   key={filter.id}
                   onClick={() => setSelectedAccount(filter.id as any)}
-                  className={`px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
+                  className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap touch-manipulation ${
                     selectedAccount === filter.id
                       ? 'bg-blue-500 text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300'
                   }`}
                 >
                   {filter.label} ({filter.count})
@@ -623,36 +579,36 @@ export default function BalancePage() {
             </div>
           </div>
 
-          <div className="p-4 sm:p-6">
+          <div className="p-5 sm:p-6">
             {filteredTransactions.length === 0 ? (
-              <div className="text-center py-12 sm:py-16 px-4">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <Wallet className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300" />
+              <div className="text-center py-16 px-4">
+                <div className="w-20 h-20 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <Wallet className="w-10 h-10 text-gray-300" />
                 </div>
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No transactions yet</h3>
-                <p className="text-sm sm:text-base text-gray-500">Your wallet activity will appear here</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No transactions yet</h3>
+                <p className="text-base text-gray-500">Your wallet activity will appear here</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {filteredTransactions.map((tx) => (
                   <div
                     key={tx.id}
-                    className="flex items-center justify-between p-3 sm:p-4 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100 gap-3"
+                    className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors border border-gray-100 gap-4"
                   >
-                    <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
                         tx.type === 'deposit' ? 'bg-green-50' : 'bg-red-50'
                       }`}>
                         {tx.type === 'deposit' ? (
-                          <ArrowDownToLine className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+                          <ArrowDownToLine className="w-6 h-6 text-green-600" />
                         ) : (
-                          <ArrowUpFromLine className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
+                          <ArrowUpFromLine className="w-6 h-6 text-red-600" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                          <div className="font-semibold text-gray-900 capitalize text-sm sm:text-base">{tx.type}</div>
-                          <span className={`px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold ${
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <div className="font-semibold text-gray-900 capitalize text-base">{tx.type}</div>
+                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${
                             (tx.accountType || 'demo') === 'real' 
                               ? 'bg-green-100 text-green-700' 
                               : 'bg-blue-100 text-blue-700'
@@ -660,7 +616,7 @@ export default function BalancePage() {
                             {(tx.accountType || 'demo').toUpperCase()}
                           </span>
                         </div>
-                        <div className="text-xs sm:text-sm text-gray-500 truncate">{formatDate(tx.createdAt)}</div>
+                        <div className="text-sm text-gray-500 truncate">{formatDate(tx.createdAt)}</div>
                       </div>
                     </div>
                     
@@ -677,65 +633,64 @@ export default function BalancePage() {
         </div>
       </div>
 
-      {/* Deposit Modal */}
       {showDeposit && (
         <>
           <div 
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" 
             onClick={() => setShowDeposit(false)}
           />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
-              <div className="p-4 sm:p-6 border-b border-gray-200">
+              <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
                       transactionAccount === 'real' ? 'bg-green-50' : 'bg-blue-50'
                     }`}>
-                      <ArrowDownToLine className={`w-5 h-5 sm:w-6 sm:h-6 ${
+                      <ArrowDownToLine className={`w-6 h-6 ${
                         transactionAccount === 'real' ? 'text-green-600' : 'text-blue-600'
                       }`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h2 className="text-lg sm:text-xl font-bold text-gray-900">Add Funds</h2>
-                      <p className="text-xs sm:text-sm text-gray-500 truncate">
+                      <h2 className="text-xl font-bold text-gray-900">Add Funds</h2>
+                      <p className="text-sm text-gray-500 truncate">
                         Deposit to <span className="font-semibold uppercase">{transactionAccount}</span> account
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => setShowDeposit(false)}
-                    className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors flex-shrink-0 ml-2"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0 ml-2 touch-manipulation"
                   >
-                    <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+                    <X className="w-5 h-5 text-gray-500" />
                   </button>
                 </div>
               </div>
 
-              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+              <div className="p-6 space-y-6">
                 <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">Enter Amount (IDR)</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Enter Amount (IDR)</label>
                   <input
                     type="number"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0"
-                    className="w-full text-center text-2xl sm:text-3xl font-bold font-mono bg-gray-50 border-2 border-gray-200 rounded-xl py-3 sm:py-4 focus:border-blue-500 focus:bg-white transition-all focus:outline-none"
+                    className="w-full text-center text-3xl font-bold font-mono bg-gray-50 border-2 border-gray-200 rounded-xl py-4 focus:border-blue-500 focus:bg-white transition-all focus:outline-none"
                     autoFocus
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">Quick Select</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Quick Select</label>
                   <div className="grid grid-cols-3 gap-2">
                     {quickAmounts.map((preset) => (
                       <button
                         key={preset}
                         onClick={() => setAmount(preset.toString())}
-                        className={`py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                        className={`py-3 rounded-xl text-sm font-semibold transition-all touch-manipulation ${
                           amount === preset.toString()
                             ? `${transactionAccount === 'real' ? 'bg-green-500' : 'bg-blue-500'} text-white shadow-sm`
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300 border border-gray-200'
                         }`}
                       >
                         {preset >= 1000000 ? `${preset/1000000}M` : `${preset/1000}K`}
@@ -747,15 +702,15 @@ export default function BalancePage() {
                 <button
                   onClick={handleDeposit}
                   disabled={loading}
-                  className={`w-full text-white py-3 sm:py-4 rounded-xl font-semibold shadow-sm transition-all disabled:opacity-50 text-sm sm:text-base ${
+                  className={`w-full text-white py-4 rounded-xl font-semibold shadow-sm transition-all disabled:opacity-50 text-base touch-manipulation ${
                     transactionAccount === 'real'
-                      ? 'bg-green-500 hover:bg-green-600'
-                      : 'bg-blue-500 hover:bg-blue-600'
+                      ? 'bg-green-500 hover:bg-green-600 active:bg-green-700'
+                      : 'bg-blue-500 hover:bg-blue-600 active:bg-blue-700'
                   }`}
                 >
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                       Processing...
                     </span>
                   ) : (
@@ -768,53 +723,52 @@ export default function BalancePage() {
         </>
       )}
 
-      {/* Withdraw Modal */}
       {showWithdraw && (
         <>
           <div 
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" 
             onClick={() => setShowWithdraw(false)}
           />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
-              <div className="p-4 sm:p-6 border-b border-gray-200">
+              <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <ArrowUpFromLine className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <ArrowUpFromLine className="w-6 h-6 text-red-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h2 className="text-lg sm:text-xl font-bold text-gray-900">Withdraw Funds</h2>
-                      <p className="text-xs sm:text-sm text-gray-500 truncate">
+                      <h2 className="text-xl font-bold text-gray-900">Withdraw Funds</h2>
+                      <p className="text-sm text-gray-500 truncate">
                         Max: {formatCurrency(transactionAccount === 'real' ? realBalance : demoBalance)}
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => setShowWithdraw(false)}
-                    className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors flex-shrink-0 ml-2"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0 ml-2 touch-manipulation"
                   >
-                    <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+                    <X className="w-5 h-5 text-gray-500" />
                   </button>
                 </div>
               </div>
 
-              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+              <div className="p-6 space-y-6">
                 <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">Enter Amount (IDR)</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Enter Amount (IDR)</label>
                   <input
                     type="number"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0"
                     max={transactionAccount === 'real' ? realBalance : demoBalance}
-                    className="w-full text-center text-2xl sm:text-3xl font-bold font-mono bg-gray-50 border-2 border-gray-200 rounded-xl py-3 sm:py-4 focus:border-red-500 focus:bg-white transition-all focus:outline-none"
+                    className="w-full text-center text-3xl font-bold font-mono bg-gray-50 border-2 border-gray-200 rounded-xl py-4 focus:border-red-500 focus:bg-white transition-all focus:outline-none"
                     autoFocus
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">Quick Select</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Quick Select</label>
                   <div className="grid grid-cols-3 gap-2">
                     {quickAmounts
                       .filter(p => p <= (transactionAccount === 'real' ? realBalance : demoBalance))
@@ -822,10 +776,10 @@ export default function BalancePage() {
                         <button
                           key={preset}
                           onClick={() => setAmount(preset.toString())}
-                          className={`py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                          className={`py-3 rounded-xl text-sm font-semibold transition-all touch-manipulation ${
                             amount === preset.toString()
                               ? 'bg-red-500 text-white shadow-sm'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300 border border-gray-200'
                           }`}
                         >
                           {preset >= 1000000 ? `${preset/1000000}M` : `${preset/1000}K`}
@@ -837,11 +791,11 @@ export default function BalancePage() {
                 <button
                   onClick={handleWithdraw}
                   disabled={loading}
-                  className="w-full bg-red-500 hover:bg-red-600 text-white py-3 sm:py-4 rounded-xl font-semibold shadow-sm transition-all disabled:opacity-50 text-sm sm:text-base"
+                  className="w-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white py-4 rounded-xl font-semibold shadow-sm transition-all disabled:opacity-50 text-base touch-manipulation"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                       Processing...
                     </span>
                   ) : (
