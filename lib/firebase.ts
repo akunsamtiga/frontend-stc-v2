@@ -1,4 +1,4 @@
-// lib/firebase.ts - FIXED VERSION with Proper Path Handling
+// lib/firebase.ts - ULTRA OPTIMIZED with Smart Caching
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
 import { getDatabase, Database, ref, onValue, off, query, limitToLast, get } from 'firebase/database'
 
@@ -32,44 +32,24 @@ if (typeof window !== 'undefined') {
 export { database, ref, onValue, off, query, limitToLast, get }
 
 // ===================================
-// PATH UTILITY - CRITICAL FIX
+// PATH UTILITIES
 // ===================================
 
-/**
- * ✅ Clean asset path - removes /current_price if exists
- * Backend stores: /idx_stc (without /current_price)
- * Simulator stores: /idx_stc/current_price and /idx_stc/ohlc_1m
- */
 function cleanAssetPath(path: string): string {
   if (!path) return ''
-  
-  // Remove /current_price suffix if exists
   if (path.endsWith('/current_price')) {
     path = path.replace('/current_price', '')
   }
-  
-  // Remove trailing slash
   path = path.replace(/\/$/, '')
-  
-  // Ensure starts with /
-  if (!path.startsWith('/')) {
-    path = '/' + path
-  }
-  
+  if (!path.startsWith('/')) path = '/' + path
   return path
 }
 
-/**
- * ✅ Get price path - always append /current_price
- */
 function getPricePath(assetPath: string): string {
   const clean = cleanAssetPath(assetPath)
   return `${clean}/current_price`
 }
 
-/**
- * ✅ Get OHLC path - append /ohlc_timeframe
- */
 function getOHLCPath(assetPath: string, timeframe: string): string {
   const clean = cleanAssetPath(assetPath)
   return `${clean}/ohlc_${timeframe}`
@@ -82,16 +62,16 @@ function getOHLCPath(assetPath: string, timeframe: string): string {
 type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
 
 const TIMEFRAME_CONFIG: Record<Timeframe, { path: string; barsToFetch: number; cacheTTL: number }> = {
-  '1m': { path: 'ohlc_1m', barsToFetch: 100, cacheTTL: 5000 },
-  '5m': { path: 'ohlc_5m', barsToFetch: 100, cacheTTL: 15000 },
-  '15m': { path: 'ohlc_15m', barsToFetch: 150, cacheTTL: 30000 },
-  '1h': { path: 'ohlc_1h', barsToFetch: 150, cacheTTL: 60000 },
-  '4h': { path: 'ohlc_4h', barsToFetch: 100, cacheTTL: 120000 },
-  '1d': { path: 'ohlc_1d', barsToFetch: 60, cacheTTL: 300000 }
+  '1m': { path: 'ohlc_1m', barsToFetch: 100, cacheTTL: 3000 },
+  '5m': { path: 'ohlc_5m', barsToFetch: 100, cacheTTL: 10000 },
+  '15m': { path: 'ohlc_15m', barsToFetch: 150, cacheTTL: 20000 },
+  '1h': { path: 'ohlc_1h', barsToFetch: 150, cacheTTL: 40000 },
+  '4h': { path: 'ohlc_4h', barsToFetch: 100, cacheTTL: 80000 },
+  '1d': { path: 'ohlc_1d', barsToFetch: 60, cacheTTL: 180000 }
 }
 
 // ===================================
-// INDEXEDDB CACHE
+// OPTIMIZED INDEXEDDB CACHE
 // ===================================
 
 class IndexedDBCache {
@@ -99,6 +79,8 @@ class IndexedDBCache {
   private storeName = 'ohlc_data'
   private db: IDBDatabase | null = null
   private initPromise: Promise<void> | null = null
+  private pendingWrites: Map<string, any> = new Map()
+  private writeTimeout: NodeJS.Timeout | null = null
 
   async init(): Promise<void> {
     if (this.db) return
@@ -140,6 +122,10 @@ class IndexedDBCache {
         if (result && result.expiry > Date.now()) {
           resolve(result.data)
         } else {
+          if (result) {
+            // Clean expired entry asynchronously
+            this.delete(key).catch(() => {})
+          }
           resolve(null)
         }
       }
@@ -148,15 +134,49 @@ class IndexedDBCache {
   }
 
   async set(key: string, data: any, ttl: number): Promise<void> {
+    // Batch writes
+    this.pendingWrites.set(key, { data, ttl })
+    
+    if (this.writeTimeout) {
+      clearTimeout(this.writeTimeout)
+    }
+    
+    this.writeTimeout = setTimeout(() => {
+      this.flushWrites()
+    }, 50) // Batch writes every 50ms
+  }
+
+  private async flushWrites(): Promise<void> {
+    if (this.pendingWrites.size === 0) return
+    
+    await this.init()
+    if (!this.db) return
+
+    const writes = Array.from(this.pendingWrites.entries())
+    this.pendingWrites.clear()
+
+    return new Promise((resolve) => {
+      const transaction = this.db!.transaction([this.storeName], 'readwrite')
+      const store = transaction.objectStore(this.storeName)
+      
+      writes.forEach(([key, { data, ttl }]) => {
+        const expiry = Date.now() + ttl
+        store.put({ key, data, timestamp: Date.now(), expiry })
+      })
+      
+      transaction.oncomplete = () => resolve()
+      transaction.onerror = () => resolve()
+    })
+  }
+
+  async delete(key: string): Promise<void> {
     await this.init()
     if (!this.db) return
 
     return new Promise((resolve) => {
       const transaction = this.db!.transaction([this.storeName], 'readwrite')
       const store = transaction.objectStore(this.storeName)
-      const expiry = Date.now() + ttl
-      
-      store.put({ key, data, timestamp: Date.now(), expiry })
+      store.delete(key)
       transaction.oncomplete = () => resolve()
       transaction.onerror = () => resolve()
     })
@@ -186,15 +206,22 @@ class IndexedDBCache {
       const range = IDBKeyRange.upperBound(Date.now())
       const request = index.openCursor(range)
 
+      let deleteCount = 0
       request.onsuccess = (event) => {
         const cursor = (event.target as IDBRequest).result
         if (cursor) {
           cursor.delete()
+          deleteCount++
           cursor.continue()
         }
       }
 
-      transaction.oncomplete = () => resolve()
+      transaction.oncomplete = () => {
+        if (deleteCount > 0) {
+          console.log(`🗑️ Cleaned up ${deleteCount} expired cache entries`)
+        }
+        resolve()
+      }
       transaction.onerror = () => resolve()
     })
   }
@@ -202,27 +229,101 @@ class IndexedDBCache {
 
 const idbCache = new IndexedDBCache()
 
-// Auto cleanup
+// Aggressive cleanup - every 2 minutes
 if (typeof window !== 'undefined') {
   setInterval(() => {
-    idbCache.cleanup().catch(console.error)
-  }, 300000)
+    idbCache.cleanup().catch(() => {})
+  }, 120000)
 }
 
 // ===================================
-// MEMORY CACHE
+// MEMORY CACHE WITH LRU
 // ===================================
 
 interface CacheEntry {
   data: any[]
   timestamp: number
   ttl: number
+  accessCount: number
+  lastAccess: number
 }
 
-const memoryCache = new Map<string, CacheEntry>()
+class LRUCache {
+  private cache = new Map<string, CacheEntry>()
+  private maxSize = 50 // Maximum cache entries
+
+  get(key: string): any[] | null {
+    const entry = this.cache.get(key)
+    
+    if (!entry) return null
+    
+    const now = Date.now()
+    if (now - entry.timestamp > entry.ttl) {
+      this.cache.delete(key)
+      return null
+    }
+    
+    // Update access stats
+    entry.accessCount++
+    entry.lastAccess = now
+    
+    return entry.data
+  }
+
+  set(key: string, data: any[], ttl: number) {
+    // Evict if at max size
+    if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
+      this.evictLRU()
+    }
+    
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      ttl,
+      accessCount: 1,
+      lastAccess: Date.now()
+    })
+  }
+
+  delete(key: string) {
+    this.cache.delete(key)
+  }
+
+  clear() {
+    this.cache.clear()
+  }
+
+  private evictLRU() {
+    let oldestKey: string | null = null
+    let oldestTime = Infinity
+    
+    // Find least recently accessed entry
+    this.cache.forEach((entry, key) => {
+      if (entry.lastAccess < oldestTime) {
+        oldestTime = entry.lastAccess
+        oldestKey = key
+      }
+    })
+    
+    if (oldestKey) {
+      this.cache.delete(oldestKey)
+      console.log(`♻️ Evicted LRU cache entry: ${oldestKey}`)
+    }
+  }
+
+  getStats() {
+    return {
+      size: this.cache.size,
+      maxSize: this.maxSize,
+      keys: Array.from(this.cache.keys())
+    }
+  }
+}
+
+const memoryCache = new LRUCache()
 
 // ===================================
-// FETCH HISTORICAL DATA - FIXED
+// FETCH HISTORICAL DATA - OPTIMIZED
 // ===================================
 
 export async function fetchHistoricalData(
@@ -240,44 +341,25 @@ export async function fetchHistoricalData(
       return []
     }
 
-    // ✅ CRITICAL: Clean path first
     const basePath = cleanAssetPath(assetPath)
     const cacheKey = `${basePath}-${timeframe}`
 
-    console.log(`📊 Fetching historical data:`)
-    console.log(`   Asset path (input): ${assetPath}`)
-    console.log(`   Asset path (clean): ${basePath}`)
-    console.log(`   Timeframe: ${timeframe}`)
-
-    // 1️⃣ Memory cache
+    // 1️⃣ Memory cache (fastest)
     const memCached = memoryCache.get(cacheKey)
-    if (memCached && (Date.now() - memCached.timestamp) < memCached.ttl) {
-      console.log(`⚡ Memory cache hit: ${timeframe} (${memCached.data.length} bars)`)
-      return memCached.data
+    if (memCached) {
+      return memCached
     }
 
     // 2️⃣ IndexedDB cache
     const idbCached = await idbCache.get(cacheKey)
     if (idbCached) {
-      console.log(`💾 IndexedDB cache hit: ${timeframe} (${idbCached.length} bars)`)
-      
-      memoryCache.set(cacheKey, {
-        data: idbCached,
-        timestamp: Date.now(),
-        ttl: config.cacheTTL
-      })
-      
+      // Populate memory cache
+      memoryCache.set(cacheKey, idbCached, config.cacheTTL)
       return idbCached
     }
 
     // 3️⃣ Fetch from Firebase
-    console.log(`🔥 Fetching from Firebase: ${timeframe}`)
-    
-    // ✅ Use helper function to get OHLC path
     const ohlcPath = getOHLCPath(basePath, timeframe)
-    
-    console.log(`   OHLC path: ${ohlcPath}`)
-    
     const ohlcRef = ref(database, ohlcPath)
     const limitedQuery = query(ohlcRef, limitToLast(config.barsToFetch))
     
@@ -285,7 +367,6 @@ export async function fetchHistoricalData(
     
     if (!snapshot.exists()) {
       console.warn(`⚠️ No data at: ${ohlcPath}`)
-      console.warn(`   Make sure simulator is running and path is correct`)
       return []
     }
 
@@ -293,32 +374,23 @@ export async function fetchHistoricalData(
     const result = processHistoricalData(rawData, config.barsToFetch)
     
     if (result.length === 0) {
-      console.warn(`⚠️ No valid data after processing`)
       return []
     }
     
-    // Store in caches
-    memoryCache.set(cacheKey, {
-      data: result,
-      timestamp: Date.now(),
-      ttl: config.cacheTTL
-    })
-    
+    // Store in both caches
+    memoryCache.set(cacheKey, result, config.cacheTTL)
     await idbCache.set(cacheKey, result, config.cacheTTL)
     
-    console.log(`✅ Fetched & cached ${result.length} bars for ${timeframe}`)
     return result
 
   } catch (error: any) {
     console.error('❌ Fetch error:', error.message)
-    console.error('   Path:', assetPath)
-    console.error('   Timeframe:', timeframe)
     return []
   }
 }
 
 // ===================================
-// PROCESS DATA
+// PROCESS DATA - OPTIMIZED
 // ===================================
 
 function processHistoricalData(data: any, limit: number): any[] {
@@ -329,15 +401,19 @@ function processHistoricalData(data: any, limit: number): any[] {
   const historicalData: any[] = []
   const keys = Object.keys(data)
 
-  keys.forEach(key => {
+  // Pre-allocate array
+  const maxLength = Math.min(keys.length, limit)
+  
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i]
     const item = data[key]
     
-    if (!item || typeof item !== 'object') return
+    if (!item || typeof item !== 'object') continue
 
     const timestamp = item.timestamp || parseInt(key)
     
-    if (!timestamp || isNaN(timestamp)) return
-    if (typeof item.close !== 'number' || item.close <= 0) return
+    if (!timestamp || isNaN(timestamp)) continue
+    if (typeof item.close !== 'number' || item.close <= 0) continue
 
     historicalData.push({
       timestamp: timestamp,
@@ -348,18 +424,19 @@ function processHistoricalData(data: any, limit: number): any[] {
       close: item.close,
       volume: item.volume || 0
     })
-  })
+  }
 
   if (historicalData.length === 0) {
     return []
   }
 
+  // Sort and limit
   historicalData.sort((a, b) => a.timestamp - b.timestamp)
   return historicalData.slice(-limit)
 }
 
 // ===================================
-// SUBSCRIBE TO OHLC - FIXED
+// SUBSCRIBE TO OHLC - OPTIMIZED
 // ===================================
 
 export function subscribeToOHLCUpdates(
@@ -377,37 +454,36 @@ export function subscribeToOHLCUpdates(
     return () => {}
   }
 
-  // ✅ CRITICAL: Clean path and use helper
   const basePath = cleanAssetPath(assetPath)
   const ohlcPath = getOHLCPath(basePath, timeframe)
-  
-  console.log(`🔥 Subscribing to OHLC:`)
-  console.log(`   Asset path (input): ${assetPath}`)
-  console.log(`   Asset path (clean): ${basePath}`)
-  console.log(`   OHLC path: ${ohlcPath}`)
-  
   const ohlcRef = ref(database, ohlcPath)
   
   let lastBarTimestamp: number | null = null
   let updateCount = 0
   let rafId: number | null = null
+  let rafQueue: (() => void) | null = null
   
   const throttledCallback = (data: any) => {
-    if (rafId) {
-      cancelAnimationFrame(rafId)
+    rafQueue = () => {
+      callback(data)
+      rafQueue = null
     }
     
-    rafId = requestAnimationFrame(() => {
-      callback(data)
-      rafId = null
-    })
+    if (!rafId) {
+      rafId = requestAnimationFrame(() => {
+        if (rafQueue) {
+          rafQueue()
+        }
+        rafId = null
+      })
+    }
   }
   
   const unsubscribe = onValue(ohlcRef, (snapshot) => {
     const data = snapshot.val()
     if (!data) return
 
-    const keys = Object.keys(data).sort()
+    const keys = Object.keys(data)
     const latestKey = keys[keys.length - 1]
     const latestData = data[latestKey]
     
@@ -423,8 +499,6 @@ export function subscribeToOHLCUpdates(
       // Invalidate cache on new bar
       const cacheKey = `${basePath}-${timeframe}`
       memoryCache.delete(cacheKey)
-      
-      console.log(`🆕 New ${timeframe} bar: ${barTimestamp}`)
     }
     
     const barData = {
@@ -445,7 +519,6 @@ export function subscribeToOHLCUpdates(
   })
 
   return () => {
-    console.log(`🔕 Unsubscribing from ${timeframe} (${updateCount} updates)`)
     if (rafId) {
       cancelAnimationFrame(rafId)
     }
@@ -454,7 +527,7 @@ export function subscribeToOHLCUpdates(
 }
 
 // ===================================
-// SUBSCRIBE TO PRICE - FIXED
+// SUBSCRIBE TO PRICE - OPTIMIZED
 // ===================================
 
 export function subscribeToPriceUpdates(
@@ -465,32 +538,40 @@ export function subscribeToPriceUpdates(
     return () => {}
   }
 
-  // ✅ CRITICAL: Use helper to get price path
   const pricePath = getPricePath(assetPath)
-  
-  console.log(`🔥 Subscribing to price:`)
-  console.log(`   Asset path (input): ${assetPath}`)
-  console.log(`   Price path: ${pricePath}`)
-  
   const priceRef = ref(database, pricePath)
   
   let rafId: number | null = null
+  let rafQueue: (() => void) | null = null
   let updateCount = 0
+  let lastPrice: number | null = null
   
   const throttledCallback = (data: any) => {
-    if (rafId) {
-      cancelAnimationFrame(rafId)
+    // Skip duplicate prices
+    if (lastPrice && Math.abs(data.price - lastPrice) < 0.00001) {
+      return
     }
     
-    rafId = requestAnimationFrame(() => {
+    lastPrice = data.price
+    
+    rafQueue = () => {
       callback(data)
-      rafId = null
-    })
+      rafQueue = null
+    }
+    
+    if (!rafId) {
+      rafId = requestAnimationFrame(() => {
+        if (rafQueue) {
+          rafQueue()
+        }
+        rafId = null
+      })
+    }
   }
   
   const unsubscribe = onValue(priceRef, (snapshot) => {
     const data = snapshot.val()
-    if (data) {
+    if (data && data.price) {
       updateCount++
       throttledCallback(data)
     }
@@ -499,7 +580,6 @@ export function subscribeToPriceUpdates(
   })
 
   return () => {
-    console.log(`🔕 Unsubscribing from price (${updateCount} updates)`)
     if (rafId) {
       cancelAnimationFrame(rafId)
     }
@@ -513,20 +593,12 @@ export function subscribeToPriceUpdates(
 
 export async function prefetchDefaultAsset(assetPath: string): Promise<void> {
   const basePath = cleanAssetPath(assetPath)
+  const timeframes: Timeframe[] = ['1m', '5m']
   
-  console.log(`🚀 Prefetching default asset:`)
-  console.log(`   Asset path (input): ${assetPath}`)
-  console.log(`   Asset path (clean): ${basePath}`)
-  
-  const timeframes: Timeframe[] = ['1m', '5m', '15m']
-  
-  const promises = timeframes.map(tf => 
-    fetchHistoricalData(basePath, tf)
+  // Parallel prefetch
+  await Promise.allSettled(
+    timeframes.map(tf => fetchHistoricalData(basePath, tf))
   )
-  
-  await Promise.allSettled(promises)
-  
-  console.log(`✅ Default asset prefetched`)
 }
 
 // ===================================
@@ -541,14 +613,12 @@ export async function clearDataCache(pattern?: string): Promise<void> {
     return
   }
   
-  const keys = Array.from(memoryCache.keys())
-  keys.forEach(key => {
+  const stats = memoryCache.getStats()
+  stats.keys.forEach(key => {
     if (key.includes(pattern)) {
       memoryCache.delete(key)
     }
   })
-  
-  console.log(`🗑️ Cache cleared for: ${pattern}`)
 }
 
 // ===================================
@@ -556,10 +626,5 @@ export async function clearDataCache(pattern?: string): Promise<void> {
 // ===================================
 
 export function getCacheStats(): any {
-  return {
-    memoryCache: {
-      size: memoryCache.size,
-      keys: Array.from(memoryCache.keys())
-    }
-  }
+  return memoryCache.getStats()
 }

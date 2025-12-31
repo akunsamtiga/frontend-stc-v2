@@ -1,18 +1,18 @@
-// app/trading/page.tsx - COMPLETE with Real/Demo Account Support
+// app/trading/page.tsx - ULTRA OPTIMIZED with Smart Polling
 'use client'
 
 import { useEffect, useState, useCallback, memo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { unstable_batchedUpdates } from 'react-dom'
 import { useAuthStore } from '@/store/auth'
 import { useTradingStore, useSelectedAsset, useCurrentPrice, useSelectedAccountType, useTradingActions } from '@/store/trading'
 import { api } from '@/lib/api'
-import { subscribeToPriceUpdates } from '@/lib/firebase'
+import { subscribeToPriceUpdates, prefetchDefaultAsset } from '@/lib/firebase'
 import { toast } from 'sonner'
 import { Asset, BinaryOrder, AccountType } from '@/types'
 import { formatCurrency, DURATIONS } from '@/lib/utils'
 import dynamic from 'next/dynamic'
-import { prefetchDefaultAsset } from '@/lib/firebase'
 
 import { 
   ArrowUp,
@@ -47,6 +47,74 @@ const TradingChart = dynamic(() => import('@/components/TradingChart'), {
 const HistorySidebar = dynamic(() => import('@/components/HistorySidebar'), {
   ssr: false
 })
+
+// ===================================
+// SMART POLLING MANAGER
+// ===================================
+
+class SmartPollingManager {
+  private intervalId: NodeJS.Timeout | null = null
+  private isPolling = false
+  private pollCallback: (() => Promise<void>) | null = null
+  private activeOrders: BinaryOrder[] = []
+  
+  start(callback: () => Promise<void>) {
+    this.pollCallback = callback
+    this.isPolling = true
+    this.scheduleNext()
+  }
+
+  stop() {
+    this.isPolling = false
+    if (this.intervalId) {
+      clearTimeout(this.intervalId)
+      this.intervalId = null
+    }
+  }
+
+  updateActiveOrders(orders: BinaryOrder[]) {
+    this.activeOrders = orders
+  }
+
+  private getInterval(): number {
+    if (this.activeOrders.length === 0) {
+      return 5000 // 5s when no active orders
+    }
+
+    // Check for near expiry orders
+    const now = Date.now()
+    const hasNearExpiry = this.activeOrders.some(order => {
+      const exitTime = new Date(order.exit_time!).getTime()
+      const timeLeft = exitTime - now
+      return timeLeft > 0 && timeLeft < 10000
+    })
+
+    if (hasNearExpiry) {
+      return 800 // Ultra fast when near expiry
+    }
+
+    return 2000 // Normal active order polling
+  }
+
+  private async scheduleNext() {
+    if (!this.isPolling || !this.pollCallback) return
+
+    try {
+      await this.pollCallback()
+    } catch (error) {
+      console.error('Polling error:', error)
+    }
+
+    if (this.isPolling) {
+      const interval = this.getInterval()
+      this.intervalId = setTimeout(() => this.scheduleNext(), interval)
+    }
+  }
+}
+
+// ===================================
+// MEMOIZED COMPONENTS
+// ===================================
 
 const PriceTicker = memo(({ asset, price }: { asset: Asset; price: any }) => {
   if (!price) return null
@@ -83,6 +151,10 @@ const PriceTicker = memo(({ asset, price }: { asset: Asset; price: any }) => {
 
 PriceTicker.displayName = 'PriceTicker'
 
+// ===================================
+// MAIN COMPONENT
+// ===================================
+
 export default function TradingPage() {
   const router = useRouter()
   const user = useAuthStore((state) => state.user)
@@ -103,10 +175,10 @@ export default function TradingPage() {
   const [completedOrders, setCompletedOrders] = useState<BinaryOrder[]>([])
   const [notificationOrder, setNotificationOrder] = useState<BinaryOrder | null>(null)
   
-  // Track order states untuk instant detection
+  // Smart polling
+  const pollingManagerRef = useRef(new SmartPollingManager())
   const previousOrdersRef = useRef<Map<string, BinaryOrder>>(new Map())
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const nearExpiryCheckRef = useRef<NodeJS.Timeout | null>(null)
+  const balanceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   const [showAssetMenu, setShowAssetMenu] = useState(false)
   const [showAccountMenu, setShowAccountMenu] = useState(false)
@@ -115,163 +187,10 @@ export default function TradingPage() {
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showWalletModal, setShowWalletModal] = useState(false)
   const [showAmountDropdown, setShowAmountDropdown] = useState(false)
-  const [depositAmount, setDepositAmount] = useState('')
-  const [withdrawAmount, setWithdrawAmount] = useState('')
-  const [walletLoading, setWalletLoading] = useState(false)
 
-  // Get current balance based on selected account type
   const currentBalance = selectedAccountType === 'real' ? realBalance : demoBalance
 
-  // Load data on mount
-  useEffect(() => {
-    if (!user) {
-      router.push('/')
-      return
-    }
-    
-    const initializeData = async () => {
-  await loadData()
-  
-  if (selectedAsset && selectedAsset.realtimeDbPath) {
-    let basePath = selectedAsset.realtimeDbPath
-    
-    // Remove /current_price if exists
-    if (basePath.endsWith('/current_price')) {
-      basePath = basePath.replace('/current_price', '')
-    }
-    
-    prefetchDefaultAsset(basePath).catch(console.error)
-  }
-}
-    
-    initializeData()
-  }, [user, router])
-
-  // Price subscription
-useEffect(() => {
-  if (!selectedAsset) return
-
-  let unsubscribe: (() => void) | undefined
-
-  if (selectedAsset.dataSource === 'realtime_db' && selectedAsset.realtimeDbPath) {
-    // ✅ FIXED: No manual path handling
-    unsubscribe = subscribeToPriceUpdates(
-      selectedAsset.realtimeDbPath, // Pass as-is
-      (data) => {
-        console.log('💰 Price update:', data.price)
-        setCurrentPrice(data)
-        addPriceToHistory(data)
-      }
-    )
-  }
-
-  return () => {
-    if (unsubscribe) {
-      console.log('🔕 Unsubscribing from price updates')
-      unsubscribe()
-    }
-  }
-}, [selectedAsset?.id])
-
-  // ULTRA-AGGRESSIVE POLLING dengan adaptive interval
-  useEffect(() => {
-    if (!user) return
-
-    const startAdaptivePolling = () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current)
-      }
-      
-      const poll = async () => {
-        try {
-          const ordersRes = await api.getOrders(undefined, 1, 100)
-          const allOrders = ordersRes?.data?.orders || ordersRes?.orders || []
-          
-          const active = allOrders.filter((o: BinaryOrder) => o.status === 'ACTIVE')
-          const completed = allOrders.filter((o: BinaryOrder) => 
-            o.status === 'WON' || o.status === 'LOST'
-          )
-
-          detectOrderCompletion(active, completed)
-
-          setActiveOrders(active)
-          setCompletedOrders(completed.slice(0, 10))
-
-        } catch (error) {
-          console.error('Polling error:', error)
-        }
-      }
-
-      const getPollingInterval = () => {
-        const hasActiveOrders = activeOrders.length > 0
-        
-        const hasNearExpiry = activeOrders.some(order => {
-          const timeLeft = new Date(order.exit_time!).getTime() - Date.now()
-          return timeLeft > 0 && timeLeft < 10000
-        })
-
-        if (hasNearExpiry) {
-          return 1000
-        } else if (hasActiveOrders) {
-          return 2000
-        } else {
-          return 5000
-        }
-      }
-
-      poll()
-
-      const interval = getPollingInterval()
-      pollingIntervalRef.current = setInterval(poll, interval)
-      
-      console.log(`🔄 Polling started: ${interval}ms interval`)
-    }
-
-    startAdaptivePolling()
-
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current)
-      }
-    }
-  }, [user, activeOrders.length])
-
-  // CLIENT-SIDE COUNTDOWN CHECK
-  useEffect(() => {
-    if (activeOrders.length === 0) {
-      if (nearExpiryCheckRef.current) {
-        clearInterval(nearExpiryCheckRef.current)
-      }
-      return
-    }
-
-    nearExpiryCheckRef.current = setInterval(() => {
-      const now = Date.now()
-      
-      activeOrders.forEach(order => {
-        const exitTime = new Date(order.exit_time!).getTime()
-        const timeLeft = exitTime - now
-
-        if (timeLeft <= 0) {
-          console.log(`⏰ Order ${order.id} should be expired! Forcing refresh...`)
-          loadData()
-        }
-        
-        if (timeLeft > 0 && timeLeft < 3000) {
-          console.log(`⚡ Order ${order.id} expiring in ${Math.round(timeLeft/1000)}s - Forcing check...`)
-          loadData()
-        }
-      })
-    }, 1000)
-
-    return () => {
-      if (nearExpiryCheckRef.current) {
-        clearInterval(nearExpiryCheckRef.current)
-      }
-    }
-  }, [activeOrders])
-
-  // INSTANT DETECTION function
+  // Instant detection
   const detectOrderCompletion = useCallback((active: BinaryOrder[], completed: BinaryOrder[]) => {
     active.forEach((order: BinaryOrder) => {
       previousOrdersRef.current.set(order.id, order)
@@ -283,7 +202,7 @@ useEffect(() => {
       if (previousOrder && previousOrder.status === 'ACTIVE' && 
           (order.status === 'WON' || order.status === 'LOST')) {
         
-        console.log('🎯 INSTANT DETECTION! Order completed:', order.id, order.status)
+        console.log('🎯 Order completed:', order.id, order.status)
         
         setNotificationOrder(order)
         
@@ -295,19 +214,25 @@ useEffect(() => {
         
         previousOrdersRef.current.delete(order.id)
         
-        setTimeout(() => {
+        // Debounced balance update
+        if (balanceUpdateTimeoutRef.current) {
+          clearTimeout(balanceUpdateTimeoutRef.current)
+        }
+        
+        balanceUpdateTimeoutRef.current = setTimeout(() => {
           api.getBothBalances().then(res => {
             const balances = res?.data || res
-            const newRealBalance = balances?.realBalance || 0
-            const newDemoBalance = balances?.demoBalance || 0
-            setRealBalance(newRealBalance)
-            setDemoBalance(newDemoBalance)
+            unstable_batchedUpdates(() => {
+              setRealBalance(balances?.realBalance || 0)
+              setDemoBalance(balances?.demoBalance || 0)
+            })
           })
-        }, 500)
+        }, 300)
       }
     })
   }, [])
 
+  // Load data function
   const loadData = useCallback(async () => {
     try {
       const [assetsRes, balancesRes, ordersRes] = await Promise.all([
@@ -317,11 +242,9 @@ useEffect(() => {
       ])
 
       const assetsList = assetsRes?.data?.assets || assetsRes?.assets || []
-      
       const balances = balancesRes?.data || balancesRes
       const currentRealBalance = balances?.realBalance || 0
       const currentDemoBalance = balances?.demoBalance || 0
-      
       const allOrders = ordersRes?.data?.orders || ordersRes?.orders || []
 
       const active = allOrders.filter((o: BinaryOrder) => o.status === 'ACTIVE')
@@ -331,24 +254,99 @@ useEffect(() => {
 
       detectOrderCompletion(active, completed)
 
-      setAssets(assetsList)
-      setRealBalance(currentRealBalance)
-      setDemoBalance(currentDemoBalance)
-      setActiveOrders(active)
-      setCompletedOrders(completed.slice(0, 10))
+      // Batch all state updates
+      unstable_batchedUpdates(() => {
+        setAssets(assetsList)
+        setRealBalance(currentRealBalance)
+        setDemoBalance(currentDemoBalance)
+        setActiveOrders(active)
+        setCompletedOrders(completed.slice(0, 10))
+      })
+
+      // Update polling manager
+      pollingManagerRef.current.updateActiveOrders(active)
 
       if (assetsList.length > 0 && !selectedAsset) {
         setSelectedAsset(assetsList[0])
       }
     } catch (error) {
       console.error('Failed to load data:', error)
-      setAssets([])
-      setRealBalance(0)
-      setDemoBalance(0)
-      setActiveOrders([])
-      setCompletedOrders([])
+      unstable_batchedUpdates(() => {
+        setAssets([])
+        setRealBalance(0)
+        setDemoBalance(0)
+        setActiveOrders([])
+        setCompletedOrders([])
+      })
     }
-  }, [selectedAsset, detectOrderCompletion])
+  }, [selectedAsset, detectOrderCompletion, setSelectedAsset])
+
+  // Initial load
+  useEffect(() => {
+    if (!user) {
+      router.push('/')
+      return
+    }
+    
+    const initializeData = async () => {
+      await loadData()
+      
+      if (selectedAsset && selectedAsset.realtimeDbPath) {
+        let basePath = selectedAsset.realtimeDbPath
+        
+        if (basePath.endsWith('/current_price')) {
+          basePath = basePath.replace('/current_price', '')
+        }
+        
+        prefetchDefaultAsset(basePath).catch(console.error)
+      }
+    }
+    
+    initializeData()
+  }, [user, router])
+
+  // Start smart polling
+  useEffect(() => {
+    if (!user) return
+
+    pollingManagerRef.current.start(loadData)
+
+    return () => {
+      pollingManagerRef.current.stop()
+    }
+  }, [user, loadData])
+
+  // Price subscription
+  useEffect(() => {
+    if (!selectedAsset) return
+
+    let unsubscribe: (() => void) | undefined
+
+    if (selectedAsset.dataSource === 'realtime_db' && selectedAsset.realtimeDbPath) {
+      unsubscribe = subscribeToPriceUpdates(
+        selectedAsset.realtimeDbPath,
+        (data) => {
+          setCurrentPrice(data)
+          addPriceToHistory(data)
+        }
+      )
+    }
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe()
+      }
+    }
+  }, [selectedAsset?.id, setCurrentPrice, addPriceToHistory])
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (balanceUpdateTimeoutRef.current) {
+        clearTimeout(balanceUpdateTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const handlePlaceOrder = useCallback(async (direction: 'CALL' | 'PUT') => {
     if (!selectedAsset) {
@@ -377,15 +375,19 @@ useEffect(() => {
         duration,
       })
 
-      toast.success(`${direction} order placed successfully on ${selectedAccountType} account!`)
+      toast.success(`${direction} order placed successfully!`)
       
-      if (selectedAccountType === 'real') {
-        setRealBalance((prev) => prev - amount)
-      } else {
-        setDemoBalance((prev) => prev - amount)
-      }
+      // Optimistic update
+      unstable_batchedUpdates(() => {
+        if (selectedAccountType === 'real') {
+          setRealBalance((prev) => prev - amount)
+        } else {
+          setDemoBalance((prev) => prev - amount)
+        }
+      })
       
-      setTimeout(loadData, 300)
+      // Immediate refresh
+      setTimeout(loadData, 200)
     } catch (error: any) {
       const errorMsg = error?.response?.data?.error || 'Failed to place order'
       toast.error(errorMsg)
@@ -393,67 +395,6 @@ useEffect(() => {
       setLoading(false)
     }
   }, [selectedAsset, amount, selectedAccountType, realBalance, demoBalance, duration, loadData])
-
-  const handleDeposit = async () => {
-    const amt = parseFloat(depositAmount)
-    if (isNaN(amt) || amt <= 0) {
-      toast.error('Invalid amount')
-      return
-    }
-
-    setWalletLoading(true)
-    try {
-      await api.createBalanceEntry({
-        accountType: selectedAccountType,
-        type: 'deposit',
-        amount: amt,
-        description: `Deposit to ${selectedAccountType} account`,
-      })
-      toast.success(`Deposit to ${selectedAccountType} account successful!`)
-      setDepositAmount('')
-      setShowWalletModal(false)
-      loadData()
-    } catch (error) {
-      console.error('Deposit failed:', error)
-      toast.error('Deposit failed')
-    } finally {
-      setWalletLoading(false)
-    }
-  }
-
-  const handleWithdraw = async () => {
-    const amt = parseFloat(withdrawAmount)
-    if (isNaN(amt) || amt <= 0) {
-      toast.error('Invalid amount')
-      return
-    }
-    
-    const currentBalance = selectedAccountType === 'real' ? realBalance : demoBalance
-    
-    if (amt > currentBalance) {
-      toast.error('Insufficient balance')
-      return
-    }
-
-    setWalletLoading(true)
-    try {
-      await api.createBalanceEntry({
-        accountType: selectedAccountType,
-        type: 'withdrawal',
-        amount: amt,
-        description: `Withdrawal from ${selectedAccountType} account`,
-      })
-      toast.success(`Withdrawal from ${selectedAccountType} account successful!`)
-      setWithdrawAmount('')
-      setShowWalletModal(false)
-      loadData()
-    } catch (error) {
-      console.error('Withdrawal failed:', error)
-      toast.error('Withdrawal failed')
-    } finally {
-      setWalletLoading(false)
-    }
-  }
 
   const potentialProfit = selectedAsset ? (amount * selectedAsset.profitRate) / 100 : 0
   const potentialPayout = amount + potentialProfit
@@ -463,181 +404,176 @@ useEffect(() => {
   return (
     <div className="h-screen flex flex-col bg-[#0a0e17] text-white overflow-hidden">
       {/* Top Bar */}
-<div className="h-20 bg-[#1a1f2e] border-b border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">
-{/* Desktop Layout */}
-<div className="hidden lg:flex items-center gap-4 w-full">
-  <div className="flex items-center gap-3">
-    <div className="w-8 h-8 relative">
-      <Image 
-        src="/stc-logo.png" 
-        alt="STC Logo" 
-        fill
-        className="object-contain rounded-md"
-      />
-    </div>
-    <span className="font-bold text-xl">STC AutoTrade</span>
-  </div>
-
-  {/* Asset Menu */}
-<div className="relative">
-  <button
-    onClick={() => setShowAssetMenu(!showAssetMenu)}
-    className="flex items-center gap-2 bg-[#2f3648] hover:bg-[#3a4360] px-4 py-2.5 rounded-lg transition-colors border border-gray-800/50"
-  >
-    {selectedAsset ? (
-      <>
-        <span className="text-sm font-medium">{selectedAsset.symbol}</span>
-        <span className="text-xs font-bold text-green-400">+{selectedAsset.profitRate}%</span>
-      </>
-    ) : (
-      <span className="text-sm text-gray-400">Select Asset</span>
-    )}
-  </button>
-
-  {showAssetMenu && (
-    <>
-      <div className="fixed inset-0 z-40" onClick={() => setShowAssetMenu(false)} />
-      <div className="absolute top-full left-0 mt-2 w-64 bg-[#232936] border border-gray-800/50 rounded-lg shadow-2xl z-50 max-h-80 overflow-y-auto">
-        {assets.map((asset) => (
-          <button
-            key={asset.id}
-            onClick={() => {
-              setSelectedAsset(asset)
-              setShowAssetMenu(false)
-            }}
-            className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 last:border-0 ${
-              selectedAsset?.id === asset.id ? 'bg-[#2a3142]' : ''
-            }`}
-          >
-            <div className="text-left">
-              <div className="text-sm font-medium">{asset.symbol}</div>
+      <div className="h-20 bg-[#1a1f2e] border-b border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">
+        {/* Desktop Layout */}
+        <div className="hidden lg:flex items-center gap-4 w-full">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 relative">
+              <Image 
+                src="/stc-logo.png" 
+                alt="STC Logo" 
+                fill
+                className="object-contain rounded-md"
+              />
             </div>
-            <div className="text-xs font-bold text-green-400">+{asset.profitRate}%</div>
-          </button>
-        ))}
-      </div>
-    </>
-  )}
-</div>
-
-
-  <div className="flex-1"></div>
-
-  {/* Account Type + Balance - Digabung di Kanan */}
-<div className="relative">
-  <button
-    onClick={() => setShowAccountMenu(!showAccountMenu)}
-    className="flex flex-col items-start gap-0.5 hover:bg-[#232936] px-3 py-2 rounded-lg transition-colors"
-  >
-    <div className="flex items-center gap-1.5">
-      <span className="text-xs text-gray-400">
-        Akun {selectedAccountType === 'real' ? 'Real' : 'Demo'}
-      </span>
-      <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-    </div>
-    <div className="text-base font-bold font-mono text-white">
-      {formatCurrency(currentBalance)}
-    </div>
-  </button>
-
-  {showAccountMenu && (
-    <>
-      <div className="fixed inset-0 z-40" onClick={() => setShowAccountMenu(false)} />
-      <div className="absolute top-full right-0 mt-2 w-52 bg-[#232936] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden">
-        <button
-          onClick={() => {
-            setSelectedAccountType('demo')
-            setShowAccountMenu(false)
-          }}
-          className={`w-full flex flex-col items-start gap-1 px-4 py-3 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 ${
-            selectedAccountType === 'demo' ? 'bg-[#2a3142]' : ''
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-white font-light antialiased">Akun Demo</span>
+            <span className="font-bold text-xl">STC AutoTrade</span>
           </div>
-          <span className="text-base font-bold font-mono text-white pl-4">
-            {formatCurrency(demoBalance)}
-          </span>
-        </button>
-        <button
-          onClick={() => {
-            setSelectedAccountType('real')
-            setShowAccountMenu(false)
-          }}
-          className={`w-full flex flex-col items-start gap-1 px-4 py-3 hover:bg-[#2a3142] transition-colors ${
-            selectedAccountType === 'real' ? 'bg-[#2a3142]' : ''
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-white font-light antialiased">Akun Real</span>
-          </div>
-          <span className="text-base font-bold font-mono text-white pl-4">
-            {formatCurrency(realBalance)}
-          </span>
-        </button>
-      </div>
-    </>
-  )}
-</div>
 
-<button
-  onClick={() => router.push('/balance')}
-  className="flex items-center gap-2 px-4 py-2.5 bg-[#0C8DF8] rounded-lg"
->
-  <Wallet className="w-4 h-4 text-white" />
-  <span className="text-sm font-medium text-white">Deposit</span>
-</button>
-
-<button
-  onClick={() => setShowHistorySidebar(true)}
-  className="flex items-center gap-2 px-4 py-2.5 bg-[#2f3648] hover:bg-[#3a4360] rounded-lg transition-colors border border-gray-800/50"
->
-  <History className="w-4 h-4" />
-  <span className="text-sm">History</span>
-</button>
-
-  {/* User Menu */}
-  <div className="relative">
-    <button
-      onClick={() => setShowUserMenu(!showUserMenu)}
-      className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity"
-    >
-      <span className="text-sm font-bold">{user.email[0].toUpperCase()}</span>
-    </button>
-
-    {showUserMenu && (
-      <>
-        <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
-        <div className="absolute top-full right-0 mt-2 w-56 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50">
-          <div className="px-4 py-3 border-b border-gray-800/30">
-            <div className="text-sm font-medium truncate">{user.email}</div>
-            <div className="text-xs text-gray-400 mt-1">{user.role}</div>
-          </div>
-          <button
-            onClick={() => router.push('/profile')}
-            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#232936] transition-colors text-left"
-          >
-            <Settings className="w-4 h-4" />
-            <span className="text-sm">Settings</span>
-          </button>
-          <div className="border-t border-gray-800/30">
+          {/* Asset Menu */}
+          <div className="relative">
             <button
-              onClick={() => {
-                logout()
-                router.push('/')
-              }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors text-left text-red-400"
+              onClick={() => setShowAssetMenu(!showAssetMenu)}
+              className="flex items-center gap-2 bg-[#2f3648] hover:bg-[#3a4360] px-4 py-2.5 rounded-lg transition-colors border border-gray-800/50"
             >
-              <LogOut className="w-4 h-4" />
-              <span className="text-sm">Logout</span>
+              {selectedAsset ? (
+                <>
+                  <span className="text-sm font-medium">{selectedAsset.symbol}</span>
+                  <span className="text-xs font-bold text-green-400">+{selectedAsset.profitRate}%</span>
+                </>
+              ) : (
+                <span className="text-sm text-gray-400">Select Asset</span>
+              )}
             </button>
+
+            {showAssetMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowAssetMenu(false)} />
+                <div className="absolute top-full left-0 mt-2 w-64 bg-[#232936] border border-gray-800/50 rounded-lg shadow-2xl z-50 max-h-80 overflow-y-auto">
+                  {assets.map((asset) => (
+                    <button
+                      key={asset.id}
+                      onClick={() => {
+                        setSelectedAsset(asset)
+                        setShowAssetMenu(false)
+                      }}
+                      className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 last:border-0 ${
+                        selectedAsset?.id === asset.id ? 'bg-[#2a3142]' : ''
+                      }`}
+                    >
+                      <div className="text-left">
+                        <div className="text-sm font-medium">{asset.symbol}</div>
+                      </div>
+                      <div className="text-xs font-bold text-green-400">+{asset.profitRate}%</div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="flex-1"></div>
+
+          {/* Account Type + Balance */}
+          <div className="relative">
+            <button
+              onClick={() => setShowAccountMenu(!showAccountMenu)}
+              className="flex flex-col items-start gap-0.5 hover:bg-[#232936] px-3 py-2 rounded-lg transition-colors"
+            >
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-gray-400">
+                  Akun {selectedAccountType === 'real' ? 'Real' : 'Demo'}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+              </div>
+              <div className="text-base font-bold font-mono text-white">
+                {formatCurrency(currentBalance)}
+              </div>
+            </button>
+
+            {showAccountMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowAccountMenu(false)} />
+                <div className="absolute top-full right-0 mt-2 w-52 bg-[#232936] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden">
+                  <button
+                    onClick={() => {
+                      setSelectedAccountType('demo')
+                      setShowAccountMenu(false)
+                    }}
+                    className={`w-full flex flex-col items-start gap-1 px-4 py-3 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 ${
+                      selectedAccountType === 'demo' ? 'bg-[#2a3142]' : ''
+                    }`}
+                  >
+                    <span className="text-xs text-white">Akun Demo</span>
+                    <span className="text-base font-bold font-mono text-white pl-4">
+                      {formatCurrency(demoBalance)}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedAccountType('real')
+                      setShowAccountMenu(false)
+                    }}
+                    className={`w-full flex flex-col items-start gap-1 px-4 py-3 hover:bg-[#2a3142] transition-colors ${
+                      selectedAccountType === 'real' ? 'bg-[#2a3142]' : ''
+                    }`}
+                  >
+                    <span className="text-xs text-white">Akun Real</span>
+                    <span className="text-base font-bold font-mono text-white pl-4">
+                      {formatCurrency(realBalance)}
+                    </span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          <button
+            onClick={() => router.push('/balance')}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#0C8DF8] rounded-lg"
+          >
+            <Wallet className="w-4 h-4 text-white" />
+            <span className="text-sm font-medium text-white">Deposit</span>
+          </button>
+
+          <button
+            onClick={() => setShowHistorySidebar(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#2f3648] hover:bg-[#3a4360] rounded-lg transition-colors border border-gray-800/50"
+          >
+            <History className="w-4 h-4" />
+            <span className="text-sm">History</span>
+          </button>
+
+          {/* User Menu */}
+          <div className="relative">
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity"
+            >
+              <span className="text-sm font-bold">{user.email[0].toUpperCase()}</span>
+            </button>
+
+            {showUserMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+                <div className="absolute top-full right-0 mt-2 w-56 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50">
+                  <div className="px-4 py-3 border-b border-gray-800/30">
+                    <div className="text-sm font-medium truncate">{user.email}</div>
+                    <div className="text-xs text-gray-400 mt-1">{user.role}</div>
+                  </div>
+                  <button
+                    onClick={() => router.push('/profile')}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#232936] transition-colors text-left"
+                  >
+                    <Settings className="w-4 h-4" />
+                    <span className="text-sm">Settings</span>
+                  </button>
+                  <div className="border-t border-gray-800/30">
+                    <button
+                      onClick={() => {
+                        logout()
+                        router.push('/')
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors text-left text-red-400"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span className="text-sm">Logout</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
-      </>
-    )}
-  </div>
-</div>
 
         {/* Mobile Layout */}
         <div className="flex lg:hidden items-center justify-between w-full">
@@ -660,14 +596,12 @@ useEffect(() => {
             <button
               onClick={() => setShowWalletModal(true)}
               className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
-              aria-label="Wallet"
             >
               <Wallet className="w-4.5 h-4.5 text-blue-400" />
             </button>
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
               className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
-              aria-label="Menu"
             >
               <Menu className="w-4.5 h-4.5 text-gray-300" />
             </button>
@@ -739,9 +673,6 @@ useEffect(() => {
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
                 className="w-full bg-transparent border-0 text-center text-base text-white focus:outline-none focus:ring-0 appearance-none cursor-pointer my-0"
-                style={{
-                  backgroundImage: 'none'
-                }}
               >
                 {DURATIONS.map((d) => (
                   <option key={d} value={d}>{d} minute{d > 1 ? 's' : ''}</option>
@@ -796,7 +727,7 @@ useEffect(() => {
       {/* Mobile Trading Panel */}
       <div className="lg:hidden bg-[#0f1419] border-t border-gray-800/50 p-3">
         <div className="space-y-3">
-          {/* Account Type Selector - Mobile */}
+          {/* Account Selector */}
           <div className="bg-[#1a1f2e] border border-gray-800/50 rounded-xl p-3">
             <div className="text-xs text-gray-400 text-center mb-2 font-medium">Select Account</div>
             <div className="grid grid-cols-2 gap-2">
@@ -949,7 +880,6 @@ useEffect(() => {
                 </button>
               </div>
 
-              {/* Both Balances Display */}
               <div className="grid grid-cols-2 gap-3 mb-6">
                 <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl p-4">
                   <div className="text-xs text-gray-400 mb-1">REAL Balance</div>
@@ -1091,53 +1021,54 @@ useEffect(() => {
               >
                 <LogOut className="w-4 h-4" />
                 <span>Logout</span>
-</button>
-</div>
-</div>
-</>
-)}
-  {/* History Sidebar */}
-  {showHistorySidebar && (
-    <HistorySidebar 
-      isOpen={showHistorySidebar} 
-      onClose={() => setShowHistorySidebar(false)} 
-    />
-  )}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
-  {/* ORDER NOTIFICATION */}
-  <OrderNotification 
-    order={notificationOrder}
-    onClose={() => setNotificationOrder(null)}
-  />
+      {/* History Sidebar */}
+      {showHistorySidebar && (
+        <HistorySidebar 
+          isOpen={showHistorySidebar} 
+          onClose={() => setShowHistorySidebar(false)} 
+        />
+      )}
 
-  <style jsx>{`
-    @keyframes slide-left {
-      from { transform: translateX(100%); }
-      to { transform: translateX(0); }
-    }
+      {/* ORDER NOTIFICATION */}
+      <OrderNotification 
+        order={notificationOrder}
+        onClose={() => setNotificationOrder(null)}
+      />
 
-    @keyframes slide-up {
-      from { transform: translateY(100%); }
-      to { transform: translateY(0); }
-    }
+      <style jsx>{`
+        @keyframes slide-left {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
 
-    @keyframes fade-in {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
+        @keyframes slide-up {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
 
-    .animate-slide-left {
-      animation: slide-left 0.3s ease-out;
-    }
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
 
-    .animate-slide-up {
-      animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
+        .animate-slide-left {
+          animation: slide-left 0.3s ease-out;
+        }
 
-    .animate-fade-in {
-      animation: fade-in 0.2s ease-out;
-    }
-  `}</style>
-</div>
-)
+        .animate-slide-up {
+          animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .animate-fade-in {
+          animation: fade-in 0.2s ease-out;
+        }
+      `}</style>
+    </div>
+  )
 }

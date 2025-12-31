@@ -1,8 +1,8 @@
-// components/TradingChart.tsx - ENHANCED with Simulator Detection
+// components/TradingChart.tsx - ULTRA OPTIMIZED
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
-import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, Time, UTCTimestamp } from 'lightweight-charts'
+import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp } from 'lightweight-charts'
 import { useTradingStore } from '@/store/trading'
 import { fetchHistoricalData, subscribeToOHLCUpdates, subscribeToPriceUpdates } from '@/lib/firebase'
 import { BinaryOrder } from '@/types'
@@ -12,12 +12,10 @@ import {
   Maximize2, 
   Minimize2, 
   RefreshCw, 
-  AlertCircle,
   Activity,
   TrendingUp,
   TrendingDown,
   ChevronDown,
-  AlertTriangle,
   Server
 } from 'lucide-react'
 
@@ -29,20 +27,57 @@ interface TradingChartProps {
   currentPrice?: number
 }
 
-// Clean asset path
+// ===================================
+// UTILITIES
+// ===================================
+
 function cleanAssetPath(path: string): string {
   if (!path) return ''
   if (path.endsWith('/current_price')) {
     path = path.replace('/current_price', '')
   }
   path = path.replace(/\/$/, '')
-  if (!path.startsWith('/')) {
-    path = '/' + path
-  }
+  if (!path.startsWith('/')) path = '/' + path
   return path
 }
 
-// Check if simulator is running
+// ===================================
+// RAF QUEUE - Better throttling
+// ===================================
+
+class RAFQueue {
+  private queue: Map<string, () => void> = new Map()
+  private rafId: number | null = null
+
+  add(key: string, fn: () => void) {
+    this.queue.set(key, fn)
+    
+    if (!this.rafId) {
+      this.rafId = requestAnimationFrame(() => {
+        this.flush()
+      })
+    }
+  }
+
+  private flush() {
+    this.queue.forEach(fn => fn())
+    this.queue.clear()
+    this.rafId = null
+  }
+
+  clear() {
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId)
+      this.rafId = null
+    }
+    this.queue.clear()
+  }
+}
+
+// ===================================
+// SIMULATOR STATUS CHECK
+// ===================================
+
 async function checkSimulatorStatus(assetPath: string): Promise<{
   isRunning: boolean
   hasCurrentPrice: boolean
@@ -61,12 +96,10 @@ async function checkSimulatorStatus(assetPath: string): Promise<{
   try {
     const basePath = cleanAssetPath(assetPath)
     
-    // Check current_price
     const priceRef = ref(database, `${basePath}/current_price`)
     const priceSnapshot = await get(priceRef)
     const hasCurrentPrice = priceSnapshot.exists()
     
-    // Check ohlc_1m
     const ohlcRef = ref(database, `${basePath}/ohlc_1m`)
     const ohlcSnapshot = await get(ohlcRef)
     const hasOHLC = ohlcSnapshot.exists()
@@ -86,7 +119,6 @@ async function checkSimulatorStatus(assetPath: string): Promise<{
     
     return { isRunning, hasCurrentPrice, hasOHLC, message }
   } catch (error) {
-    console.error('Simulator check error:', error)
     return { 
       isRunning: false, 
       hasCurrentPrice: false, 
@@ -96,7 +128,10 @@ async function checkSimulatorStatus(assetPath: string): Promise<{
   }
 }
 
-// Simulator Status Component
+// ===================================
+// MEMOIZED COMPONENTS
+// ===================================
+
 const SimulatorStatus = memo(({ 
   status, 
   onRetry 
@@ -133,17 +168,7 @@ const SimulatorStatus = memo(({
         </div>
         
         <div className="text-xs text-gray-500 mb-6">
-          Please start the data simulator on your server to view real-time data
-        </div>
-        
-        <div className="bg-[#1a1f2e] border border-gray-800/50 rounded-lg p-4 mb-4 text-left">
-          <div className="text-xs font-semibold text-gray-300 mb-2">Quick Fix:</div>
-          <div className="text-xs text-gray-400 space-y-1 font-mono">
-            <div>1. SSH to your server</div>
-            <div>2. Navigate to simulator directory</div>
-            <div>3. Run: <span className="text-blue-400">node simulator.js</span></div>
-            <div>4. Check Firebase console for data</div>
-          </div>
+          Please start the data simulator to view real-time data
         </div>
         
         <button 
@@ -160,7 +185,6 @@ const SimulatorStatus = memo(({
 
 SimulatorStatus.displayName = 'SimulatorStatus'
 
-// Mobile Controls Component
 const MobileControls = memo(({ 
   timeframe, 
   chartType, 
@@ -270,7 +294,7 @@ const MobileControls = memo(({
                 }}
                 className="flex-1 px-2 py-1.5 text-xs font-medium text-gray-300 bg-[#1a1f2e] hover:bg-[#232936] rounded transition-all"
               >
-                Fit Content
+                Fit
               </button>
               <button
                 onClick={() => {
@@ -292,7 +316,6 @@ const MobileControls = memo(({
 
 MobileControls.displayName = 'MobileControls'
 
-// Desktop Controls
 const DesktopControls = memo(({ 
   timeframe, 
   chartType, 
@@ -375,7 +398,6 @@ const DesktopControls = memo(({
 
 DesktopControls.displayName = 'DesktopControls'
 
-// Order Ticker Component
 const OrderTicker = memo(({ orders, currentPrice }: { orders: BinaryOrder[], currentPrice?: number }) => {
   if (orders.length === 0) return null
 
@@ -432,7 +454,10 @@ const OrderTicker = memo(({ orders, currentPrice }: { orders: BinaryOrder[], cur
 
 OrderTicker.displayName = 'OrderTicker'
 
-// Main Chart Component
+// ===================================
+// MAIN CHART COMPONENT
+// ===================================
+
 const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -444,14 +469,13 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   const unsubscribePriceRef = useRef<(() => void) | null>(null)
   
   const mountedRef = useRef(false)
-  const orderMarkersRef = useRef<Map<string, any>>(new Map())
+  const rafQueueRef = useRef(new RAFQueue())
   
   const { selectedAsset } = useTradingStore()
 
   const [chartType, setChartType] = useState<ChartType>('candle')
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const [lastPrice, setLastPrice] = useState<number | null>(null)
@@ -474,11 +498,11 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [selectedAsset?.realtimeDbPath])
 
-  // Update price line with RAF optimization
+  // Update price line dengan RAF Queue
   const updateCurrentPriceLine = useCallback((price: number) => {
     if (!candleSeriesRef.current || !chartRef.current || !price) return
     
-    requestAnimationFrame(() => {
+    rafQueueRef.current.add('priceline', () => {
       try {
         if (currentPriceLineRef.current && candleSeriesRef.current) {
           candleSeriesRef.current.removePriceLine(currentPriceLineRef.current)
@@ -590,6 +614,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           unsubscribePriceRef.current()
         }
         
+        rafQueueRef.current.clear()
+        
         mountedRef.current = false
         setIsInitialized(false)
         
@@ -599,7 +625,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       }
     } catch (err: any) {
       console.error('Chart init error:', err)
-      setError(`Chart initialization failed: ${err.message}`)
       mountedRef.current = false
     }
   }, [])
@@ -627,9 +652,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
     const loadChartData = async () => {
       setIsLoading(true)
-      setError(null)
 
-      // Check simulator first
       await checkSimulator()
 
       if (unsubscribeOHLCRef.current) {
@@ -651,7 +674,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         if (isCancelled) return
 
         if (!data || data.length === 0) {
-          setError('No data available. Please check if the simulator is running.')
           setIsLoading(false)
           return
         }
@@ -682,25 +704,27 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
         setIsLoading(false)
 
-        // Subscribe to updates
+        // Subscribe
         unsubscribeOHLCRef.current = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
           if (isCancelled || !candleSeriesRef.current || !lineSeriesRef.current) return
 
-          const candleUpdate = {
-            time: newBar.timestamp as UTCTimestamp,
-            open: newBar.open,
-            high: newBar.high,
-            low: newBar.low,
-            close: newBar.close,
-          }
+          rafQueueRef.current.add('ohlc', () => {
+            const candleUpdate = {
+              time: newBar.timestamp as UTCTimestamp,
+              open: newBar.open,
+              high: newBar.high,
+              low: newBar.low,
+              close: newBar.close,
+            }
 
-          const lineUpdate = {
-            time: newBar.timestamp as UTCTimestamp,
-            value: newBar.close,
-          }
+            const lineUpdate = {
+              time: newBar.timestamp as UTCTimestamp,
+              value: newBar.close,
+            }
 
-          candleSeriesRef.current.update(candleUpdate)
-          lineSeriesRef.current.update(lineUpdate)
+            candleSeriesRef.current?.update(candleUpdate)
+            lineSeriesRef.current?.update(lineUpdate)
+          })
         })
         
         unsubscribePriceRef.current = subscribeToPriceUpdates(
@@ -714,7 +738,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       } catch (err: any) {
         if (isCancelled) return
         console.error('Error loading data:', err)
-        setError(err.message || 'Failed to load chart data')
         setIsLoading(false)
       }
     }
@@ -818,7 +841,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         </div>
       </div>
 
-      {/* Simulator Status Indicator */}
       <SimulatorStatus 
         status={simulatorStatus} 
         onRetry={checkSimulator}
