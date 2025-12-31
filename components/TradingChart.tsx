@@ -1,13 +1,14 @@
-// components/TradingChart.tsx - ULTRA OPTIMIZED
+// components/TradingChart.tsx - ULTRA OPTIMIZED WITH INDICATORS
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
-import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp } from 'lightweight-charts'
+import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp, LineStyle } from 'lightweight-charts'
 import { useTradingStore } from '@/store/trading'
 import { fetchHistoricalData, subscribeToOHLCUpdates, subscribeToPriceUpdates } from '@/lib/firebase'
 import { BinaryOrder } from '@/types'
 import { formatCurrency, calculateTimeLeft } from '@/lib/utils'
 import { database, ref, get } from '@/lib/firebase'
+import dynamic from 'next/dynamic'
 import { 
   Maximize2, 
   Minimize2, 
@@ -16,8 +17,24 @@ import {
   TrendingUp,
   TrendingDown,
   ChevronDown,
-  Server
+  Server,
+  Sliders
 } from 'lucide-react'
+import { 
+  calculateSMA, 
+  calculateEMA, 
+  calculateBollingerBands,
+  calculateRSI,
+  calculateMACD,
+  calculateVolumeMA,
+  calculateStochastic,
+  calculateATR,
+  CandleData
+} from '@/lib/indicators'
+
+const IndicatorControls = dynamic(() => import('./IndicatorControls'), { ssr: false })
+
+import type { IndicatorConfig } from './IndicatorControls'
 
 type ChartType = 'line' | 'candle'
 type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
@@ -25,6 +42,18 @@ type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
 interface TradingChartProps {
   activeOrders?: BinaryOrder[]
   currentPrice?: number
+}
+
+// Default indicator config
+const DEFAULT_INDICATOR_CONFIG: IndicatorConfig = {
+  sma: { enabled: false, period: 20, color: '#3b82f6' },
+  ema: { enabled: false, period: 20, color: '#f59e0b' },
+  bollinger: { enabled: false, period: 20, stdDev: 2, colorUpper: '#ef4444', colorMiddle: '#6b7280', colorLower: '#10b981' },
+  rsi: { enabled: false, period: 14, overbought: 70, oversold: 30 },
+  macd: { enabled: false, fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
+  volume: { enabled: false, maPeriod: 20 },
+  stochastic: { enabled: false, kPeriod: 14, dPeriod: 3, overbought: 80, oversold: 20 },
+  atr: { enabled: false, period: 14 }
 }
 
 // ===================================
@@ -42,7 +71,7 @@ function cleanAssetPath(path: string): string {
 }
 
 // ===================================
-// RAF QUEUE - Better throttling
+// RAF QUEUE
 // ===================================
 
 class RAFQueue {
@@ -192,7 +221,8 @@ const MobileControls = memo(({
   onTimeframeChange,
   onChartTypeChange,
   onFitContent,
-  onRefresh
+  onRefresh,
+  onOpenIndicators
 }: any) => {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -286,26 +316,38 @@ const MobileControls = memo(({
           </div>
 
           <div className="p-2">
-            <div className="flex gap-1">
+            <div className="flex flex-col gap-1">
               <button
                 onClick={() => {
-                  onFitContent()
+                  onOpenIndicators()
                   setIsOpen(false)
                 }}
-                className="flex-1 px-2 py-1.5 text-xs font-medium text-gray-300 bg-[#1a1f2e] hover:bg-[#232936] rounded transition-all"
+                className="px-2 py-1.5 text-xs font-medium text-gray-300 bg-[#1a1f2e] hover:bg-[#232936] rounded transition-all flex items-center gap-2"
               >
-                Fit
+                <Sliders className="w-3.5 h-3.5" />
+                Indicators
               </button>
-              <button
-                onClick={() => {
-                  onRefresh()
-                  setIsOpen(false)
-                }}
-                disabled={isLoading}
-                className="px-2 py-1.5 text-gray-300 bg-[#1a1f2e] hover:bg-[#232936] rounded transition-all disabled:opacity-50 flex items-center gap-1"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-              </button>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => {
+                    onFitContent()
+                    setIsOpen(false)
+                  }}
+                  className="flex-1 px-2 py-1.5 text-xs font-medium text-gray-300 bg-[#1a1f2e] hover:bg-[#232936] rounded transition-all"
+                >
+                  Fit
+                </button>
+                <button
+                  onClick={() => {
+                    onRefresh()
+                    setIsOpen(false)
+                  }}
+                  disabled={isLoading}
+                  className="px-2 py-1.5 text-gray-300 bg-[#1a1f2e] hover:bg-[#232936] rounded transition-all disabled:opacity-50 flex items-center gap-1"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -325,6 +367,7 @@ const DesktopControls = memo(({
   onFitContent,
   onRefresh,
   onToggleFullscreen,
+  onOpenIndicators,
   isFullscreen
 }: any) => (
   <div className="hidden lg:block absolute top-2 left-2 z-10">
@@ -372,6 +415,13 @@ const DesktopControls = memo(({
       </div>
 
       <div className="flex items-center gap-0.5 bg-black/15 backdrop-blur-md border border-white/5 rounded-md p-0.5">
+        <button
+          onClick={onOpenIndicators}
+          className="px-2 py-0.5 text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors flex items-center gap-1"
+          title="Indicators"
+        >
+          <Sliders className="w-3.5 h-3.5" />
+        </button>
         <button
           onClick={onFitContent}
           className="px-2 py-0.5 text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
@@ -465,11 +515,30 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   const lineSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   const currentPriceLineRef = useRef<any>(null)
   
+  // Indicator series refs
+  const indicatorSeriesRefs = useRef<{
+    sma?: ISeriesApi<"Line">
+    ema?: ISeriesApi<"Line">
+    bollingerUpper?: ISeriesApi<"Line">
+    bollingerMiddle?: ISeriesApi<"Line">
+    bollingerLower?: ISeriesApi<"Line">
+    rsi?: ISeriesApi<"Line">
+    macd?: ISeriesApi<"Line">
+    macdSignal?: ISeriesApi<"Line">
+    macdHistogram?: ISeriesApi<"Histogram">
+    volume?: ISeriesApi<"Histogram">
+    volumeMA?: ISeriesApi<"Line">
+    stochasticK?: ISeriesApi<"Line">
+    stochasticD?: ISeriesApi<"Line">
+    atr?: ISeriesApi<"Line">
+  }>({})
+  
   const unsubscribeOHLCRef = useRef<(() => void) | null>(null)
   const unsubscribePriceRef = useRef<(() => void) | null>(null)
   
   const mountedRef = useRef(false)
   const rafQueueRef = useRef(new RAFQueue())
+  const currentDataRef = useRef<CandleData[]>([])
   
   const { selectedAsset } = useTradingStore()
 
@@ -485,6 +554,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     hasOHLC: boolean
     message: string
   } | null>(null)
+  
+  const [showIndicators, setShowIndicators] = useState(false)
+  const [indicatorConfig, setIndicatorConfig] = useState<IndicatorConfig>(DEFAULT_INDICATOR_CONFIG)
 
   // Check simulator status
   const checkSimulator = useCallback(async () => {
@@ -497,6 +569,153 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       console.error('🚨 Simulator not running:', status.message)
     }
   }, [selectedAsset?.realtimeDbPath])
+
+  // Calculate and render indicators
+  const renderIndicators = useCallback(() => {
+    if (!chartRef.current || currentDataRef.current.length === 0) return
+
+    const data = currentDataRef.current
+
+    // Clear existing indicator series
+    Object.values(indicatorSeriesRefs.current).forEach(series => {
+      if (series) {
+        try {
+          chartRef.current?.removeSeries(series)
+        } catch (e) {}
+      }
+    })
+    indicatorSeriesRefs.current = {}
+
+    // SMA
+    if (indicatorConfig.sma?.enabled && indicatorConfig.sma.period) {
+      try {
+        const smaData = calculateSMA(data, indicatorConfig.sma.period)
+        const smaSeries = chartRef.current.addLineSeries({
+          color: indicatorConfig.sma.color,
+          lineWidth: 2,
+          title: `SMA(${indicatorConfig.sma.period})`,
+          priceLineVisible: false,
+          lastValueVisible: false
+        })
+        smaSeries.setData(smaData.map(d => ({ time: d.time as UTCTimestamp, value: d.value })))
+        indicatorSeriesRefs.current.sma = smaSeries
+      } catch (e) {
+        console.error('SMA error:', e)
+      }
+    }
+
+    // EMA
+    if (indicatorConfig.ema?.enabled && indicatorConfig.ema.period) {
+      try {
+        const emaData = calculateEMA(data, indicatorConfig.ema.period)
+        const emaSeries = chartRef.current.addLineSeries({
+          color: indicatorConfig.ema.color,
+          lineWidth: 2,
+          title: `EMA(${indicatorConfig.ema.period})`,
+          priceLineVisible: false,
+          lastValueVisible: false
+        })
+        emaSeries.setData(emaData.map(d => ({ time: d.time as UTCTimestamp, value: d.value })))
+        indicatorSeriesRefs.current.ema = emaSeries
+      } catch (e) {
+        console.error('EMA error:', e)
+      }
+    }
+
+    // Bollinger Bands
+    if (indicatorConfig.bollinger?.enabled && indicatorConfig.bollinger.period) {
+      try {
+        const bbData = calculateBollingerBands(data, indicatorConfig.bollinger.period, indicatorConfig.bollinger.stdDev)
+        
+        const upperSeries = chartRef.current.addLineSeries({
+          color: indicatorConfig.bollinger.colorUpper,
+          lineWidth: 1,
+          lineStyle: LineStyle.Dashed,
+          title: `BB Upper`,
+          priceLineVisible: false,
+          lastValueVisible: false
+        })
+        upperSeries.setData(bbData.map(d => ({ time: d.time as UTCTimestamp, value: d.upper })))
+        
+        const middleSeries = chartRef.current.addLineSeries({
+          color: indicatorConfig.bollinger.colorMiddle,
+          lineWidth: 1,
+          title: `BB Middle`,
+          priceLineVisible: false,
+          lastValueVisible: false
+        })
+        middleSeries.setData(bbData.map(d => ({ time: d.time as UTCTimestamp, value: d.middle })))
+        
+        const lowerSeries = chartRef.current.addLineSeries({
+          color: indicatorConfig.bollinger.colorLower,
+          lineWidth: 1,
+          lineStyle: LineStyle.Dashed,
+          title: `BB Lower`,
+          priceLineVisible: false,
+          lastValueVisible: false
+        })
+        lowerSeries.setData(bbData.map(d => ({ time: d.time as UTCTimestamp, value: d.lower })))
+        
+        indicatorSeriesRefs.current.bollingerUpper = upperSeries
+        indicatorSeriesRefs.current.bollingerMiddle = middleSeries
+        indicatorSeriesRefs.current.bollingerLower = lowerSeries
+      } catch (e) {
+        console.error('Bollinger Bands error:', e)
+      }
+    }
+
+    // Volume
+    if (indicatorConfig.volume?.enabled && data.some(d => d.volume)) {
+      try {
+        const volumeSeries = chartRef.current.addHistogramSeries({
+          color: '#26a69a',
+          priceFormat: {
+            type: 'volume',
+          },
+          priceScaleId: 'volume',
+        })
+        volumeSeries.priceScale().applyOptions({
+          scaleMargins: {
+            top: 0.8,
+            bottom: 0,
+          },
+        })
+        volumeSeries.setData(data.map(d => ({
+          time: d.time as UTCTimestamp,
+          value: d.volume || 0,
+          color: d.close >= d.open ? '#26a69a' : '#ef5350'
+        })))
+        indicatorSeriesRefs.current.volume = volumeSeries
+
+        if (indicatorConfig.volume.maPeriod) {
+          const volumeMAData = calculateVolumeMA(data, indicatorConfig.volume.maPeriod)
+          const volumeMASeries = chartRef.current.addLineSeries({
+            color: '#2962FF',
+            lineWidth: 1,
+            priceScaleId: 'volume',
+            priceLineVisible: false,
+            lastValueVisible: false
+          })
+          volumeMASeries.setData(volumeMAData.map(d => ({ time: d.time as UTCTimestamp, value: d.value })))
+          indicatorSeriesRefs.current.volumeMA = volumeMASeries
+        }
+      } catch (e) {
+        console.error('Volume error:', e)
+      }
+    }
+
+    // Note: RSI, MACD, Stochastic, ATR require separate chart panels
+    // For now, they're calculated but not displayed on the main chart
+    // You would need to create additional chart containers for these oscillators
+
+  }, [indicatorConfig])
+
+  // Update indicators when config changes
+  useEffect(() => {
+    if (isInitialized && currentDataRef.current.length > 0) {
+      renderIndicators()
+    }
+  }, [indicatorConfig, isInitialized, renderIndicators])
 
   // Update price line dengan RAF Queue
   const updateCurrentPriceLine = useCallback((price: number) => {
@@ -678,6 +897,16 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           return
         }
 
+        // Store data for indicator calculations
+        currentDataRef.current = data.map(bar => ({
+          time: bar.timestamp,
+          open: bar.open,
+          high: bar.high,
+          low: bar.low,
+          close: bar.close,
+          volume: bar.volume
+        }))
+
         const candleData = data.map(bar => ({
           time: bar.timestamp as UTCTimestamp,
           open: bar.open,
@@ -702,6 +931,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           }
         }
 
+        // Render indicators
+        renderIndicators()
+
         setIsLoading(false)
 
         // Subscribe
@@ -724,6 +956,26 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
             candleSeriesRef.current?.update(candleUpdate)
             lineSeriesRef.current?.update(lineUpdate)
+
+            // Update stored data
+            const existingIndex = currentDataRef.current.findIndex(d => d.time === newBar.timestamp)
+            const newData: CandleData = {
+              time: newBar.timestamp,
+              open: newBar.open,
+              high: newBar.high,
+              low: newBar.low,
+              close: newBar.close,
+              volume: newBar.volume
+            }
+
+            if (existingIndex >= 0) {
+              currentDataRef.current[existingIndex] = newData
+            } else {
+              currentDataRef.current.push(newData)
+            }
+
+            // Re-render indicators
+            renderIndicators()
           })
         })
         
@@ -753,7 +1005,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         unsubscribePriceRef.current()
       }
     }
-  }, [selectedAsset?.id, timeframe, isInitialized, updateCurrentPriceLine, checkSimulator])
+  }, [selectedAsset?.id, timeframe, isInitialized, updateCurrentPriceLine, checkSimulator, renderIndicators])
 
   // Update current price
   useEffect(() => {
@@ -814,6 +1066,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         onFitContent={handleFitContent}
         onRefresh={handleRefresh}
         onToggleFullscreen={toggleFullscreen}
+        onOpenIndicators={() => setShowIndicators(true)}
         isFullscreen={isFullscreen}
       />
 
@@ -825,6 +1078,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         onChartTypeChange={handleChartTypeChange}
         onFitContent={handleFitContent}
         onRefresh={handleRefresh}
+        onOpenIndicators={() => setShowIndicators(true)}
       />
 
       <div className="absolute top-2 right-2 z-10 bg-black/15 backdrop-blur-md border border-white/5 rounded-md px-2 py-1">
@@ -863,6 +1117,14 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           </div>
         </div>
       )}
+
+      {/* Indicator Controls */}
+      <IndicatorControls
+        isOpen={showIndicators}
+        onClose={() => setShowIndicators(false)}
+        config={indicatorConfig}
+        onChange={setIndicatorConfig}
+      />
 
       <style jsx>{`
         @keyframes scale-in {
