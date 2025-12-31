@@ -1,7 +1,7 @@
-// components/OrderNotification.tsx - ULTRA OPTIMIZED
+// components/OrderNotification.tsx - SELF-CONTAINED TOAST
 'use client'
 
-import { useEffect, useRef, memo } from 'react'
+import { useEffect } from 'react'
 import { BinaryOrder } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import { CheckCircle2, XCircle, TrendingUp, TrendingDown } from 'lucide-react'
@@ -12,27 +12,17 @@ interface OrderNotificationProps {
   onClose: () => void
 }
 
-const OrderNotification = memo(({ order, onClose }: OrderNotificationProps) => {
-  const toastIdRef = useRef<string | number | null>(null)
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
-
+export default function OrderNotification({ order, onClose }: OrderNotificationProps) {
   useEffect(() => {
-    // Cleanup previous
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-    }
-    if (toastIdRef.current) {
-      toast.dismiss(toastIdRef.current)
-    }
-
     if (!order || order.status === 'ACTIVE') return
 
     const isWin = order.status === 'WON'
     const profit = order.profit || 0
 
-    // Immediate toast
+    // Custom toast content
     const ToastContent = () => (
       <div className="flex items-start gap-3 w-full">
+        {/* Icon */}
         <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
           isWin 
             ? 'bg-green-500/20 border-2 border-green-500' 
@@ -45,10 +35,11 @@ const OrderNotification = memo(({ order, onClose }: OrderNotificationProps) => {
           )}
         </div>
 
+        {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <h4 className={`font-bold text-sm ${isWin ? 'text-green-400' : 'text-red-400'}`}>
-              {isWin ? 'Trade Won! 🎉' : 'Trade Lost 😔'}
+              {isWin ? 'Trade Won!' : 'Trade Lost'}
             </h4>
             <span className="text-xs text-gray-400">{order.asset_name}</span>
           </div>
@@ -64,6 +55,7 @@ const OrderNotification = memo(({ order, onClose }: OrderNotificationProps) => {
             <span className="font-mono">{formatCurrency(order.amount)}</span>
           </div>
 
+          {/* Profit/Loss */}
           <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold font-mono ${
             isWin 
               ? 'bg-green-500/20 text-green-400' 
@@ -75,10 +67,12 @@ const OrderNotification = memo(({ order, onClose }: OrderNotificationProps) => {
       </div>
     )
 
-    // Show toast instantly
-    toastIdRef.current = toast.custom(
+    // Show toast with custom styling and inline animation
+    toast.custom(
       () => (
-        <div className="max-w-md w-full pointer-events-auto animate-toast-in">
+        <div
+          className="max-w-md w-full pointer-events-auto animate-toast-in"
+        >
           <div className={`rounded-xl shadow-2xl border overflow-hidden ${
             isWin
               ? 'bg-gradient-to-br from-green-500/10 to-emerald-600/10 border-green-500/30'
@@ -108,26 +102,19 @@ const OrderNotification = memo(({ order, onClose }: OrderNotificationProps) => {
         </div>
       ),
       {
-        duration: 5000,
+        duration: 4000,
         position: 'top-right',
       }
     )
 
-    // Auto cleanup
-    timerRef.current = setTimeout(() => {
+    // Cleanup
+    const timer = setTimeout(() => {
       onClose()
-    }, 5000)
+    }, 4000)
 
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-      }
-    }
+    return () => clearTimeout(timer)
   }, [order, onClose])
 
+  // No visible component, just triggers toast
   return null
-})
-
-OrderNotification.displayName = 'OrderNotification'
-
-export default OrderNotification
+}

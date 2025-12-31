@@ -1,4 +1,4 @@
-// lib/api.ts - ULTRA OPTIMIZED VERSION
+// lib/api.ts - UPDATED with Real/Demo support
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
 
@@ -149,7 +149,7 @@ class ApiClient {
   }
 
   // ===================================
-  // OPTIMIZED CACHING
+  // CACHING UTILITIES
   // ===================================
 
   private getCacheKey(endpoint: string, params?: any): string {
@@ -262,11 +262,11 @@ class ApiClient {
   }
 
   // ===================================
-  // BALANCE - OPTIMIZED
+  // BALANCE - UPDATED
   // ===================================
 
+  // ✅ NEW: Get both balances
   async getBothBalances(): Promise<ApiResponse> {
-    // Very short cache for balances
     const cacheKey = this.getCacheKey('/balance/both')
     const cached = this.getFromCache(cacheKey)
     
@@ -274,11 +274,12 @@ class ApiClient {
     
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get('/balance/both')
-      this.setCache(cacheKey, data, 1000) // 1s cache only
+      this.setCache(cacheKey, data, 2000) // Short cache
       return data
     })
   }
 
+  // ✅ NEW: Get specific account balance
   async getAccountBalance(accountType: 'real' | 'demo'): Promise<ApiResponse> {
     const cacheKey = this.getCacheKey(`/balance/${accountType}`)
     const cached = this.getFromCache(cacheKey)
@@ -287,11 +288,12 @@ class ApiClient {
     
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get(`/balance/${accountType}`)
-      this.setCache(cacheKey, data, 1000)
+      this.setCache(cacheKey, data, 2000)
       return data
     })
   }
 
+  // ✅ UPDATED: Balance history with optional account type filter
   async getBalanceHistory(
     page = 1, 
     limit = 20, 
@@ -318,24 +320,26 @@ class ApiClient {
     })
   }
 
+  // ✅ UPDATED: Create balance entry with account type
   async createBalanceEntry(data: { 
-    accountType: 'real' | 'demo'
+    accountType: 'real' | 'demo' // ✅ NEW
     type: 'deposit' | 'withdrawal'
     amount: number
     description?: string 
   }): Promise<ApiResponse> {
     const result = await this.client.post('/balance', data)
     
-    // Clear all balance caches immediately
+    // Invalidate all balance caches
     this.invalidateCache('/balance')
     
     return result
   }
 
   // ===================================
-  // LEGACY
+  // LEGACY: For backward compatibility
   // ===================================
   async getCurrentBalance(): Promise<ApiResponse> {
+    // Returns both balances
     return this.getBothBalances()
   }
 
@@ -351,7 +355,7 @@ class ApiClient {
     
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get(`/assets?activeOnly=${activeOnly}`)
-      this.setCache(cacheKey, data, 60000) // 1 min cache
+      this.setCache(cacheKey, data, 60000)
       return data
     })
   }
@@ -370,8 +374,16 @@ class ApiClient {
   }
 
   async getCurrentPrice(assetId: string): Promise<ApiResponse> {
-    // No cache for real-time prices
-    return this.client.get(`/assets/${assetId}/price`)
+    const cacheKey = this.getCacheKey(`/assets/${assetId}/price`)
+    const cached = this.getFromCache(cacheKey)
+    
+    if (cached) return cached
+    
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get(`/assets/${assetId}/price`)
+      this.setCache(cacheKey, data, 2000)
+      return data
+    })
   }
 
   async createAsset(data: any): Promise<ApiResponse> {
@@ -393,11 +405,12 @@ class ApiClient {
   }
 
   // ===================================
-  // BINARY ORDERS - CRITICAL OPTIMIZATIONS
+  // BINARY ORDERS - UPDATED
   // ===================================
 
+  // ✅ UPDATED: Create order with account type
   async createOrder(data: {
-    accountType: 'real' | 'demo'
+    accountType: 'real' | 'demo' // ✅ NEW
     asset_id: string
     direction: 'CALL' | 'PUT'
     amount: number
@@ -405,18 +418,18 @@ class ApiClient {
   }): Promise<ApiResponse> {
     const result = await this.client.post('/binary-orders', data)
     
-    // Immediately invalidate caches
     this.invalidateCache('/binary-orders')
     this.invalidateCache('/balance')
     
     return result
   }
 
+  // ✅ UPDATED: Get orders with optional account type filter
   async getOrders(
     status?: string, 
     page = 1, 
     limit = 20,
-    accountType?: 'real' | 'demo'
+    accountType?: 'real' | 'demo' // ✅ NEW
   ): Promise<ApiResponse> {
     const params = new URLSearchParams({
       page: page.toString(),
@@ -426,13 +439,20 @@ class ApiClient {
     if (status) params.append('status', status)
     if (accountType) params.append('accountType', accountType)
     
-    // NO CACHE for orders - always fresh
     return this.client.get(`/binary-orders?${params}`)
   }
 
   async getOrderById(id: string): Promise<ApiResponse> {
-    // No cache for individual orders
-    return this.client.get(`/binary-orders/${id}`)
+    const cacheKey = this.getCacheKey(`/binary-orders/${id}`)
+    const cached = this.getFromCache(cacheKey)
+    
+    if (cached) return cached
+    
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get(`/binary-orders/${id}`)
+      this.setCache(cacheKey, data, 3000)
+      return data
+    })
   }
 
   // ===================================
@@ -467,8 +487,9 @@ class ApiClient {
     return this.client.delete(`/admin/users/${id}`)
   }
 
+  // ✅ UPDATED: Admin balance management with account type
   async manageUserBalance(userId: string, data: {
-    accountType: 'real' | 'demo'
+    accountType: 'real' | 'demo' // ✅ NEW
     type: 'deposit' | 'withdrawal'
     amount: number
     description: string
@@ -492,14 +513,26 @@ class ApiClient {
     const cacheKey = this.getCacheKey('/admin/statistics')
     const cached = this.getFromCache(cacheKey)
     
-    if (cached) return cached
+    // Shorter cache for admin stats (5 seconds)
+    if (cached) {
+      const age = Date.now() - cached.timestamp
+      if (age < 5000) {
+        return cached.data
+      }
+    }
     
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get('/admin/statistics')
-      this.setCache(cacheKey, data, 5000) // 5s cache
+      
+      // ✅ Log the response structure for debugging
+      console.log('📊 System Statistics Response:', data)
+      
+      // Cache for 5 seconds
+      this.setCache(cacheKey, data, 5000)
       return data
     })
   }
+
 
   clearCache(pattern?: string) {
     this.invalidateCache(pattern)
