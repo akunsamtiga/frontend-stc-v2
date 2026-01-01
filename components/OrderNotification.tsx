@@ -1,7 +1,7 @@
-// components/OrderNotification.tsx - SELF-CONTAINED TOAST
+// components/OrderNotification.tsx - FIXED: Prevent duplicate notifications
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { BinaryOrder } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import { CheckCircle2, XCircle, TrendingUp, TrendingDown } from 'lucide-react'
@@ -13,8 +13,31 @@ interface OrderNotificationProps {
 }
 
 export default function OrderNotification({ order, onClose }: OrderNotificationProps) {
+  // ✅ FIXED: Track last notified order to prevent duplicates
+  const lastNotifiedOrderRef = useRef<string | null>(null)
+  const toastIdRef = useRef<string | number | null>(null)
+
   useEffect(() => {
-    if (!order || order.status === 'ACTIVE') return
+    // ✅ Skip if no order or same order as before
+    if (!order) {
+      lastNotifiedOrderRef.current = null
+      return
+    }
+
+    // ✅ CRITICAL: Don't show notification for ACTIVE orders
+    if (order.status === 'ACTIVE') {
+      return
+    }
+
+    // ✅ CRITICAL: Check if this order was already notified
+    if (lastNotifiedOrderRef.current === order.id) {
+      console.log('⏭️ Skipping duplicate notification for order:', order.id)
+      return
+    }
+
+    // ✅ Mark this order as notified
+    lastNotifiedOrderRef.current = order.id
+    console.log('📢 Showing notification for order:', order.id, order.status)
 
     const isWin = order.status === 'WON'
     const profit = order.profit || 0
@@ -67,12 +90,15 @@ export default function OrderNotification({ order, onClose }: OrderNotificationP
       </div>
     )
 
-    // Show toast with custom styling and inline animation
-    toast.custom(
+    // ✅ Dismiss previous toast if exists
+    if (toastIdRef.current !== null) {
+      toast.dismiss(toastIdRef.current)
+    }
+
+    // Show toast with custom styling
+    toastIdRef.current = toast.custom(
       () => (
-        <div
-          className="max-w-md w-full pointer-events-auto animate-toast-in"
-        >
+        <div className="max-w-md w-full pointer-events-auto animate-toast-in">
           <div className={`rounded-xl shadow-2xl border overflow-hidden ${
             isWin
               ? 'bg-gradient-to-br from-green-500/10 to-emerald-600/10 border-green-500/30'
@@ -104,15 +130,19 @@ export default function OrderNotification({ order, onClose }: OrderNotificationP
       {
         duration: 4000,
         position: 'top-right',
+        id: `order-${order.id}`, // ✅ Unique ID per order
       }
     )
 
-    // Cleanup
-    const timer = setTimeout(() => {
+    // ✅ Cleanup after toast duration
+    const cleanupTimer = setTimeout(() => {
       onClose()
+      toastIdRef.current = null
     }, 4000)
 
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(cleanupTimer)
+    }
   }, [order, onClose])
 
   // No visible component, just triggers toast

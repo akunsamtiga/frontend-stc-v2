@@ -1,4 +1,4 @@
-// app/trading/page.tsx - ULTRA OPTIMIZED with Smart Polling
+// app/trading/page.tsx - FIXED: Prevent duplicate notifications
 'use client'
 
 import { useEffect, useState, useCallback, memo, useRef } from 'react'
@@ -78,10 +78,9 @@ class SmartPollingManager {
 
   private getInterval(): number {
     if (this.activeOrders.length === 0) {
-      return 5000 // 5s when no active orders
+      return 5000
     }
 
-    // Check for near expiry orders
     const now = Date.now()
     const hasNearExpiry = this.activeOrders.some(order => {
       const exitTime = new Date(order.exit_time!).getTime()
@@ -90,10 +89,10 @@ class SmartPollingManager {
     })
 
     if (hasNearExpiry) {
-      return 800 // Ultra fast when near expiry
+      return 800
     }
 
-    return 2000 // Normal active order polling
+    return 2000
   }
 
   private async scheduleNext() {
@@ -175,10 +174,11 @@ export default function TradingPage() {
   const [completedOrders, setCompletedOrders] = useState<BinaryOrder[]>([])
   const [notificationOrder, setNotificationOrder] = useState<BinaryOrder | null>(null)
   
-  // Smart polling
-  const pollingManagerRef = useRef(new SmartPollingManager())
+  // ✅ FIXED: Track which orders have been notified
+  const notifiedOrdersRef = useRef<Set<string>>(new Set())
   const previousOrdersRef = useRef<Map<string, BinaryOrder>>(new Map())
   const balanceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const pollingManagerRef = useRef(new SmartPollingManager())
   
   const [showAssetMenu, setShowAssetMenu] = useState(false)
   const [showAccountMenu, setShowAccountMenu] = useState(false)
@@ -190,28 +190,43 @@ export default function TradingPage() {
 
   const currentBalance = selectedAccountType === 'real' ? realBalance : demoBalance
 
-  // Instant detection
+  // ✅ FIXED: Better order completion detection
   const detectOrderCompletion = useCallback((active: BinaryOrder[], completed: BinaryOrder[]) => {
+    // Update previous orders map with current active orders
     active.forEach((order: BinaryOrder) => {
       previousOrdersRef.current.set(order.id, order)
     })
 
+    // Check completed orders for newly completed ones
     completed.forEach((order: BinaryOrder) => {
+      // ✅ Skip if already notified
+      if (notifiedOrdersRef.current.has(order.id)) {
+        return
+      }
+
       const previousOrder = previousOrdersRef.current.get(order.id)
       
-      if (previousOrder && previousOrder.status === 'ACTIVE' && 
+      // ✅ Only notify if order was previously ACTIVE and is now WON/LOST
+      if (previousOrder && 
+          previousOrder.status === 'ACTIVE' && 
           (order.status === 'WON' || order.status === 'LOST')) {
         
         console.log('🎯 Order completed:', order.id, order.status)
         
+        // ✅ Mark as notified IMMEDIATELY
+        notifiedOrdersRef.current.add(order.id)
+        
+        // Show notification
         setNotificationOrder(order)
         
+        // Play sound
         if (typeof window !== 'undefined') {
           const audio = new Audio(order.status === 'WON' ? '/sounds/win.mp3' : '/sounds/lose.mp3')
           audio.volume = 0.3
           audio.play().catch(e => console.log('Audio play failed:', e))
         }
         
+        // Remove from previous orders
         previousOrdersRef.current.delete(order.id)
         
         // Debounced balance update
@@ -228,6 +243,18 @@ export default function TradingPage() {
             })
           })
         }, 300)
+      }
+    })
+
+    // ✅ Cleanup: Remove notified orders that are no longer in completed list
+    // This prevents memory leak from the Set growing indefinitely
+    const completedIds = new Set(completed.map(o => o.id))
+    const notifiedIds = Array.from(notifiedOrdersRef.current)
+    notifiedIds.forEach(id => {
+      if (!completedIds.has(id)) {
+        // Order is no longer in completed list (probably removed from history)
+        // Safe to remove from notified set
+        notifiedOrdersRef.current.delete(id)
       }
     })
   }, [])
@@ -247,11 +274,13 @@ export default function TradingPage() {
       const currentDemoBalance = balances?.demoBalance || 0
       const allOrders = ordersRes?.data?.orders || ordersRes?.orders || []
 
+      // ✅ FIXED: Ensure proper filtering
       const active = allOrders.filter((o: BinaryOrder) => o.status === 'ACTIVE')
       const completed = allOrders.filter((o: BinaryOrder) => 
         o.status === 'WON' || o.status === 'LOST'
       )
 
+      // Detect completions
       detectOrderCompletion(active, completed)
 
       // Batch all state updates
@@ -339,12 +368,20 @@ export default function TradingPage() {
     }
   }, [selectedAsset?.id, setCurrentPrice, addPriceToHistory])
 
+  // ✅ FIXED: Clear notification properly
+  const handleCloseNotification = useCallback(() => {
+    setNotificationOrder(null)
+  }, [])
+
   // Cleanup
   useEffect(() => {
     return () => {
       if (balanceUpdateTimeoutRef.current) {
         clearTimeout(balanceUpdateTimeoutRef.current)
       }
+      // Clear notified orders on unmount
+      notifiedOrdersRef.current.clear()
+      previousOrdersRef.current.clear()
     }
   }, [])
 
@@ -1035,10 +1072,10 @@ export default function TradingPage() {
         />
       )}
 
-      {/* ORDER NOTIFICATION */}
+      {/* ✅ ORDER NOTIFICATION - FIXED */}
       <OrderNotification 
         order={notificationOrder}
-        onClose={() => setNotificationOrder(null)}
+        onClose={handleCloseNotification}
       />
 
       <style jsx>{`
