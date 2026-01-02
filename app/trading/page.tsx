@@ -1,4 +1,4 @@
-// app/trading/page.tsx - FIXED: Prevent duplicate notifications
+// app/trading/page.tsx - AGGRESSIVE POLLING FOR INSTANT UPDATES
 'use client'
 
 import { useEffect, useState, useCallback, memo, useRef } from 'react'
@@ -49,18 +49,20 @@ const HistorySidebar = dynamic(() => import('@/components/HistorySidebar'), {
 })
 
 // ===================================
-// SMART POLLING MANAGER
+// ✅ AGGRESSIVE POLLING MANAGER
 // ===================================
 
-class SmartPollingManager {
+class AggressivePollingManager {
   private intervalId: NodeJS.Timeout | null = null
   private isPolling = false
   private pollCallback: (() => Promise<void>) | null = null
   private activeOrders: BinaryOrder[] = []
+  private consecutiveEmptyPolls = 0
   
   start(callback: () => Promise<void>) {
     this.pollCallback = callback
     this.isPolling = true
+    this.consecutiveEmptyPolls = 0
     this.scheduleNext()
   }
 
@@ -73,31 +75,66 @@ class SmartPollingManager {
   }
 
   updateActiveOrders(orders: BinaryOrder[]) {
+    const hadOrders = this.activeOrders.length > 0
     this.activeOrders = orders
+    
+    // ✅ Reset counter when orders appear/disappear
+    if (hadOrders !== (orders.length > 0)) {
+      this.consecutiveEmptyPolls = 0
+    }
   }
 
   private getInterval(): number {
+    // ✅ AGGRESSIVE: Poll every 500ms when no orders (for instant order creation feedback)
     if (this.activeOrders.length === 0) {
-      return 5000
+      this.consecutiveEmptyPolls++
+      
+      // Gradually slow down if no activity
+      if (this.consecutiveEmptyPolls < 6) {
+        return 500 // First 3 seconds: 500ms
+      } else if (this.consecutiveEmptyPolls < 20) {
+        return 1000 // Next 14 seconds: 1s
+      } else {
+        return 3000 // After 20 seconds: 3s
+      }
     }
 
+    // ✅ Reset when orders exist
+    this.consecutiveEmptyPolls = 0
+    
     const now = Date.now()
+    
+    // ✅ ULTRA AGGRESSIVE for near-expiry orders
+    const hasVeryNearExpiry = this.activeOrders.some(order => {
+      const exitTime = new Date(order.exit_time!).getTime()
+      const timeLeft = exitTime - now
+      return timeLeft > 0 && timeLeft < 3000 // 3 seconds!
+    })
+    
+    if (hasVeryNearExpiry) {
+      return 200 // ✅ 200ms = almost instant
+    }
+    
+    // ✅ AGGRESSIVE for near-expiry
     const hasNearExpiry = this.activeOrders.some(order => {
       const exitTime = new Date(order.exit_time!).getTime()
       const timeLeft = exitTime - now
-      return timeLeft > 0 && timeLeft < 10000
+      return timeLeft > 0 && timeLeft < 10000 // 10 seconds
     })
 
     if (hasNearExpiry) {
-      return 800
+      return 500 // ✅ 500ms for near expiry
     }
 
-    return 2000
+    // ✅ Normal active orders: still pretty fast
+    return 1000 // ✅ 1 second for normal orders
   }
 
   private async scheduleNext() {
     if (!this.isPolling || !this.pollCallback) return
 
+    const startTime = Date.now()
+    
     try {
       await this.pollCallback()
     } catch (error) {
@@ -105,8 +142,13 @@ class SmartPollingManager {
     }
 
     if (this.isPolling) {
+      const executionTime = Date.now() - startTime
       const interval = this.getInterval()
-      this.intervalId = setTimeout(() => this.scheduleNext(), interval)
+      
+      // ✅ Subtract execution time for more accurate intervals
+      const adjustedInterval = Math.max(100, interval - executionTime)
+      
+      this.intervalId = setTimeout(() => this.scheduleNext(), adjustedInterval)
     }
   }
 }
@@ -178,7 +220,7 @@ export default function TradingPage() {
   const notifiedOrdersRef = useRef<Set<string>>(new Set())
   const previousOrdersRef = useRef<Map<string, BinaryOrder>>(new Map())
   const balanceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const pollingManagerRef = useRef(new SmartPollingManager())
+  const pollingManagerRef = useRef(new AggressivePollingManager())
   
   const [showAssetMenu, setShowAssetMenu] = useState(false)
   const [showAccountMenu, setShowAccountMenu] = useState(false)
@@ -229,7 +271,7 @@ export default function TradingPage() {
         // Remove from previous orders
         previousOrdersRef.current.delete(order.id)
         
-        // Debounced balance update
+        // ✅ Faster balance update: 100ms instead of 300ms
         if (balanceUpdateTimeoutRef.current) {
           clearTimeout(balanceUpdateTimeoutRef.current)
         }
@@ -241,19 +283,16 @@ export default function TradingPage() {
               setRealBalance(balances?.realBalance || 0)
               setDemoBalance(balances?.demoBalance || 0)
             })
-          })
-        }, 300)
+          }).catch(console.error)
+        }, 100) // ✅ Faster: 100ms instead of 300ms
       }
     })
 
     // ✅ Cleanup: Remove notified orders that are no longer in completed list
-    // This prevents memory leak from the Set growing indefinitely
     const completedIds = new Set(completed.map(o => o.id))
     const notifiedIds = Array.from(notifiedOrdersRef.current)
     notifiedIds.forEach(id => {
       if (!completedIds.has(id)) {
-        // Order is no longer in completed list (probably removed from history)
-        // Safe to remove from notified set
         notifiedOrdersRef.current.delete(id)
       }
     })
@@ -334,7 +373,7 @@ export default function TradingPage() {
     initializeData()
   }, [user, router])
 
-  // Start smart polling
+  // Start aggressive polling
   useEffect(() => {
     if (!user) return
 
@@ -379,7 +418,6 @@ export default function TradingPage() {
       if (balanceUpdateTimeoutRef.current) {
         clearTimeout(balanceUpdateTimeoutRef.current)
       }
-      // Clear notified orders on unmount
       notifiedOrdersRef.current.clear()
       previousOrdersRef.current.clear()
     }
@@ -1061,51 +1099,50 @@ export default function TradingPage() {
               </button>
             </div>
           </div>
-        </>
-      )}
-
-      {/* History Sidebar */}
-      {showHistorySidebar && (
-        <HistorySidebar 
-          isOpen={showHistorySidebar} 
-          onClose={() => setShowHistorySidebar(false)} 
-        />
-      )}
-
-      {/* ✅ ORDER NOTIFICATION - FIXED */}
-      <OrderNotification 
-        order={notificationOrder}
-        onClose={handleCloseNotification}
+          </>
+  )}
+    {/* History Sidebar */}
+    {showHistorySidebar && (
+      <HistorySidebar 
+        isOpen={showHistorySidebar} 
+        onClose={() => setShowHistorySidebar(false)} 
       />
+    )}
 
-      <style jsx>{`
-        @keyframes slide-left {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
-        }
+    {/* ✅ ORDER NOTIFICATION */}
+    <OrderNotification 
+      order={notificationOrder}
+      onClose={handleCloseNotification}
+    />
 
-        @keyframes slide-up {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
-        }
+    <style jsx>{`
+      @keyframes slide-left {
+        from { transform: translateX(100%); }
+        to { transform: translateX(0); }
+      }
 
-        @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
+      @keyframes slide-up {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+      }
 
-        .animate-slide-left {
-          animation: slide-left 0.3s ease-out;
-        }
+      @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
 
-        .animate-slide-up {
-          animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
+      .animate-slide-left {
+        animation: slide-left 0.3s ease-out;
+      }
 
-        .animate-fade-in {
-          animation: fade-in 0.2s ease-out;
-        }
-      `}</style>
-    </div>
+      .animate-slide-up {
+        animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .animate-fade-in {
+        animation: fade-in 0.2s ease-out;
+      }
+    `}</style>
+  </div>
   )
-}
+  }

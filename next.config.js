@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   
+  // ✅ IMPORTANT: Ensure proper routing on Vercel
+  output: 'standalone',
+  
   // API proxy
   async rewrites() {
     return [

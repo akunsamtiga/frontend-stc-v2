@@ -1,4 +1,4 @@
-// components/TradingChart.tsx - ULTRA OPTIMIZED WITH INDICATORS
+// components/TradingChart.tsx - OPTIMIZED - NO RAF QUEUE
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
@@ -44,7 +44,6 @@ interface TradingChartProps {
   currentPrice?: number
 }
 
-// Default indicator config
 const DEFAULT_INDICATOR_CONFIG: IndicatorConfig = {
   sma: { enabled: false, period: 20, color: '#3b82f6' },
   ema: { enabled: false, period: 20, color: '#f59e0b' },
@@ -71,37 +70,8 @@ function cleanAssetPath(path: string): string {
 }
 
 // ===================================
-// RAF QUEUE
+// ✅ RAF QUEUE REMOVED - NO LONGER NEEDED
 // ===================================
-
-class RAFQueue {
-  private queue: Map<string, () => void> = new Map()
-  private rafId: number | null = null
-
-  add(key: string, fn: () => void) {
-    this.queue.set(key, fn)
-    
-    if (!this.rafId) {
-      this.rafId = requestAnimationFrame(() => {
-        this.flush()
-      })
-    }
-  }
-
-  private flush() {
-    this.queue.forEach(fn => fn())
-    this.queue.clear()
-    this.rafId = null
-  }
-
-  clear() {
-    if (this.rafId) {
-      cancelAnimationFrame(this.rafId)
-      this.rafId = null
-    }
-    this.queue.clear()
-  }
-}
 
 // ===================================
 // SIMULATOR STATUS CHECK
@@ -537,7 +507,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   const unsubscribePriceRef = useRef<(() => void) | null>(null)
   
   const mountedRef = useRef(false)
-  const rafQueueRef = useRef(new RAFQueue())
+  // ✅ RAF Queue removed - no longer needed
   const currentDataRef = useRef<CandleData[]>([])
   
   const { selectedAsset } = useTradingStore()
@@ -704,10 +674,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       }
     }
 
-    // Note: RSI, MACD, Stochastic, ATR require separate chart panels
-    // For now, they're calculated but not displayed on the main chart
-    // You would need to create additional chart containers for these oscillators
-
   }, [indicatorConfig])
 
   // Update indicators when config changes
@@ -717,33 +683,32 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [indicatorConfig, isInitialized, renderIndicators])
 
-  // Update price line dengan RAF Queue
+  // ✅ Update price line - NO RAF Queue
   const updateCurrentPriceLine = useCallback((price: number) => {
     if (!candleSeriesRef.current || !chartRef.current || !price) return
     
-    rafQueueRef.current.add('priceline', () => {
-      try {
-        if (currentPriceLineRef.current && candleSeriesRef.current) {
-          candleSeriesRef.current.removePriceLine(currentPriceLineRef.current)
-        }
-        
-        if (candleSeriesRef.current) {
-          currentPriceLineRef.current = candleSeriesRef.current.createPriceLine({
-            price: price,
-            color: '#3b82f6',
-            lineWidth: 1,
-            lineStyle: 2,
-            axisLabelVisible: true,
-            title: 'Current',
-            lineVisible: true,
-          })
-        }
-        
-        setLastPrice(price)
-      } catch (error) {
-        console.error('Price line update error:', error)
+    // ✅ Direct update - NO RAF queue
+    try {
+      if (currentPriceLineRef.current && candleSeriesRef.current) {
+        candleSeriesRef.current.removePriceLine(currentPriceLineRef.current)
       }
-    })
+      
+      if (candleSeriesRef.current) {
+        currentPriceLineRef.current = candleSeriesRef.current.createPriceLine({
+          price: price,
+          color: '#3b82f6',
+          lineWidth: 1,
+          lineStyle: 2,
+          axisLabelVisible: true,
+          title: 'Current',
+          lineVisible: true,
+        })
+      }
+      
+      setLastPrice(price)
+    } catch (error) {
+      console.error('Price line update error:', error)
+    }
   }, [])
 
   // Initialize chart
@@ -833,7 +798,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           unsubscribePriceRef.current()
         }
         
-        rafQueueRef.current.clear()
+        // ✅ No RAF queue to clear
         
         mountedRef.current = false
         setIsInitialized(false)
@@ -936,11 +901,12 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
         setIsLoading(false)
 
-        // Subscribe
+        // ✅ Subscribe with direct updates - NO RAF queue
         unsubscribeOHLCRef.current = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
           if (isCancelled || !candleSeriesRef.current || !lineSeriesRef.current) return
 
-          rafQueueRef.current.add('ohlc', () => {
+          // ✅ Direct update - NO RAF queue
+          try {
             const candleUpdate = {
               time: newBar.timestamp as UTCTimestamp,
               open: newBar.open,
@@ -954,8 +920,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
               value: newBar.close,
             }
 
-            candleSeriesRef.current?.update(candleUpdate)
-            lineSeriesRef.current?.update(lineUpdate)
+            candleSeriesRef.current.update(candleUpdate)
+            lineSeriesRef.current.update(lineUpdate)
 
             // Update stored data
             const existingIndex = currentDataRef.current.findIndex(d => d.time === newBar.timestamp)
@@ -972,11 +938,19 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
               currentDataRef.current[existingIndex] = newData
             } else {
               currentDataRef.current.push(newData)
+              // Keep only last 1000 bars in memory
+              if (currentDataRef.current.length > 1000) {
+                currentDataRef.current.shift()
+              }
             }
 
-            // Re-render indicators
-            renderIndicators()
-          })
+            // Re-render indicators (throttle this if needed)
+            if (newBar.isNewBar) {
+              renderIndicators()
+            }
+          } catch (error) {
+            console.error('Chart update error:', error)
+          }
         })
         
         unsubscribePriceRef.current = subscribeToPriceUpdates(
@@ -1118,7 +1092,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         </div>
       )}
 
-      {/* Indicator Controls */}
       <IndicatorControls
         isOpen={showIndicators}
         onClose={() => setShowIndicators(false)}

@@ -1,4 +1,4 @@
-// lib/firebase.ts - ULTRA OPTIMIZED with Smart Caching
+// lib/firebase.ts - ULTRA OPTIMIZED - NO THROTTLING
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
 import { getDatabase, Database, ref, onValue, off, query, limitToLast, get } from 'firebase/database'
 
@@ -123,7 +123,6 @@ class IndexedDBCache {
           resolve(result.data)
         } else {
           if (result) {
-            // Clean expired entry asynchronously
             this.delete(key).catch(() => {})
           }
           resolve(null)
@@ -134,7 +133,6 @@ class IndexedDBCache {
   }
 
   async set(key: string, data: any, ttl: number): Promise<void> {
-    // Batch writes
     this.pendingWrites.set(key, { data, ttl })
     
     if (this.writeTimeout) {
@@ -143,7 +141,7 @@ class IndexedDBCache {
     
     this.writeTimeout = setTimeout(() => {
       this.flushWrites()
-    }, 50) // Batch writes every 50ms
+    }, 50)
   }
 
   private async flushWrites(): Promise<void> {
@@ -229,7 +227,6 @@ class IndexedDBCache {
 
 const idbCache = new IndexedDBCache()
 
-// Aggressive cleanup - every 2 minutes
 if (typeof window !== 'undefined') {
   setInterval(() => {
     idbCache.cleanup().catch(() => {})
@@ -250,7 +247,7 @@ interface CacheEntry {
 
 class LRUCache {
   private cache = new Map<string, CacheEntry>()
-  private maxSize = 50 // Maximum cache entries
+  private maxSize = 50
 
   get(key: string): any[] | null {
     const entry = this.cache.get(key)
@@ -263,7 +260,6 @@ class LRUCache {
       return null
     }
     
-    // Update access stats
     entry.accessCount++
     entry.lastAccess = now
     
@@ -271,7 +267,6 @@ class LRUCache {
   }
 
   set(key: string, data: any[], ttl: number) {
-    // Evict if at max size
     if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
       this.evictLRU()
     }
@@ -297,7 +292,6 @@ class LRUCache {
     let oldestKey: string | null = null
     let oldestTime = Infinity
     
-    // Find least recently accessed entry
     this.cache.forEach((entry, key) => {
       if (entry.lastAccess < oldestTime) {
         oldestTime = entry.lastAccess
@@ -344,21 +338,17 @@ export async function fetchHistoricalData(
     const basePath = cleanAssetPath(assetPath)
     const cacheKey = `${basePath}-${timeframe}`
 
-    // 1️⃣ Memory cache (fastest)
     const memCached = memoryCache.get(cacheKey)
     if (memCached) {
       return memCached
     }
 
-    // 2️⃣ IndexedDB cache
     const idbCached = await idbCache.get(cacheKey)
     if (idbCached) {
-      // Populate memory cache
       memoryCache.set(cacheKey, idbCached, config.cacheTTL)
       return idbCached
     }
 
-    // 3️⃣ Fetch from Firebase
     const ohlcPath = getOHLCPath(basePath, timeframe)
     const ohlcRef = ref(database, ohlcPath)
     const limitedQuery = query(ohlcRef, limitToLast(config.barsToFetch))
@@ -377,7 +367,6 @@ export async function fetchHistoricalData(
       return []
     }
     
-    // Store in both caches
     memoryCache.set(cacheKey, result, config.cacheTTL)
     await idbCache.set(cacheKey, result, config.cacheTTL)
     
@@ -400,9 +389,6 @@ function processHistoricalData(data: any, limit: number): any[] {
 
   const historicalData: any[] = []
   const keys = Object.keys(data)
-
-  // Pre-allocate array
-  const maxLength = Math.min(keys.length, limit)
   
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i]
@@ -430,13 +416,12 @@ function processHistoricalData(data: any, limit: number): any[] {
     return []
   }
 
-  // Sort and limit
   historicalData.sort((a, b) => a.timestamp - b.timestamp)
   return historicalData.slice(-limit)
 }
 
 // ===================================
-// SUBSCRIBE TO OHLC - OPTIMIZED
+// ✅ SUBSCRIBE TO OHLC - NO THROTTLING
 // ===================================
 
 export function subscribeToOHLCUpdates(
@@ -460,25 +445,8 @@ export function subscribeToOHLCUpdates(
   
   let lastBarTimestamp: number | null = null
   let updateCount = 0
-  let rafId: number | null = null
-  let rafQueue: (() => void) | null = null
   
-  const throttledCallback = (data: any) => {
-    rafQueue = () => {
-      callback(data)
-      rafQueue = null
-    }
-    
-    if (!rafId) {
-      rafId = requestAnimationFrame(() => {
-        if (rafQueue) {
-          rafQueue()
-        }
-        rafId = null
-      })
-    }
-  }
-  
+  // ✅ NO THROTTLING - Direct callback for instant updates
   const unsubscribe = onValue(ohlcRef, (snapshot) => {
     const data = snapshot.val()
     if (!data) return
@@ -512,22 +480,20 @@ export function subscribeToOHLCUpdates(
       isNewBar
     }
     
-    throttledCallback(barData)
+    // ✅ Direct callback - NO RAF, NO throttling
+    callback(barData)
 
   }, (error) => {
     console.error(`❌ OHLC subscription error (${timeframe}):`, error)
   })
 
   return () => {
-    if (rafId) {
-      cancelAnimationFrame(rafId)
-    }
     off(ohlcRef)
   }
 }
 
 // ===================================
-// SUBSCRIBE TO PRICE - OPTIMIZED
+// ✅ SUBSCRIBE TO PRICE - NO THROTTLING
 // ===================================
 
 export function subscribeToPriceUpdates(
@@ -541,48 +507,33 @@ export function subscribeToPriceUpdates(
   const pricePath = getPricePath(assetPath)
   const priceRef = ref(database, pricePath)
   
-  let rafId: number | null = null
-  let rafQueue: (() => void) | null = null
   let updateCount = 0
   let lastPrice: number | null = null
-  
-  const throttledCallback = (data: any) => {
-    // Skip duplicate prices
-    if (lastPrice && Math.abs(data.price - lastPrice) < 0.00001) {
-      return
-    }
-    
-    lastPrice = data.price
-    
-    rafQueue = () => {
-      callback(data)
-      rafQueue = null
-    }
-    
-    if (!rafId) {
-      rafId = requestAnimationFrame(() => {
-        if (rafQueue) {
-          rafQueue()
-        }
-        rafId = null
-      })
-    }
-  }
+  let lastTimestamp: number | null = null
   
   const unsubscribe = onValue(priceRef, (snapshot) => {
     const data = snapshot.val()
-    if (data && data.price) {
-      updateCount++
-      throttledCallback(data)
-    }
+    if (!data || !data.price) return
+    
+    // ✅ More lenient duplicate check
+    const isDuplicate = lastPrice && 
+                       lastTimestamp === data.timestamp &&
+                       Math.abs(data.price - lastPrice) < 0.000001
+    
+    if (isDuplicate) return
+    
+    lastPrice = data.price
+    lastTimestamp = data.timestamp
+    updateCount++
+    
+    // ✅ Direct callback - NO RAF, NO throttling
+    callback(data)
+    
   }, (error) => {
     console.error('❌ Price subscription error:', error)
   })
 
   return () => {
-    if (rafId) {
-      cancelAnimationFrame(rafId)
-    }
     off(priceRef)
   }
 }
@@ -595,7 +546,6 @@ export async function prefetchDefaultAsset(assetPath: string): Promise<void> {
   const basePath = cleanAssetPath(assetPath)
   const timeframes: Timeframe[] = ['1m', '5m']
   
-  // Parallel prefetch
   await Promise.allSettled(
     timeframes.map(tf => fetchHistoricalData(basePath, tf))
   )
