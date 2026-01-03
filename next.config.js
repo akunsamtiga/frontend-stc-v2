@@ -1,18 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  
-  // ✅ IMPORTANT: Ensure proper routing on Vercel
   output: 'standalone',
   
-  // API proxy
+  // ✅ ONLY use rewrites in development
   async rewrites() {
-    return [
-      {
-        source: '/api/backend/:path*',
-        destination: 'http://103.171.85.146:3000/api/v1/:path*',
-      },
-    ]
+    // Only apply rewrites in development
+    if (process.env.NODE_ENV === 'development') {
+      return [
+        {
+          source: '/api/backend/:path*',
+          destination: 'http://103.171.85.146:3000/api/v1/:path*',
+        },
+      ]
+    }
+    return []
   },
   
   // Image optimization
@@ -43,23 +45,18 @@ const nextConfig = {
   
   // Webpack optimizations
   webpack: (config, { isServer }) => {
-    // Optimize bundle size
     if (!isServer) {
       config.optimization.splitChunks = {
         chunks: 'all',
         cacheGroups: {
           default: false,
           vendors: false,
-          
-          // Vendor chunks
           vendor: {
             name: 'vendor',
             chunks: 'all',
             test: /node_modules/,
             priority: 20,
           },
-          
-          // Common chunks
           common: {
             name: 'common',
             minChunks: 2,
@@ -68,16 +65,12 @@ const nextConfig = {
             reuseExistingChunk: true,
             enforce: true,
           },
-          
-          // Firebase chunk
           firebase: {
             name: 'firebase',
             test: /[\\/]node_modules[\\/]firebase[\\/]/,
             priority: 30,
             reuseExistingChunk: true,
           },
-          
-          // Chart library
           charts: {
             name: 'charts',
             test: /[\\/]node_modules[\\/]lightweight-charts[\\/]/,
@@ -87,7 +80,6 @@ const nextConfig = {
         },
       }
     }
-    
     return config
   },
   
@@ -123,7 +115,6 @@ const nextConfig = {
           },
         ],
       },
-      // Cache static assets
       {
         source: '/stc-logo.png',
         headers: [
