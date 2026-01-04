@@ -1,8 +1,13 @@
-// lib/api.ts - ULTRA OPTIMIZED API Client
+// lib/api.ts - FIXED with Rewrites Support
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
+// ✅ API_URL will be '/api/backend' - Next.js will handle the rewrite
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/backend'
+
+console.log('🔧 API Configuration:')
+console.log('   API_URL:', API_URL)
+console.log('   Mode:', process.env.NODE_ENV)
 
 interface ApiResponse<T = any> {
   success?: boolean
@@ -30,7 +35,7 @@ interface PendingRequest {
 class RequestQueue {
   private queue: Array<() => Promise<any>> = []
   private processing = false
-  private maxConcurrent = 6 // Browser limit
+  private maxConcurrent = 6
 
   async add<T>(request: () => Promise<T>): Promise<T> {
     return new Promise((resolve, reject) => {
@@ -77,19 +82,25 @@ class ApiClient {
     this.pendingRequests = new Map()
     this.requestQueue = new RequestQueue()
     
+    // ✅ Axios instance with rewrite support
     this.client = axios.create({
       baseURL: API_URL,
       timeout: 10000,
       headers: {
         'Content-Type': 'application/json',
       },
+      // ✅ Important: Don't send credentials for rewrites
+      withCredentials: false,
     })
 
     this.setupInterceptors()
     this.startCacheCleanup()
+    
+    console.log('✅ API Client initialized')
   }
 
   private setupInterceptors() {
+    // Request interceptor
     this.client.interceptors.request.use(
       (config) => {
         const token = this.getToken()
@@ -101,23 +112,40 @@ class ApiClient {
           config.headers['X-Request-ID'] = this.generateRequestId(config)
         }
         
+        console.log(`🔵 ${config.method?.toUpperCase()} ${config.url}`)
+        
         return config
       },
-      (error) => Promise.reject(error)
+      (error) => {
+        console.error('❌ Request interceptor error:', error)
+        return Promise.reject(error)
+      }
     )
 
+    // Response interceptor
     this.client.interceptors.response.use(
-      (response) => response.data,
+      (response) => {
+        console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`)
+        return response.data
+      },
       async (error: AxiosError<any>) => {
         const config = error.config as AxiosRequestConfig & { _retry?: number }
         
-        if (!config) return Promise.reject(error)
+        if (!config) {
+          console.error('❌ No config in error')
+          return Promise.reject(error)
+        }
+        
+        console.error(`❌ ${config.method?.toUpperCase()} ${config.url} - ${error.response?.status || 'NETWORK_ERROR'}`)
         
         const shouldRetry = this.shouldRetry(error, config)
         
         if (shouldRetry) {
           config._retry = (config._retry || 0) + 1
           const delay = this.getRetryDelay(config._retry)
+          
+          console.log(`🔄 Retry ${config._retry}/${this.retryConfig.maxRetries} in ${delay}ms`)
+          
           await this.sleep(delay)
           return this.client.request(config)
         }
@@ -150,6 +178,7 @@ class ApiClient {
       return false
     }
     
+    // Always retry network errors
     if (!error.response) {
       return true
     }
@@ -180,12 +209,14 @@ class ApiClient {
   setToken(token: string) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('token', token)
+      console.log('🔑 Token set')
     }
   }
 
   removeToken() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token')
+      console.log('🔓 Token removed')
     }
   }
 
@@ -278,10 +309,12 @@ class ApiClient {
   // ===================================
 
   async login(email: string, password: string): Promise<ApiResponse> {
+    console.log('🔐 Logging in:', email)
     return this.client.post('/auth/login', { email, password })
   }
 
   async register(email: string, password: string): Promise<ApiResponse> {
+    console.log('📝 Registering:', email)
     return this.client.post('/auth/register', { email, password })
   }
 
@@ -314,7 +347,7 @@ class ApiClient {
     
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get('/balance/both')
-      this.setCache(cacheKey, data, 1500) // Very short cache for balance
+      this.setCache(cacheKey, data, 1500)
       return data
     })
   }
@@ -385,7 +418,7 @@ class ApiClient {
     
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get(`/assets?activeOnly=${activeOnly}`)
-      this.setCache(cacheKey, data, 120000) // 2 minutes for assets
+      this.setCache(cacheKey, data, 120000)
       return data
     })
   }
@@ -445,13 +478,14 @@ class ApiClient {
     amount: number
     duration: number
   }): Promise<ApiResponse> {
+    console.log('📤 Creating order:', data)
+    
     const result = await this.client.post('/binary-orders', data, {
       headers: {
-        'X-Idempotent': 'true' // Allow retry for order creation
+        'X-Idempotent': 'true'
       }
     })
     
-    // Invalidate relevant caches immediately
     this.invalidateCache('/binary-orders')
     this.invalidateCache('/balance')
     
@@ -472,7 +506,6 @@ class ApiClient {
     if (status) params.append('status', status)
     if (accountType) params.append('accountType', accountType)
     
-    // No caching for orders to ensure realtime data
     return this.client.get(`/binary-orders?${params}`)
   }
 
@@ -490,7 +523,7 @@ class ApiClient {
   }
 
   // ===================================
-  // ADMIN ENDPOINTS - OPTIMIZED
+  // ADMIN ENDPOINTS
   // ===================================
 
   async getAllUsers(page = 1, limit = 50): Promise<ApiResponse> {
@@ -548,7 +581,7 @@ class ApiClient {
     
     if (cached) {
       const age = Date.now() - cached.timestamp
-      if (age < 3000) { // 3 second cache
+      if (age < 3000) {
         return cached.data
       }
     }

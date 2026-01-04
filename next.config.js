@@ -3,18 +3,14 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   
-  // ✅ ONLY use rewrites in development
+  // ✅ REWRITES - Path matching 1:1 dengan backend
   async rewrites() {
-    // Only apply rewrites in development
-    if (process.env.NODE_ENV === 'development') {
-      return [
-        {
-          source: '/api/backend/:path*',
-          destination: 'http://103.171.85.146:3000/api/v1/:path*',
-        },
-      ]
-    }
-    return []
+    return [
+      {
+        source: '/api/v1/:path*',
+        destination: 'http://103.171.85.146:3000/api/v1/:path*',
+      },
+    ]
   },
   
   // Image optimization
@@ -26,7 +22,7 @@ const nextConfig = {
     minimumCacheTTL: 60,
   },
   
-  // Experimental features for performance
+  // Experimental features
   experimental: {
     optimizePackageImports: ['lucide-react', 'date-fns'],
   },
@@ -83,45 +79,33 @@ const nextConfig = {
     return config
   },
   
-  // Headers for performance
+  // Headers
   async headers() {
     return [
       {
+        source: '/api/v1/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Credentials', value: 'true' },
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET,DELETE,PATCH,POST,PUT,OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization' },
+        ],
+      },
+      {
         source: '/:path*',
         headers: [
-          {
-            key: 'X-DNS-Prefetch-Control',
-            value: 'on'
-          },
-          {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=63072000; includeSubDomains; preload'
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN'
-          },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block'
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin'
-          },
+          { key: 'X-DNS-Prefetch-Control', value: 'on' },
+          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
+          { key: 'Referrer-Policy', value: 'origin-when-cross-origin' },
         ],
       },
       {
         source: '/stc-logo.png',
         headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
       },
     ]
