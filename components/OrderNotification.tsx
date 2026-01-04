@@ -1,9 +1,9 @@
-// components/OrderNotification.tsx - FIXED: Prevent duplicate notifications
+// components/OrderNotification.tsx - FIXED: No Duplicate Notifications
 'use client'
 
 import { useEffect, useRef } from 'react'
 import { BinaryOrder } from '@/types'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, playSound } from '@/lib/utils'
 import { CheckCircle2, XCircle, TrendingUp, TrendingDown } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -13,34 +13,51 @@ interface OrderNotificationProps {
 }
 
 export default function OrderNotification({ order, onClose }: OrderNotificationProps) {
-  // ✅ FIXED: Track last notified order to prevent duplicates
   const lastNotifiedOrderRef = useRef<string | null>(null)
   const toastIdRef = useRef<string | number | null>(null)
+  const isProcessingRef = useRef(false)
 
   useEffect(() => {
-    // ✅ Skip if no order or same order as before
+    // Skip if no order
     if (!order) {
       lastNotifiedOrderRef.current = null
+      isProcessingRef.current = false
       return
     }
 
-    // ✅ CRITICAL: Don't show notification for ACTIVE orders
-    if (order.status === 'ACTIVE') {
+    // Skip if currently processing another notification
+    if (isProcessingRef.current) {
+      console.log('⏭️ Skipping: Already processing notification')
       return
     }
 
-    // ✅ CRITICAL: Check if this order was already notified
+    // CRITICAL: Don't show notification for ACTIVE orders
+    if (order.status === 'ACTIVE' || order.status === 'PENDING') {
+      return
+    }
+
+    // CRITICAL: Check if this order was already notified
     if (lastNotifiedOrderRef.current === order.id) {
       console.log('⏭️ Skipping duplicate notification for order:', order.id)
       return
     }
 
-    // ✅ Mark this order as notified
+    // Mark as processing
+    isProcessingRef.current = true
+    
+    // Mark this order as notified IMMEDIATELY
     lastNotifiedOrderRef.current = order.id
-    console.log('📢 Showing notification for order:', order.id, order.status)
+    console.log('🔔 Showing notification for order:', order.id, order.status)
 
     const isWin = order.status === 'WON'
     const profit = order.profit || 0
+
+    // Play sound
+    try {
+      playSound(isWin ? '/sounds/win.mp3' : '/sounds/lose.mp3', 0.3)
+    } catch (e) {
+      console.log('Audio play failed:', e)
+    }
 
     // Custom toast content
     const ToastContent = () => (
@@ -62,7 +79,7 @@ export default function OrderNotification({ order, onClose }: OrderNotificationP
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <h4 className={`font-bold text-sm ${isWin ? 'text-green-400' : 'text-red-400'}`}>
-              {isWin ? 'Trade Won!' : 'Trade Lost'}
+              {isWin ? 'Trade Won! 🎉' : 'Trade Lost'}
             </h4>
             <span className="text-xs text-gray-400">{order.asset_name}</span>
           </div>
@@ -90,7 +107,7 @@ export default function OrderNotification({ order, onClose }: OrderNotificationP
       </div>
     )
 
-    // ✅ Dismiss previous toast if exists
+    // Dismiss previous toast if exists
     if (toastIdRef.current !== null) {
       toast.dismiss(toastIdRef.current)
     }
@@ -130,15 +147,16 @@ export default function OrderNotification({ order, onClose }: OrderNotificationP
       {
         duration: 4000,
         position: 'top-right',
-        id: `order-${order.id}`, // ✅ Unique ID per order
+        id: `order-${order.id}`, // Unique ID per order
       }
     )
 
-    // ✅ Cleanup after toast duration
+    // Cleanup after toast duration + buffer
     const cleanupTimer = setTimeout(() => {
+      isProcessingRef.current = false
       onClose()
       toastIdRef.current = null
-    }, 4000)
+    }, 4500) // 4000ms toast + 500ms buffer
 
     return () => {
       clearTimeout(cleanupTimer)

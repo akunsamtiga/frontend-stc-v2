@@ -1,13 +1,13 @@
-// lib/api.ts - FIXED with Rewrites Support
+// lib/api.ts - IMPROVED with Better Error Handling & Retry Logic
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
 
-// ✅ API_URL will be '/api/backend' - Next.js will handle the rewrite
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/backend'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
 
-console.log('🔧 API Configuration:')
-console.log('   API_URL:', API_URL)
-console.log('   Mode:', process.env.NODE_ENV)
+console.log('🔧 API Configuration:', {
+  API_URL,
+  Mode: process.env.NODE_ENV
+})
 
 interface ApiResponse<T = any> {
   success?: boolean
@@ -27,10 +27,6 @@ interface PendingRequest {
   promise: Promise<any>
   timestamp: number
 }
-
-// ===================================
-// REQUEST QUEUE
-// ===================================
 
 class RequestQueue {
   private queue: Array<() => Promise<any>> = []
@@ -73,34 +69,51 @@ class ApiClient {
   private requestQueue: RequestQueue
   private retryConfig = {
     maxRetries: 3,
-    retryDelay: 800,
-    retryableStatuses: [408, 429, 500, 502, 503, 504]
+    retryDelay: 1000,
+    retryableStatuses: [408, 429, 500, 502, 503, 504],
+    timeoutRetries: 2
   }
+  private consecutiveErrors = 0
+  private maxConsecutiveErrors = 5
+  private isOnline = true
 
   constructor() {
     this.cache = new Map()
     this.pendingRequests = new Map()
     this.requestQueue = new RequestQueue()
     
-    // ✅ Axios instance with rewrite support
     this.client = axios.create({
       baseURL: API_URL,
-      timeout: 10000,
+      timeout: 15000,
       headers: {
         'Content-Type': 'application/json',
       },
-      // ✅ Important: Don't send credentials for rewrites
       withCredentials: false,
     })
 
     this.setupInterceptors()
     this.startCacheCleanup()
+    this.setupOnlineStatusMonitor()
     
     console.log('✅ API Client initialized')
   }
 
+  private setupOnlineStatusMonitor() {
+    if (typeof window === 'undefined') return
+
+    window.addEventListener('online', () => {
+      console.log('🟢 Network online')
+      this.isOnline = true
+      this.consecutiveErrors = 0
+    })
+
+    window.addEventListener('offline', () => {
+      console.log('🔴 Network offline')
+      this.isOnline = false
+    })
+  }
+
   private setupInterceptors() {
-    // Request interceptor
     this.client.interceptors.request.use(
       (config) => {
         const token = this.getToken()
@@ -122,21 +135,40 @@ class ApiClient {
       }
     )
 
-    // Response interceptor
     this.client.interceptors.response.use(
       (response) => {
         console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`)
+        this.consecutiveErrors = 0
         return response.data
       },
       async (error: AxiosError<any>) => {
-        const config = error.config as AxiosRequestConfig & { _retry?: number }
+        const config = error.config as AxiosRequestConfig & { _retry?: number; _timeoutRetry?: number }
         
         if (!config) {
           console.error('❌ No config in error')
           return Promise.reject(error)
         }
         
+        // Handle network/timeout errors
+        if (!error.response && error.code === 'ECONNABORTED') {
+          config._timeoutRetry = (config._timeoutRetry || 0) + 1
+          
+          if (config._timeoutRetry <= this.retryConfig.timeoutRetries) {
+            console.log(`⏱️ Timeout retry ${config._timeoutRetry}/${this.retryConfig.timeoutRetries}`)
+            await this.sleep(this.retryConfig.retryDelay)
+            return this.client.request(config)
+          }
+        }
+        
         console.error(`❌ ${config.method?.toUpperCase()} ${config.url} - ${error.response?.status || 'NETWORK_ERROR'}`)
+        
+        this.consecutiveErrors++
+        
+        // Handle consecutive errors
+        if (this.consecutiveErrors >= this.maxConsecutiveErrors) {
+          console.error(`🚨 Too many consecutive errors (${this.consecutiveErrors}), may need to check connection`)
+          toast.error('Connection issues detected. Please check your internet connection.')
+        }
         
         const shouldRetry = this.shouldRetry(error, config)
         
@@ -150,11 +182,7 @@ class ApiClient {
           return this.client.request(config)
         }
         
-        const message = 
-          error.response?.data?.error || 
-          error.response?.data?.message ||
-          error.message || 
-          'An error occurred'
+        const message = this.getErrorMessage(error)
         
         if (!config.headers?.['X-Silent-Error']) {
           toast.error(message)
@@ -163,6 +191,50 @@ class ApiClient {
         return Promise.reject(error)
       }
     )
+  }
+
+  private getErrorMessage(error: AxiosError<any>): string {
+    if (!error.response) {
+      if (!this.isOnline) {
+        return 'No internet connection'
+      }
+      return 'Network error. Please check your connection.'
+    }
+
+    const status = error.response.status
+    const data = error.response.data
+
+    // Backend error messages
+    if (data?.error) return data.error
+    if (data?.message) return data.message
+
+    // Status code messages
+    switch (status) {
+      case 400:
+        return 'Invalid request. Please check your input.'
+      case 401:
+        return 'Session expired. Please login again.'
+      case 403:
+        return 'Access denied.'
+      case 404:
+        return 'Resource not found.'
+      case 409:
+        return 'Conflict. This action cannot be completed.'
+      case 422:
+        return 'Validation error. Please check your input.'
+      case 429:
+        return 'Too many requests. Please try again later.'
+      case 500:
+        return 'Server error. Please try again later.'
+      case 502:
+        return 'Bad gateway. Server is temporarily unavailable.'
+      case 503:
+        return 'Service unavailable. Please try again later.'
+      case 504:
+        return 'Gateway timeout. Server is taking too long to respond.'
+      default:
+        return error.message || 'An error occurred'
+    }
   }
 
   private shouldRetry(error: AxiosError, config: AxiosRequestConfig & { _retry?: number }): boolean {
@@ -181,6 +253,11 @@ class ApiClient {
     // Always retry network errors
     if (!error.response) {
       return true
+    }
+    
+    // Don't retry client errors (except specific ones)
+    if (error.response.status >= 400 && error.response.status < 500) {
+      return false
     }
     
     return this.retryConfig.retryableStatuses.includes(error.response.status)
@@ -209,7 +286,7 @@ class ApiClient {
   setToken(token: string) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('token', token)
-      console.log('🔑 Token set')
+      console.log('🔐 Token set')
     }
   }
 
@@ -347,7 +424,7 @@ class ApiClient {
     
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get('/balance/both')
-      this.setCache(cacheKey, data, 1500)
+      this.setCache(cacheKey, data, 1000)
       return data
     })
   }
@@ -360,7 +437,7 @@ class ApiClient {
     
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get(`/balance/${accountType}`)
-      this.setCache(cacheKey, data, 1500)
+      this.setCache(cacheKey, data, 1000)
       return data
     })
   }
@@ -449,24 +526,6 @@ class ApiClient {
     })
   }
 
-  async createAsset(data: any): Promise<ApiResponse> {
-    const result = await this.client.post('/assets', data)
-    this.invalidateCache('/assets')
-    return result
-  }
-
-  async updateAsset(id: string, data: any): Promise<ApiResponse> {
-    const result = await this.client.put(`/assets/${id}`, data)
-    this.invalidateCache('/assets')
-    return result
-  }
-
-  async deleteAsset(id: string): Promise<ApiResponse> {
-    const result = await this.client.delete(`/assets/${id}`)
-    this.invalidateCache('/assets')
-    return result
-  }
-
   // ===================================
   // BINARY ORDERS - OPTIMIZED
   // ===================================
@@ -506,7 +565,17 @@ class ApiClient {
     if (status) params.append('status', status)
     if (accountType) params.append('accountType', accountType)
     
-    return this.client.get(`/binary-orders?${params}`)
+    // Shorter cache for order list
+    const cacheKey = this.getCacheKey('/binary-orders', { status, page, limit, accountType })
+    const cached = this.getFromCache(cacheKey)
+    
+    if (cached) return cached
+    
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get(`/binary-orders?${params}`)
+      this.setCache(cacheKey, data, 1000) // 1 second cache
+      return data
+    })
   }
 
   async getOrderById(id: string): Promise<ApiResponse> {
@@ -538,22 +607,6 @@ class ApiClient {
     return this.client.get(`/admin/users/${id}`)
   }
 
-  async createUser(data: { 
-    email: string
-    password: string
-    role: string 
-  }): Promise<ApiResponse> {
-    return this.client.post('/admin/users', data)
-  }
-
-  async updateUser(id: string, data: any): Promise<ApiResponse> {
-    return this.client.put(`/admin/users/${id}`, data)
-  }
-
-  async deleteUser(id: string): Promise<ApiResponse> {
-    return this.client.delete(`/admin/users/${id}`)
-  }
-
   async manageUserBalance(userId: string, data: {
     accountType: 'real' | 'demo'
     type: 'deposit' | 'withdrawal'
@@ -580,9 +633,9 @@ class ApiClient {
     const cached = this.getFromCache(cacheKey)
     
     if (cached) {
-      const age = Date.now() - cached.timestamp
+      const age = Date.now() - (cached as any).timestamp
       if (age < 3000) {
-        return cached.data
+        return cached
       }
     }
     
@@ -601,9 +654,25 @@ class ApiClient {
     return {
       size: this.cache.size,
       keys: Array.from(this.cache.keys()),
+      pendingRequests: this.pendingRequests.size,
+      consecutiveErrors: this.consecutiveErrors,
+      isOnline: this.isOnline
+    }
+  }
+
+  getStatus() {
+    return {
+      isOnline: this.isOnline,
+      consecutiveErrors: this.consecutiveErrors,
+      cacheSize: this.cache.size,
       pendingRequests: this.pendingRequests.size
     }
   }
 }
 
 export const api = new ApiClient()
+
+// Export for debugging in console
+if (typeof window !== 'undefined') {
+  (window as any).api = api
+}
