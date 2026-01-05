@@ -1,4 +1,3 @@
-// app/trading/page.tsx - AGGRESSIVE POLLING FOR INSTANT UPDATES
 'use client'
 
 import { useEffect, useState, useCallback, memo, useRef } from 'react'
@@ -48,10 +47,6 @@ const HistorySidebar = dynamic(() => import('@/components/HistorySidebar'), {
   ssr: false
 })
 
-// ===================================
-// ✅ AGGRESSIVE POLLING MANAGER
-// ===================================
-
 class AggressivePollingManager {
   private intervalId: NodeJS.Timeout | null = null
   private isPolling = false
@@ -78,56 +73,49 @@ class AggressivePollingManager {
     const hadOrders = this.activeOrders.length > 0
     this.activeOrders = orders
     
-    // ✅ Reset counter when orders appear/disappear
     if (hadOrders !== (orders.length > 0)) {
       this.consecutiveEmptyPolls = 0
     }
   }
 
   private getInterval(): number {
-    // ✅ AGGRESSIVE: Poll every 500ms when no orders (for instant order creation feedback)
     if (this.activeOrders.length === 0) {
       this.consecutiveEmptyPolls++
       
-      // Gradually slow down if no activity
       if (this.consecutiveEmptyPolls < 6) {
-        return 500 // First 3 seconds: 500ms
+        return 500
       } else if (this.consecutiveEmptyPolls < 20) {
-        return 1000 // Next 14 seconds: 1s
+        return 1000
       } else {
-        return 3000 // After 20 seconds: 3s
+        return 3000
       }
     }
 
-    // ✅ Reset when orders exist
     this.consecutiveEmptyPolls = 0
     
     const now = Date.now()
     
-    // ✅ ULTRA AGGRESSIVE for near-expiry orders
     const hasVeryNearExpiry = this.activeOrders.some(order => {
       const exitTime = new Date(order.exit_time!).getTime()
       const timeLeft = exitTime - now
-      return timeLeft > 0 && timeLeft < 3000 // 3 seconds!
+      return timeLeft > 0 && timeLeft < 3000
     })
     
     if (hasVeryNearExpiry) {
-      return 200 // ✅ 200ms = almost instant
+      return 200
     }
     
-    // ✅ AGGRESSIVE for near-expiry
     const hasNearExpiry = this.activeOrders.some(order => {
       const exitTime = new Date(order.exit_time!).getTime()
       const timeLeft = exitTime - now
-      return timeLeft > 0 && timeLeft < 10000 // 10 seconds
+      return timeLeft > 0 && timeLeft < 10000
     })
 
     if (hasNearExpiry) {
-      return 500 // ✅ 500ms for near expiry
+      return 500
     }
 
-    // ✅ Normal active orders: still pretty fast
-    return 1000 // ✅ 1 second for normal orders
+    return 1000
   }
 
   private async scheduleNext() {
@@ -145,56 +133,12 @@ class AggressivePollingManager {
       const executionTime = Date.now() - startTime
       const interval = this.getInterval()
       
-      // ✅ Subtract execution time for more accurate intervals
       const adjustedInterval = Math.max(100, interval - executionTime)
       
       this.intervalId = setTimeout(() => this.scheduleNext(), adjustedInterval)
     }
   }
 }
-
-// ===================================
-// MEMOIZED COMPONENTS
-// ===================================
-
-const PriceTicker = memo(({ asset, price }: { asset: Asset; price: any }) => {
-  if (!price) return null
-
-  return (
-    <div className="h-16 bg-[#0f1419] border-b border-gray-800/50 flex items-center px-6 flex-shrink-0">
-      <div className="flex items-center gap-6">
-        <div>
-          <div className="text-xs text-gray-400 mb-1">{asset.name}</div>
-          <div className="text-2xl font-bold font-mono">{price.price.toFixed(3)}</div>
-        </div>
-        {price.change !== undefined && (
-          <div className={`flex items-center gap-1 text-sm font-semibold ${
-            price.change >= 0 ? 'text-green-400' : 'text-red-400'
-          }`}>
-            {price.change >= 0 ? (
-              <ArrowUp className="w-4 h-4" />
-            ) : (
-              <ArrowDown className="w-4 h-4" />
-            )}
-            <span>
-              {price.change >= 0 ? '+' : ''}{price.change.toFixed(3)}
-              {' '}({price.change >= 0 ? '+' : ''}{((price.change / price.price) * 100).toFixed(2)}%)
-            </span>
-          </div>
-        )}
-        <div className="text-xs text-gray-400">
-          {new Date(price.datetime).toLocaleTimeString()}
-        </div>
-      </div>
-    </div>
-  )
-})
-
-PriceTicker.displayName = 'PriceTicker'
-
-// ===================================
-// MAIN COMPONENT
-// ===================================
 
 export default function TradingPage() {
   const router = useRouter()
@@ -216,7 +160,6 @@ export default function TradingPage() {
   const [completedOrders, setCompletedOrders] = useState<BinaryOrder[]>([])
   const [notificationOrder, setNotificationOrder] = useState<BinaryOrder | null>(null)
   
-  // ✅ FIXED: Track which orders have been notified
   const notifiedOrdersRef = useRef<Set<string>>(new Set())
   const previousOrdersRef = useRef<Map<string, BinaryOrder>>(new Map())
   const balanceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -232,46 +175,34 @@ export default function TradingPage() {
 
   const currentBalance = selectedAccountType === 'real' ? realBalance : demoBalance
 
-  // ✅ FIXED: Better order completion detection
   const detectOrderCompletion = useCallback((active: BinaryOrder[], completed: BinaryOrder[]) => {
-    // Update previous orders map with current active orders
     active.forEach((order: BinaryOrder) => {
       previousOrdersRef.current.set(order.id, order)
     })
 
-    // Check completed orders for newly completed ones
     completed.forEach((order: BinaryOrder) => {
-      // ✅ Skip if already notified
       if (notifiedOrdersRef.current.has(order.id)) {
         return
       }
 
       const previousOrder = previousOrdersRef.current.get(order.id)
       
-      // ✅ Only notify if order was previously ACTIVE and is now WON/LOST
       if (previousOrder && 
           previousOrder.status === 'ACTIVE' && 
           (order.status === 'WON' || order.status === 'LOST')) {
         
-        console.log('🎯 Order completed:', order.id, order.status)
-        
-        // ✅ Mark as notified IMMEDIATELY
         notifiedOrdersRef.current.add(order.id)
         
-        // Show notification
         setNotificationOrder(order)
         
-        // Play sound
         if (typeof window !== 'undefined') {
           const audio = new Audio(order.status === 'WON' ? '/sounds/win.mp3' : '/sounds/lose.mp3')
           audio.volume = 0.3
           audio.play().catch(e => console.log('Audio play failed:', e))
         }
         
-        // Remove from previous orders
         previousOrdersRef.current.delete(order.id)
         
-        // ✅ Faster balance update: 100ms instead of 300ms
         if (balanceUpdateTimeoutRef.current) {
           clearTimeout(balanceUpdateTimeoutRef.current)
         }
@@ -284,11 +215,10 @@ export default function TradingPage() {
               setDemoBalance(balances?.demoBalance || 0)
             })
           }).catch(console.error)
-        }, 100) // ✅ Faster: 100ms instead of 300ms
+        }, 100)
       }
     })
 
-    // ✅ Cleanup: Remove notified orders that are no longer in completed list
     const completedIds = new Set(completed.map(o => o.id))
     const notifiedIds = Array.from(notifiedOrdersRef.current)
     notifiedIds.forEach(id => {
@@ -298,7 +228,6 @@ export default function TradingPage() {
     })
   }, [])
 
-  // Load data function
   const loadData = useCallback(async () => {
     try {
       const [assetsRes, balancesRes, ordersRes] = await Promise.all([
@@ -313,16 +242,13 @@ export default function TradingPage() {
       const currentDemoBalance = balances?.demoBalance || 0
       const allOrders = ordersRes?.data?.orders || ordersRes?.orders || []
 
-      // ✅ FIXED: Ensure proper filtering
       const active = allOrders.filter((o: BinaryOrder) => o.status === 'ACTIVE')
       const completed = allOrders.filter((o: BinaryOrder) => 
         o.status === 'WON' || o.status === 'LOST'
       )
 
-      // Detect completions
       detectOrderCompletion(active, completed)
 
-      // Batch all state updates
       unstable_batchedUpdates(() => {
         setAssets(assetsList)
         setRealBalance(currentRealBalance)
@@ -331,7 +257,6 @@ export default function TradingPage() {
         setCompletedOrders(completed.slice(0, 10))
       })
 
-      // Update polling manager
       pollingManagerRef.current.updateActiveOrders(active)
 
       if (assetsList.length > 0 && !selectedAsset) {
@@ -349,7 +274,6 @@ export default function TradingPage() {
     }
   }, [selectedAsset, detectOrderCompletion, setSelectedAsset])
 
-  // Initial load
   useEffect(() => {
     if (!user) {
       router.push('/')
@@ -373,7 +297,6 @@ export default function TradingPage() {
     initializeData()
   }, [user, router])
 
-  // Start aggressive polling
   useEffect(() => {
     if (!user) return
 
@@ -384,7 +307,6 @@ export default function TradingPage() {
     }
   }, [user, loadData])
 
-  // Price subscription
   useEffect(() => {
     if (!selectedAsset) return
 
@@ -407,12 +329,10 @@ export default function TradingPage() {
     }
   }, [selectedAsset?.id, setCurrentPrice, addPriceToHistory])
 
-  // ✅ FIXED: Clear notification properly
   const handleCloseNotification = useCallback(() => {
     setNotificationOrder(null)
   }, [])
 
-  // Cleanup
   useEffect(() => {
     return () => {
       if (balanceUpdateTimeoutRef.current) {
@@ -452,7 +372,6 @@ export default function TradingPage() {
 
       toast.success(`${direction} order placed successfully!`)
       
-      // Optimistic update
       unstable_batchedUpdates(() => {
         if (selectedAccountType === 'real') {
           setRealBalance((prev) => prev - amount)
@@ -461,7 +380,6 @@ export default function TradingPage() {
         }
       })
       
-      // Immediate refresh
       setTimeout(loadData, 200)
     } catch (error: any) {
       const errorMsg = error?.response?.data?.error || 'Failed to place order'
@@ -478,9 +396,7 @@ export default function TradingPage() {
 
   return (
     <div className="h-screen flex flex-col bg-[#0a0e17] text-white overflow-hidden">
-      {/* Top Bar */}
       <div className="h-20 bg-[#1a1f2e] border-b border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">
-        {/* Desktop Layout */}
         <div className="hidden lg:flex items-center gap-4 w-full">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 relative">
@@ -494,7 +410,6 @@ export default function TradingPage() {
             <span className="font-bold text-xl">STC AutoTrade</span>
           </div>
 
-          {/* Asset Menu */}
           <div className="relative">
             <button
               onClick={() => setShowAssetMenu(!showAssetMenu)}
@@ -538,7 +453,6 @@ export default function TradingPage() {
 
           <div className="flex-1"></div>
 
-          {/* Account Type + Balance */}
           <div className="relative">
             <button
               onClick={() => setShowAccountMenu(!showAccountMenu)}
@@ -608,7 +522,6 @@ export default function TradingPage() {
             <span className="text-sm">History</span>
           </button>
 
-          {/* User Menu */}
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
@@ -650,7 +563,6 @@ export default function TradingPage() {
           </div>
         </div>
 
-        {/* Mobile Layout */}
         <div className="flex lg:hidden items-center justify-between w-full">
           <div className="flex items-center w-16">
             <div className="w-8 h-8 relative">
@@ -684,15 +596,8 @@ export default function TradingPage() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 flex overflow-hidden min-h-0">
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-          {selectedAsset && currentPrice && (
-            <div className="hidden lg:block">
-              <PriceTicker asset={selectedAsset} price={currentPrice} />
-            </div>
-          )}
-
           <div className="flex-1 bg-[#0a0e17] relative overflow-hidden">
             {selectedAsset ? (
               <TradingChart 
@@ -709,10 +614,8 @@ export default function TradingPage() {
           </div>
         </div>
 
-        {/* Trading Panel - Desktop */}
         <div className="hidden lg:block w-64 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
           <div className="h-full flex flex-col p-4 space-y-4 overflow-hidden">
-            {/* Amount Input */}
             <div className="bg-[#1a1f2e] rounded-xl px-3 py-2">
               <div className="text-[10px] text-gray-500 text-center leading-none">Amount</div>
               <div className="flex items-center gap-2">
@@ -741,7 +644,6 @@ export default function TradingPage() {
               </div>
             </div>
 
-            {/* Duration Select */}
             <div className="bg-[#1a1f2e] rounded-xl px-3 py-0">
               <div className="text-[10px] text-gray-500 text-center leading-none pt-2">Duration</div>
               <select
@@ -755,7 +657,6 @@ export default function TradingPage() {
               </select>
             </div>
 
-            {/* Payout Info */}
             {selectedAsset && (
               <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl px-3 py-3">
                 <div className="flex items-center justify-between text-xs">
@@ -768,7 +669,6 @@ export default function TradingPage() {
               </div>
             )}
 
-            {/* Buy/Sell Buttons */}
             <div>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -799,10 +699,8 @@ export default function TradingPage() {
         </div>
       </div>
 
-      {/* Mobile Trading Panel */}
       <div className="lg:hidden bg-[#0f1419] border-t border-gray-800/50 p-3">
         <div className="space-y-3">
-          {/* Account Selector */}
           <div className="bg-[#1a1f2e] border border-gray-800/50 rounded-xl p-3">
             <div className="text-xs text-gray-400 text-center mb-2 font-medium">Select Account</div>
             <div className="grid grid-cols-2 gap-2">
@@ -935,7 +833,6 @@ export default function TradingPage() {
         </div>
       </div>
 
-      {/* Wallet Modal */}
       {showWalletModal && (
         <>
           <div 
@@ -1020,7 +917,6 @@ export default function TradingPage() {
         </>
       )}
 
-      {/* Mobile Menu */}
       {showMobileMenu && (
         <>
           <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setShowMobileMenu(false)} />
@@ -1099,50 +995,49 @@ export default function TradingPage() {
               </button>
             </div>
           </div>
-          </>
-  )}
-    {/* History Sidebar */}
-    {showHistorySidebar && (
-      <HistorySidebar 
-        isOpen={showHistorySidebar} 
-        onClose={() => setShowHistorySidebar(false)} 
+        </>
+      )}
+
+      {showHistorySidebar && (
+        <HistorySidebar 
+          isOpen={showHistorySidebar} 
+          onClose={() => setShowHistorySidebar(false)} 
+        />
+      )}
+
+      <OrderNotification 
+        order={notificationOrder}
+        onClose={handleCloseNotification}
       />
-    )}
 
-    {/* ✅ ORDER NOTIFICATION */}
-    <OrderNotification 
-      order={notificationOrder}
-      onClose={handleCloseNotification}
-    />
+      <style jsx>{`
+        @keyframes slide-left {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
 
-    <style jsx>{`
-      @keyframes slide-left {
-        from { transform: translateX(100%); }
-        to { transform: translateX(0); }
-      }
+        @keyframes slide-up {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
 
-      @keyframes slide-up {
-        from { transform: translateY(100%); }
-        to { transform: translateY(0); }
-      }
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
 
-      @keyframes fade-in {
-        from { opacity: 0; }
-        to { opacity: 1; }
-      }
+        .animate-slide-left {
+          animation: slide-left 0.3s ease-out;
+        }
 
-      .animate-slide-left {
-        animation: slide-left 0.3s ease-out;
-      }
+        .animate-slide-up {
+          animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
 
-      .animate-slide-up {
-        animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      }
-
-      .animate-fade-in {
-        animation: fade-in 0.2s ease-out;
-      }
-    `}</style>
-  </div>
+        .animate-fade-in {
+          animation: fade-in 0.2s ease-out;
+        }
+      `}</style>
+    </div>
   )
-  }
+}
