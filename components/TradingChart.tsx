@@ -23,21 +23,9 @@ import {
   ArrowUp,
   ArrowDown
 } from 'lucide-react'
-import { 
-  calculateSMA, 
-  calculateEMA, 
-  calculateBollingerBands,
-  calculateRSI,
-  calculateMACD,
-  calculateVolumeMA,
-  calculateStochastic,
-  calculateATR,
-  CandleData
-} from '@/lib/indicators'
+import type { IndicatorConfig } from './IndicatorControls'
 
 const IndicatorControls = dynamic(() => import('./IndicatorControls'), { ssr: false })
-
-import type { IndicatorConfig } from './IndicatorControls'
 
 type ChartType = 'line' | 'candle'
 type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
@@ -191,6 +179,53 @@ const PriceDisplay = memo(({ asset, price }: { asset: any; price: any }) => {
 
 PriceDisplay.displayName = 'PriceDisplay'
 
+// ✅ NEW: OHLC Hover Display Component
+const OHLCDisplay = memo(({ 
+  data,
+  visible 
+}: { 
+  data: { 
+    time: number
+    open: number
+    high: number
+    low: number
+    close: number
+  } | null
+  visible: boolean 
+}) => {
+  if (!visible || !data) return null
+
+  const date = new Date(data.time * 1000)
+  const timeStr = date.toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Jakarta'
+  })
+
+  return (
+    <div className="absolute bottom-2 left-2 z-10 bg-[#0a0e17] border border-gray-800/50 rounded-lg px-3 py-2 text-xs font-mono">
+      <div className="flex items-center gap-1 text-gray-400 mb-1">
+        <Clock className="w-3 h-3" />
+        <span>{timeStr} WIB</span>
+      </div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+        <div className="text-gray-500">O:</div>
+        <div className="text-white text-right">{data.open.toFixed(3)}</div>
+        <div className="text-gray-500">H:</div>
+        <div className="text-green-400 text-right">{data.high.toFixed(3)}</div>
+        <div className="text-gray-500">L:</div>
+        <div className="text-red-400 text-right">{data.low.toFixed(3)}</div>
+        <div className="text-gray-500">C:</div>
+        <div className="text-blue-400 text-right">{data.close.toFixed(3)}</div>
+      </div>
+    </div>
+  )
+})
+
+OHLCDisplay.displayName = 'OHLCDisplay'
+
 const MobileControls = memo(({ 
   timeframe, 
   chartType, 
@@ -335,6 +370,7 @@ const MobileControls = memo(({
 
 MobileControls.displayName = 'MobileControls'
 
+// ✅ FIXED: DesktopControls with standardized button sizes and moved left
 const DesktopControls = memo(({ 
   timeframe, 
   chartType, 
@@ -366,7 +402,8 @@ const DesktopControls = memo(({
   }, [showTimeframeMenu])
 
   return (
-    <div className="hidden lg:block absolute top-2 right-2 z-10">
+    // ✅ CHANGED: Position moved from right-2 to right-16 to avoid blocking price
+    <div className="hidden lg:block absolute top-2 right-16 z-10">
       <div className="flex items-center gap-2">
         <div className="relative" ref={timeframeRef}>
           <button
@@ -405,6 +442,7 @@ const DesktopControls = memo(({
           )}
         </div>
 
+        {/* ✅ FIXED: Standardized button sizes - all w-5 h-5 */}
         <div className="flex items-center gap-1 bg-black/20 backdrop-blur-md border border-white/10 rounded-lg p-1">
           <button
             onClick={() => onChartTypeChange('candle')}
@@ -432,6 +470,7 @@ const DesktopControls = memo(({
           </button>
         </div>
 
+        {/* ✅ FIXED: Standardized button sizes - all w-5 h-5 */}
         <div className="flex items-center gap-1 bg-black/20 backdrop-blur-md border border-white/10 rounded-lg p-1">
           <button
             onClick={onOpenIndicators}
@@ -453,7 +492,8 @@ const DesktopControls = memo(({
             className="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
             title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
           >
-            {isFullscreen ? <Minimize2 className="w-4.5 h-4.5" /> : <Maximize2 className="w-4.5 h-4.5" />}
+            {/* ✅ FIXED: Standardized icon size */}
+            {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
           </button>
         </div>
       </div>
@@ -547,7 +587,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   const unsubscribePriceRef = useRef<(() => void) | null>(null)
   
   const mountedRef = useRef(false)
-  const currentDataRef = useRef<CandleData[]>([])
+  const currentDataRef = useRef<any[]>([])
   
   const { selectedAsset } = useTradingStore()
 
@@ -566,6 +606,16 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   
   const [showIndicators, setShowIndicators] = useState(false)
   const [indicatorConfig, setIndicatorConfig] = useState<IndicatorConfig>(DEFAULT_INDICATOR_CONFIG)
+  
+  // ✅ NEW: OHLC hover state
+  const [ohlcData, setOhlcData] = useState<{
+    time: number
+    open: number
+    high: number
+    low: number
+    close: number
+  } | null>(null)
+  const [showOhlc, setShowOhlc] = useState(false)
 
   const checkSimulator = useCallback(async () => {
     if (!selectedAsset?.realtimeDbPath) return
@@ -594,6 +644,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
     if (indicatorConfig.sma?.enabled && indicatorConfig.sma.period) {
       try {
+        const { calculateSMA } = require('@/lib/indicators')
         const smaData = calculateSMA(data, indicatorConfig.sma.period)
         const smaSeries = chartRef.current.addLineSeries({
           color: indicatorConfig.sma.color,
@@ -602,7 +653,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           priceLineVisible: false,
           lastValueVisible: false
         })
-        smaSeries.setData(smaData.map(d => ({ time: d.time as UTCTimestamp, value: d.value })))
+        smaSeries.setData(smaData.map((d: any) => ({ time: d.time as UTCTimestamp, value: d.value })))
         indicatorSeriesRefs.current.sma = smaSeries
       } catch (e) {
         console.error('SMA error:', e)
@@ -611,6 +662,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
     if (indicatorConfig.ema?.enabled && indicatorConfig.ema.period) {
       try {
+        const { calculateEMA } = require('@/lib/indicators')
         const emaData = calculateEMA(data, indicatorConfig.ema.period)
         const emaSeries = chartRef.current.addLineSeries({
           color: indicatorConfig.ema.color,
@@ -619,7 +671,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           priceLineVisible: false,
           lastValueVisible: false
         })
-        emaSeries.setData(emaData.map(d => ({ time: d.time as UTCTimestamp, value: d.value })))
+        emaSeries.setData(emaData.map((d: any) => ({ time: d.time as UTCTimestamp, value: d.value })))
         indicatorSeriesRefs.current.ema = emaSeries
       } catch (e) {
         console.error('EMA error:', e)
@@ -628,6 +680,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
     if (indicatorConfig.bollinger?.enabled && indicatorConfig.bollinger.period) {
       try {
+        const { calculateBollingerBands } = require('@/lib/indicators')
         const bbData = calculateBollingerBands(data, indicatorConfig.bollinger.period, indicatorConfig.bollinger.stdDev)
         
         const upperSeries = chartRef.current.addLineSeries({
@@ -638,7 +691,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           priceLineVisible: false,
           lastValueVisible: false
         })
-        upperSeries.setData(bbData.map(d => ({ time: d.time as UTCTimestamp, value: d.upper })))
+        upperSeries.setData(bbData.map((d: any) => ({ time: d.time as UTCTimestamp, value: d.upper })))
         
         const middleSeries = chartRef.current.addLineSeries({
           color: indicatorConfig.bollinger.colorMiddle,
@@ -647,7 +700,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           priceLineVisible: false,
           lastValueVisible: false
         })
-        middleSeries.setData(bbData.map(d => ({ time: d.time as UTCTimestamp, value: d.middle })))
+        middleSeries.setData(bbData.map((d: any) => ({ time: d.time as UTCTimestamp, value: d.middle })))
         
         const lowerSeries = chartRef.current.addLineSeries({
           color: indicatorConfig.bollinger.colorLower,
@@ -657,7 +710,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           priceLineVisible: false,
           lastValueVisible: false
         })
-        lowerSeries.setData(bbData.map(d => ({ time: d.time as UTCTimestamp, value: d.lower })))
+        lowerSeries.setData(bbData.map((d: any) => ({ time: d.time as UTCTimestamp, value: d.lower })))
         
         indicatorSeriesRefs.current.bollingerUpper = upperSeries
         indicatorSeriesRefs.current.bollingerMiddle = middleSeries
@@ -667,7 +720,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       }
     }
 
-    if (indicatorConfig.volume?.enabled && data.some(d => d.volume)) {
+    if (indicatorConfig.volume?.enabled && data.some((d: any) => d.volume)) {
       try {
         const volumeSeries = chartRef.current.addHistogramSeries({
           color: '#26a69a',
@@ -682,7 +735,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
             bottom: 0,
           },
         })
-        volumeSeries.setData(data.map(d => ({
+        volumeSeries.setData(data.map((d: any) => ({
           time: d.time as UTCTimestamp,
           value: d.volume || 0,
           color: d.close >= d.open ? '#26a69a' : '#ef5350'
@@ -690,6 +743,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         indicatorSeriesRefs.current.volume = volumeSeries
 
         if (indicatorConfig.volume.maPeriod) {
+          const { calculateVolumeMA } = require('@/lib/indicators')
           const volumeMAData = calculateVolumeMA(data, indicatorConfig.volume.maPeriod)
           const volumeMASeries = chartRef.current.addLineSeries({
             color: '#2962FF',
@@ -698,7 +752,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
             priceLineVisible: false,
             lastValueVisible: false
           })
-          volumeMASeries.setData(volumeMAData.map(d => ({ time: d.time as UTCTimestamp, value: d.value })))
+          volumeMASeries.setData(volumeMAData.map((d: any) => ({ time: d.time as UTCTimestamp, value: d.value })))
           indicatorSeriesRefs.current.volumeMA = volumeMASeries
         }
       } catch (e) {
@@ -740,6 +794,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [])
 
+  // ✅ FIXED: Initialize chart with WIB timezone configuration
   useEffect(() => {
     if (mountedRef.current) return
     
@@ -782,15 +837,19 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           timeVisible: true,
           secondsVisible: false,
         },
+        // ✅ FIXED: Use Indonesian timezone for time formatting
         localization: {
+          locale: 'id-ID',
+          dateFormat: 'dd/MM/yyyy', // ✅ gunakan string format
           timeFormatter: (time: number) => {
-            const date = new Date(time * 1000)
-            return date.toLocaleTimeString('id-ID', {
+            return new Date(time * 1000).toLocaleTimeString('id-ID', {
               hour: '2-digit',
               minute: '2-digit',
-              hour12: false
+              second: '2-digit',
+              hour12: false,
+              timeZone: 'Asia/Jakarta'
             })
-          },
+          }
         },
       })
 
@@ -808,6 +867,28 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         color: '#3b82f6',
         lineWidth: 2,
         visible: chartType === 'line',
+      })
+
+      // ✅ NEW: Subscribe to crosshair for OHLC display
+      chart.subscribeCrosshairMove((param) => {
+        if (!param || !param.point || !param.time) {
+          setShowOhlc(false)
+          return
+        }
+
+        const data = candleSeries.dataByIndex(Math.round(param.logical as number))
+        if (data && 'open' in data) {
+          setOhlcData({
+            time: param.time as number,
+            open: data.open,
+            high: data.high,
+            low: data.low,
+            close: data.close
+          })
+          setShowOhlc(true)
+        } else {
+          setShowOhlc(false)
+        }
       })
 
       chartRef.current = chart
@@ -862,6 +943,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [chartType])
 
+  // ✅ FIXED: Enhanced data loading with smooth updates
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
       return
@@ -888,6 +970,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         let assetPath = selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`
         assetPath = cleanAssetPath(assetPath)
 
+        // ✅ Load historical data
         const data = await fetchHistoricalData(assetPath, timeframe)
 
         if (isCancelled) return
@@ -897,7 +980,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           return
         }
 
-        currentDataRef.current = data.map(bar => ({
+        currentDataRef.current = data.map((bar: any) => ({
           time: bar.timestamp,
           open: bar.open,
           high: bar.high,
@@ -906,7 +989,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           volume: bar.volume
         }))
 
-        const candleData = data.map(bar => ({
+        const candleData = data.map((bar: any) => ({
           time: bar.timestamp as UTCTimestamp,
           open: bar.open,
           high: bar.high,
@@ -914,7 +997,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           close: bar.close,
         }))
 
-        const lineData = data.map(bar => ({
+        const lineData = data.map((bar: any) => ({
           time: bar.timestamp as UTCTimestamp,
           value: bar.close,
         }))
@@ -934,6 +1017,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
         setIsLoading(false)
 
+        // ✅ FIXED: Smooth real-time updates - no throttling
         unsubscribeOHLCRef.current = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
           if (isCancelled || !candleSeriesRef.current || !lineSeriesRef.current) return
 
@@ -951,11 +1035,28 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
               value: newBar.close,
             }
 
-            candleSeriesRef.current.update(candleUpdate)
-            lineSeriesRef.current.update(lineUpdate)
+            // ✅ FIXED: Use update for smooth transitions
+            if (newBar.isNewBar) {
+              // New bar - add to series
+              candleSeriesRef.current.update(candleUpdate)
+              lineSeriesRef.current.update(lineUpdate)
+            } else {
+              // Update existing bar - remove last and add updated
+              const existingData = candleSeriesRef.current.data()
+              if (existingData.length > 0) {
+                // Remove last bar and add updated one for smooth transition
+                const updatedData = [...existingData.slice(0, -1), candleUpdate]
+                candleSeriesRef.current.setData(updatedData as any)
+                
+                const lineExisting = lineSeriesRef.current.data()
+                const updatedLine = [...lineExisting.slice(0, -1), lineUpdate]
+                lineSeriesRef.current.setData(updatedLine as any)
+              }
+            }
 
+            // Update local data cache
             const existingIndex = currentDataRef.current.findIndex(d => d.time === newBar.timestamp)
-            const newData: CandleData = {
+            const newData = {
               time: newBar.timestamp,
               open: newBar.open,
               high: newBar.high,
@@ -973,6 +1074,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
               }
             }
 
+            // ✅ Recalculate indicators on new bar
             if (newBar.isNewBar) {
               renderIndicators()
             }
@@ -1093,6 +1195,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         status={simulatorStatus} 
         onRetry={checkSimulator}
       />
+
+      {/* ✅ NEW: OHLC Hover Display */}
+      <OHLCDisplay data={ohlcData} visible={showOhlc} />
 
       <div 
         ref={chartContainerRef} 

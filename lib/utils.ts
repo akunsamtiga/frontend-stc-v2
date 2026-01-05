@@ -507,6 +507,26 @@ export async function copyToClipboard(text: string): Promise<boolean> {
   }
 }
 
+// Format waktu WIB untuk chart
+export function formatWIBTime(timestamp: number): string {
+  return new Date(timestamp * 1000).toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Jakarta'
+  })
+}
+
+export function formatWIBDate(timestamp: number): string {
+  return new Date(timestamp * 1000).toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'Asia/Jakarta'
+  })
+}
+
 // ===================================
 // AUDIO
 // ===================================

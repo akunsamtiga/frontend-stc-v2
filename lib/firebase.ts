@@ -1,4 +1,4 @@
-// lib/firebase.ts - ULTRA OPTIMIZED - NO THROTTLING
+// lib/firebase.ts - ULTRA OPTIMIZED - NO THROTTLING & SMOOTH UPDATES
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
 import { getDatabase, Database, ref, onValue, off, query, limitToLast, get } from 'firebase/database'
 
@@ -390,6 +390,7 @@ function processHistoricalData(data: any, limit: number): any[] {
   const historicalData: any[] = []
   const keys = Object.keys(data)
   
+  // ✅ Process data in order for smooth rendering
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i]
     const item = data[key]
@@ -416,12 +417,13 @@ function processHistoricalData(data: any, limit: number): any[] {
     return []
   }
 
+  // ✅ Sort by timestamp for proper chronological order
   historicalData.sort((a, b) => a.timestamp - b.timestamp)
   return historicalData.slice(-limit)
 }
 
 // ===================================
-// ✅ SUBSCRIBE TO OHLC - NO THROTTLING
+// ✅ SUBSCRIBE TO OHLC - SMOOTH REAL-TIME
 // ===================================
 
 export function subscribeToOHLCUpdates(
@@ -444,9 +446,9 @@ export function subscribeToOHLCUpdates(
   const ohlcRef = ref(database, ohlcPath)
   
   let lastBarTimestamp: number | null = null
-  let updateCount = 0
+  let lastData: any = null
   
-  // ✅ NO THROTTLING - Direct callback for instant updates
+  // ✅ NO THROTTLING - Direct real-time updates
   const unsubscribe = onValue(ohlcRef, (snapshot) => {
     const data = snapshot.val()
     if (!data) return
@@ -458,16 +460,27 @@ export function subscribeToOHLCUpdates(
     if (!latestData || !latestData.close) return
 
     const barTimestamp = latestData.timestamp || parseInt(latestKey)
+    
+    // ✅ Detect new bar vs existing bar update
     const isNewBar = barTimestamp !== lastBarTimestamp
     
     if (isNewBar) {
       lastBarTimestamp = barTimestamp
-      updateCount++
-      
       // Invalidate cache on new bar
       const cacheKey = `${basePath}-${timeframe}`
       memoryCache.delete(cacheKey)
     }
+    
+    // ✅ Check if data actually changed (prevent unnecessary updates)
+    if (lastData && 
+        lastData.open === latestData.open &&
+        lastData.high === latestData.high &&
+        lastData.low === latestData.low &&
+        lastData.close === latestData.close) {
+      return // No change, skip callback
+    }
+    
+    lastData = latestData
     
     const barData = {
       timestamp: barTimestamp,
@@ -480,7 +493,7 @@ export function subscribeToOHLCUpdates(
       isNewBar
     }
     
-    // ✅ Direct callback - NO RAF, NO throttling
+    // ✅ Direct callback for instant updates
     callback(barData)
 
   }, (error) => {
@@ -493,7 +506,7 @@ export function subscribeToOHLCUpdates(
 }
 
 // ===================================
-// ✅ SUBSCRIBE TO PRICE - NO THROTTLING
+// ✅ SUBSCRIBE TO PRICE - OPTIMIZED
 // ===================================
 
 export function subscribeToPriceUpdates(
@@ -507,7 +520,6 @@ export function subscribeToPriceUpdates(
   const pricePath = getPricePath(assetPath)
   const priceRef = ref(database, pricePath)
   
-  let updateCount = 0
   let lastPrice: number | null = null
   let lastTimestamp: number | null = null
   
@@ -515,7 +527,7 @@ export function subscribeToPriceUpdates(
     const data = snapshot.val()
     if (!data || !data.price) return
     
-    // ✅ More lenient duplicate check
+    // ✅ Lenient duplicate check for price changes
     const isDuplicate = lastPrice && 
                        lastTimestamp === data.timestamp &&
                        Math.abs(data.price - lastPrice) < 0.000001
@@ -524,9 +536,8 @@ export function subscribeToPriceUpdates(
     
     lastPrice = data.price
     lastTimestamp = data.timestamp
-    updateCount++
     
-    // ✅ Direct callback - NO RAF, NO throttling
+    // ✅ Direct callback for instant updates
     callback(data)
     
   }, (error) => {
