@@ -1,13 +1,8 @@
-// lib/api.ts - IMPROVED with Better Error Handling & Retry Logic
+// lib/api.ts - COMPLETE & SYNCED WITH BACKEND
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
-
-console.log('🔧 API Configuration:', {
-  API_URL,
-  Mode: process.env.NODE_ENV
-})
 
 interface ApiResponse<T = any> {
   success?: boolean
@@ -94,21 +89,17 @@ class ApiClient {
     this.setupInterceptors()
     this.startCacheCleanup()
     this.setupOnlineStatusMonitor()
-    
-    console.log('✅ API Client initialized')
   }
 
   private setupOnlineStatusMonitor() {
     if (typeof window === 'undefined') return
 
     window.addEventListener('online', () => {
-      console.log('🟢 Network online')
       this.isOnline = true
       this.consecutiveErrors = 0
     })
 
     window.addEventListener('offline', () => {
-      console.log('🔴 Network offline')
       this.isOnline = false
     })
   }
@@ -125,19 +116,15 @@ class ApiClient {
           config.headers['X-Request-ID'] = this.generateRequestId(config)
         }
         
-        console.log(`🔵 ${config.method?.toUpperCase()} ${config.url}`)
-        
         return config
       },
       (error) => {
-        console.error('❌ Request interceptor error:', error)
         return Promise.reject(error)
       }
     )
 
     this.client.interceptors.response.use(
       (response) => {
-        console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`)
         this.consecutiveErrors = 0
         return response.data
       },
@@ -145,28 +132,21 @@ class ApiClient {
         const config = error.config as AxiosRequestConfig & { _retry?: number; _timeoutRetry?: number }
         
         if (!config) {
-          console.error('❌ No config in error')
           return Promise.reject(error)
         }
         
-        // Handle network/timeout errors
         if (!error.response && error.code === 'ECONNABORTED') {
           config._timeoutRetry = (config._timeoutRetry || 0) + 1
           
           if (config._timeoutRetry <= this.retryConfig.timeoutRetries) {
-            console.log(`⏱️ Timeout retry ${config._timeoutRetry}/${this.retryConfig.timeoutRetries}`)
             await this.sleep(this.retryConfig.retryDelay)
             return this.client.request(config)
           }
         }
         
-        console.error(`❌ ${config.method?.toUpperCase()} ${config.url} - ${error.response?.status || 'NETWORK_ERROR'}`)
-        
         this.consecutiveErrors++
         
-        // Handle consecutive errors
         if (this.consecutiveErrors >= this.maxConsecutiveErrors) {
-          console.error(`🚨 Too many consecutive errors (${this.consecutiveErrors}), may need to check connection`)
           toast.error('Connection issues detected. Please check your internet connection.')
         }
         
@@ -175,8 +155,6 @@ class ApiClient {
         if (shouldRetry) {
           config._retry = (config._retry || 0) + 1
           const delay = this.getRetryDelay(config._retry)
-          
-          console.log(`🔄 Retry ${config._retry}/${this.retryConfig.maxRetries} in ${delay}ms`)
           
           await this.sleep(delay)
           return this.client.request(config)
@@ -204,11 +182,9 @@ class ApiClient {
     const status = error.response.status
     const data = error.response.data
 
-    // Backend error messages
     if (data?.error) return data.error
     if (data?.message) return data.message
 
-    // Status code messages
     switch (status) {
       case 400:
         return 'Invalid request. Please check your input.'
@@ -244,18 +220,15 @@ class ApiClient {
       return false
     }
     
-    // Don't retry mutations without idempotent flag
     if (['post', 'put', 'delete'].includes(config.method?.toLowerCase() || '') && 
         !config.headers?.['X-Idempotent']) {
       return false
     }
     
-    // Always retry network errors
     if (!error.response) {
       return true
     }
     
-    // Don't retry client errors (except specific ones)
     if (error.response.status >= 400 && error.response.status < 500) {
       return false
     }
@@ -286,14 +259,12 @@ class ApiClient {
   setToken(token: string) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('token', token)
-      console.log('🔐 Token set')
     }
   }
 
   removeToken() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token')
-      console.log('🔓 Token removed')
     }
   }
 
@@ -386,13 +357,11 @@ class ApiClient {
   // ===================================
 
   async login(email: string, password: string): Promise<ApiResponse> {
-    console.log('🔐 Logging in:', email)
     return this.client.post('/auth/login', { email, password })
   }
 
-  async register(email: string, password: string): Promise<ApiResponse> {
-    console.log('📝 Registering:', email)
-    return this.client.post('/auth/register', { email, password })
+  async register(email: string, password: string, referralCode?: string): Promise<ApiResponse> {
+    return this.client.post('/auth/register', { email, password, referralCode })
   }
 
   // ===================================
@@ -413,7 +382,7 @@ class ApiClient {
   }
 
   // ===================================
-  // BALANCE - OPTIMIZED
+  // BALANCE
   // ===================================
 
   async getBothBalances(): Promise<ApiResponse> {
@@ -479,12 +448,12 @@ class ApiClient {
     return result
   }
 
-  async getCurrentBalance(): Promise<ApiResponse> {
-    return this.getBothBalances()
+  async getBalanceSummary(): Promise<ApiResponse> {
+    return this.client.get('/balance/summary')
   }
 
   // ===================================
-  // ASSETS - OPTIMIZED
+  // ASSETS
   // ===================================
 
   async getAssets(activeOnly = false): Promise<ApiResponse> {
@@ -526,8 +495,29 @@ class ApiClient {
     })
   }
 
+  // ✅ NEW: Create Asset (Super Admin)
+  async createAsset(data: any): Promise<ApiResponse> {
+    const result = await this.client.post('/assets', data)
+    this.invalidateCache('/assets')
+    return result
+  }
+
+  // ✅ NEW: Update Asset (Super Admin)
+  async updateAsset(id: string, data: any): Promise<ApiResponse> {
+    const result = await this.client.put(`/assets/${id}`, data)
+    this.invalidateCache('/assets')
+    return result
+  }
+
+  // ✅ NEW: Delete Asset (Super Admin)
+  async deleteAsset(id: string): Promise<ApiResponse> {
+    const result = await this.client.delete(`/assets/${id}`)
+    this.invalidateCache('/assets')
+    return result
+  }
+
   // ===================================
-  // BINARY ORDERS - OPTIMIZED
+  // BINARY ORDERS
   // ===================================
 
   async createOrder(data: {
@@ -537,8 +527,6 @@ class ApiClient {
     amount: number
     duration: number
   }): Promise<ApiResponse> {
-    console.log('📤 Creating order:', data)
-    
     const result = await this.client.post('/binary-orders', data, {
       headers: {
         'X-Idempotent': 'true'
@@ -565,7 +553,6 @@ class ApiClient {
     if (status) params.append('status', status)
     if (accountType) params.append('accountType', accountType)
     
-    // Shorter cache for order list
     const cacheKey = this.getCacheKey('/binary-orders', { status, page, limit, accountType })
     const cached = this.getFromCache(cacheKey)
     
@@ -573,7 +560,7 @@ class ApiClient {
     
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get(`/binary-orders?${params}`)
-      this.setCache(cacheKey, data, 1000) // 1 second cache
+      this.setCache(cacheKey, data, 1000)
       return data
     })
   }
@@ -592,11 +579,20 @@ class ApiClient {
   }
 
   // ===================================
-  // ADMIN ENDPOINTS
+  // ADMIN - USERS
   // ===================================
 
-  async getAllUsers(page = 1, limit = 50): Promise<ApiResponse> {
-    return this.client.get(`/admin/users?page=${page}&limit=${limit}`)
+  async getAllUsers(page = 1, limit = 50, withBalance = false): Promise<ApiResponse> {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString()
+    })
+    
+    if (withBalance) {
+      params.append('withBalance', 'true')
+    }
+    
+    return this.client.get(`/admin/users?${params}`)
   }
 
   async getAllUsersWithBalance(): Promise<ApiResponse> {
@@ -605,6 +601,36 @@ class ApiClient {
 
   async getAdminUserById(id: string): Promise<ApiResponse> {
     return this.client.get(`/admin/users/${id}`)
+  }
+
+  // ✅ NEW: Create User (Admin)
+  async createUser(data: {
+    email: string
+    password: string
+    role: 'user' | 'admin' | 'super_admin'
+  }): Promise<ApiResponse> {
+    return this.client.post('/admin/users', data)
+  }
+
+  // ✅ NEW: Update User (Admin)
+  async updateUser(id: string, data: {
+    role?: 'user' | 'admin' | 'super_admin'
+    isActive?: boolean
+  }): Promise<ApiResponse> {
+    return this.client.put(`/admin/users/${id}`, data)
+  }
+
+  // ✅ NEW: Delete User (Super Admin)
+  async deleteUser(id: string): Promise<ApiResponse> {
+    return this.client.delete(`/admin/users/${id}`)
+  }
+
+  // ===================================
+  // ADMIN - BALANCE MANAGEMENT
+  // ===================================
+
+  async getUserBalance(userId: string): Promise<ApiResponse> {
+    return this.client.get(`/admin/users/${userId}/balance`)
   }
 
   async manageUserBalance(userId: string, data: {
@@ -616,10 +642,6 @@ class ApiClient {
     return this.client.post(`/admin/users/${userId}/balance`, data)
   }
 
-  async getUserBalance(userId: string): Promise<ApiResponse> {
-    return this.client.get(`/admin/users/${userId}/balance`)
-  }
-
   async getUserHistory(userId: string): Promise<ApiResponse> {
     return this.client.get(`/admin/users/${userId}/history`)
   }
@@ -627,6 +649,10 @@ class ApiClient {
   async getUserTradingStats(userId: string): Promise<ApiResponse> {
     return this.client.get(`/admin/users/${userId}/trading-stats`)
   }
+
+  // ===================================
+  // ADMIN - STATISTICS
+  // ===================================
 
   async getSystemStatistics(): Promise<ApiResponse> {
     const cacheKey = this.getCacheKey('/admin/statistics')
@@ -645,6 +671,10 @@ class ApiClient {
       return data
     })
   }
+
+  // ===================================
+  // UTILITIES
+  // ===================================
 
   clearCache(pattern?: string) {
     this.invalidateCache(pattern)
@@ -672,7 +702,6 @@ class ApiClient {
 
 export const api = new ApiClient()
 
-// Export for debugging in console
 if (typeof window !== 'undefined') {
   (window as any).api = api
 }
