@@ -1,11 +1,66 @@
-// types/index.ts - COMPLETE TYPE DEFINITIONS
+// types/index.ts - COMPLETE TYPE DEFINITIONS WITH STATUS & AFFILIATE
 export interface User {
   id: string
   email: string
   role: 'super_admin' | 'admin' | 'user'
+  status: 'standard' | 'gold' | 'vip'
   isActive: boolean
+  referralCode: string
+  referredBy?: string
   createdAt: string
   updatedAt?: string
+}
+
+export interface StatusInfo {
+  current: 'standard' | 'gold' | 'vip'
+  totalDeposit: number
+  profitBonus: number
+  nextStatus?: 'gold' | 'vip' | null
+  progress: number
+  depositNeeded?: number
+}
+
+export interface AffiliateInfo {
+  referralCode: string
+  totalReferrals: number
+  completedReferrals: number
+  pendingReferrals: number
+  totalCommission: number
+}
+
+export interface UserProfile {
+  user: User
+  statusInfo: StatusInfo
+  affiliate: AffiliateInfo
+  balances: {
+    real: number
+    demo: number
+    combined: number
+  }
+  recentActivity: {
+    real: {
+      transactions: Balance[]
+      orders: BinaryOrder[]
+    }
+    demo: {
+      transactions: Balance[]
+      orders: BinaryOrder[]
+    }
+  }
+  statistics: {
+    real: TradingStats
+    demo: TradingStats
+    combined: TradingStats
+  }
+}
+
+export interface TradingStats {
+  totalOrders: number
+  activeOrders: number
+  wonOrders: number
+  lostOrders: number
+  winRate: number
+  totalProfit: number
 }
 
 export interface Asset {
@@ -19,11 +74,18 @@ export interface Asset {
   apiEndpoint?: string
   description?: string
   simulatorSettings?: {
-    initialPrice?: number
-    secondVolatilityMin?: number
-    secondVolatilityMax?: number
+    initialPrice: number
+    dailyVolatilityMin: number
+    dailyVolatilityMax: number
+    secondVolatilityMin: number
+    secondVolatilityMax: number
     minPrice?: number
     maxPrice?: number
+  }
+  tradingSettings?: {
+    minOrderAmount: number
+    maxOrderAmount: number
+    allowedDurations: number[]
   }
   createdAt: string
   updatedAt?: string
@@ -45,6 +107,9 @@ export interface BinaryOrder {
   status: 'PENDING' | 'ACTIVE' | 'WON' | 'LOST' | 'EXPIRED' | 'CANCELLED'
   profit: number | null
   profitRate: number
+  baseProfitRate: number
+  statusBonus: number
+  userStatus: 'standard' | 'gold' | 'vip'
   createdAt: string
   updatedAt?: string
 }
@@ -53,7 +118,7 @@ export interface Balance {
   id: string
   user_id: string
   accountType: 'real' | 'demo'
-  type: 'deposit' | 'withdrawal' | 'win' | 'lose' | 'order_debit' | 'order_profit' | 'order_refund'
+  type: 'deposit' | 'withdrawal' | 'win' | 'lose' | 'order_debit' | 'order_profit' | 'order_refund' | 'affiliate_commission'
   amount: number
   balance_before?: number
   balance_after?: number
@@ -116,6 +181,19 @@ export interface SystemStatistics {
     total: number
     active: number
     admins: number
+    statusDistribution?: {
+      standard: number
+      gold: number
+      vip: number
+    }
+  }
+  affiliate?: {
+    totalReferrals: number
+    completedReferrals: number
+    pendingReferrals: number
+    totalCommissionsPaid: number
+    commissionRate: number
+    conversionRate: number
   }
   realAccount: {
     trading: {
@@ -131,7 +209,8 @@ export interface SystemStatistics {
       totalDeposits: number
       totalWithdrawals: number
       netFlow: number
-      currentBalance: number
+      currentBalance?: number
+      affiliateCommissions?: number
     }
   }
   demoAccount: {
@@ -148,7 +227,7 @@ export interface SystemStatistics {
       totalDeposits: number
       totalWithdrawals: number
       netFlow: number
-      currentBalance: number
+      currentBalance?: number
     }
   }
   combined: {
@@ -237,6 +316,7 @@ export type OrderStatus = BinaryOrder['status']
 export type OrderDirection = BinaryOrder['direction']
 export type BalanceType = Balance['type']
 export type AssetDataSource = Asset['dataSource']
+export type UserStatus = 'standard' | 'gold' | 'vip'
 
 // Request types
 export interface CreateOrderRequest {
@@ -387,6 +467,7 @@ export interface RegisterFormData {
   email: string
   password: string
   confirmPassword: string
+  referralCode?: string
 }
 
 export interface OrderFormData {
@@ -408,6 +489,7 @@ export interface BalanceFormData {
 export const ORDER_STATUSES: OrderStatus[] = ['PENDING', 'ACTIVE', 'WON', 'LOST', 'EXPIRED', 'CANCELLED']
 export const ORDER_DIRECTIONS: OrderDirection[] = ['CALL', 'PUT']
 export const ACCOUNT_TYPES: AccountType[] = ['real', 'demo']
+export const USER_STATUSES: UserStatus[] = ['standard', 'gold', 'vip']
 export const DURATIONS = [1, 2, 3, 4, 5, 10, 15, 30, 45, 60] as const
 export const QUICK_AMOUNTS = [10000, 25000, 50000, 100000, 250000, 500000, 1000000] as const
 export const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
@@ -415,3 +497,31 @@ export const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
 export type Duration = typeof DURATIONS[number]
 export type QuickAmount = typeof QUICK_AMOUNTS[number]
 export type Timeframe = typeof TIMEFRAMES[number]
+
+// Status configuration
+export const STATUS_CONFIG = {
+  standard: {
+    label: 'Standard',
+    minDeposit: 0,
+    maxDeposit: 199999,
+    profitBonus: 0,
+    color: 'gray',
+    icon: 'User'
+  },
+  gold: {
+    label: 'Gold',
+    minDeposit: 200000,
+    maxDeposit: 1599999,
+    profitBonus: 5,
+    color: 'yellow',
+    icon: 'Award'
+  },
+  vip: {
+    label: 'VIP',
+    minDeposit: 1600000,
+    maxDeposit: Infinity,
+    profitBonus: 10,
+    color: 'purple',
+    icon: 'Crown'
+  }
+} as const

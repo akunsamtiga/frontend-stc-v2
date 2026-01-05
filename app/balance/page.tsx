@@ -1,3 +1,4 @@
+// app/(authenticated)/balance/page.tsx - WITH STATUS INFO
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -5,8 +6,9 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import Navbar from '@/components/Navbar'
-import { Balance as BalanceType, AccountType } from '@/types'
+import { Balance as BalanceType, AccountType, UserProfile } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { getStatusGradient, getStatusProfitBonus } from '@/lib/status-utils'
 import { 
   Wallet, 
   ArrowDownToLine,
@@ -15,117 +17,11 @@ import {
   Receipt,
   PiggyBank,
   Target,
-  DollarSign
+  DollarSign,
+  Award,
+  TrendingUp
 } from 'lucide-react'
 import { toast } from 'sonner'
-
-const BalanceCardSkeleton = () => (
-  <div className="lg:col-span-1 bg-gray-200 rounded-2xl min-h-[260px] sm:min-h-[280px] lg:min-h-[320px] animate-pulse">
-    <div className="p-5 sm:p-6 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-10 bg-gray-300 rounded-lg"></div>
-          <div className="w-6 h-6 bg-gray-300 rounded"></div>
-        </div>
-        <div className="w-16 h-6 bg-gray-300 rounded-md"></div>
-      </div>
-      
-      <div className="mb-6">
-        <div className="h-3 bg-gray-300 rounded w-32 mb-2"></div>
-        <div className="h-4 bg-gray-300 rounded w-40"></div>
-      </div>
-      
-      <div className="mb-auto">
-        <div className="h-3 bg-gray-300 rounded w-36 mb-2"></div>
-        <div className="h-10 bg-gray-300 rounded w-48"></div>
-      </div>
-      
-      <div className="mt-6">
-        <div className="h-3 bg-gray-300 rounded w-24 mb-1"></div>
-        <div className="h-4 bg-gray-300 rounded w-32"></div>
-      </div>
-    </div>
-  </div>
-)
-
-const ActionCardSkeleton = () => (
-  <div className="lg:col-span-1 bg-white rounded-2xl border border-gray-200 p-5 min-h-[260px] sm:min-h-[280px] lg:min-h-[320px] animate-pulse">
-    <div className="h-4 bg-gray-200 rounded w-40 mb-4"></div>
-    <div className="grid grid-cols-2 gap-3 mb-4 flex-1">
-      <div className="h-32 bg-gray-100 rounded-xl"></div>
-      <div className="h-32 bg-gray-100 rounded-xl"></div>
-    </div>
-    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-200">
-      <div className="text-center">
-        <div className="h-3 bg-gray-200 rounded w-20 mx-auto mb-2"></div>
-        <div className="h-5 bg-gray-200 rounded w-24 mx-auto"></div>
-      </div>
-      <div className="text-center">
-        <div className="h-3 bg-gray-200 rounded w-20 mx-auto mb-2"></div>
-        <div className="h-5 bg-gray-200 rounded w-24 mx-auto"></div>
-      </div>
-    </div>
-  </div>
-)
-
-const TransactionSkeleton = () => (
-  <div className="flex items-center justify-between p-4 rounded-xl border border-gray-100 gap-3 animate-pulse">
-    <div className="flex items-center gap-4 flex-1">
-      <div className="w-12 h-12 bg-gray-200 rounded-xl flex-shrink-0"></div>
-      <div className="flex-1">
-        <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
-        <div className="h-3 bg-gray-200 rounded w-32"></div>
-      </div>
-    </div>
-    <div className="h-6 bg-gray-200 rounded w-28 flex-shrink-0"></div>
-  </div>
-)
-
-const LoadingSkeleton = () => (
-  <div className="min-h-screen bg-[#fafafa]">
-    <Navbar />
-    <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl">
-      <div className="mb-6 animate-pulse">
-        <div className="h-3 bg-gray-200 rounded w-48 mb-2"></div>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gray-200 rounded-xl"></div>
-          <div>
-            <div className="h-6 bg-gray-200 rounded w-32 mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded w-56"></div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <BalanceCardSkeleton />
-          <ActionCardSkeleton />
-          <BalanceCardSkeleton />
-          <ActionCardSkeleton />
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-        <div className="p-6 border-b border-gray-200 animate-pulse">
-          <div className="flex items-center justify-between mb-4">
-            <div className="h-5 bg-gray-200 rounded w-40"></div>
-          </div>
-          <div className="flex gap-2">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-8 bg-gray-200 rounded-xl w-24"></div>
-            ))}
-          </div>
-        </div>
-
-        <div className="p-6 space-y-2">
-          {[...Array(5)].map((_, i) => (
-            <TransactionSkeleton key={i} />
-          ))}
-        </div>
-      </div>
-    </div>
-  </div>
-)
 
 export default function BalancePage() {
   const router = useRouter()
@@ -133,12 +29,12 @@ export default function BalancePage() {
   
   const [realBalance, setRealBalance] = useState(0)
   const [demoBalance, setDemoBalance] = useState(0)
-  
   const [allTransactions, setAllTransactions] = useState<BalanceType[]>([])
-  
   const [selectedAccount, setSelectedAccount] = useState<AccountType | 'all'>('all')
-  
   const [transactionAccount, setTransactionAccount] = useState<AccountType>('demo')
+  
+  // Profile data for status
+  const [profile, setProfile] = useState<UserProfile | null>(null)
   
   const [showDeposit, setShowDeposit] = useState(false)
   const [showWithdraw, setShowWithdraw] = useState(false)
@@ -156,9 +52,10 @@ export default function BalancePage() {
 
   const loadData = async () => {
     try {
-      const [balancesRes, historyRes] = await Promise.all([
+      const [balancesRes, historyRes, profileRes] = await Promise.all([
         api.getBothBalances(),
         api.getBalanceHistory(1, 100),
+        api.getProfile()
       ])
       
       const balances = balancesRes?.data || balancesRes
@@ -166,11 +63,11 @@ export default function BalancePage() {
       setDemoBalance(balances?.demoBalance || 0)
       
       setAllTransactions(historyRes?.data?.transactions || historyRes?.transactions || [])
+      
+      const profileData = profileRes?.data || profileRes
+      setProfile(profileData)
     } catch (error) {
       console.error('Failed to load balance:', error)
-      setRealBalance(0)
-      setDemoBalance(0)
-      setAllTransactions([])
     } finally {
       setInitialLoading(false)
     }
@@ -191,7 +88,21 @@ export default function BalancePage() {
         amount: amt,
         description: `Deposit to ${transactionAccount} account`,
       })
-      toast.success(`Deposit to ${transactionAccount} account successful!`)
+      
+      // Show status upgrade notification if applicable
+      if (transactionAccount === 'real' && profile?.statusInfo) {
+        const newDeposit = profile.statusInfo.totalDeposit + amt
+        if (newDeposit >= 200000 && profile.statusInfo.current === 'standard') {
+          toast.success('🎉 Congratulations! You\'ve been upgraded to GOLD status!')
+        } else if (newDeposit >= 1600000 && profile.statusInfo.current === 'gold') {
+          toast.success('🎉 Congratulations! You\'ve been upgraded to VIP status!')
+        } else {
+          toast.success(`Deposit to ${transactionAccount} account successful!`)
+        }
+      } else {
+        toast.success(`Deposit to ${transactionAccount} account successful!`)
+      }
+      
       setShowDeposit(false)
       setAmount('')
       loadData()
@@ -238,7 +149,6 @@ export default function BalancePage() {
   }
 
   const quickAmounts = [10000, 50000, 100000, 250000, 500000, 1000000]
-
   const filteredTransactions = selectedAccount === 'all' 
     ? allTransactions 
     : allTransactions.filter(t => (t.accountType || 'demo') === selectedAccount)
@@ -262,46 +172,83 @@ export default function BalancePage() {
   }
 
   if (!user) return null
+  if (initialLoading) return <div>Loading...</div>
 
-  if (initialLoading) {
-    return <LoadingSkeleton />
-  }
+  const statusInfo = profile?.statusInfo
+  const profitBonus = statusInfo ? getStatusProfitBonus(statusInfo.current) : 0
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
       <Navbar />
 
       <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl">
+        {/* Header with Status Badge */}
         <div className="mb-6">
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
             <span>Dashboard</span>
             <span>/</span>
             <span className="text-gray-900 font-medium">Wallet</span>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Wallet className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-3 justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Wallet className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Wallet</h1>
+                <p className="text-sm text-gray-500">Manage your Real and Demo funds</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Wallet</h1>
-              <p className="text-sm text-gray-500">Manage your Real and Demo funds</p>
-            </div>
+            
+            {statusInfo && (
+              <div className={`hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r ${getStatusGradient(statusInfo.current)} text-white shadow-lg`}>
+                <Award className="w-5 h-5" />
+                <div className="text-sm">
+                  <div className="font-bold">{statusInfo.current.toUpperCase()}</div>
+                  <div className="text-xs opacity-90">+{profitBonus}% Bonus</div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
+        {/* Status Info Banner (Mobile) */}
+        {statusInfo && (
+          <div className="sm:hidden mb-6">
+            <div className={`p-4 rounded-xl bg-gradient-to-r ${getStatusGradient(statusInfo.current)} text-white shadow-lg`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Award className="w-8 h-8" />
+                  <div>
+                    <div className="text-lg font-bold">{statusInfo.current.toUpperCase()} Status</div>
+                    <div className="text-sm opacity-90">Profit Bonus: +{profitBonus}%</div>
+                  </div>
+                </div>
+                {statusInfo.nextStatus && (
+                  <div className="text-right">
+                    <div className="text-xs opacity-80">Next: {statusInfo.nextStatus.toUpperCase()}</div>
+                    <div className="text-sm font-bold">{statusInfo.progress}%</div>
+                  </div>
+                )}
+              </div>
+              {statusInfo.nextStatus && statusInfo.depositNeeded && (
+                <div className="mt-3 pt-3 border-t border-white/20">
+                  <div className="flex items-center gap-2 text-sm">
+                    <TrendingUp className="w-4 h-4" />
+                    <span>{formatCurrency(statusInfo.depositNeeded)} more to {statusInfo.nextStatus.toUpperCase()}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="mb-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="lg:col-span-1 relative overflow-hidden bg-gradient-to-br from-emerald-500 via-teal-600 to-green-700 rounded-2xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-1 min-h-[260px] sm:min-h-[280px] lg:min-h-[320px] group">
+            {/* Real Account Card with Status Info */}
+            <div className="lg:col-span-1 relative overflow-hidden bg-gradient-to-br from-emerald-500 via-teal-600 to-green-700 rounded-2xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-1 min-h-[280px] group">
               <div className="absolute inset-0 opacity-10">
                 <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_50%)]"></div>
-                <div className="absolute -top-24 -right-24 w-48 h-48 bg-white rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div>
-                <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-emerald-300 rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div>
-              </div>
-
-              <div className="absolute inset-0 opacity-5">
-                <div className="absolute top-1/4 left-0 w-full h-px bg-gradient-to-r from-transparent via-white to-transparent"></div>
-                <div className="absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-white to-transparent"></div>
-                <div className="absolute top-3/4 left-0 w-full h-px bg-gradient-to-r from-transparent via-white to-transparent"></div>
               </div>
 
               <div className="relative z-10 h-full flex flex-col">
@@ -345,6 +292,12 @@ export default function BalancePage() {
                       {formatCurrency(realBalance)}
                     </div>
                   </div>
+                  {statusInfo && profitBonus > 0 && (
+                    <div className="mt-2 flex items-center gap-2 text-white/90">
+                      <Award className="w-4 h-4" />
+                      <span className="text-xs font-bold">+{profitBonus}% Bonus Active</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-6 flex items-end justify-between gap-2">
@@ -359,19 +312,11 @@ export default function BalancePage() {
                     <div className="text-xs font-bold text-white tracking-wider">12/28</div>
                   </div>
                 </div>
-
-                <div className="absolute bottom-6 right-6 flex items-center gap-1">
-                  <div className="w-8 h-8 rounded-full bg-white/90 shadow-lg flex items-center justify-center backdrop-blur-sm">
-                    <Wallet className="w-4 h-4 text-emerald-600" />
-                  </div>
-                  <div className="w-8 h-8 rounded-full bg-emerald-400/90 shadow-lg -ml-3 flex items-center justify-center backdrop-blur-sm">
-                    <DollarSign className="w-4 h-4 text-white" />
-                  </div>
-                </div>
               </div>
             </div>
 
-            <div className="lg:col-span-1 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm min-h-[260px] sm:min-h-[280px] lg:min-h-[320px] flex flex-col">
+            {/* Real Account Actions */}
+            <div className="lg:col-span-1 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm min-h-[280px] flex flex-col">
               <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Wallet className="w-4 h-4 text-green-600" />
                 Real Account Actions
@@ -383,7 +328,7 @@ export default function BalancePage() {
                     setTransactionAccount('real')
                     setShowDeposit(true)
                   }}
-                  className="flex flex-col items-center justify-center gap-2 p-4 bg-green-50 hover:bg-green-100 active:bg-green-200 border-2 border-green-200 rounded-xl transition-all group min-h-[120px] touch-manipulation"
+                  className="flex flex-col items-center justify-center gap-2 p-4 bg-green-50 hover:bg-green-100 active:bg-green-200 border-2 border-green-200 rounded-xl transition-all group min-h-[120px]"
                 >
                   <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                     <ArrowDownToLine className="w-6 h-6 text-white" />
@@ -397,7 +342,7 @@ export default function BalancePage() {
                     setTransactionAccount('real')
                     setShowWithdraw(true)
                   }}
-                  className="flex flex-col items-center justify-center gap-2 p-4 bg-red-50 hover:bg-red-100 active:bg-red-200 border-2 border-red-200 rounded-xl transition-all group min-h-[120px] touch-manipulation"
+                  className="flex flex-col items-center justify-center gap-2 p-4 bg-red-50 hover:bg-red-100 active:bg-red-200 border-2 border-red-200 rounded-xl transition-all group min-h-[120px]"
                 >
                   <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                     <ArrowUpFromLine className="w-6 h-6 text-white" />
@@ -419,17 +364,10 @@ export default function BalancePage() {
               </div>
             </div>
 
-            <div className="lg:col-span-1 relative overflow-hidden bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-700 rounded-2xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-1 min-h-[260px] sm:min-h-[280px] lg:min-h-[320px] group">
+            {/* Demo Account Card */}
+            <div className="lg:col-span-1 relative overflow-hidden bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-700 rounded-2xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-1 min-h-[280px] group">
               <div className="absolute inset-0 opacity-10">
                 <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_50%)]"></div>
-                <div className="absolute -top-24 -right-24 w-48 h-48 bg-white rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div>
-                <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-300 rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div>
-              </div>
-
-              <div className="absolute inset-0 opacity-5">
-                <div className="absolute top-1/4 left-0 w-full h-px bg-gradient-to-r from-transparent via-white to-transparent"></div>
-                <div className="absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-white to-transparent"></div>
-                <div className="absolute top-3/4 left-0 w-full h-px bg-gradient-to-r from-transparent via-white to-transparent"></div>
               </div>
 
               <div className="relative z-10 h-full flex flex-col">
@@ -442,13 +380,6 @@ export default function BalancePage() {
                           <div key={i} className="bg-amber-600/30 rounded-[1px]"></div>
                         ))}
                       </div>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      {[...Array(3)].map((_, i) => (
-                        <div key={i} className="flex gap-1">
-                          <div className={`w-1.5 h-1.5 border-2 border-white/40 rounded-full transform rotate-45 ${i === 0 ? 'opacity-100' : i === 1 ? 'opacity-70' : 'opacity-40'}`}></div>
-                        </div>
-                      ))}
                     </div>
                   </div>
                   <div className="px-3 py-1.5 bg-white/20 backdrop-blur-xl rounded-lg border border-white/30 shadow-lg">
@@ -487,19 +418,11 @@ export default function BalancePage() {
                     <div className="text-xs font-bold text-white tracking-wider">12/28</div>
                   </div>
                 </div>
-
-                <div className="absolute bottom-6 right-6 flex items-center gap-1">
-                  <div className="w-8 h-8 rounded-full bg-white/90 shadow-lg flex items-center justify-center backdrop-blur-sm">
-                    <PiggyBank className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div className="w-8 h-8 rounded-full bg-blue-400/90 shadow-lg -ml-3 flex items-center justify-center backdrop-blur-sm">
-                    <Target className="w-4 h-4 text-white" />
-                  </div>
-                </div>
               </div>
             </div>
 
-            <div className="lg:col-span-1 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm min-h-[260px] sm:min-h-[280px] lg:min-h-[320px] flex flex-col">
+            {/* Demo Account Actions */}
+            <div className="lg:col-span-1 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm min-h-[280px] flex flex-col">
               <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <PiggyBank className="w-4 h-4 text-blue-600" />
                 Demo Account Actions
@@ -511,7 +434,7 @@ export default function BalancePage() {
                     setTransactionAccount('demo')
                     setShowDeposit(true)
                   }}
-                  className="flex flex-col items-center justify-center gap-2 p-4 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 border-2 border-blue-200 rounded-xl transition-all group min-h-[120px] touch-manipulation"
+                  className="flex flex-col items-center justify-center gap-2 p-4 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 border-2 border-blue-200 rounded-xl transition-all group min-h-[120px]"
                 >
                   <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                     <ArrowDownToLine className="w-6 h-6 text-white" />
@@ -525,7 +448,7 @@ export default function BalancePage() {
                     setTransactionAccount('demo')
                     setShowWithdraw(true)
                   }}
-                  className="flex flex-col items-center justify-center gap-2 p-4 bg-orange-50 hover:bg-orange-100 active:bg-orange-200 border-2 border-orange-200 rounded-xl transition-all group min-h-[120px] touch-manipulation"
+                  className="flex flex-col items-center justify-center gap-2 p-4 bg-orange-50 hover:bg-orange-100 active:bg-orange-200 border-2 border-orange-200 rounded-xl transition-all group min-h-[120px]"
                 >
                   <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                     <ArrowUpFromLine className="w-6 h-6 text-white" />
@@ -549,6 +472,7 @@ export default function BalancePage() {
           </div>
         </div>
 
+        {/* Transaction History */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
           <div className="p-5 sm:p-6 border-b border-gray-200">
             <div className="flex items-center justify-between mb-4">
@@ -567,7 +491,7 @@ export default function BalancePage() {
                 <button
                   key={filter.id}
                   onClick={() => setSelectedAccount(filter.id as any)}
-                  className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap touch-manipulation ${
+                  className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
                     selectedAccount === filter.id
                       ? 'bg-blue-500 text-white shadow-sm'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300'
@@ -633,6 +557,7 @@ export default function BalancePage() {
         </div>
       </div>
 
+      {/* Deposit Modal - Same as before */}
       {showDeposit && (
         <>
           <div 
@@ -660,7 +585,7 @@ export default function BalancePage() {
                   </div>
                   <button
                     onClick={() => setShowDeposit(false)}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0 ml-2 touch-manipulation"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0 ml-2"
                   >
                     <X className="w-5 h-5 text-gray-500" />
                   </button>
@@ -668,6 +593,19 @@ export default function BalancePage() {
               </div>
 
               <div className="p-6 space-y-6">
+                {/* Status upgrade info */}
+                {transactionAccount === 'real' && statusInfo && statusInfo.nextStatus && (
+                  <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className="w-4 h-4 text-purple-600" />
+                      <span className="text-sm font-semibold text-purple-900">Status Upgrade Available</span>
+                    </div>
+                    <p className="text-sm text-purple-700">
+                      Deposit {formatCurrency(statusInfo.depositNeeded || 0)} more to reach <span className="font-bold">{statusInfo.nextStatus.toUpperCase()}</span> status and get +{getStatusProfitBonus(statusInfo.nextStatus)}% profit bonus!
+                    </p>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-3">Enter Amount (IDR)</label>
                   <input
@@ -687,7 +625,7 @@ export default function BalancePage() {
                       <button
                         key={preset}
                         onClick={() => setAmount(preset.toString())}
-                        className={`py-3 rounded-xl text-sm font-semibold transition-all touch-manipulation ${
+                        className={`py-3 rounded-xl text-sm font-semibold transition-all ${
                           amount === preset.toString()
                             ? `${transactionAccount === 'real' ? 'bg-green-500' : 'bg-blue-500'} text-white shadow-sm`
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300 border border-gray-200'
@@ -702,7 +640,7 @@ export default function BalancePage() {
                 <button
                   onClick={handleDeposit}
                   disabled={loading}
-                  className={`w-full text-white py-4 rounded-xl font-semibold shadow-sm transition-all disabled:opacity-50 text-base touch-manipulation ${
+                  className={`w-full text-white py-4 rounded-xl font-semibold shadow-sm transition-all disabled:opacity-50 text-base ${
                     transactionAccount === 'real'
                       ? 'bg-green-500 hover:bg-green-600 active:bg-green-700'
                       : 'bg-blue-500 hover:bg-blue-600 active:bg-blue-700'
@@ -723,6 +661,7 @@ export default function BalancePage() {
         </>
       )}
 
+      {/* Withdraw Modal - Same as before */}
       {showWithdraw && (
         <>
           <div 
@@ -746,7 +685,7 @@ export default function BalancePage() {
                   </div>
                   <button
                     onClick={() => setShowWithdraw(false)}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0 ml-2 touch-manipulation"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0 ml-2"
                   >
                     <X className="w-5 h-5 text-gray-500" />
                   </button>
@@ -776,7 +715,7 @@ export default function BalancePage() {
                         <button
                           key={preset}
                           onClick={() => setAmount(preset.toString())}
-                          className={`py-3 rounded-xl text-sm font-semibold transition-all touch-manipulation ${
+                          className={`py-3 rounded-xl text-sm font-semibold transition-all ${
                             amount === preset.toString()
                               ? 'bg-red-500 text-white shadow-sm'
                               : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300 border border-gray-200'
@@ -791,7 +730,7 @@ export default function BalancePage() {
                 <button
                   onClick={handleWithdraw}
                   disabled={loading}
-                  className="w-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white py-4 rounded-xl font-semibold shadow-sm transition-all disabled:opacity-50 text-base touch-manipulation"
+                  className="w-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white py-4 rounded-xl font-semibold shadow-sm transition-all disabled:opacity-50 text-base"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">

@@ -33,6 +33,9 @@ interface UserData {
   currentBalance?: number
 }
 
+// ✅ FIXED: Add proper type for role
+type UserRole = 'user' | 'admin' | 'super_admin'
+
 export default function AdminUsersPage() {
   const router = useRouter()
   const user = useAuthStore((state) => state.user)
@@ -47,10 +50,10 @@ export default function AdminUsersPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
   
-  // Form states
+  // ✅ FIXED: Form states with proper types
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState('user')
+  const [role, setRole] = useState<UserRole>('user')
   const [balanceType, setBalanceType] = useState<'deposit' | 'withdrawal'>('deposit')
   const [balanceAmount, setBalanceAmount] = useState('')
   const [balanceDescription, setBalanceDescription] = useState('')
@@ -635,7 +638,7 @@ export default function AdminUsersPage() {
                   </label>
                   <select
                     value={role}
-                    onChange={(e) => setRole(e.target.value)}
+                    onChange={(e) => setRole(e.target.value as UserRole)}
                     className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 font-medium focus:border-blue-500 focus:bg-white transition-all text-sm sm:text-base"
                   >
                     <option value="user">User</option>

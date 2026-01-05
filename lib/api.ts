@@ -1,4 +1,4 @@
-// lib/api.ts - COMPLETE & SYNCED WITH BACKEND
+// lib/api.ts - COMPLETE API CLIENT WITH PROFILE & AFFILIATE
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
 
@@ -445,6 +445,7 @@ class ApiClient {
   }): Promise<ApiResponse> {
     const result = await this.client.post('/balance', data)
     this.invalidateCache('/balance')
+    this.invalidateCache('/user/profile')
     return result
   }
 
@@ -495,21 +496,18 @@ class ApiClient {
     })
   }
 
-  // ✅ NEW: Create Asset (Super Admin)
   async createAsset(data: any): Promise<ApiResponse> {
     const result = await this.client.post('/assets', data)
     this.invalidateCache('/assets')
     return result
   }
 
-  // ✅ NEW: Update Asset (Super Admin)
   async updateAsset(id: string, data: any): Promise<ApiResponse> {
     const result = await this.client.put(`/assets/${id}`, data)
     this.invalidateCache('/assets')
     return result
   }
 
-  // ✅ NEW: Delete Asset (Super Admin)
   async deleteAsset(id: string): Promise<ApiResponse> {
     const result = await this.client.delete(`/assets/${id}`)
     this.invalidateCache('/assets')
@@ -535,6 +533,7 @@ class ApiClient {
     
     this.invalidateCache('/binary-orders')
     this.invalidateCache('/balance')
+    this.invalidateCache('/user/profile')
     
     return result
   }
@@ -603,7 +602,6 @@ class ApiClient {
     return this.client.get(`/admin/users/${id}`)
   }
 
-  // ✅ NEW: Create User (Admin)
   async createUser(data: {
     email: string
     password: string
@@ -612,7 +610,6 @@ class ApiClient {
     return this.client.post('/admin/users', data)
   }
 
-  // ✅ NEW: Update User (Admin)
   async updateUser(id: string, data: {
     role?: 'user' | 'admin' | 'super_admin'
     isActive?: boolean
@@ -620,7 +617,6 @@ class ApiClient {
     return this.client.put(`/admin/users/${id}`, data)
   }
 
-  // ✅ NEW: Delete User (Super Admin)
   async deleteUser(id: string): Promise<ApiResponse> {
     return this.client.delete(`/admin/users/${id}`)
   }
