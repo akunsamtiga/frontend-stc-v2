@@ -764,6 +764,315 @@ export default function ProfilePage() {
               </div>
             )}
 
+            {/* Address Tab */}
+            {activeTab === 'address' && profileInfo && (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-1">Address Information</h3>
+                    <p className="text-sm text-gray-500">Your residential address for verification</p>
+                  </div>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Street Address</label>
+                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                      {profileInfo.address?.street || '-'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">City</label>
+                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                      {profileInfo.address?.city || '-'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Province</label>
+                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                      {profileInfo.address?.province || '-'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Postal Code</label>
+                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                      {profileInfo.address?.postalCode || '-'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Country</label>
+                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                      {profileInfo.address?.country || 'Indonesia'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Identity Tab */}
+            {activeTab === 'identity' && profileInfo && (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-1">Identity Verification</h3>
+                    <p className="text-sm text-gray-500">Identity documents for KYC verification</p>
+                  </div>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Document Type</label>
+                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium capitalize">
+                      {profileInfo.identity?.type || '-'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Document Number</label>
+                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                      {profileInfo.identity?.number ? (
+                        <span>
+                          {profileInfo.identity.number}
+                          {profileInfo.identity?.isVerified && (
+                            <span className="ml-2 inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                              Verified
+                            </span>
+                          )}
+                        </span>
+                      ) : '-'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Verification Status</label>
+                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                      {profileInfo.verification?.identityVerified ? (
+                        <span className="text-green-600">✓ Identity Verified</span>
+                      ) : (
+                        <span className="text-yellow-600">⏳ Not Verified</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Bank Account Tab */}
+            {activeTab === 'bank' && profileInfo && (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-1">Bank Account</h3>
+                    <p className="text-sm text-gray-500">Bank account for withdrawals</p>
+                  </div>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Bank Name</label>
+                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                      {profileInfo.bankAccount?.bankName || '-'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Account Number</label>
+                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                      {profileInfo.bankAccount?.accountNumber || '-'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Account Holder Name</label>
+                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                      {profileInfo.bankAccount?.accountHolderName || '-'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Verification Status</label>
+                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                      {profileInfo.verification?.bankVerified ? (
+                        <span className="text-green-600">✓ Bank Account Verified</span>
+                      ) : (
+                        <span className="text-yellow-600">⏳ Not Verified</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Status Tab */}
+            {activeTab === 'status' && profileInfo && statusInfo && (
+              <div className="space-y-6">
+                {/* Current Status Card */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Current Account Status</h3>
+                  <div className={`p-6 rounded-xl border-2 ${
+                    statusInfo.current === 'vip' ? 'border-purple-200 bg-purple-50' :
+                    statusInfo.current === 'gold' ? 'border-yellow-200 bg-yellow-50' :
+                    'border-gray-200 bg-gray-50'
+                  }`}>
+                    <div className="flex items-center gap-4">
+                      <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                        statusInfo.current === 'vip' ? 'bg-purple-500' :
+                        statusInfo.current === 'gold' ? 'bg-yellow-500' :
+                        'bg-gray-500'
+                      }`}>
+                        {React.createElement(getStatusIcon(statusInfo.current), { className: "w-8 h-8 text-white" })}
+                      </div>
+                      <div>
+                        <h4 className="text-2xl font-bold text-gray-900 capitalize">{statusInfo.current}</h4>
+                        <p className="text-sm text-gray-600">Status Level</p>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <p className="text-lg font-semibold text-gray-900">Profit Bonus: {statusInfo.profitBonus}</p>
+                      <p className="text-sm text-gray-600">Additional profit on every win</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status Progress */}
+                {statusInfo.nextStatus !== null && statusInfo.nextStatus !== undefined && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Progress to Next Status</h3>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Current Status</span>
+                        <span className="font-semibold capitalize">{statusInfo.current}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Next Status</span>
+                        <span className="font-semibold capitalize">{statusInfo.nextStatus}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Progress</span>
+                        <span className="font-semibold">{statusInfo.progress}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div 
+                          className={`h-3 rounded-full transition-all duration-500 ${
+                            statusInfo.current === 'vip' ? 'bg-purple-500' :
+                            statusInfo.current === 'gold' ? 'bg-yellow-500' :
+                            'bg-gray-500'
+                          }`}
+                          style={{ width: `${statusInfo.progress}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between items-center pt-2">
+                        <span className="text-sm text-gray-600">Deposit Needed</span>
+                        <span className="font-semibold text-green-600">
+                          Rp {statusInfo.depositNeeded?.toLocaleString() || '0'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Status Benefits */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Status Benefits</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-gray-900">Higher Profit Rates</p>
+                        <p className="text-sm text-gray-600">Get bonus profit on every winning trade</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-gray-900">Priority Support</p>
+                        <p className="text-sm text-gray-600">VIP status unlocks priority customer support</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-gray-900">Exclusive Features</p>
+                        <p className="text-sm text-gray-600">Access to premium features and analytics</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Affiliate Tab */}
+            {activeTab === 'affiliate' && profileInfo && (
+              <div className="space-y-6">
+                {/* Referral Code Card */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Your Referral Code</h3>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-900 mb-1">Referral Code</p>
+                      <p className="text-2xl font-bold text-blue-600 font-mono">{profile?.affiliate?.referralCode || 'N/A'}</p>
+                    </div>
+                    <button
+                      onClick={copyReferralCode}
+                      className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    >
+                      {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-3">
+                    Share this code with friends. You earn Rp 25,000 when they make their first deposit!
+                  </p>
+                </div>
+
+                {/* Affiliate Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <Users className="w-8 h-8 text-blue-500" />
+                      <div>
+                        <p className="text-2xl font-bold text-gray-900">{profile?.affiliate?.totalReferrals || 0}</p>
+                        <p className="text-sm text-gray-600">Total Referrals</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="w-8 h-8 text-green-500" />
+                      <div>
+                        <p className="text-2xl font-bold text-gray-900">{profile?.affiliate?.completedReferrals || 0}</p>
+                        <p className="text-sm text-gray-600">Completed</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <TrendingUp className="w-8 h-8 text-purple-500" />
+                      <div>
+                        <p className="text-2xl font-bold text-gray-900">
+                          Rp {(profile?.affiliate?.totalCommission || 0).toLocaleString()}
+                        </p>
+                        <p className="text-sm text-gray-600">Total Commission</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                  <h4 className="font-semibold text-blue-900 mb-2">How to Earn</h4>
+                  <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
+                    <li>Share your referral code with friends</li>
+                    <li>Friend registers using your code</li>
+                    <li>Friend makes their first deposit (any amount)</li>
+                    <li>You receive Rp 25,000 commission instantly!</li>
+                  </ol>
+                </div>
+              </div>
+            )}
+
             {/* Security Tab */}
             {activeTab === 'security' && (
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
@@ -830,6 +1139,84 @@ export default function ProfilePage() {
                     )}
                   </button>
                 </form>
+              </div>
+            )}
+
+            {/* Preferences Tab */}
+            {activeTab === 'preferences' && profileInfo && (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                <div className="p-6 border-b border-gray-200">
+                  <h3 className="text-xl font-bold text-gray-900 mb-1">Account Preferences</h3>
+                  <p className="text-sm text-gray-500">Manage your account settings</p>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-3">Notifications</h4>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-gray-900">Email Notifications</p>
+                          <p className="text-sm text-gray-600">Receive updates via email</p>
+                        </div>
+                        <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                          {profileInfo.settings?.emailNotifications ? '✓ Enabled' : '✗ Disabled'}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-gray-900">SMS Notifications</p>
+                          <p className="text-sm text-gray-600">Receive updates via SMS</p>
+                        </div>
+                        <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                          {profileInfo.settings?.smsNotifications ? '✓ Enabled' : '✗ Disabled'}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-gray-900">Trading Alerts</p>
+                          <p className="text-sm text-gray-600">Alerts for trading activities</p>
+                        </div>
+                        <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                          {profileInfo.settings?.tradingAlerts ? '✓ Enabled' : '✗ Disabled'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-3">Security</h4>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-gray-900">Two-Factor Authentication</p>
+                          <p className="text-sm text-gray-600">Add extra security to your account</p>
+                        </div>
+                        <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                          {profileInfo.settings?.twoFactorEnabled ? '✓ Enabled' : '✗ Disabled'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-3">Language & Region</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Language</label>
+                        <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                          {profileInfo.settings?.language === 'id' ? 'Indonesia' : 'English'}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Timezone</label>
+                        <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                          {profileInfo.settings?.timezone || 'Asia/Jakarta'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
