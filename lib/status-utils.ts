@@ -1,5 +1,7 @@
-// lib/status-utils.ts - STATUS HELPER FUNCTIONS (FIXED)
+// lib/status-utils.ts - FIXED: Return React Components
 import { UserStatus, STATUS_CONFIG } from '@/types'
+import { User, Award, Crown } from 'lucide-react'
+import { LucideIcon } from 'lucide-react'
 
 export function getStatusConfig(status: UserStatus) {
   return STATUS_CONFIG[status]
@@ -36,8 +38,14 @@ export function getStatusBgClass(status: UserStatus): string {
   return classes[status]
 }
 
-export function getStatusIcon(status: UserStatus): string {
-  return STATUS_CONFIG[status].icon
+// ✅ FIXED: Return actual React component, not string
+export function getStatusIcon(status: UserStatus): LucideIcon {
+  const icons = {
+    standard: User,
+    gold: Award,
+    vip: Crown
+  }
+  return icons[status]
 }
 
 export function getStatusProfitBonus(status: UserStatus): number {
@@ -115,7 +123,7 @@ export function getStatusTierInfo(status: UserStatus): {
   }
 }
 
-// ✅ FIXED: Remove explicit return type to let TypeScript infer
+// ✅ Let TypeScript infer the return type
 export function getAllStatusTiers() {
   return (['standard', 'gold', 'vip'] as UserStatus[]).map(status => ({
     status,
