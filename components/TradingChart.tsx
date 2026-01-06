@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
-import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp, LineStyle } from 'lightweight-charts'
+import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp, LineStyle, LineWidth } from 'lightweight-charts'
 import { useTradingStore } from '@/store/trading'
 import { fetchHistoricalData, subscribeToOHLCUpdates, subscribeToPriceUpdates } from '@/lib/firebase'
 import { BinaryOrder } from '@/types'
@@ -21,7 +21,18 @@ import {
   Clock,
   BarChart2,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  HelpCircle,
+  X,
+  MessageCircle,
+  Mail,
+  Send,
+  Minus,
+  TrendingDownIcon as LineIcon,
+  Circle,
+  Square,
+  ArrowRight,
+  Type
 } from 'lucide-react'
 import type { IndicatorConfig } from './IndicatorControls'
 
@@ -29,10 +40,19 @@ const IndicatorControls = dynamic(() => import('./IndicatorControls'), { ssr: fa
 
 type ChartType = 'line' | 'candle'
 type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
+type DrawingTool = 'none' | 'trendline' | 'horizontal' | 'vertical' | 'rectangle' | 'circle' | 'text'
 
 interface TradingChartProps {
   activeOrders?: BinaryOrder[]
   currentPrice?: number
+}
+
+interface DrawingObject {
+  id: string
+  type: DrawingTool
+  points: { time: number; price: number }[]
+  color: string
+  text?: string
 }
 
 const DEFAULT_INDICATOR_CONFIG: IndicatorConfig = {
@@ -106,6 +126,284 @@ async function checkSimulatorStatus(assetPath: string): Promise<{
   }
 }
 
+// ===================================
+// REAL-TIME CLOCK COMPONENT
+// ===================================
+const RealtimeClock = memo(() => {
+  const [time, setTime] = useState(new Date())
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTime(new Date())
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  const timeStr = time.toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Jakarta'
+  })
+
+  const dateStr = time.toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'Asia/Jakarta'
+  })
+
+  return (
+    <div className="absolute top-14 left-2 z-10 bg-black/20 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/10">
+      <div className="flex items-center gap-2">
+        <div className="text-xs font-thin text-white">
+          {timeStr} <span className="text-gray-400">|</span> {dateStr}
+        </div>
+      </div>
+    </div>
+  )
+})
+
+RealtimeClock.displayName = 'RealtimeClock'
+
+// ===================================
+// SUPPORT POPUP COMPONENT
+// ===================================
+const SupportPopup = memo(({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  if (!isOpen) return null
+
+  const contacts = [
+    {
+      icon: MessageCircle,
+      name: 'WhatsApp',
+      value: '+62 812-3456-7890',
+      color: 'text-green-400',
+      bgColor: 'bg-green-500/10',
+      borderColor: 'border-green-500/30',
+      hoverBg: 'hover:bg-green-500/20',
+      action: () => window.open('https://wa.me/6281234567890', '_blank')
+    },
+    {
+      icon: Send,
+      name: 'Telegram',
+      value: '@stc_support',
+      color: 'text-blue-400',
+      bgColor: 'bg-blue-500/10',
+      borderColor: 'border-blue-500/30',
+      hoverBg: 'hover:bg-blue-500/20',
+      action: () => window.open('https://t.me/stc_support', '_blank')
+    },
+    {
+      icon: Mail,
+      name: 'Email',
+      value: 'support@stc.com',
+      color: 'text-purple-400',
+      bgColor: 'bg-purple-500/10',
+      borderColor: 'border-purple-500/30',
+      hoverBg: 'hover:bg-purple-500/20',
+      action: () => window.open('mailto:support@stc.com', '_blank')
+    }
+  ]
+
+  return (
+    <>
+      <div 
+        className="fixed inset-0 z-40" 
+        onClick={onClose}
+      />
+      {/* Desktop positioning - left of button */}
+      <div className="hidden lg:block absolute top-1/2 right-full mr-3 -translate-y-1/2 w-80 bg-[#0f1419] border border-gray-800/50 rounded-xl shadow-2xl z-50 animate-scale-in overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-b border-gray-800/50 px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+              <HelpCircle className="w-4 h-4 text-blue-400" />
+            </div>
+            <div>
+              <div className="text-sm font-bold">Butuh Bantuan?</div>
+              <div className="text-xs text-gray-400">Hubungi support kami</div>
+            </div>
+          </div>
+          <button 
+            onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center hover:bg-white/10 rounded-lg transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="p-3 space-y-2">
+          {contacts.map((contact) => (
+            <button
+              key={contact.name}
+              onClick={contact.action}
+              className={`w-full ${contact.bgColor} ${contact.borderColor} border ${contact.hoverBg} rounded-lg p-3 transition-all group`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 ${contact.bgColor} rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                  <contact.icon className={`w-5 h-5 ${contact.color}`} />
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="text-sm font-bold text-white">{contact.name}</div>
+                  <div className="text-xs text-gray-400">{contact.value}</div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <div className="bg-[#1a1f2e] border-t border-gray-800/50 px-4 py-2.5">
+          <div className="text-xs text-gray-400 text-center">
+            Available 24/7 • Response time: &lt;5 minutes
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile positioning - centered */}
+      <div className="lg:hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-sm bg-[#0f1419] border border-gray-800/50 rounded-xl shadow-2xl z-50 animate-scale-in overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-b border-gray-800/50 px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+              <HelpCircle className="w-4 h-4 text-blue-400" />
+            </div>
+            <div>
+              <div className="text-sm font-bold">Butuh Bantuan?</div>
+              <div className="text-xs text-gray-400">Hubungi support kami</div>
+            </div>
+          </div>
+          <button 
+            onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center hover:bg-white/10 rounded-lg transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="p-3 space-y-2">
+          {contacts.map((contact) => (
+            <button
+              key={contact.name}
+              onClick={contact.action}
+              className={`w-full ${contact.bgColor} ${contact.borderColor} border ${contact.hoverBg} rounded-lg p-3 transition-all group`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 ${contact.bgColor} rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                  <contact.icon className={`w-5 h-5 ${contact.color}`} />
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="text-sm font-bold text-white">{contact.name}</div>
+                  <div className="text-xs text-gray-400">{contact.value}</div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <div className="bg-[#1a1f2e] border-t border-gray-800/50 px-4 py-2.5">
+          <div className="text-xs text-gray-400 text-center">
+            Available 24/7 • Response time: &lt;5 minutes
+          </div>
+        </div>
+      </div>
+    </>
+  )
+})
+
+SupportPopup.displayName = 'SupportPopup'
+
+// ===================================
+// DRAWING TOOLS COMPONENT
+// ===================================
+const DrawingTools = memo(({ 
+  activeTool, 
+  onToolChange,
+  onClear 
+}: { 
+  activeTool: DrawingTool
+  onToolChange: (tool: DrawingTool) => void
+  onClear: () => void
+}) => {
+  const [isOpen, setIsOpen] = useState(false)
+
+  const tools = [
+    { id: 'none' as DrawingTool, icon: ArrowUp, label: 'Select', transform: 'rotate-45' },
+    { id: 'trendline' as DrawingTool, icon: LineIcon, label: 'Trend Line' },
+    { id: 'horizontal' as DrawingTool, icon: Minus, label: 'Horizontal' },
+    { id: 'vertical' as DrawingTool, icon: Minus, label: 'Vertical', transform: 'rotate-90' },
+    { id: 'rectangle' as DrawingTool, icon: Square, label: 'Rectangle' },
+    { id: 'circle' as DrawingTool, icon: Circle, label: 'Circle' },
+    { id: 'text' as DrawingTool, icon: Type, label: 'Text' },
+  ]
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`p-2.5 rounded-lg transition-all ${
+          activeTool !== 'none'
+            ? 'bg-blue-500/20 border border-blue-500/50 text-blue-400'
+            : 'bg-black/20 backdrop-blur-md border border-white/10 hover:bg-black/30'
+        }`}
+        title="Drawing Tools"
+      >
+        <LineIcon className="w-5 h-5" />
+      </button>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div className="absolute top-full right-0 mt-2 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden min-w-[180px]">
+            <div className="p-2">
+              {tools.map((tool) => (
+                <button
+                  key={tool.id}
+                  onClick={() => {
+                    onToolChange(tool.id)
+                    setIsOpen(false)
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+                    activeTool === tool.id
+                      ? 'bg-blue-500/20 text-blue-400'
+                      : 'hover:bg-[#1a1f2e] text-gray-300'
+                  }`}
+                >
+                  <tool.icon className={`w-4 h-4 ${tool.transform || ''}`} />
+                  <span className="text-sm font-medium">{tool.label}</span>
+                </button>
+              ))}
+              
+              {activeTool !== 'none' && (
+                <>
+                  <div className="h-px bg-gray-800/50 my-2" />
+                  <button
+                    onClick={() => {
+                      onClear()
+                      setIsOpen(false)
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-red-500/10 text-red-400 transition-all"
+                  >
+                    <X className="w-4 h-4" />
+                    <span className="text-sm font-medium">Clear All</span>
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+})
+
+DrawingTools.displayName = 'DrawingTools'
+
+// ===================================
+// OTHER COMPONENTS (SimulatorStatus, PriceDisplay, etc.)
+// ===================================
+
 const SimulatorStatus = memo(({ 
   status, 
   onRetry 
@@ -151,6 +449,8 @@ SimulatorStatus.displayName = 'SimulatorStatus'
 const PriceDisplay = memo(({ asset, price }: { asset: any; price: any }) => {
   if (!asset || !price) return null
 
+  const hasChange = price.change !== undefined && price.change !== 0
+
   return (
     <div className="absolute top-2 left-2 z-10 bg-black/20 backdrop-blur-sm rounded-lg px-4 py-2">
       <div className="flex items-center gap-4">
@@ -158,7 +458,7 @@ const PriceDisplay = memo(({ asset, price }: { asset: any; price: any }) => {
           <span className="text-sm text-gray-400">{asset.name}</span>
           <span className="text-xl font-bold font-mono">{price.price.toFixed(3)}</span>
         </div>
-        {price.change !== undefined && (
+        {hasChange && (
           <div className={`flex items-center gap-1 text-sm font-semibold ${
             price.change >= 0 ? 'text-green-400' : 'text-red-400'
           }`}>
@@ -168,7 +468,7 @@ const PriceDisplay = memo(({ asset, price }: { asset: any; price: any }) => {
               <ArrowDown className="w-4 h-4" />
             )}
             <span>
-              {price.change >= 0 ? '+' : ''}{price.change.toFixed(3)}%
+              {price.change >= 0 ? '+' : ''}{price.change.toFixed(2)}%
             </span>
           </div>
         )}
@@ -179,7 +479,6 @@ const PriceDisplay = memo(({ asset, price }: { asset: any; price: any }) => {
 
 PriceDisplay.displayName = 'PriceDisplay'
 
-// ✅ NEW: OHLC Hover Display Component
 const OHLCDisplay = memo(({ 
   data,
   visible 
@@ -205,7 +504,7 @@ const OHLCDisplay = memo(({
   })
 
   return (
-    <div className="absolute bottom-2 left-2 z-10 bg-[#0a0e17] border border-gray-800/50 rounded-lg px-3 py-2 text-xs font-mono">
+    <div className="absolute bottom-12 left-2 z-10 bg-[#0a0e17] border border-gray-800/50 rounded-lg px-3 py-2 text-xs font-mono">
       <div className="flex items-center gap-1 text-gray-400 mb-1">
         <Clock className="w-3 h-3" />
         <span>{timeStr} WIB</span>
@@ -230,11 +529,14 @@ const MobileControls = memo(({
   timeframe, 
   chartType, 
   isLoading,
+  activeTool,
   onTimeframeChange,
   onChartTypeChange,
   onFitContent,
   onRefresh,
-  onOpenIndicators
+  onOpenIndicators,
+  onToolChange,
+  onClearDrawings
 }: any) => {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -339,6 +641,32 @@ const MobileControls = memo(({
                 <Sliders className="w-3.5 h-3.5" />
                 Indicators
               </button>
+              <button
+                onClick={() => {
+                  onToolChange(activeTool === 'none' ? 'trendline' : 'none')
+                  setIsOpen(false)
+                }}
+                className={`px-2 py-1.5 text-xs font-medium rounded transition-all flex items-center gap-2 ${
+                  activeTool !== 'none'
+                    ? 'bg-blue-500/20 text-blue-400'
+                    : 'text-gray-300 bg-[#1a1f2e] hover:bg-[#232936]'
+                }`}
+              >
+                <LineIcon className="w-3.5 h-3.5" />
+                Drawing Tools
+              </button>
+              {activeTool !== 'none' && (
+                <button
+                  onClick={() => {
+                    onClearDrawings()
+                    setIsOpen(false)
+                  }}
+                  className="px-2 py-1.5 text-xs font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded transition-all flex items-center gap-2"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Clear Drawings
+                </button>
+              )}
               <div className="flex gap-1">
                 <button
                   onClick={() => {
@@ -370,17 +698,19 @@ const MobileControls = memo(({
 
 MobileControls.displayName = 'MobileControls'
 
-// ✅ FIXED: DesktopControls with standardized button sizes and moved left
 const DesktopControls = memo(({ 
   timeframe, 
   chartType, 
   isLoading,
+  activeTool,
   onTimeframeChange,
   onChartTypeChange,
   onFitContent,
   onRefresh,
   onToggleFullscreen,
   onOpenIndicators,
+  onToolChange,
+  onClearDrawings,
   isFullscreen
 }: any) => {
   const [showTimeframeMenu, setShowTimeframeMenu] = useState(false)
@@ -402,13 +732,12 @@ const DesktopControls = memo(({
   }, [showTimeframeMenu])
 
   return (
-    // ✅ CHANGED: Position moved from right-2 to right-16 to avoid blocking price
     <div className="hidden lg:block absolute top-2 right-16 z-10">
       <div className="flex items-center gap-2">
         <div className="relative" ref={timeframeRef}>
           <button
             onClick={() => setShowTimeframeMenu(!showTimeframeMenu)}
-            className="p-2 bg-black/20 backdrop-blur-md border border-white/10 rounded-lg hover:bg-black/30 transition-all flex items-center gap-1.5"
+            className="p-2.5 bg-black/20 backdrop-blur-md border border-white/10 rounded-lg hover:bg-black/30 transition-all flex items-center gap-1.5"
             title="Timeframe"
           >
             <Clock className="w-5 h-5 text-gray-300" />
@@ -442,7 +771,6 @@ const DesktopControls = memo(({
           )}
         </div>
 
-        {/* ✅ FIXED: Standardized button sizes - all w-5 h-5 */}
         <div className="flex items-center gap-1 bg-black/20 backdrop-blur-md border border-white/10 rounded-lg p-1">
           <button
             onClick={() => onChartTypeChange('candle')}
@@ -470,7 +798,6 @@ const DesktopControls = memo(({
           </button>
         </div>
 
-        {/* ✅ FIXED: Standardized button sizes - all w-5 h-5 */}
         <div className="flex items-center gap-1 bg-black/20 backdrop-blur-md border border-white/10 rounded-lg p-1">
           <button
             onClick={onOpenIndicators}
@@ -479,6 +806,11 @@ const DesktopControls = memo(({
           >
             <Sliders className="w-5 h-5" />
           </button>
+          <DrawingTools 
+            activeTool={activeTool}
+            onToolChange={onToolChange}
+            onClear={onClearDrawings}
+          />
           <button
             onClick={onRefresh}
             disabled={isLoading}
@@ -492,7 +824,6 @@ const DesktopControls = memo(({
             className="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors"
             title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
           >
-            {/* ✅ FIXED: Standardized icon size */}
             {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
           </button>
         </div>
@@ -561,10 +892,10 @@ OrderTicker.displayName = 'OrderTicker'
 
 const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
+  const fullscreenContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null)
   const lineSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
-  const currentPriceLineRef = useRef<any>(null)
   
   const indicatorSeriesRefs = useRef<{
     sma?: ISeriesApi<"Line">
@@ -582,6 +913,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     stochasticD?: ISeriesApi<"Line">
     atr?: ISeriesApi<"Line">
   }>({})
+
+  const drawingSeriesRef = useRef<ISeriesApi<"Line">[]>([])
   
   const unsubscribeOHLCRef = useRef<(() => void) | null>(null)
   const unsubscribePriceRef = useRef<(() => void) | null>(null)
@@ -597,6 +930,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const [lastPrice, setLastPrice] = useState<number | null>(null)
+  const [openingPrice, setOpeningPrice] = useState<number | null>(null)
   const [simulatorStatus, setSimulatorStatus] = useState<{
     isRunning: boolean
     hasCurrentPrice: boolean
@@ -607,7 +941,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   const [showIndicators, setShowIndicators] = useState(false)
   const [indicatorConfig, setIndicatorConfig] = useState<IndicatorConfig>(DEFAULT_INDICATOR_CONFIG)
   
-  // ✅ NEW: OHLC hover state
   const [ohlcData, setOhlcData] = useState<{
     time: number
     open: number
@@ -616,6 +949,11 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     close: number
   } | null>(null)
   const [showOhlc, setShowOhlc] = useState(false)
+
+  const [showSupportPopup, setShowSupportPopup] = useState(false)
+  const [activeTool, setActiveTool] = useState<DrawingTool>('none')
+  const [drawings, setDrawings] = useState<DrawingObject[]>([])
+  const [currentDrawing, setCurrentDrawing] = useState<DrawingObject | null>(null)
 
   const checkSimulator = useCallback(async () => {
     if (!selectedAsset?.realtimeDbPath) return
@@ -762,39 +1100,82 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
   }, [indicatorConfig])
 
+  const clearDrawings = useCallback(() => {
+    drawingSeriesRef.current.forEach(series => {
+      try {
+        chartRef.current?.removeSeries(series)
+      } catch (e) {}
+    })
+    drawingSeriesRef.current = []
+    setDrawings([])
+    setCurrentDrawing(null)
+  }, [])
+
+  const renderDrawings = useCallback(() => {
+    if (!chartRef.current) return
+
+    drawingSeriesRef.current.forEach(series => {
+      try {
+        chartRef.current?.removeSeries(series)
+      } catch (e) {}
+    })
+    drawingSeriesRef.current = []
+
+    drawings.forEach(drawing => {
+      if (drawing.type === 'trendline' || drawing.type === 'horizontal' || drawing.type === 'vertical') {
+        if (drawing.points.length >= 2) {
+          const series = chartRef.current!.addLineSeries({
+            color: drawing.color,
+            lineWidth: 2 as LineWidth,
+            priceLineVisible: false,
+            lastValueVisible: false
+          })
+          
+          const data = drawing.points.map(p => ({
+            time: p.time as UTCTimestamp,
+            value: p.price
+          }))
+          
+          series.setData(data)
+          drawingSeriesRef.current.push(series)
+        }
+      }
+    })
+  }, [drawings])
+
   useEffect(() => {
     if (isInitialized && currentDataRef.current.length > 0) {
       renderIndicators()
+      renderDrawings()
     }
-  }, [indicatorConfig, isInitialized, renderIndicators])
+  }, [indicatorConfig, isInitialized, renderIndicators, renderDrawings])
 
-  const updateCurrentPriceLine = useCallback((price: number) => {
-    if (!candleSeriesRef.current || !chartRef.current || !price) return
-    
+  const toggleFullscreen = useCallback(async () => {
+    const container = fullscreenContainerRef.current
+    if (!container) return
+
     try {
-      if (currentPriceLineRef.current && candleSeriesRef.current) {
-        candleSeriesRef.current.removePriceLine(currentPriceLineRef.current)
+      if (!document.fullscreenElement) {
+        await container.requestFullscreen()
+        setIsFullscreen(true)
+      } else {
+        await document.exitFullscreen()
+        setIsFullscreen(false)
       }
-      
-      if (candleSeriesRef.current) {
-        currentPriceLineRef.current = candleSeriesRef.current.createPriceLine({
-          price: price,
-          color: '#3b82f6',
-          lineWidth: 1,
-          lineStyle: 2,
-          axisLabelVisible: true,
-          title: 'Current',
-          lineVisible: true,
-        })
-      }
-      
-      setLastPrice(price)
-    } catch (error) {
-      console.error('Price line update error:', error)
+    } catch (err) {
+      console.error('Fullscreen error:', err)
     }
   }, [])
 
-  // ✅ FIXED: Initialize chart with WIB timezone configuration
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
+
   useEffect(() => {
     if (mountedRef.current) return
     
@@ -837,10 +1218,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           timeVisible: true,
           secondsVisible: false,
         },
-        // ✅ FIXED: Use Indonesian timezone for time formatting
         localization: {
           locale: 'id-ID',
-          dateFormat: 'dd/MM/yyyy', // ✅ gunakan string format
+          dateFormat: 'dd/MM/yyyy',
           timeFormatter: (time: number) => {
             return new Date(time * 1000).toLocaleTimeString('id-ID', {
               hour: '2-digit',
@@ -869,7 +1249,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         visible: chartType === 'line',
       })
 
-      // ✅ NEW: Subscribe to crosshair for OHLC display
       chart.subscribeCrosshairMove((param) => {
         if (!param || !param.point || !param.time) {
           setShowOhlc(false)
@@ -943,7 +1322,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [chartType])
 
-  // ✅ FIXED: Enhanced data loading with smooth updates
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
       return
@@ -953,6 +1331,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
     const loadChartData = async () => {
       setIsLoading(true)
+      setOpeningPrice(null)
+      setLastPrice(null)
 
       await checkSimulator()
 
@@ -970,7 +1350,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         let assetPath = selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`
         assetPath = cleanAssetPath(assetPath)
 
-        // ✅ Load historical data
         const data = await fetchHistoricalData(assetPath, timeframe)
 
         if (isCancelled) return
@@ -1011,13 +1390,17 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           if (chartRef.current) {
             chartRef.current.timeScale().fitContent()
           }
+
+          if (data.length > 0) {
+            setOpeningPrice(data[0].open)
+            setLastPrice(data[data.length - 1].close)
+          }
         }
 
         renderIndicators()
 
         setIsLoading(false)
 
-        // ✅ FIXED: Smooth real-time updates - no throttling
         unsubscribeOHLCRef.current = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
           if (isCancelled || !candleSeriesRef.current || !lineSeriesRef.current) return
 
@@ -1035,16 +1418,12 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
               value: newBar.close,
             }
 
-            // ✅ FIXED: Use update for smooth transitions
             if (newBar.isNewBar) {
-              // New bar - add to series
               candleSeriesRef.current.update(candleUpdate)
               lineSeriesRef.current.update(lineUpdate)
             } else {
-              // Update existing bar - remove last and add updated
               const existingData = candleSeriesRef.current.data()
               if (existingData.length > 0) {
-                // Remove last bar and add updated one for smooth transition
                 const updatedData = [...existingData.slice(0, -1), candleUpdate]
                 candleSeriesRef.current.setData(updatedData as any)
                 
@@ -1054,7 +1433,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
               }
             }
 
-            // Update local data cache
             const existingIndex = currentDataRef.current.findIndex(d => d.time === newBar.timestamp)
             const newData = {
               time: newBar.timestamp,
@@ -1074,7 +1452,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
               }
             }
 
-            // ✅ Recalculate indicators on new bar
+            setLastPrice(newBar.close)
+
             if (newBar.isNewBar) {
               renderIndicators()
             }
@@ -1082,14 +1461,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
             console.error('Chart update error:', error)
           }
         })
-        
-        unsubscribePriceRef.current = subscribeToPriceUpdates(
-          assetPath,
-          (priceData) => {
-            if (isCancelled || !priceData?.price) return
-            updateCurrentPriceLine(priceData.price)
-          }
-        )
 
       } catch (err: any) {
         if (isCancelled) return
@@ -1109,13 +1480,13 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         unsubscribePriceRef.current()
       }
     }
-  }, [selectedAsset?.id, timeframe, isInitialized, updateCurrentPriceLine, checkSimulator, renderIndicators])
+  }, [selectedAsset?.id, timeframe, isInitialized, checkSimulator, renderIndicators])
 
   useEffect(() => {
     if (currentPrice && isInitialized) {
-      updateCurrentPriceLine(currentPrice)
+      setLastPrice(currentPrice)
     }
-  }, [currentPrice, isInitialized, updateCurrentPriceLine])
+  }, [currentPrice, isInitialized])
 
   const handleRefresh = useCallback(() => {
     if (!selectedAsset) return
@@ -1134,10 +1505,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [])
 
-  const toggleFullscreen = useCallback(() => {
-    setIsFullscreen(prev => !prev)
-  }, [])
-
   const handleTimeframeChange = useCallback((tf: Timeframe) => {
     setTimeframe(tf)
   }, [])
@@ -1145,6 +1512,11 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   const handleChartTypeChange = useCallback((type: ChartType) => {
     setChartType(type)
   }, [])
+
+  const calculatePriceChange = useCallback(() => {
+    if (!lastPrice || !openingPrice || openingPrice === 0) return 0
+    return ((lastPrice - openingPrice) / openingPrice) * 100
+  }, [lastPrice, openingPrice])
 
   if (!selectedAsset) {
     return (
@@ -1159,24 +1531,31 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
   const currentPriceData = {
     price: lastPrice || 0,
-    change: 0,
+    change: calculatePriceChange(),
     datetime: new Date().toISOString()
   }
 
   return (
-    <div className={`relative h-full ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : ''}`}>
+    <div 
+      ref={fullscreenContainerRef}
+      className={`relative h-full ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : ''}`}
+    >
       <PriceDisplay asset={selectedAsset} price={currentPriceData} />
+      <RealtimeClock />
 
       <DesktopControls
         timeframe={timeframe}
         chartType={chartType}
         isLoading={isLoading}
+        activeTool={activeTool}
         onTimeframeChange={handleTimeframeChange}
         onChartTypeChange={handleChartTypeChange}
         onFitContent={handleFitContent}
         onRefresh={handleRefresh}
         onToggleFullscreen={toggleFullscreen}
         onOpenIndicators={() => setShowIndicators(true)}
+        onToolChange={setActiveTool}
+        onClearDrawings={clearDrawings}
         isFullscreen={isFullscreen}
       />
 
@@ -1184,11 +1563,14 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         timeframe={timeframe}
         chartType={chartType}
         isLoading={isLoading}
+        activeTool={activeTool}
         onTimeframeChange={handleTimeframeChange}
         onChartTypeChange={handleChartTypeChange}
         onFitContent={handleFitContent}
         onRefresh={handleRefresh}
         onOpenIndicators={() => setShowIndicators(true)}
+        onToolChange={setActiveTool}
+        onClearDrawings={clearDrawings}
       />
 
       <SimulatorStatus 
@@ -1196,7 +1578,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         onRetry={checkSimulator}
       />
 
-      {/* ✅ NEW: OHLC Hover Display */}
       <OHLCDisplay data={ohlcData} visible={showOhlc} />
 
       <div 
@@ -1205,6 +1586,22 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       />
 
       <OrderTicker orders={activeOrders} currentPrice={currentPrice} />
+
+      {/* Support Button - Positioned to not block price or orders */}
+      <div className="absolute right-14 bottom-4 -translate-y-1/2 z-20">
+        <button
+          onClick={() => setShowSupportPopup(!showSupportPopup)}
+          className="w-11 h-11 bg-gradient-to-br from-red-400 to-red-400 hover:from-pink-400 hover:to-red-500 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105 group"
+          title="Need Help?"
+        >
+          <HelpCircle className="w-7 h-7 text-white group-hover:rotate-12 transition-transform" />
+        </button>
+
+        <SupportPopup 
+          isOpen={showSupportPopup}
+          onClose={() => setShowSupportPopup(false)}
+        />
+      </div>
 
       {isLoading && (
         <div className="absolute inset-0 bg-[#0a0e17]/95 z-20">

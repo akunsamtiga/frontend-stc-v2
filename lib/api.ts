@@ -1,4 +1,4 @@
-// lib/api.ts - COMPLETE API CLIENT WITH PROFILE & AFFILIATE
+// lib/api.ts - COMPLETE API CLIENT
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
 
@@ -365,7 +365,7 @@ class ApiClient {
   }
 
   // ===================================
-  // USER
+  // USER & PROFILE
   // ===================================
 
   async getProfile(): Promise<ApiResponse> {
@@ -379,6 +379,35 @@ class ApiClient {
       this.setCache(cacheKey, data, 30000)
       return data
     })
+  }
+
+  async updateProfile(data: any): Promise<ApiResponse> {
+    const result = await this.client.put('/user/profile', data)
+    this.invalidateCache('/user/profile')
+    return result
+  }
+
+  async uploadAvatar(data: { url: string }): Promise<ApiResponse> {
+    const result = await this.client.post('/user/avatar', data)
+    this.invalidateCache('/user/profile')
+    return result
+  }
+
+  async changePassword(data: {
+    currentPassword: string
+    newPassword: string
+    confirmPassword: string
+  }): Promise<ApiResponse> {
+    return this.client.post('/user/change-password', data)
+  }
+
+  async verifyPhone(data: {
+    phoneNumber: string
+    verificationCode: string
+  }): Promise<ApiResponse> {
+    const result = await this.client.post('/user/verify-phone', data)
+    this.invalidateCache('/user/profile')
+    return result
   }
 
   // ===================================

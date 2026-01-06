@@ -662,7 +662,7 @@ export default function TradingPage() {
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-gray-400">Pendapatan</span>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-green-400">+{selectedAsset.profitRate}%</span>
+                    <span className="font-semibold text-white">+{selectedAsset.profitRate}%</span>
                     <span className="font-mono font-bold text-green-400">{formatCurrency(potentialPayout)}</span>
                   </div>
                 </div>

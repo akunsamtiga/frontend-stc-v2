@@ -485,6 +485,107 @@ export interface BalanceFormData {
   description?: string
 }
 
+export interface UserProfileInfo {
+  completion: number
+  personal: {
+    fullName: string | null
+    email: string
+    phoneNumber: string | null
+    dateOfBirth: string | null
+    gender: 'male' | 'female' | 'other' | null
+    nationality: string | null
+  }
+  address: {
+    street?: string
+    city?: string
+    province?: string
+    postalCode?: string
+    country?: string
+  } | null
+  identity: {
+    type?: 'ktp' | 'passport' | 'sim'
+    number?: string
+    isVerified?: boolean
+    verifiedAt?: string
+  } | null
+  bankAccount: {
+    bankName?: string
+    accountNumber?: string
+    accountHolderName?: string
+    isVerified?: boolean
+    verifiedAt?: string
+  } | null
+  avatar: {
+    url?: string
+    uploadedAt?: string
+  } | null
+  settings: {
+    emailNotifications: boolean
+    smsNotifications: boolean
+    tradingAlerts: boolean
+    twoFactorEnabled: boolean
+    language: string
+    timezone: string
+  }
+  verification: {
+    emailVerified: boolean
+    phoneVerified: boolean
+    identityVerified: boolean
+    bankVerified: boolean
+    verificationLevel: 'unverified' | 'basic' | 'intermediate' | 'advanced'
+  }
+}
+
+export interface UpdateProfileRequest {
+  fullName?: string
+  phoneNumber?: string
+  dateOfBirth?: string
+  gender?: 'male' | 'female' | 'other'
+  nationality?: string
+  address?: {
+    street?: string
+    city?: string
+    province?: string
+    postalCode?: string
+    country?: string
+  }
+  identityDocument?: {
+    type?: 'ktp' | 'passport' | 'sim'
+    number?: string
+    issuedDate?: string
+    expiryDate?: string
+  }
+  bankAccount?: {
+    bankName?: string
+    accountNumber?: string
+    accountHolderName?: string
+  }
+  settings?: {
+    emailNotifications?: boolean
+    smsNotifications?: boolean
+    tradingAlerts?: boolean
+    twoFactorEnabled?: boolean
+    language?: string
+    timezone?: string
+  }
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
+export interface UploadAvatarRequest {
+  url: string
+}
+
+export interface VerifyPhoneRequest {
+  phoneNumber: string
+  verificationCode: string
+}
+
+
 // Constants
 export const ORDER_STATUSES: OrderStatus[] = ['PENDING', 'ACTIVE', 'WON', 'LOST', 'EXPIRED', 'CANCELLED']
 export const ORDER_DIRECTIONS: OrderDirection[] = ['CALL', 'PUT']
