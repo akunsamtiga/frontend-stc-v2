@@ -413,7 +413,7 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               <div className="flex items-center justify-between py-3 border-b border-gray-100">
                 <span className="text-sm text-gray-600">Total Volume</span>
-                <span className="text-base font-mono font-bold text-gray-900 break-all">
+                <span className="text-base  font-bold text-gray-900 break-all">
                   {new Intl.NumberFormat('id-ID', { 
                     style: 'currency', 
                     currency: 'IDR',
@@ -424,7 +424,7 @@ export default function AdminDashboard() {
               </div>
               <div className="flex items-center justify-between py-3 border-b border-gray-100">
                 <span className="text-sm text-gray-600">Total Profit</span>
-                <span className={`text-base font-mono font-bold break-all ${
+                <span className={`text-base  font-bold break-all ${
                   filteredStats.trading.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
                   {new Intl.NumberFormat('id-ID', { 
@@ -437,13 +437,13 @@ export default function AdminDashboard() {
               </div>
               <div className="flex items-center justify-between py-3 border-b border-gray-100">
                 <span className="text-sm text-gray-600">Won Orders</span>
-                <span className="text-base font-mono font-bold text-green-600">
+                <span className="text-base  font-bold text-green-600">
                   {filteredStats.trading.wonOrders}
                 </span>
               </div>
               <div className="flex items-center justify-between py-3">
                 <span className="text-sm text-gray-600">Lost Orders</span>
-                <span className="text-base font-mono font-bold text-red-600">
+                <span className="text-base  font-bold text-red-600">
                   {filteredStats.trading.lostOrders}
                 </span>
               </div>
@@ -467,7 +467,7 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               <div className="flex items-center justify-between py-3 border-b border-gray-100">
                 <span className="text-sm text-gray-600">Total Deposits</span>
-                <span className="text-base font-mono font-bold text-green-600 break-all">
+                <span className="text-base  font-bold text-green-600 break-all">
                   {new Intl.NumberFormat('id-ID', { 
                     style: 'currency', 
                     currency: 'IDR',
@@ -478,7 +478,7 @@ export default function AdminDashboard() {
               </div>
               <div className="flex items-center justify-between py-3 border-b border-gray-100">
                 <span className="text-sm text-gray-600">Total Withdrawals</span>
-                <span className="text-base font-mono font-bold text-red-600 break-all">
+                <span className="text-base  font-bold text-red-600 break-all">
                   {new Intl.NumberFormat('id-ID', { 
                     style: 'currency', 
                     currency: 'IDR',
@@ -489,7 +489,7 @@ export default function AdminDashboard() {
               </div>
               <div className="flex items-center justify-between py-3">
                 <span className="text-sm text-gray-600">Net Flow</span>
-                <span className={`text-base font-mono font-bold break-all ${
+                <span className={`text-base  font-bold break-all ${
                   filteredStats.financial.netFlow >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
                   {new Intl.NumberFormat('id-ID', { 

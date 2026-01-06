@@ -107,7 +107,7 @@ export default function AdminSettingsPage() {
                   type="number"
                   value={settings.minOrderAmount}
                   onChange={(e) => setSettings({...settings, minOrderAmount: parseInt(e.target.value)})}
-                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:bg-white transition-all text-sm sm:text-base font-mono"
+                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:bg-white transition-all text-sm sm:text-base "
                 />
               </div>
 
@@ -119,7 +119,7 @@ export default function AdminSettingsPage() {
                   type="number"
                   value={settings.maxOrderAmount}
                   onChange={(e) => setSettings({...settings, maxOrderAmount: parseInt(e.target.value)})}
-                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:bg-white transition-all text-sm sm:text-base font-mono"
+                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:bg-white transition-all text-sm sm:text-base "
                 />
               </div>
 
@@ -133,7 +133,7 @@ export default function AdminSettingsPage() {
                   onChange={(e) => setSettings({...settings, defaultProfitRate: parseInt(e.target.value)})}
                   min="0"
                   max="100"
-                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:bg-white transition-all text-sm sm:text-base font-mono"
+                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-gray-900 focus:outline-none focus:border-green-500 focus:bg-white transition-all text-sm sm:text-base "
                 />
               </div>
             </div>

@@ -92,11 +92,11 @@ export default function OrderNotification({ order, onClose }: OrderNotificationP
             )}
             <span className="font-semibold">{order.direction}</span>
             <span className="text-gray-500">•</span>
-            <span className="font-mono">{formatCurrency(order.amount)}</span>
+            <span className="">{formatCurrency(order.amount)}</span>
           </div>
 
           {/* Profit/Loss */}
-          <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold font-mono ${
+          <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold  ${
             isWin 
               ? 'bg-green-500/20 text-green-400' 
               : 'bg-red-500/20 text-red-400'

@@ -9,11 +9,13 @@ import {
   User, Mail, Shield, Calendar, Lock, Bell, Eye, EyeOff, Save, LogOut,
   CheckCircle2, Settings, Award, Crown, TrendingUp, Users, Copy, Check,
   Gift, Share2, MapPin, CreditCard, FileText, Camera, Phone, Edit2,
-  ChevronRight, AlertCircle, Home, Building, Globe, Loader2
+  ChevronRight, AlertCircle, Home, Building, Globe, Loader2, ShieldCheck,
+  UserCheck, Briefcase, X
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { UserProfile, StatusInfo, AffiliateInfo, UserProfileInfo, UpdateProfileRequest } from '@/types'
-import { getStatusGradient, getStatusIcon } from '@/lib/status-utils'
+import type { UserProfile, UserProfileInfo, UpdateProfileRequest, ChangePasswordRequest } from '@/types'
+import { STATUS_CONFIG, calculateProfileCompletion } from '@/types'
+import { getStatusGradient, getStatusIcon, formatStatusInfo, getAllStatusTiers, calculateStatusProgress, formatDepositRequirement } from '@/lib/status-utils'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -101,21 +103,15 @@ export default function ProfilePage() {
     try {
       setInitialLoading(true)
       const response = await api.getProfile()
-      
-      // Handle both response formats
       const data = response?.data || response
       
-      if (!data) {
-        throw new Error('No profile data received')
-      }
+      if (!data) throw new Error('No profile data received')
 
       setProfile(data)
       
-      // Set profile info with safe fallbacks
       if (data.profileInfo) {
         setProfileInfo(data.profileInfo)
         
-        // Initialize form data with safe access
         setPersonalData({
           fullName: data.profileInfo.personal?.fullName || '',
           phoneNumber: data.profileInfo.personal?.phoneNumber || '',
@@ -166,7 +162,6 @@ export default function ProfilePage() {
   const handleUpdatePersonal = async () => {
     setSavingSection('personal')
     try {
-      // Validate data
       if (personalData.fullName && personalData.fullName.trim().length < 3) {
         toast.error('Full name must be at least 3 characters')
         return
@@ -193,10 +188,7 @@ export default function ProfilePage() {
   const handleUpdateAddress = async () => {
     setSavingSection('address')
     try {
-      await api.updateProfile({
-        address: addressData
-      })
-      
+      await api.updateProfile({ address: addressData })
       toast.success('Address updated!')
       setEditingAddress(false)
       await loadProfile()
@@ -210,10 +202,7 @@ export default function ProfilePage() {
   const handleUpdateIdentity = async () => {
     setSavingSection('identity')
     try {
-      await api.updateProfile({
-        identityDocument: identityData
-      })
-      
+      await api.updateProfile({ identityDocument: identityData })
       toast.success('Identity document updated!')
       setEditingIdentity(false)
       await loadProfile()
@@ -227,10 +216,7 @@ export default function ProfilePage() {
   const handleUpdateBank = async () => {
     setSavingSection('bank')
     try {
-      await api.updateProfile({
-        bankAccount: bankData
-      })
-      
+      await api.updateProfile({ bankAccount: bankData })
       toast.success('Bank account updated!')
       setEditingBank(false)
       await loadProfile()
@@ -244,10 +230,7 @@ export default function ProfilePage() {
   const handleUpdateSettings = async () => {
     setSavingSection('settings')
     try {
-      await api.updateProfile({
-        settings
-      })
-      
+      await api.updateProfile({ settings })
       toast.success('Settings updated!')
       await loadProfile()
     } catch (error: any) {
@@ -273,13 +256,8 @@ export default function ProfilePage() {
     setLoading(true)
     try {
       await api.changePassword(passwordData)
-      
       toast.success('Password changed successfully!')
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      })
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to change password')
     } finally {
@@ -289,56 +267,39 @@ export default function ProfilePage() {
 
   const handleUploadAvatar = async (file: File) => {
     try {
-      // Validate file
       if (!file.type.startsWith('image/')) {
         toast.error('Please select an image file')
-        return
+        return false
       }
 
       if (file.size > 5 * 1024 * 1024) {
         toast.error('Image size must be less than 5MB')
-        return
+        return false
       }
 
-      // Show loading toast
       const uploadToast = toast.loading('Uploading avatar...')
-
-      // Convert to base64
       const reader = new FileReader()
+      
       reader.onloadend = async () => {
         try {
           const url = reader.result as string
           await api.uploadAvatar({ url })
-          
           toast.success('Avatar uploaded!', { id: uploadToast })
           await loadProfile()
         } catch (error) {
           toast.error('Failed to upload avatar', { id: uploadToast })
         }
       }
+      
       reader.onerror = () => {
         toast.error('Failed to read image file', { id: uploadToast })
       }
+      
       reader.readAsDataURL(file)
+      return true
     } catch (error) {
       toast.error('Failed to process image')
-    }
-  }
-
-  const copyReferralCode = () => {
-    if (profile?.affiliate?.referralCode) {
-      navigator.clipboard.writeText(profile.affiliate.referralCode)
-      setCopied(true)
-      toast.success('Referral code copied!')
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
-
-  const shareReferralLink = () => {
-    if (profile?.affiliate?.referralCode) {
-      const link = `${window.location.origin}/?ref=${profile.affiliate.referralCode}`
-      navigator.clipboard.writeText(link)
-      toast.success('Referral link copied!')
+      return false
     }
   }
 
@@ -366,9 +327,6 @@ export default function ProfilePage() {
 
   const statusInfo = profile?.statusInfo
   const affiliateInfo = profile?.affiliate
-  
-  // ✅ Get the React component (not string)
-  const StatusIcon = statusInfo ? getStatusIcon(statusInfo.current) : User
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: User },
@@ -382,150 +340,727 @@ export default function ProfilePage() {
     { id: 'preferences', label: 'Preferences', icon: Settings }
   ]
 
+  // Render tab content
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return (
+          <div className="space-y-6">
+            {/* Avatar Section */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Profile Overview</h3>
+              <div className="flex items-center gap-6">
+                {/* Avatar Uploader */}
+                <div className="relative inline-block">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center overflow-hidden">
+                    {profileInfo?.avatar?.url ? (
+                      <img src={profileInfo.avatar.url} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-white text-2xl font-bold">U</span>
+                    )}
+                  </div>
+                  <label className="absolute bottom-0 right-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors shadow-lg">
+                    <Camera className="w-4 h-4 text-white" />
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                      if (e.target.files?.[0]) handleUploadAvatar(e.target.files[0])
+                    }} />
+                  </label>
+                </div>
+                <div>
+                  <h4 className="text-xl font-bold text-gray-900">{profileInfo?.personal?.fullName || user?.email}</h4>
+                  <p className="text-gray-600">{user?.email}</p>
+                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 mt-2 ${getStatusGradient(statusInfo?.current || 'standard')} rounded-lg text-sm font-medium text-white`}>
+                    {React.createElement(getStatusIcon(statusInfo?.current || 'standard'), { className: "w-4 h-4" })}
+                    {statusInfo?.current.toUpperCase()}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Profile Completion */}
+            {profileInfo && (
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold text-blue-900">
+                    {profileInfo.completion === 100 ? 'Profile completed!' : profileInfo.completion >= 80 ? 'Almost there!' : profileInfo.completion >= 50 ? 'Good progress' : 'Let\'s complete your profile'}
+                  </span>
+                  <span className="text-sm font-bold text-blue-600">{profileInfo.completion}%</span>
+                </div>
+                <div className="w-full bg-blue-200 rounded-full h-2">
+                  <div className={`h-2 rounded-full transition-all duration-500 ${
+                    profileInfo.completion >= 80 ? 'bg-green-600' : profileInfo.completion >= 50 ? 'bg-yellow-600' : 'bg-blue-600'
+                  }`} style={{ width: `${profileInfo.completion}%` }}></div>
+                </div>
+                {profileInfo.completion < 100 && (
+                  <p className="text-xs text-blue-700 mt-2">Complete your profile to unlock all features</p>
+                )}
+              </div>
+            )}
+
+            {/* Verification Status */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Verification Status</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { label: 'Email', verified: profileInfo?.verification?.emailVerified, icon: Mail },
+                  { label: 'Phone', verified: profileInfo?.verification?.phoneVerified, icon: Phone },
+                  { label: 'Identity', verified: profileInfo?.verification?.identityVerified, icon: FileText },
+                  { label: 'Bank', verified: profileInfo?.verification?.bankVerified, icon: CreditCard }
+                ].map((item) => (
+                  <div key={item.label} className={`p-4 rounded-xl border-2 ${item.verified ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                    <div className="flex items-center gap-3">
+                      <item.icon className={`w-5 h-5 ${item.verified ? 'text-green-600' : 'text-gray-400'}`} />
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900">{item.label}</div>
+                        <div className={`text-xs font-medium ${item.verified ? 'text-green-600' : 'text-gray-500'}`}>
+                          {item.verified ? 'Verified' : 'Not Verified'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-white p-4 rounded-xl border border-gray-200">
+                <div className="text-2xl font-bold text-gray-900">{profile?.balances?.real ?? 0}</div>
+                <div className="text-sm text-gray-500">Real Balance</div>
+              </div>
+              <div className="bg-white p-4 rounded-xl border border-gray-200">
+                <div className="text-2xl font-bold text-gray-900">{profile?.balances?.demo ?? 0}</div>
+                <div className="text-sm text-gray-500">Demo Balance</div>
+              </div>
+              <div className="bg-white p-4 rounded-xl border border-gray-200">
+                <div className="text-2xl font-bold text-gray-900">{profile?.statistics?.combined?.totalOrders ?? 0}</div>
+                <div className="text-sm text-gray-500">Total Orders</div>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'personal':
+        return (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">Personal Information</h3>
+                <p className="text-sm text-gray-500">Your basic personal details</p>
+              </div>
+              {!editingPersonal ? (
+                <button onClick={() => setEditingPersonal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                  <Edit2 className="w-4 h-4" /> Edit
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button onClick={() => setEditingPersonal(false)} disabled={savingSection === 'personal'} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50">
+                    Cancel
+                  </button>
+                  <button onClick={handleUpdatePersonal} disabled={savingSection === 'personal'} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50">
+                    {savingSection === 'personal' ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <><Save className="w-4 h-4" /> Save</>}
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Full Name */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
+                {editingPersonal ? (
+                  <input type="text" value={personalData.fullName} onChange={(e) => setPersonalData({ ...personalData, fullName: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" placeholder="Enter your full name" />
+                ) : (
+                  <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">{profileInfo?.personal?.fullName || '-'}</div>
+                )}
+              </div>
+
+              {/* Phone */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
+                {editingPersonal ? (
+                  <input type="tel" value={personalData.phoneNumber} onChange={(e) => setPersonalData({ ...personalData, phoneNumber: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" placeholder="+62..." />
+                ) : (
+                  <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">{profileInfo?.personal?.phoneNumber || '-'}</div>
+                )}
+              </div>
+
+              {/* Date of Birth */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Date of Birth</label>
+                {editingPersonal ? (
+                  <input type="date" value={personalData.dateOfBirth} onChange={(e) => setPersonalData({ ...personalData, dateOfBirth: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" />
+                ) : (
+                  <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                    {profileInfo?.personal?.dateOfBirth ? new Date(profileInfo.personal.dateOfBirth).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'}
+                  </div>
+                )}
+              </div>
+
+              {/* Gender */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Gender</label>
+                {editingPersonal ? (
+                  <select value={personalData.gender} onChange={(e) => setPersonalData({ ...personalData, gender: e.target.value as any })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors">
+                    <option value="">Select gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </select>
+                ) : (
+                  <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium capitalize">{profileInfo?.personal?.gender || '-'}</div>
+                )}
+              </div>
+
+              {/* Nationality */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Nationality</label>
+                {editingPersonal ? (
+                  <input type="text" value={personalData.nationality} onChange={(e) => setPersonalData({ ...personalData, nationality: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" placeholder="e.g., Indonesian" />
+                ) : (
+                  <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">{profileInfo?.personal?.nationality || '-'}</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'address':
+        return (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">Address Information</h3>
+                <p className="text-sm text-gray-500">Your residential address</p>
+              </div>
+              {!editingAddress ? (
+                <button onClick={() => setEditingAddress(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                  <Edit2 className="w-4 h-4" /> Edit
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button onClick={() => setEditingAddress(false)} disabled={savingSection === 'address'} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50">
+                    Cancel
+                  </button>
+                  <button onClick={handleUpdateAddress} disabled={savingSection === 'address'} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50">
+                    {savingSection === 'address' ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <><Save className="w-4 h-4" /> Save</>}
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Street Address</label>
+                {editingAddress ? (
+                  <input type="text" value={addressData.street} onChange={(e) => setAddressData({ ...addressData, street: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" placeholder="Jl. Merdeka No. 123" />
+                ) : (
+                  <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">{addressData.street || '-'}</div>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">City</label>
+                  {editingAddress ? (
+                    <input type="text" value={addressData.city} onChange={(e) => setAddressData({ ...addressData, city: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" placeholder="Jakarta" />
+                  ) : (
+                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">{addressData.city || '-'}</div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Province</label>
+                  {editingAddress ? (
+                    <input type="text" value={addressData.province} onChange={(e) => setAddressData({ ...addressData, province: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" placeholder="DKI Jakarta" />
+                  ) : (
+                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">{addressData.province || '-'}</div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Postal Code</label>
+                  {editingAddress ? (
+                    <input type="text" value={addressData.postalCode} onChange={(e) => setAddressData({ ...addressData, postalCode: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" placeholder="12345" />
+                  ) : (
+                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">{addressData.postalCode || '-'}</div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Country</label>
+                  {editingAddress ? (
+                    <input type="text" value={addressData.country} onChange={(e) => setAddressData({ ...addressData, country: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" placeholder="Indonesia" />
+                  ) : (
+                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">{addressData.country || '-'}</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'identity':
+        return (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">Identity Verification</h3>
+                <p className="text-sm text-gray-500">Verify your identity for higher limits</p>
+              </div>
+              {!editingIdentity ? (
+                <button onClick={() => setEditingIdentity(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                  <Edit2 className="w-4 h-4" /> Edit
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button onClick={() => setEditingIdentity(false)} disabled={savingSection === 'identity'} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50">
+                    Cancel
+                  </button>
+                  <button onClick={handleUpdateIdentity} disabled={savingSection === 'identity'} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50">
+                    {savingSection === 'identity' ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <><Save className="w-4 h-4" /> Save</>}
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Document Type</label>
+                {editingIdentity ? (
+                  <select value={identityData.type} onChange={(e) => setIdentityData({ ...identityData, type: e.target.value as any })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors">
+                    <option value="ktp">KTP</option>
+                    <option value="passport">Passport</option>
+                    <option value="sim">SIM</option>
+                  </select>
+                ) : (
+                  <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium uppercase">{identityData.type || '-'}</div>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Document Number</label>
+                {editingIdentity ? (
+                  <input type="text" value={identityData.number} onChange={(e) => setIdentityData({ ...identityData, number: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" placeholder="Enter document number" />
+                ) : (
+                  <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">{identityData.number || '-'}</div>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Issued Date</label>
+                  {editingIdentity ? (
+                    <input type="date" value={identityData.issuedDate} onChange={(e) => setIdentityData({ ...identityData, issuedDate: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" />
+                  ) : (
+                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">{identityData.issuedDate || '-'}</div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Expiry Date</label>
+                  {editingIdentity ? (
+                    <input type="date" value={identityData.expiryDate} onChange={(e) => setIdentityData({ ...identityData, expiryDate: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" />
+                  ) : (
+                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">{identityData.expiryDate || '-'}</div>
+                  )}
+                </div>
+              </div>
+              
+              {profileInfo?.identity?.isVerified && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    <span className="text-sm font-semibold text-green-900">Identity Verified</span>
+                  </div>
+                  {profileInfo.identity.verifiedAt && (
+                    <p className="text-xs text-green-700 mt-1">Verified at: {new Date(profileInfo.identity.verifiedAt).toLocaleDateString('id-ID')}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )
+
+      case 'bank':
+        return (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">Bank Account</h3>
+                <p className="text-sm text-gray-500">Add your bank account for withdrawals</p>
+              </div>
+              {!editingBank ? (
+                <button onClick={() => setEditingBank(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                  <Edit2 className="w-4 h-4" /> Edit
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button onClick={() => setEditingBank(false)} disabled={savingSection === 'bank'} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50">
+                    Cancel
+                  </button>
+                  <button onClick={handleUpdateBank} disabled={savingSection === 'bank'} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50">
+                    {savingSection === 'bank' ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <><Save className="w-4 h-4" /> Save</>}
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Bank Name</label>
+                {editingBank ? (
+                  <input type="text" value={bankData.bankName} onChange={(e) => setBankData({ ...bankData, bankName: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" placeholder="e.g., Bank Mandiri" />
+                ) : (
+                  <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">{bankData.bankName || '-'}</div>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Account Number</label>
+                {editingBank ? (
+                  <input type="text" value={bankData.accountNumber} onChange={(e) => setBankData({ ...bankData, accountNumber: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" placeholder="1234567890" />
+                ) : (
+                  <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">{bankData.accountNumber || '-'}</div>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Account Holder Name</label>
+                {editingBank ? (
+                  <input type="text" value={bankData.accountHolderName} onChange={(e) => setBankData({ ...bankData, accountHolderName: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" placeholder="John Doe" />
+                ) : (
+                  <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">{bankData.accountHolderName || '-'}</div>
+                )}
+              </div>
+              
+              {profileInfo?.bankAccount?.isVerified && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-green-600" />
+                    <span className="text-sm font-semibold text-green-900">Bank Account Verified</span>
+                  </div>
+                  {profileInfo.bankAccount.verifiedAt && (
+                    <p className="text-xs text-green-700 mt-1">Verified at: {new Date(profileInfo.bankAccount.verifiedAt).toLocaleDateString('id-ID')}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )
+
+      case 'status':
+        if (!statusInfo) return null
+
+        // ⬇️⬇️⬇️ TEMPATKAN KODE DI SINI ⬇️⬇️⬇️
+        const safeStatus = ['standard', 'gold', 'vip'].includes(statusInfo.current) 
+          ? statusInfo.current 
+          : 'standard'
+
+        const progressInfo = calculateStatusProgress(statusInfo.totalDeposit, safeStatus)
+        // ⬆️⬆️⬆️ SAMPAI SINI ⬆️⬆️⬆️
+
+        const allTiers = getAllStatusTiers()
+
+        return (
+          <div className="space-y-6">
+            {/* Current Status */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Your Status</h3>
+              <div className={`flex items-center gap-4 p-4 rounded-xl ${getStatusGradient(statusInfo.current)}`}>
+                {React.createElement(getStatusIcon(statusInfo.current), { className: "w-10 h-10 text-white" })}
+                <div>
+                  <div className="text-white font-bold text-lg">{statusInfo.current.toUpperCase()}</div>
+                  <div className="text-white/90 text-sm">{formatStatusInfo(statusInfo)}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Progress to Next Status */}
+            {progressInfo.next && (
+              <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Progress to Next Status</h3>
+                <div className="mb-4">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-gray-600">Progress</span>
+                    <span className="font-semibold">{progressInfo.progress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className={`h-3 rounded-full ${getStatusGradient(statusInfo.current)} transition-all duration-500`} style={{ width: `${progressInfo.progress}%` }}></div>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600">
+                  Deposit <span className="font-bold">{formatDepositRequirement(progressInfo.depositNeeded)}</span> more to unlock {STATUS_CONFIG[progressInfo.next].label} status!
+                </p>
+              </div>
+            )}
+
+            {/* All Status Tiers */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">All Status Tiers</h3>
+              <div className="space-y-4">
+                {allTiers.map(({ status, config, icon: Icon }) => {
+                  const isCurrent = status === statusInfo.current
+                  const isUnlocked = STATUS_CONFIG[status].minDeposit <= statusInfo.totalDeposit
+                  
+                  return (
+                    <div key={status} className={`p-4 border rounded-xl ${isCurrent ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Icon className={`w-6 h-6 ${isCurrent || isUnlocked ? 'text-blue-600' : 'text-gray-400'}`} />
+                          <div>
+                            <div className="font-semibold text-gray-900">{config.label}</div>
+                            <div className="text-sm text-gray-600">Bonus: +{config.profitBonus}%</div>
+                          </div>
+                        </div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {formatDepositRequirement(config.minDeposit)}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'affiliate':
+        if (!affiliateInfo) return null
+
+        return (
+          <div className="space-y-6">
+            {/* Affiliate Overview */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Affiliate Program</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-4 bg-gray-50 rounded-xl">
+                  <div className="text-2xl font-bold text-gray-900">{affiliateInfo.totalReferrals}</div>
+                  <div className="text-sm text-gray-600">Total Referrals</div>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-xl">
+                  <div className="text-2xl font-bold text-green-600">{affiliateInfo.completedReferrals}</div>
+                  <div className="text-sm text-gray-600">Completed</div>
+                </div>
+                <div className="text-center p-4 bg-yellow-50 rounded-xl">
+                  <div className="text-2xl font-bold text-yellow-600">{affiliateInfo.pendingReferrals}</div>
+                  <div className="text-sm text-gray-600">Pending</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Referral Link */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Your Referral Link</h3>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-mono text-sm">
+                  {`${window.location.origin}/?ref=${affiliateInfo.referralCode}`}
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/?ref=${affiliateInfo.referralCode}`)
+                    setCopied(true)
+                    toast.success('Referral link copied!')
+                    setTimeout(() => setCopied(false), 2000)
+                  }}
+                  className="px-4 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
+                >
+                  {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mt-3">
+                Share this link to earn <span className="font-bold">Rp 25,000</span> per successful referral!
+              </p>
+            </div>
+
+            {/* Commission Info */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Commission Earned</h3>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Gift className="w-8 h-8 text-yellow-500" />
+                  <div>
+                    <div className="text-2xl font-bold text-gray-900">{formatDepositRequirement(affiliateInfo.totalCommission)}</div>
+                    <div className="text-sm text-gray-600">Total Commission</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'security':
+        return (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-900 mb-1">Security Settings</h3>
+              <p className="text-sm text-gray-500">Change your password</p>
+            </div>
+
+            <form onSubmit={handleChangePassword} className="p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Current Password</label>
+                <div className="relative">
+                  <input type={showPassword ? 'text' : 'password'} value={passwordData.currentPassword} onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors pr-12" required />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">New Password</label>
+                <input type={showPassword ? 'text' : 'password'} value={passwordData.newPassword} onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" required />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Confirm New Password</label>
+                <input type={showPassword ? 'text' : 'password'} value={passwordData.confirmPassword} onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" required />
+              </div>
+
+              <button type="submit" disabled={loading} className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Changing Password...</> : 'Change Password'}
+              </button>
+            </form>
+          </div>
+        )
+
+      case 'preferences':
+        return (
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">Preferences</h3>
+                <p className="text-sm text-gray-500">Customize your experience</p>
+              </div>
+              <button onClick={handleUpdateSettings} disabled={savingSection === 'settings'} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50">
+                {savingSection === 'settings' ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <><Save className="w-4 h-4" /> Save</>}
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Notifications */}
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-3">Notifications</h4>
+                <div className="space-y-3">
+                  <label className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">Email Notifications</span>
+                    <input type="checkbox" checked={settings.emailNotifications} onChange={(e) => setSettings({ ...settings, emailNotifications: e.target.checked })} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" />
+                  </label>
+                  <label className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">SMS Notifications</span>
+                    <input type="checkbox" checked={settings.smsNotifications} onChange={(e) => setSettings({ ...settings, smsNotifications: e.target.checked })} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" />
+                  </label>
+                  <label className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">Trading Alerts</span>
+                    <input type="checkbox" checked={settings.tradingAlerts} onChange={(e) => setSettings({ ...settings, tradingAlerts: e.target.checked })} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" />
+                  </label>
+                </div>
+              </div>
+
+              {/* Language & Timezone */}
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-3">Regional</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Language</label>
+                    <select value={settings.language} onChange={(e) => setSettings({ ...settings, language: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors">
+                      <option value="id">Bahasa Indonesia</option>
+                      <option value="en">English</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Timezone</label>
+                    <input type="text" value={settings.timezone} onChange={(e) => setSettings({ ...settings, timezone: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+
+      default:
+        return null
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#fafafa]">
       <Navbar />
-
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
+      
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Header */}
-        <div className="mb-4 sm:mb-6">
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 mb-2 sm:mb-3">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
             <span>Dashboard</span>
             <span>/</span>
             <span className="text-gray-900 font-medium">Profile</span>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
-              <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
+              <Settings className="w-5 h-5 text-white" />
             </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 truncate">My Profile</h1>
-              <p className="text-xs sm:text-sm text-gray-500">
-                Profile completion: {profileInfo?.completion || 0}%
-              </p>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
+              <p className="text-sm text-gray-500">Profile completion: {profileInfo?.completion ?? 0}%</p>
             </div>
           </div>
         </div>
 
-        {/* Profile Completion Progress */}
-        {profileInfo && profileInfo.completion < 100 && (
+        {/* Profile Completion Bar */}
+        {profileInfo && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-            <div className="flex items-start gap-3 mb-3">
-              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <h3 className="font-semibold text-blue-900 mb-1">Complete Your Profile</h3>
-                <p className="text-sm text-blue-700">
-                  Get the full experience by completing your profile information
-                </p>
-              </div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-blue-900">
+                {profileInfo.completion === 100 ? 'Profile completed!' : profileInfo.completion >= 80 ? 'Almost there!' : profileInfo.completion >= 50 ? 'Good progress' : 'Let\'s complete your profile'}
+              </span>
+              <span className="text-sm font-bold text-blue-600">{profileInfo.completion}%</span>
             </div>
             <div className="w-full bg-blue-200 rounded-full h-2">
-              <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-500"
-                style={{ width: `${profileInfo.completion}%` }}
-              ></div>
+              <div className={`h-2 rounded-full transition-all duration-500 ${
+                profileInfo.completion >= 80 ? 'bg-green-600' : profileInfo.completion >= 50 ? 'bg-yellow-600' : 'bg-blue-600'
+              }`} style={{ width: `${profileInfo.completion}%` }}></div>
             </div>
           </div>
         )}
 
-        {/* Mobile Navigation */}
-        <div className="lg:hidden mb-4 sm:mb-6">
-          <button
-            onClick={() => setShowMobileNav(!showMobileNav)}
-            className="w-full flex items-center justify-between p-3 sm:p-4 bg-white border border-gray-200 rounded-lg sm:rounded-xl"
-          >
-            <div className="flex items-center gap-2 sm:gap-3">
-              {React.createElement(tabs.find(t => t.id === activeTab)!.icon, {
-                className: "w-4 h-4 sm:w-5 sm:h-5 text-blue-600"
-              })}
-              <span className="font-medium text-sm sm:text-base text-gray-900">
-                {tabs.find(t => t.id === activeTab)?.label}
-              </span>
-            </div>
-            <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${showMobileNav ? 'rotate-90' : ''}`} />
-          </button>
-
-          {showMobileNav && (
-            <div className="mt-2 bg-white border border-gray-200 rounded-lg sm:rounded-xl p-1.5 sm:p-2 space-y-1">
-              {tabs.map((tab) => {
-                const Icon = tab.icon
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setActiveTab(tab.id)
-                      setShowMobileNav(false)
-                    }}
-                    className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg transition-all text-sm sm:text-base ${
-                      activeTab === tab.id
-                        ? 'bg-blue-500 text-white shadow-sm'
-                        : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
-                    <span className="font-medium">{tab.label}</span>
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="grid lg:grid-cols-12 gap-4 sm:gap-6">
-          {/* Desktop Sidebar */}
-          <div className="hidden lg:block lg:col-span-4 xl:col-span-3 space-y-4 sm:space-y-6">
+        <div className="grid lg:grid-cols-12 gap-6">
+          {/* Sidebar */}
+          <div className="hidden lg:block lg:col-span-4 space-y-6">
             {/* Profile Card */}
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className={`h-24 bg-gradient-to-r ${getStatusGradient(statusInfo?.current || 'standard')}`}></div>
               <div className="p-6 -mt-12">
                 <div className="flex flex-col items-center text-center">
-                  <div className="relative mb-4">
-                    <div className="w-24 h-24 rounded-full bg-white border-4 border-white shadow-lg flex items-center justify-center">
+                  {/* Avatar Uploader */}
+                  <div className="relative inline-block mb-4">
+                    <div className="w-24 h-24 rounded-full bg-white border-4 border-white shadow-lg flex items-center justify-center overflow-hidden">
                       {profileInfo?.avatar?.url ? (
-                        <img 
-                          src={profileInfo.avatar.url} 
-                          alt="Avatar" 
-                          className="w-full h-full rounded-full object-cover"
-                        />
+                        <img src={profileInfo.avatar.url} alt="Avatar" className="w-full h-full object-cover" />
                       ) : (
                         <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${getStatusGradient(statusInfo?.current || 'standard')} flex items-center justify-center`}>
-                          <StatusIcon className="w-10 h-10 text-white" />
+                          {React.createElement(getStatusIcon(statusInfo?.current || 'standard'), { className: "w-10 h-10 text-white" })}
                         </div>
                       )}
                     </div>
                     <label className="absolute bottom-0 right-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors shadow-lg">
                       <Camera className="w-4 h-4 text-white" />
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden"
-                        onChange={(e) => {
-                          if (e.target.files?.[0]) {
-                            handleUploadAvatar(e.target.files[0])
-                          }
-                        }}
-                      />
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                        if (e.target.files?.[0]) handleUploadAvatar(e.target.files[0])
+                      }} />
                     </label>
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">
-                    {profileInfo?.personal?.fullName || user.email}
-                  </h3>
-                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r ${getStatusGradient(statusInfo?.current || 'standard')} rounded-lg text-sm font-medium text-white mb-3`}>
-                    <StatusIcon className="w-4 h-4" />
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">{profileInfo?.personal?.fullName || user?.email}</h3>
+                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 mt-2 ${getStatusGradient(statusInfo?.current || 'standard')} rounded-lg text-sm font-medium text-white`}>
+                    {React.createElement(getStatusIcon(statusInfo?.current || 'standard'), { className: "w-4 h-4" })}
                     {statusInfo?.current.toUpperCase()}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${user.isActive ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    <span className="text-sm text-gray-600">
-                      {user.isActive ? 'Active' : 'Inactive'}
-                    </span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Navigation */}
-            <div className="bg-white rounded-xl border border-gray-200 p-2 shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200 p-2">
               {tabs.map((tab) => {
                 const Icon = tab.icon
                 return (
@@ -534,7 +1069,7 @@ export default function ProfilePage() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                       activeTab === tab.id
-                        ? 'bg-blue-500 text-white shadow-sm'
+                        ? 'bg-blue-500 text-white'
                         : 'text-gray-600 hover:bg-gray-50'
                     }`}
                   >
@@ -546,691 +1081,15 @@ export default function ProfilePage() {
             </div>
 
             {/* Logout */}
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-white text-red-600 border-2 border-red-200 rounded-xl font-semibold hover:bg-red-50 transition-all shadow-sm"
-            >
-              <LogOut className="w-5 h-5" />
-              Logout
+            <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-white text-red-600 border-2 border-red-200 rounded-xl font-semibold hover:bg-red-50">
+              <LogOut className="w-5 h-5" /> Logout
             </button>
           </div>
 
           {/* Main Content */}
-          <div className="lg:col-span-8 xl:col-span-9">
-            {/* Overview Tab */}
-            {activeTab === 'overview' && profileInfo && (
-              <div className="space-y-6">
-                {/* Verification Status */}
-                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">Verification Status</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    {[
-                      { label: 'Email', verified: profileInfo.verification?.emailVerified, icon: Mail },
-                      { label: 'Phone', verified: profileInfo.verification?.phoneVerified, icon: Phone },
-                      { label: 'Identity', verified: profileInfo.verification?.identityVerified, icon: FileText },
-                      { label: 'Bank', verified: profileInfo.verification?.bankVerified, icon: CreditCard }
-                    ].map((item) => (
-                      <div key={item.label} className={`p-4 rounded-xl border-2 ${item.verified ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
-                        <div className="flex items-center gap-3">
-                          <item.icon className={`w-5 h-5 ${item.verified ? 'text-green-600' : 'text-gray-400'}`} />
-                          <div>
-                            <div className="text-sm font-semibold text-gray-900">{item.label}</div>
-                            <div className={`text-xs font-medium ${item.verified ? 'text-green-600' : 'text-gray-500'}`}>
-                              {item.verified ? 'Verified' : 'Not Verified'}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 p-4 bg-blue-50 rounded-xl">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Shield className="w-5 h-5 text-blue-600" />
-                      <span className="font-semibold text-blue-900">
-                        Verification Level: {(profileInfo.verification?.verificationLevel || 'unverified').toUpperCase()}
-                      </span>
-                    </div>
-                    <p className="text-sm text-blue-700">
-                      Complete all verifications to unlock full features
-                    </p>
-                  </div>
-                </div>
-
-                {/* Quick Actions */}
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    onClick={() => setActiveTab('personal')}
-                    className="p-6 bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all group"
-                  >
-                    <User className="w-8 h-8 text-blue-600 mb-3 group-hover:scale-110 transition-transform" />
-                    <div className="text-left">
-                      <div className="font-semibold text-gray-900 mb-1">Personal Info</div>
-                      <div className="text-sm text-gray-500">Update your details</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('security')}
-                    className="p-6 bg-white rounded-xl border border-gray-200 hover:border-red-300 hover:shadow-md transition-all group"
-                  >
-                    <Lock className="w-8 h-8 text-red-600 mb-3 group-hover:scale-110 transition-transform" />
-                    <div className="text-left">
-                      <div className="font-semibold text-gray-900 mb-1">Security</div>
-                      <div className="text-sm text-gray-500">Change password</div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Personal Info Tab */}
-            {activeTab === 'personal' && profileInfo && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-                <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-1">Personal Information</h3>
-                    <p className="text-sm text-gray-500">Your basic personal details</p>
-                  </div>
-                  {!editingPersonal ? (
-                    <button
-                      onClick={() => setEditingPersonal(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                      Edit
-                    </button>
-                  ) : (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setEditingPersonal(false)}
-                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                        disabled={savingSection === 'personal'}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleUpdatePersonal}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
-                        disabled={savingSection === 'personal'}
-                      >
-                        {savingSection === 'personal' ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="w-4 h-4" />
-                            Save
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="p-6 space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
-                    {editingPersonal ? (
-                      <input
-                        type="text"
-                        value={personalData.fullName}
-                        onChange={(e) => setPersonalData({ ...personalData, fullName: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors"
-                        placeholder="Enter your full name"
-                      />
-                    ) : (
-                      <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                        {profileInfo.personal?.fullName || '-'}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
-                    {editingPersonal ? (
-                      <input
-                        type="tel"
-                        value={personalData.phoneNumber}
-                        onChange={(e) => setPersonalData({ ...personalData, phoneNumber: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors"
-                        placeholder="+62..."
-                      />
-                    ) : (
-                      <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                        {profileInfo.personal?.phoneNumber || '-'}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Date of Birth</label>
-                    {editingPersonal ? (
-                      <input
-                        type="date"
-                        value={personalData.dateOfBirth}
-                        onChange={(e) => setPersonalData({ ...personalData, dateOfBirth: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors"
-                      />
-                    ) : (
-                      <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                        {profileInfo.personal?.dateOfBirth ? new Date(profileInfo.personal.dateOfBirth).toLocaleDateString('id-ID', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        }) : '-'}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Gender</label>
-                    {editingPersonal ? (
-                      <select
-                        value={personalData.gender}
-                        onChange={(e) => setPersonalData({ ...personalData, gender: e.target.value as any })}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors"
-                      >
-                        <option value="">Select gender</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="other">Other</option>
-                      </select>
-                    ) : (
-                      <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium capitalize">
-                        {profileInfo.personal?.gender || '-'}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Nationality</label>
-                    {editingPersonal ? (
-                      <input
-                        type="text"
-                        value={personalData.nationality}
-                        onChange={(e) => setPersonalData({ ...personalData, nationality: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors"
-                        placeholder="e.g., Indonesian"
-                      />
-                    ) : (
-                      <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                        {profileInfo.personal?.nationality || '-'}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Address Tab */}
-            {activeTab === 'address' && profileInfo && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-                <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-1">Address Information</h3>
-                    <p className="text-sm text-gray-500">Your residential address for verification</p>
-                  </div>
-                </div>
-
-                <div className="p-6 space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Street Address</label>
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                      {profileInfo.address?.street || '-'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">City</label>
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                      {profileInfo.address?.city || '-'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Province</label>
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                      {profileInfo.address?.province || '-'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Postal Code</label>
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                      {profileInfo.address?.postalCode || '-'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Country</label>
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                      {profileInfo.address?.country || 'Indonesia'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Identity Tab */}
-            {activeTab === 'identity' && profileInfo && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-                <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-1">Identity Verification</h3>
-                    <p className="text-sm text-gray-500">Identity documents for KYC verification</p>
-                  </div>
-                </div>
-
-                <div className="p-6 space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Document Type</label>
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium capitalize">
-                      {profileInfo.identity?.type || '-'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Document Number</label>
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                      {profileInfo.identity?.number ? (
-                        <span>
-                          {profileInfo.identity.number}
-                          {profileInfo.identity?.isVerified && (
-                            <span className="ml-2 inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
-                              Verified
-                            </span>
-                          )}
-                        </span>
-                      ) : '-'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Verification Status</label>
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                      {profileInfo.verification?.identityVerified ? (
-                        <span className="text-green-600">✓ Identity Verified</span>
-                      ) : (
-                        <span className="text-yellow-600">⏳ Not Verified</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Bank Account Tab */}
-            {activeTab === 'bank' && profileInfo && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-                <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-1">Bank Account</h3>
-                    <p className="text-sm text-gray-500">Bank account for withdrawals</p>
-                  </div>
-                </div>
-
-                <div className="p-6 space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Bank Name</label>
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                      {profileInfo.bankAccount?.bankName || '-'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Account Number</label>
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                      {profileInfo.bankAccount?.accountNumber || '-'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Account Holder Name</label>
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                      {profileInfo.bankAccount?.accountHolderName || '-'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Verification Status</label>
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                      {profileInfo.verification?.bankVerified ? (
-                        <span className="text-green-600">✓ Bank Account Verified</span>
-                      ) : (
-                        <span className="text-yellow-600">⏳ Not Verified</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Status Tab */}
-            {activeTab === 'status' && profileInfo && statusInfo && (
-              <div className="space-y-6">
-                {/* Current Status Card */}
-                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">Current Account Status</h3>
-                  <div className={`p-6 rounded-xl border-2 ${
-                    statusInfo.current === 'vip' ? 'border-purple-200 bg-purple-50' :
-                    statusInfo.current === 'gold' ? 'border-yellow-200 bg-yellow-50' :
-                    'border-gray-200 bg-gray-50'
-                  }`}>
-                    <div className="flex items-center gap-4">
-                      <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                        statusInfo.current === 'vip' ? 'bg-purple-500' :
-                        statusInfo.current === 'gold' ? 'bg-yellow-500' :
-                        'bg-gray-500'
-                      }`}>
-                        {React.createElement(getStatusIcon(statusInfo.current), { className: "w-8 h-8 text-white" })}
-                      </div>
-                      <div>
-                        <h4 className="text-2xl font-bold text-gray-900 capitalize">{statusInfo.current}</h4>
-                        <p className="text-sm text-gray-600">Status Level</p>
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <p className="text-lg font-semibold text-gray-900">Profit Bonus: {statusInfo.profitBonus}</p>
-                      <p className="text-sm text-gray-600">Additional profit on every win</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Status Progress */}
-                {statusInfo.nextStatus !== null && statusInfo.nextStatus !== undefined && (
-                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">Progress to Next Status</h3>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Current Status</span>
-                        <span className="font-semibold capitalize">{statusInfo.current}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Next Status</span>
-                        <span className="font-semibold capitalize">{statusInfo.nextStatus}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Progress</span>
-                        <span className="font-semibold">{statusInfo.progress}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3">
-                        <div 
-                          className={`h-3 rounded-full transition-all duration-500 ${
-                            statusInfo.current === 'vip' ? 'bg-purple-500' :
-                            statusInfo.current === 'gold' ? 'bg-yellow-500' :
-                            'bg-gray-500'
-                          }`}
-                          style={{ width: `${statusInfo.progress}%` }}
-                        />
-                      </div>
-                      <div className="flex justify-between items-center pt-2">
-                        <span className="text-sm text-gray-600">Deposit Needed</span>
-                        <span className="font-semibold text-green-600">
-                          Rp {statusInfo.depositNeeded?.toLocaleString() || '0'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Status Benefits */}
-                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">Status Benefits</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
-                      <div>
-                        <p className="font-semibold text-gray-900">Higher Profit Rates</p>
-                        <p className="text-sm text-gray-600">Get bonus profit on every winning trade</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
-                      <div>
-                        <p className="font-semibold text-gray-900">Priority Support</p>
-                        <p className="text-sm text-gray-600">VIP status unlocks priority customer support</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
-                      <div>
-                        <p className="font-semibold text-gray-900">Exclusive Features</p>
-                        <p className="text-sm text-gray-600">Access to premium features and analytics</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Affiliate Tab */}
-            {activeTab === 'affiliate' && profileInfo && (
-              <div className="space-y-6">
-                {/* Referral Code Card */}
-                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">Your Referral Code</h3>
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-sm text-blue-900 mb-1">Referral Code</p>
-                      <p className="text-2xl font-bold text-blue-600 font-mono">{profile?.affiliate?.referralCode || 'N/A'}</p>
-                    </div>
-                    <button
-                      onClick={copyReferralCode}
-                      className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                    >
-                      {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-                    </button>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-3">
-                    Share this code with friends. You earn Rp 25,000 when they make their first deposit!
-                  </p>
-                </div>
-
-                {/* Affiliate Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <Users className="w-8 h-8 text-blue-500" />
-                      <div>
-                        <p className="text-2xl font-bold text-gray-900">{profile?.affiliate?.totalReferrals || 0}</p>
-                        <p className="text-sm text-gray-600">Total Referrals</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle2 className="w-8 h-8 text-green-500" />
-                      <div>
-                        <p className="text-2xl font-bold text-gray-900">{profile?.affiliate?.completedReferrals || 0}</p>
-                        <p className="text-sm text-gray-600">Completed</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <TrendingUp className="w-8 h-8 text-purple-500" />
-                      <div>
-                        <p className="text-2xl font-bold text-gray-900">
-                          Rp {(profile?.affiliate?.totalCommission || 0).toLocaleString()}
-                        </p>
-                        <p className="text-sm text-gray-600">Total Commission</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                  <h4 className="font-semibold text-blue-900 mb-2">How to Earn</h4>
-                  <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
-                    <li>Share your referral code with friends</li>
-                    <li>Friend registers using your code</li>
-                    <li>Friend makes their first deposit (any amount)</li>
-                    <li>You receive Rp 25,000 commission instantly!</li>
-                  </ol>
-                </div>
-              </div>
-            )}
-
-            {/* Security Tab */}
-            {activeTab === 'security' && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-                <div className="p-6 border-b border-gray-200">
-                  <h3 className="text-xl font-bold text-gray-900 mb-1">Security Settings</h3>
-                  <p className="text-sm text-gray-500">Change your password</p>
-                </div>
-
-                <form onSubmit={handleChangePassword} className="p-6 space-y-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">Current Password</label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={passwordData.currentPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors pr-12"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">New Password</label>
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={passwordData.newPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">Confirm New Password</label>
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={passwordData.confirmPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors"
-                      required
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Changing Password...
-                      </>
-                    ) : (
-                      'Change Password'
-                    )}
-                  </button>
-                </form>
-              </div>
-            )}
-
-            {/* Preferences Tab */}
-            {activeTab === 'preferences' && profileInfo && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-                <div className="p-6 border-b border-gray-200">
-                  <h3 className="text-xl font-bold text-gray-900 mb-1">Account Preferences</h3>
-                  <p className="text-sm text-gray-500">Manage your account settings</p>
-                </div>
-
-                <div className="p-6 space-y-6">
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-900 mb-3">Notifications</h4>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-gray-900">Email Notifications</p>
-                          <p className="text-sm text-gray-600">Receive updates via email</p>
-                        </div>
-                        <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                          {profileInfo.settings?.emailNotifications ? '✓ Enabled' : '✗ Disabled'}
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-gray-900">SMS Notifications</p>
-                          <p className="text-sm text-gray-600">Receive updates via SMS</p>
-                        </div>
-                        <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                          {profileInfo.settings?.smsNotifications ? '✓ Enabled' : '✗ Disabled'}
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-gray-900">Trading Alerts</p>
-                          <p className="text-sm text-gray-600">Alerts for trading activities</p>
-                        </div>
-                        <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                          {profileInfo.settings?.tradingAlerts ? '✓ Enabled' : '✗ Disabled'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-900 mb-3">Security</h4>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-gray-900">Two-Factor Authentication</p>
-                          <p className="text-sm text-gray-600">Add extra security to your account</p>
-                        </div>
-                        <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                          {profileInfo.settings?.twoFactorEnabled ? '✓ Enabled' : '✗ Disabled'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-900 mb-3">Language & Region</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Language</label>
-                        <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                          {profileInfo.settings?.language === 'id' ? 'Indonesia' : 'English'}
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Timezone</label>
-                        <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                          {profileInfo.settings?.timezone || 'Asia/Jakarta'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+          <div className="lg:col-span-8">
+            {renderTabContent()}
           </div>
-        </div>
-
-        {/* Mobile Logout */}
-        <div className="lg:hidden mt-6">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-white text-red-600 border-2 border-red-200 rounded-xl font-semibold"
-          >
-            <LogOut className="w-5 h-5" />
-            Logout
-          </button>
         </div>
       </div>
     </div>

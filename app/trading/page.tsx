@@ -464,7 +464,7 @@ export default function TradingPage() {
                 </span>
                 <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
               </div>
-              <div className="text-base font-bold font-mono text-white">
+              <div className="text-base font-bold  text-white">
                 {formatCurrency(currentBalance)}
               </div>
             </button>
@@ -483,7 +483,7 @@ export default function TradingPage() {
                     }`}
                   >
                     <span className="text-xs text-white">Akun Demo</span>
-                    <span className="text-base font-bold font-mono text-white pl-4">
+                    <span className="text-base font-bold  text-white pl-4">
                       {formatCurrency(demoBalance)}
                     </span>
                   </button>
@@ -497,7 +497,7 @@ export default function TradingPage() {
                     }`}
                   >
                     <span className="text-xs text-white">Akun Real</span>
-                    <span className="text-base font-bold font-mono text-white pl-4">
+                    <span className="text-base font-bold  text-white pl-4">
                       {formatCurrency(realBalance)}
                     </span>
                   </button>
@@ -576,7 +576,7 @@ export default function TradingPage() {
           </div>
 
           <div className="flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
-            <span className="text-xs font-mono font-bold">{formatCurrency(currentBalance)}</span>
+            <span className="text-xs  font-bold">{formatCurrency(currentBalance)}</span>
           </div>
 
           <div className="flex items-center gap-2 justify-end w-16">
@@ -630,7 +630,7 @@ export default function TradingPage() {
                   type="number"
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
-                  className="flex-1 min-w-0 bg-transparent border-0 text-center text-base font-mono text-white focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="flex-1 min-w-0 bg-transparent border-0 text-center text-base  text-white focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   min="1000"
                   step="1000"
                 />
@@ -663,7 +663,7 @@ export default function TradingPage() {
                   <span className="text-gray-400">Pendapatan</span>
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-white">+{selectedAsset.profitRate}%</span>
-                    <span className="font-mono font-bold text-green-400">{formatCurrency(potentialPayout)}</span>
+                    <span className=" font-bold text-green-400">{formatCurrency(potentialPayout)}</span>
                   </div>
                 </div>
               </div>
@@ -714,7 +714,7 @@ export default function TradingPage() {
               >
                 <div className="flex flex-col items-center gap-1">
                   <span>DEMO</span>
-                  <span className="font-mono text-[10px]">{formatCurrency(demoBalance)}</span>
+                  <span className=" text-[10px]">{formatCurrency(demoBalance)}</span>
                 </div>
               </button>
               <button
@@ -727,7 +727,7 @@ export default function TradingPage() {
               >
                 <div className="flex flex-col items-center gap-1">
                   <span>REAL</span>
-                  <span className="font-mono text-[10px]">{formatCurrency(realBalance)}</span>
+                  <span className=" text-[10px]">{formatCurrency(realBalance)}</span>
                 </div>
               </button>
             </div>
@@ -741,7 +741,7 @@ export default function TradingPage() {
                   type="number"
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
-                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg pl-3 pr-9 py-2.5 text-center text-sm font-mono font-bold text-white focus:outline-none focus:border-blue-500/50"
+                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg pl-3 pr-9 py-2.5 text-center text-sm  font-bold text-white focus:outline-none focus:border-blue-500/50"
                   min="1000"
                   step="1000"
                 />
@@ -767,7 +767,7 @@ export default function TradingPage() {
                           setAmount(preset)
                           setShowAmountDropdown(false)
                         }}
-                        className={`w-full px-4 py-2.5 text-left text-sm font-mono hover:bg-[#232936] transition-colors border-b border-gray-800/30 last:border-0 ${
+                        className={`w-full px-4 py-2.5 text-left text-sm  hover:bg-[#232936] transition-colors border-b border-gray-800/30 last:border-0 ${
                           amount === preset ? 'bg-[#232936] text-blue-400' : 'text-gray-300'
                         }`}
                       >
@@ -798,7 +798,7 @@ export default function TradingPage() {
               <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-full px-4 py-2">
                 <span className="text-xs text-gray-400">Pendapatan</span>
                 <span className="text-xs font-semibold text-green-400">+{selectedAsset.profitRate}%</span>
-                <span className="text-sm font-mono font-bold text-green-400">
+                <span className="text-sm  font-bold text-green-400">
                   {formatCurrency(potentialPayout)}
                 </span>
               </div>
@@ -855,11 +855,11 @@ export default function TradingPage() {
               <div className="grid grid-cols-2 gap-3 mb-6">
                 <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl p-4">
                   <div className="text-xs text-gray-400 mb-1">REAL Balance</div>
-                  <div className="text-2xl font-bold font-mono text-green-400">{formatCurrency(realBalance)}</div>
+                  <div className="text-2xl font-bold  text-green-400">{formatCurrency(realBalance)}</div>
                 </div>
                 <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-xl p-4">
                   <div className="text-xs text-gray-400 mb-1">DEMO Balance</div>
-                  <div className="text-2xl font-bold font-mono text-blue-400">{formatCurrency(demoBalance)}</div>
+                  <div className="text-2xl font-bold  text-blue-400">{formatCurrency(demoBalance)}</div>
                 </div>
               </div>
 

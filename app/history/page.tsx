@@ -20,17 +20,18 @@ import {
   CalendarClock,
   Wallet,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  DollarSign
 } from 'lucide-react'
 
+// Skeleton Components
 const StatCardSkeleton = () => (
-  <div className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200 animate-pulse">
-    <div className="flex items-center gap-2 mb-3">
-      <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
-      <div className="h-3 bg-gray-200 rounded w-24"></div>
+  <div className="flex items-center gap-4 animate-pulse">
+    <div className="w-10 h-10 bg-gray-200 rounded-lg flex-shrink-0"></div>
+    <div className="flex-1 min-w-0">
+      <div className="h-3 bg-gray-200 rounded w-20 mb-2"></div>
+      <div className="h-6 bg-gray-200 rounded w-32"></div>
     </div>
-    <div className="h-8 bg-gray-200 rounded w-16 mb-2"></div>
-    <div className="h-3 bg-gray-200 rounded w-20"></div>
   </div>
 )
 
@@ -115,33 +116,32 @@ const LoadingSkeleton = () => (
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
-        {[...Array(5)].map((_, i) => (
-          <StatCardSkeleton key={i} />
-        ))}
+      {/* Stats Skeleton */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          {[...Array(5)].map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
       </div>
 
+      {/* Filters Skeleton */}
       <div className="bg-white rounded-xl p-5 border border-gray-200 mb-6 animate-pulse">
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="h-4 bg-gray-200 rounded w-20"></div>
-            <div className="flex gap-2">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-9 bg-gray-200 rounded-lg w-20"></div>
-              ))}
-            </div>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex gap-2">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-9 bg-gray-200 rounded-lg w-20"></div>
+            ))}
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="h-4 bg-gray-200 rounded w-20"></div>
-            <div className="flex gap-2">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-9 bg-gray-200 rounded-lg w-20"></div>
-              ))}
-            </div>
+          <div className="flex gap-2">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-9 bg-gray-200 rounded-lg w-20"></div>
+            ))}
           </div>
         </div>
       </div>
 
+      {/* Table Skeleton */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="hidden lg:block overflow-x-auto">
           <table className="w-full">
@@ -259,6 +259,7 @@ export default function HistoryPage() {
       <Navbar />
 
       <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl">
+        {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
             <span>Dashboard</span>
@@ -280,69 +281,84 @@ export default function HistoryPage() {
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors"
             >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-              <span className="text-sm font-medium">{refreshing ? 'Refreshing...' : 'Refresh'}</span>
+              <RefreshCw className={`w-4 h-4 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
+              <span className="text-sm font-medium text-gray-700">{refreshing ? 'Refreshing...' : 'Refresh'}</span>
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
-          <div className={`lg:col-span-1 ${
-            totalProfit >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
-          } rounded-xl p-4 sm:p-5 border`}>
-            <div className="flex items-center gap-2 mb-3">
-              <Award className={`w-5 h-5 ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`} />
-              <span className="text-xs font-medium text-gray-600">Total P&L</span>
-            </div>
-            <div className={`text-xl sm:text-2xl font-bold font-mono ${
-              totalProfit >= 0 ? 'text-green-600' : 'text-red-600'
-            }`}>
-              {totalProfit >= 0 ? '+' : ''}{formatCurrency(totalProfit)}
-            </div>
-            {accountFilter !== 'all' && (
-              <div className="text-xs text-gray-500 mt-2">
-                {accountFilter === 'real' ? 'Real' : 'Demo'} Account
+        {/* Stats Card - Single Row for Desktop */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-sm">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
+            {/* Total P&L */}
+            <div className="flex items-center gap-4">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                totalProfit >= 0 ? 'bg-green-100' : 'bg-red-100'
+              }`}>
+                <DollarSign className={`w-5 h-5 ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`} />
               </div>
-            )}
-          </div>
-
-          <div className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200">
-            <div className="flex items-center gap-2 mb-3">
-              <Activity className="w-5 h-5 text-blue-600" />
-              <span className="text-xs font-medium text-gray-600">Total Trades</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-medium text-gray-500 mb-1">Total P&L</div>
+                <div className={`text-lg font-bold truncate ${
+                  totalProfit >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {totalProfit >= 0 ? '+' : ''}{formatCurrency(totalProfit)}
+                </div>
+              </div>
             </div>
-            <div className="text-xl sm:text-2xl font-bold text-gray-900">{stats.total}</div>
-          </div>
 
-          <div className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200">
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="w-5 h-5 text-green-600" />
-              <span className="text-xs font-medium text-gray-600">Won</span>
+            {/* Total Trades */}
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Activity className="w-5 h-5 text-blue-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-medium text-gray-500 mb-1">Total Trades</div>
+                <div className="text-lg font-bold text-gray-900">{stats.total}</div>
+              </div>
             </div>
-            <div className="text-xl sm:text-2xl font-bold text-green-600">{stats.won}</div>
-          </div>
 
-          <div className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200">
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingDown className="w-5 h-5 text-red-600" />
-              <span className="text-xs font-medium text-gray-600">Lost</span>
+            {/* Won */}
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <TrendingUp className="w-5 h-5 text-green-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-medium text-gray-500 mb-1">Won</div>
+                <div className="text-lg font-bold text-green-600">{stats.won}</div>
+              </div>
             </div>
-            <div className="text-xl sm:text-2xl font-bold text-red-600">{stats.lost}</div>
-          </div>
 
-          <div className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200">
-            <div className="flex items-center gap-2 mb-3">
-              <Target className="w-5 h-5 text-yellow-600" />
-              <span className="text-xs font-medium text-gray-600">Win Rate</span>
+            {/* Lost */}
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <TrendingDown className="w-5 h-5 text-red-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-medium text-gray-500 mb-1">Lost</div>
+                <div className="text-lg font-bold text-red-600">{stats.lost}</div>
+              </div>
             </div>
-            <div className="text-xl sm:text-2xl font-bold text-yellow-600">{winRate}%</div>
+
+            {/* Win Rate */}
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Target className="w-5 h-5 text-yellow-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-medium text-gray-500 mb-1">Win Rate</div>
+                <div className="text-lg font-bold text-yellow-600">{winRate}%</div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-5 border border-gray-200 mb-6">
-          <div className="space-y-4">
+        {/* Filters - Single Row: Account Left, Status Right */}
+        <div className="bg-white rounded-xl p-5 border border-gray-200 mb-6 shadow-sm">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+            {/* Account Filter - Left */}
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2">
                 <Wallet className="w-4 h-4 text-gray-500" />
@@ -357,7 +373,7 @@ export default function HistoryPage() {
                   <button
                     key={account.id}
                     onClick={() => handleFilterChange(account.id, 'account')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors touch-manipulation ${
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       accountFilter === account.id
                         ? 'bg-blue-500 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300'
@@ -369,6 +385,7 @@ export default function HistoryPage() {
               </div>
             </div>
 
+            {/* Status Filter - Right */}
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-gray-500" />
@@ -384,7 +401,7 @@ export default function HistoryPage() {
                   <button
                     key={f.id}
                     onClick={() => handleFilterChange(f.id, 'status')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors touch-manipulation ${
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       statusFilter === f.id
                         ? 'bg-gray-900 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300'
@@ -398,7 +415,8 @@ export default function HistoryPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        {/* Orders Table */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
           {orders.length === 0 ? (
             <div className="text-center py-20 px-4">
               <div className="w-20 h-20 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
@@ -413,7 +431,7 @@ export default function HistoryPage() {
               {statusFilter === 'all' && accountFilter === 'all' && (
                 <button
                   onClick={() => router.push('/trading')}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 active:bg-blue-700 transition-colors touch-manipulation"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 active:bg-blue-700 transition-colors"
                 >
                   <Activity className="w-5 h-5" />
                   Start Trading
@@ -422,6 +440,7 @@ export default function HistoryPage() {
             </div>
           ) : (
             <>
+              {/* Desktop Table */}
               <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -482,16 +501,16 @@ export default function HistoryPage() {
                             </span>
                           )}
                         </td>
-                        <td className="py-4 px-4 text-right font-mono text-sm font-semibold text-gray-900">
+                        <td className="py-4 px-4 text-right text-sm font-semibold text-gray-900">
                           {formatCurrency(order.amount)}
                         </td>
                         <td className="py-4 px-4 text-center">
-                          <span className="font-mono text-sm text-gray-900 font-semibold">
+                          <span className="text-sm text-gray-900 font-semibold">
                             {order.entry_price.toFixed(3)}
                           </span>
                         </td>
                         <td className="py-4 px-4 text-center">
-                          <span className={`font-mono text-sm font-semibold ${
+                          <span className={`text-sm font-semibold ${
                             order.exit_price ? 'text-gray-900' : 'text-gray-400'
                           }`}>
                             {order.exit_price ? order.exit_price.toFixed(3) : '—'}
@@ -515,7 +534,7 @@ export default function HistoryPage() {
                         </td>
                         <td className="py-4 px-4 text-right">
                           {order.profit !== null && order.profit !== undefined ? (
-                            <span className={`font-mono text-sm font-bold ${
+                            <span className={`text-sm font-bold ${
                               order.profit > 0 ? 'text-green-600' : 
                               order.profit < 0 ? 'text-red-600' : 
                               'text-gray-500'
@@ -532,6 +551,7 @@ export default function HistoryPage() {
                 </table>
               </div>
 
+              {/* Mobile Cards */}
               <div className="lg:hidden space-y-3 p-4">
                 {orders.map((order) => (
                   <div
@@ -584,7 +604,7 @@ export default function HistoryPage() {
                     <div className="grid grid-cols-2 gap-3 text-sm mb-3">
                       <div className="bg-white rounded-lg p-3">
                         <div className="text-xs text-gray-500 mb-1">Amount</div>
-                        <div className="text-sm font-mono font-semibold text-gray-900">{formatCurrency(order.amount)}</div>
+                        <div className="text-sm font-semibold text-gray-900">{formatCurrency(order.amount)}</div>
                       </div>
                       <div className="bg-white rounded-lg p-3">
                         <div className="text-xs text-gray-500 mb-1">Duration</div>
@@ -595,11 +615,11 @@ export default function HistoryPage() {
                       </div>
                       <div className="bg-white rounded-lg p-3">
                         <div className="text-xs text-gray-500 mb-1">Entry</div>
-                        <div className="font-mono text-sm font-semibold text-gray-900">{order.entry_price.toFixed(3)}</div>
+                        <div className="text-sm font-semibold text-gray-900">{order.entry_price.toFixed(3)}</div>
                       </div>
                       <div className="bg-white rounded-lg p-3">
                         <div className="text-xs text-gray-500 mb-1">Exit</div>
-                        <div className="font-mono text-sm font-semibold text-gray-900">
+                        <div className="text-sm font-semibold text-gray-900">
                           {order.exit_price ? order.exit_price.toFixed(3) : '—'}
                         </div>
                       </div>
@@ -608,7 +628,7 @@ export default function HistoryPage() {
                     {order.profit !== null && order.profit !== undefined && (
                       <div className="bg-white rounded-lg p-3 flex items-center justify-between">
                         <span className="text-xs font-semibold text-gray-600">Profit/Loss</span>
-                        <span className={`font-mono font-bold text-lg ${
+                        <span className={`font-bold text-lg ${
                           order.profit > 0 ? 'text-green-600' : 
                           order.profit < 0 ? 'text-red-600' : 
                           'text-gray-500'
@@ -621,6 +641,7 @@ export default function HistoryPage() {
                 ))}
               </div>
 
+              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="border-t border-gray-200 px-4 py-5">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -632,7 +653,7 @@ export default function HistoryPage() {
                       <button
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
-                        className="flex items-center gap-1 px-4 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                        className="flex items-center gap-1 px-4 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
                         <ChevronLeft className="w-4 h-4" />
                         <span className="text-sm font-medium">Previous</span>
@@ -650,7 +671,7 @@ export default function HistoryPage() {
                               <button
                                 key={page}
                                 onClick={() => handlePageChange(page)}
-                                className={`min-w-[44px] h-11 flex items-center justify-center rounded-lg text-sm font-medium transition-colors touch-manipulation ${
+                                className={`min-w-[44px] h-11 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${
                                   currentPage === page
                                     ? 'bg-blue-500 text-white'
                                     : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100'
@@ -676,7 +697,7 @@ export default function HistoryPage() {
                       <button
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
-                        className="flex items-center gap-1 px-4 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
+                        className="flex items-center gap-1 px-4 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
                         <span className="text-sm font-medium">Next</span>
                         <ChevronRight className="w-4 h-4" />

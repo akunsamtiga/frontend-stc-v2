@@ -80,19 +80,21 @@ export function getStatusProfitBonus(status: UserStatus): number {
 export function calculateStatusProgress(
   totalDeposit: number, 
   currentStatus: UserStatus
-): {
-  current: UserStatus
-  next: UserStatus | null
-  progress: number
-  depositNeeded: number
-} {
+) {
   const statuses: UserStatus[] = ['standard', 'gold', 'vip']
-  const currentIndex = statuses.indexOf(currentStatus)
+  
+  // Validasi dan fallback
+  let validatedCurrent = currentStatus
+  if (!statuses.includes(currentStatus)) {
+    console.warn('Invalid currentStatus:', currentStatus, 'using standard')
+    validatedCurrent = 'standard'
+  }
+  
+  const currentIndex = statuses.indexOf(validatedCurrent)
   
   if (currentIndex === statuses.length - 1) {
-    // Already VIP
     return {
-      current: currentStatus,
+      current: validatedCurrent,
       next: null,
       progress: 100,
       depositNeeded: 0
@@ -100,7 +102,7 @@ export function calculateStatusProgress(
   }
   
   const nextStatus = statuses[currentIndex + 1]
-  const currentConfig = STATUS_CONFIG[currentStatus]
+  const currentConfig = STATUS_CONFIG[validatedCurrent]
   const nextConfig = STATUS_CONFIG[nextStatus]
   
   const rangeStart = currentConfig.minDeposit
@@ -109,12 +111,13 @@ export function calculateStatusProgress(
   const depositNeeded = Math.max(0, rangeEnd - totalDeposit)
   
   return {
-    current: currentStatus,
+    current: validatedCurrent,
     next: nextStatus,
     progress,
     depositNeeded
   }
 }
+
 
 /**
  * Format status information to readable string
@@ -127,10 +130,12 @@ export function formatStatusInfo(statusInfo: {
   progress: number
   depositNeeded?: number
 }): string {
-  const config = STATUS_CONFIG[statusInfo.current]
+  // Fallback ke 'standard' jika status tidak valid
+  const config = STATUS_CONFIG[statusInfo.current] || STATUS_CONFIG.standard
+  
   let info = `${config.label} Status (+${statusInfo.profitBonus}% bonus)`
   
-  if (statusInfo.nextStatus) {
+  if (statusInfo.nextStatus && STATUS_CONFIG[statusInfo.nextStatus]) {
     info += ` • ${statusInfo.progress}% to ${STATUS_CONFIG[statusInfo.nextStatus].label}`
   } else {
     info += ' • MAX TIER'
@@ -138,6 +143,7 @@ export function formatStatusInfo(statusInfo: {
   
   return info
 }
+
 
 /**
  * Get status tier information

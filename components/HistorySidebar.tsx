@@ -233,16 +233,16 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                 <div className="space-y-2 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-400">Amount</span>
-                    <span className="font-mono font-semibold">{formatCurrency(order.amount)}</span>
+                    <span className=" font-semibold">{formatCurrency(order.amount)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-400">Entry Price</span>
-                    <span className="font-mono">{order.entry_price.toFixed(3)}</span>
+                    <span className="">{order.entry_price.toFixed(3)}</span>
                   </div>
                   {order.exit_price && (
                     <div className="flex items-center justify-between">
                       <span className="text-gray-400">Exit Price</span>
-                      <span className="font-mono">{order.exit_price.toFixed(3)}</span>
+                      <span className="">{order.exit_price.toFixed(3)}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between">
@@ -259,7 +259,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                   {order.profit !== null && order.profit !== undefined && (
                     <div className="flex items-center justify-between pt-2 border-t border-gray-800/50">
                       <span className="text-gray-400 font-medium">Profit/Loss</span>
-                      <span className={`font-mono font-bold text-sm ${
+                      <span className={` font-bold text-sm ${
                         order.profit > 0 ? 'text-green-400' : 
                         order.profit < 0 ? 'text-red-400' : 
                         'text-gray-400'

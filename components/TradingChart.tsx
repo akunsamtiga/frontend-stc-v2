@@ -456,7 +456,7 @@ const PriceDisplay = memo(({ asset, price }: { asset: any; price: any }) => {
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-400">{asset.name}</span>
-          <span className="text-xl font-bold font-mono">{price.price.toFixed(3)}</span>
+          <span className="text-xl font-bold ">{price.price.toFixed(3)}</span>
         </div>
         {hasChange && (
           <div className={`flex items-center gap-1 text-sm font-semibold ${
@@ -504,7 +504,7 @@ const OHLCDisplay = memo(({
   })
 
   return (
-    <div className="absolute bottom-12 left-2 z-10 bg-[#0a0e17] border border-gray-800/50 rounded-lg px-3 py-2 text-xs font-mono">
+    <div className="absolute bottom-12 left-2 z-10 bg-[#0a0e17] border border-gray-800/50 rounded-lg px-3 py-2 text-xs ">
       <div className="flex items-center gap-1 text-gray-400 mb-1">
         <Clock className="w-3 h-3" />
         <span>{timeStr} WIB</span>
@@ -862,7 +862,7 @@ const OrderTicker = memo(({ orders, currentPrice }: { orders: BinaryOrder[], cur
 
               <div className="text-xs">
                 <div className="font-semibold leading-tight">{order.asset_name}</div>
-                <div className="text-gray-300 font-mono text-[10px]">{order.entry_price.toFixed(3)}</div>
+                <div className="text-gray-300  text-[10px]">{order.entry_price.toFixed(3)}</div>
               </div>
 
               <div className="w-px h-6 bg-white/10"></div>
@@ -871,14 +871,14 @@ const OrderTicker = memo(({ orders, currentPrice }: { orders: BinaryOrder[], cur
                 <div className={`font-bold leading-tight ${isWinning ? 'text-green-400' : 'text-red-400'}`}>
                   {isWinning ? 'WIN' : 'LOSE'}
                 </div>
-                <div className="text-gray-300 font-mono text-[10px]">{timeLeft}</div>
+                <div className="text-gray-300  text-[10px]">{timeLeft}</div>
               </div>
 
               <div className="w-px h-6 bg-white/10"></div>
 
               <div className="text-xs text-right">
                 <div className="text-gray-400 text-[10px] leading-tight">Amount</div>
-                <div className="font-bold font-mono leading-tight">{formatCurrency(order.amount)}</div>
+                <div className="font-bold  leading-tight">{formatCurrency(order.amount)}</div>
               </div>
             </div>
           )

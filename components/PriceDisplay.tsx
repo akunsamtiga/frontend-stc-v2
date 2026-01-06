@@ -34,7 +34,7 @@ export default function PriceDisplay() {
       <div className="flex items-center justify-between">
         <div>
           <div className="text-sm text-gray-400 mb-1">{selectedAsset.name}</div>
-          <div className="text-4xl font-bold font-mono">
+          <div className="text-4xl font-bold ">
             {formatNumber(currentPrice.price)}
           </div>
         </div>

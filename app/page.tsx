@@ -132,7 +132,7 @@ const FloatingPriceCard = ({ symbol, price, change, delay, style }: any) => (
     style={{ animationDelay: `${delay}s`, ...style }}
   >
     <div className="text-xs text-gray-400 mb-1">{symbol}</div>
-    <div className="text-lg font-bold font-mono mb-1">{price}</div>
+    <div className="text-lg font-bold  mb-1">{price}</div>
     <div className={`text-xs font-semibold flex items-center gap-1 ${
       change > 0 ? 'text-green-400' : 'text-red-400'
     }`}>
@@ -612,7 +612,7 @@ const handleTouchEnd = () => {
               </div>
               <div>
                 <div className="text-sm text-gray-400">EUR/USD</div>
-                <div className="text-3xl font-bold font-mono">1.0856</div>
+                <div className="text-3xl font-bold ">1.0856</div>
               </div>
             </div>
             <div className="text-right">
@@ -1475,7 +1475,7 @@ const handleTouchEnd = () => {
                       </li>
                     </ul>
                     <p className="text-xs text-gray-500 mt-2">
-                      Contoh: <span className="font-mono text-green-400">SecurePass123!</span>
+                      Contoh: <span className=" text-green-400">SecurePass123!</span>
                     </p>
                   </div>
                 )}
@@ -1508,8 +1508,8 @@ const handleTouchEnd = () => {
                   <div className="flex-1">
                     <div className="text-sm font-semibold text-blue-400 mb-1">Akun Demo</div>
                     <div className="text-xs text-gray-400 space-y-1">
-                      <div>Email: <span className="text-gray-300 font-mono">superadmin@trading.com</span></div>
-                      <div>Pass: <span className="text-gray-300 font-mono">SuperAdmin123!</span></div>
+                      <div>Email: <span className="text-gray-300 ">superadmin@trading.com</span></div>
+                      <div>Pass: <span className="text-gray-300 ">SuperAdmin123!</span></div>
                     </div>
                   </div>
                 </div>

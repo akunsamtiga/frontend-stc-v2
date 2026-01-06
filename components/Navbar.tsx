@@ -35,6 +35,8 @@ export default function Navbar() {
     { path: '/trading', label: 'Trading', icon: BarChart3 },
     { path: '/history', label: 'History', icon: History },
     { path: '/balance', label: 'Balance', icon: Wallet },
+    { path: '/profile', label: 'Profile', icon: User }, // ⬅️ TAMBAHKAN INI
+
   ]
 
   if (!user) return null
