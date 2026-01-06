@@ -1,0 +1,259 @@
+// hooks/useProfile.ts
+
+import { useState, useEffect, useCallback } from 'react'
+import { api } from '@/lib/api'
+import { toast } from 'sonner'
+import type { 
+  UserProfile, 
+  UserProfileInfo, 
+  UpdateProfileRequest,
+  ChangePasswordRequest,
+  UploadAvatarRequest 
+} from '@/types'
+
+interface UseProfileReturn {
+  // Data
+  profile: UserProfile | null
+  profileInfo: UserProfileInfo | null
+  
+  // Loading states
+  loading: boolean
+  updating: boolean
+  
+  // Actions
+  loadProfile: () => Promise<void>
+  updateProfile: (data: UpdateProfileRequest) => Promise<boolean>
+  changePassword: (data: ChangePasswordRequest) => Promise<boolean>
+  uploadAvatar: (file: File) => Promise<boolean>
+  
+  // Helper
+  getCompletionPercentage: () => number
+}
+
+export function useProfile(): UseProfileReturn {
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [profileInfo, setProfileInfo] = useState<UserProfileInfo | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [updating, setUpdating] = useState(false)
+
+  /**
+   * Load profile data from API
+   */
+  const loadProfile = useCallback(async () => {
+    try {
+      setLoading(true)
+      
+      const response = await api.getProfile()
+      const data = response?.data || response
+      
+      if (!data) {
+        throw new Error('No profile data received')
+      }
+
+      setProfile(data)
+      
+      if (data.profileInfo) {
+        setProfileInfo(data.profileInfo)
+      }
+      
+    } catch (error: any) {
+      console.error('Failed to load profile:', error)
+      toast.error(error?.message || 'Failed to load profile')
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  /**
+   * Update profile data
+   */
+  const updateProfile = useCallback(async (data: UpdateProfileRequest): Promise<boolean> => {
+    try {
+      setUpdating(true)
+      
+      await api.updateProfile(data)
+      
+      // Reload profile to get updated data
+      await loadProfile()
+      
+      toast.success('Profile updated successfully!')
+      return true
+      
+    } catch (error: any) {
+      console.error('Failed to update profile:', error)
+      toast.error(error?.response?.data?.error || 'Failed to update profile')
+      return false
+    } finally {
+      setUpdating(false)
+    }
+  }, [loadProfile])
+
+  /**
+   * Change password
+   */
+  const changePassword = useCallback(async (data: ChangePasswordRequest): Promise<boolean> => {
+    try {
+      // Validate passwords match
+      if (data.newPassword !== data.confirmPassword) {
+        toast.error('Passwords do not match')
+        return false
+      }
+
+      // Validate password length
+      if (data.newPassword.length < 8) {
+        toast.error('Password must be at least 8 characters')
+        return false
+      }
+
+      setUpdating(true)
+      
+      await api.changePassword(data)
+      
+      toast.success('Password changed successfully!')
+      return true
+      
+    } catch (error: any) {
+      console.error('Failed to change password:', error)
+      toast.error(error?.response?.data?.error || 'Failed to change password')
+      return false
+    } finally {
+      setUpdating(false)
+    }
+  }, [])
+
+  /**
+   * Upload avatar image
+   */
+  const uploadAvatar = useCallback(async (file: File): Promise<boolean> => {
+    try {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select an image file')
+        return false
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image size must be less than 5MB')
+        return false
+      }
+
+      setUpdating(true)
+      
+      // Show uploading toast
+      const uploadToast = toast.loading('Uploading avatar...')
+
+      // Convert to base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        
+        reader.onloadend = () => {
+          const result = reader.result as string
+          resolve(result)
+        }
+        
+        reader.onerror = () => {
+          reject(new Error('Failed to read image file'))
+        }
+        
+        reader.readAsDataURL(file)
+      })
+
+      // Upload to API
+      await api.uploadAvatar({ url: base64 })
+      
+      // Reload profile
+      await loadProfile()
+      
+      toast.success('Avatar uploaded successfully!', { id: uploadToast })
+      return true
+      
+    } catch (error: any) {
+      console.error('Failed to upload avatar:', error)
+      toast.error(error?.message || 'Failed to upload avatar')
+      return false
+    } finally {
+      setUpdating(false)
+    }
+  }, [loadProfile])
+
+  /**
+   * Get profile completion percentage
+   */
+  const getCompletionPercentage = useCallback((): number => {
+    return profileInfo?.completion || 0
+  }, [profileInfo])
+
+  // Load profile on mount
+  useEffect(() => {
+    loadProfile()
+  }, [loadProfile])
+
+  return {
+    profile,
+    profileInfo,
+    loading,
+    updating,
+    loadProfile,
+    updateProfile,
+    changePassword,
+    uploadAvatar,
+    getCompletionPercentage
+  }
+}
+
+/**
+ * Hook untuk form validation
+ */
+export function useProfileFormValidation() {
+  const validateFullName = (name: string): string | null => {
+    if (!name || name.trim().length === 0) {
+      return 'Full name is required'
+    }
+    if (name.trim().length < 3) {
+      return 'Full name must be at least 3 characters'
+    }
+    if (name.trim().length > 100) {
+      return 'Full name must be less than 100 characters'
+    }
+    return null
+  }
+
+  const validatePhoneNumber = (phone: string): string | null => {
+    if (!phone || phone.trim().length === 0) {
+      return null // Optional field
+    }
+    
+    // Indonesian phone number format
+    const phoneRegex = /^(\+62|62|0)[0-9]{9,12}$/
+    if (!phoneRegex.test(phone)) {
+      return 'Invalid phone number format (e.g., +6281234567890)'
+    }
+    return null
+  }
+
+  const validateDateOfBirth = (date: string): string | null => {
+    if (!date) {
+      return null // Optional field
+    }
+    
+    const birthDate = new Date(date)
+    const today = new Date()
+    const age = today.getFullYear() - birthDate.getFullYear()
+    
+    if (age < 17) {
+      return 'You must be at least 17 years old'
+    }
+    if (age > 100) {
+      return 'Invalid date of birth'
+    }
+    return null
+  }
+
+  return {
+    validateFullName,
+    validatePhoneNumber,
+    validateDateOfBirth
+  }
+}

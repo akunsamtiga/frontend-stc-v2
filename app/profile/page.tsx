@@ -9,10 +9,10 @@ import {
   User, Mail, Shield, Calendar, Lock, Bell, Eye, EyeOff, Save, LogOut,
   CheckCircle2, Settings, Award, Crown, TrendingUp, Users, Copy, Check,
   Gift, Share2, MapPin, CreditCard, FileText, Camera, Phone, Edit2,
-  ChevronRight, AlertCircle, Home, Building, Globe
+  ChevronRight, AlertCircle, Home, Building, Globe, Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { UserProfile, StatusInfo, AffiliateInfo, UserProfileInfo, UpdateProfileRequest } from '@/types'
+import type { UserProfile, StatusInfo, AffiliateInfo, UserProfileInfo, UpdateProfileRequest } from '@/types'
 import { getStatusGradient, getStatusIcon } from '@/lib/status-utils'
 
 export default function ProfilePage() {
@@ -99,21 +99,29 @@ export default function ProfilePage() {
 
   const loadProfile = async () => {
     try {
+      setInitialLoading(true)
       const response = await api.getProfile()
+      
+      // Handle both response formats
       const data = response?.data || response
+      
+      if (!data) {
+        throw new Error('No profile data received')
+      }
+
       setProfile(data)
       
-      // Set profile info
+      // Set profile info with safe fallbacks
       if (data.profileInfo) {
         setProfileInfo(data.profileInfo)
         
-        // Initialize form data
+        // Initialize form data with safe access
         setPersonalData({
-          fullName: data.profileInfo.personal.fullName || '',
-          phoneNumber: data.profileInfo.personal.phoneNumber || '',
-          dateOfBirth: data.profileInfo.personal.dateOfBirth || '',
-          gender: data.profileInfo.personal.gender || '',
-          nationality: data.profileInfo.personal.nationality || ''
+          fullName: data.profileInfo.personal?.fullName || '',
+          phoneNumber: data.profileInfo.personal?.phoneNumber || '',
+          dateOfBirth: data.profileInfo.personal?.dateOfBirth || '',
+          gender: data.profileInfo.personal?.gender || '',
+          nationality: data.profileInfo.personal?.nationality || ''
         })
         
         if (data.profileInfo.address) {
@@ -147,9 +155,9 @@ export default function ProfilePage() {
           setSettings(data.profileInfo.settings)
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load profile:', error)
-      toast.error('Failed to load profile')
+      toast.error(error?.message || 'Failed to load profile')
     } finally {
       setInitialLoading(false)
     }
@@ -158,6 +166,12 @@ export default function ProfilePage() {
   const handleUpdatePersonal = async () => {
     setSavingSection('personal')
     try {
+      // Validate data
+      if (personalData.fullName && personalData.fullName.trim().length < 3) {
+        toast.error('Full name must be at least 3 characters')
+        return
+      }
+
       await api.updateProfile({
         fullName: personalData.fullName || undefined,
         phoneNumber: personalData.phoneNumber || undefined,
@@ -168,7 +182,7 @@ export default function ProfilePage() {
       
       toast.success('Personal information updated!')
       setEditingPersonal(false)
-      loadProfile()
+      await loadProfile()
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to update')
     } finally {
@@ -185,7 +199,7 @@ export default function ProfilePage() {
       
       toast.success('Address updated!')
       setEditingAddress(false)
-      loadProfile()
+      await loadProfile()
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to update')
     } finally {
@@ -202,7 +216,7 @@ export default function ProfilePage() {
       
       toast.success('Identity document updated!')
       setEditingIdentity(false)
-      loadProfile()
+      await loadProfile()
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to update')
     } finally {
@@ -219,7 +233,7 @@ export default function ProfilePage() {
       
       toast.success('Bank account updated!')
       setEditingBank(false)
-      loadProfile()
+      await loadProfile()
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to update')
     } finally {
@@ -235,7 +249,7 @@ export default function ProfilePage() {
       })
       
       toast.success('Settings updated!')
-      loadProfile()
+      await loadProfile()
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to update')
     } finally {
@@ -274,20 +288,41 @@ export default function ProfilePage() {
   }
 
   const handleUploadAvatar = async (file: File) => {
-    // Simulate upload - in production, upload to cloud storage first
-    const reader = new FileReader()
-    reader.onloadend = async () => {
-      try {
-        const url = reader.result as string
-        await api.uploadAvatar({ url })
-        
-        toast.success('Avatar uploaded!')
-        loadProfile()
-      } catch (error) {
-        toast.error('Failed to upload avatar')
+    try {
+      // Validate file
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select an image file')
+        return
       }
+
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image size must be less than 5MB')
+        return
+      }
+
+      // Show loading toast
+      const uploadToast = toast.loading('Uploading avatar...')
+
+      // Convert to base64
+      const reader = new FileReader()
+      reader.onloadend = async () => {
+        try {
+          const url = reader.result as string
+          await api.uploadAvatar({ url })
+          
+          toast.success('Avatar uploaded!', { id: uploadToast })
+          await loadProfile()
+        } catch (error) {
+          toast.error('Failed to upload avatar', { id: uploadToast })
+        }
+      }
+      reader.onerror = () => {
+        toast.error('Failed to read image file', { id: uploadToast })
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      toast.error('Failed to process image')
     }
-    reader.readAsDataURL(file)
   }
 
   const copyReferralCode = () => {
@@ -321,7 +356,7 @@ export default function ProfilePage() {
         <Navbar />
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
           <div className="text-center">
-            <div className="w-12 h-12 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+            <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
             <div className="text-sm text-gray-500">Loading profile...</div>
           </div>
         </div>
@@ -332,7 +367,7 @@ export default function ProfilePage() {
   const statusInfo = profile?.statusInfo
   const affiliateInfo = profile?.affiliate
   
-  // ✅ FIXED: Get the actual React component
+  // ✅ Get the React component (not string)
   const StatusIcon = statusInfo ? getStatusIcon(statusInfo.current) : User
 
   const tabs = [
@@ -454,7 +489,6 @@ export default function ProfilePage() {
                         />
                       ) : (
                         <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${getStatusGradient(statusInfo?.current || 'standard')} flex items-center justify-center`}>
-                          {/* ✅ FIXED: Properly render as JSX component */}
                           <StatusIcon className="w-10 h-10 text-white" />
                         </div>
                       )}
@@ -474,10 +508,9 @@ export default function ProfilePage() {
                     </label>
                   </div>
                   <h3 className="text-lg font-bold text-gray-900 mb-1">
-                    {profileInfo?.personal.fullName || user.email}
+                    {profileInfo?.personal?.fullName || user.email}
                   </h3>
                   <div className={`inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r ${getStatusGradient(statusInfo?.current || 'standard')} rounded-lg text-sm font-medium text-white mb-3`}>
-                    {/* ✅ FIXED: Properly render as JSX component */}
                     <StatusIcon className="w-4 h-4" />
                     {statusInfo?.current.toUpperCase()}
                   </div>
@@ -532,10 +565,10 @@ export default function ProfilePage() {
                   <h3 className="text-lg font-bold text-gray-900 mb-4">Verification Status</h3>
                   <div className="grid grid-cols-2 gap-4">
                     {[
-                      { label: 'Email', verified: profileInfo.verification.emailVerified, icon: Mail },
-                      { label: 'Phone', verified: profileInfo.verification.phoneVerified, icon: Phone },
-                      { label: 'Identity', verified: profileInfo.verification.identityVerified, icon: FileText },
-                      { label: 'Bank', verified: profileInfo.verification.bankVerified, icon: CreditCard }
+                      { label: 'Email', verified: profileInfo.verification?.emailVerified, icon: Mail },
+                      { label: 'Phone', verified: profileInfo.verification?.phoneVerified, icon: Phone },
+                      { label: 'Identity', verified: profileInfo.verification?.identityVerified, icon: FileText },
+                      { label: 'Bank', verified: profileInfo.verification?.bankVerified, icon: CreditCard }
                     ].map((item) => (
                       <div key={item.label} className={`p-4 rounded-xl border-2 ${item.verified ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
                         <div className="flex items-center gap-3">
@@ -554,7 +587,7 @@ export default function ProfilePage() {
                     <div className="flex items-center gap-2 mb-2">
                       <Shield className="w-5 h-5 text-blue-600" />
                       <span className="font-semibold text-blue-900">
-                        Verification Level: {profileInfo.verification.verificationLevel.toUpperCase()}
+                        Verification Level: {(profileInfo.verification?.verificationLevel || 'unverified').toUpperCase()}
                       </span>
                     </div>
                     <p className="text-sm text-blue-700">
@@ -622,7 +655,7 @@ export default function ProfilePage() {
                       >
                         {savingSection === 'personal' ? (
                           <>
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <Loader2 className="w-4 h-4 animate-spin" />
                             Saving...
                           </>
                         ) : (
@@ -649,7 +682,7 @@ export default function ProfilePage() {
                       />
                     ) : (
                       <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                        {profileInfo.personal.fullName || '-'}
+                        {profileInfo.personal?.fullName || '-'}
                       </div>
                     )}
                   </div>
@@ -666,7 +699,7 @@ export default function ProfilePage() {
                       />
                     ) : (
                       <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                        {profileInfo.personal.phoneNumber || '-'}
+                        {profileInfo.personal?.phoneNumber || '-'}
                       </div>
                     )}
                   </div>
@@ -682,7 +715,7 @@ export default function ProfilePage() {
                       />
                     ) : (
                       <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                        {profileInfo.personal.dateOfBirth ? new Date(profileInfo.personal.dateOfBirth).toLocaleDateString('id-ID', {
+                        {profileInfo.personal?.dateOfBirth ? new Date(profileInfo.personal.dateOfBirth).toLocaleDateString('id-ID', {
                           year: 'numeric',
                           month: 'long',
                           day: 'numeric'
@@ -706,7 +739,7 @@ export default function ProfilePage() {
                       </select>
                     ) : (
                       <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium capitalize">
-                        {profileInfo.personal.gender || '-'}
+                        {profileInfo.personal?.gender || '-'}
                       </div>
                     )}
                   </div>
@@ -723,7 +756,7 @@ export default function ProfilePage() {
                       />
                     ) : (
                       <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
-                        {profileInfo.personal.nationality || '-'}
+                        {profileInfo.personal?.nationality || '-'}
                       </div>
                     )}
                   </div>
@@ -731,7 +764,7 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* Security tab remains same... */}
+            {/* Security Tab */}
             {activeTab === 'security' && (
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
                 <div className="p-6 border-b border-gray-200">
@@ -785,9 +818,16 @@ export default function ProfilePage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-semibold transition-all disabled:opacity-50"
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    {loading ? 'Changing Password...' : 'Change Password'}
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Changing Password...
+                      </>
+                    ) : (
+                      'Change Password'
+                    )}
                   </button>
                 </form>
               </div>

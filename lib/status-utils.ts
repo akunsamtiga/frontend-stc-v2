@@ -1,16 +1,26 @@
-// lib/status-utils.ts - FIXED: Return React Components
-import { UserStatus, STATUS_CONFIG } from '@/types'
-import { User, Award, Crown } from 'lucide-react'
-import { LucideIcon } from 'lucide-react'
+// lib/status-utils.ts - FIXED VERSION
+// ✅ Returns React Components, not strings
 
+import { UserStatus, STATUS_CONFIG } from '@/types'
+import { User, Award, Crown, LucideIcon } from 'lucide-react'
+
+/**
+ * Get status configuration
+ */
 export function getStatusConfig(status: UserStatus) {
   return STATUS_CONFIG[status]
 }
 
+/**
+ * Get status label (string)
+ */
 export function getStatusLabel(status: UserStatus): string {
   return STATUS_CONFIG[status].label
 }
 
+/**
+ * Get status color name (string)
+ */
 export function getStatusColor(status: UserStatus): string {
   const colors = {
     standard: 'gray',
@@ -20,6 +30,9 @@ export function getStatusColor(status: UserStatus): string {
   return colors[status]
 }
 
+/**
+ * Get Tailwind gradient classes (string)
+ */
 export function getStatusGradient(status: UserStatus): string {
   const gradients = {
     standard: 'from-gray-400 to-gray-500',
@@ -29,6 +42,9 @@ export function getStatusGradient(status: UserStatus): string {
   return gradients[status]
 }
 
+/**
+ * Get Tailwind background classes (string)
+ */
 export function getStatusBgClass(status: UserStatus): string {
   const classes = {
     standard: 'bg-gray-100 text-gray-700 border-gray-200',
@@ -38,9 +54,12 @@ export function getStatusBgClass(status: UserStatus): string {
   return classes[status]
 }
 
-// ✅ FIXED: Return actual React component, not string
+/**
+ * ✅ CRITICAL: Returns React component class (LucideIcon)
+ * NOT a string - this is a React component you can render
+ */
 export function getStatusIcon(status: UserStatus): LucideIcon {
-  const icons = {
+  const icons: Record<UserStatus, LucideIcon> = {
     standard: User,
     gold: Award,
     vip: Crown
@@ -48,11 +67,20 @@ export function getStatusIcon(status: UserStatus): LucideIcon {
   return icons[status]
 }
 
+/**
+ * Get profit bonus percentage
+ */
 export function getStatusProfitBonus(status: UserStatus): number {
   return STATUS_CONFIG[status].profitBonus
 }
 
-export function calculateStatusProgress(totalDeposit: number, currentStatus: UserStatus): {
+/**
+ * Calculate status progress
+ */
+export function calculateStatusProgress(
+  totalDeposit: number, 
+  currentStatus: UserStatus
+): {
   current: UserStatus
   next: UserStatus | null
   progress: number
@@ -88,6 +116,9 @@ export function calculateStatusProgress(totalDeposit: number, currentStatus: Use
   }
 }
 
+/**
+ * Format status information to readable string
+ */
 export function formatStatusInfo(statusInfo: {
   current: UserStatus
   totalDeposit: number
@@ -108,6 +139,9 @@ export function formatStatusInfo(statusInfo: {
   return info
 }
 
+/**
+ * Get status tier information
+ */
 export function getStatusTierInfo(status: UserStatus): {
   tier: number
   totalTiers: number
@@ -123,10 +157,79 @@ export function getStatusTierInfo(status: UserStatus): {
   }
 }
 
-// ✅ Let TypeScript infer the return type
+/**
+ * Get all status tiers with their configurations
+ */
 export function getAllStatusTiers() {
   return (['standard', 'gold', 'vip'] as UserStatus[]).map(status => ({
     status,
-    config: STATUS_CONFIG[status]
+    config: STATUS_CONFIG[status],
+    icon: getStatusIcon(status) // React component
   }))
+}
+
+/**
+ * Format currency for deposit requirements
+ */
+export function formatDepositRequirement(amount: number): string {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
+
+/**
+ * Get status color for progress bar
+ */
+export function getStatusProgressColor(status: UserStatus): string {
+  const colors = {
+    standard: '#6B7280', // gray-500
+    gold: '#F59E0B',     // amber-500
+    vip: '#8B5CF6'       // purple-500
+  }
+  return colors[status]
+}
+
+/**
+ * Check if user can upgrade status
+ */
+export function canUpgradeStatus(
+  currentStatus: UserStatus, 
+  totalDeposit: number
+): boolean {
+  if (currentStatus === 'vip') return false
+  
+  const statuses: UserStatus[] = ['standard', 'gold', 'vip']
+  const currentIndex = statuses.indexOf(currentStatus)
+  const nextStatus = statuses[currentIndex + 1]
+  const nextConfig = STATUS_CONFIG[nextStatus]
+  
+  return totalDeposit >= nextConfig.minDeposit
+}
+
+/**
+ * Get next status info
+ */
+export function getNextStatusInfo(currentStatus: UserStatus): {
+  status: UserStatus | null
+  depositRequired: number
+  profitBonus: number
+} | null {
+  const statuses: UserStatus[] = ['standard', 'gold', 'vip']
+  const currentIndex = statuses.indexOf(currentStatus)
+  
+  if (currentIndex === statuses.length - 1) {
+    return null // Already max tier
+  }
+  
+  const nextStatus = statuses[currentIndex + 1]
+  const nextConfig = STATUS_CONFIG[nextStatus]
+  
+  return {
+    status: nextStatus,
+    depositRequired: nextConfig.minDeposit,
+    profitBonus: nextConfig.profitBonus
+  }
 }

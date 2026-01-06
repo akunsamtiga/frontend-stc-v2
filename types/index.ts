@@ -536,12 +536,16 @@ export interface UserProfileInfo {
   }
 }
 
+
 export interface UpdateProfileRequest {
+  // Personal Information
   fullName?: string
   phoneNumber?: string
   dateOfBirth?: string
   gender?: 'male' | 'female' | 'other'
   nationality?: string
+  
+  // Address Information
   address?: {
     street?: string
     city?: string
@@ -549,17 +553,23 @@ export interface UpdateProfileRequest {
     postalCode?: string
     country?: string
   }
+  
+  // Identity Document
   identityDocument?: {
     type?: 'ktp' | 'passport' | 'sim'
     number?: string
     issuedDate?: string
     expiryDate?: string
   }
+  
+  // Bank Account
   bankAccount?: {
     bankName?: string
     accountNumber?: string
     accountHolderName?: string
   }
+  
+  // Settings
   settings?: {
     emailNotifications?: boolean
     smsNotifications?: boolean
@@ -569,6 +579,7 @@ export interface UpdateProfileRequest {
     timezone?: string
   }
 }
+
 
 export interface ChangePasswordRequest {
   currentPassword: string
@@ -585,6 +596,120 @@ export interface VerifyPhoneRequest {
   verificationCode: string
 }
 
+export function calculateProfileCompletion(profile?: UserProfileInfo): number {
+  if (!profile) return 10 // Base: email registered
+
+  let completion = 10 // Base
+
+  // Personal info (30%)
+  if (profile.personal?.fullName) completion += 10
+  if (profile.personal?.phoneNumber) completion += 10
+  if (profile.personal?.dateOfBirth) completion += 5
+  if (profile.personal?.gender) completion += 5
+
+  // Address (20%)
+  if (profile.address?.street) completion += 5
+  if (profile.address?.city) completion += 5
+  if (profile.address?.province) completion += 5
+  if (profile.address?.postalCode) completion += 5
+
+  // Identity (20%)
+  if (profile.identity?.number) completion += 10
+  if (profile.identity?.isVerified) completion += 10
+
+  // Bank Account (20%)
+  if (profile.bankAccount?.accountNumber) completion += 10
+  if (profile.bankAccount?.isVerified) completion += 10
+
+  // Avatar (10%)
+  if (profile.avatar?.url) completion += 10
+
+  return Math.min(100, completion)
+}
+
+// ===================================
+// VALIDATION HELPERS
+// ===================================
+
+export function validatePhoneNumber(phone: string): boolean {
+  // Indonesian phone number format
+  const phoneRegex = /^(\+62|62|0)[0-9]{9,12}$/
+  return phoneRegex.test(phone)
+}
+
+export function validateEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
+}
+
+export function validatePassword(password: string): { valid: boolean; errors: string[] } {
+  const errors: string[] = []
+  
+  if (password.length < 8) {
+    errors.push('Password must be at least 8 characters')
+  }
+  
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Password must contain at least one uppercase letter')
+  }
+  
+  if (!/[a-z]/.test(password)) {
+    errors.push('Password must contain at least one lowercase letter')
+  }
+  
+  if (!/[0-9]/.test(password)) {
+    errors.push('Password must contain at least one number')
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors
+  }
+}
+
+export function formatPhoneNumber(phone: string): string {
+  // Format Indonesian phone number
+  let cleaned = phone.replace(/\D/g, '')
+  
+  if (cleaned.startsWith('62')) {
+    return '+' + cleaned
+  } else if (cleaned.startsWith('0')) {
+    return '+62' + cleaned.substring(1)
+  }
+  
+  return '+62' + cleaned
+}
+
+// ===================================
+// PROFILE DATA MASKING
+// ===================================
+
+export function maskIdentityNumber(number?: string): string {
+  if (!number) return '****'
+  if (number.length <= 4) return '****'
+  
+  const visible = number.slice(-4)
+  const masked = '*'.repeat(number.length - 4)
+  return masked + visible
+}
+
+export function maskBankAccount(accountNumber?: string): string {
+  if (!accountNumber) return '****'
+  if (accountNumber.length <= 4) return '****'
+  
+  const visible = accountNumber.slice(-4)
+  const masked = '*'.repeat(accountNumber.length - 4)
+  return masked + visible
+}
+
+export function maskPhoneNumber(phone?: string): string {
+  if (!phone) return '****'
+  if (phone.length <= 4) return '****'
+  
+  const visible = phone.slice(-4)
+  const masked = '*'.repeat(Math.min(phone.length - 4, 8))
+  return masked + visible
+}
 
 // Constants
 export const ORDER_STATUSES: OrderStatus[] = ['PENDING', 'ACTIVE', 'WON', 'LOST', 'EXPIRED', 'CANCELLED']
