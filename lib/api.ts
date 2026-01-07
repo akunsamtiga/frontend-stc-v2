@@ -360,6 +360,22 @@ class ApiClient {
     return this.client.post('/auth/login', { email, password })
   }
 
+  async googleSignIn(idToken: string, referralCode?: string): Promise<ApiResponse> {
+    try {
+      const response = await this.client.post('/auth/google', { 
+        idToken, 
+        referralCode 
+      })
+      
+      console.log('✅ Google Sign-In API response:', response)
+      return response
+    } catch (error: any) {
+      console.error('❌ Google Sign-In API error:', error)
+      throw error
+    }
+  }
+
+
   async register(email: string, password: string, referralCode?: string): Promise<ApiResponse> {
     return this.client.post('/auth/register', { email, password, referralCode })
   }

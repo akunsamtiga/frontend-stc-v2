@@ -8,6 +8,11 @@ import { toast } from 'sonner'
 import EnhancedFooter from '@/components/EnhancedFooter'
 import Image from 'next/image'
 import { 
+  signInWithGoogle, 
+  handleGoogleRedirectResult,
+  getIdToken 
+} from '@/lib/firebase-auth'
+import { 
   TrendingUp, 
   Zap, 
   Shield, 
@@ -38,6 +43,7 @@ import {
   CryptoPriceData,
   LiveTradeData
 } from '@/lib/crypto-price'
+import React from 'react'
 
 // ===================================
 // LIVE CRYPTO TRADING TICKER
@@ -170,15 +176,30 @@ const LiveCryptoChart = () => {
   const [selectedCrypto, setSelectedCrypto] = useState('BTC')
   const [priceData, setPriceData] = useState<CryptoPriceData | null>(null)
   const [priceHistory, setPriceHistory] = useState<number[]>([])
+  const [currentTradeIndex, setCurrentTradeIndex] = useState(0) // ✅ Track current index
+
+  // ✅ Data dummy 10 transaksi
+  const dummyTrades = [
+    { user: 'Ahmad R.', asset: 'BTC/USD', profit: 2450000, time: 'Baru saja' },
+    { user: 'Siti N.', asset: 'ETH/USD', profit: 1850000, time: '1 menit lalu' },
+    { user: 'Budi S.', asset: 'BNB/USD', profit: 950000, time: '2 menit lalu' },
+    { user: 'Dewi L.', asset: 'BTC/USD', profit: 3200000, time: '3 menit lalu' },
+    { user: 'Andi P.', asset: 'ETH/USD', profit: 1650000, time: '5 menit lalu' },
+    { user: 'Rina M.', asset: 'BNB/USD', profit: 780000, time: '7 menit lalu' },
+    { user: 'Joko W.', asset: 'BTC/USD', profit: 2980000, time: '10 menit lalu' },
+    { user: 'Maya S.', asset: 'ETH/USD', profit: 1420000, time: '12 menit lalu' },
+    { user: 'Hendra K.', asset: 'BNB/USD', profit: 890000, time: '15 menit lalu' },
+    { user: 'Lisa A.', asset: 'BTC/USD', profit: 2750000, time: '18 menit lalu' },
+  ]
 
   useEffect(() => {
     setPriceHistory([])
     
     const unsubscribe = subscribeToCryptoPrices(
       [selectedCrypto],
-      (prices) => {
-        if (prices[selectedCrypto]) {
-          const data = prices[selectedCrypto]
+      (newPrices) => {
+        if (newPrices[selectedCrypto]) {
+          const data = newPrices[selectedCrypto]
           setPriceData(data)
           
           setPriceHistory(prev => {
@@ -193,9 +214,27 @@ const LiveCryptoChart = () => {
     return () => unsubscribe()
   }, [selectedCrypto])
 
+  // ✅ Auto-rotate trades every 6 seconds (one at a time)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTradeIndex((prev) => {
+        // Move by 1, loop back to start when reaching end
+        return (prev + 1) % dummyTrades.length
+      })
+    }, 8000) // 6 seconds
+
+    return () => clearInterval(interval)
+  }, [])
+
   const maxPrice = Math.max(...priceHistory, 1)
   const minPrice = Math.min(...priceHistory, 0)
   const priceRange = maxPrice - minPrice || 1
+
+  // ✅ Get current 2 consecutive trades to display
+  const currentTrades = [
+    dummyTrades[currentTradeIndex],
+    dummyTrades[(currentTradeIndex + 1) % dummyTrades.length]
+  ]
 
   return (
     <div className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl p-6 shadow-2xl backdrop-blur-xl hover:scale-[1.02] transition-transform duration-300">
@@ -249,8 +288,8 @@ const LiveCryptoChart = () => {
         )}
       </div>
 
-      {/* Live Chart */}
-      <div className="bg-[#0a0e17] rounded-2xl mb-6 overflow-hidden border border-gray-800/50">
+      {/* Live Chart - Hidden on mobile */}
+      <div className="hidden sm:block bg-[#0a0e17] rounded-2xl mb-6 overflow-hidden border border-gray-800/50">
         <div className="h-64 flex items-end justify-between gap-1 p-4">
           {priceHistory.length > 0 ? (
             priceHistory.map((price, i) => {
@@ -275,18 +314,43 @@ const LiveCryptoChart = () => {
       </div>
 
       {/* Trading Buttons */}
-      <div className="grid grid-cols-2 gap-4">
-        <button className="group relative bg-gradient-to-br from-emerald-500/20 to-green-500/20 hover:from-emerald-500/30 hover:to-green-500/30 border border-emerald-500/30 rounded-xl p-6 transition-colors overflow-hidden">
-          <TrendingUp className="w-8 h-8 text-emerald-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-          <div className="font-bold text-lg text-emerald-400">BELI</div>
-          <div className="text-xs text-gray-400">Profit +95%</div>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <button className="group relative bg-gradient-to-br from-emerald-500/20 to-green-500/20 hover:from-emerald-500/30 hover:to-green-500/30 border border-emerald-500/30 rounded-xl p-4 sm:p-6 transition-colors overflow-hidden">
+          <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-400 mx-auto mb-1 sm:mb-2 group-hover:scale-110 transition-transform" />
+          <div className="font-bold text-base sm:text-lg text-emerald-400">BELI</div>
+          <div className="text-[10px] sm:text-xs text-gray-400">Profit +95%</div>
         </button>
 
-        <button className="group relative bg-gradient-to-br from-red-500/20 to-pink-500/20 hover:from-red-500/30 hover:to-pink-500/30 border border-red-500/30 rounded-xl p-6 transition-colors overflow-hidden">
-          <TrendingDown className="w-8 h-8 text-red-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-          <div className="font-bold text-lg text-red-400">JUAL</div>
-          <div className="text-xs text-gray-400">Profit +95%</div>
+        <button className="group relative bg-gradient-to-br from-red-500/20 to-pink-500/20 hover:from-red-500/30 hover:to-pink-500/30 border border-red-500/30 rounded-xl p-4 sm:p-6 transition-colors overflow-hidden">
+          <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-red-400 mx-auto mb-1 sm:mb-2 group-hover:scale-110 transition-transform" />
+          <div className="font-bold text-base sm:text-lg text-red-400">JUAL</div>
+          <div className="text-[10px] sm:text-xs text-gray-400">Profit +95%</div>
         </button>
+      </div>
+
+      {/* Live Transactions - Mobile Only, Auto-rotate every 6 seconds (one by one) */}
+      <div className="sm:hidden mt-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+          <span className="text-xs font-semibold text-gray-300">Transaksi Live</span>
+        </div>
+        <div className="space-y-2">
+          {currentTrades.map((trade, i) => (
+            <div 
+              key={`${currentTradeIndex}-${i}`}
+              className="flex items-center justify-between p-2.5 bg-green-500/5 border border-green-500/20 rounded-lg hover:bg-green-500/10 transition-all duration-500 animate-fade-in-up"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-medium text-gray-200 truncate">{trade.user}</div>
+                <div className="text-[10px] text-gray-400">{trade.asset}</div>
+              </div>
+              <div className="text-right ml-3">
+                <div className="text-xs font-bold text-green-400">+Rp {trade.profit.toLocaleString()}</div>
+                <div className="text-[9px] text-gray-500">{trade.time}</div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -309,6 +373,7 @@ export default function LandingPage() {
   const [touchStart, setTouchStart] = useState(0)
   const [touchEnd, setTouchEnd] = useState(0)
   const [logoPhase, setLogoPhase] = useState<'stc-logo-in' | 'stc-text-in' | 'stc-hold' | 'stc-text-out' | 'stc-logo-out' | 'stockity-logo-in' | 'stockity-text-in' | 'stockity-hold' | 'stockity-text-out' | 'stockity-logo-out'>('stc-logo-in')
+  const [loadingGoogle, setLoadingGoogle] = useState(false)
 
   // Logo animation
   useEffect(() => {
@@ -381,6 +446,48 @@ export default function LandingPage() {
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
 
+  useEffect(() => {
+    // Check for redirect result when page loads
+    const checkRedirectResult = async () => {
+      try {
+        const result = await handleGoogleRedirectResult()
+        
+        if (result && result.user) {
+          console.log('✅ Handling redirect result...')
+          
+          const idToken = await getIdToken(result.user)
+          const urlParams = new URLSearchParams(window.location.search)
+          const referralCode = urlParams.get('ref') || undefined
+
+          const response = await api.googleSignIn(idToken, referralCode)
+          
+          const userData = response.user || response.data?.user
+          const token = response.token || response.data?.token
+
+          if (userData && token) {
+            setAuth(userData, token)
+            api.setToken(token)
+            
+            const message = response.data?.isNewUser 
+              ? 'Akun berhasil dibuat! Selamat datang!' 
+              : 'Selamat datang kembali!'
+            
+            toast.success(message)
+            router.push('/trading')
+          }
+        }
+      } catch (error: any) {
+        console.error('❌ Redirect result error:', error)
+        if (error.response?.data?.error) {
+          toast.error(error.response.data.error)
+        }
+      }
+    }
+
+    checkRedirectResult()
+  }, [])
+
+
   // Touch handlers for mobile swipe
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.targetTouches[0].clientX)
@@ -444,9 +551,83 @@ export default function LandingPage() {
     }
   }
 
+  const handleGoogleSignIn = async () => {
+    setLoadingGoogle(true)
+
+    try {
+      console.log('🔐 Starting Google Sign-In...')
+      
+      // Sign in with Google
+      const result = await signInWithGoogle()
+      
+      if (!result || !result.user) {
+        throw new Error('No user data from Google')
+      }
+
+      console.log('✅ Google authentication successful')
+      
+      // Get ID Token
+      const idToken = await getIdToken(result.user)
+      console.log('✅ ID Token obtained')
+
+      // Get referral code from URL if exists
+      const urlParams = new URLSearchParams(window.location.search)
+      const referralCode = urlParams.get('ref') || undefined
+
+      // Send to backend
+      console.log('📤 Sending to backend...')
+      const response = await api.googleSignIn(idToken, referralCode)
+      
+      const userData = response.user || response.data?.user
+      const token = response.token || response.data?.token
+
+      if (!userData || !token) {
+        throw new Error('Invalid response from server')
+      }
+
+      console.log('✅ Backend authentication successful')
+
+      // Set auth state
+      setAuth(userData, token)
+      api.setToken(token)
+
+      // Show success message
+      const message = response.data?.isNewUser 
+        ? 'Akun berhasil dibuat! Selamat datang!' 
+        : 'Selamat datang kembali!'
+      
+      toast.success(message)
+
+      // Close modal and redirect
+      setShowAuthModal(false)
+      router.push('/trading')
+
+    } catch (error: any) {
+      console.error('❌ Google Sign-In failed:', error)
+      
+      // Handle specific errors
+      let errorMessage = 'Login dengan Google gagal'
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Login dibatalkan'
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = 'Popup diblokir. Mohon izinkan popup untuk login dengan Google'
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
+      toast.error(errorMessage)
+    } finally {
+      setLoadingGoogle(false)
+    }
+  }
+
+
   // Data
   const stats = [
-    { label: 'Trader Aktif', value: '1 jt+', icon: Users },
+    { label: 'Pengguna', value: '1 jt+', icon: Users },
     { label: 'Volume Harian', value: '$10 B', icon: DollarSign },
     { label: 'Win Rate', value: '100%', icon: Target },
     { label: 'Negara', value: '15+', icon: Globe },
@@ -713,7 +894,7 @@ export default function LandingPage() {
               </div>
 
               {/* Stats Row */}
-              <div className="grid grid-cols-4 gap-4 pt-8">
+              <div className="hidden sm:grid grid-cols-4 gap-4 pt-8">
                 {stats.map((stat, index) => (
                   <div 
                     key={index} 
@@ -799,14 +980,14 @@ export default function LandingPage() {
     </div>
 
     {/* Mobile - Compact Stack */}
-<div className="sm:hidden relative">
+    <div className="sm:hidden relative">
   <div 
     className="relative overflow-hidden"
     onTouchStart={handleTouchStart}
     onTouchMove={handleTouchMove}
     onTouchEnd={handleTouchEnd}
   >
-    <div className="relative min-h-[160px]">
+    <div className="relative min-h-[110px]">
       {features.map((feature, index) => {
         const isActive = index === activeFeature
         const offset = index - activeFeature
@@ -825,29 +1006,34 @@ export default function LandingPage() {
             }`}
           >
             <div className="mx-4 h-full">
-              <div className={`relative h-full bg-[#0a0e17] border ${feature.borderColor} rounded-xl p-4 overflow-hidden`}>
+              <div className={`relative h-full bg-[#0a0e17] border ${feature.borderColor} rounded-xl p-3 overflow-hidden`}>
                 {/* Subtle bg gradient */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-5`}></div>
                 
                 <div className="relative h-full flex flex-col">
-                  {/* Header: Icon + Number */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div className={`w-10 h-10 ${feature.bgColor} ${feature.borderColor} border rounded-lg flex items-center justify-center`}>
-                      <feature.icon className={`w-5 h-5 ${feature.color}`} />
+                  <div className="flex items-start gap-3 flex-1">
+                    {/* Icon - Fixed size on left */}
+                    <div className={`flex-shrink-0 w-12 h-12 ${feature.bgColor} ${feature.borderColor} border rounded-xl flex items-center justify-center`}>
+                      <feature.icon className={`w-6 h-6 ${feature.color}`} />
                     </div>
-                    <div className={`w-6 h-6 ${feature.bgColor} rounded-md flex items-center justify-center border ${feature.borderColor}`}>
-                      <span className={`text-xs font-bold ${feature.color}`}>{index + 1}</span>
+
+                    {/* Content - Right side */}
+                    <div className="flex-1 min-w-0">
+                      {/* Title + Number on same line */}
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <h3 className="text-base font-bold tracking-tight leading-tight">{feature.title}</h3>
+                        <div className={`flex-shrink-0 w-6 h-6 ${feature.bgColor} rounded-md flex items-center justify-center border ${feature.borderColor}`}>
+                          <span className={`text-xs font-bold ${feature.color}`}>{index + 1}</span>
+                        </div>
+                      </div>
+                      
+                      {/* Description */}
+                      <p className="text-sm text-gray-400 leading-snug">{feature.description}</p>
                     </div>
                   </div>
 
-                  {/* Content - Compact */}
-                  <div className="flex-1">
-                    <h3 className="text-base font-bold tracking-tight mb-1.5">{feature.title}</h3>
-                    <p className="text-sm text-gray-400 leading-snug">{feature.description}</p>
-                  </div>
-
-                  {/* Bottom accent - thinner */}
-                  <div className={`h-0.5 w-12 ${feature.bgColor} rounded-full mt-3`}></div>
+                  {/* Bottom accent - More visible */}
+                  <div className={`h-1 w-16 ${feature.bgColor} rounded-full mt-3 opacity-60`}></div>
                 </div>
               </div>
             </div>
@@ -881,6 +1067,7 @@ export default function LandingPage() {
     Swipe untuk melihat lebih banyak
   </div>
 </div>
+
   </div>
 </section>
 
@@ -1092,7 +1279,7 @@ export default function LandingPage() {
               <div className="flex items-center justify-center gap-8 mt-12 pt-8 border-t border-gray-800/50">
                 <div className="text-center">
                   <div className="text-2xl font-bold mb-1">1 jt+</div>
-                  <div className="text-xs text-gray-500">Trader Aktif</div>
+                  <div className="text-xs text-gray-500">Pengguna Aktif</div>
                 </div>
                 <div className="w-px h-10 bg-gray-800"></div>
                 <div className="text-center">
@@ -1158,122 +1345,122 @@ export default function LandingPage() {
       </section>
 
 {/* Payment Methods Section */}
-      <section className="py-16 sm:py-20 relative border-t border-yellow-800/50">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full mb-6">
-              <Shield className="w-3.5 h-3.5 text-yellow-400" />
-              <span className="text-xs font-medium text-yellow-400">Metode Pembayaran Aman</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-bold mb-3 tracking-tight">
-              Deposit & Penarikan Mudah
-            </h2>
-            <p className="text-sm text-gray-400 max-w-xl mx-auto">
-              Berbagai pilihan metode pembayaran untuk kemudahan transaksi Anda
-            </p>
-          </div>
+<section className="py-16 sm:py-20 relative border-t border-yellow-800/50">
+  <div className="container mx-auto px-4 sm:px-6">
+    <div className="text-center mb-12">
+      <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full mb-6">
+        <Shield className="w-3.5 h-3.5 text-yellow-400" />
+        <span className="text-xs font-medium text-yellow-400">Metode Pembayaran Aman</span>
+      </div>
+      <h2 className="text-2xl sm:text-3xl font-bold mb-3 tracking-tight">
+        Deposit & Penarikan Mudah
+      </h2>
+      <p className="text-sm text-gray-400 max-w-xl mx-auto">
+        Berbagai pilihan metode pembayaran untuk kemudahan transaksi Anda
+      </p>
+    </div>
 
-          {/* Desktop Grid */}
-          <div className="hidden sm:block max-w-5xl mx-auto space-y-3 sm:space-y-4">
-            {/* Baris 1 - 6 items */}
-            <div className="grid grid-cols-6 gap-4">
-              {[
-                { name: 'Mandiri', logo: '/mandiri.webp' },
-                { name: 'BRI', logo: '/bri.webp' },
-                { name: 'BNI', logo: '/bni.webp' },
-                { name: 'GoPay', logo: '/gopay.webp' },
-                { name: 'OVO', logo: '/ovo.webp' },
-                { name: 'DANA', logo: '/dana.webp' },
-              ].map((item) => (
-                <div key={item.name} className="bg-white border border-gray-200 rounded-xl p-6 transition-all hover:shadow-md">
-                  <div className="relative h-12 flex items-center justify-center">
-                    <Image 
-                      src={item.logo} 
-                      alt={item.name}
-                      width={120}
-                      height={40}
-                      className="h-full w-auto object-contain"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Baris 2 - 5 items */}
-            <div className="grid grid-cols-5 gap-4">
-              {[
-                { name: 'LinkAja', logo: '/linkaja.webp' },
-                { name: 'Visa', logo: '/visa.webp' },
-                { name: 'Mastercard', logo: '/mastercard.webp' },
-                { name: 'Bitcoin', logo: '/bitcoin.webp' },
-                { name: 'BCA', logo: '/bca.webp' },
-              ].map((item) => (
-                <div key={item.name} className="bg-white border border-gray-200 rounded-xl p-6 transition-all hover:shadow-md">
-                  <div className="relative h-12 flex items-center justify-center">
-                    <Image 
-                      src={item.logo} 
-                      alt={item.name}
-                      width={120}
-                      height={40}
-                      className="h-full w-auto object-contain"
-                    />
-                  </div>
-                </div>
-              ))}
+    {/* Desktop Grid */}
+    <div className="hidden sm:block max-w-5xl mx-auto space-y-3 sm:space-y-4">
+      {/* Baris 1 - 6 items */}
+      <div className="grid grid-cols-6 gap-4">
+        {[
+          { name: 'Mandiri', logo: '/mandiri.webp' },
+          { name: 'BRI', logo: '/bri.webp' },
+          { name: 'BNI', logo: '/bni.webp' },
+          { name: 'GoPay', logo: '/gopay.webp' },
+          { name: 'OVO', logo: '/ovo.webp' },
+          { name: 'DANA', logo: '/dana.webp' },
+        ].map((item) => (
+          <div key={item.name} className="bg-white border border-gray-200 rounded-xl p-6 transition-all hover:shadow-md">
+            <div className="relative h-12 flex items-center justify-center">
+              <Image 
+                src={item.logo} 
+                alt={item.name}
+                width={120}
+                height={40}
+                className="h-full w-auto object-contain"
+              />
             </div>
           </div>
+        ))}
+      </div>
 
-{/* Mobile Marquee */}
-          <div className="sm:hidden overflow-hidden relative">
-            {/* Gradient overlays */}
-            <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-[#0a0e17] to-transparent z-10 pointer-events-none"></div>
-            <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#0a0e17] to-transparent z-10 pointer-events-none"></div>
-            
-            <div className="flex animate-marquee-seamless">
-              {/* Render 2 sets identik untuk seamless loop */}
-              {[...Array(2)].map((_, setIndex) => (
-                <div key={`set-${setIndex}`} className="flex gap-3 flex-shrink-0">
-                  {[
-                    { name: 'BCA', logo: '/bca.webp' },
-                    { name: 'Mandiri', logo: '/mandiri.webp' },
-                    { name: 'BRI', logo: '/bri.webp' },
-                    { name: 'BNI', logo: '/bni.webp' },
-                    { name: 'GoPay', logo: '/gopay.webp' },
-                    { name: 'OVO', logo: '/ovo.webp' },
-                    { name: 'DANA', logo: '/dana.webp' },
-                    { name: 'LinkAja', logo: '/linkaja.webp' },
-                    { name: 'Visa', logo: '/visa.webp' },
-                    { name: 'Mastercard', logo: '/mastercard.webp' },
-                    { name: 'Bitcoin', logo: '/bitcoin.webp' },
-                  ].map((item, idx) => (
-                    <div key={`${setIndex}-${idx}`} className="flex-shrink-0 w-24 bg-white border border-gray-200 rounded-lg p-3 mr-3">
-                      <div className="relative h-10 flex items-center justify-center">
-                        <Image 
-                          src={item.logo} 
-                          alt={item.name}
-                          width={80}
-                          height={32}
-                          className="h-full w-auto object-contain"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
+      {/* Baris 2 - 5 items */}
+      <div className="grid grid-cols-5 gap-4">
+        {[
+          { name: 'LinkAja', logo: '/linkaja.webp' },
+          { name: 'Visa', logo: '/visa.webp' },
+          { name: 'Mastercard', logo: '/mastercard.webp' },
+          { name: 'Bitcoin', logo: '/bitcoin.webp' },
+          { name: 'BCA', logo: '/bca.webp' },
+        ].map((item) => (
+          <div key={item.name} className="bg-white border border-gray-200 rounded-xl p-6 transition-all hover:shadow-md">
+            <div className="relative h-12 flex items-center justify-center">
+              <Image 
+                src={item.logo} 
+                alt={item.name}
+                width={120}
+                height={40}
+                className="h-full w-auto object-contain"
+              />
             </div>
           </div>
+        ))}
+      </div>
+    </div>
 
-          <div className="mt-12 text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full">
-              <Shield className="w-4 h-4 text-green-400" />
-              <span className="text-xs text-green-400 font-medium">
-                Semua transaksi telah dilindungi enkripsi SSL 256-bit
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
+    {/* Mobile Marquee - FIXED VERSION */}
+    <div className="sm:hidden overflow-hidden relative">
+      {/* Gradient overlays */}
+      <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-[#0a0e17] to-transparent z-10 pointer-events-none"></div>
+      <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#0a0e17] to-transparent z-10 pointer-events-none"></div>
       
+      {/* Wrapper dengan padding left untuk offset spacing */}
+      <div className="flex animate-payment-marquee pl-3">
+        {[...Array(2)].map((_, setIndex) => (
+          <React.Fragment key={`set-${setIndex}`}>
+            {[
+              { name: 'BCA', logo: '/bca.webp' },
+              { name: 'Mandiri', logo: '/mandiri.webp' },
+              { name: 'BRI', logo: '/bri.webp' },
+              { name: 'BNI', logo: '/bni.webp' },
+              { name: 'GoPay', logo: '/gopay.webp' },
+              { name: 'OVO', logo: '/ovo.webp' },
+              { name: 'DANA', logo: '/dana.webp' },
+              { name: 'LinkAja', logo: '/linkaja.webp' },
+              { name: 'Visa', logo: '/visa.webp' },
+              { name: 'Mastercard', logo: '/mastercard.webp' },
+              { name: 'Bitcoin', logo: '/bitcoin.webp' },
+            ].map((item, idx) => (
+              <div key={`${setIndex}-${idx}`} className="flex-shrink-0 w-24 bg-white border border-gray-200 rounded-lg p-3 mr-3">
+                <div className="relative h-10 flex items-center justify-center">
+                  <Image 
+                    src={item.logo} 
+                    alt={item.name}
+                    width={80}
+                    height={32}
+                    className="h-full w-auto object-contain"
+                  />
+                </div>
+              </div>
+            ))}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+
+    <div className="mt-12 text-center">
+      <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full">
+        <Shield className="w-4 h-4 text-green-400" />
+        <span className="text-xs text-green-400 font-medium">
+          Semua transaksi telah dilindungi enkripsi SSL 256-bit
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
       {/* Footer */}
       <EnhancedFooter />
 
@@ -1386,7 +1573,7 @@ export default function LandingPage() {
                 
                 {/* ✅ Password Requirements Hint (only show on register) */}
                 {!isLogin && (
-                  <div className="mt-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                  <div className="mt-6 p-3 bg-transparent rounded-lg">
                     <p className="text-xs text-blue-400 font-medium mb-1">Password harus memiliki:</p>
                     <ul className="text-xs text-gray-400 space-y-1">
                       <li className={password.length >= 8 ? 'text-green-400' : ''}>
@@ -1426,24 +1613,7 @@ export default function LandingPage() {
               </button>
             </form>
 
-            {/* Demo Account Info (only for login) */}
-            {isLogin && (
-              <div className="mt-6 p-4 bg-gradient-to-br from-blue-500/10 to-emerald-500/10 border border-blue-500/20 rounded-xl">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Shield className="w-4 h-4 text-blue-400" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-semibold text-blue-400 mb-1">Akun Demo</div>
-                    <div className="text-xs text-gray-400 space-y-1">
-                      <div>Email: <span className="text-gray-300 ">superadmin@trading.com</span></div>
-                      <div>Pass: <span className="text-gray-300 ">SuperAdmin123!</span></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
+            
             {/* Benefits (only for register) */}
             {!isLogin && (
               <div className="mt-6 space-y-3">
@@ -1485,21 +1655,28 @@ export default function LandingPage() {
             </div>
 
             {/* Social Login Buttons */}
-            <div className="grid grid-cols-2 gap-3">
-              <button className="flex items-center justify-center gap-2 px-4 py-3 bg-[#0a0e17] border border-gray-800 rounded-lg hover:bg-[#1a1f2e] transition-colors">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                </svg>
-                <span className="text-sm font-medium">Google</span>
-              </button>
-              <button className="flex items-center justify-center gap-2 px-4 py-3 bg-[#0a0e17] border border-gray-800 rounded-lg hover:bg-[#1a1f2e] transition-colors">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/>
-                </svg>
-                <span className="text-sm font-medium">Facebook</span>
+            <div className="grid gap-3">
+              <button
+                onClick={handleGoogleSignIn}
+                disabled={loading || loadingGoogle}
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-[#0a0e17] border border-gray-800 rounded-lg hover:bg-[#1a1f2e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loadingGoogle ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-400"></div>
+                    <span className="text-sm font-medium">Menghubungkan...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                    </svg>
+                    <span className="text-sm font-medium">Google</span>
+                  </>
+                )}
               </button>
             </div>
 
@@ -1597,11 +1774,17 @@ export default function LandingPage() {
     }
   }
 
-  /* Marquee Animation */
-  @keyframes marquee-seamless {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
+  /* Payment Marquee Animation - 15 seconds for all items */
+  @keyframes payment-marquee {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
   }
+
+
 
   /* Scale Animation */
   @keyframes scale-in {
@@ -1617,16 +1800,15 @@ export default function LandingPage() {
 
   /* Logo Sequence Animations */
   @keyframes text-slide-out {
-  0% {
-    transform: translateX(0);
-    opacity: 1;
+    0% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
   }
-  100% {
-    transform: translateX(-100%);  /* Ke kiri, bukan ke kanan */
-    opacity: 0;
-  }
-}
-
 
   @keyframes text-slide-in {
     0% {
@@ -1718,9 +1900,10 @@ export default function LandingPage() {
     animation: scale-in 0.3s ease-out;
   }
 
-  .animate-marquee-seamless {
-    animation: marquee-seamless 30s linear infinite;
+  .animate-payment-marquee {
+    animation: payment-marquee 15s linear infinite;
   }
+
 
   .animate-text-slide-out {
     animation: text-slide-out 1s ease-in-out forwards;
@@ -1736,6 +1919,24 @@ export default function LandingPage() {
 
   .animate-logo-bounce-in {
     animation: logo-bounce-in 1s ease-in-out forwards;
+  }
+
+  /* Custom Scrollbar for Live Transactions */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #374151;
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #4b5563;
   }
 
   /* Global Styles */

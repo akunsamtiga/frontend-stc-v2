@@ -116,11 +116,6 @@
     to { transform: translateX(0); }
   }
 
-  @keyframes marquee-seamless {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-  }
-
   @keyframes text-slide-out {
     0% {
       transform: translateX(0);
@@ -204,10 +199,6 @@
 
   .animate-slide-left {
     animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .animate-marquee-seamless {
-    animation: marquee-seamless 30s linear infinite;
   }
 
   .animate-text-slide-out {
