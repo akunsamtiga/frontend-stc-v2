@@ -270,7 +270,7 @@ export default function EnhancedFooter() {
               <div className="flex items-center gap-1.5">
                 <div className="relative w-3.5 h-3.5 flex-shrink-0">
                   <Image
-                    src="/license.png"
+                    src="/license.webp"
                     alt="Licensed"
                     fill
                     className="object-contain"

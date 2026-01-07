@@ -17,13 +17,86 @@ import type { UserProfile, UserProfileInfo, UpdateProfileRequest, ChangePassword
 import { STATUS_CONFIG, calculateProfileCompletion } from '@/types'
 import { getStatusGradient, getStatusIcon, formatStatusInfo, getAllStatusTiers, calculateStatusProgress, formatDepositRequirement } from '@/lib/status-utils'
 
+// ===================================
+// SKELETON COMPONENTS
+// ===================================
+
+const SkeletonTabs = () => (
+  <div className="space-y-1 animate-pulse">
+    {[...Array(9)].map((_, i) => (
+      <div key={i} className="flex items-center gap-3 px-4 py-3">
+        <div className="w-5 h-5 bg-gray-200 rounded"></div>
+        <div className="h-4 bg-gray-200 rounded w-24"></div>
+      </div>
+    ))}
+  </div>
+)
+
+const SkeletonCard = () => (
+  <div className="bg-white rounded-xl border border-gray-200 animate-pulse">
+    <div className="p-6 border-b border-gray-200">
+      <div className="h-6 bg-gray-200 rounded w-40 mb-2"></div>
+      <div className="h-4 bg-gray-200 rounded w-32"></div>
+    </div>
+    <div className="p-6 space-y-4">
+      <div>
+        <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+        <div className="h-12 bg-gray-200 rounded"></div>
+      </div>
+      <div>
+        <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+        <div className="h-12 bg-gray-200 rounded"></div>
+      </div>
+      <div>
+        <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+        <div className="h-12 bg-gray-200 rounded"></div>
+      </div>
+    </div>
+  </div>
+)
+
+const LoadingSkeleton = () => (
+  <div className="min-h-screen bg-[#fafafa]">
+    <Navbar />
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="mb-6 animate-pulse">
+        <div className="h-3 bg-gray-200 rounded w-48 mb-3"></div>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gray-200 rounded-xl"></div>
+          <div>
+            <div className="h-6 bg-gray-200 rounded w-32 mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded w-48"></div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-12 gap-6">
+        {/* Sidebar Skeleton */}
+        <div className="col-span-3">
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <SkeletonTabs />
+          </div>
+        </div>
+
+        {/* Content Skeleton */}
+        <div className="col-span-9">
+          <SkeletonCard />
+        </div>
+      </div>
+    </div>
+  </div>
+)
+
+// ===================================
+// MAIN COMPONENT
+// ===================================
+
 export default function ProfilePage() {
   const router = useRouter()
   const { user, logout } = useAuthStore()
   
   // Tabs
   const [activeTab, setActiveTab] = useState('overview')
-  const [showMobileNav, setShowMobileNav] = useState(false)
   
   // Loading states
   const [loading, setLoading] = useState(false)
@@ -312,17 +385,7 @@ export default function ProfilePage() {
   if (!user) return null
 
   if (initialLoading) {
-    return (
-      <div className="min-h-screen bg-[#fafafa]">
-        <Navbar />
-        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-          <div className="text-center">
-            <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
-            <div className="text-sm text-gray-500">Loading profile...</div>
-          </div>
-        </div>
-      </div>
-    )
+    return <LoadingSkeleton />
   }
 
   const statusInfo = profile?.statusInfo
@@ -346,59 +409,89 @@ export default function ProfilePage() {
       case 'overview':
         return (
           <div className="space-y-6">
-            {/* Avatar Section */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Profile Overview</h3>
-              <div className="flex items-center gap-6">
-                {/* Avatar Uploader */}
-                <div className="relative inline-block">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center overflow-hidden">
+            {/* Profile Header */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="flex items-start gap-6">
+                {/* Avatar */}
+                <div className="relative flex-shrink-0">
+                  <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center overflow-hidden">
                     {profileInfo?.avatar?.url ? (
                       <img src={profileInfo.avatar.url} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-white text-2xl font-bold">U</span>
+                      <span className="text-white text-3xl font-bold">
+                        {user.email[0].toUpperCase()}
+                      </span>
                     )}
                   </div>
-                  <label className="absolute bottom-0 right-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors shadow-lg">
-                    <Camera className="w-4 h-4 text-white" />
+                  <label className="absolute -bottom-2 -right-2 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors shadow-lg border-4 border-white">
+                    <Camera className="w-5 h-5 text-white" />
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                       if (e.target.files?.[0]) handleUploadAvatar(e.target.files[0])
                     }} />
                   </label>
                 </div>
-                <div>
-                  <h4 className="text-xl font-bold text-gray-900">{profileInfo?.personal?.fullName || user?.email}</h4>
-                  <p className="text-gray-600">{user?.email}</p>
-                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 mt-2 ${getStatusGradient(statusInfo?.current || 'standard')} rounded-lg text-sm font-medium text-white`}>
-                    {React.createElement(getStatusIcon(statusInfo?.current || 'standard'), { className: "w-4 h-4" })}
-                    {statusInfo?.current.toUpperCase()}
-                  </div>
+
+                {/* Info */}
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-1">
+                    {profileInfo?.personal?.fullName || user?.email}
+                  </h2>
+                  <p className="text-gray-600 mb-3">{user?.email}</p>
+                  
+                  {statusInfo && (
+                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r ${getStatusGradient(statusInfo.current)} text-white shadow-lg`}>
+                      {React.createElement(getStatusIcon(statusInfo.current), { className: "w-5 h-5" })}
+                      <span className="font-semibold">{statusInfo.current.toUpperCase()} Status</span>
+                      <span className="opacity-90"> {statusInfo.profitBonus} Bonus</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Profile Completion */}
-            {profileInfo && (
-              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold text-blue-900">
-                    {profileInfo.completion === 100 ? 'Profile completed!' : profileInfo.completion >= 80 ? 'Almost there!' : profileInfo.completion >= 50 ? 'Good progress' : 'Let\'s complete your profile'}
-                  </span>
-                  <span className="text-sm font-bold text-blue-600">{profileInfo.completion}%</span>
+            {profileInfo && profileInfo.completion < 100 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="font-semibold text-blue-900 mb-1">Complete Your Profile</h3>
+                    <p className="text-sm text-blue-700">Unlock all features by completing your profile</p>
+                  </div>
+                  <div className="text-3xl font-bold text-blue-600">{profileInfo.completion}%</div>
                 </div>
-                <div className="w-full bg-blue-200 rounded-full h-2">
-                  <div className={`h-2 rounded-full transition-all duration-500 ${
-                    profileInfo.completion >= 80 ? 'bg-green-600' : profileInfo.completion >= 50 ? 'bg-yellow-600' : 'bg-blue-600'
-                  }`} style={{ width: `${profileInfo.completion}%` }}></div>
+                <div className="w-full bg-blue-200 rounded-full h-3">
+                  <div 
+                    className="h-3 rounded-full bg-blue-600 transition-all duration-500" 
+                    style={{ width: `${profileInfo.completion}%` }}
+                  ></div>
                 </div>
-                {profileInfo.completion < 100 && (
-                  <p className="text-xs text-blue-700 mt-2">Complete your profile to unlock all features</p>
-                )}
               </div>
             )}
 
+            {/* Quick Stats Grid */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-white border border-gray-200 rounded-xl p-6">
+                <div className="text-sm text-gray-600 mb-2">Real Balance</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  Rp {(profile?.balances?.real ?? 0).toLocaleString('id-ID')}
+                </div>
+              </div>
+              <div className="bg-white border border-gray-200 rounded-xl p-6">
+                <div className="text-sm text-gray-600 mb-2">Demo Balance</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  Rp {(profile?.balances?.demo ?? 0).toLocaleString('id-ID')}
+                </div>
+              </div>
+              <div className="bg-white border border-gray-200 rounded-xl p-6">
+                <div className="text-sm text-gray-600 mb-2">Total Orders</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {profile?.statistics?.combined?.totalOrders ?? 0}
+                </div>
+              </div>
+            </div>
+
             {/* Verification Status */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Verification Status</h3>
               <div className="grid grid-cols-2 gap-4">
                 {[
@@ -407,34 +500,16 @@ export default function ProfilePage() {
                   { label: 'Identity', verified: profileInfo?.verification?.identityVerified, icon: FileText },
                   { label: 'Bank', verified: profileInfo?.verification?.bankVerified, icon: CreditCard }
                 ].map((item) => (
-                  <div key={item.label} className={`p-4 rounded-xl border-2 ${item.verified ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
-                    <div className="flex items-center gap-3">
-                      <item.icon className={`w-5 h-5 ${item.verified ? 'text-green-600' : 'text-gray-400'}`} />
-                      <div>
-                        <div className="text-sm font-semibold text-gray-900">{item.label}</div>
-                        <div className={`text-xs font-medium ${item.verified ? 'text-green-600' : 'text-gray-500'}`}>
-                          {item.verified ? 'Verified' : 'Not Verified'}
-                        </div>
+                  <div key={item.label} className={`flex items-center gap-3 p-4 rounded-xl border-2 ${item.verified ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                    <item.icon className={`w-5 h-5 ${item.verified ? 'text-green-600' : 'text-gray-400'}`} />
+                    <div>
+                      <div className="text-sm font-semibold text-gray-900">{item.label}</div>
+                      <div className={`text-xs font-medium ${item.verified ? 'text-green-600' : 'text-gray-500'}`}>
+                        {item.verified ? 'Verified' : 'Not Verified'}
                       </div>
                     </div>
                   </div>
                 ))}
-              </div>
-            </div>
-
-            {/* Quick Stats */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-white p-4 rounded-xl border border-gray-200">
-                <div className="text-2xl font-bold text-gray-900">{profile?.balances?.real ?? 0}</div>
-                <div className="text-sm text-gray-500">Real Balance</div>
-              </div>
-              <div className="bg-white p-4 rounded-xl border border-gray-200">
-                <div className="text-2xl font-bold text-gray-900">{profile?.balances?.demo ?? 0}</div>
-                <div className="text-sm text-gray-500">Demo Balance</div>
-              </div>
-              <div className="bg-white p-4 rounded-xl border border-gray-200">
-                <div className="text-2xl font-bold text-gray-900">{profile?.statistics?.combined?.totalOrders ?? 0}</div>
-                <div className="text-sm text-gray-500">Total Orders</div>
               </div>
             </div>
           </div>
@@ -442,8 +517,7 @@ export default function ProfilePage() {
 
       case 'personal':
         return (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-            {/* Header */}
+          <div className="bg-white rounded-xl border border-gray-200">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 mb-1">Personal Information</h3>
@@ -466,7 +540,6 @@ export default function ProfilePage() {
             </div>
             
             <div className="p-6 space-y-4">
-              {/* Full Name */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
                 {editingPersonal ? (
@@ -476,7 +549,6 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {/* Phone */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
                 {editingPersonal ? (
@@ -486,7 +558,6 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {/* Date of Birth */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Date of Birth</label>
                 {editingPersonal ? (
@@ -498,7 +569,6 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {/* Gender */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Gender</label>
                 {editingPersonal ? (
@@ -513,7 +583,6 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {/* Nationality */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Nationality</label>
                 {editingPersonal ? (
@@ -528,7 +597,7 @@ export default function ProfilePage() {
 
       case 'address':
         return (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="bg-white rounded-xl border border-gray-200">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 mb-1">Address Information</h3>
@@ -603,7 +672,7 @@ export default function ProfilePage() {
 
       case 'identity':
         return (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="bg-white rounded-xl border border-gray-200">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 mb-1">Identity Verification</h3>
@@ -648,34 +717,12 @@ export default function ProfilePage() {
                 )}
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Issued Date</label>
-                  {editingIdentity ? (
-                    <input type="date" value={identityData.issuedDate} onChange={(e) => setIdentityData({ ...identityData, issuedDate: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" />
-                  ) : (
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">{identityData.issuedDate || '-'}</div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Expiry Date</label>
-                  {editingIdentity ? (
-                    <input type="date" value={identityData.expiryDate} onChange={(e) => setIdentityData({ ...identityData, expiryDate: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors" />
-                  ) : (
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">{identityData.expiryDate || '-'}</div>
-                  )}
-                </div>
-              </div>
-              
               {profileInfo?.identity?.isVerified && (
                 <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-green-600" />
                     <span className="text-sm font-semibold text-green-900">Identity Verified</span>
                   </div>
-                  {profileInfo.identity.verifiedAt && (
-                    <p className="text-xs text-green-700 mt-1">Verified at: {new Date(profileInfo.identity.verifiedAt).toLocaleDateString('id-ID')}</p>
-                  )}
                 </div>
               )}
             </div>
@@ -684,7 +731,7 @@ export default function ProfilePage() {
 
       case 'bank':
         return (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="bg-white rounded-xl border border-gray-200">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 mb-1">Bank Account</h3>
@@ -740,9 +787,6 @@ export default function ProfilePage() {
                     <ShieldCheck className="w-5 h-5 text-green-600" />
                     <span className="text-sm font-semibold text-green-900">Bank Account Verified</span>
                   </div>
-                  {profileInfo.bankAccount.verifiedAt && (
-                    <p className="text-xs text-green-700 mt-1">Verified at: {new Date(profileInfo.bankAccount.verifiedAt).toLocaleDateString('id-ID')}</p>
-                  )}
                 </div>
               )}
             </div>
@@ -752,33 +796,30 @@ export default function ProfilePage() {
       case 'status':
         if (!statusInfo) return null
 
-        // ⬇️⬇️⬇️ TEMPATKAN KODE DI SINI ⬇️⬇️⬇️
         const safeStatus = ['standard', 'gold', 'vip'].includes(statusInfo.current) 
           ? statusInfo.current 
           : 'standard'
 
         const progressInfo = calculateStatusProgress(statusInfo.totalDeposit, safeStatus)
-        // ⬆️⬆️⬆️ SAMPAI SINI ⬆️⬆️⬆️
-
         const allTiers = getAllStatusTiers()
 
         return (
           <div className="space-y-6">
             {/* Current Status */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Your Status</h3>
-              <div className={`flex items-center gap-4 p-4 rounded-xl ${getStatusGradient(statusInfo.current)}`}>
-                {React.createElement(getStatusIcon(statusInfo.current), { className: "w-10 h-10 text-white" })}
+              <div className={`flex items-center gap-4 p-6 rounded-xl bg-gradient-to-r ${getStatusGradient(statusInfo.current)} text-white`}>
+                {React.createElement(getStatusIcon(statusInfo.current), { className: "w-12 h-12" })}
                 <div>
-                  <div className="text-white font-bold text-lg">{statusInfo.current.toUpperCase()}</div>
-                  <div className="text-white/90 text-sm">{formatStatusInfo(statusInfo)}</div>
+                  <div className="text-2xl font-bold mb-1">{statusInfo.current.toUpperCase()}</div>
+                  <div className="opacity-90">{formatStatusInfo(statusInfo)}</div>
                 </div>
               </div>
             </div>
 
             {/* Progress to Next Status */}
             {progressInfo.next && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Progress to Next Status</h3>
                 <div className="mb-4">
                   <div className="flex justify-between text-sm mb-2">
@@ -786,7 +827,7 @@ export default function ProfilePage() {
                     <span className="font-semibold">{progressInfo.progress}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div className={`h-3 rounded-full ${getStatusGradient(statusInfo.current)} transition-all duration-500`} style={{ width: `${progressInfo.progress}%` }}></div>
+                    <div className={`h-3 rounded-full bg-gradient-to-r ${getStatusGradient(statusInfo.current)} transition-all duration-500`} style={{ width: `${progressInfo.progress}%` }}></div>
                   </div>
                 </div>
                 <p className="text-sm text-gray-600">
@@ -796,21 +837,21 @@ export default function ProfilePage() {
             )}
 
             {/* All Status Tiers */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4">All Status Tiers</h3>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {allTiers.map(({ status, config, icon: Icon }) => {
                   const isCurrent = status === statusInfo.current
                   const isUnlocked = STATUS_CONFIG[status].minDeposit <= statusInfo.totalDeposit
                   
                   return (
-                    <div key={status} className={`p-4 border rounded-xl ${isCurrent ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
+                    <div key={status} className={`p-4 border-2 rounded-xl ${isCurrent ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <Icon className={`w-6 h-6 ${isCurrent || isUnlocked ? 'text-blue-600' : 'text-gray-400'}`} />
                           <div>
                             <div className="font-semibold text-gray-900">{config.label}</div>
-                            <div className="text-sm text-gray-600">Bonus: +{config.profitBonus}%</div>
+                            <div className="text-sm text-gray-600">Bonus: {config.profitBonus}</div>
                           </div>
                         </div>
                         <div className="text-sm font-semibold text-gray-900">
@@ -831,29 +872,29 @@ export default function ProfilePage() {
         return (
           <div className="space-y-6">
             {/* Affiliate Overview */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Affiliate Program</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center p-4 bg-gray-50 rounded-xl">
-                  <div className="text-2xl font-bold text-gray-900">{affiliateInfo.totalReferrals}</div>
-                  <div className="text-sm text-gray-600">Total Referrals</div>
+                  <div className="text-3xl font-bold text-gray-900">{affiliateInfo.totalReferrals}</div>
+                  <div className="text-sm text-gray-600 mt-1">Total Referrals</div>
                 </div>
                 <div className="text-center p-4 bg-green-50 rounded-xl">
-                  <div className="text-2xl font-bold text-green-600">{affiliateInfo.completedReferrals}</div>
-                  <div className="text-sm text-gray-600">Completed</div>
+                  <div className="text-3xl font-bold text-green-600">{affiliateInfo.completedReferrals}</div>
+                  <div className="text-sm text-gray-600 mt-1">Completed</div>
                 </div>
                 <div className="text-center p-4 bg-yellow-50 rounded-xl">
-                  <div className="text-2xl font-bold text-yellow-600">{affiliateInfo.pendingReferrals}</div>
-                  <div className="text-sm text-gray-600">Pending</div>
+                  <div className="text-3xl font-bold text-yellow-600">{affiliateInfo.pendingReferrals}</div>
+                  <div className="text-sm text-gray-600 mt-1">Pending</div>
                 </div>
               </div>
             </div>
 
             {/* Referral Link */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Your Referral Link</h3>
               <div className="flex items-center gap-3">
-                <div className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-mono text-sm">
+                <div className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-black font-mono text-sm break-all">
                   {`${window.location.origin}/?ref=${affiliateInfo.referralCode}`}
                 </div>
                 <button
@@ -863,7 +904,7 @@ export default function ProfilePage() {
                     toast.success('Referral link copied!')
                     setTimeout(() => setCopied(false), 2000)
                   }}
-                  className="px-4 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
+                  className="px-4 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors flex-shrink-0"
                 >
                   {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
                 </button>
@@ -874,15 +915,13 @@ export default function ProfilePage() {
             </div>
 
             {/* Commission Info */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Commission Earned</h3>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Gift className="w-8 h-8 text-yellow-500" />
-                  <div>
-                    <div className="text-2xl font-bold text-gray-900">{formatDepositRequirement(affiliateInfo.totalCommission)}</div>
-                    <div className="text-sm text-gray-600">Total Commission</div>
-                  </div>
+              <div className="flex items-center gap-4">
+                <Gift className="w-12 h-12 text-yellow-500" />
+                <div>
+                  <div className="text-3xl font-bold text-gray-900">{formatDepositRequirement(affiliateInfo.totalCommission)}</div>
+                  <div className="text-sm text-gray-600">Total Commission</div>
                 </div>
               </div>
             </div>
@@ -891,7 +930,7 @@ export default function ProfilePage() {
 
       case 'security':
         return (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="bg-white rounded-xl border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <h3 className="text-xl font-bold text-gray-900 mb-1">Security Settings</h3>
               <p className="text-sm text-gray-500">Change your password</p>
@@ -927,7 +966,7 @@ export default function ProfilePage() {
 
       case 'preferences':
         return (
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 mb-1">Preferences</h3>
@@ -943,16 +982,16 @@ export default function ProfilePage() {
               <div>
                 <h4 className="text-lg font-semibold text-gray-900 mb-3">Notifications</h4>
                 <div className="space-y-3">
-                  <label className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700">Email Notifications</span>
+                  <label className="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                    <span className="text-sm text-gray-700 font-medium">Email Notifications</span>
                     <input type="checkbox" checked={settings.emailNotifications} onChange={(e) => setSettings({ ...settings, emailNotifications: e.target.checked })} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" />
                   </label>
-                  <label className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700">SMS Notifications</span>
+                  <label className="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                    <span className="text-sm text-gray-700 font-medium">SMS Notifications</span>
                     <input type="checkbox" checked={settings.smsNotifications} onChange={(e) => setSettings({ ...settings, smsNotifications: e.target.checked })} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" />
                   </label>
-                  <label className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700">Trading Alerts</span>
+                  <label className="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                    <span className="text-sm text-gray-700 font-medium">Trading Alerts</span>
                     <input type="checkbox" checked={settings.tradingAlerts} onChange={(e) => setSettings({ ...settings, tradingAlerts: e.target.checked })} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" />
                   </label>
                 </div>
@@ -960,7 +999,7 @@ export default function ProfilePage() {
 
               {/* Language & Timezone */}
               <div>
-                <h4 className="text-lg font-semibold text-gray-900 mb-3">Regional</h4>
+                <h4 className="text-lg font-semibold text-gray-900 mb-3">Regional Settings</h4>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Language</label>
@@ -988,7 +1027,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-[#fafafa]">
       <Navbar />
       
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
@@ -1007,87 +1046,45 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Profile Completion Bar */}
-        {profileInfo && (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-blue-900">
-                {profileInfo.completion === 100 ? 'Profile completed!' : profileInfo.completion >= 80 ? 'Almost there!' : profileInfo.completion >= 50 ? 'Good progress' : 'Let\'s complete your profile'}
-              </span>
-              <span className="text-sm font-bold text-blue-600">{profileInfo.completion}%</span>
-            </div>
-            <div className="w-full bg-blue-200 rounded-full h-2">
-              <div className={`h-2 rounded-full transition-all duration-500 ${
-                profileInfo.completion >= 80 ? 'bg-green-600' : profileInfo.completion >= 50 ? 'bg-yellow-600' : 'bg-blue-600'
-              }`} style={{ width: `${profileInfo.completion}%` }}></div>
-            </div>
-          </div>
-        )}
-
-        <div className="grid lg:grid-cols-12 gap-6">
-          {/* Sidebar */}
-          <div className="hidden lg:block lg:col-span-4 space-y-6">
-            {/* Profile Card */}
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className={`h-24 bg-gradient-to-r ${getStatusGradient(statusInfo?.current || 'standard')}`}></div>
-              <div className="p-6 -mt-12">
-                <div className="flex flex-col items-center text-center">
-                  {/* Avatar Uploader */}
-                  <div className="relative inline-block mb-4">
-                    <div className="w-24 h-24 rounded-full bg-white border-4 border-white shadow-lg flex items-center justify-center overflow-hidden">
-                      {profileInfo?.avatar?.url ? (
-                        <img src={profileInfo.avatar.url} alt="Avatar" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${getStatusGradient(statusInfo?.current || 'standard')} flex items-center justify-center`}>
-                          {React.createElement(getStatusIcon(statusInfo?.current || 'standard'), { className: "w-10 h-10 text-white" })}
-                        </div>
-                      )}
-                    </div>
-                    <label className="absolute bottom-0 right-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors shadow-lg">
-                      <Camera className="w-4 h-4 text-white" />
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => {
-                        if (e.target.files?.[0]) handleUploadAvatar(e.target.files[0])
-                      }} />
-                    </label>
-                  </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">{profileInfo?.personal?.fullName || user?.email}</h3>
-                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 mt-2 ${getStatusGradient(statusInfo?.current || 'standard')} rounded-lg text-sm font-medium text-white`}>
-                    {React.createElement(getStatusIcon(statusInfo?.current || 'standard'), { className: "w-4 h-4" })}
-                    {statusInfo?.current.toUpperCase()}
-                  </div>
+        <div className="grid grid-cols-12 gap-6">
+          {/* Sidebar - Tabs */}
+          <div className="col-span-3">
+            <div className="bg-white rounded-xl border border-gray-200 p-2 sticky top-4">
+              <div className="space-y-1">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left ${
+                        activeTab === tab.id
+                          ? 'bg-blue-500 text-white shadow-sm'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Icon className="w-5 h-5 flex-shrink-0" />
+                      <span className="font-medium">{tab.label}</span>
+                    </button>
+                  )
+                })}
+                
+                {/* Logout Button */}
+                <div className="pt-2 mt-2 border-t border-gray-200">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-all text-left"
+                  >
+                    <LogOut className="w-5 h-5 flex-shrink-0" />
+                    <span className="font-medium">Logout</span>
+                  </button>
                 </div>
               </div>
             </div>
-
-            {/* Navigation */}
-            <div className="bg-white rounded-xl border border-gray-200 p-2">
-              {tabs.map((tab) => {
-                const Icon = tab.icon
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                      activeTab === tab.id
-                        ? 'bg-blue-500 text-white'
-                        : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span className="font-medium">{tab.label}</span>
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* Logout */}
-            <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-white text-red-600 border-2 border-red-200 rounded-xl font-semibold hover:bg-red-50">
-              <LogOut className="w-5 h-5" /> Logout
-            </button>
           </div>
 
           {/* Main Content */}
-          <div className="lg:col-span-8">
+          <div className="col-span-9">
             {renderTabContent()}
           </div>
         </div>

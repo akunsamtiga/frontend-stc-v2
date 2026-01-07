@@ -1,4 +1,4 @@
-// app/(authenticated)/balance/page.tsx - IMPROVED WITH BETTER CARDS
+// app/(authenticated)/balance/page.tsx - CARD ONLY
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -40,20 +40,6 @@ const CardSkeleton = () => (
   </div>
 )
 
-const ActionsSkeleton = () => (
-  <div className="bg-white rounded-2xl border border-gray-200 p-5 min-h-[280px]">
-    <div className="h-5 w-40 bg-gray-200 rounded mb-4"></div>
-    <div className="grid grid-cols-2 gap-3 mb-4">
-      <div className="h-32 bg-gray-100 rounded-xl"></div>
-      <div className="h-32 bg-gray-100 rounded-xl"></div>
-    </div>
-    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-200">
-      <div className="h-16 bg-gray-100 rounded"></div>
-      <div className="h-16 bg-gray-100 rounded"></div>
-    </div>
-  </div>
-)
-
 const TransactionSkeleton = () => (
   <div className="flex items-center justify-between p-4 rounded-xl border border-gray-100 animate-pulse">
     <div className="flex items-center gap-4 flex-1">
@@ -87,27 +73,17 @@ const LoadingSkeleton = () => (
 
       <div className="mb-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Real Account Skeleton */}
           <div className="bg-gradient-to-br from-gray-50 to-white rounded-3xl border-2 border-gray-200 p-6 shadow-lg">
             <div className="h-6 w-32 bg-gray-200 rounded mb-6"></div>
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <CardSkeleton />
-              <ActionsSkeleton />
-            </div>
+            <CardSkeleton />
           </div>
-
-          {/* Demo Account Skeleton */}
           <div className="bg-gradient-to-br from-gray-50 to-white rounded-3xl border-2 border-gray-200 p-6 shadow-lg">
             <div className="h-6 w-32 bg-gray-200 rounded mb-6"></div>
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <CardSkeleton />
-              <ActionsSkeleton />
-            </div>
+            <CardSkeleton />
           </div>
         </div>
       </div>
 
-      {/* Transaction History Skeleton */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
         <div className="p-5 sm:p-6 border-b border-gray-200">
           <div className="h-6 w-48 bg-gray-200 rounded mb-4"></div>
@@ -255,24 +231,6 @@ export default function BalancePage() {
     ? allTransactions 
     : allTransactions.filter(t => (t.accountType || 'demo') === selectedAccount)
 
-  const realStats = {
-    totalDeposits: allTransactions
-      .filter(t => (t.accountType || 'demo') === 'real' && t.type === 'deposit')
-      .reduce((sum, t) => sum + t.amount, 0),
-    totalWithdrawals: allTransactions
-      .filter(t => (t.accountType || 'demo') === 'real' && t.type === 'withdrawal')
-      .reduce((sum, t) => sum + t.amount, 0),
-  }
-
-  const demoStats = {
-    totalDeposits: allTransactions
-      .filter(t => (t.accountType || 'demo') === 'demo' && t.type === 'deposit')
-      .reduce((sum, t) => sum + t.amount, 0),
-    totalWithdrawals: allTransactions
-      .filter(t => (t.accountType || 'demo') === 'demo' && t.type === 'withdrawal')
-      .reduce((sum, t) => sum + t.amount, 0),
-  }
-
   if (!user) return null
   if (initialLoading) return <LoadingSkeleton />
 
@@ -303,7 +261,7 @@ export default function BalancePage() {
             </div>
             
             {statusInfo && (
-              <div className={`hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r ${getStatusGradient(statusInfo.current)} text-white shadow-lg`}>
+              <div className={`flex items-center gap-3 px-4 py-2 rounded-xl bg-gradient-to-r ${getStatusGradient(statusInfo.current)} text-white shadow-2xl border-2 border-white/30 ring-2 ring-black/10`}>
                 <Award className="w-5 h-5" />
                 <div className="text-sm">
                   <div className="font-bold">{statusInfo.current.toUpperCase()}</div>
@@ -345,142 +303,114 @@ export default function BalancePage() {
           </div>
         )}
 
-        {/* Account Cards - Wrapped in Boxes */}
+        {/* Account Cards - Card Only */}
         <div className="mb-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* REAL ACCOUNT BOX */}
             <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50 rounded-3xl border-2 border-emerald-200 p-6 shadow-xl">
+              {/* Header with Buttons */}
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-green-600" />
                   Real Account
+                  {statusInfo && profitBonus > 0 && (
+                    <span className="flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-lg border border-green-500/30 text-xs font-bold text-green-700">
+                      <Award className="w-3 h-3" />
+                      +{profitBonus}%
+                    </span>
+                  )}
                 </h2>
-                {statusInfo && profitBonus > 0 && (
-                  <div className="flex items-center gap-1 px-3 py-1 bg-green-500/20 rounded-lg border border-green-500/30">
-                    <Award className="w-4 h-4 text-green-700" />
-                    <span className="text-xs font-bold text-green-700">+{profitBonus}%</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setTransactionAccount('real')
+                      setShowDeposit(true)
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-lg transition-all text-sm font-semibold shadow-md"
+                  >
+                    <ArrowDownToLine className="w-4 h-4" />
+                    Deposit
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTransactionAccount('real')
+                      setShowWithdraw(true)
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-lg transition-all text-sm font-semibold shadow-md"
+                  >
+                    <ArrowUpFromLine className="w-4 h-4" />
+                    Withdraw
+                  </button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                {/* Real Card */}
-                <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-teal-600 to-green-700 rounded-2xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-1 min-h-[280px] group">
-                  {/* Background Pattern */}
-                  <div className="absolute inset-0 opacity-10">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl -translate-y-32 translate-x-32"></div>
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-white rounded-full blur-3xl translate-y-32 -translate-x-32"></div>
-                  </div>
+              {/* Real Card */}
+              <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-teal-600 to-green-700 rounded-2xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-1 min-h-[280px] group">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-10">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl -translate-y-32 translate-x-32"></div>
+                  <div className="absolute bottom-0 left-0 w-64 h-64 bg-white rounded-full blur-3xl translate-y-32 -translate-x-32"></div>
+                </div>
 
-                  <div className="relative z-10 h-full flex flex-col">
-                    {/* Card Header */}
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-3">
-                        {/* Chip */}
-                        <div className="relative w-12 h-10 bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-500 rounded-lg shadow-xl">
-                          <div className="absolute inset-1 bg-gradient-to-br from-yellow-200 to-amber-400 rounded-md"></div>
-                          <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-[2px] p-2">
-                            {[...Array(9)].map((_, i) => (
-                              <div key={i} className="bg-amber-600/30 rounded-[1px]"></div>
-                            ))}
-                          </div>
-                        </div>
-                        {/* Contactless */}
-                        <div className="flex flex-col gap-1">
-                          {[...Array(3)].map((_, i) => (
-                            <div key={i} className="flex gap-1">
-                              <div className={`w-1.5 h-1.5 border-2 border-white/40 rounded-full transform rotate-45 ${i === 0 ? 'opacity-100' : i === 1 ? 'opacity-70' : 'opacity-40'}`}></div>
-                            </div>
+                <div className="relative z-10 h-full flex flex-col">
+                  {/* Card Header */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      {/* Chip */}
+                      <div className="relative w-12 h-10 bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-500 rounded-lg shadow-xl">
+                        <div className="absolute inset-1 bg-gradient-to-br from-yellow-200 to-amber-400 rounded-md"></div>
+                        <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-[2px] p-2">
+                          {[...Array(9)].map((_, i) => (
+                            <div key={i} className="bg-amber-600/30 rounded-[1px]"></div>
                           ))}
                         </div>
                       </div>
-                      <div className="px-3 py-1.5 bg-white/20 backdrop-blur-xl rounded-lg border border-white/30 shadow-lg">
-                        <span className="text-[11px] font-black text-white tracking-[0.15em] drop-shadow-sm">REAL</span>
+                      {/* Contactless */}
+                      <div className="flex flex-col gap-1">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="flex gap-1">
+                            <div className={`w-1.5 h-1.5 border-2 border-white/40 rounded-full transform rotate-45 ${i === 0 ? 'opacity-100' : i === 1 ? 'opacity-70' : 'opacity-40'}`}></div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-
-                    {/* Card Number */}
-                    <div className="mb-6">
-                      <div className="text-white/70 text-[10px] font-bold tracking-[0.2em] mb-2">ACCOUNT NUMBER</div>
-                      <div className="text-base text-white tracking-[0.3em] drop-shadow-md flex items-center gap-3 flex-wrap font-mono">
-                        <span className="opacity-60">••••</span>
-                        <span className="opacity-60">••••</span>
-                        <span className="opacity-60 hidden sm:inline">••••</span>
-                        <span className="font-bold">{String(user.id).slice(-4).padStart(4, '0')}</span>
-                      </div>
+                    <div className="px-3 py-1.5 bg-white/20 backdrop-blur-xl rounded-lg border border-white/30 shadow-lg">
+                      <span className="text-[11px] font-black text-white tracking-[0.15em] drop-shadow-sm">REAL</span>
                     </div>
+                  </div>
 
-                    {/* Balance */}
-                    <div className="mb-auto">
-                      <div className="text-white/70 text-[10px] font-bold tracking-[0.2em] mb-2">AVAILABLE BALANCE</div>
-                      <div className="flex items-baseline gap-2">
-                        <div className="text-3xl font-black text-white tracking-tight drop-shadow-lg break-all">
-                          {formatCurrency(realBalance)}
-                        </div>
-                      </div>
+                  {/* Card Number */}
+                  <div className="mb-6">
+                    <div className="text-white/70 text-[10px] font-bold tracking-[0.2em] mb-2">ACCOUNT NUMBER</div>
+                    <div className="text-base text-white tracking-[0.3em] drop-shadow-md flex items-center gap-3 flex-wrap font-mono">
+                      <span className="opacity-60">••••</span>
+                      <span className="opacity-60">••••</span>
+                      <span className="opacity-60 hidden sm:inline">••••</span>
+                      <span className="font-bold">{String(user.id).slice(-4).padStart(4, '0')}</span>
                     </div>
+                  </div>
 
-                    {/* Card Footer */}
-                    <div className="mt-6 flex items-end justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="text-white/60 text-[9px] font-bold tracking-[0.2em] mb-1">CARD HOLDER</div>
-                        <div className="text-sm font-black text-white uppercase tracking-wider drop-shadow-md truncate">
-                          {user.email.split('@')[0].substring(0, 15)}
-                        </div>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <div className="text-white/60 text-[9px] font-bold tracking-[0.2em] mb-1">VALID THRU</div>
-                        <div className="text-xs font-bold text-white tracking-wider">12/28</div>
+                  {/* Balance */}
+                  <div className="mb-auto">
+                    <div className="text-white/70 text-[10px] font-bold tracking-[0.2em] mb-2">AVAILABLE BALANCE</div>
+                    <div className="flex items-baseline gap-2">
+                      <div className="text-3xl font-black text-white tracking-tight drop-shadow-lg break-all">
+                        {formatCurrency(realBalance)}
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Real Actions */}
-                <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm min-h-[280px] flex flex-col">
-                  <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Wallet className="w-4 h-4 text-green-600" />
-                    Quick Actions
-                  </h3>
-                  
-                  <div className="grid grid-cols-2 gap-3 mb-4 flex-1">
-                    <button
-                      onClick={() => {
-                        setTransactionAccount('real')
-                        setShowDeposit(true)
-                      }}
-                      className="flex flex-col items-center justify-center gap-2 p-4 bg-green-50 hover:bg-green-100 active:bg-green-200 border-2 border-green-200 rounded-xl transition-all group min-h-[120px]"
-                    >
-                      <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <ArrowDownToLine className="w-6 h-6 text-white" />
+                  {/* Card Footer */}
+                  <div className="mt-6 flex items-end justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white/60 text-[9px] font-bold tracking-[0.2em] mb-1">CARD HOLDER</div>
+                      <div className="text-sm font-black text-white uppercase tracking-wider drop-shadow-md truncate">
+                        {user.email.split('@')[0].substring(0, 15)}
                       </div>
-                      <div className="text-sm font-semibold text-gray-900">Deposit</div>
-                      <div className="text-xs text-gray-500">Add funds</div>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setTransactionAccount('real')
-                        setShowWithdraw(true)
-                      }}
-                      className="flex flex-col items-center justify-center gap-2 p-4 bg-red-50 hover:bg-red-100 active:bg-red-200 border-2 border-red-200 rounded-xl transition-all group min-h-[120px]"
-                    >
-                      <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <ArrowUpFromLine className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="text-sm font-semibold text-gray-900">Withdraw</div>
-                      <div className="text-xs text-gray-500">Cash out</div>
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-200">
-                    <div className="text-center">
-                      <div className="text-xs text-gray-500 mb-1">Total Deposits</div>
-                      <div className="text-base font-bold text-green-600">{formatCurrency(realStats.totalDeposits)}</div>
                     </div>
-                    <div className="text-center">
-                      <div className="text-xs text-gray-500 mb-1">Total Withdrawals</div>
-                      <div className="text-base font-bold text-red-600">{formatCurrency(realStats.totalWithdrawals)}</div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-white/60 text-[9px] font-bold tracking-[0.2em] mb-1">VALID THRU</div>
+                      <div className="text-xs font-bold text-white tracking-wider">12/28</div>
                     </div>
                   </div>
                 </div>
@@ -489,126 +419,98 @@ export default function BalancePage() {
 
             {/* DEMO ACCOUNT BOX */}
             <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-3xl border-2 border-blue-200 p-6 shadow-xl">
+              {/* Header with Buttons */}
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-blue-600" />
                   Demo Account
+                  <span className="flex items-center gap-1 px-2 py-1 bg-blue-500/20 rounded-lg border border-blue-500/30 text-xs font-bold text-blue-700">
+                    Practice
+                  </span>
                 </h2>
-                <div className="flex items-center gap-1 px-3 py-1 bg-blue-500/20 rounded-lg border border-blue-500/30">
-                  <span className="text-xs font-bold text-blue-700">Practice Mode</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setTransactionAccount('demo')
+                      setShowDeposit(true)
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg transition-all text-sm font-semibold shadow-md"
+                  >
+                    <ArrowDownToLine className="w-4 h-4" />
+                    Add Funds
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTransactionAccount('demo')
+                      setShowWithdraw(true)
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white rounded-lg transition-all text-sm font-semibold shadow-md"
+                  >
+                    <ArrowUpFromLine className="w-4 h-4" />
+                    Remove
+                  </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                {/* Demo Card */}
-                <div className="relative overflow-hidden bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-700 rounded-2xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-1 min-h-[280px] group">
-                  {/* Background Pattern */}
-                  <div className="absolute inset-0 opacity-10">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl -translate-y-32 translate-x-32"></div>
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-white rounded-full blur-3xl translate-y-32 -translate-x-32"></div>
-                  </div>
-
-                  <div className="relative z-10 h-full flex flex-col">
-                    {/* Card Header */}
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-3">
-                        {/* Chip */}
-                        <div className="relative w-12 h-10 bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-500 rounded-lg shadow-xl">
-                          <div className="absolute inset-1 bg-gradient-to-br from-yellow-200 to-amber-400 rounded-md"></div>
-                          <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-[2px] p-2">
-                            {[...Array(9)].map((_, i) => (
-                              <div key={i} className="bg-amber-600/30 rounded-[1px]"></div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="px-3 py-1.5 bg-white/20 backdrop-blur-xl rounded-lg border border-white/30 shadow-lg">
-                        <span className="text-[11px] font-black text-white tracking-[0.15em] drop-shadow-sm">DEMO</span>
-                      </div>
-                    </div>
-
-                    {/* Card Number */}
-                    <div className="mb-6">
-                      <div className="text-white/70 text-[10px] font-bold tracking-[0.2em] mb-2">ACCOUNT NUMBER</div>
-                      <div className="text-base text-white tracking-[0.3em] drop-shadow-md flex items-center gap-3 flex-wrap font-mono">
-                        <span className="opacity-60">••••</span>
-                        <span className="opacity-60">••••</span>
-                        <span className="opacity-60 hidden sm:inline">••••</span>
-                        <span className="font-bold">{String(user.id + 1000).slice(-4).padStart(4, '0')}</span>
-                      </div>
-                    </div>
-
-                    {/* Balance */}
-                    <div className="mb-auto">
-                      <div className="text-white/70 text-[10px] font-bold tracking-[0.2em] mb-2">AVAILABLE BALANCE</div>
-                      <div className="flex items-baseline gap-2">
-                        <div className="text-3xl font-black text-white tracking-tight drop-shadow-lg break-all">
-                          {formatCurrency(demoBalance)}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Card Footer */}
-                    <div className="mt-6 flex items-end justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="text-white/60 text-[9px] font-bold tracking-[0.2em] mb-1">CARD HOLDER</div>
-                        <div className="text-sm font-black text-white uppercase tracking-wider drop-shadow-md truncate">
-                          {user.email.split('@')[0].substring(0, 15)}
-                        </div>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <div className="text-white/60 text-[9px] font-bold tracking-[0.2em] mb-1">VALID THRU</div>
-                        <div className="text-xs font-bold text-white tracking-wider">12/28</div>
-                      </div>
-                    </div>
-                  </div>
+              {/* Demo Card */}
+              <div className="relative overflow-hidden bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-700 rounded-2xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-1 min-h-[280px] group">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-10">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl -translate-y-32 translate-x-32"></div>
+                  <div className="absolute bottom-0 left-0 w-64 h-64 bg-white rounded-full blur-3xl translate-y-32 -translate-x-32"></div>
                 </div>
 
-                {/* Demo Actions */}
-                <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm min-h-[280px] flex flex-col">
-                  <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Wallet className="w-4 h-4 text-blue-600" />
-                    Quick Actions
-                  </h3>
-                  
-                  <div className="grid grid-cols-2 gap-3 mb-4 flex-1">
-                    <button
-                      onClick={() => {
-                        setTransactionAccount('demo')
-                        setShowDeposit(true)
-                      }}
-                      className="flex flex-col items-center justify-center gap-2 p-4 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 border-2 border-blue-200 rounded-xl transition-all group min-h-[120px]"
-                    >
-                      <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <ArrowDownToLine className="w-6 h-6 text-white" />
+                <div className="relative z-10 h-full flex flex-col">
+                  {/* Card Header */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      {/* Chip */}
+                      <div className="relative w-12 h-10 bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-500 rounded-lg shadow-xl">
+                        <div className="absolute inset-1 bg-gradient-to-br from-yellow-200 to-amber-400 rounded-md"></div>
+                        <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-[2px] p-2">
+                          {[...Array(9)].map((_, i) => (
+                            <div key={i} className="bg-amber-600/30 rounded-[1px]"></div>
+                          ))}
+                        </div>
                       </div>
-                      <div className="text-sm font-semibold text-gray-900">Add Funds</div>
-                      <div className="text-xs text-gray-500">Top up demo</div>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setTransactionAccount('demo')
-                        setShowWithdraw(true)
-                      }}
-                      className="flex flex-col items-center justify-center gap-2 p-4 bg-orange-50 hover:bg-orange-100 active:bg-orange-200 border-2 border-orange-200 rounded-xl transition-all group min-h-[120px]"
-                    >
-                      <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <ArrowUpFromLine className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="text-sm font-semibold text-gray-900">Remove</div>
-                      <div className="text-xs text-gray-500">Reduce demo</div>
-                    </button>
+                    </div>
+                    <div className="px-3 py-1.5 bg-white/20 backdrop-blur-xl rounded-lg border border-white/30 shadow-lg">
+                      <span className="text-[11px] font-black text-white tracking-[0.15em] drop-shadow-sm">DEMO</span>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-200">
-                    <div className="text-center">
-                      <div className="text-xs text-gray-500 mb-1">Total Deposits</div>
-                      <div className="text-base font-bold text-blue-600">{formatCurrency(demoStats.totalDeposits)}</div>
+                  {/* Card Number */}
+                  <div className="mb-6">
+                    <div className="text-white/70 text-[10px] font-bold tracking-[0.2em] mb-2">ACCOUNT NUMBER</div>
+                    <div className="text-base text-white tracking-[0.3em] drop-shadow-md flex items-center gap-3 flex-wrap font-mono">
+                      <span className="opacity-60">••••</span>
+                      <span className="opacity-60">••••</span>
+                      <span className="opacity-60 hidden sm:inline">••••</span>
+                      <span className="font-bold">{String(user.id + 1000).slice(-4).padStart(4, '0')}</span>
                     </div>
-                    <div className="text-center">
-                      <div className="text-xs text-gray-500 mb-1">Total Withdrawals</div>
-                      <div className="text-base font-bold text-orange-600">{formatCurrency(demoStats.totalWithdrawals)}</div>
+                  </div>
+
+                  {/* Balance */}
+                  <div className="mb-auto">
+                    <div className="text-white/70 text-[10px] font-bold tracking-[0.2em] mb-2">AVAILABLE BALANCE</div>
+                    <div className="flex items-baseline gap-2">
+                      <div className="text-3xl font-black text-white tracking-tight drop-shadow-lg break-all">
+                        {formatCurrency(demoBalance)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card Footer */}
+                  <div className="mt-6 flex items-end justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white/60 text-[9px] font-bold tracking-[0.2em] mb-1">CARD HOLDER</div>
+                      <div className="text-sm font-black text-white uppercase tracking-wider drop-shadow-md truncate">
+                        {user.email.split('@')[0].substring(0, 15)}
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-white/60 text-[9px] font-bold tracking-[0.2em] mb-1">VALID THRU</div>
+                      <div className="text-xs font-bold text-white tracking-wider">12/28</div>
                     </div>
                   </div>
                 </div>

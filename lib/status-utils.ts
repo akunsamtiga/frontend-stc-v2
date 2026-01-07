@@ -35,9 +35,9 @@ export function getStatusColor(status: UserStatus): string {
  */
 export function getStatusGradient(status: UserStatus): string {
   const gradients = {
-    standard: 'from-gray-400 to-gray-500',
-    gold: 'from-yellow-400 to-orange-500',
-    vip: 'from-purple-500 to-pink-500'
+    standard: 'from-gray-400 to-gray-600',
+    gold: 'from-yellow-400 to-orange-600',
+    vip: 'from-purple-400 to-pink-600'
   }
   return gradients[status]
 }
@@ -47,9 +47,9 @@ export function getStatusGradient(status: UserStatus): string {
  */
 export function getStatusBgClass(status: UserStatus): string {
   const classes = {
-    standard: 'bg-gray-100 text-gray-700 border-gray-200',
-    gold: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    vip: 'bg-purple-100 text-purple-700 border-purple-200'
+    standard: 'bg-gray-100 text-gray-600 border-gray-200',
+    gold: 'bg-yellow-100 text-yellow-600 border-yellow-200',
+    vip: 'bg-purple-100 text-purple-600 border-purple-200'
   }
   return classes[status]
 }
@@ -118,9 +118,9 @@ export function calculateStatusProgress(
   }
 }
 
-
 /**
  * Format status information to readable string
+ * ✅ FIXED: Only show MAX TIER for VIP status
  */
 export function formatStatusInfo(statusInfo: {
   current: UserStatus
@@ -133,17 +133,17 @@ export function formatStatusInfo(statusInfo: {
   // Fallback ke 'standard' jika status tidak valid
   const config = STATUS_CONFIG[statusInfo.current] || STATUS_CONFIG.standard
   
-  let info = `${config.label} Status (+${statusInfo.profitBonus}% bonus)`
+  let info = `${config.label} Status (${statusInfo.profitBonus} bonus)`
   
-  if (statusInfo.nextStatus && STATUS_CONFIG[statusInfo.nextStatus]) {
-    info += ` • ${statusInfo.progress}% to ${STATUS_CONFIG[statusInfo.nextStatus].label}`
-  } else {
+  // ✅ FIX: Only show MAX TIER if current status is VIP
+  if (statusInfo.current === 'vip') {
     info += ' • MAX TIER'
+  } else if (statusInfo.nextStatus && STATUS_CONFIG[statusInfo.nextStatus]) {
+    info += ` • ${statusInfo.progress}% to ${STATUS_CONFIG[statusInfo.nextStatus].label}`
   }
   
   return info
 }
-
 
 /**
  * Get status tier information
