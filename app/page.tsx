@@ -29,42 +29,52 @@ import {
   ChevronRight
 } from 'lucide-react'
 
-// Live Trading Ticker Component with more data
-const LiveTradingTicker = () => {
-  const [trades, setTrades] = useState([
-    { user: 'Ahmad***', asset: 'EUR/USD', profit: 8500, time: '2 detik lalu' },
-    { user: 'Siti***', asset: 'BTC/USD', profit: 12300, time: '5 detik lalu' },
-    { user: 'Budi***', asset: 'IDX_STC', profit: 5800, time: '8 detik lalu' },
-  ])
+// Import crypto service
+import {
+  subscribeToCryptoPrices,
+  generateLiveTrade,
+  formatCryptoPrice,
+  formatChangePercent,
+  CryptoPriceData,
+  LiveTradeData
+} from '@/lib/crypto-price'
+
+// ===================================
+// LIVE CRYPTO TRADING TICKER
+// ===================================
+const LiveCryptoTicker = () => {
+  const [trades, setTrades] = useState<LiveTradeData[]>([])
+  const [prices, setPrices] = useState<Record<string, CryptoPriceData>>({})
 
   useEffect(() => {
-    const names = [
-      'Ahmad***', 'Siti***', 'Budi***', 'Rina***', 'Deni***', 'Maya***',
-      'Andi***', 'Fitri***', 'Joko***', 'Dewi***', 'Agus***', 'Lina***',
-      'Rudi***', 'Nur***', 'Hadi***', 'Sari***', 'Yudi***', 'Tini***'
-    ]
-    const assets = [
-      'EUR/USD', 'BTC/USD', 'IDX_STC', 'GBP/JPY', 'XAU/USD',
-      'USD/JPY', 'ETH/USD', 'AUD/USD', 'NZD/USD', 'USD/CHF',
-      'EUR/GBP', 'BTC/ETH', 'LTC/USD', 'XRP/USD', 'DOT/USD'
-    ]
+    const unsubscribe = subscribeToCryptoPrices(
+      ['BTC', 'ETH', 'BNB'],
+      (newPrices) => {
+        setPrices(newPrices)
+      },
+      5000
+    )
+
+    return () => unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    const cryptos = ['BTC/USD', 'ETH/USD', 'BNB/USD']
     
     const interval = setInterval(() => {
-      const newTrade = {
-        user: names[Math.floor(Math.random() * names.length)],
-        asset: assets[Math.floor(Math.random() * assets.length)],
-        profit: Math.floor(Math.random() * 20000) + 2500,
-        time: 'baru saja'
-      }
-
+      const randomCrypto = cryptos[Math.floor(Math.random() * cryptos.length)]
+      const cryptoKey = randomCrypto.split('/')[0]
+      const currentPrice = prices[cryptoKey]?.price || 0
+      
+      const newTrade = generateLiveTrade(randomCrypto, currentPrice)
       setTrades(prev => [newTrade, ...prev.slice(0, 2)])
     }, 3500)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [prices])
 
   return (
-    <div className="hidden lg:block absolute top-24 right-8 w-72 bg-[#0a0e17]/95 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-4 shadow-2xl z-10 animate-slide-in-right">
+    <div className="hidden lg:block absolute bottom-32 right-8 w-72 bg-[#0a0e17]/95 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-4 shadow-2xl z-10 animate-slide-in-right">
       <div className="flex items-center gap-2 mb-3">
         <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
         <span className="text-xs font-semibold text-gray-300">Transaksi Live</span>
@@ -91,57 +101,200 @@ const LiveTradingTicker = () => {
   )
 }
 
-// Animated Trading Chart Preview
-const AnimatedTradingChart = () => {
-  const [bars, setBars] = useState<number[]>([])
+// ===================================
+// FLOATING CRYPTO PRICE CARD
+// ===================================
+interface FloatingCryptoPriceCardProps {
+  symbol: string
+  delay: number
+  style: React.CSSProperties
+}
+
+const FloatingCryptoPriceCard = ({ symbol, delay, style }: FloatingCryptoPriceCardProps) => {
+  const [priceData, setPriceData] = useState<CryptoPriceData | null>(null)
 
   useEffect(() => {
-    const initialBars = Array.from({ length: 30 }, () => Math.random() * 80 + 20)
-    setBars(initialBars)
+    const unsubscribe = subscribeToCryptoPrices(
+      [symbol],
+      (prices) => {
+        if (prices[symbol]) {
+          setPriceData(prices[symbol])
+        }
+      },
+      5000
+    )
 
-    const interval = setInterval(() => {
-      setBars(prev => {
-        const newBars = [...prev.slice(1), Math.random() * 80 + 20]
-        return newBars
-      })
-    }, 1000)
+    return () => unsubscribe()
+  }, [symbol])
 
-    return () => clearInterval(interval)
-  }, [])
+  if (!priceData) {
+    return (
+      <div 
+        className="hidden lg:block absolute bg-[#0a0e17]/95 backdrop-blur-xl border border-gray-800/50 rounded-xl p-3 shadow-2xl animate-float"
+        style={{ animationDelay: `${delay}s`, ...style }}
+      >
+        <div className="animate-pulse">
+          <div className="h-3 bg-gray-700 rounded w-16 mb-2"></div>
+          <div className="h-5 bg-gray-700 rounded w-20 mb-2"></div>
+          <div className="h-3 bg-gray-700 rounded w-12"></div>
+        </div>
+      </div>
+    )
+  }
+
+  const isPositive = priceData.changePercent24h >= 0
 
   return (
-    <div className="h-64 flex items-end justify-between gap-1 p-4">
-      {bars.map((height, i) => (
-        <div
-          key={i}
-          className="flex-1 bg-gradient-to-t from-emerald-500/50 to-blue-500/50 rounded-t transition-all duration-1000 ease-out"
-          style={{ 
-            height: `${height}%`,
-            opacity: i < 5 ? 0.3 : 1
-          }}
-        />
-      ))}
+    <div 
+      className="hidden lg:block absolute bg-[#0a0e17]/95 backdrop-blur-xl border border-gray-800/50 rounded-xl p-3 shadow-2xl animate-float"
+      style={{ animationDelay: `${delay}s`, ...style }}
+    >
+      <div className="text-xs text-gray-400 mb-1">{priceData.symbol}</div>
+      <div className="text-lg font-bold mb-1">
+        ${formatCryptoPrice(priceData.price)}
+      </div>
+      <div className={`text-xs font-semibold flex items-center gap-1 ${
+        isPositive ? 'text-green-400' : 'text-red-400'
+      }`}>
+        {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+        {formatChangePercent(priceData.changePercent24h)}
+      </div>
     </div>
   )
 }
 
-// Floating Price Cards
-const FloatingPriceCard = ({ symbol, price, change, delay, style }: any) => (
-  <div 
-    className="hidden lg:block absolute bg-[#0a0e17]/95 backdrop-blur-xl border border-gray-800/50 rounded-xl p-3 shadow-2xl animate-float"
-    style={{ animationDelay: `${delay}s`, ...style }}
-  >
-    <div className="text-xs text-gray-400 mb-1">{symbol}</div>
-    <div className="text-lg font-bold  mb-1">{price}</div>
-    <div className={`text-xs font-semibold flex items-center gap-1 ${
-      change > 0 ? 'text-green-400' : 'text-red-400'
-    }`}>
-      {change > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-      {change > 0 ? '+' : ''}{change}%
-    </div>
-  </div>
-)
+// ===================================
+// LIVE CRYPTO CHART
+// ===================================
+const LiveCryptoChart = () => {
+  const [selectedCrypto, setSelectedCrypto] = useState('BTC')
+  const [priceData, setPriceData] = useState<CryptoPriceData | null>(null)
+  const [priceHistory, setPriceHistory] = useState<number[]>([])
 
+  useEffect(() => {
+    setPriceHistory([])
+    
+    const unsubscribe = subscribeToCryptoPrices(
+      [selectedCrypto],
+      (prices) => {
+        if (prices[selectedCrypto]) {
+          const data = prices[selectedCrypto]
+          setPriceData(data)
+          
+          setPriceHistory(prev => {
+            const newHistory = [...prev, data.price]
+            return newHistory.slice(-30)
+          })
+        }
+      },
+      3000
+    )
+
+    return () => unsubscribe()
+  }, [selectedCrypto])
+
+  const maxPrice = Math.max(...priceHistory, 1)
+  const minPrice = Math.min(...priceHistory, 0)
+  const priceRange = maxPrice - minPrice || 1
+
+  return (
+    <div className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl p-6 shadow-2xl backdrop-blur-xl hover:scale-[1.02] transition-transform duration-300">
+      {/* Crypto Selector */}
+      <div className="flex gap-2 mb-4">
+        {['BTC', 'ETH', 'BNB'].map(crypto => (
+          <button
+            key={crypto}
+            onClick={() => setSelectedCrypto(crypto)}
+            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+              selectedCrypto === crypto
+                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                : 'bg-gray-800/50 text-gray-400 border border-gray-700/50 hover:bg-gray-700/50'
+            }`}
+          >
+            {crypto}
+          </button>
+        ))}
+      </div>
+
+      {/* Price Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-blue-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30">
+            <TrendingUp className="w-6 h-6 text-emerald-400" />
+          </div>
+          <div>
+            <div className="text-sm text-gray-400">{priceData?.symbol || `${selectedCrypto}/USD`}</div>
+            <div className="text-3xl font-bold">
+              {priceData ? `$${formatCryptoPrice(priceData.price)}` : 'Loading...'}
+            </div>
+          </div>
+        </div>
+        {priceData && (
+          <div className="text-right">
+            <div className={`flex items-center gap-1 text-lg font-semibold ${
+              priceData.changePercent24h >= 0 ? 'text-emerald-400' : 'text-red-400'
+            }`}>
+              {priceData.changePercent24h >= 0 ? (
+                <TrendingUp className="w-5 h-5" />
+              ) : (
+                <TrendingDown className="w-5 h-5" />
+              )}
+              {formatChangePercent(priceData.changePercent24h)}
+            </div>
+            <div className="text-xs text-gray-500 flex items-center gap-1">
+              <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+              Live
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Live Chart */}
+      <div className="bg-[#0a0e17] rounded-2xl mb-6 overflow-hidden border border-gray-800/50">
+        <div className="h-64 flex items-end justify-between gap-1 p-4">
+          {priceHistory.length > 0 ? (
+            priceHistory.map((price, i) => {
+              const height = ((price - minPrice) / priceRange) * 80 + 20
+              return (
+                <div
+                  key={i}
+                  className="flex-1 bg-gradient-to-t from-emerald-500/50 to-blue-500/50 rounded-t transition-all duration-500 ease-out"
+                  style={{ 
+                    height: `${height}%`,
+                    opacity: i < 5 ? 0.3 : 1
+                  }}
+                />
+              )
+            })
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm">
+              Loading chart data...
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Trading Buttons */}
+      <div className="grid grid-cols-2 gap-4">
+        <button className="group relative bg-gradient-to-br from-emerald-500/20 to-green-500/20 hover:from-emerald-500/30 hover:to-green-500/30 border border-emerald-500/30 rounded-xl p-6 transition-colors overflow-hidden">
+          <TrendingUp className="w-8 h-8 text-emerald-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+          <div className="font-bold text-lg text-emerald-400">BELI</div>
+          <div className="text-xs text-gray-400">Profit +95%</div>
+        </button>
+
+        <button className="group relative bg-gradient-to-br from-red-500/20 to-pink-500/20 hover:from-red-500/30 hover:to-pink-500/30 border border-red-500/30 rounded-xl p-6 transition-colors overflow-hidden">
+          <TrendingDown className="w-8 h-8 text-red-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
+          <div className="font-bold text-lg text-red-400">JUAL</div>
+          <div className="text-xs text-gray-400">Profit +95%</div>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ===================================
+// MAIN LANDING PAGE COMPONENT
+// ===================================
 export default function LandingPage() {
   const router = useRouter()
   const { user, setAuth } = useAuthStore()
@@ -153,44 +306,46 @@ export default function LandingPage() {
   const [activeTestimonial, setActiveTestimonial] = useState(0)
   const [activeFeature, setActiveFeature] = useState(0)
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
-const [touchStart, setTouchStart] = useState(0)
-const [touchEnd, setTouchEnd] = useState(0)
-const [logoPhase, setLogoPhase] = useState<'stc-logo-in' | 'stc-text-in' | 'stc-hold' | 'stc-text-out' | 'stc-logo-out' | 'stockity-logo-in' | 'stockity-text-in' | 'stockity-hold' | 'stockity-text-out' | 'stockity-logo-out'>('stc-logo-in')
+  const [touchStart, setTouchStart] = useState(0)
+  const [touchEnd, setTouchEnd] = useState(0)
+  const [logoPhase, setLogoPhase] = useState<'stc-logo-in' | 'stc-text-in' | 'stc-hold' | 'stc-text-out' | 'stc-logo-out' | 'stockity-logo-in' | 'stockity-text-in' | 'stockity-hold' | 'stockity-text-out' | 'stockity-logo-out'>('stc-logo-in')
 
-useEffect(() => {
-  const phaseTimings = {
-    'stc-logo-in': 800,        // Logo STC muncul
-    'stc-text-in': 800,        // Teks STC slide in
-    'stc-hold': 8000,           // Hold STC
-    'stc-text-out': 800,       // Teks STC slide out
-    'stc-logo-out': 800,       // Logo STC hilang
-    'stockity-logo-in': 800,   // Logo Stockity muncul
-    'stockity-text-in': 800,   // Teks Stockity slide in
-    'stockity-hold': 4000,      // Hold Stockity
-    'stockity-text-out': 800,  // Teks Stockity slide out
-    'stockity-logo-out': 800,  // Logo Stockity hilang
-  }
+  // Logo animation
+  useEffect(() => {
+    const phaseTimings = {
+      'stc-logo-in': 800,
+      'stc-text-in': 800,
+      'stc-hold': 8000,
+      'stc-text-out': 800,
+      'stc-logo-out': 800,
+      'stockity-logo-in': 800,
+      'stockity-text-in': 800,
+      'stockity-hold': 4000,
+      'stockity-text-out': 800,
+      'stockity-logo-out': 800,
+    }
 
-  const nextPhase = {
-    'stc-logo-in': 'stc-text-in',
-    'stc-text-in': 'stc-hold',
-    'stc-hold': 'stc-text-out',
-    'stc-text-out': 'stc-logo-out',
-    'stc-logo-out': 'stockity-logo-in',
-    'stockity-logo-in': 'stockity-text-in',
-    'stockity-text-in': 'stockity-hold',
-    'stockity-hold': 'stockity-text-out',
-    'stockity-text-out': 'stockity-logo-out',
-    'stockity-logo-out': 'stc-logo-in',
-  } as const
+    const nextPhase = {
+      'stc-logo-in': 'stc-text-in',
+      'stc-text-in': 'stc-hold',
+      'stc-hold': 'stc-text-out',
+      'stc-text-out': 'stc-logo-out',
+      'stc-logo-out': 'stockity-logo-in',
+      'stockity-logo-in': 'stockity-text-in',
+      'stockity-text-in': 'stockity-hold',
+      'stockity-hold': 'stockity-text-out',
+      'stockity-text-out': 'stockity-logo-out',
+      'stockity-logo-out': 'stc-logo-in',
+    } as const
 
-  const timeout = setTimeout(() => {
-    setLogoPhase(nextPhase[logoPhase])
-  }, phaseTimings[logoPhase])
+    const timeout = setTimeout(() => {
+      setLogoPhase(nextPhase[logoPhase])
+    }, phaseTimings[logoPhase])
 
-  return () => clearTimeout(timeout)
-}, [logoPhase])
+    return () => clearTimeout(timeout)
+  }, [logoPhase])
 
+  // Redirect if already logged in
   useEffect(() => {
     if (user) {
       router.push('/trading')
@@ -205,12 +360,13 @@ useEffect(() => {
     return () => clearInterval(interval)
   }, [])
 
+  // Auto carousel for features
   useEffect(() => {
-  const interval = setInterval(() => {
-    setActiveFeature((prev) => (prev + 1) % features.length)
-  }, 4000)
-  return () => clearInterval(interval)
-}, [])
+    const interval = setInterval(() => {
+      setActiveFeature((prev) => (prev + 1) % features.length)
+    }, 4000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Mouse parallax effect
   useEffect(() => {
@@ -225,33 +381,34 @@ useEffect(() => {
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
 
-  // Touch handlers for swipe
-const handleTouchStart = (e: React.TouchEvent) => {
-  setTouchStart(e.targetTouches[0].clientX)
-}
-
-const handleTouchMove = (e: React.TouchEvent) => {
-  setTouchEnd(e.targetTouches[0].clientX)
-}
-
-const handleTouchEnd = () => {
-  if (!touchStart || !touchEnd) return
-  
-  const distance = touchStart - touchEnd
-  const isLeftSwipe = distance > 50
-  const isRightSwipe = distance < -50
-
-  if (isLeftSwipe) {
-    setActiveFeature((prev) => (prev + 1) % features.length)
-  }
-  if (isRightSwipe) {
-    setActiveFeature((prev) => (prev === 0 ? features.length - 1 : prev - 1))
+  // Touch handlers for mobile swipe
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX)
   }
 
-  setTouchStart(0)
-  setTouchEnd(0)
-}
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
 
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > 50
+    const isRightSwipe = distance < -50
+
+    if (isLeftSwipe) {
+      setActiveFeature((prev) => (prev + 1) % features.length)
+    }
+    if (isRightSwipe) {
+      setActiveFeature((prev) => (prev === 0 ? features.length - 1 : prev - 1))
+    }
+
+    setTouchStart(0)
+    setTouchEnd(0)
+  }
+
+  // Auth handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -287,10 +444,11 @@ const handleTouchEnd = () => {
     }
   }
 
+  // Data
   const stats = [
-    { label: 'Trader Aktif', value: '2K+', icon: Users },
-    { label: 'Volume Harian', value: '$3K', icon: DollarSign },
-    { label: 'Win Rate', value: '95%', icon: Target },
+    { label: 'Trader Aktif', value: '1 jt+', icon: Users },
+    { label: 'Volume Harian', value: '$10 B', icon: DollarSign },
+    { label: 'Win Rate', value: '100%', icon: Target },
     { label: 'Negara', value: '15+', icon: Globe },
   ]
 
@@ -298,7 +456,7 @@ const handleTouchEnd = () => {
     {
       icon: Zap,
       title: 'Eksekusi Kilat',
-      description: 'Eksekusi order dalam milidetik tanpa lag',
+      description: 'Eksekusi order dalam milidetik',
       gradient: 'from-yellow-500/20 to-orange-500/20',
       color: 'text-yellow-400',
       bgColor: 'bg-yellow-500/10',
@@ -307,7 +465,7 @@ const handleTouchEnd = () => {
     {
       icon: Shield,
       title: 'Keamanan Maksimal',
-      description: 'Enkripsi tingkat militer melindungi dana Anda',
+      description: 'Enkripsi tingkat tinggi melindungi dana Anda',
       gradient: 'from-blue-500/20 to-cyan-500/20',
       color: 'text-blue-400',
       bgColor: 'bg-blue-500/10',
@@ -316,7 +474,7 @@ const handleTouchEnd = () => {
     {
       icon: BarChart3,
       title: 'Analisis Real-Time',
-      description: 'Chart canggih dan wawasan pasar terkini',
+      description: 'Chart disediakan langsung dari Tradingview',
       gradient: 'from-purple-500/20 to-pink-500/20',
       color: 'text-purple-400',
       bgColor: 'bg-purple-500/10',
@@ -324,8 +482,8 @@ const handleTouchEnd = () => {
     },
     {
       icon: Award,
-      title: 'Profit Hingga 95%',
-      description: 'Keuntungan terbaik di industri trading',
+      title: 'Profit Hingga 100%',
+      description: 'Keuntungan maksimal dibanding platform lain',
       gradient: 'from-green-500/20 to-emerald-500/20',
       color: 'text-green-400',
       bgColor: 'bg-green-500/10',
@@ -388,267 +546,212 @@ const handleTouchEnd = () => {
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
       </div>
 
-{/* Navigation */}
-<nav className="fixed top-0 left-0 right-0 z-50 bg-[#1a1f2e]/95 backdrop-blur-xl border-b border-gray-700/50">
-  <div className="container mx-auto px-4 sm:px-6">
-    <div className="flex items-center justify-between h-20">
-      
-      {/* Logo dengan animasi sequence */}
-      <div className="relative h-12 w-52 overflow-visible">
-        {/* STC AutoTrade - hanya visible di fase STC */}
-        {logoPhase.startsWith('stc-') && (
-          <div className="flex items-center gap-3 absolute left-0 top-0">
-            {/* Logo STC */}
-            <div className={`relative w-10 h-10 flex-shrink-0 overflow-visible ${
-              logoPhase === 'stc-logo-in' ? 'animate-logo-bounce-in' :
-              logoPhase === 'stc-logo-out' ? 'animate-logo-bounce-out' : 
-              'opacity-100'
-            }`}>
-              <Image
-                src="/stc-logo.png"
-                alt="STC AutoTrade"
-                fill
-                className="object-contain rounded-md"
-                priority
-              />
-            </div>
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#1a1f2e]/95 backdrop-blur-xl border-b border-gray-700/50">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between h-20">
             
-            {/* Text STC - hanya show setelah logo in */}
-            {(logoPhase !== 'stc-logo-in' && logoPhase !== 'stc-logo-out') && (
-              <div className="flex overflow-hidden">
-                <span className={`text-xl font-bold text-white whitespace-nowrap ${
-                  logoPhase === 'stc-text-in' ? 'animate-text-slide-in' :
-                  logoPhase === 'stc-text-out' ? 'animate-text-slide-out' : 
-                  'opacity-100 translate-x-0'
-                }`}>
-                  STC AutoTrade
-                </span>
-              </div>
-            )}
-          </div>
-        )}
+            {/* Logo with animation */}
+            <div className="relative h-12 w-52 overflow-visible">
+              {/* STC AutoTrade */}
+              {logoPhase.startsWith('stc-') && (
+                <div className="flex items-center gap-3 absolute left-0 top-0">
+                  <div className={`relative w-10 h-10 flex-shrink-0 overflow-visible ${
+                    logoPhase === 'stc-logo-in' ? 'animate-logo-bounce-in' :
+                    logoPhase === 'stc-logo-out' ? 'animate-logo-bounce-out' : 
+                    'opacity-100'
+                  }`}>
+                    <Image
+                      src="/stc-logo.png"
+                      alt="STC AutoTrade"
+                      fill
+                      className="object-contain rounded-md"
+                      priority
+                    />
+                  </div>
+                  
+                  {(logoPhase !== 'stc-logo-in' && logoPhase !== 'stc-logo-out') && (
+                    <div className="flex overflow-hidden">
+                      <span className={`text-xl font-bold text-white whitespace-nowrap ${
+                        logoPhase === 'stc-text-in' ? 'animate-text-slide-in' :
+                        logoPhase === 'stc-text-out' ? 'animate-text-slide-out' : 
+                        'opacity-100 translate-x-0'
+                      }`}>
+                        STC AutoTrade
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
 
-        {/* By Stockity - hanya visible di fase Stockity */}
-        {logoPhase.startsWith('stockity-') && (
-          <div className="flex items-center gap-3 absolute left-0 top-0">
-            {/* Logo Stockity */}
-            <div className={`relative w-10 h-10 flex-shrink-0 overflow-visible ${
-              logoPhase === 'stockity-logo-in' ? 'animate-logo-bounce-in' :
-              logoPhase === 'stockity-logo-out' ? 'animate-logo-bounce-out' : 
-              'opacity-100'
-            }`}>
-              <Image
-                src="/stockity.png"
-                alt="Stockity"
-                fill
-                className="object-contain rounded-md"
-                priority
-              />
+              {/* By Stockity */}
+              {logoPhase.startsWith('stockity-') && (
+                <div className="flex items-center gap-3 absolute left-0 top-0">
+                  <div className={`relative w-10 h-10 flex-shrink-0 overflow-visible ${
+                    logoPhase === 'stockity-logo-in' ? 'animate-logo-bounce-in' :
+                    logoPhase === 'stockity-logo-out' ? 'animate-logo-bounce-out' : 
+                    'opacity-100'
+                  }`}>
+                    <Image
+                      src="/stockity.png"
+                      alt="Stockity"
+                      fill
+                      className="object-contain rounded-md"
+                      priority
+                    />
+                  </div>
+                  
+                  {(logoPhase !== 'stockity-logo-in' && logoPhase !== 'stockity-logo-out') && (
+                    <div className="flex overflow-hidden">
+                      <span className={`text-xl font-bold text-white whitespace-nowrap ${
+                        logoPhase === 'stockity-text-in' ? 'animate-text-slide-in' :
+                        logoPhase === 'stockity-text-out' ? 'animate-text-slide-out' : 
+                        'opacity-100 translate-x-0'
+                      }`}>
+                        By Stockity
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            
-            {/* Text Stockity - hanya show setelah logo in */}
-            {(logoPhase !== 'stockity-logo-in' && logoPhase !== 'stockity-logo-out') && (
-              <div className="flex overflow-hidden">
-                <span className={`text-xl font-bold text-white whitespace-nowrap ${
-                  logoPhase === 'stockity-text-in' ? 'animate-text-slide-in' :
-                  logoPhase === 'stockity-text-out' ? 'animate-text-slide-out' : 
-                  'opacity-100 translate-x-0'
-                }`}>
-                  By Stockity
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
 
-      {/* Desktop Menu */}
-      <div className="hidden md:flex items-center gap-8">
-        <a href="#features" className="text-sm text-gray-300 hover:text-white transition-colors relative group">
-          Fitur
-          <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
-        </a>
-        <a href="#how-it-works" className="text-sm text-gray-300 hover:text-white transition-colors relative group">
-          Cara Kerja
-          <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
-        </a>
-        <a href="#testimonials" className="text-sm text-gray-300 hover:text-white transition-colors relative group">
-          Testimoni
-          <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
-        </a>
-      </div>
-
-      {/* Auth Button */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => {
-            setIsLogin(false)
-            setShowAuthModal(true)
-          }}
-          className="flex items-center gap-2 px-6 py-2.5 bg-[#2d3748] hover:bg-[#3d4758] rounded-lg text-sm font-semibold text-white shadow-lg transition-colors border border-gray-600"
-        >
-          <UserPlus className="w-4 h-4" />
-          Daftar
-        </button>
-      </div>
-      
-    </div>
-  </div>
-</nav>
-
-{/* Hero Section */}
-<section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32 overflow-hidden">
-  {/* Background with Blur Effects */}
-  <div className="absolute inset-0 overflow-hidden">
-    {/* Base gradient */}
-    <div className="absolute inset-0 bg-gradient-to-b from-[#1a1f2e] via-[#0f1419] to-[#0a0e17]"></div>
-    
-    {/* Blurred glowing orbs */}
-    <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px]"></div>
-    <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-600/8 rounded-full blur-[100px]"></div>
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-600/8 rounded-full blur-[100px]"></div>
-    
-    {/* Simple grid */}
-    <div 
-      className="absolute inset-0 opacity-[0.03]"
-      style={{
-        backgroundImage: `
-          linear-gradient(rgba(59, 130, 246, 0.4) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(59, 130, 246, 0.4) 1px, transparent 1px)
-        `,
-        backgroundSize: '60px 60px',
-      }}
-    ></div>
-  </div>
-  
-  <div className="container mx-auto px-4 sm:px-6 relative z-10">
-    <div className="grid lg:grid-cols-2 gap-12 items-center">
-      {/* Left Content */}
-      <div className="space-y-8">
-        <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold leading-tight">
-              Trading Binary Option dengan
-              <span className="block mt-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-emerald-400 to-cyan-400 animate-gradient bg-[length:200%_auto]">
-                Kecepatan Kilat
-              </span>
-            </h1>
-
-        <p className="text-lg sm:text-xl text-gray-400 leading-relaxed">
-          Eksekusi order dalam <span className="text-emerald-400 font-semibold">milidetik</span>, 
-          dapatkan profit hingga <span className="text-blue-400 font-semibold">95%</span>, 
-          dan trading dengan <span className="text-cyan-400 font-semibold">percaya diri 24/7</span>.
-        </p>
-
-        <div className="flex flex-row gap-3 sm:gap-4">
-          <button
-            onClick={() => {
-              setIsLogin(true)
-              setShowAuthModal(true)
-            }}
-            className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 rounded-xl text-sm sm:text-lg font-semibold text-white transition-colors shadow-lg"
-          >
-            <span className="flex items-center justify-center gap-2">
-              <span className="hidden sm:inline">Masuk untuk Trading</span>
-              <span className="sm:hidden">Masuk</span>
-              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
-            </span>
-          </button>
-
-          <button className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-white/5 hover:bg-white/10 border border-gray-700 hover:border-gray-600 rounded-xl text-sm sm:text-lg font-semibold transition-colors backdrop-blur-sm">
-            <span className="flex items-center justify-center gap-2">
-              <Activity className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
-              <span className="hidden sm:inline">Lihat Demo</span>
-              <span className="sm:hidden">Demo</span>
-            </span>
-          </button>
-        </div>
-
-        {/* Stats Row */}
-        <div className="grid grid-cols-4 gap-4 pt-8">
-          {stats.map((stat, index) => (
-            <div 
-              key={index} 
-              className="text-center transform hover:scale-105 transition-transform cursor-default bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-gray-800/50"
-            >
-              <stat.icon className="w-6 h-6 text-blue-400 mx-auto mb-2" />
-              <div className="text-xl font-bold">{stat.value}</div>
-              <div className="text-xs text-gray-500">{stat.label}</div>
+            {/* Desktop Menu */}
+            <div className="hidden md:flex items-center gap-8">
+              <a href="#features" className="text-sm text-gray-300 hover:text-white transition-colors relative group">
+                Fitur
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
+              </a>
+              <a href="#how-it-works" className="text-sm text-gray-300 hover:text-white transition-colors relative group">
+                Cara Kerja
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
+              </a>
+              <a href="#testimonials" className="text-sm text-gray-300 hover:text-white transition-colors relative group">
+                Testimoni
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 group-hover:w-full transition-all"></span>
+              </a>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Right - Trading Platform Preview */}
-      <div className="relative">
-        <LiveTradingTicker />
-
-        <FloatingPriceCard 
-          symbol="EUR/USD" 
-          price="1.0856" 
-          change={2.3} 
-          delay={0}
-          style={{ top: '10%', left: '-10%' }}
-        />
-        <FloatingPriceCard 
-          symbol="BTC/USD" 
-          price="68,342" 
-          change={-1.2} 
-          delay={0.5}
-          style={{ top: '60%', left: '-5%' }}
-        />
-        <FloatingPriceCard 
-          symbol="IDX_STC" 
-          price="7,289" 
-          change={0.8} 
-          delay={1}
-          style={{ bottom: '10%', right: '-10%' }}
-        />
-
-        {/* Main Trading Interface */}
-        <div className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl p-6 shadow-2xl backdrop-blur-xl hover:scale-[1.02] transition-transform duration-300">
-          <div className="flex items-center justify-between mb-6">
+            {/* Auth Button */}
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-blue-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30">
-                <TrendingUp className="w-6 h-6 text-emerald-400" />
-              </div>
-              <div>
-                <div className="text-sm text-gray-400">EUR/USD</div>
-                <div className="text-3xl font-bold ">1.0856</div>
-              </div>
+              <button
+                onClick={() => {
+                  setIsLogin(false)
+                  setShowAuthModal(true)
+                }}
+                className="flex items-center gap-2 px-6 py-2.5 bg-[#2d3748] hover:bg-[#3d4758] rounded-lg text-sm font-semibold text-white shadow-lg transition-colors border border-gray-600"
+              >
+                <UserPlus className="w-4 h-4" />
+                Daftar
+              </button>
             </div>
-            <div className="text-right">
-              <div className="flex items-center gap-1 text-emerald-400 text-lg font-semibold">
-                <TrendingUp className="w-5 h-5" />
-                +2.3%
-              </div>
-              <div className="text-xs text-gray-500 flex items-center gap-1">
-                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
-                Live
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-[#0a0e17] rounded-2xl mb-6 overflow-hidden border border-gray-800/50">
-            <AnimatedTradingChart />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <button className="group relative bg-gradient-to-br from-emerald-500/20 to-green-500/20 hover:from-emerald-500/30 hover:to-green-500/30 border border-emerald-500/30 rounded-xl p-6 transition-colors overflow-hidden">
-              <TrendingUp className="w-8 h-8 text-emerald-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-              <div className="font-bold text-lg text-emerald-400">BELI</div>
-              <div className="text-xs text-gray-400">Profit +95%</div>
-            </button>
-
-            <button className="group relative bg-gradient-to-br from-red-500/20 to-pink-500/20 hover:from-red-500/30 hover:to-pink-500/30 border border-red-500/30 rounded-xl p-6 transition-colors overflow-hidden">
-              <TrendingDown className="w-8 h-8 text-red-400 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-              <div className="font-bold text-lg text-red-400">JUAL</div>
-              <div className="text-xs text-gray-400">Profit +95%</div>
-            </button>
+            
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-</section>
+      </nav>
+
+      {/* Hero Section with Real Crypto Prices */}
+      <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32 overflow-hidden">
+        {/* Background */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#1a1f2e] via-[#0f1419] to-[#0a0e17]"></div>
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px]"></div>
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-600/8 rounded-full blur-[100px]"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-600/8 rounded-full blur-[100px]"></div>
+          
+          <div 
+            className="absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage: `
+                linear-gradient(rgba(59, 130, 246, 0.4) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.4) 1px, transparent 1px)
+              `,
+              backgroundSize: '60px 60px',
+            }}
+          ></div>
+        </div>
+        
+        <div className="container mx-auto px-4 sm:px-6 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left Content */}
+            <div className="space-y-8">
+              <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold leading-tight">
+                Raih Bonus
+                <span className="block mt-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-emerald-400 to-cyan-400 animate-gradient bg-[length:200%_auto]">
+                  Deposit 100%
+                </span>
+              </h1>
+
+              <p className="text-lg sm:text-xl text-gray-400 leading-relaxed">
+                Tersedia berbagai aset <span className="text-emerald-400 font-semibold">global</span>, 
+                dapatkan profit hingga <span className="text-blue-400 font-semibold">100%</span>, 
+                dan sangat mudah bagi <span className="text-cyan-400 font-semibold">pemula</span>.
+              </p>
+
+              <div className="flex flex-row gap-3 sm:gap-4">
+                <button
+                  onClick={() => {
+                    setIsLogin(true)
+                    setShowAuthModal(true)
+                  }}
+                  className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 rounded-xl text-sm sm:text-lg font-semibold text-white transition-colors shadow-lg"
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="hidden sm:inline">Masuk untuk Trading</span>
+                    <span className="sm:hidden">Masuk</span>
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                </button>
+
+                <button className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-white/5 hover:bg-white/10 border border-gray-700 hover:border-gray-600 rounded-xl text-sm sm:text-lg font-semibold transition-colors backdrop-blur-sm">
+                  <span className="flex items-center justify-center gap-2">
+                    <Activity className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
+                    <span className="hidden sm:inline">Lihat Demo</span>
+                    <span className="sm:hidden">Demo</span>
+                  </span>
+                </button>
+              </div>
+
+              {/* Stats Row */}
+              <div className="grid grid-cols-4 gap-4 pt-8">
+                {stats.map((stat, index) => (
+                  <div 
+                    key={index} 
+                    className="text-center transform hover:scale-105 transition-transform cursor-default bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-gray-800/50"
+                  >
+                    <stat.icon className="w-6 h-6 text-blue-400 mx-auto mb-2" />
+                    <div className="text-xl font-bold">{stat.value}</div>
+                    <div className="text-xs text-gray-500">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right - Real Crypto Components */}
+            <div className="relative">
+              <LiveCryptoTicker />
+
+              <FloatingCryptoPriceCard 
+                symbol="BTC" 
+                delay={0}
+                style={{ top: '10%', left: '-10%' }}
+              />
+              <FloatingCryptoPriceCard 
+                symbol="ETH" 
+                delay={0.5}
+                style={{ top: '60%', left: '-5%' }}
+              />
+              <FloatingCryptoPriceCard 
+                symbol="BNB" 
+                delay={1}
+                style={{ bottom: '10%', right: '-10%' }}
+              />
+
+              <LiveCryptoChart />
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Features Section - Modern Minimalist */}
       <section id="features" className="py-16 sm:py-20 relative border-t border-blue-800/50">
@@ -663,7 +766,7 @@ const handleTouchEnd = () => {
         Menghadirkan Solusi
       </h2>
       <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-        Platform trading dengan teknologi dan keamanan terbaik
+        Platform dengan teknologi dan keamanan terbaik
       </p>
     </div>
 
@@ -795,7 +898,7 @@ const handleTouchEnd = () => {
         Cara Kerja Platform
       </h2>
       <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-        Trading menjadi mudah dengan sistem otomatis kami
+        Trading menjadi sangat mudah dengan teknologi kami
       </p>
     </div>
 
@@ -850,11 +953,11 @@ const handleTouchEnd = () => {
                   <div className="flex-1">
                     <h3 className="text-xl font-bold mb-2">Deposit & Pilih Strategi</h3>
                     <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                      Deposit mulai dari Rp 100.000. Pilih strategi trading otomatis sesuai profil risiko Anda.
+                      Deposit mulai dari Rp 50.000 didukung berbagai metode pembayaran. Pilih strategi trading sesuai profil risiko Anda.
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      <span className="px-3 py-1 bg-pink-500/10 border border-pink-500/20 rounded-full text-xs text-pink-400">Minimal rendah</span>
-                      <span className="px-3 py-1 bg-pink-500/10 border border-pink-500/20 rounded-full text-xs text-pink-400">Auto trading</span>
+                      <span className="px-3 py-1 bg-pink-500/10 border border-pink-500/20 rounded-full text-xs text-pink-400">Minimal deposit rendah</span>
+                      <span className="px-3 py-1 bg-pink-500/10 border border-pink-500/20 rounded-full text-xs text-pink-400">Alat lengkap</span>
                     </div>
                   </div>
                 </div>
@@ -880,13 +983,13 @@ const handleTouchEnd = () => {
                     <TrendingUp className="w-6 h-6 text-blue-400" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold mb-2">Trading & Profit</h3>
+                    <h3 className="text-xl font-bold mb-2">Trading & Hasilkan Profit</h3>
                     <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                      Sistem kami trading otomatis 24/7. Pantau profit real-time dan tarik keuntungan kapan saja.
+                      Pasar trading buka 24/7. Pantau profit real-time dan tarik keuntungan kapan saja.
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <span className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-xs text-blue-400">Trading 24/7</span>
-                      <span className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-xs text-blue-400">Profit 95%</span>
+                      <span className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-xs text-blue-400">Profit sampai 100%</span>
                     </div>
                   </div>
                 </div>
@@ -937,181 +1040,6 @@ const handleTouchEnd = () => {
   </div>
 </section>
 
-{/* Testimonials - Modern Clean Design */}
-<section id="testimonials" className="py-16 sm:py-20 relative border-t border-green-800/50">
-  <div className="container mx-auto px-4 sm:px-6">
-    {/* Header */}
-    <div className="text-center mb-16">
-      <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6">
-        <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
-        <span className="text-sm font-medium text-emerald-400">Testimoni Trader</span>
-      </div>
-      <h2 className="text-4xl sm:text-5xl font-bold mb-6 tracking-tight">
-        Dipercaya Ribuan Trader
-      </h2>
-      <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-        Lihat apa kata trader sukses tentang kami
-      </p>
-    </div>
-
-    {/* Desktop - Single Card */}
-    <div className="hidden sm:block max-w-3xl mx-auto">
-      <div className="relative bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-12">
-        <div className="text-center">
-          {/* Avatar */}
-          <div className="text-6xl mb-6">{testimonials[activeTestimonial].avatar}</div>
-          
-          {/* Stars */}
-          <div className="flex justify-center gap-1 mb-6">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-            ))}
-          </div>
-
-          {/* Quote */}
-          <p className="text-xl text-gray-200 mb-8 leading-relaxed">
-            "{testimonials[activeTestimonial].content}"
-          </p>
-
-          {/* Stats inline */}
-          <div className="flex items-center justify-center gap-6 mb-6">
-            <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-              <div className="text-sm text-gray-400 mb-1">Keuntungan</div>
-              <div className="text-lg font-bold text-emerald-400">
-                {testimonials[activeTestimonial].profit}
-              </div>
-            </div>
-            <div className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-              <div className="text-sm text-gray-400 mb-1">Durasi</div>
-              <div className="text-lg font-bold text-blue-400">
-                {testimonials[activeTestimonial].duration}
-              </div>
-            </div>
-          </div>
-
-          {/* User info */}
-          <div className="pt-6 border-t border-gray-800/50">
-            <div className="font-bold text-lg mb-1">
-              {testimonials[activeTestimonial].name}
-            </div>
-            <div className="text-gray-400 text-sm">
-              {testimonials[activeTestimonial].role}
-            </div>
-          </div>
-        </div>
-
-        {/* Progress dots - minimal */}
-        <div className="flex justify-center gap-2 mt-8">
-          {testimonials.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setActiveTestimonial(index)}
-              className="transition-all duration-300"
-            >
-              <div className={`rounded-full transition-all ${
-                index === activeTestimonial 
-                  ? 'bg-gradient-to-r from-blue-500 to-emerald-500 w-8 h-2' 
-                  : 'bg-gray-700 hover:bg-gray-600 w-2 h-2'
-              }`}></div>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-
-    {/* Mobile - Clean Card */}
-    <div className="sm:hidden">
-      <div className="relative">
-        {testimonials.map((testimonial, index) => (
-          <div 
-            key={index}
-            className={`transition-all duration-500 ${
-              index === activeTestimonial 
-                ? 'opacity-100 scale-100 relative z-10' 
-                : 'opacity-0 scale-95 absolute inset-0 pointer-events-none'
-            }`}
-          >
-            <div className="mx-4 bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-6">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="text-5xl">{testimonial.avatar}</div>
-                <div className="flex gap-0.5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-              </div>
-
-              {/* Quote */}
-              <p className="text-base text-gray-200 leading-relaxed mb-6 italic">
-                "{testimonial.content}"
-              </p>
-
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-3 mb-6 pb-6 border-b border-gray-800/50">
-                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-3 text-center">
-                  <div className="text-xs text-gray-400 mb-1">Keuntungan</div>
-                  <div className="text-lg font-bold text-emerald-400">{testimonial.profit}</div>
-                </div>
-                <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-3 text-center">
-                  <div className="text-xs text-gray-400 mb-1">Durasi</div>
-                  <div className="text-lg font-bold text-blue-400">{testimonial.duration}</div>
-                </div>
-              </div>
-
-              {/* User info */}
-              <div>
-                <h4 className="font-bold text-lg mb-1">{testimonial.name}</h4>
-                <p className="text-sm text-gray-400">{testimonial.role}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Mobile Controls */}
-      <div className="flex items-center justify-between mt-6 px-4">
-        <button
-          onClick={() => setActiveTestimonial((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1))}
-          className="w-10 h-10 bg-[#1e293b] hover:bg-[#334155] rounded-lg flex items-center justify-center transition-all border border-gray-700"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-
-        <div className="flex gap-2">
-          {testimonials.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setActiveTestimonial(index)}
-              className="transition-all duration-300"
-            >
-              {index === activeTestimonial ? (
-                <div className="w-8 h-2 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full"></div>
-              ) : (
-                <div className="w-2 h-2 bg-gray-700 hover:bg-gray-600 rounded-full"></div>
-              )}
-            </button>
-          ))}
-        </div>
-
-        <button
-          onClick={() => setActiveTestimonial((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1))}
-          className="w-10 h-10 bg-[#1e293b] hover:bg-[#334155] rounded-lg flex items-center justify-center transition-all border border-gray-700"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* Counter */}
-      <div className="mt-4 text-center">
-        <span className="text-xs text-gray-500">
-          {activeTestimonial + 1} / {testimonials.length}
-        </span>
-      </div>
-    </div>
-  </div>
-</section>
-
       {/* CTA Section */}
       <section className="py-16 sm:py-20 relative border-t border-blue-800/50">
         <div className="container mx-auto px-4 sm:px-6">
@@ -1135,7 +1063,7 @@ const handleTouchEnd = () => {
               {/* Top Badge */}
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full mb-8">
                 <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
-                <span className="text-sm font-medium text-blue-400">Platform Trading Terpercaya</span>
+                <span className="text-sm font-medium text-blue-400">Platform Trading Terbaik</span>
               </div>
 
               {/* Heading */}
@@ -1145,7 +1073,7 @@ const handleTouchEnd = () => {
               
               {/* Subtitle */}
               <p className="text-lg text-gray-400 mb-10 max-w-xl mx-auto">
-                Bergabung dengan 50.000+ trader profesional di seluruh dunia
+                Telah dipakai dan diunduh sebanyak 1.000.000+ pengguna di Playstore
               </p>
 
               {/* CTA Button */}
@@ -1163,17 +1091,17 @@ const handleTouchEnd = () => {
               {/* Trust Indicators - Minimal */}
               <div className="flex items-center justify-center gap-8 mt-12 pt-8 border-t border-gray-800/50">
                 <div className="text-center">
-                  <div className="text-2xl font-bold mb-1">2K+</div>
+                  <div className="text-2xl font-bold mb-1">1 jt+</div>
                   <div className="text-xs text-gray-500">Trader Aktif</div>
                 </div>
                 <div className="w-px h-10 bg-gray-800"></div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold mb-1">$3K</div>
+                  <div className="text-2xl font-bold mb-1">$10 B</div>
                   <div className="text-xs text-gray-500">Volume Harian</div>
                 </div>
                 <div className="w-px h-10 bg-gray-800"></div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold mb-1">95%</div>
+                  <div className="text-2xl font-bold mb-1">100%</div>
                   <div className="text-xs text-gray-500">Max Profit</div>
                 </div>
               </div>
@@ -1212,15 +1140,15 @@ const handleTouchEnd = () => {
               {/* Trust Indicators - Compact */}
               <div className="grid grid-cols-3 gap-4 mt-8 pt-6 border-t border-gray-800/50">
                 <div className="text-center">
-                  <div className="text-xl font-bold mb-0.5">2K+</div>
+                  <div className="text-xl font-bold mb-0.5">1 jt+</div>
                   <div className="text-[10px] text-gray-500">Trader</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl font-bold mb-0.5">$3K</div>
+                  <div className="text-xl font-bold mb-0.5">$10 B</div>
                   <div className="text-[10px] text-gray-500">Volume</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl font-bold mb-0.5">95%</div>
+                  <div className="text-xl font-bold mb-0.5">100%</div>
                   <div className="text-[10px] text-gray-500">Profit</div>
                 </div>
               </div>
@@ -1339,7 +1267,7 @@ const handleTouchEnd = () => {
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full">
               <Shield className="w-4 h-4 text-green-400" />
               <span className="text-xs text-green-400 font-medium">
-                Semua transaksi dilindungi enkripsi SSL 256-bit
+                Semua transaksi telah dilindungi enkripsi SSL 256-bit
               </span>
             </div>
           </div>

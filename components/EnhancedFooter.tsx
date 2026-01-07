@@ -111,48 +111,17 @@ export default function EnhancedFooter() {
                 <div>
                   <span className="text-lg font-bold text-white">STC AutoTrade</span>
                   <div className="flex items-center gap-1 mt-0.5">
-                    <span className="text-[10px] uppercase tracking-wider">
-                      <span className="text-gray-400 lowercase mr-1">by</span>
-                      <span className="text-blue-400 italic font-bold">Stockity</span>
+                    <span className="text-[10px] tracking-wider">
+                      <span className="text-gray-400 lowercase mr-1">support by</span>
+                      <span className="text-blue-400 font-bold">Stockity</span>
                     </span>
-                  <div className="w-1 h-1 bg-blue-400 rounded-full animate-pulse"></div>
                   </div>
                 </div>
               </Link>
 
               <p className="text-sm text-gray-400 leading-relaxed mb-6">
-                Platform trading binary option profesional dengan teknologi terdepan dan keamanan maksimal.
+                Platform trading dengan teknologi terdepan dan keamanan tinggi, disediakan oleh Stockity yang merupakan broker online berlinsensi dan teregulasi.
               </p>
-
-              {/* Newsletter Form */}
-              <div className="mb-6">
-                <label className="block text-xs font-medium text-gray-400 mb-2">
-                  Subscribe to Newsletter
-                </label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Enter your email"
-                    className="w-full bg-white/5 border border-gray-800/50 rounded-lg px-4 py-3 pr-12 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-700 focus:border-gray-700 transition-all"
-                    disabled={loading}
-                  />
-                  <button
-                    onClick={handleSubscribe}
-                    disabled={loading}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/10 hover:bg-white/20 rounded-md flex items-center justify-center transition-colors disabled:opacity-50"
-                    aria-label="Subscribe"
-                  >
-                    {loading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b border-white"></div>
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
 
               {/* Social Links */}
               <div className="flex items-center gap-3">
@@ -280,22 +249,7 @@ export default function EnhancedFooter() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Risk Warning - Minimal */}
-        <div className="pb-6">
-          <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <Shield className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <h5 className="text-xs font-semibold text-yellow-400 mb-1">Risk Warning</h5>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  Trading involves risk. Only invest what you can afford to lose. Past performance doesn't guarantee future results.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        </div>        
       </div>
     </footer>
   )
