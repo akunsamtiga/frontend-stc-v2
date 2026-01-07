@@ -47,9 +47,9 @@ export function getStatusGradient(status: UserStatus): string {
  */
 export function getStatusBgClass(status: UserStatus): string {
   const classes = {
-    standard: 'bg-gray-100 text-gray-600 border-gray-200',
-    gold: 'bg-yellow-100 text-yellow-600 border-yellow-200',
-    vip: 'bg-purple-100 text-purple-600 border-purple-200'
+    standard: 'bg-gray-100 text-gray-700 border-gray-200',
+    gold: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+    vip: 'bg-purple-100 text-purple-700 border-purple-200'
   }
   return classes[status]
 }

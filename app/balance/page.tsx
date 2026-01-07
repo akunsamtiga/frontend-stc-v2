@@ -261,7 +261,11 @@ export default function BalancePage() {
             </div>
             
             {statusInfo && (
-              <div className={`flex items-center gap-3 px-4 py-2 rounded-xl bg-gradient-to-r ${getStatusGradient(statusInfo.current)} text-white shadow-2xl border-2 border-white/30 ring-2 ring-black/10`}>
+              <div className={`flex items-center gap-3 px-4 py-2 rounded-xl text-white shadow-2xl border-2 border-white/30 ring-2 ring-black/10 ${
+                statusInfo.current === 'standard' ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
+                statusInfo.current === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-orange-600' :
+                'bg-gradient-to-r from-purple-400 to-pink-600'
+              }`}>
                 <Award className="w-5 h-5" />
                 <div className="text-sm">
                   <div className="font-bold">{statusInfo.current.toUpperCase()}</div>
@@ -275,7 +279,11 @@ export default function BalancePage() {
         {/* Status Info Banner (Mobile) */}
         {statusInfo && (
           <div className="sm:hidden mb-6">
-            <div className={`p-4 rounded-xl bg-gradient-to-r ${getStatusGradient(statusInfo.current)} text-white shadow-lg`}>
+            <div className={`p-4 rounded-xl text-white shadow-lg ${
+              statusInfo.current === 'standard' ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
+              statusInfo.current === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-orange-600' :
+              'bg-gradient-to-r from-purple-400 to-pink-600'
+            }`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Award className="w-8 h-8" />

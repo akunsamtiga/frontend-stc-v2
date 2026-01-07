@@ -439,10 +439,14 @@ export default function ProfilePage() {
                   <p className="text-gray-600 mb-3">{user?.email}</p>
                   
                   {statusInfo && (
-                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r ${getStatusGradient(statusInfo.current)} text-white shadow-lg`}>
+                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white shadow-lg ${
+                      statusInfo.current === 'standard' ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
+                      statusInfo.current === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-orange-600' :
+                      'bg-gradient-to-r from-purple-400 to-pink-600'
+                    }`}>
                       {React.createElement(getStatusIcon(statusInfo.current), { className: "w-5 h-5" })}
                       <span className="font-semibold">{statusInfo.current.toUpperCase()} Status</span>
-                      <span className="opacity-90"> {statusInfo.profitBonus} Bonus</span>
+                      <span className="opacity-90">{statusInfo.profitBonus}% Bonus</span>
                     </div>
                   )}
                 </div>
@@ -461,7 +465,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="w-full bg-blue-200 rounded-full h-3">
                   <div 
-                    className="h-3 rounded-full bg-blue-600 transition-all duration-500" 
+                    className="h-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500" 
                     style={{ width: `${profileInfo.completion}%` }}
                   ></div>
                 </div>
@@ -808,7 +812,11 @@ export default function ProfilePage() {
             {/* Current Status */}
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Your Status</h3>
-              <div className={`flex items-center gap-4 p-6 rounded-xl bg-gradient-to-r ${getStatusGradient(statusInfo.current)} text-white`}>
+              <div className={`flex items-center gap-4 p-6 rounded-xl text-white ${
+                statusInfo.current === 'standard' ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
+                statusInfo.current === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-orange-600' :
+                'bg-gradient-to-r from-purple-400 to-pink-600'
+              }`}>
                 {React.createElement(getStatusIcon(statusInfo.current), { className: "w-12 h-12" })}
                 <div>
                   <div className="text-2xl font-bold mb-1">{statusInfo.current.toUpperCase()}</div>
@@ -827,7 +835,12 @@ export default function ProfilePage() {
                     <span className="font-semibold">{progressInfo.progress}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div className={`h-3 rounded-full bg-gradient-to-r ${getStatusGradient(statusInfo.current)} transition-all duration-500`} style={{ width: `${progressInfo.progress}%` }}></div>
+                    <div className={`h-3 rounded-full transition-all duration-500 ${
+                      statusInfo.current === 'standard' ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
+                      statusInfo.current === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-orange-600' :
+                      'bg-gradient-to-r from-purple-400 to-pink-600'
+                    }`} style={{ width: `${progressInfo.progress}%` }}>
+                    </div>
                   </div>
                 </div>
                 <p className="text-sm text-gray-600">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import Image from 'next/image'
@@ -23,6 +23,41 @@ export default function Navbar() {
   const { user, logout } = useAuthStore()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [logoPhase, setLogoPhase] = useState<'stc-logo-in' | 'stc-text-in' | 'stc-hold' | 'stc-text-out' | 'stc-logo-out' | 'stockity-logo-in' | 'stockity-text-in' | 'stockity-hold' | 'stockity-text-out' | 'stockity-logo-out'>('stc-logo-in')
+
+  useEffect(() => {
+    const phaseTimings = {
+      'stc-logo-in': 800,
+      'stc-text-in': 800,
+      'stc-hold': 8000,
+      'stc-text-out': 800,
+      'stc-logo-out': 800,
+      'stockity-logo-in': 800,
+      'stockity-text-in': 800,
+      'stockity-hold': 4000,
+      'stockity-text-out': 800,
+      'stockity-logo-out': 800,
+    }
+
+    const nextPhase = {
+      'stc-logo-in': 'stc-text-in',
+      'stc-text-in': 'stc-hold',
+      'stc-hold': 'stc-text-out',
+      'stc-text-out': 'stc-logo-out',
+      'stc-logo-out': 'stockity-logo-in',
+      'stockity-logo-in': 'stockity-text-in',
+      'stockity-text-in': 'stockity-hold',
+      'stockity-hold': 'stockity-text-out',
+      'stockity-text-out': 'stockity-logo-out',
+      'stockity-logo-out': 'stc-logo-in',
+    } as const
+
+    const timeout = setTimeout(() => {
+      setLogoPhase(nextPhase[logoPhase])
+    }, phaseTimings[logoPhase])
+
+    return () => clearTimeout(timeout)
+  }, [logoPhase])
 
   const handleLogout = () => {
     logout()
@@ -35,8 +70,7 @@ export default function Navbar() {
     { path: '/trading', label: 'Trading', icon: BarChart3 },
     { path: '/history', label: 'History', icon: History },
     { path: '/balance', label: 'Balance', icon: Wallet },
-    { path: '/profile', label: 'Profile', icon: User }, // ⬅️ TAMBAHKAN INI
-
+    { path: '/profile', label: 'Profile', icon: User },
   ]
 
   if (!user) return null
@@ -45,23 +79,76 @@ export default function Navbar() {
     <nav className="bg-white border-b border-gray-200">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
+          {/* Logo dengan animasi sequence */}
           <div 
-            className="flex items-center gap-3 cursor-pointer" 
+            className="relative h-10 w-52 overflow-visible cursor-pointer"
             onClick={() => router.push('/trading')}
           >
-            <div className="relative w-8 h-8">
-              <Image
-                src="/stc-logo.png"
-                alt="STC"
-                fill
-                className="object-contain rounded-md"
-                priority
-              />
-            </div>
-            <span className="font-bold text-lg text-gray-900">
-              STC AutoTrade
-            </span>
+            {/* STC AutoTrade - hanya visible di fase STC */}
+            {logoPhase.startsWith('stc-') && (
+              <div className="flex items-center gap-3 absolute left-0 top-0">
+                {/* Logo STC */}
+                <div className={`relative w-8 h-8 flex-shrink-0 overflow-visible ${
+                  logoPhase === 'stc-logo-in' ? 'animate-logo-bounce-in' :
+                  logoPhase === 'stc-logo-out' ? 'animate-logo-bounce-out' : 
+                  'opacity-100'
+                }`}>
+                  <Image
+                    src="/stc-logo.png"
+                    alt="STC AutoTrade"
+                    fill
+                    className="object-contain rounded-md"
+                    priority
+                  />
+                </div>
+                
+                {/* Text STC - hanya show setelah logo in */}
+                {(logoPhase !== 'stc-logo-in' && logoPhase !== 'stc-logo-out') && (
+                  <div className="flex overflow-hidden">
+                    <span className={`text-lg font-bold text-gray-900 whitespace-nowrap ${
+                      logoPhase === 'stc-text-in' ? 'animate-text-slide-in' :
+                      logoPhase === 'stc-text-out' ? 'animate-text-slide-out' : 
+                      'opacity-100 translate-x-0'
+                    }`}>
+                      STC AutoTrade
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* By Stockity - hanya visible di fase Stockity */}
+            {logoPhase.startsWith('stockity-') && (
+              <div className="flex items-center gap-3 absolute left-0 top-0">
+                {/* Logo Stockity */}
+                <div className={`relative w-8 h-8 flex-shrink-0 overflow-visible ${
+                  logoPhase === 'stockity-logo-in' ? 'animate-logo-bounce-in' :
+                  logoPhase === 'stockity-logo-out' ? 'animate-logo-bounce-out' : 
+                  'opacity-100'
+                }`}>
+                  <Image
+                    src="/stockity.png"
+                    alt="Stockity"
+                    fill
+                    className="object-contain rounded-md"
+                    priority
+                  />
+                </div>
+                
+                {/* Text Stockity - hanya show setelah logo in */}
+                {(logoPhase !== 'stockity-logo-in' && logoPhase !== 'stockity-logo-out') && (
+                  <div className="flex overflow-hidden">
+                    <span className={`text-lg font-bold text-gray-900 whitespace-nowrap ${
+                      logoPhase === 'stockity-text-in' ? 'animate-text-slide-in' :
+                      logoPhase === 'stockity-text-out' ? 'animate-text-slide-out' : 
+                      'opacity-100 translate-x-0'
+                    }`}>
+                      By Stockity
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Desktop Navigation */}
@@ -74,7 +161,7 @@ export default function Navbar() {
                   onClick={() => router.push(link.path)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive(link.path)
-                      ? 'bg-gray-100 text-gray-900'
+                      ? 'bg-blue-50 text-blue-600'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   }`}
                 >
@@ -90,7 +177,7 @@ export default function Navbar() {
                 onClick={() => router.push('/admin')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   pathname.startsWith('/admin')
-                    ? 'bg-gray-100 text-gray-900'
+                    ? 'bg-blue-50 text-blue-600'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
@@ -100,16 +187,13 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* User Menu */}
+          {/* User Menu - Desktop */}
           <div className="hidden md:block relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-900">{user.email.split('@')[0]}</div>
-                <div className="text-xs text-gray-500 capitalize">{user.role.replace('_', ' ')}</div>
-              </div>
+              <div className="text-sm font-medium text-gray-900">{user.email.split('@')[0]}</div>
               <div className="flat-avatar">
                 {user.email[0].toUpperCase()}
               </div>
@@ -119,30 +203,20 @@ export default function Navbar() {
             {showUserMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
-                <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-flat-lg z-50 overflow-hidden">
+                <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-flat-lg z-50 overflow-hidden">
                   <div className="px-4 py-3 border-b border-gray-100">
-                    <div className="text-sm font-medium text-gray-900 truncate">{user.email}</div>
-                    <div className="text-xs text-gray-500 mt-1 capitalize">{user.role.replace('_', ' ')}</div>
+                    <div className="text-sm font-medium text-gray-900 truncate mb-1">{user.email}</div>
+                    <div className="text-xs text-gray-500 capitalize">
+                      {user.role.replace('_', ' ')} | {user.status.toUpperCase()}
+                    </div>
                   </div>
                   <button
-                    onClick={() => {
-                      router.push('/profile')
-                      setShowUserMenu(false)
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 transition-colors text-left text-red-600"
                   >
-                    <Settings className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm text-gray-700">Settings</span>
+                    <LogOut className="w-4 h-4" />
+                    <span className="text-sm font-medium">Logout</span>
                   </button>
-                  <div className="border-t border-gray-100">
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 transition-colors text-left text-red-600"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span className="text-sm font-medium">Logout</span>
-                    </button>
-                  </div>
                 </div>
               </>
             )}
@@ -203,7 +277,7 @@ export default function Navbar() {
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                       isActive(link.path)
-                        ? 'bg-gray-100 text-gray-900'
+                        ? 'bg-blue-50 text-blue-600'
                         : 'text-gray-700 hover:bg-gray-50'
                     }`}
                   >
@@ -222,7 +296,7 @@ export default function Navbar() {
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                     pathname.startsWith('/admin')
-                      ? 'bg-gray-100 text-gray-900'
+                      ? 'bg-blue-50 text-blue-600'
                       : 'text-gray-700 hover:bg-gray-50'
                   }`}
                 >
