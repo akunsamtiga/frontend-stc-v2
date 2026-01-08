@@ -45,10 +45,11 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         console.log('🚪 Auth Store: Logging out')
         
-        // Clear localStorage
         if (typeof window !== 'undefined') {
           localStorage.removeItem('token')
           localStorage.removeItem('user')
+          localStorage.removeItem('auth-storage')
+          localStorage.removeItem('trading-storage')
         }
         
         set({ 

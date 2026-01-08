@@ -274,6 +274,36 @@ export default function TradingPage() {
     }
   }, [selectedAsset, detectOrderCompletion, setSelectedAsset])
 
+    const handleLogout = useCallback(async () => {
+    try {
+      console.log('🚪 Starting logout...')
+      
+      // 1. Clear API client
+      api.removeToken()
+      api.clearCache()
+      
+      // 2. Logout from store
+      logout()
+      
+      // 3. Clear all storage
+      if (typeof window !== 'undefined') {
+        localStorage.clear()
+        sessionStorage.clear()
+      }
+      
+      // 4. Small delay for cleanup
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // 5. Force redirect
+      router.replace('/')
+      
+      console.log('✅ Logout completed')
+    } catch (error) {
+      console.error('❌ Logout error:', error)
+      router.replace('/')
+    }
+  }, [logout, router])
+
   useEffect(() => {
     if (!user) {
       router.push('/')
@@ -548,8 +578,8 @@ export default function TradingPage() {
                   <div className="border-t border-gray-800/30">
                     <button
                       onClick={() => {
-                        logout()
-                        router.push('/')
+                        setShowUserMenu(false)
+                        handleLogout()
                       }}
                       className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors text-left text-red-400"
                     >
@@ -985,8 +1015,8 @@ export default function TradingPage() {
 
               <button
                 onClick={() => {
-                  logout()
-                  router.push('/')
+                  setShowMobileMenu(false)
+                  handleLogout()
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
               >

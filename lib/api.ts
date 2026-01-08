@@ -266,6 +266,10 @@ class ApiClient {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token')
     }
+    // ✅ Remove from axios headers
+    if (this.client?.defaults?.headers?.common) {
+      delete this.client.defaults.headers.common['Authorization']
+    }
   }
 
   // ===================================

@@ -46,6 +46,88 @@ import {
 import React from 'react'
 
 // ===================================
+// DATA CONSTANTS - Define before component
+// ===================================
+const stats = [
+  { label: 'Pengguna', value: '1 jt+', icon: Users },
+  { label: 'Volume Harian', value: '$10 B', icon: DollarSign },
+  { label: 'Win Rate', value: '100%', icon: Target },
+  { label: 'Negara', value: '15+', icon: Globe },
+]
+
+const features = [
+  {
+    icon: Zap,
+    title: 'Eksekusi Kilat',
+    description: 'Eksekusi order dalam milidetik',
+    gradient: 'from-yellow-500/20 to-orange-500/20',
+    color: 'text-yellow-400',
+    bgColor: 'bg-yellow-500/10',
+    borderColor: 'border-yellow-500/30'
+  },
+  {
+    icon: Shield,
+    title: 'Keamanan Maksimal',
+    description: 'Enkripsi tingkat tinggi melindungi dana Anda',
+    gradient: 'from-blue-500/20 to-cyan-500/20',
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/10',
+    borderColor: 'border-blue-500/30'
+  },
+  {
+    icon: BarChart3,
+    title: 'Analisis Real-Time',
+    description: 'Chart disediakan langsung dari Tradingview',
+    gradient: 'from-purple-500/20 to-pink-500/20',
+    color: 'text-purple-400',
+    bgColor: 'bg-purple-500/10',
+    borderColor: 'border-purple-500/30'
+  },
+  {
+    icon: Award,
+    title: 'Profit Hingga 100%',
+    description: 'Keuntungan maksimal dibanding platform lain',
+    gradient: 'from-green-500/20 to-emerald-500/20',
+    color: 'text-green-400',
+    bgColor: 'bg-green-500/10',
+    borderColor: 'border-green-500/30'
+  },
+]
+
+const testimonials = [
+  {
+    name: 'Ahmad Rizki',
+    role: 'Trader Profesional',
+    content: 'Platform yang mengubah permainan! Cepat, handal, dan menguntungkan. Saya konsisten profit selama 6 bulan.',
+    rating: 5,
+    avatar: '👨‍💼',
+    profit: '+285%',
+    location: 'Jakarta',
+    duration: '6 bulan'
+  },
+  {
+    name: 'Siti Nurhaliza',
+    role: 'Trader Paruh Waktu',
+    content: 'Sebagai pemula, tampilan interface memudahkan trading. Dukungan hebat dan materi edukasi membantu saya sukses!',
+    rating: 5,
+    avatar: '👩‍💻',
+    profit: '+142%',
+    location: 'Surabaya',
+    duration: '3 bulan'
+  },
+  {
+    name: 'Budi Santoso',
+    role: 'Investor Berpengalaman',
+    content: 'Platform trading terbaik yang pernah saya gunakan. Kecepatan, keamanan, dan tingkat profit tak tertandingi.',
+    rating: 5,
+    avatar: '👨‍🎓',
+    profit: '+378%',
+    location: 'Bandung',
+    duration: '1 tahun'
+  },
+]
+
+// ===================================
 // LIVE CRYPTO TRADING TICKER
 // ===================================
 const LiveCryptoTicker = () => {
@@ -176,9 +258,8 @@ const LiveCryptoChart = () => {
   const [selectedCrypto, setSelectedCrypto] = useState('BTC')
   const [priceData, setPriceData] = useState<CryptoPriceData | null>(null)
   const [priceHistory, setPriceHistory] = useState<number[]>([])
-  const [currentTradeIndex, setCurrentTradeIndex] = useState(0) // ✅ Track current index
+  const [currentTradeIndex, setCurrentTradeIndex] = useState(0)
 
-  // ✅ Data dummy 10 transaksi
   const dummyTrades = [
     { user: 'Ahmad R.', asset: 'BTC/USD', profit: 2450000, time: 'Baru saja' },
     { user: 'Siti N.', asset: 'ETH/USD', profit: 1850000, time: '1 menit lalu' },
@@ -214,14 +295,12 @@ const LiveCryptoChart = () => {
     return () => unsubscribe()
   }, [selectedCrypto])
 
-  // ✅ Auto-rotate trades every 6 seconds (one at a time)
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTradeIndex((prev) => {
-        // Move by 1, loop back to start when reaching end
         return (prev + 1) % dummyTrades.length
       })
-    }, 8000) // 6 seconds
+    }, 8000)
 
     return () => clearInterval(interval)
   }, [])
@@ -230,7 +309,6 @@ const LiveCryptoChart = () => {
   const minPrice = Math.min(...priceHistory, 0)
   const priceRange = maxPrice - minPrice || 1
 
-  // ✅ Get current 2 consecutive trades to display
   const currentTrades = [
     dummyTrades[currentTradeIndex],
     dummyTrades[(currentTradeIndex + 1) % dummyTrades.length]
@@ -238,7 +316,6 @@ const LiveCryptoChart = () => {
 
   return (
     <div className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl p-6 shadow-2xl backdrop-blur-xl hover:scale-[1.02] transition-transform duration-300">
-      {/* Crypto Selector */}
       <div className="flex gap-2 mb-4">
         {['BTC', 'ETH', 'BNB'].map(crypto => (
           <button
@@ -255,7 +332,6 @@ const LiveCryptoChart = () => {
         ))}
       </div>
 
-      {/* Price Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-blue-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30">
@@ -288,7 +364,6 @@ const LiveCryptoChart = () => {
         )}
       </div>
 
-      {/* Live Chart - Hidden on mobile */}
       <div className="hidden sm:block bg-[#0a0e17] rounded-2xl mb-6 overflow-hidden border border-gray-800/50">
         <div className="h-64 flex items-end justify-between gap-1 p-4">
           {priceHistory.length > 0 ? (
@@ -313,7 +388,6 @@ const LiveCryptoChart = () => {
         </div>
       </div>
 
-      {/* Trading Buttons */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <button className="group relative bg-gradient-to-br from-emerald-500/20 to-green-500/20 hover:from-emerald-500/30 hover:to-green-500/30 border border-emerald-500/30 rounded-xl p-4 sm:p-6 transition-colors overflow-hidden">
           <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-400 mx-auto mb-1 sm:mb-2 group-hover:scale-110 transition-transform" />
@@ -328,7 +402,6 @@ const LiveCryptoChart = () => {
         </button>
       </div>
 
-      {/* Live Transactions - Mobile Only, Auto-rotate every 6 seconds (one by one) */}
       <div className="sm:hidden mt-4">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -362,6 +435,10 @@ const LiveCryptoChart = () => {
 export default function LandingPage() {
   const router = useRouter()
   const { user, setAuth } = useAuthStore()
+  
+  // ✅ ALL useState hooks at the top - ALWAYS called in same order
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const [isProcessingGoogleRedirect, setIsProcessingGoogleRedirect] = useState(false) 
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
@@ -375,7 +452,25 @@ export default function LandingPage() {
   const [logoPhase, setLogoPhase] = useState<'stc-logo-in' | 'stc-text-in' | 'stc-hold' | 'stc-text-out' | 'stc-logo-out' | 'stockity-logo-in' | 'stockity-text-in' | 'stockity-hold' | 'stockity-text-out' | 'stockity-logo-out'>('stc-logo-in')
   const [loadingGoogle, setLoadingGoogle] = useState(false)
 
-  // Logo animation
+  // ✅ ALL useEffect hooks - ALWAYS called in same order
+  
+  // Effect 1: Check auth timeout
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsCheckingAuth(false)
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // Effect 2: Redirect if authenticated
+  useEffect(() => {
+    if (!isCheckingAuth && !isProcessingGoogleRedirect && user) {
+      console.log('ℹ️ User already authenticated, redirecting...')
+      router.push('/trading')
+    }
+  }, [user, router, isCheckingAuth, isProcessingGoogleRedirect])
+
+  // Effect 3: Logo animation
   useEffect(() => {
     const phaseTimings = {
       'stc-logo-in': 800,
@@ -410,14 +505,7 @@ export default function LandingPage() {
     return () => clearTimeout(timeout)
   }, [logoPhase])
 
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user) {
-      router.push('/trading')
-    }
-  }, [user, router])
-
-  // Auto carousel for testimonials
+  // Effect 4: Auto carousel for testimonials
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveTestimonial((prev) => (prev + 1) % 3)
@@ -425,7 +513,7 @@ export default function LandingPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Auto carousel for features
+  // Effect 5: Auto carousel for features
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveFeature((prev) => (prev + 1) % features.length)
@@ -433,7 +521,7 @@ export default function LandingPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Mouse parallax effect
+  // Effect 6: Mouse parallax effect
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({
@@ -446,14 +534,19 @@ export default function LandingPage() {
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
 
+  // Effect 7: Google redirect check
   useEffect(() => {
-    // Check for redirect result when page loads
     const checkRedirectResult = async () => {
+      if (isCheckingAuth) return
+      
       try {
+        setIsProcessingGoogleRedirect(true)
+        console.log('🔍 Checking for Google redirect result...')
+        
         const result = await handleGoogleRedirectResult()
         
         if (result && result.user) {
-          console.log('✅ Handling redirect result...')
+          console.log('✅ Google redirect detected, processing...')
           
           const idToken = await getIdToken(result.user)
           const urlParams = new URLSearchParams(window.location.search)
@@ -473,22 +566,48 @@ export default function LandingPage() {
               : 'Selamat datang kembali!'
             
             toast.success(message)
+            
+            await new Promise(resolve => setTimeout(resolve, 500))
+            
             router.push('/trading')
           }
+        } else {
+          console.log('ℹ️ No Google redirect result found')
         }
       } catch (error: any) {
-        console.error('❌ Redirect result error:', error)
+        console.error('❌ Google redirect error:', error)
         if (error.response?.data?.error) {
           toast.error(error.response.data.error)
+        } else if (error.message) {
+          toast.error(error.message)
         }
+      } finally {
+        setIsProcessingGoogleRedirect(false)
       }
     }
 
-    checkRedirectResult()
-  }, [])
+    if (!isCheckingAuth) {
+      checkRedirectResult()
+    }
+  }, [isCheckingAuth, setAuth, router])
 
+  // ✅ NOW do conditional rendering AFTER all hooks
+  if (isCheckingAuth || isProcessingGoogleRedirect) {
+    return (
+      <div className="min-h-screen bg-[#0a0e17] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+          <p className="text-gray-400">
+            {isProcessingGoogleRedirect ? 'Processing login...' : 'Loading...'}
+          </p>
+        </div>
+      </div>
+    )
+  }
 
-  // Touch handlers for mobile swipe
+  if (user) return null
+
+  // ✅ Event handlers - defined after hooks and conditionals
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.targetTouches[0].clientX)
   }
@@ -515,7 +634,6 @@ export default function LandingPage() {
     setTouchEnd(0)
   }
 
-  // Auth handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -555,9 +673,8 @@ export default function LandingPage() {
     setLoadingGoogle(true)
 
     try {
-      console.log('🔐 Starting Google Sign-In...')
+      console.log('🔍 Starting Google Sign-In...')
       
-      // Sign in with Google
       const result = await signInWithGoogle()
       
       if (!result || !result.user) {
@@ -566,15 +683,12 @@ export default function LandingPage() {
 
       console.log('✅ Google authentication successful')
       
-      // Get ID Token
       const idToken = await getIdToken(result.user)
       console.log('✅ ID Token obtained')
 
-      // Get referral code from URL if exists
       const urlParams = new URLSearchParams(window.location.search)
       const referralCode = urlParams.get('ref') || undefined
 
-      // Send to backend
       console.log('📤 Sending to backend...')
       const response = await api.googleSignIn(idToken, referralCode)
       
@@ -587,25 +701,21 @@ export default function LandingPage() {
 
       console.log('✅ Backend authentication successful')
 
-      // Set auth state
       setAuth(userData, token)
       api.setToken(token)
 
-      // Show success message
       const message = response.data?.isNewUser 
         ? 'Akun berhasil dibuat! Selamat datang!' 
         : 'Selamat datang kembali!'
       
       toast.success(message)
 
-      // Close modal and redirect
       setShowAuthModal(false)
       router.push('/trading')
 
     } catch (error: any) {
       console.error('❌ Google Sign-In failed:', error)
       
-      // Handle specific errors
       let errorMessage = 'Login dengan Google gagal'
       
       if (error.code === 'auth/popup-closed-by-user') {
@@ -623,89 +733,6 @@ export default function LandingPage() {
       setLoadingGoogle(false)
     }
   }
-
-
-  // Data
-  const stats = [
-    { label: 'Pengguna', value: '1 jt+', icon: Users },
-    { label: 'Volume Harian', value: '$10 B', icon: DollarSign },
-    { label: 'Win Rate', value: '100%', icon: Target },
-    { label: 'Negara', value: '15+', icon: Globe },
-  ]
-
-  const features = [
-    {
-      icon: Zap,
-      title: 'Eksekusi Kilat',
-      description: 'Eksekusi order dalam milidetik',
-      gradient: 'from-yellow-500/20 to-orange-500/20',
-      color: 'text-yellow-400',
-      bgColor: 'bg-yellow-500/10',
-      borderColor: 'border-yellow-500/30'
-    },
-    {
-      icon: Shield,
-      title: 'Keamanan Maksimal',
-      description: 'Enkripsi tingkat tinggi melindungi dana Anda',
-      gradient: 'from-blue-500/20 to-cyan-500/20',
-      color: 'text-blue-400',
-      bgColor: 'bg-blue-500/10',
-      borderColor: 'border-blue-500/30'
-    },
-    {
-      icon: BarChart3,
-      title: 'Analisis Real-Time',
-      description: 'Chart disediakan langsung dari Tradingview',
-      gradient: 'from-purple-500/20 to-pink-500/20',
-      color: 'text-purple-400',
-      bgColor: 'bg-purple-500/10',
-      borderColor: 'border-purple-500/30'
-    },
-    {
-      icon: Award,
-      title: 'Profit Hingga 100%',
-      description: 'Keuntungan maksimal dibanding platform lain',
-      gradient: 'from-green-500/20 to-emerald-500/20',
-      color: 'text-green-400',
-      bgColor: 'bg-green-500/10',
-      borderColor: 'border-green-500/30'
-    },
-  ]
-
-  const testimonials = [
-    {
-      name: 'Ahmad Rizki',
-      role: 'Trader Profesional',
-      content: 'Platform yang mengubah permainan! Cepat, handal, dan menguntungkan. Saya konsisten profit selama 6 bulan.',
-      rating: 5,
-      avatar: '👨‍💼',
-      profit: '+285%',
-      location: 'Jakarta',
-      duration: '6 bulan'
-    },
-    {
-      name: 'Siti Nurhaliza',
-      role: 'Trader Paruh Waktu',
-      content: 'Sebagai pemula, tampilan interface memudahkan trading. Dukungan hebat dan materi edukasi membantu saya sukses!',
-      rating: 5,
-      avatar: '👩‍💻',
-      profit: '+142%',
-      location: 'Surabaya',
-      duration: '3 bulan'
-    },
-    {
-      name: 'Budi Santoso',
-      role: 'Investor Berpengalaman',
-      content: 'Platform trading terbaik yang pernah saya gunakan. Kecepatan, keamanan, dan tingkat profit tak tertandingi.',
-      rating: 5,
-      avatar: '👨‍🎓',
-      profit: '+378%',
-      location: 'Bandung',
-      duration: '1 tahun'
-    },
-  ]
-
-  if (user) return null
 
   return (
     <div className="min-h-screen bg-[#0a0e17] text-white overflow-hidden">
