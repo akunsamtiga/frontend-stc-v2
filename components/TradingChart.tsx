@@ -557,7 +557,7 @@ const MobileControls = memo(({
   }, [isOpen])
 
   return (
-    <div className="lg:hidden absolute top-2 left-2 z-10" ref={dropdownRef}>
+    <div className="lg:hidden absolute top-24 left-2 z-10" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg hover:bg-black/50 transition-all"

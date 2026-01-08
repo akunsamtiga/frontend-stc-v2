@@ -27,7 +27,9 @@ import {
   Minus,
   Plus,
   ArrowDownToLine,
-  ArrowUpFromLine
+  ArrowUpFromLine,
+  TrendingUp,
+  Activity
 } from 'lucide-react'
 import OrderNotification from '@/components/OrderNotification'
 
@@ -172,6 +174,7 @@ export default function TradingPage() {
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showWalletModal, setShowWalletModal] = useState(false)
   const [showAmountDropdown, setShowAmountDropdown] = useState(false)
+  const [showLeftSidebar, setShowLeftSidebar] = useState(false)
 
   const currentBalance = selectedAccountType === 'real' ? realBalance : demoBalance
 
@@ -593,8 +596,15 @@ export default function TradingPage() {
           </div>
         </div>
 
-        <div className="flex lg:hidden items-center justify-between w-full">
-          <div className="flex items-center w-16">
+        <div className="flex lg:hidden items-center justify-between w-full px-1">
+          {/* Left side - Hamburger + Logo */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowLeftSidebar(true)}
+              className="w-8 h-8 flex items-center justify-center hover:bg-[#232936] rounded-lg transition-colors"
+            >
+              <Menu className="w-5 h-5 text-white" />
+            </button>
             <div className="w-8 h-8 relative">
               <Image 
                 src="/stc-logo.png" 
@@ -605,22 +615,75 @@ export default function TradingPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-[#1a1f2e] px-3 py-1.5 rounded-lg border border-gray-800/50">
-            <span className="text-xs  font-bold">{formatCurrency(currentBalance)}</span>
-          </div>
+          {/* Right side controls */}
+          <div className="flex items-center gap-3">
+            {/* Account Selector - Mobile Compact */}
+            <div className="relative">
+              <button
+                onClick={() => setShowAccountMenu(!showAccountMenu)}
+                className="flex flex-col items-end py-1 px-2.5 bg-[#1a1f2e] rounded-lg border border-gray-800/50"
+              >
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] text-gray-400">
+                    {selectedAccountType === 'real' ? 'Real' : 'Demo'}
+                  </span>
+                  <ChevronDown className="w-2.5 h-2.5 text-gray-400" />
+                </div>
+                <span className="text-xs font-bold text-white leading-tight">
+                  {formatCurrency(currentBalance)}
+                </span>
+              </button>
 
-          <div className="flex items-center gap-2 justify-end w-16">
+              {showAccountMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowAccountMenu(false)} />
+                  <div className="absolute top-full right-0 mt-1 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden">
+                    <button
+                      onClick={() => {
+                        setSelectedAccountType('demo')
+                        setShowAccountMenu(false)
+                      }}
+                      className={`w-full flex flex-col items-end px-3 py-1.5 hover:bg-[#232936] transition-colors border-b border-gray-800/30 ${
+                        selectedAccountType === 'demo' ? 'bg-[#232936]' : ''
+                      }`}
+                    >
+                      <span className="text-[10px] text-gray-400">Demo</span>
+                      <span className="text-xs font-bold text-white leading-tight whitespace-nowrap">
+                        {formatCurrency(demoBalance)}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedAccountType('real')
+                        setShowAccountMenu(false)
+                      }}
+                      className={`w-full flex flex-col items-end px-3 py-1.5 hover:bg-[#232936] transition-colors ${
+                        selectedAccountType === 'real' ? 'bg-[#232936]' : ''
+                      }`}
+                    >
+                      <span className="text-[10px] text-gray-400">Real</span>
+                      <span className="text-xs font-bold text-white leading-tight whitespace-nowrap">
+                        {formatCurrency(realBalance)}
+                      </span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
             <button
               onClick={() => setShowWalletModal(true)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+              className="w-8 h-8 flex items-center justify-center bg-blue-500 rounded-lg transition-colors hover:bg-blue-600"
             >
-              <Wallet className="w-4.5 h-4.5 text-blue-400" />
+              <Wallet className="w-4 h-4 text-white" />
             </button>
+
+            {/* Avatar Menu */}
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+              className="w-8 h-8 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity"
             >
-              <Menu className="w-4.5 h-4.5 text-gray-300" />
+              <span className="text-xs font-bold">{user.email[0].toUpperCase()}</span>
             </button>
           </div>
         </div>
@@ -729,58 +792,40 @@ export default function TradingPage() {
         </div>
       </div>
 
-      <div className="lg:hidden bg-[#0f1419] border-t border-gray-800/50 p-3">
-        <div className="space-y-3">
-          <div className="bg-[#1a1f2e] border border-gray-800/50 rounded-xl p-3">
-            <div className="text-xs text-gray-400 text-center mb-2 font-medium">Select Account</div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setSelectedAccountType('demo')}
-                className={`px-3 py-3 rounded-lg text-xs font-bold transition-all ${
-                  selectedAccountType === 'demo'
-                    ? 'bg-blue-500 text-white shadow-lg'
-                    : 'bg-[#0f1419] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
-                }`}
-              >
-                <div className="flex flex-col items-center gap-1">
-                  <span>DEMO</span>
-                  <span className=" text-[10px]">{formatCurrency(demoBalance)}</span>
-                </div>
-              </button>
-              <button
-                onClick={() => setSelectedAccountType('real')}
-                className={`px-3 py-3 rounded-lg text-xs font-bold transition-all ${
-                  selectedAccountType === 'real'
-                    ? 'bg-green-500 text-white shadow-lg'
-                    : 'bg-[#0f1419] text-gray-400 hover:bg-[#232936] border border-gray-800/50'
-                }`}
-              >
-                <div className="flex flex-col items-center gap-1">
-                  <span>REAL</span>
-                  <span className=" text-[10px]">{formatCurrency(realBalance)}</span>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+      <div className="lg:hidden bg-[#0f1419] border-t border-gray-800/50 p-4">
+        <div className="space-y-4">
+          {/* Amount & Duration - Improved Spacing */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="relative">
-              <label className="text-xs text-gray-400 mb-1.5 block font-medium">Amount</label>
+              <label className="text-xs text-gray-400 mb-2 block font-medium">Amount</label>
               <div className="relative">
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(Number(e.target.value))}
-                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg pl-3 pr-9 py-2.5 text-center text-sm  font-bold text-white focus:outline-none focus:border-blue-500/50"
-                  min="1000"
-                  step="1000"
-                />
-                <button
+                {/* Changed from <button> to <div> to avoid nesting buttons */}
+                <div
                   onClick={() => setShowAmountDropdown(!showAmountDropdown)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-3 text-center text-sm font-bold text-white hover:bg-[#232936] transition-colors flex items-center justify-between cursor-pointer"
                 >
-                  <ChevronDown className="w-4 h-4" />
-                </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setAmount(prev => Math.max(1000, prev - 10000))
+                    }}
+                    className="flex items-center justify-center hover:bg-[#2a3142] rounded p-1 transition-colors"
+                  >
+                    <Minus className="w-4 h-4 text-gray-300" />
+                  </button>
+                  
+                  <span className="flex-1">{formatCurrency(amount)}</span>
+                  
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setAmount(prev => prev + 10000)
+                    }}
+                    className="flex items-center justify-center hover:bg-[#2a3142] rounded p-1 transition-colors"
+                  >
+                    <Plus className="w-4 h-4 text-gray-300" />
+                  </button>
+                </div>
               </div>
 
               {showAmountDropdown && (
@@ -797,7 +842,7 @@ export default function TradingPage() {
                           setAmount(preset)
                           setShowAmountDropdown(false)
                         }}
-                        className={`w-full px-4 py-2.5 text-left text-sm  hover:bg-[#232936] transition-colors border-b border-gray-800/30 last:border-0 ${
+                        className={`w-full px-4 py-2.5 text-left text-sm hover:bg-[#232936] transition-colors border-b border-gray-800/30 last:border-0 ${
                           amount === preset ? 'bg-[#232936] text-blue-400' : 'text-gray-300'
                         }`}
                       >
@@ -810,11 +855,11 @@ export default function TradingPage() {
             </div>
 
             <div className="relative">
-              <label className="text-xs text-gray-400 mb-1.5 block font-medium">Duration</label>
+              <label className="text-xs text-gray-400 mb-2 block font-medium">Duration</label>
               <select
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2.5 text-center text-sm font-bold text-white focus:outline-none focus:border-blue-500/50 appearance-none cursor-pointer"
+                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-3 text-center text-sm font-bold text-white focus:outline-none focus:border-blue-500/50 appearance-none cursor-pointer"
               >
                 {DURATIONS.map((d) => (
                   <option key={d} value={d}>{d}m</option>
@@ -823,23 +868,25 @@ export default function TradingPage() {
             </div>
           </div>
 
+          {/* Payout Info - Improved Spacing */}
           {selectedAsset && (
-            <div className="flex justify-center">
-              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-full px-4 py-2">
+            <div className="flex justify-center py-2">
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-full px-5 py-2.5">
                 <span className="text-xs text-gray-400">Pendapatan</span>
                 <span className="text-xs font-semibold text-green-400">+{selectedAsset.profitRate}%</span>
-                <span className="text-sm  font-bold text-green-400">
+                <span className="text-sm font-bold text-green-400">
                   {formatCurrency(potentialPayout)}
                 </span>
               </div>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          {/* Buy/Sell Buttons - Improved Spacing */}
+          <div className="grid grid-cols-2 gap-4 pt-2">
             <button
               onClick={() => handlePlaceOrder('CALL')}
               disabled={loading || !selectedAsset}
-              className="bg-green-500 hover:bg-green-600 active:bg-green-700 disabled:opacity-50 py-3.5 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
+              className="bg-green-500 hover:bg-green-600 active:bg-green-700 disabled:opacity-50 py-4 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
             >
               <ArrowUp className="w-5 h-5" />
               <span>BUY</span>
@@ -847,15 +894,16 @@ export default function TradingPage() {
             <button
               onClick={() => handlePlaceOrder('PUT')}
               disabled={loading || !selectedAsset}
-              className="bg-red-500 hover:bg-red-600 active:bg-red-700 disabled:opacity-50 py-3.5 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
+              className="bg-red-500 hover:bg-red-600 active:bg-red-700 disabled:opacity-50 py-4 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
             >
               <ArrowDown className="w-5 h-5" />
               <span>SELL</span>
             </button>
           </div>
 
+          {/* Loading Indicator */}
           {loading && (
-            <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-2">
+            <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-2 pt-1">
               <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-400"></div>
               Processing order...
             </div>
@@ -1035,39 +1083,181 @@ export default function TradingPage() {
         />
       )}
 
+      {/* Left Sidebar */}
+      {showLeftSidebar && (
+        <>
+          <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setShowLeftSidebar(false)} />
+          <div className="fixed top-0 left-0 bottom-0 w-64 bg-[#0f1419] border-r border-gray-800/50 z-50 p-4 animate-slide-right">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 relative">
+                  <Image 
+                    src="/stc-logo.png" 
+                    alt="STC Logo" 
+                    fill
+                    className="object-contain rounded-md"
+                  />
+                </div>
+                <span className="font-bold">STC AutoTrade</span>
+              </div>
+              <button onClick={() => setShowLeftSidebar(false)}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  router.push('/calendar')
+                  setShowLeftSidebar(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <Clock className="w-4 h-4" />
+                <span>Kalender</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  router.push('/event')
+                  setShowLeftSidebar(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <Activity className="w-4 h-4" />
+                <span>Event</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  router.push('/tournament')
+                  setShowLeftSidebar(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <TrendingUp className="w-4 h-4" />
+                <span>Turnamen</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  router.push('/runner-up')
+                  setShowLeftSidebar(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <ArrowUp className="w-4 h-4" />
+                <span>Trader Terbaik</span>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       <OrderNotification 
         order={notificationOrder}
         onClose={handleCloseNotification}
       />
 
       <style jsx>{`
-        @keyframes slide-left {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
+      @keyframes slide-left {
+        from { 
+          transform: translateX(100%); 
+          opacity: 0;
         }
+        to { 
+          transform: translateX(0); 
+          opacity: 1;
+        }
+      }
 
-        @keyframes slide-up {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
+      @keyframes slide-right {
+        from { 
+          transform: translateX(-100%); 
+          opacity: 0;
         }
+        to { 
+          transform: translateX(0); 
+          opacity: 1;
+        }
+      }
 
-        @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
+      @keyframes slide-up {
+        from { 
+          transform: translateY(100%); 
+          opacity: 0;
         }
+        to { 
+          transform: translateY(0); 
+          opacity: 1;
+        }
+      }
 
-        .animate-slide-left {
-          animation: slide-left 0.3s ease-out;
+      @keyframes fade-in {
+        from { 
+          opacity: 0; 
         }
+        to { 
+          opacity: 1; 
+        }
+      }
 
-        .animate-slide-up {
-          animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      @keyframes scale-in {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
         }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
 
-        .animate-fade-in {
-          animation: fade-in 0.2s ease-out;
-        }
-      `}</style>
+      .animate-slide-left {
+        animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .animate-slide-right {
+        animation: slide-right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .animate-slide-up {
+        animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .animate-fade-in {
+        animation: fade-in 0.2s ease-out;
+      }
+
+      .animate-scale-in {
+        animation: scale-in 0.2s ease-out;
+      }
+
+      /* Smooth transitions for all interactive elements */
+      button {
+        transition: all 0.2s ease;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 3px;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+    `}</style>
     </div>
   )
 }

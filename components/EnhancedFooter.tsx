@@ -95,7 +95,7 @@ export default function EnhancedFooter() {
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
         {/* Main Content */}
         <div className="py-12 sm:py-16">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+          <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-8 lg:gap-12">
             {/* Brand Column - Takes 2 columns on large screens */}
             <div className="lg:col-span-2">
               <Link href="/" className="inline-flex items-center gap-3 mb-6 group">

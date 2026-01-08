@@ -1350,41 +1350,72 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Mobile Marquee */}
-          <div className="sm:hidden overflow-hidden relative">
-            <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-[#0a0e17] to-transparent z-10 pointer-events-none"></div>
-            <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#0a0e17] to-transparent z-10 pointer-events-none"></div>
-            
-            <div className="flex animate-payment-marquee pl-3">
-              {[...Array(2)].map((_, setIndex) => (
-                <React.Fragment key={`set-${setIndex}`}>
+          {/* Mobile Scrollable Grid */}
+          <div className="sm:hidden space-y-3">
+            {/* Baris 1 - 6 logo pertama (dari tengah) */}
+            <div className="relative">
+              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#0a0e17] to-transparent z-10 pointer-events-none"></div>
+              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0a0e17] to-transparent z-10 pointer-events-none"></div>
+              
+              <div className="overflow-x-auto pb-2 hide-scrollbar">
+                <div className="flex gap-3 px-4 justify-center">
                   {[
-                    { name: 'BCA', logo: '/bca.webp' },
                     { name: 'Mandiri', logo: '/mandiri.webp' },
                     { name: 'BRI', logo: '/bri.webp' },
                     { name: 'BNI', logo: '/bni.webp' },
                     { name: 'GoPay', logo: '/gopay.webp' },
                     { name: 'OVO', logo: '/ovo.webp' },
                     { name: 'DANA', logo: '/dana.webp' },
-                    { name: 'LinkAja', logo: '/linkaja.webp' },
-                    { name: 'Visa', logo: '/visa.webp' },
-                    { name: 'Mastercard', logo: '/mastercard.webp' },
-                    { name: 'Bitcoin', logo: '/bitcoin.webp' },
-                  ].map((item, idx) => (
-                    <div key={`${setIndex}-${idx}`} className="flex-shrink-0 w-24 bg-white border border-gray-200 rounded-lg p-3 mr-3">
-                      <div className="relative h-10 flex items-center justify-center">
+                  ].map((item) => (
+                    <div key={item.name} className="flex-shrink-0 w-28 bg-white border border-gray-200 rounded-xl p-4">
+                      <div className="relative h-12 flex items-center justify-center">
                         <Image 
                           src={item.logo} 
                           alt={item.name}
-                          width={80}
-                          height={32}
+                          width={100}
+                          height={40}
                           className="h-full w-auto object-contain"
                         />
                       </div>
                     </div>
                   ))}
-                </React.Fragment>
-              ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Baris 2 - 5 logo terakhir (dari kiri) */}
+            <div className="relative">
+              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#0a0e17] to-transparent z-10 pointer-events-none"></div>
+              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0a0e17] to-transparent z-10 pointer-events-none"></div>
+              
+              <div className="overflow-x-auto pb-2 hide-scrollbar">
+                <div className="flex gap-3 px-4">
+                  {[
+                    { name: 'LinkAja', logo: '/linkaja.webp' },
+                    { name: 'Visa', logo: '/visa.webp' },
+                    { name: 'Mastercard', logo: '/mastercard.webp' },
+                    { name: 'Bitcoin', logo: '/bitcoin.webp' },
+                    { name: 'BCA', logo: '/bca.webp' },
+                  ].map((item) => (
+                    <div key={item.name} className="flex-shrink-0 w-28 bg-white border border-gray-200 rounded-xl p-4">
+                      <div className="relative h-12 flex items-center justify-center">
+                        <Image 
+                          src={item.logo} 
+                          alt={item.name}
+                          width={100}
+                          height={40}
+                          className="h-full w-auto object-contain"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Indikator scroll */}
+            <div className="text-center">
+              <p className="text-xs text-gray-500">Geser untuk melihat lebih banyak →</p>
             </div>
           </div>
 
@@ -1621,193 +1652,188 @@ export default function LandingPage() {
         </>
       )}
 
-      {/* Styles */}
       <style jsx>{`
-        @keyframes gradient {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
+      @keyframes gradient {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+      }
 
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-20px); }
-        }
+      @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+      }
 
-        @keyframes pulse-slow {
-          0%, 100% { opacity: 0.05; }
-          50% { opacity: 0.15; }
-        }
+      @keyframes pulse-slow {
+        0%, 100% { opacity: 0.05; }
+        50% { opacity: 0.15; }
+      }
 
-        @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
+      @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
 
-        @keyframes fade-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+      @keyframes fade-in-up {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
         }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
 
-        @keyframes slide-in-right {
-          from {
-            opacity: 0;
-            transform: translateX(50px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
+      @keyframes slide-in-right {
+        from {
+          opacity: 0;
+          transform: translateX(50px);
         }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
 
-        @keyframes slide-left {
-          from {
-            transform: translateX(100%);
-          }
-          to {
-            transform: translateX(0);
-          }
+      @keyframes slide-left {
+        from {
+          transform: translateX(100%);
         }
+        to {
+          transform: translateX(0);
+        }
+      }
 
-        @keyframes payment-marquee {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
+      @keyframes text-slide-out {
+        0% {
+          transform: translateX(0);
+          opacity: 1;
         }
+        100% {
+          transform: translateX(-100%);
+          opacity: 0;
+        }
+      }
 
-        @keyframes text-slide-out {
-          0% {
-            transform: translateX(0);
-            opacity: 1;
-          }
-          100% {
-            transform: translateX(-100%);
-            opacity: 0;
-          }
+      @keyframes text-slide-in {
+        0% {
+          transform: translateX(-100%);
+          opacity: 0;
         }
+        100% {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
 
-        @keyframes text-slide-in {
-          0% {
-            transform: translateX(-100%);
-            opacity: 0;
-          }
-          100% {
-            transform: translateX(0);
-            opacity: 1;
-          }
+      @keyframes logo-bounce-out {
+        0% {
+          transform: scale(1);
+          opacity: 1;
         }
+        40% {
+          transform: scale(1.15);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(0);
+          opacity: 0;
+        }
+      }
 
-        @keyframes logo-bounce-out {
-          0% {
-            transform: scale(1);
-            opacity: 1;
-          }
-          40% {
-            transform: scale(1.15);
-            opacity: 1;
-          }
-          100% {
-            transform: scale(0);
-            opacity: 0;
-          }
+      @keyframes logo-bounce-in {
+        0% {
+          transform: scale(0);
+          opacity: 0;
         }
+        60% {
+          transform: scale(1.25);
+          opacity: 1;
+        }
+        80% {
+          transform: scale(0.95);
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
 
-        @keyframes logo-bounce-in {
-          0% {
-            transform: scale(0);
-            opacity: 0;
-          }
-          60% {
-            transform: scale(1.25);
-            opacity: 1;
-          }
-          80% {
-            transform: scale(0.95);
-          }
-          100% {
-            transform: scale(1);
-            opacity: 1;
-          }
-        }
+      .animate-gradient {
+        background-size: 200% 200%;
+        animation: gradient 3s ease infinite;
+      }
 
-        .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradient 3s ease infinite;
-        }
+      .animate-float {
+        animation: float 6s ease-in-out infinite;
+      }
 
-        .animate-float {
-          animation: float 6s ease-in-out infinite;
-        }
+      .animate-pulse-slow {
+        animation: pulse-slow 4s ease-in-out infinite;
+      }
 
-        .animate-pulse-slow {
-          animation: pulse-slow 4s ease-in-out infinite;
-        }
+      .animate-fade-in {
+        animation: fade-in 0.3s ease-out;
+      }
 
-        .animate-fade-in {
-          animation: fade-in 0.3s ease-out;
-        }
+      .animate-fade-in-up {
+        animation: fade-in-up 0.6s ease-out;
+      }
 
-        .animate-fade-in-up {
-          animation: fade-in-up 0.6s ease-out;
-        }
+      .animate-slide-in-right {
+        animation: slide-in-right 0.8s ease-out;
+      }
 
-        .animate-slide-in-right {
-          animation: slide-in-right 0.8s ease-out;
-        }
+      .animate-slide-left {
+        animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
 
-        .animate-slide-left {
-          animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
+      .animate-text-slide-out {
+        animation: text-slide-out 1s ease-in-out forwards;
+      }
 
-        .animate-payment-marquee {
-          animation: payment-marquee 15s linear infinite;
-        }
+      .animate-text-slide-in {
+        animation: text-slide-in 1s ease-in-out forwards;
+      }
 
-        .animate-text-slide-out {
-          animation: text-slide-out 1s ease-in-out forwards;
-        }
+      .animate-logo-bounce-out {
+        animation: logo-bounce-out 1s ease-in-out forwards;
+      }
 
-        .animate-text-slide-in {
-          animation: text-slide-in 1s ease-in-out forwards;
-        }
+      .animate-logo-bounce-in {
+        animation: logo-bounce-in 1s ease-in-out forwards;
+      }
 
-        .animate-logo-bounce-out {
-          animation: logo-bounce-out 1s ease-in-out forwards;
-        }
+      html {
+        scroll-behavior: smooth;
+      }
 
-        .animate-logo-bounce-in {
-          animation: logo-bounce-in 1s ease-in-out forwards;
-        }
+      .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
 
-        html {
-          scroll-behavior: smooth;
-        }
+      .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
 
-        ::-webkit-scrollbar {
-          width: 8px;
-        }
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
 
-        ::-webkit-scrollbar-track {
-          background: #0a0e17;
-        }
+      ::-webkit-scrollbar-track {
+        background: #0a0e17;
+      }
 
-        ::-webkit-scrollbar-thumb {
-          background: linear-gradient(to bottom, #3b82f6, #10b981);
-          border-radius: 4px;
-        }
+      ::-webkit-scrollbar-thumb {
+        background: linear-gradient(to bottom, #3b82f6, #10b981);
+        border-radius: 4px;
+      }
 
-        ::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(to bottom, #2563eb, #059669);
-        }
-      `}</style>
+      ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(to bottom, #2563eb, #059669);
+      }
+    `}</style>
     </div>
   )
 }
