@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { IBM_Plex_Sans, JetBrains_Mono } from 'next/font/google'
 import { Toaster } from 'sonner'
+import GoogleAuthHandler from '@/components/GoogleAuthHandler'
 import './globals.css'
 
 const ibmPlexSans = IBM_Plex_Sans({ 
@@ -62,6 +63,7 @@ export default function RootLayout({
         <meta name="msapplication-navbutton-color" content="#0f1419" />
       </head>
       <body className="bg-[#0a0e17] text-white">
+        <GoogleAuthHandler />
         {children}
         <Toaster 
           position="top-right" 
