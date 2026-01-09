@@ -158,7 +158,7 @@ const RealtimeClock = memo(() => {
   return (
     <div className="absolute top-14 left-2 z-10 bg-black/20 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/10">
       <div className="flex items-center gap-2">
-        <div className="text-xs font-thin text-white">
+        <div className="text-xs font-light text-white">
           {timeStr} <span className="text-gray-400">|</span> {dateStr}
         </div>
       </div>
@@ -1588,7 +1588,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       <OrderTicker orders={activeOrders} currentPrice={currentPrice} />
 
       {/* Support Button - Positioned to not block price or orders */}
-      <div className="absolute right-14 bottom-4 -translate-y-1/2 z-20">
+      <div className="absolute right-16 bottom-5 -translate-y-1/2 z-20">
         <button
           onClick={() => setShowSupportPopup(!showSupportPopup)}
           className="w-11 h-11 bg-gradient-to-br from-red-400 to-red-400 hover:from-pink-400 hover:to-red-500 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105 group"

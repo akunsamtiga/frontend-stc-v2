@@ -220,7 +220,7 @@ export default function EnhancedFooter() {
         <div className="py-6 border-t border-gray-800/50">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-sm text-gray-500 text-center md:text-left">
-              © {new Date().getFullYear()} STC AutoTrade. All rights reserved.
+              © {new Date().getFullYear()} STC AutoTrade by Stockity. All rights reserved.
             </div>
 
             <div className="flex items-center gap-4 text-xs text-gray-500">

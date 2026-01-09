@@ -429,7 +429,7 @@ export default function TradingPage() {
 
   return (
     <div className="h-screen flex flex-col bg-[#0a0e17] text-white overflow-hidden">
-      <div className="h-20 bg-[#1a1f2e] border-b border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">
+      <div className="h-14 bg-[#1a1f2e] border-b border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">
         <div className="hidden lg:flex items-center gap-4 w-full">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 relative">
