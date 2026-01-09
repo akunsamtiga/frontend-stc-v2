@@ -10,7 +10,7 @@ import {
   CheckCircle2, Settings, Award, Crown, TrendingUp, Users, Copy, Check,
   Gift, Share2, MapPin, CreditCard, FileText, Camera, Phone, Edit2,
   ChevronRight, AlertCircle, Home, Building, Globe, Loader2, ShieldCheck,
-  UserCheck, Briefcase, X
+  UserCheck, Briefcase, X, Menu
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { UserProfile, UserProfileInfo, UpdateProfileRequest, ChangePasswordRequest } from '@/types'
@@ -58,7 +58,7 @@ const SkeletonCard = () => (
 const LoadingSkeleton = () => (
   <div className="min-h-screen bg-[#fafafa]">
     <Navbar />
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="container mx-auto px-4 py-6 md:py-8 max-w-7xl">
       <div className="mb-6 animate-pulse">
         <div className="h-3 bg-gray-200 rounded w-48 mb-3"></div>
         <div className="flex items-center gap-3">
@@ -70,16 +70,16 @@ const LoadingSkeleton = () => (
         </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6">
         {/* Sidebar Skeleton */}
-        <div className="col-span-3">
+        <div className="hidden md:block md:col-span-4 lg:col-span-3">
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <SkeletonTabs />
           </div>
         </div>
 
         {/* Content Skeleton */}
-        <div className="col-span-9">
+        <div className="col-span-1 md:col-span-8 lg:col-span-9">
           <SkeletonCard />
         </div>
       </div>
@@ -396,7 +396,7 @@ export default function ProfilePage() {
     { id: 'personal', label: 'Personal Info', icon: User },
     { id: 'address', label: 'Address', icon: MapPin },
     { id: 'identity', label: 'Identity', icon: FileText },
-    { id: 'bank', label: 'Bank Account', icon: CreditCard },
+    { id: 'bank', label: 'Bank', icon: CreditCard },
     { id: 'status', label: 'Status', icon: Award },
     { id: 'affiliate', label: 'Affiliate', icon: Users },
     { id: 'security', label: 'Security', icon: Lock },
@@ -408,23 +408,23 @@ export default function ProfilePage() {
     switch (activeTab) {
       case 'overview':
         return (
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Profile Header */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <div className="flex items-start gap-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+              <div className="flex flex-col sm:flex-row items-start gap-4 md:gap-6">
                 {/* Avatar */}
                 <div className="relative flex-shrink-0">
-                  <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center overflow-hidden">
+                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center overflow-hidden">
                     {profileInfo?.avatar?.url ? (
                       <img src={profileInfo.avatar.url} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-white text-3xl font-bold">
+                      <span className="text-white text-2xl md:text-3xl font-bold">
                         {user.email[0].toUpperCase()}
                       </span>
                     )}
                   </div>
-                  <label className="absolute -bottom-2 -right-2 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors shadow-lg border-4 border-white">
-                    <Camera className="w-5 h-5 text-white" />
+                  <label className="absolute -bottom-2 -right-2 w-8 h-8 md:w-10 md:h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors shadow-lg border-2 md:border-4 border-white">
+                    <Camera className="w-4 h-4 md:w-5 md:h-5 text-white" />
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                       if (e.target.files?.[0]) handleUploadAvatar(e.target.files[0])
                     }} />
@@ -432,20 +432,20 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Info */}
-                <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-1">
+                <div className="flex-1 w-full">
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-1">
                     {profileInfo?.personal?.fullName || user?.email}
                   </h2>
-                  <p className="text-gray-600 mb-3">{user?.email}</p>
+                  <p className="text-sm md:text-base text-gray-600 mb-3 break-all">{user?.email}</p>
                   
                   {statusInfo && (
-                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white shadow-lg ${
+                    <div className={`inline-flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-lg md:rounded-xl text-white shadow-lg text-sm md:text-base ${
                       statusInfo.current === 'standard' ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
                       statusInfo.current === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-orange-600' :
                       'bg-gradient-to-r from-purple-400 to-pink-600'
                     }`}>
-                      {React.createElement(getStatusIcon(statusInfo.current), { className: "w-5 h-5" })}
-                      <span className="font-semibold">{statusInfo.current.toUpperCase()} Status</span>
+                      {React.createElement(getStatusIcon(statusInfo.current), { className: "w-4 h-4 md:w-5 md:h-5" })}
+                      <span className="font-semibold">{statusInfo.current.toUpperCase()}</span>
                       <span className="opacity-90">{statusInfo.profitBonus}% Bonus</span>
                     </div>
                   )}
@@ -455,17 +455,17 @@ export default function ProfilePage() {
 
             {/* Profile Completion */}
             {profileInfo && profileInfo.completion < 100 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 md:p-6">
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <h3 className="font-semibold text-blue-900 mb-1">Complete Your Profile</h3>
-                    <p className="text-sm text-blue-700">Unlock all features by completing your profile</p>
+                    <p className="text-xs md:text-sm text-blue-700">Unlock all features by completing your profile</p>
                   </div>
-                  <div className="text-3xl font-bold text-blue-600">{profileInfo.completion}%</div>
+                  <div className="text-2xl md:text-3xl font-bold text-blue-600">{profileInfo.completion}%</div>
                 </div>
-                <div className="w-full bg-blue-200 rounded-full h-3">
+                <div className="w-full bg-blue-200 rounded-full h-2 md:h-3">
                   <div 
-                    className="h-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500" 
+                    className="h-2 md:h-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500" 
                     style={{ width: `${profileInfo.completion}%` }}
                   ></div>
                 </div>
@@ -473,39 +473,39 @@ export default function ProfilePage() {
             )}
 
             {/* Quick Stats Grid */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-white border border-gray-200 rounded-xl p-6">
-                <div className="text-sm text-gray-600 mb-2">Real Balance</div>
-                <div className="text-2xl font-bold text-gray-900">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+              <div className="bg-white border border-gray-200 rounded-xl p-4 md:p-6">
+                <div className="text-xs md:text-sm text-gray-600 mb-1 md:mb-2">Real Balance</div>
+                <div className="text-lg md:text-2xl font-bold text-gray-900">
                   Rp {(profile?.balances?.real ?? 0).toLocaleString('id-ID')}
                 </div>
               </div>
-              <div className="bg-white border border-gray-200 rounded-xl p-6">
-                <div className="text-sm text-gray-600 mb-2">Demo Balance</div>
-                <div className="text-2xl font-bold text-gray-900">
+              <div className="bg-white border border-gray-200 rounded-xl p-4 md:p-6">
+                <div className="text-xs md:text-sm text-gray-600 mb-1 md:mb-2">Demo Balance</div>
+                <div className="text-lg md:text-2xl font-bold text-gray-900">
                   Rp {(profile?.balances?.demo ?? 0).toLocaleString('id-ID')}
                 </div>
               </div>
-              <div className="bg-white border border-gray-200 rounded-xl p-6">
-                <div className="text-sm text-gray-600 mb-2">Total Orders</div>
-                <div className="text-2xl font-bold text-gray-900">
+              <div className="bg-white border border-gray-200 rounded-xl p-4 md:p-6">
+                <div className="text-xs md:text-sm text-gray-600 mb-1 md:mb-2">Total Orders</div>
+                <div className="text-lg md:text-2xl font-bold text-gray-900">
                   {profile?.statistics?.combined?.totalOrders ?? 0}
                 </div>
               </div>
             </div>
 
             {/* Verification Status */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Verification Status</h3>
-              <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-3 md:mb-4">Verification Status</h3>
+              <div className="grid grid-cols-2 md:grid-cols-2 gap-3 md:gap-4">
                 {[
                   { label: 'Email', verified: profileInfo?.verification?.emailVerified, icon: Mail },
                   { label: 'Phone', verified: profileInfo?.verification?.phoneVerified, icon: Phone },
                   { label: 'Identity', verified: profileInfo?.verification?.identityVerified, icon: FileText },
                   { label: 'Bank', verified: profileInfo?.verification?.bankVerified, icon: CreditCard }
                 ].map((item) => (
-                  <div key={item.label} className={`flex items-center gap-3 p-4 rounded-xl border-2 ${item.verified ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
-                    <item.icon className={`w-5 h-5 ${item.verified ? 'text-green-600' : 'text-gray-400'}`} />
+                  <div key={item.label} className={`flex items-center gap-3 p-3 md:p-4 rounded-lg md:rounded-xl border-2 ${item.verified ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                    <item.icon className={`w-4 h-4 md:w-5 md:h-5 ${item.verified ? 'text-green-600' : 'text-gray-400'}`} />
                     <div>
                       <div className="text-sm font-semibold text-gray-900">{item.label}</div>
                       <div className={`text-xs font-medium ${item.verified ? 'text-green-600' : 'text-gray-500'}`}>
@@ -522,13 +522,13 @@ export default function ProfilePage() {
       case 'personal':
         return (
           <div className="bg-white rounded-xl border border-gray-200">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+            <div className="p-4 md:p-6 border-b border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0">
               <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-1">Personal Information</h3>
-                <p className="text-sm text-gray-500">Your basic personal details</p>
+                <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1">Personal Information</h3>
+                <p className="text-xs md:text-sm text-gray-500">Your basic personal details</p>
               </div>
               {!editingPersonal ? (
-                <button onClick={() => setEditingPersonal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                <button onClick={() => setEditingPersonal(true)} className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
                   <Edit2 className="w-4 h-4" /> Edit
                 </button>
               ) : (
@@ -543,7 +543,7 @@ export default function ProfilePage() {
               )}
             </div>
             
-            <div className="p-6 space-y-4">
+            <div className="p-4 md:p-6 space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
                 {editingPersonal ? (
@@ -602,13 +602,13 @@ export default function ProfilePage() {
       case 'address':
         return (
           <div className="bg-white rounded-xl border border-gray-200">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+            <div className="p-4 md:p-6 border-b border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0">
               <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-1">Address Information</h3>
-                <p className="text-sm text-gray-500">Your residential address</p>
+                <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1">Address Information</h3>
+                <p className="text-xs md:text-sm text-gray-500">Your residential address</p>
               </div>
               {!editingAddress ? (
-                <button onClick={() => setEditingAddress(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                <button onClick={() => setEditingAddress(true)} className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
                   <Edit2 className="w-4 h-4" /> Edit
                 </button>
               ) : (
@@ -623,7 +623,7 @@ export default function ProfilePage() {
               )}
             </div>
             
-            <div className="p-6 space-y-4">
+            <div className="p-4 md:p-6 space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Street Address</label>
                 {editingAddress ? (
@@ -633,7 +633,7 @@ export default function ProfilePage() {
                 )}
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">City</label>
                   {editingAddress ? (
@@ -652,7 +652,7 @@ export default function ProfilePage() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Postal Code</label>
                   {editingAddress ? (
@@ -677,13 +677,13 @@ export default function ProfilePage() {
       case 'identity':
         return (
           <div className="bg-white rounded-xl border border-gray-200">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+            <div className="p-4 md:p-6 border-b border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0">
               <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-1">Identity Verification</h3>
-                <p className="text-sm text-gray-500">Verify your identity for higher limits</p>
+                <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1">Identity Verification</h3>
+                <p className="text-xs md:text-sm text-gray-500">Verify your identity for higher limits</p>
               </div>
               {!editingIdentity ? (
-                <button onClick={() => setEditingIdentity(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                <button onClick={() => setEditingIdentity(true)} className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
                   <Edit2 className="w-4 h-4" /> Edit
                 </button>
               ) : (
@@ -698,7 +698,7 @@ export default function ProfilePage() {
               )}
             </div>
             
-            <div className="p-6 space-y-4">
+            <div className="p-4 md:p-6 space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Document Type</label>
                 {editingIdentity ? (
@@ -736,13 +736,13 @@ export default function ProfilePage() {
       case 'bank':
         return (
           <div className="bg-white rounded-xl border border-gray-200">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+            <div className="p-4 md:p-6 border-b border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0">
               <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-1">Bank Account</h3>
-                <p className="text-sm text-gray-500">Add your bank account for withdrawals</p>
+                <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1">Bank Account</h3>
+                <p className="text-xs md:text-sm text-gray-500">Add your bank account for withdrawals</p>
               </div>
               {!editingBank ? (
-                <button onClick={() => setEditingBank(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                <button onClick={() => setEditingBank(true)} className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
                   <Edit2 className="w-4 h-4" /> Edit
                 </button>
               ) : (
@@ -757,7 +757,7 @@ export default function ProfilePage() {
               )}
             </div>
             
-            <div className="p-6 space-y-4">
+            <div className="p-4 md:p-6 space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Bank Name</label>
                 {editingBank ? (
@@ -808,34 +808,34 @@ export default function ProfilePage() {
         const allTiers = getAllStatusTiers()
 
         return (
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Current Status */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Your Status</h3>
-              <div className={`flex items-center gap-4 p-6 rounded-xl text-white ${
+            <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+              <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-3 md:mb-4">Your Status</h3>
+              <div className={`flex flex-col sm:flex-row items-center sm:items-center gap-4 p-4 md:p-6 rounded-xl text-white ${
                 statusInfo.current === 'standard' ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
                 statusInfo.current === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-orange-600' :
                 'bg-gradient-to-r from-purple-400 to-pink-600'
               }`}>
-                {React.createElement(getStatusIcon(statusInfo.current), { className: "w-12 h-12" })}
-                <div>
-                  <div className="text-2xl font-bold mb-1">{statusInfo.current.toUpperCase()}</div>
-                  <div className="opacity-90">{formatStatusInfo(statusInfo)}</div>
+                {React.createElement(getStatusIcon(statusInfo.current), { className: "w-10 h-10 md:w-12 md:h-12" })}
+                <div className="text-center sm:text-left">
+                  <div className="text-xl md:text-2xl font-bold mb-1">{statusInfo.current.toUpperCase()}</div>
+                  <div className="opacity-90 text-sm md:text-base">{formatStatusInfo(statusInfo)}</div>
                 </div>
               </div>
             </div>
 
             {/* Progress to Next Status */}
             {progressInfo.next && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Progress to Next Status</h3>
+              <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+                <h3 className="text-base md:text-lg font-bold text-gray-900 mb-3 md:mb-4">Progress to Next Status</h3>
                 <div className="mb-4">
-                  <div className="flex justify-between text-sm mb-2">
+                  <div className="flex justify-between text-xs md:text-sm mb-2">
                     <span className="text-gray-600">Progress</span>
                     <span className="font-semibold">{progressInfo.progress}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div className={`h-3 rounded-full transition-all duration-500 ${
+                  <div className="w-full bg-gray-200 rounded-full h-2 md:h-3">
+                    <div className={`h-2 md:h-3 rounded-full transition-all duration-500 ${
                       statusInfo.current === 'standard' ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
                       statusInfo.current === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-orange-600' :
                       'bg-gradient-to-r from-purple-400 to-pink-600'
@@ -843,31 +843,31 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-xs md:text-sm text-gray-600">
                   Deposit <span className="font-bold">{formatDepositRequirement(progressInfo.depositNeeded)}</span> more to unlock {STATUS_CONFIG[progressInfo.next].label} status!
                 </p>
               </div>
             )}
 
             {/* All Status Tiers */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">All Status Tiers</h3>
+            <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+              <h3 className="text-base md:text-lg font-bold text-gray-900 mb-3 md:mb-4">All Status Tiers</h3>
               <div className="space-y-3">
                 {allTiers.map(({ status, config, icon: Icon }) => {
                   const isCurrent = status === statusInfo.current
                   const isUnlocked = STATUS_CONFIG[status].minDeposit <= statusInfo.totalDeposit
                   
                   return (
-                    <div key={status} className={`p-4 border-2 rounded-xl ${isCurrent ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
+                    <div key={status} className={`p-3 md:p-4 border-2 rounded-xl ${isCurrent ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <Icon className={`w-6 h-6 ${isCurrent || isUnlocked ? 'text-blue-600' : 'text-gray-400'}`} />
+                          <Icon className={`w-5 h-6 md:w-6 md:h-6 ${isCurrent || isUnlocked ? 'text-blue-600' : 'text-gray-400'}`} />
                           <div>
-                            <div className="font-semibold text-gray-900">{config.label}</div>
-                            <div className="text-sm text-gray-600">Bonus: {config.profitBonus}</div>
+                            <div className="font-semibold text-gray-900 text-sm md:text-base">{config.label}</div>
+                            <div className="text-xs md:text-sm text-gray-600">Bonus: {config.profitBonus}</div>
                           </div>
                         </div>
-                        <div className="text-sm font-semibold text-gray-900">
+                        <div className="text-xs md:text-sm font-semibold text-gray-900">
                           {formatDepositRequirement(config.minDeposit)}
                         </div>
                       </div>
@@ -883,31 +883,31 @@ export default function ProfilePage() {
         if (!affiliateInfo) return null
 
         return (
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Affiliate Overview */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Affiliate Program</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-gray-50 rounded-xl">
-                  <div className="text-3xl font-bold text-gray-900">{affiliateInfo.totalReferrals}</div>
-                  <div className="text-sm text-gray-600 mt-1">Total Referrals</div>
+            <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+              <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-3 md:mb-4">Affiliate Program</h3>
+              <div className="grid grid-cols-3 gap-3 md:gap-4">
+                <div className="text-center p-3 md:p-4 bg-gray-50 rounded-xl">
+                  <div className="text-xl md:text-3xl font-bold text-gray-900">{affiliateInfo.totalReferrals}</div>
+                  <div className="text-xs md:text-sm text-gray-600 mt-1">Total Referrals</div>
                 </div>
-                <div className="text-center p-4 bg-green-50 rounded-xl">
-                  <div className="text-3xl font-bold text-green-600">{affiliateInfo.completedReferrals}</div>
-                  <div className="text-sm text-gray-600 mt-1">Completed</div>
+                <div className="text-center p-3 md:p-4 bg-green-50 rounded-xl">
+                  <div className="text-xl md:text-3xl font-bold text-green-600">{affiliateInfo.completedReferrals}</div>
+                  <div className="text-xs md:text-sm text-gray-600 mt-1">Completed</div>
                 </div>
-                <div className="text-center p-4 bg-yellow-50 rounded-xl">
-                  <div className="text-3xl font-bold text-yellow-600">{affiliateInfo.pendingReferrals}</div>
-                  <div className="text-sm text-gray-600 mt-1">Pending</div>
+                <div className="text-center p-3 md:p-4 bg-yellow-50 rounded-xl">
+                  <div className="text-xl md:text-3xl font-bold text-yellow-600">{affiliateInfo.pendingReferrals}</div>
+                  <div className="text-xs md:text-sm text-gray-600 mt-1">Pending</div>
                 </div>
               </div>
             </div>
 
             {/* Referral Link */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Your Referral Link</h3>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-black font-mono text-sm break-all">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+              <h3 className="text-base md:text-lg font-bold text-gray-900 mb-3 md:mb-4">Your Referral Link</h3>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <div className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-black font-mono text-xs md:text-sm break-all">
                   {`${window.location.origin}/?ref=${affiliateInfo.referralCode}`}
                 </div>
                 <button
@@ -917,24 +917,24 @@ export default function ProfilePage() {
                     toast.success('Referral link copied!')
                     setTimeout(() => setCopied(false), 2000)
                   }}
-                  className="px-4 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors flex-shrink-0"
+                  className="px-4 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors flex-shrink-0 flex sm:block justify-center"
                 >
                   {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
                 </button>
               </div>
-              <p className="text-sm text-gray-600 mt-3">
+              <p className="text-xs md:text-sm text-gray-600 mt-3">
                 Share this link to earn <span className="font-bold">Rp 25,000</span> per successful referral!
               </p>
             </div>
 
             {/* Commission Info */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Commission Earned</h3>
+            <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+              <h3 className="text-base md:text-lg font-bold text-gray-900 mb-3 md:mb-4">Commission Earned</h3>
               <div className="flex items-center gap-4">
-                <Gift className="w-12 h-12 text-yellow-500" />
+                <Gift className="w-10 h-10 md:w-12 md:h-12 text-yellow-500" />
                 <div>
-                  <div className="text-3xl font-bold text-gray-900">{formatDepositRequirement(affiliateInfo.totalCommission)}</div>
-                  <div className="text-sm text-gray-600">Total Commission</div>
+                  <div className="text-xl md:text-3xl font-bold text-gray-900">{formatDepositRequirement(affiliateInfo.totalCommission)}</div>
+                  <div className="text-xs md:text-sm text-gray-600">Total Commission</div>
                 </div>
               </div>
             </div>
@@ -944,12 +944,12 @@ export default function ProfilePage() {
       case 'security':
         return (
           <div className="bg-white rounded-xl border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900 mb-1">Security Settings</h3>
-              <p className="text-sm text-gray-500">Change your password</p>
+            <div className="p-4 md:p-6 border-b border-gray-200">
+              <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1">Security Settings</h3>
+              <p className="text-xs md:text-sm text-gray-500">Change your password</p>
             </div>
 
-            <form onSubmit={handleChangePassword} className="p-6 space-y-6">
+            <form onSubmit={handleChangePassword} className="p-4 md:p-6 space-y-4 md:space-y-6">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-3">Current Password</label>
                 <div className="relative">
@@ -979,31 +979,31 @@ export default function ProfilePage() {
 
       case 'preferences':
         return (
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0 mb-4 md:mb-6">
               <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-1">Preferences</h3>
-                <p className="text-sm text-gray-500">Customize your experience</p>
+                <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1">Preferences</h3>
+                <p className="text-xs md:text-sm text-gray-500">Customize your experience</p>
               </div>
-              <button onClick={handleUpdateSettings} disabled={savingSection === 'settings'} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50">
+              <button onClick={handleUpdateSettings} disabled={savingSection === 'settings'} className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50">
                 {savingSection === 'settings' ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <><Save className="w-4 h-4" /> Save</>}
               </button>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {/* Notifications */}
               <div>
-                <h4 className="text-lg font-semibold text-gray-900 mb-3">Notifications</h4>
-                <div className="space-y-3">
-                  <label className="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                <h4 className="text-base md:text-lg font-semibold text-gray-900 mb-3">Notifications</h4>
+                <div className="space-y-2 md:space-y-3">
+                  <label className="flex items-center justify-between p-3 md:p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
                     <span className="text-sm text-gray-700 font-medium">Email Notifications</span>
                     <input type="checkbox" checked={settings.emailNotifications} onChange={(e) => setSettings({ ...settings, emailNotifications: e.target.checked })} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" />
                   </label>
-                  <label className="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                  <label className="flex items-center justify-between p-3 md:p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
                     <span className="text-sm text-gray-700 font-medium">SMS Notifications</span>
                     <input type="checkbox" checked={settings.smsNotifications} onChange={(e) => setSettings({ ...settings, smsNotifications: e.target.checked })} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" />
                   </label>
-                  <label className="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                  <label className="flex items-center justify-between p-3 md:p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
                     <span className="text-sm text-gray-700 font-medium">Trading Alerts</span>
                     <input type="checkbox" checked={settings.tradingAlerts} onChange={(e) => setSettings({ ...settings, tradingAlerts: e.target.checked })} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" />
                   </label>
@@ -1012,7 +1012,7 @@ export default function ProfilePage() {
 
               {/* Language & Timezone */}
               <div>
-                <h4 className="text-lg font-semibold text-gray-900 mb-3">Regional Settings</h4>
+                <h4 className="text-base md:text-lg font-semibold text-gray-900 mb-3">Regional Settings</h4>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Language</label>
@@ -1040,29 +1040,55 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-[#fafafa]">
       <Navbar />
       
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="container mx-auto px-3 md:px-4 py-6 md:py-8 max-w-7xl">
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
+        <div className="mb-4 md:mb-6">
+          <div className="flex items-center gap-2 text-xs md:text-sm text-gray-500 mb-2 md:mb-3">
             <span>Dashboard</span>
             <span>/</span>
             <span className="text-gray-900 font-medium">Profile</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
-              <Settings className="w-5 h-5 text-white" />
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-500 rounded-xl flex items-center justify-center">
+              <Settings className="w-4 h-4 md:w-5 md:h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
-              <p className="text-sm text-gray-500">Profile completion: {profileInfo?.completion ?? 0}%</p>
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900">My Profile</h1>
+              <p className="text-xs md:text-sm text-gray-500">Profile completion: {profileInfo?.completion ?? 0}%</p>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6">
           {/* Sidebar - Tabs */}
-          <div className="col-span-3">
-            <div className="bg-white rounded-xl border border-gray-200 p-2 sticky top-4">
+          <div className="col-span-1 md:col-span-4 lg:col-span-3">
+            {/* Mobile Horizontal Tabs */}
+            <div className="md:hidden bg-white rounded-xl border border-gray-200 p-2 mb-4">
+              <div className="overflow-x-auto">
+                <div className="flex gap-1 min-w-max">
+                  {tabs.map((tab) => {
+                    const Icon = tab.icon
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm flex-shrink-0 ${
+                          activeTab === tab.id
+                            ? 'bg-blue-500 text-white shadow-sm'
+                            : 'text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4 flex-shrink-0" />
+                        <span className="font-medium">{tab.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop/Tablet Vertical Tabs */}
+            <div className="hidden md:block bg-white rounded-xl border border-gray-200 p-2 sticky top-4">
               <div className="space-y-1">
                 {tabs.map((tab) => {
                   const Icon = tab.icon
@@ -1077,7 +1103,7 @@ export default function ProfilePage() {
                       }`}
                     >
                       <Icon className="w-5 h-5 flex-shrink-0" />
-                      <span className="font-medium">{tab.label}</span>
+                      <span className="font-medium text-sm">{tab.label}</span>
                     </button>
                   )
                 })}
@@ -1089,7 +1115,7 @@ export default function ProfilePage() {
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-all text-left"
                   >
                     <LogOut className="w-5 h-5 flex-shrink-0" />
-                    <span className="font-medium">Logout</span>
+                    <span className="font-medium text-sm">Logout</span>
                   </button>
                 </div>
               </div>
@@ -1097,7 +1123,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Main Content */}
-          <div className="col-span-9">
+          <div className="col-span-1 md:col-span-8 lg:col-span-9">
             {renderTabContent()}
           </div>
         </div>

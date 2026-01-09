@@ -32,7 +32,8 @@ import {
   Circle,
   Square,
   ArrowRight,
-  Type
+  Type,
+  MessageCircleQuestionIcon
 } from 'lucide-react'
 import type { IndicatorConfig } from './IndicatorControls'
 
@@ -1591,10 +1592,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       <div className="absolute right-16 bottom-5 -translate-y-1/2 z-20">
         <button
           onClick={() => setShowSupportPopup(!showSupportPopup)}
-          className="w-11 h-11 bg-gradient-to-br from-red-400 to-red-400 hover:from-pink-400 hover:to-red-500 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105 group"
+          className="w-10 h-10 bg-gradient-to-br from-red-400 to-red-400 hover:from-pink-400 hover:to-red-500 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105 group"
           title="Need Help?"
         >
-          <HelpCircle className="w-7 h-7 text-white group-hover:rotate-12 transition-transform" />
+          <MessageCircleQuestionIcon className="w-7 h-7 text-white group-hover:rotate-12 transition-transform" />
         </button>
 
         <SupportPopup 

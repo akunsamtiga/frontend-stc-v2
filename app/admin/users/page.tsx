@@ -19,7 +19,8 @@ import {
   CheckCircle,
   XCircle,
   Calendar,
-  UserCog
+  UserCog,
+  Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
@@ -33,8 +34,70 @@ interface UserData {
   currentBalance?: number
 }
 
-// ✅ FIXED: Add proper type for role
 type UserRole = 'user' | 'admin' | 'super_admin'
+
+const StatCardSkeleton = () => (
+  <div className="bg-white rounded-xl p-4 md:p-5 border border-gray-100 animate-pulse">
+    <div className="flex items-center gap-2 md:gap-3 mb-2">
+      <div className="w-8 h-8 md:w-10 md:h-10 bg-gray-200 rounded-lg"></div>
+      <div className="h-3 bg-gray-200 rounded w-20 md:w-24"></div>
+    </div>
+    <div className="h-8 md:h-10 bg-gray-200 rounded w-16 md:w-20 mb-1"></div>
+    <div className="h-3 bg-gray-200 rounded w-12 md:w-16"></div>
+  </div>
+)
+
+const UserCardSkeleton = () => (
+  <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 sm:p-4 animate-pulse">
+    <div className="flex items-start justify-between mb-3">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-xl"></div>
+        <div>
+          <div className="h-4 bg-gray-200 rounded w-32 sm:w-40 mb-2"></div>
+          <div className="h-3 bg-gray-200 rounded w-24"></div>
+        </div>
+      </div>
+      <div className="w-5 h-5 bg-gray-200 rounded-full"></div>
+    </div>
+    <div className="bg-white rounded-xl p-3 mb-3">
+      <div className="h-3 bg-gray-200 rounded w-24 mb-2"></div>
+      <div className="h-4 bg-gray-200 rounded w-20"></div>
+    </div>
+    <div className="flex gap-2">
+      <div className="h-10 bg-gray-200 rounded-lg flex-1"></div>
+      <div className="h-10 bg-gray-200 rounded-lg flex-1"></div>
+    </div>
+  </div>
+)
+
+const LoadingSkeleton = () => (
+  <div className="min-h-screen bg-[#fafafa]">
+    <Navbar />
+    <div className="container mx-auto px-3 md:px-4 py-4 md:py-6 max-w-7xl">
+      <div className="mb-4 md:mb-6 animate-pulse">
+        <div className="h-6 bg-gray-200 rounded w-48 mb-3"></div>
+        <div className="h-4 bg-gray-200 rounded w-64"></div>
+      </div>
+      
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-4 md:mb-8">
+        {[...Array(4)].map((_, i) => (
+          <StatCardSkeleton key={i} />
+        ))}
+      </div>
+      
+      <div className="mb-4 md:mb-6">
+        <div className="h-10 bg-gray-200 rounded-xl w-full mb-3"></div>
+        <div className="h-10 bg-gray-200 rounded-xl w-32"></div>
+      </div>
+      
+      <div className="space-y-3">
+        {[...Array(3)].map((_, i) => (
+          <UserCardSkeleton key={i} />
+        ))}
+      </div>
+    </div>
+  </div>
+)
 
 export default function AdminUsersPage() {
   const router = useRouter()
@@ -50,7 +113,7 @@ export default function AdminUsersPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
   
-  // ✅ FIXED: Form states with proper types
+  // Form states
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<UserRole>('user')
@@ -75,6 +138,7 @@ export default function AdminUsersPage() {
 
   const loadUsers = async () => {
     try {
+      setLoading(true)
       const response = await api.getAllUsersWithBalance()
       const rawUsers = response?.data?.users || response?.users || []
       
@@ -221,45 +285,35 @@ export default function AdminUsersPage() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#fafafa]">
-        <Navbar />
-        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-          <div className="text-center">
-            <div className="w-12 h-12 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-            <div className="text-sm text-gray-500">Loading users...</div>
-          </div>
-        </div>
-      </div>
-    )
+    return <LoadingSkeleton />
   }
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
       <Navbar />
 
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-7xl">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
         {/* Header */}
-        <div className="mb-4 sm:mb-8">
+        <div className="mb-4 sm:mb-6 md:mb-8">
           <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 mb-2">
             <span>Admin</span>
             <span>/</span>
             <span className="text-gray-900 font-medium">User Management</span>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-50 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
                 <UserCog className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-500" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">User Management</h1>
+                <h1 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-gray-900">User Management</h1>
                 <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Manage users and permissions</p>
               </div>
             </div>
             
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
             >
               <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="hidden sm:inline">Add User</span>
@@ -269,7 +323,7 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">
           <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-100 hover:shadow-lg transition-shadow">
             <div className="flex items-center gap-2 sm:gap-3 mb-2">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -349,7 +403,7 @@ export default function AdminUsersPage() {
         {/* Users Table */}
         <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
           {filteredUsers.length === 0 ? (
-            <div className="text-center py-12 sm:py-20">
+            <div className="text-center py-8 sm:py-12">
               <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Users className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300" />
               </div>
@@ -570,76 +624,60 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
+      {/* Modals remain unchanged but with better mobile responsiveness */}
       {/* Create User Modal */}
       {showCreateModal && (
         <>
           <div 
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 animate-fade-in" 
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" 
             onClick={() => setShowCreateModal(false)}
           />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="w-full max-w-md bg-white rounded-2xl sm:rounded-3xl shadow-2xl animate-slide-up">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl">
               <div className="p-4 sm:p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 rounded-xl flex items-center justify-center">
-                      <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg sm:text-xl font-bold text-gray-900">Create New User</h2>
-                      <p className="text-xs sm:text-sm text-gray-500">Add a new user account</p>
-                    </div>
-                  </div>
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-900">Create New User</h2>
                   <button
                     onClick={() => setShowCreateModal(false)}
-                    className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                   >
-                    <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+                    <X className="w-5 h-5 text-gray-500" />
                   </button>
                 </div>
               </div>
 
-              <form onSubmit={handleCreateUser} className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+              <form onSubmit={handleCreateUser} className="p-4 sm:p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Email
-                  </label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Email</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 focus:border-blue-500 focus:bg-white transition-all text-sm sm:text-base"
+                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-blue-500 focus:bg-white transition-all"
                     placeholder="user@example.com"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Password
-                  </label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Password</label>
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={8}
-                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 focus:border-blue-500 focus:bg-white transition-all text-sm sm:text-base"
+                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-blue-500 focus:bg-white transition-all"
                     placeholder="Minimum 8 characters"
                   />
-                  <p className="text-xs text-gray-500 mt-2">
-                    Must contain uppercase, lowercase, and number/special character
-                  </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Role
-                  </label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Role</label>
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value as UserRole)}
-                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 font-medium focus:border-blue-500 focus:bg-white transition-all text-sm sm:text-base"
+                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 font-medium focus:border-blue-500 focus:bg-white transition-all"
                   >
                     <option value="user">User</option>
                     <option value="admin">Admin</option>
@@ -652,11 +690,11 @@ export default function AdminUsersPage() {
                 <button
                   type="submit"
                   disabled={processing}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 sm:py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 text-sm sm:text-base"
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
                 >
                   {processing ? (
                     <span className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <Loader2 className="w-5 h-5 animate-spin" />
                       Creating...
                     </span>
                   ) : (
@@ -673,35 +711,27 @@ export default function AdminUsersPage() {
       {showBalanceModal && selectedUser && (
         <>
           <div 
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 animate-fade-in" 
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" 
             onClick={() => setShowBalanceModal(false)}
           />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="w-full max-w-md bg-white rounded-2xl sm:rounded-3xl shadow-2xl animate-slide-up">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl">
               <div className="p-4 sm:p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-50 rounded-xl flex items-center justify-center">
-                      <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg sm:text-xl font-bold text-gray-900">Manage Balance</h2>
-                      <p className="text-xs sm:text-sm text-gray-500">{selectedUser.email}</p>
-                    </div>
-                  </div>
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-900">Manage Balance</h2>
                   <button
                     onClick={() => setShowBalanceModal(false)}
-                    className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                   >
-                    <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+                    <X className="w-5 h-5 text-gray-500" />
                   </button>
                 </div>
               </div>
 
-              <form onSubmit={handleManageBalance} className="p-4 sm:p-6 space-y-3 sm:space-y-4">
-                <div className="bg-gray-50 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-200">
-                  <div className="text-xs sm:text-sm text-gray-500 mb-1">Current Balance</div>
-                  <div className="text-2xl sm:text-3xl font-bold font-mono text-gray-900">
+              <form onSubmit={handleManageBalance} className="p-4 sm:p-6 space-y-4">
+                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
+                  <div className="text-sm text-gray-500 mb-1">Current Balance</div>
+                  <div className="text-3xl font-bold font-mono text-gray-900">
                     {new Intl.NumberFormat('id-ID', { 
                       style: 'currency', 
                       currency: 'IDR',
@@ -711,14 +741,12 @@ export default function AdminUsersPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Type
-                  </label>
-                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Type</label>
+                  <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={() => setBalanceType('deposit')}
-                      className={`py-2.5 sm:py-3 rounded-xl font-bold transition-all text-sm sm:text-base ${
+                      className={`py-3 rounded-xl font-bold transition-all ${
                         balanceType === 'deposit'
                           ? 'bg-green-500 text-white shadow-lg scale-105'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-2 border-gray-200'
@@ -729,7 +757,7 @@ export default function AdminUsersPage() {
                     <button
                       type="button"
                       onClick={() => setBalanceType('withdrawal')}
-                      className={`py-2.5 sm:py-3 rounded-xl font-bold transition-all text-sm sm:text-base ${
+                      className={`py-3 rounded-xl font-bold transition-all ${
                         balanceType === 'withdrawal'
                           ? 'bg-red-500 text-white shadow-lg scale-105'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-2 border-gray-200'
@@ -741,9 +769,7 @@ export default function AdminUsersPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Amount (IDR)
-                  </label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Amount (IDR)</label>
                   <input
                     type="number"
                     value={balanceAmount}
@@ -751,21 +777,19 @@ export default function AdminUsersPage() {
                     required
                     min="0"
                     step="1000"
-                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-lg sm:text-xl font-mono focus:border-green-500 focus:bg-white transition-all"
+                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 text-xl font-mono focus:border-green-500 focus:bg-white transition-all"
                     placeholder="10000"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Description
-                  </label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Description</label>
                   <input
                     type="text"
                     value={balanceDescription}
                     onChange={(e) => setBalanceDescription(e.target.value)}
                     required
-                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 focus:border-green-500 focus:bg-white transition-all text-sm sm:text-base"
+                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-green-500 focus:bg-white transition-all"
                     placeholder="Admin adjustment"
                   />
                 </div>
@@ -773,7 +797,7 @@ export default function AdminUsersPage() {
                 <button
                   type="submit"
                   disabled={processing}
-                  className={`w-full py-3 sm:py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl disabled:opacity-50 text-sm sm:text-base ${
+                  className={`w-full py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl disabled:opacity-50 ${
                     balanceType === 'deposit'
                       ? 'bg-green-500 hover:bg-green-600 text-white'
                       : 'bg-red-500 hover:bg-red-600 text-white'
@@ -781,7 +805,7 @@ export default function AdminUsersPage() {
                 >
                   {processing ? (
                     <span className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <Loader2 className="w-5 h-5 animate-spin" />
                       Processing...
                     </span>
                   ) : (
@@ -798,49 +822,42 @@ export default function AdminUsersPage() {
       {showDeleteModal && selectedUser && (
         <>
           <div 
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 animate-fade-in" 
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" 
             onClick={() => setShowDeleteModal(false)}
           />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="w-full max-w-md bg-white rounded-2xl sm:rounded-3xl shadow-2xl animate-slide-up border-2 border-red-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border-2 border-red-200">
               <div className="p-4 sm:p-6 border-b border-gray-100">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-50 rounded-xl flex items-center justify-center">
-                    <Trash2 className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg sm:text-xl font-bold text-gray-900">Delete User</h2>
-                    <p className="text-xs sm:text-sm text-red-600">This action cannot be undone</p>
-                  </div>
-                </div>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Delete User</h2>
+                <p className="text-sm text-red-600">This action cannot be undone</p>
               </div>
 
               <div className="p-4 sm:p-6">
-                <div className="bg-red-50 border border-red-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6">
-                  <p className="text-sm sm:text-base text-gray-700">
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6">
+                  <p className="text-base text-gray-700">
                     Are you sure you want to delete{' '}
                     <span className="font-bold text-gray-900">{selectedUser.email}</span>?
                   </p>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-2">
+                  <p className="text-sm text-gray-600 mt-2">
                     All user data including balance and trading history will be permanently deleted.
                   </p>
                 </div>
 
-                <div className="flex gap-2 sm:gap-3">
+                <div className="flex gap-3">
                   <button
                     onClick={() => setShowDeleteModal(false)}
-                    className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-100 hover:bg-gray-200 border-2 border-gray-200 rounded-xl font-bold transition-all text-sm sm:text-base"
+                    className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 border-2 border-gray-200 rounded-xl font-bold transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleDeleteUser}
                     disabled={processing}
-                    className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 text-sm sm:text-base"
+                    className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
                   >
                     {processing ? (
                       <span className="flex items-center justify-center gap-2">
-                        <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <Loader2 className="w-5 h-5 animate-spin" />
                         Deleting...
                       </span>
                     ) : (

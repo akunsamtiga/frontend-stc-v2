@@ -18,7 +18,8 @@ import {
   TrendingUp,
   Activity,
   Eye,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -50,6 +51,64 @@ interface Asset {
   updatedAt?: string
   createdBy?: string
 }
+
+const StatCardSkeleton = () => (
+  <div className="bg-white rounded-xl p-4 md:p-5 border border-gray-100 animate-pulse">
+    <div className="flex items-center gap-2 md:gap-3 mb-2">
+      <div className="w-8 h-8 md:w-10 md:h-10 bg-gray-200 rounded-lg"></div>
+      <div className="h-3 bg-gray-200 rounded w-20 md:w-24"></div>
+    </div>
+    <div className="h-8 md:h-10 bg-gray-200 rounded w-16 md:w-20 mb-1"></div>
+    <div className="h-3 bg-gray-200 rounded w-12 md:w-16"></div>
+  </div>
+)
+
+const AssetCardSkeleton = () => (
+  <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 sm:p-4 animate-pulse">
+    <div className="flex items-start justify-between mb-3">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-xl"></div>
+        <div>
+          <div className="h-4 bg-gray-200 rounded w-32 sm:w-40 mb-2"></div>
+          <div className="h-3 bg-gray-200 rounded w-24"></div>
+        </div>
+      </div>
+      <div className="w-5 h-5 bg-gray-200 rounded-full"></div>
+    </div>
+    <div className="bg-white rounded-lg p-3 mb-3 space-y-2">
+      <div className="h-3 bg-gray-200 rounded w-24 mb-2"></div>
+      <div className="h-4 bg-gray-200 rounded w-20"></div>
+    </div>
+    <div className="flex gap-2">
+      <div className="h-10 bg-gray-200 rounded-lg flex-1"></div>
+      <div className="h-10 bg-gray-200 rounded-lg flex-1"></div>
+    </div>
+  </div>
+)
+
+const LoadingSkeleton = () => (
+  <div className="min-h-screen bg-[#fafafa]">
+    <Navbar />
+    <div className="container mx-auto px-3 md:px-4 py-4 md:py-6 max-w-7xl">
+      <div className="mb-4 md:mb-6 animate-pulse">
+        <div className="h-6 bg-gray-200 rounded w-48 mb-3"></div>
+        <div className="h-4 bg-gray-200 rounded w-64"></div>
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6 mb-4 md:mb-8">
+        {[...Array(3)].map((_, i) => (
+          <StatCardSkeleton key={i} />
+        ))}
+      </div>
+      
+      <div className="space-y-3">
+        {[...Array(3)].map((_, i) => (
+          <AssetCardSkeleton key={i} />
+        ))}
+      </div>
+    </div>
+  </div>
+)
 
 export default function AdminAssetsPage() {
   const router = useRouter()
@@ -141,38 +200,28 @@ export default function AdminAssetsPage() {
   if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) return null
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#fafafa]">
-        <Navbar />
-        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-          <div className="text-center">
-            <div className="w-12 h-12 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4"></div>
-            <div className="text-sm text-gray-500">Loading assets...</div>
-          </div>
-        </div>
-      </div>
-    )
+    return <LoadingSkeleton />
   }
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
       <Navbar />
 
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-7xl">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
         {/* Header */}
-        <div className="mb-4 sm:mb-8">
+        <div className="mb-4 sm:mb-6 md:mb-8">
           <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 mb-2">
             <span>Admin</span>
             <span>/</span>
             <span className="text-gray-900 font-medium">Asset Management</span>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-50 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
                 <Package className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-purple-500" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Asset Management</h1>
+                <h1 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-gray-900">Asset Management</h1>
                 <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Configure trading assets and settings</p>
               </div>
             </div>
@@ -180,7 +229,7 @@ export default function AdminAssetsPage() {
             {user.role === 'super_admin' && (
               <button
                 onClick={handleCreate}
-                className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
               >
                 <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="hidden sm:inline">Add Asset</span>
@@ -191,7 +240,7 @@ export default function AdminAssetsPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 mb-4 sm:mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">
           <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-100 hover:shadow-lg transition-shadow">
             <div className="flex items-center gap-2 sm:gap-3 mb-2">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -232,7 +281,7 @@ export default function AdminAssetsPage() {
         {/* Assets List */}
         <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
           {assets.length === 0 ? (
-            <div className="text-center py-12 sm:py-20">
+            <div className="text-center py-8 sm:py-12">
               <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Package className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300" />
               </div>

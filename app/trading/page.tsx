@@ -29,7 +29,8 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   TrendingUp,
-  Activity
+  Activity,
+  Logs
 } from 'lucide-react'
 import OrderNotification from '@/components/OrderNotification'
 
@@ -429,7 +430,7 @@ export default function TradingPage() {
 
   return (
     <div className="h-screen flex flex-col bg-[#0a0e17] text-white overflow-hidden">
-      <div className="h-14 bg-[#1a1f2e] border-b border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">
+      <div className="h-14 lg:h-16 bg-[#1a1f2e] border-b border-gray-800/50 flex items-center justify-between px-2 flex-shrink-0">
         <div className="hidden lg:flex items-center gap-4 w-full">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 relative">
@@ -603,7 +604,7 @@ export default function TradingPage() {
               onClick={() => setShowLeftSidebar(true)}
               className="w-8 h-8 flex items-center justify-center hover:bg-[#232936] rounded-lg transition-colors"
             >
-              <Menu className="w-5 h-5 text-white" />
+              <Logs className="w-6 h-6 font-bold text-white" />
             </button>
             <div className="w-8 h-8 relative">
               <Image 
@@ -624,12 +625,12 @@ export default function TradingPage() {
                 className="flex flex-col items-end py-1 px-2.5 bg-[#1a1f2e] rounded-lg border border-gray-800/50"
               >
                 <div className="flex items-center gap-1">
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-[12px] text-gray-400">
                     {selectedAccountType === 'real' ? 'Real' : 'Demo'}
                   </span>
-                  <ChevronDown className="w-2.5 h-2.5 text-gray-400" />
+                  <ChevronDown className="w-4 h-4 font-bold text-gray-400" />
                 </div>
-                <span className="text-xs font-bold text-white leading-tight">
+                <span className="text-sm font-bold text-white leading-tight">
                   {formatCurrency(currentBalance)}
                 </span>
               </button>
@@ -673,17 +674,17 @@ export default function TradingPage() {
 
             <button
               onClick={() => setShowWalletModal(true)}
-              className="w-8 h-8 flex items-center justify-center bg-blue-500 rounded-lg transition-colors hover:bg-blue-600"
+              className="w-10 h-10 lg:w-8 lg:h-8 flex items-center justify-center bg-blue-500 rounded-lg transition-colors hover:bg-blue-600"
             >
-              <Wallet className="w-4 h-4 text-white" />
+              <Wallet className="w-6 h-6 lg:w-4 lg:h-4 text-white" />
             </button>
 
             {/* Avatar Menu */}
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="w-8 h-8 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity"
+              className="w-10 h-10 lg:w-8 lg:h-8 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity"
             >
-              <span className="text-xs font-bold">{user.email[0].toUpperCase()}</span>
+              <span className="text-sm font-bold">{user.email[0].toUpperCase()}</span>
             </button>
           </div>
         </div>
