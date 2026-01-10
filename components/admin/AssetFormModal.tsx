@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Save, AlertCircle } from 'lucide-react'
+import { X, Save, AlertCircle, Zap } from 'lucide-react'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 
@@ -9,12 +9,18 @@ interface Asset {
   id: string
   name: string
   symbol: string
+  category?: 'normal' | 'crypto'
   profitRate: number
   isActive: boolean
   dataSource: string
   realtimeDbPath?: string
   apiEndpoint?: string
   description?: string
+  cryptoConfig?: {
+    baseCurrency: string
+    quoteCurrency: string
+    exchange?: string
+  }
   simulatorSettings?: {
     initialPrice: number
     dailyVolatilityMin: number
@@ -38,7 +44,19 @@ interface AssetFormModalProps {
   onSuccess: () => void
 }
 
-const ALL_DURATIONS = [1, 2, 3, 4, 5, 15, 30, 45, 60]
+// ✅ UPDATED: Include 1 second (0.0167 minutes)
+const ALL_DURATIONS = [
+  { value: 0.0167, label: '1 second ⚡', shortLabel: '1s', isUltraFast: true },
+  { value: 1, label: '1 minute', shortLabel: '1m' },
+  { value: 2, label: '2 minutes', shortLabel: '2m' },
+  { value: 3, label: '3 minutes', shortLabel: '3m' },
+  { value: 4, label: '4 minutes', shortLabel: '4m' },
+  { value: 5, label: '5 minutes', shortLabel: '5m' },
+  { value: 15, label: '15 minutes', shortLabel: '15m' },
+  { value: 30, label: '30 minutes', shortLabel: '30m' },
+  { value: 45, label: '45 minutes', shortLabel: '45m' },
+  { value: 60, label: '1 hour', shortLabel: '60m' },
+]
 
 export default function AssetFormModal({ mode, asset, onClose, onSuccess }: AssetFormModalProps) {
   const [loading, setLoading] = useState(false)
@@ -48,12 +66,18 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
   const [formData, setFormData] = useState({
     name: asset?.name || '',
     symbol: asset?.symbol || '',
+    category: asset?.category || 'normal' as 'normal' | 'crypto',
     profitRate: asset?.profitRate || 85,
     isActive: asset?.isActive ?? true,
     dataSource: asset?.dataSource || 'realtime_db',
     realtimeDbPath: asset?.realtimeDbPath || '',
     apiEndpoint: asset?.apiEndpoint || '',
     description: asset?.description || '',
+    
+    // ✅ Crypto Config
+    cryptoBaseCurrency: asset?.cryptoConfig?.baseCurrency || '',
+    cryptoQuoteCurrency: asset?.cryptoConfig?.quoteCurrency || 'USD',
+    cryptoExchange: asset?.cryptoConfig?.exchange || 'Binance',
     
     // Simulator Settings
     initialPrice: asset?.simulatorSettings?.initialPrice || 40.022,
@@ -67,7 +91,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     // Trading Settings
     minOrderAmount: asset?.tradingSettings?.minOrderAmount || 1000,
     maxOrderAmount: asset?.tradingSettings?.maxOrderAmount || 1000000,
-    allowedDurations: asset?.tradingSettings?.allowedDurations || ALL_DURATIONS,
+    allowedDurations: asset?.tradingSettings?.allowedDurations || [0.0167, 1, 2, 3, 4, 5, 15, 30, 45, 60],
   })
 
   // Auto-calculate min/max price if not set
@@ -96,6 +120,16 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
       newErrors.profitRate = 'Profit rate must be between 0 and 100'
     }
 
+    // ✅ Crypto validation
+    if (formData.category === 'crypto') {
+      if (!formData.cryptoBaseCurrency.trim()) {
+        newErrors.cryptoBaseCurrency = 'Base currency is required for crypto assets'
+      }
+      if (!formData.cryptoQuoteCurrency.trim()) {
+        newErrors.cryptoQuoteCurrency = 'Quote currency is required for crypto assets'
+      }
+    }
+
     // Data source validations
     if (formData.dataSource === 'realtime_db') {
       if (!formData.realtimeDbPath.trim()) {
@@ -109,6 +143,12 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
 
     if (formData.dataSource === 'api' && !formData.apiEndpoint.trim()) {
       newErrors.apiEndpoint = 'API endpoint is required'
+    }
+
+    if (formData.dataSource === 'cryptocompare') {
+      if (!formData.cryptoBaseCurrency.trim()) {
+        newErrors.cryptoBaseCurrency = 'Base currency is required for CryptoCompare'
+      }
     }
 
     // Simulator settings validations
@@ -145,9 +185,10 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     setLoading(true)
 
     try {
-      const payload = {
+      const payload: any = {
         name: formData.name.trim(),
         symbol: formData.symbol.trim().toUpperCase(),
+        category: formData.category,
         profitRate: formData.profitRate,
         isActive: formData.isActive,
         dataSource: formData.dataSource,
@@ -174,6 +215,15 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
         },
       }
 
+      // ✅ Add cryptoConfig if category is crypto
+      if (formData.category === 'crypto' && formData.cryptoBaseCurrency.trim()) {
+        payload.cryptoConfig = {
+          baseCurrency: formData.cryptoBaseCurrency.trim().toUpperCase(),
+          quoteCurrency: formData.cryptoQuoteCurrency.trim().toUpperCase(),
+          exchange: formData.cryptoExchange.trim(),
+        }
+      }
+
       if (mode === 'create') {
         await api.createAsset(payload)
       } else {
@@ -198,14 +248,27 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     }))
   }
 
+  // ✅ Check if ultra-fast mode is enabled
+  const hasUltraFast = formData.allowedDurations.includes(0.0167)
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900">
-            {mode === 'create' ? 'Create New Asset' : 'Edit Asset'}
-          </h2>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {mode === 'create' ? 'Create New Asset' : 'Edit Asset'}
+            </h2>
+            {hasUltraFast && (
+              <div className="flex items-center gap-2 mt-2">
+                <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                <span className="text-xs text-yellow-600 font-semibold">
+                  ⚡ Ultra-Fast Trading Enabled (1s)
+                </span>
+              </div>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -231,7 +294,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                   className={`w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none focus:border-purple-500 ${
                     errors.name ? 'border-red-500' : 'border-gray-200'
                   }`}
-                  placeholder="e.g., IDX STC"
+                  placeholder="e.g., Bitcoin, IDX STC"
                 />
                 {errors.name && (
                   <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
@@ -252,7 +315,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                   className={`w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none focus:border-purple-500 ${
                     errors.symbol ? 'border-red-500' : 'border-gray-200'
                   }`}
-                  placeholder="e.g., IDX_STC"
+                  placeholder="e.g., BTC, IDX_STC"
                 />
                 {errors.symbol && (
                   <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
@@ -260,6 +323,26 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                     {errors.symbol}
                   </p>
                 )}
+              </div>
+
+              {/* ✅ NEW: Category Field */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Category *
+                </label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value as 'normal' | 'crypto' })}
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                >
+                  <option value="normal">📊 Normal Asset</option>
+                  <option value="crypto">₿ Cryptocurrency</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.category === 'crypto' 
+                    ? 'Crypto assets require base/quote currency configuration' 
+                    : 'Regular trading assets like stocks, indices, commodities'}
+                </p>
               </div>
 
               <div>
@@ -317,6 +400,69 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             </div>
           </div>
 
+          {/* ✅ NEW: Crypto Configuration (conditional) */}
+          {formData.category === 'crypto' && (
+            <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-xl p-4">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                ₿ Cryptocurrency Configuration
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Base Currency *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.cryptoBaseCurrency}
+                    onChange={(e) => setFormData({ ...formData, cryptoBaseCurrency: e.target.value.toUpperCase() })}
+                    className={`w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none focus:border-orange-500 ${
+                      errors.cryptoBaseCurrency ? 'border-red-500' : 'border-orange-200'
+                    }`}
+                    placeholder="BTC, ETH, BNB"
+                  />
+                  {errors.cryptoBaseCurrency && (
+                    <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {errors.cryptoBaseCurrency}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Quote Currency *
+                  </label>
+                  <select
+                    value={formData.cryptoQuoteCurrency}
+                    onChange={(e) => setFormData({ ...formData, cryptoQuoteCurrency: e.target.value })}
+                    className="w-full px-4 py-2.5 border-2 border-orange-200 rounded-xl focus:outline-none focus:border-orange-500"
+                  >
+                    <option value="USD">USD</option>
+                    <option value="USDT">USDT</option>
+                    <option value="EUR">EUR</option>
+                    <option value="IDR">IDR</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Exchange (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.cryptoExchange}
+                    onChange={(e) => setFormData({ ...formData, cryptoExchange: e.target.value })}
+                    className="w-full px-4 py-2.5 border-2 border-orange-200 rounded-xl focus:outline-none focus:border-orange-500"
+                    placeholder="Binance, Coinbase"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                💡 Example: BTC/USD from Binance, ETH/USDT from Coinbase
+              </p>
+            </div>
+          )}
+
           {/* Data Source */}
           <div>
             <h3 className="text-lg font-bold text-gray-900 mb-4">Data Source</h3>
@@ -332,7 +478,8 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                 >
                   <option value="realtime_db">Firebase Realtime DB</option>
                   <option value="api">External API</option>
-                  <option value="mock">Mock Data</option>
+                  <option value="mock">Mock Data (Simulator)</option>
+                  <option value="cryptocompare">CryptoCompare API</option>
                 </select>
               </div>
 
@@ -348,10 +495,10 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                     className={`w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none focus:border-purple-500 ${
                       errors.realtimeDbPath ? 'border-red-500' : 'border-gray-200'
                     }`}
-                    placeholder="/idx_stc"
+                    placeholder="/btc_usd"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Example: /idx_stc (Do NOT include /current_price)
+                    Example: /btc_usd (Do NOT include /current_price)
                   </p>
                   {errors.realtimeDbPath && (
                     <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
@@ -382,6 +529,15 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                       {errors.apiEndpoint}
                     </p>
                   )}
+                </div>
+              )}
+
+              {formData.dataSource === 'cryptocompare' && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                  <p className="text-sm text-blue-900">
+                    <strong>CryptoCompare Integration:</strong> Real-time crypto prices from CryptoCompare API.
+                    Base currency: <span className="font-mono font-bold">{formData.cryptoBaseCurrency || 'Not set'}</span>
+                  </p>
                 </div>
               )}
             </div>
@@ -523,30 +679,49 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             </div>
 
             <div className="mt-4">
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                Allowed Durations (minutes) *
+              <label className="block text-sm font-bold text-gray-700 mb-3">
+                Allowed Durations *
+                {hasUltraFast && (
+                  <span className="ml-2 text-xs text-yellow-600 font-semibold">
+                    ⚡ Ultra-Fast Mode Active
+                  </span>
+                )}
               </label>
               <div className="flex flex-wrap gap-2">
-                {ALL_DURATIONS.map((duration) => (
-                  <button
-                    key={duration}
-                    type="button"
-                    onClick={() => toggleDuration(duration)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                      formData.allowedDurations.includes(duration)
-                        ? 'bg-purple-500 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {duration}m
-                  </button>
-                ))}
+                {ALL_DURATIONS.map((duration) => {
+                  const isSelected = formData.allowedDurations.includes(duration.value)
+                  return (
+                    <button
+                      key={duration.value}
+                      type="button"
+                      onClick={() => toggleDuration(duration.value)}
+                      className={`px-4 py-2.5 rounded-lg font-medium transition-all border-2 ${
+                        isSelected
+                          ? duration.isUltraFast
+                            ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-yellow-500 shadow-lg'
+                            : 'bg-purple-500 text-white border-purple-500'
+                          : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
+                      }`}
+                    >
+                      {duration.isUltraFast && <Zap className="w-4 h-4 inline mr-1" />}
+                      {duration.shortLabel}
+                    </button>
+                  )
+                })}
               </div>
               {errors.allowedDurations && (
                 <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />
                   {errors.allowedDurations}
                 </p>
+              )}
+              {hasUltraFast && (
+                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-xs text-yellow-800">
+                    <strong>⚡ Ultra-Fast Trading:</strong> 1-second orders require high-frequency data updates. 
+                    Ensure your simulator or data source supports sub-second intervals.
+                  </p>
+                </div>
               )}
             </div>
           </div>

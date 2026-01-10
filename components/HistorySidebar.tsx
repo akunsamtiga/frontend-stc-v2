@@ -1,9 +1,11 @@
+// components/HistorySidebar.tsx - ✅ UPDATED: Display 1s duration properly
+
 'use client'
 
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { BinaryOrder } from '@/types'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency, formatDate, getDurationDisplay } from '@/lib/utils'
 import { X, TrendingUp, TrendingDown, Clock, RefreshCw, Filter, Wallet } from 'lucide-react'
 
 interface HistorySidebarProps {
@@ -31,7 +33,6 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
       
       let ordersList = response?.data?.orders || response?.orders || []
       
-      // Filter by account type if not 'all'
       if (accountFilter !== 'all') {
         ordersList = ordersList.filter((o: BinaryOrder) => o.accountType === accountFilter)
       }
@@ -47,7 +48,6 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
 
   if (!isOpen) return null
 
-  // Calculate stats
   const stats = {
     total: orders.length,
     won: orders.filter(o => o.status === 'WON').length,
@@ -186,102 +186,117 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
               </div>
             </div>
           ) : (
-            orders.map((order) => (
-              <div
-                key={order.id}
-                className="bg-[#1a1f2e] border border-gray-800/50 rounded-xl p-4 hover:bg-[#232936] transition-all"
-              >
-                {/* Header */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                      order.direction === 'CALL' 
-                        ? 'bg-green-500/20 border border-green-500/30' 
-                        : 'bg-red-500/20 border border-red-500/30'
-                    }`}>
-                      {order.direction === 'CALL' ? (
-                        <TrendingUp className="w-4 h-4 text-green-400" />
-                      ) : (
-                        <TrendingDown className="w-4 h-4 text-red-400" />
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <div className="text-sm font-semibold">{order.asset_name}</div>
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                          order.accountType === 'real'
-                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                            : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                        }`}>
-                          {order.accountType?.toUpperCase() || 'DEMO'}
-                        </span>
-                      </div>
-                      <div className="text-xs text-gray-400">{formatDate(order.createdAt)}</div>
-                    </div>
-                  </div>
-                  <div className={`px-2 py-1 rounded text-xs font-bold ${
-                    order.status === 'WON' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-                    order.status === 'LOST' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                    order.status === 'ACTIVE' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-                    'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-                  }`}>
-                    {order.status}
-                  </div>
-                </div>
-
-                {/* Details */}
-                <div className="space-y-2 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Amount</span>
-                    <span className=" font-semibold">{formatCurrency(order.amount)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Entry Price</span>
-                    <span className="">{order.entry_price.toFixed(3)}</span>
-                  </div>
-                  {order.exit_price && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-400">Exit Price</span>
-                      <span className="">{order.exit_price.toFixed(3)}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Duration</span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {order.duration}m
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Profit Rate</span>
-                    <span className="text-green-400 font-semibold">+{order.profitRate}%</span>
-                  </div>
-                  {order.profit !== null && order.profit !== undefined && (
-                    <div className="flex items-center justify-between pt-2 border-t border-gray-800/50">
-                      <span className="text-gray-400 font-medium">Profit/Loss</span>
-                      <span className={` font-bold text-sm ${
-                        order.profit > 0 ? 'text-green-400' : 
-                        order.profit < 0 ? 'text-red-400' : 
-                        'text-gray-400'
+            orders.map((order) => {
+              {/* ✅ UPDATED: Format duration display with 1s support */}
+              const durationDisplay = getDurationDisplay(order.duration)
+              const isUltraFast = order.duration < 1 // Less than 1 minute
+              
+              return (
+                <div
+                  key={order.id}
+                  className="bg-[#1a1f2e] border border-gray-800/50 rounded-xl p-4 hover:bg-[#232936] transition-all"
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                        order.direction === 'CALL' 
+                          ? 'bg-green-500/20 border border-green-500/30' 
+                          : 'bg-red-500/20 border border-red-500/30'
                       }`}>
-                        {order.profit > 0 ? '+' : ''}{formatCurrency(order.profit)}
+                        {order.direction === 'CALL' ? (
+                          <TrendingUp className="w-4 h-4 text-green-400" />
+                        ) : (
+                          <TrendingDown className="w-4 h-4 text-red-400" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm font-semibold">{order.asset_name}</div>
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                            order.accountType === 'real'
+                              ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                              : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                          }`}>
+                            {order.accountType?.toUpperCase() || 'DEMO'}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-400">{formatDate(order.createdAt)}</div>
+                      </div>
+                    </div>
+                    <div className={`px-2 py-1 rounded text-xs font-bold ${
+                      order.status === 'WON' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                      order.status === 'LOST' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                      order.status === 'ACTIVE' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                      'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                    }`}>
+                      {order.status}
+                    </div>
+                  </div>
+
+                  {/* Details */}
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400">Amount</span>
+                      <span className="font-semibold">{formatCurrency(order.amount)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400">Entry Price</span>
+                      <span className="">{order.entry_price.toFixed(3)}</span>
+                    </div>
+                    {order.exit_price && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-400">Exit Price</span>
+                        <span className="">{order.exit_price.toFixed(3)}</span>
+                      </div>
+                    )}
+                    
+                    {/* ✅ UPDATED: Duration display with ultra-fast indicator */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400">Duration</span>
+                      <span className="flex items-center gap-1">
+                        {isUltraFast && <span className="text-yellow-400">⚡</span>}
+                        <Clock className="w-3 h-3" />
+                        {durationDisplay}
+                        {isUltraFast && (
+                          <span className="text-[10px] text-yellow-400 font-bold">FAST</span>
+                        )}
                       </span>
                     </div>
-                  )}
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400">Profit Rate</span>
+                      <span className="text-green-400 font-semibold">+{order.profitRate}%</span>
+                    </div>
+                    {order.profit !== null && order.profit !== undefined && (
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-800/50">
+                        <span className="text-gray-400 font-medium">Profit/Loss</span>
+                        <span className={`font-bold text-sm ${
+                          order.profit > 0 ? 'text-green-400' : 
+                          order.profit < 0 ? 'text-red-400' : 
+                          'text-gray-400'
+                        }`}>
+                          {order.profit > 0 ? '+' : ''}{formatCurrency(order.profit)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))
+              )
+            })
           )}
         </div>
       </div>
 
       <style jsx>{`
         @keyframes slide-left {
-          from {
-            transform: translateX(100%);
+          from { 
+            transform: translateX(100%); 
+            opacity: 0;
           }
-          to {
-            transform: translateX(0);
+          to { 
+            transform: translateX(0); 
+            opacity: 1;
           }
         }
 
@@ -302,7 +317,6 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
           animation: fade-in 0.2s ease-out;
         }
 
-        /* Custom Scrollbar */
         .overflow-y-auto::-webkit-scrollbar {
           width: 6px;
         }

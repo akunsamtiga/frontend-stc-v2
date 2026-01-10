@@ -1,17 +1,23 @@
 'use client'
 
-import { X, Edit, Package, Activity, TrendingUp, Settings as SettingsIcon, Database } from 'lucide-react'
+import { X, Edit, Package, Activity, TrendingUp, Settings as SettingsIcon, Database, Zap, DollarSign } from 'lucide-react'
 
 interface Asset {
   id: string
   name: string
   symbol: string
+  category?: 'normal' | 'crypto'
   profitRate: number
   isActive: boolean
   dataSource: string
   realtimeDbPath?: string
   apiEndpoint?: string
   description?: string
+  cryptoConfig?: {
+    baseCurrency: string
+    quoteCurrency: string
+    exchange?: string
+  }
   simulatorSettings?: {
     initialPrice: number
     dailyVolatilityMin: number
@@ -53,6 +59,17 @@ export default function AssetDetailModal({ asset, onClose, onEdit }: AssetDetail
     })
   }
 
+  // ✅ Format duration with proper labels including 1 second
+  const formatDuration = (minutes: number): string => {
+    if (minutes === 0.0167) return '⚡ 1 second'
+    if (minutes < 1) return `${Math.round(minutes * 60)}s`
+    if (minutes < 60) return `${minutes}m`
+    return `${Math.floor(minutes / 60)}h`
+  }
+
+  // ✅ Check if asset has ultra-fast mode
+  const hasUltraFast = asset.tradingSettings?.allowedDurations.includes(0.0167)
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
@@ -67,7 +84,26 @@ export default function AssetDetailModal({ asset, onClose, onEdit }: AssetDetail
               }`} />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">{asset.name}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-2xl font-bold text-gray-900">{asset.name}</h2>
+                {/* ✅ Category Badge */}
+                {asset.category === 'crypto' ? (
+                  <span className="px-2 py-1 bg-gradient-to-r from-orange-100 to-yellow-100 border border-orange-300 text-orange-700 rounded-lg text-xs font-bold">
+                    ₿ Crypto
+                  </span>
+                ) : (
+                  <span className="px-2 py-1 bg-blue-100 border border-blue-300 text-blue-700 rounded-lg text-xs font-bold">
+                    📊 Normal
+                  </span>
+                )}
+                {/* ✅ Ultra-Fast Badge */}
+                {hasUltraFast && (
+                  <span className="px-2 py-1 bg-gradient-to-r from-yellow-100 to-orange-100 border border-yellow-300 text-yellow-700 rounded-lg text-xs font-bold flex items-center gap-1">
+                    <Zap className="w-3 h-3" />
+                    Ultra-Fast
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-gray-500">Asset Details</p>
             </div>
           </div>
@@ -103,6 +139,13 @@ export default function AssetDetailModal({ asset, onClose, onEdit }: AssetDetail
                 <span className="text-sm text-gray-600">Symbol</span>
                 <span className="text-sm font-semibold text-gray-900">{asset.symbol}</span>
               </div>
+              {/* ✅ Category Display */}
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">Category</span>
+                <span className="text-sm font-semibold text-gray-900 capitalize">
+                  {asset.category === 'crypto' ? '₿ Cryptocurrency' : '📊 Normal Asset'}
+                </span>
+              </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Profit Rate</span>
                 <span className="text-sm font-bold text-purple-600">{asset.profitRate}%</span>
@@ -124,6 +167,40 @@ export default function AssetDetailModal({ asset, onClose, onEdit }: AssetDetail
             </div>
           </div>
 
+          {/* ✅ Crypto Configuration (if exists) */}
+          {asset.category === 'crypto' && asset.cryptoConfig && (
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-orange-500" />
+                Cryptocurrency Configuration
+              </h3>
+              <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-xl p-4 space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-700 font-medium">Base Currency</span>
+                  <span className="text-sm font-bold text-orange-700">{asset.cryptoConfig.baseCurrency}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-700 font-medium">Quote Currency</span>
+                  <span className="text-sm font-bold text-orange-700">{asset.cryptoConfig.quoteCurrency}</span>
+                </div>
+                {asset.cryptoConfig.exchange && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-700 font-medium">Exchange</span>
+                    <span className="text-sm font-bold text-orange-700">{asset.cryptoConfig.exchange}</span>
+                  </div>
+                )}
+                <div className="pt-2 border-t border-orange-200">
+                  <div className="flex items-center gap-2 text-xs text-orange-800">
+                    <span className="font-semibold">Trading Pair:</span>
+                    <code className="px-2 py-1 bg-orange-100 rounded font-mono font-bold">
+                      {asset.cryptoConfig.baseCurrency}/{asset.cryptoConfig.quoteCurrency}
+                    </code>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Data Source */}
           <div>
             <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -134,26 +211,46 @@ export default function AssetDetailModal({ asset, onClose, onEdit }: AssetDetail
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Source Type</span>
                 <span className="text-sm font-semibold text-gray-900 capitalize">
-                  {asset.dataSource.replace('_', ' ')}
+                  {asset.dataSource === 'realtime_db' && '🔥 Firebase Realtime DB'}
+                  {asset.dataSource === 'api' && '🌐 External API'}
+                  {asset.dataSource === 'mock' && '🎲 Mock/Simulator'}
+                  {asset.dataSource === 'cryptocompare' && '₿ CryptoCompare API'}
                 </span>
               </div>
               {asset.dataSource === 'realtime_db' && asset.realtimeDbPath && (
                 <div className="pt-2 border-t border-gray-200">
-                  <span className="text-sm text-gray-600 block mb-1">Realtime DB Path</span>
-                  <code className="text-sm bg-gray-900 text-green-400 px-2 py-1 rounded">
+                  <span className="text-sm text-gray-600 block mb-2">Realtime DB Path</span>
+                  <code className="text-sm bg-gray-900 text-green-400 px-3 py-2 rounded block break-all">
                     {asset.realtimeDbPath}
                   </code>
+                  <p className="text-xs text-gray-500 mt-2">
+                    💡 Current Price: <code className="text-xs bg-gray-200 px-1 py-0.5 rounded">{asset.realtimeDbPath}/current_price</code>
+                  </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    Price fetched from: {asset.realtimeDbPath}/current_price
+                    💡 OHLC Data: <code className="text-xs bg-gray-200 px-1 py-0.5 rounded">{asset.realtimeDbPath}/ohlc_1m</code>
                   </p>
                 </div>
               )}
               {asset.dataSource === 'api' && asset.apiEndpoint && (
                 <div className="pt-2 border-t border-gray-200">
-                  <span className="text-sm text-gray-600 block mb-1">API Endpoint</span>
-                  <code className="text-sm bg-gray-900 text-green-400 px-2 py-1 rounded break-all">
+                  <span className="text-sm text-gray-600 block mb-2">API Endpoint</span>
+                  <code className="text-sm bg-gray-900 text-green-400 px-3 py-2 rounded block break-all">
                     {asset.apiEndpoint}
                   </code>
+                </div>
+              )}
+              {asset.dataSource === 'cryptocompare' && asset.cryptoConfig && (
+                <div className="pt-2 border-t border-gray-200">
+                  <span className="text-sm text-gray-600 block mb-2">CryptoCompare Configuration</span>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-xs text-blue-900">
+                      <strong>Real-time Crypto Data:</strong> Fetching prices for{' '}
+                      <span className="font-mono font-bold">{asset.cryptoConfig.baseCurrency}/{asset.cryptoConfig.quoteCurrency}</span>
+                      {asset.cryptoConfig.exchange && (
+                        <> from <span className="font-semibold">{asset.cryptoConfig.exchange}</span></>
+                      )}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
@@ -238,17 +335,40 @@ export default function AssetDetailModal({ asset, onClose, onEdit }: AssetDetail
                 </div>
 
                 <div className="pt-4 border-t border-gray-200">
-                  <span className="text-xs text-gray-600 block mb-2">Allowed Durations</span>
+                  <span className="text-xs text-gray-600 block mb-3">
+                    Allowed Durations
+                    {hasUltraFast && (
+                      <span className="ml-2 text-yellow-600 font-semibold">⚡ Ultra-Fast Enabled</span>
+                    )}
+                  </span>
                   <div className="flex flex-wrap gap-2">
-                    {asset.tradingSettings.allowedDurations.map((duration) => (
-                      <span
-                        key={duration}
-                        className="px-3 py-1 bg-purple-100 text-purple-700 rounded-lg text-sm font-semibold"
-                      >
-                        {duration}m
-                      </span>
-                    ))}
+                    {asset.tradingSettings.allowedDurations
+                      .sort((a, b) => a - b)
+                      .map((duration) => {
+                        const isUltraFast = duration === 0.0167
+                        return (
+                          <span
+                            key={duration}
+                            className={`px-3 py-1.5 rounded-lg text-sm font-semibold border-2 ${
+                              isUltraFast
+                                ? 'bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-700 border-yellow-300'
+                                : 'bg-purple-100 text-purple-700 border-purple-200'
+                            }`}
+                          >
+                            {isUltraFast && <Zap className="w-3 h-3 inline mr-1" />}
+                            {formatDuration(duration)}
+                          </span>
+                        )
+                      })}
                   </div>
+                  {hasUltraFast && (
+                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-xs text-yellow-800">
+                        <strong>⚡ Ultra-Fast Trading:</strong> This asset supports 1-second orders. 
+                        High-frequency updates required for optimal performance.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

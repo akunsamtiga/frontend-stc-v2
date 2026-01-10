@@ -1,4 +1,4 @@
-// lib/firebase.ts - ULTRA OPTIMIZED - NO THROTTLING & SMOOTH UPDATES
+// lib/firebase.ts - ULTRA OPTIMIZED - NO THROTTLING & SMOOTH UPDATES WITH 1s SUPPORT
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
 import { getDatabase, Database, ref, onValue, off, query, limitToLast, get } from 'firebase/database'
 
@@ -56,12 +56,14 @@ function getOHLCPath(assetPath: string, timeframe: string): string {
 }
 
 // ===================================
-// TYPES & CONFIG
+// TYPES & CONFIG - ✅ UPDATED WITH 1s
 // ===================================
 
-type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
+type Timeframe = '1s' | '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
 
+// ✅ UPDATED: Added 1s timeframe configuration
 const TIMEFRAME_CONFIG: Record<Timeframe, { path: string; barsToFetch: number; cacheTTL: number }> = {
+  '1s': { path: 'ohlc_1s', barsToFetch: 60, cacheTTL: 1000 },      // ✅ NEW: 60 bars = 1 minute of 1s data
   '1m': { path: 'ohlc_1m', barsToFetch: 100, cacheTTL: 3000 },
   '5m': { path: 'ohlc_5m', barsToFetch: 100, cacheTTL: 10000 },
   '15m': { path: 'ohlc_15m', barsToFetch: 150, cacheTTL: 20000 },
@@ -338,17 +340,23 @@ export async function fetchHistoricalData(
     const basePath = cleanAssetPath(assetPath)
     const cacheKey = `${basePath}-${timeframe}`
 
+    // Check memory cache first
     const memCached = memoryCache.get(cacheKey)
     if (memCached) {
+      console.log(`✅ Memory cache hit for ${timeframe}`)
       return memCached
     }
 
+    // Check IndexedDB cache
     const idbCached = await idbCache.get(cacheKey)
     if (idbCached) {
+      console.log(`✅ IndexedDB cache hit for ${timeframe}`)
       memoryCache.set(cacheKey, idbCached, config.cacheTTL)
       return idbCached
     }
 
+    // Fetch from Firebase
+    console.log(`🔥 Fetching ${timeframe} data from Firebase...`)
     const ohlcPath = getOHLCPath(basePath, timeframe)
     const ohlcRef = ref(database, ohlcPath)
     const limitedQuery = query(ohlcRef, limitToLast(config.barsToFetch))
@@ -367,9 +375,11 @@ export async function fetchHistoricalData(
       return []
     }
     
+    // Cache the result
     memoryCache.set(cacheKey, result, config.cacheTTL)
     await idbCache.set(cacheKey, result, config.cacheTTL)
     
+    console.log(`✅ Fetched ${result.length} ${timeframe} bars`)
     return result
 
   } catch (error: any) {
@@ -423,7 +433,7 @@ function processHistoricalData(data: any, limit: number): any[] {
 }
 
 // ===================================
-// ✅ SUBSCRIBE TO OHLC - SMOOTH REAL-TIME
+// ✅ SUBSCRIBE TO OHLC - SMOOTH REAL-TIME WITH 1s SUPPORT
 // ===================================
 
 export function subscribeToOHLCUpdates(
@@ -449,6 +459,7 @@ export function subscribeToOHLCUpdates(
   let lastData: any = null
   
   // ✅ NO THROTTLING - Direct real-time updates
+  // ✅ OPTIMIZED: For 1s timeframe, we need ultra-fast updates
   const unsubscribe = onValue(ohlcRef, (snapshot) => {
     const data = snapshot.val()
     if (!data) return
@@ -469,14 +480,22 @@ export function subscribeToOHLCUpdates(
       // Invalidate cache on new bar
       const cacheKey = `${basePath}-${timeframe}`
       memoryCache.delete(cacheKey)
+      
+      // ✅ Log for debugging (especially useful for 1s)
+      if (timeframe === '1s') {
+        console.log(`⚡ New 1s bar: ${new Date(barTimestamp * 1000).toISOString()}`)
+      }
     }
     
     // ✅ Check if data actually changed (prevent unnecessary updates)
-    if (lastData && 
-        lastData.open === latestData.open &&
-        lastData.high === latestData.high &&
-        lastData.low === latestData.low &&
-        lastData.close === latestData.close) {
+    // ✅ For 1s timeframe, we're more lenient to ensure all updates are captured
+    const hasChanged = !lastData || 
+      lastData.open !== latestData.open ||
+      lastData.high !== latestData.high ||
+      lastData.low !== latestData.low ||
+      lastData.close !== latestData.close
+    
+    if (!hasChanged && !isNewBar) {
       return // No change, skip callback
     }
     
@@ -500,7 +519,11 @@ export function subscribeToOHLCUpdates(
     console.error(`❌ OHLC subscription error (${timeframe}):`, error)
   })
 
+  // ✅ Log subscription for debugging
+  console.log(`🔔 Subscribed to ${timeframe} OHLC updates at ${ohlcPath}`)
+
   return () => {
+    console.log(`🔕 Unsubscribed from ${timeframe} OHLC updates`)
     off(ohlcRef)
   }
 }
@@ -544,7 +567,10 @@ export function subscribeToPriceUpdates(
     console.error('❌ Price subscription error:', error)
   })
 
+  console.log(`🔔 Subscribed to price updates at ${pricePath}`)
+
   return () => {
+    console.log(`🔕 Unsubscribed from price updates`)
     off(priceRef)
   }
 }
@@ -555,11 +581,16 @@ export function subscribeToPriceUpdates(
 
 export async function prefetchDefaultAsset(assetPath: string): Promise<void> {
   const basePath = cleanAssetPath(assetPath)
-  const timeframes: Timeframe[] = ['1m', '5m']
+  // ✅ UPDATED: Include 1s timeframe in prefetch
+  const timeframes: Timeframe[] = ['1s', '1m', '5m']
+  
+  console.log(`📦 Prefetching data for ${basePath}...`)
   
   await Promise.allSettled(
     timeframes.map(tf => fetchHistoricalData(basePath, tf))
   )
+  
+  console.log(`✅ Prefetch complete for ${basePath}`)
 }
 
 // ===================================
@@ -580,6 +611,8 @@ export async function clearDataCache(pattern?: string): Promise<void> {
       memoryCache.delete(key)
     }
   })
+  
+  console.log(`🗑️ Cache cleared for pattern: ${pattern}`)
 }
 
 // ===================================
@@ -588,4 +621,41 @@ export async function clearDataCache(pattern?: string): Promise<void> {
 
 export function getCacheStats(): any {
   return memoryCache.getStats()
+}
+
+// ===================================
+// ✅ NEW: VALIDATE TIMEFRAME
+// ===================================
+
+export function isValidTimeframe(timeframe: string): timeframe is Timeframe {
+  return timeframe in TIMEFRAME_CONFIG
+}
+
+export function getSupportedTimeframes(): Timeframe[] {
+  return Object.keys(TIMEFRAME_CONFIG) as Timeframe[]
+}
+
+// ===================================
+// ✅ NEW: GET TIMEFRAME INFO
+// ===================================
+
+export function getTimeframeInfo(timeframe: Timeframe) {
+  return TIMEFRAME_CONFIG[timeframe]
+}
+
+// ===================================
+// DEBUG UTILITIES
+// ===================================
+
+if (typeof window !== 'undefined') {
+  (window as any).firebaseDebug = {
+    getCacheStats,
+    clearDataCache,
+    getSupportedTimeframes,
+    getTimeframeInfo,
+    isValidTimeframe,
+    prefetchDefaultAsset
+  }
+  
+  console.log('🔧 Firebase debug utilities available at window.firebaseDebug')
 }

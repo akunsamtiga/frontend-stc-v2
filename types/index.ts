@@ -1,4 +1,4 @@
-// types/index.ts - COMPLETE TYPE DEFINITIONS WITH STATUS & AFFILIATE
+// types/index.ts - COMPLETE TYPE DEFINITIONS WITH 1 SECOND SUPPORT
 export interface User {
   id: string
   email: string
@@ -67,11 +67,17 @@ export interface Asset {
   id: string
   name: string
   symbol: string
+  category?: 'normal' | 'crypto'
   profitRate: number
   isActive: boolean
-  dataSource: 'realtime_db' | 'api' | 'mock'
+  dataSource: 'realtime_db' | 'api' | 'mock' | 'cryptocompare'
   realtimeDbPath?: string
   apiEndpoint?: string
+  cryptoConfig?: {
+    baseCurrency: string
+    quoteCurrency: string
+    exchange?: string
+  }
   description?: string
   simulatorSettings?: {
     initialPrice: number
@@ -112,6 +118,7 @@ export interface BinaryOrder {
   userStatus: 'standard' | 'gold' | 'vip'
   createdAt: string
   updatedAt?: string
+  durationDisplay?: string
 }
 
 export interface Balance {
@@ -157,14 +164,11 @@ export interface AuthResponse {
 }
 
 export interface ApiResponse<T = any> {
-  success: boolean
+  success?: boolean
   message?: string
   data?: T
   error?: string
-  total?: number
-  page?: number
-  limit?: number
-  totalPages?: number
+  [key: string]: any
 }
 
 export interface BalanceSummary {
@@ -174,7 +178,105 @@ export interface BalanceSummary {
   demoTransactions: number
 }
 
-export type AccountType = 'real' | 'demo'
+export interface UserProfileInfo {
+  completion: number
+  personal: {
+    fullName: string | null
+    email: string
+    phoneNumber: string | null
+    dateOfBirth: string | null
+    gender: 'male' | 'female' | 'other' | null
+    nationality: string | null
+  }
+  address: {
+    street?: string
+    city?: string
+    province?: string
+    postalCode?: string
+    country?: string
+  } | null
+  identity: {
+    type?: 'ktp' | 'passport' | 'sim'
+    number?: string
+    isVerified?: boolean
+    verifiedAt?: string
+  } | null
+  bankAccount: {
+    bankName?: string
+    accountNumber?: string
+    accountHolderName?: string
+    isVerified?: boolean
+    verifiedAt?: string
+  } | null
+  avatar: {
+    url?: string
+    uploadedAt?: string
+  } | null
+  settings: {
+    emailNotifications: boolean
+    smsNotifications: boolean
+    tradingAlerts: boolean
+    twoFactorEnabled: boolean
+    language: string
+    timezone: string
+  }
+  verification: {
+    emailVerified: boolean
+    phoneVerified: boolean
+    identityVerified: boolean
+    bankVerified: boolean
+    verificationLevel: 'unverified' | 'basic' | 'intermediate' | 'advanced'
+  }
+}
+
+export interface UpdateProfileRequest {
+  fullName?: string
+  phoneNumber?: string
+  dateOfBirth?: string
+  gender?: 'male' | 'female' | 'other'
+  nationality?: string
+  address?: {
+    street?: string
+    city?: string
+    province?: string
+    postalCode?: string
+    country?: string
+  }
+  identityDocument?: {
+    type?: 'ktp' | 'passport' | 'sim'
+    number?: string
+    issuedDate?: string
+    expiryDate?: string
+  }
+  bankAccount?: {
+    bankName?: string
+    accountNumber?: string
+    accountHolderName?: string
+  }
+  settings?: {
+    emailNotifications?: boolean
+    smsNotifications?: boolean
+    tradingAlerts?: boolean
+    twoFactorEnabled?: boolean
+    language?: string
+    timezone?: string
+  }
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
+export interface UploadAvatarRequest {
+  url: string
+}
+
+export interface VerifyPhoneRequest {
+  phoneNumber: string
+  verificationCode: string
+}
 
 export interface SystemStatistics {
   users: {
@@ -311,328 +413,129 @@ export interface TradingSignal {
   expires_at: string
 }
 
-// Utility types
+// ===================================
+// CONSTANTS WITH 1 SECOND SUPPORT
+// ===================================
+
+export const DURATIONS = [
+  0.0167,  // 1 second
+  1, 2, 3, 4, 5, 
+  10, 15, 30, 45, 60
+] as const
+
+export const DURATION_DISPLAY_MAP: Record<number, string> = {
+  0.0167: '1s',
+  1: '1m',
+  2: '2m',
+  3: '3m',
+  4: '4m',
+  5: '5m',
+  10: '10m',
+  15: '15m',
+  30: '30m',
+  45: '45m',
+  60: '1h',
+}
+
+export const QUICK_AMOUNTS = [10000, 25000, 50000, 100000, 250000, 500000, 1000000] as const
+export const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
+
+// ===================================
+// UTILITY TYPES
+// ===================================
+
+export type Duration = typeof DURATIONS[number]
+export type QuickAmount = typeof QUICK_AMOUNTS[number]
+export type Timeframe = typeof TIMEFRAMES[number]
+export type AccountType = 'real' | 'demo'
+export type UserStatus = 'standard' | 'gold' | 'vip'
 export type OrderStatus = BinaryOrder['status']
 export type OrderDirection = BinaryOrder['direction']
 export type BalanceType = Balance['type']
 export type AssetDataSource = Asset['dataSource']
-export type UserStatus = 'standard' | 'gold' | 'vip'
 
-// Request types
-export interface CreateOrderRequest {
-  accountType: AccountType
-  asset_id: string
-  direction: OrderDirection
-  amount: number
-  duration: number
+// ===================================
+// DURATION HELPER FUNCTIONS
+// ===================================
+
+export function formatDurationDisplay(durationMinutes: number): string {
+  return DURATION_DISPLAY_MAP[durationMinutes] || `${durationMinutes}m`
 }
 
-export interface CreateBalanceEntryRequest {
-  accountType: AccountType
-  type: 'deposit' | 'withdrawal'
-  amount: number
-  description?: string
+export function parseDurationFromDisplay(display: string): number | null {
+  const entry = Object.entries(DURATION_DISPLAY_MAP).find(([_, d]) => d === display)
+  return entry ? parseFloat(entry[0]) : null
 }
 
-export interface UpdateUserRequest {
-  email?: string
-  password?: string
-  role?: User['role']
-  isActive?: boolean
-}
-
-export interface FilterOptions {
-  status?: OrderStatus | 'all'
-  accountType?: AccountType | 'all'
-  startDate?: string
-  endDate?: string
-  page?: number
-  limit?: number
-  sortBy?: string
-  sortOrder?: 'asc' | 'desc'
-}
-
-// Response wrappers
-export interface PaginatedResponse<T> {
-  data: T[]
-  total: number
-  page: number
-  limit: number
-  totalPages: number
-}
-
-export interface OrdersResponse extends PaginatedResponse<BinaryOrder> {}
-export interface BalanceHistoryResponse extends PaginatedResponse<Balance> {}
-export interface AssetsResponse {
-  assets: Asset[]
-  total: number
-}
-
-// Error types
-export interface ApiError {
-  error: string
-  message: string
-  statusCode: number
-  details?: any
-}
-
-// WebSocket message types
-export interface WSMessage {
-  type: 'price_update' | 'order_update' | 'balance_update' | 'notification'
-  data: any
-  timestamp: number
-}
-
-export interface WSPriceUpdate {
-  asset_id: string
-  price: number
-  change: number
-  timestamp: number
-}
-
-export interface WSOrderUpdate {
-  order_id: string
-  status: OrderStatus
-  exit_price?: number
-  profit?: number
-  timestamp: number
-}
-
-export interface WSBalanceUpdate {
-  accountType: AccountType
-  balance: number
-  change: number
-  timestamp: number
-}
-
-// Chart data types
-export interface CandlestickData {
-  time: number
-  open: number
-  high: number
-  low: number
-  close: number
-  volume?: number
-}
-
-export interface LineData {
-  time: number
-  value: number
-}
-
-export interface HistogramData {
-  time: number
-  value: number
-  color?: string
-}
-
-// State types for stores
-export interface AuthState {
-  user: User | null
-  token: string | null
-  isAuthenticated: boolean
-  hydrated: boolean
-}
-
-export interface TradingState {
-  selectedAsset: Asset | null
-  selectedAccountType: AccountType
-  currentPrice: PriceData | null
-  priceHistory: PriceData[]
-  isChartReady: boolean
-  lastUpdate: number
-}
-
-export interface BalanceState {
-  realBalance: number
-  demoBalance: number
-  loading: boolean
-  lastUpdate: number
-}
-
-export interface OrderState {
-  activeOrders: BinaryOrder[]
-  completedOrders: BinaryOrder[]
-  loading: boolean
-  lastUpdate: number
-}
-
-// Form types
-export interface LoginFormData {
-  email: string
-  password: string
-}
-
-export interface RegisterFormData {
-  email: string
-  password: string
-  confirmPassword: string
-  referralCode?: string
-}
-
-export interface OrderFormData {
-  accountType: AccountType
-  asset_id: string
-  direction: OrderDirection
-  amount: number
-  duration: number
-}
-
-export interface BalanceFormData {
-  accountType: AccountType
-  type: 'deposit' | 'withdrawal'
-  amount: number
-  description?: string
-}
-
-export interface UserProfileInfo {
-  completion: number
-  personal: {
-    fullName: string | null
-    email: string
-    phoneNumber: string | null
-    dateOfBirth: string | null
-    gender: 'male' | 'female' | 'other' | null
-    nationality: string | null
-  }
-  address: {
-    street?: string
-    city?: string
-    province?: string
-    postalCode?: string
-    country?: string
-  } | null
-  identity: {
-    type?: 'ktp' | 'passport' | 'sim'
-    number?: string
-    isVerified?: boolean
-    verifiedAt?: string
-  } | null
-  bankAccount: {
-    bankName?: string
-    accountNumber?: string
-    accountHolderName?: string
-    isVerified?: boolean
-    verifiedAt?: string
-  } | null
-  avatar: {
-    url?: string
-    uploadedAt?: string
-  } | null
-  settings: {
-    emailNotifications: boolean
-    smsNotifications: boolean
-    tradingAlerts: boolean
-    twoFactorEnabled: boolean
-    language: string
-    timezone: string
-  }
-  verification: {
-    emailVerified: boolean
-    phoneVerified: boolean
-    identityVerified: boolean
-    bankVerified: boolean
-    verificationLevel: 'unverified' | 'basic' | 'intermediate' | 'advanced'
-  }
-}
-
-
-export interface UpdateProfileRequest {
-  // Personal Information
-  fullName?: string
-  phoneNumber?: string
-  dateOfBirth?: string
-  gender?: 'male' | 'female' | 'other'
-  nationality?: string
+export function isDurationAllowed(duration: number, allowedDurations?: number[]): boolean {
+  if (!allowedDurations || allowedDurations.length === 0) return true
   
-  // Address Information
-  address?: {
-    street?: string
-    city?: string
-    province?: string
-    postalCode?: string
-    country?: string
-  }
-  
-  // Identity Document
-  identityDocument?: {
-    type?: 'ktp' | 'passport' | 'sim'
-    number?: string
-    issuedDate?: string
-    expiryDate?: string
-  }
-  
-  // Bank Account
-  bankAccount?: {
-    bankName?: string
-    accountNumber?: string
-    accountHolderName?: string
-  }
-  
-  // Settings
-  settings?: {
-    emailNotifications?: boolean
-    smsNotifications?: boolean
-    tradingAlerts?: boolean
-    twoFactorEnabled?: boolean
-    language?: string
-    timezone?: string
+  const tolerance = 0.0001
+  return allowedDurations.some(allowed => Math.abs(allowed - duration) < tolerance)
+}
+
+export function getDurationInSeconds(durationMinutes: number): number {
+  return Math.round(durationMinutes * 60)
+}
+
+export function getDurationDisplayFromSeconds(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`
+  const minutes = Math.floor(seconds / 60)
+  return `${minutes}m`
+}
+
+export function getDurationLabel(durationMinutes: number): string {
+  if (durationMinutes < 1) {
+    const seconds = Math.round(durationMinutes * 60)
+    return `${seconds} second${seconds > 1 ? 's' : ''}`
+  } else if (durationMinutes < 60) {
+    return `${durationMinutes} minute${durationMinutes > 1 ? 's' : ''}`
+  } else {
+    const hours = Math.floor(durationMinutes / 60)
+    const mins = durationMinutes % 60
+    if (mins > 0) {
+      return `${hours} hour${hours > 1 ? 's' : ''} ${mins} minute${mins > 1 ? 's' : ''}`
+    }
+    return `${hours} hour${hours > 1 ? 's' : ''}`
   }
 }
 
+// ===================================
+// STATUS CONFIGURATION
+// ===================================
 
-export interface ChangePasswordRequest {
-  currentPassword: string
-  newPassword: string
-  confirmPassword: string
-}
-
-export interface UploadAvatarRequest {
-  url: string
-}
-
-export interface VerifyPhoneRequest {
-  phoneNumber: string
-  verificationCode: string
-}
-
-export function calculateProfileCompletion(profile?: UserProfileInfo): number {
-  if (!profile) return 10 // Base: email registered
-
-  let completion = 10 // Base
-
-  // Personal info (30%)
-  if (profile.personal?.fullName) completion += 10
-  if (profile.personal?.phoneNumber) completion += 10
-  if (profile.personal?.dateOfBirth) completion += 5
-  if (profile.personal?.gender) completion += 5
-
-  // Address (20%)
-  if (profile.address?.street) completion += 5
-  if (profile.address?.city) completion += 5
-  if (profile.address?.province) completion += 5
-  if (profile.address?.postalCode) completion += 5
-
-  // Identity (20%)
-  if (profile.identity?.number) completion += 10
-  if (profile.identity?.isVerified) completion += 10
-
-  // Bank Account (20%)
-  if (profile.bankAccount?.accountNumber) completion += 10
-  if (profile.bankAccount?.isVerified) completion += 10
-
-  // Avatar (10%)
-  if (profile.avatar?.url) completion += 10
-
-  return Math.min(100, completion)
-}
+export const STATUS_CONFIG = {
+  standard: {
+    label: 'Standard',
+    minDeposit: 0,
+    maxDeposit: 199999,
+    profitBonus: 0,
+    color: 'gray',
+    icon: 'User'
+  },
+  gold: {
+    label: 'Gold',
+    minDeposit: 200000,
+    maxDeposit: 1599999,
+    profitBonus: 5,
+    color: 'yellow',
+    icon: 'Award'
+  },
+  vip: {
+    label: 'VIP',
+    minDeposit: 1600000,
+    maxDeposit: Infinity,
+    profitBonus: 10,
+    color: 'purple',
+    icon: 'Crown'
+  }
+} as const
 
 // ===================================
 // VALIDATION HELPERS
 // ===================================
 
 export function validatePhoneNumber(phone: string): boolean {
-  // Indonesian phone number format
   const phoneRegex = /^(\+62|62|0)[0-9]{9,12}$/
   return phoneRegex.test(phone)
 }
@@ -668,7 +571,6 @@ export function validatePassword(password: string): { valid: boolean; errors: st
 }
 
 export function formatPhoneNumber(phone: string): string {
-  // Format Indonesian phone number
   let cleaned = phone.replace(/\D/g, '')
   
   if (cleaned.startsWith('62')) {
@@ -681,8 +583,34 @@ export function formatPhoneNumber(phone: string): string {
 }
 
 // ===================================
-// PROFILE DATA MASKING
+// PROFILE HELPERS
 // ===================================
+
+export function calculateProfileCompletion(profile?: UserProfileInfo): number {
+  if (!profile) return 10
+
+  let completion = 10
+
+  if (profile.personal?.fullName) completion += 10
+  if (profile.personal?.phoneNumber) completion += 10
+  if (profile.personal?.dateOfBirth) completion += 5
+  if (profile.personal?.gender) completion += 5
+
+  if (profile.address?.street) completion += 5
+  if (profile.address?.city) completion += 5
+  if (profile.address?.province) completion += 5
+  if (profile.address?.postalCode) completion += 5
+
+  if (profile.identity?.number) completion += 10
+  if (profile.identity?.isVerified) completion += 10
+
+  if (profile.bankAccount?.accountNumber) completion += 10
+  if (profile.bankAccount?.isVerified) completion += 10
+
+  if (profile.avatar?.url) completion += 10
+
+  return Math.min(100, completion)
+}
 
 export function maskIdentityNumber(number?: string): string {
   if (!number) return '****'
@@ -711,43 +639,190 @@ export function maskPhoneNumber(phone?: string): string {
   return masked + visible
 }
 
-// Constants
-export const ORDER_STATUSES: OrderStatus[] = ['PENDING', 'ACTIVE', 'WON', 'LOST', 'EXPIRED', 'CANCELLED']
-export const ORDER_DIRECTIONS: OrderDirection[] = ['CALL', 'PUT']
-export const ACCOUNT_TYPES: AccountType[] = ['real', 'demo']
-export const USER_STATUSES: UserStatus[] = ['standard', 'gold', 'vip']
-export const DURATIONS = [1, 2, 3, 4, 5, 10, 15, 30, 45, 60] as const
-export const QUICK_AMOUNTS = [10000, 25000, 50000, 100000, 250000, 500000, 1000000] as const
-export const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
+// ===================================
+// REQUEST TYPES
+// ===================================
 
-export type Duration = typeof DURATIONS[number]
-export type QuickAmount = typeof QUICK_AMOUNTS[number]
-export type Timeframe = typeof TIMEFRAMES[number]
+export interface CreateOrderRequest {
+  accountType: AccountType
+  asset_id: string
+  direction: OrderDirection
+  amount: number
+  duration: number
+}
 
-// Status configuration
-export const STATUS_CONFIG = {
-  standard: {
-    label: 'Standard',
-    minDeposit: 0,
-    maxDeposit: 199999,
-    profitBonus: 0,
-    color: 'gray',
-    icon: 'User'
-  },
-  gold: {
-    label: 'Gold',
-    minDeposit: 200000,
-    maxDeposit: 1599999,
-    profitBonus: 5,
-    color: 'yellow',
-    icon: 'Award'
-  },
-  vip: {
-    label: 'VIP',
-    minDeposit: 1600000,
-    maxDeposit: Infinity,
-    profitBonus: 10,
-    color: 'purple',
-    icon: 'Crown'
-  }
-} as const
+export interface CreateBalanceEntryRequest {
+  accountType: AccountType
+  type: 'deposit' | 'withdrawal'
+  amount: number
+  description?: string
+}
+
+export interface UpdateUserRequest {
+  email?: string
+  password?: string
+  role?: User['role']
+  isActive?: boolean
+}
+
+export interface FilterOptions {
+  status?: OrderStatus | 'all'
+  accountType?: AccountType | 'all'
+  startDate?: string
+  endDate?: string
+  page?: number
+  limit?: number
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+}
+
+// ===================================
+// RESPONSE WRAPPERS
+// ===================================
+
+export interface PaginatedResponse<T> {
+  data: T[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+
+export interface OrdersResponse extends PaginatedResponse<BinaryOrder> {}
+export interface BalanceHistoryResponse extends PaginatedResponse<Balance> {}
+export interface AssetsResponse {
+  assets: Asset[]
+  total: number
+}
+
+// ===================================
+// ERROR TYPES
+// ===================================
+
+export interface ApiError {
+  error: string
+  message: string
+  statusCode: number
+  details?: any
+}
+
+// ===================================
+// WEBSOCKET TYPES
+// ===================================
+
+export interface WSMessage {
+  type: 'price_update' | 'order_update' | 'balance_update' | 'notification'
+  data: any
+  timestamp: number
+}
+
+export interface WSPriceUpdate {
+  asset_id: string
+  price: number
+  change: number
+  timestamp: number
+}
+
+export interface WSOrderUpdate {
+  order_id: string
+  status: OrderStatus
+  exit_price?: number
+  profit?: number
+  timestamp: number
+}
+
+export interface WSBalanceUpdate {
+  accountType: AccountType
+  balance: number
+  change: number
+  timestamp: number
+}
+
+// ===================================
+// CHART DATA TYPES
+// ===================================
+
+export interface CandlestickData {
+  time: number
+  open: number
+  high: number
+  low: number
+  close: number
+  volume?: number
+}
+
+export interface LineData {
+  time: number
+  value: number
+}
+
+export interface HistogramData {
+  time: number
+  value: number
+  color?: string
+}
+
+// ===================================
+// STATE TYPES
+// ===================================
+
+export interface AuthState {
+  user: User | null
+  token: string | null
+  isAuthenticated: boolean
+  hydrated: boolean
+}
+
+export interface TradingState {
+  selectedAsset: Asset | null
+  selectedAccountType: AccountType
+  currentPrice: PriceData | null
+  priceHistory: PriceData[]
+  isChartReady: boolean
+  lastUpdate: number
+}
+
+export interface BalanceState {
+  realBalance: number
+  demoBalance: number
+  loading: boolean
+  lastUpdate: number
+}
+
+export interface OrderState {
+  activeOrders: BinaryOrder[]
+  completedOrders: BinaryOrder[]
+  loading: boolean
+  lastUpdate: number
+}
+
+// ===================================
+// FORM TYPES
+// ===================================
+
+export interface LoginFormData {
+  email: string
+  password: string
+}
+
+export interface RegisterFormData {
+  email: string
+  password: string
+  confirmPassword: string
+  referralCode?: string
+}
+
+export interface OrderFormData {
+  accountType: AccountType
+  asset_id: string
+  direction: OrderDirection
+  amount: number
+  duration: number
+}
+
+export interface BalanceFormData {
+  accountType: AccountType
+  type: 'deposit' | 'withdrawal'
+  amount: number
+  description?: string
+}
