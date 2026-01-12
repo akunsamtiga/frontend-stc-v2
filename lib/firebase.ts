@@ -1,4 +1,4 @@
-// lib/firebase.ts 
+// lib/firebase.ts
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
 import { getDatabase, Database, ref, onValue, off, query, limitToLast, get } from 'firebase/database'
 
@@ -205,7 +205,7 @@ class IndexedDBCache {
 
       transaction.oncomplete = () => {
         if (deleteCount > 0) {
-          console.log(`🗑️ Cleaned up ${deleteCount} expired cache entries`)
+          console.log(`Cleaned up ${deleteCount} expired cache entries`)
         }
         resolve()
       }
@@ -286,7 +286,7 @@ class LRUCache {
     
     if (oldestKey) {
       this.cache.delete(oldestKey)
-      console.log(`♻️ Evicted LRU cache entry: ${oldestKey}`)
+      console.log(`Evicted LRU cache entry: ${oldestKey}`)
     }
   }
 
@@ -312,7 +312,7 @@ export async function fetchHistoricalData(
   try {
     const config = TIMEFRAME_CONFIG[timeframe]
     if (!config) {
-      console.error(`❌ Invalid timeframe: ${timeframe}`)
+      console.error(`Invalid timeframe: ${timeframe}`)
       return []
     }
 
@@ -321,18 +321,18 @@ export async function fetchHistoricalData(
 
     const memCached = memoryCache.get(cacheKey)
     if (memCached) {
-      console.log(`✅ Memory cache hit for ${timeframe}`)
+      console.log(`Memory cache hit for ${timeframe}`)
       return memCached
     }
 
     const idbCached = await idbCache.get(cacheKey)
     if (idbCached) {
-      console.log(`✅ IndexedDB cache hit for ${timeframe}`)
+      console.log(`IndexedDB cache hit for ${timeframe}`)
       memoryCache.set(cacheKey, idbCached, config.cacheTTL)
       return idbCached
     }
 
-    console.log(`🔥 Fetching ${timeframe} data from Firebase...`)
+    console.log(`Fetching ${timeframe} data from Firebase...`)
     const ohlcPath = getOHLCPath(basePath, timeframe)
     const ohlcRef = ref(database, ohlcPath)
     const limitedQuery = query(ohlcRef, limitToLast(config.barsToFetch))
@@ -340,7 +340,7 @@ export async function fetchHistoricalData(
     const snapshot = await get(limitedQuery)
     
     if (!snapshot.exists()) {
-      console.warn(`⚠️ No data at: ${ohlcPath}`)
+      console.warn(`No data at: ${ohlcPath}`)
       return []
     }
 
@@ -354,11 +354,11 @@ export async function fetchHistoricalData(
     memoryCache.set(cacheKey, result, config.cacheTTL)
     await idbCache.set(cacheKey, result, config.cacheTTL)
     
-    console.log(`✅ Fetched ${result.length} ${timeframe} bars`)
+    console.log(`Fetched ${result.length} ${timeframe} bars`)
     return result
 
   } catch (error: any) {
-    console.error('❌ Fetch error:', error.message)
+    console.error('Fetch error:', error.message)
     return []
   }
 }
@@ -412,7 +412,7 @@ export function subscribeToOHLCUpdates(
 
   const config = TIMEFRAME_CONFIG[timeframe]
   if (!config) {
-    console.error(`❌ Invalid timeframe: ${timeframe}`)
+    console.error(`Invalid timeframe: ${timeframe}`)
     return () => {}
   }
 
@@ -443,7 +443,7 @@ export function subscribeToOHLCUpdates(
       memoryCache.delete(cacheKey)
       
       if (timeframe === '1s') {
-        console.log(`⚡ New 1s bar: ${new Date(barTimestamp * 1000).toISOString()}`)
+        console.log(`New 1s bar: ${new Date(barTimestamp * 1000).toISOString()}`)
       }
     }
     
@@ -473,13 +473,13 @@ export function subscribeToOHLCUpdates(
     callback(barData)
 
   }, (error) => {
-    console.error(`❌ OHLC subscription error (${timeframe}):`, error)
+    console.error(`OHLC subscription error (${timeframe}):`, error)
   })
 
-  console.log(`📡 Subscribed to ${timeframe} OHLC updates at ${ohlcPath}`)
+  console.log(`Subscribed to ${timeframe} OHLC updates at ${ohlcPath}`)
 
   return () => {
-    console.log(`📕 Unsubscribed from ${timeframe} OHLC updates`)
+    console.log(`Unsubscribed from ${timeframe} OHLC updates`)
     off(ohlcRef)
   }
 }
@@ -514,13 +514,13 @@ export function subscribeToPriceUpdates(
     callback(data)
     
   }, (error) => {
-    console.error('❌ Price subscription error:', error)
+    console.error('Price subscription error:', error)
   })
 
-  console.log(`📡 Subscribed to price updates at ${pricePath}`)
+  console.log(`Subscribed to price updates at ${pricePath}`)
 
   return () => {
-    console.log(`📕 Unsubscribed from price updates`)
+    console.log(`Unsubscribed from price updates`)
     off(priceRef)
   }
 }
@@ -529,20 +529,20 @@ export async function prefetchDefaultAsset(assetPath: string): Promise<void> {
   const basePath = cleanAssetPath(assetPath)
   const timeframes: Timeframe[] = ['1s', '1m', '5m']
   
-  console.log(`📦 Prefetching data for ${basePath}...`)
+  console.log(`Prefetching data for ${basePath}...`)
   
   await Promise.allSettled(
     timeframes.map(tf => fetchHistoricalData(basePath, tf))
   )
   
-  console.log(`✅ Prefetch complete for ${basePath}`)
+  console.log(`Prefetch complete for ${basePath}`)
 }
 
 export async function clearDataCache(pattern?: string): Promise<void> {
   if (!pattern) {
     memoryCache.clear()
     await idbCache.clear()
-    console.log('🗑️ All cache cleared')
+    console.log('All cache cleared')
     return
   }
   
@@ -553,7 +553,7 @@ export async function clearDataCache(pattern?: string): Promise<void> {
     }
   })
   
-  console.log(`🗑️ Cache cleared for pattern: ${pattern}`)
+  console.log(`Cache cleared for pattern: ${pattern}`)
 }
 
 export function getCacheStats(): any {
@@ -582,5 +582,5 @@ if (typeof window !== 'undefined') {
     prefetchDefaultAsset
   }
   
-  console.log('🔧 Firebase debug utilities available at window.firebaseDebug')
+  console.log('Firebase debug utilities available at window.firebaseDebug')
 }
