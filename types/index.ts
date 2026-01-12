@@ -1,4 +1,5 @@
-// types/index.ts - COMPLETE TYPE DEFINITIONS WITH 1 SECOND SUPPORT
+// types/index.ts
+
 export interface User {
   id: string
   email: string
@@ -67,7 +68,7 @@ export interface Asset {
   id: string
   name: string
   symbol: string
-  category?: 'normal' | 'crypto'
+  category: 'normal' | 'crypto'
   profitRate: number
   isActive: boolean
   dataSource: 'realtime_db' | 'api' | 'mock' | 'cryptocompare'
@@ -95,6 +96,7 @@ export interface Asset {
   }
   createdAt: string
   updatedAt?: string
+  createdBy?: string
 }
 
 export interface BinaryOrder {
@@ -113,9 +115,9 @@ export interface BinaryOrder {
   status: 'PENDING' | 'ACTIVE' | 'WON' | 'LOST' | 'EXPIRED' | 'CANCELLED'
   profit: number | null
   profitRate: number
-  baseProfitRate: number
-  statusBonus: number
-  userStatus: 'standard' | 'gold' | 'vip'
+  baseProfitRate?: number
+  statusBonus?: number
+  userStatus?: string
   createdAt: string
   updatedAt?: string
   durationDisplay?: string
@@ -413,12 +415,8 @@ export interface TradingSignal {
   expires_at: string
 }
 
-// ===================================
-// CONSTANTS WITH 1 SECOND SUPPORT
-// ===================================
-
 export const DURATIONS = [
-  0.0167,  // 1 second
+  0.0167,
   1, 2, 3, 4, 5, 
   10, 15, 30, 45, 60
 ] as const
@@ -438,11 +436,8 @@ export const DURATION_DISPLAY_MAP: Record<number, string> = {
 }
 
 export const QUICK_AMOUNTS = [10000, 25000, 50000, 100000, 250000, 500000, 1000000] as const
-export const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
 
-// ===================================
-// UTILITY TYPES
-// ===================================
+export const TIMEFRAMES = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
 
 export type Duration = typeof DURATIONS[number]
 export type QuickAmount = typeof QUICK_AMOUNTS[number]
@@ -453,10 +448,7 @@ export type OrderStatus = BinaryOrder['status']
 export type OrderDirection = BinaryOrder['direction']
 export type BalanceType = Balance['type']
 export type AssetDataSource = Asset['dataSource']
-
-// ===================================
-// DURATION HELPER FUNCTIONS
-// ===================================
+export type AssetCategory = Asset['category']
 
 export function formatDurationDisplay(durationMinutes: number): string {
   return DURATION_DISPLAY_MAP[durationMinutes] || `${durationMinutes}m`
@@ -500,9 +492,32 @@ export function getDurationLabel(durationMinutes: number): string {
   }
 }
 
-// ===================================
-// STATUS CONFIGURATION
-// ===================================
+export function isCryptoAsset(asset: Asset): boolean {
+  return asset.category === 'crypto'
+}
+
+export function isNormalAsset(asset: Asset): boolean {
+  return asset.category === 'normal'
+}
+
+export function getAssetCategoryLabel(category: AssetCategory): string {
+  return category === 'crypto' ? 'Cryptocurrency' : 'Normal Asset'
+}
+
+export function getCryptoPairDisplay(asset: Asset): string | null {
+  if (!isCryptoAsset(asset) || !asset.cryptoConfig) return null
+  
+  const { baseCurrency, quoteCurrency } = asset.cryptoConfig
+  return `${baseCurrency}/${quoteCurrency}`
+}
+
+export function getAssetDisplayName(asset: Asset): string {
+  if (isCryptoAsset(asset)) {
+    const pair = getCryptoPairDisplay(asset)
+    return pair || asset.name
+  }
+  return asset.name
+}
 
 export const STATUS_CONFIG = {
   standard: {
@@ -530,10 +545,6 @@ export const STATUS_CONFIG = {
     icon: 'Crown'
   }
 } as const
-
-// ===================================
-// VALIDATION HELPERS
-// ===================================
 
 export function validatePhoneNumber(phone: string): boolean {
   const phoneRegex = /^(\+62|62|0)[0-9]{9,12}$/
@@ -581,10 +592,6 @@ export function formatPhoneNumber(phone: string): string {
   
   return '+62' + cleaned
 }
-
-// ===================================
-// PROFILE HELPERS
-// ===================================
 
 export function calculateProfileCompletion(profile?: UserProfileInfo): number {
   if (!profile) return 10
@@ -639,10 +646,6 @@ export function maskPhoneNumber(phone?: string): string {
   return masked + visible
 }
 
-// ===================================
-// REQUEST TYPES
-// ===================================
-
 export interface CreateOrderRequest {
   accountType: AccountType
   asset_id: string
@@ -676,10 +679,6 @@ export interface FilterOptions {
   sortOrder?: 'asc' | 'desc'
 }
 
-// ===================================
-// RESPONSE WRAPPERS
-// ===================================
-
 export interface PaginatedResponse<T> {
   data: T[]
   total: number
@@ -695,20 +694,12 @@ export interface AssetsResponse {
   total: number
 }
 
-// ===================================
-// ERROR TYPES
-// ===================================
-
 export interface ApiError {
   error: string
   message: string
   statusCode: number
   details?: any
 }
-
-// ===================================
-// WEBSOCKET TYPES
-// ===================================
 
 export interface WSMessage {
   type: 'price_update' | 'order_update' | 'balance_update' | 'notification'
@@ -738,10 +729,6 @@ export interface WSBalanceUpdate {
   timestamp: number
 }
 
-// ===================================
-// CHART DATA TYPES
-// ===================================
-
 export interface CandlestickData {
   time: number
   open: number
@@ -761,10 +748,6 @@ export interface HistogramData {
   value: number
   color?: string
 }
-
-// ===================================
-// STATE TYPES
-// ===================================
 
 export interface AuthState {
   user: User | null
@@ -795,10 +778,6 @@ export interface OrderState {
   loading: boolean
   lastUpdate: number
 }
-
-// ===================================
-// FORM TYPES
-// ===================================
 
 export interface LoginFormData {
   email: string

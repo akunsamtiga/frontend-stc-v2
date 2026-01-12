@@ -1,43 +1,84 @@
-// lib/utils.ts - COMPLETE UTILITY LIBRARY WITH 1 SECOND SUPPORT
+// lib/utils.ts
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { format, formatDistanceToNow, isToday, isYesterday, differenceInSeconds } from 'date-fns'
-
-// ===================================
-// CORE UTILITIES
-// ===================================
+import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// ===================================
-// DURATION FORMATTING WITH 1 SECOND SUPPORT
-// ===================================
+export class TimezoneUtil {
+  static readonly TIMEZONE = 'Asia/Jakarta'
+  static readonly OFFSET_HOURS = 7
 
-/**
- * ✅ Format duration with 1 second support
- * 0.0167 minutes = 1 second
- */
+  static getCurrentTimestamp(): number {
+    return Math.floor(Date.now() / 1000)
+  }
+
+  static formatDateTime(date: Date = new Date()): string {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  }
+
+  static toISOString(date: Date = new Date()): string {
+    return date.toISOString()
+  }
+
+  static fromTimestamp(timestamp: number): Date {
+    return new Date(timestamp * 1000)
+  }
+
+  static toTimestamp(date: Date): number {
+    return Math.floor(date.getTime() / 1000)
+  }
+
+  static getDateTimeInfo(date: Date = new Date()) {
+    return {
+      datetime: this.formatDateTime(date),
+      datetime_iso: this.toISOString(date),
+      timestamp: this.toTimestamp(date),
+      timezone: this.TIMEZONE
+    }
+  }
+
+  static formatWIBTime(timestamp: number): string {
+    return new Date(timestamp * 1000).toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+      timeZone: this.TIMEZONE
+    })
+  }
+
+  static formatWIBDate(timestamp: number): string {
+    return new Date(timestamp * 1000).toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      timeZone: this.TIMEZONE
+    })
+  }
+}
+
 export function formatDuration(durationMinutes: number): string {
   if (durationMinutes < 1) {
-    // Sub-minute durations (1 second = 0.0167 minutes)
     const seconds = Math.round(durationMinutes * 60)
     return `${seconds}s`
   } else if (durationMinutes < 60) {
-    // Minute durations
     return `${durationMinutes}m`
   } else {
-    // Hour durations
     const hours = Math.floor(durationMinutes / 60)
     const mins = durationMinutes % 60
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`
   }
 }
 
-/**
- * ✅ Get duration display name (short format)
- */
 export function getDurationDisplay(minutes: number): string {
   const DISPLAY_MAP: Record<number, string> = {
     0.0167: '1s',
@@ -56,9 +97,6 @@ export function getDurationDisplay(minutes: number): string {
   return DISPLAY_MAP[minutes] || formatDuration(minutes)
 }
 
-/**
- * ✅ Parse duration from display string to minutes
- */
 export function parseDuration(display: string): number {
   const match = display.match(/^(\d+)(s|m|h)$/)
   if (!match) return 0
@@ -68,7 +106,7 @@ export function parseDuration(display: string): number {
   
   switch (unit) {
     case 's':
-      return numValue / 60 // Convert seconds to minutes
+      return numValue / 60
     case 'm':
       return numValue
     case 'h':
@@ -78,9 +116,6 @@ export function parseDuration(display: string): number {
   }
 }
 
-/**
- * ✅ Get duration label (human readable)
- */
 export function getDurationLabel(durationMinutes: number): string {
   if (durationMinutes < 1) {
     const seconds = Math.round(durationMinutes * 60)
@@ -97,13 +132,6 @@ export function getDurationLabel(durationMinutes: number): string {
   }
 }
 
-// ===================================
-// TIME CALCULATIONS WITH SUB-SECOND PRECISION
-// ===================================
-
-/**
- * ✅ Calculate time left with precise seconds
- */
 export function calculateTimeLeft(exitTime: string | Date): string {
   const now = new Date()
   const exit = new Date(exitTime)
@@ -124,13 +152,9 @@ export function calculateTimeLeft(exitTime: string | Date): string {
     return `${minutes}m ${seconds}s`
   }
   
-  // ✅ For very short durations (1s orders), show precise countdown
   return `${seconds}s`
 }
 
-/**
- * ✅ Calculate time left in seconds only
- */
 export function calculateTimeLeftSeconds(exitTime: string | Date): number {
   const now = new Date()
   const exit = new Date(exitTime)
@@ -139,9 +163,6 @@ export function calculateTimeLeftSeconds(exitTime: string | Date): number {
   return Math.max(0, Math.floor(diff / 1000))
 }
 
-/**
- * ✅ Format time left for short durations
- */
 export function calculateTimeLeftShort(exitTime: string | Date): string {
   const seconds = calculateTimeLeftSeconds(exitTime)
   
@@ -151,9 +172,6 @@ export function calculateTimeLeftShort(exitTime: string | Date): string {
   return `${Math.floor(seconds / 3600)}h`
 }
 
-/**
- * Get duration between two dates
- */
 export function getDuration(startTime: string | Date, endTime: string | Date): string {
   const start = new Date(startTime)
   const end = new Date(endTime)
@@ -173,10 +191,6 @@ export function getDuration(startTime: string | Date, endTime: string | Date): s
   
   return `${seconds}s`
 }
-
-// ===================================
-// CURRENCY & NUMBER FORMATTING
-// ===================================
 
 const currencyCache = new Map<number, string>()
 const MAX_CACHE_SIZE = 1000
@@ -241,10 +255,6 @@ export function formatCompactNumber(value: number): string {
   return value.toString()
 }
 
-// ===================================
-// DATE & TIME FORMATTING
-// ===================================
-
 const dateCache = new Map<string, string>()
 
 export function formatDate(date: string | Date, formatStr = 'MMM dd, yyyy HH:mm:ss'): string {
@@ -288,32 +298,6 @@ export function formatRelativeTime(date: string | Date): string {
   
   return formatDistanceToNow(dateObj, { addSuffix: true })
 }
-
-/**
- * Format waktu WIB untuk chart
- */
-export function formatWIBTime(timestamp: number): string {
-  return new Date(timestamp * 1000).toLocaleTimeString('id-ID', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-    timeZone: 'Asia/Jakarta'
-  })
-}
-
-export function formatWIBDate(timestamp: number): string {
-  return new Date(timestamp * 1000).toLocaleDateString('id-ID', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    timeZone: 'Asia/Jakarta'
-  })
-}
-
-// ===================================
-// PERFORMANCE UTILITIES
-// ===================================
 
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
@@ -379,10 +363,6 @@ export function rafThrottle<T extends (...args: any[]) => any>(
   }
 }
 
-// ===================================
-// STYLE HELPERS
-// ===================================
-
 export function getPriceChangeClass(change: number): string {
   if (change > 0) return 'text-green-400'
   if (change < 0) return 'text-red-400'
@@ -437,10 +417,6 @@ export function getAccountTypeBg(accountType: 'real' | 'demo'): string {
     : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
 }
 
-// ===================================
-// NUMBER UTILITIES
-// ===================================
-
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max)
 }
@@ -462,10 +438,6 @@ export function calculateProfit(amount: number, profitRate: number): number {
 export function calculatePayout(amount: number, profitRate: number): number {
   return amount + calculateProfit(amount, profitRate)
 }
-
-// ===================================
-// VALIDATION
-// ===================================
 
 export function isValidNumber(value: any): boolean {
   return typeof value === 'number' && !isNaN(value) && isFinite(value)
@@ -494,10 +466,6 @@ export function isValidAmount(amount: number, min: number = 0, max?: number): bo
   if (max !== undefined && amount > max) return false
   return true
 }
-
-// ===================================
-// ARRAY UTILITIES
-// ===================================
 
 export function chunk<T>(array: T[], size: number): T[][] {
   const chunks: T[][] = []
@@ -545,10 +513,6 @@ export function sortBy<T>(array: T[], key: keyof T, order: 'asc' | 'desc' = 'asc
   })
 }
 
-// ===================================
-// LOCAL STORAGE HELPERS
-// ===================================
-
 export function getLocalStorage<T>(key: string, defaultValue: T): T {
   if (typeof window === 'undefined') return defaultValue
   
@@ -591,10 +555,6 @@ export function clearLocalStorage(): void {
   }
 }
 
-// ===================================
-// URL UTILITIES
-// ===================================
-
 export function buildQueryString(params: Record<string, any>): string {
   const searchParams = new URLSearchParams()
   
@@ -618,10 +578,6 @@ export function parseQueryString(queryString: string): Record<string, string> {
   return result
 }
 
-// ===================================
-// AUDIO
-// ===================================
-
 export function playSound(soundPath: string, volume: number = 0.3): void {
   if (typeof window === 'undefined') return
   
@@ -633,10 +589,6 @@ export function playSound(soundPath: string, volume: number = 0.3): void {
     console.error('Failed to play sound:', error)
   }
 }
-
-// ===================================
-// CLIPBOARD
-// ===================================
 
 export async function copyToClipboard(text: string): Promise<boolean> {
   if (typeof window === 'undefined') return false
@@ -650,10 +602,6 @@ export async function copyToClipboard(text: string): Promise<boolean> {
   }
 }
 
-// ===================================
-// RANDOM UTILITIES
-// ===================================
-
 export function generateId(prefix: string = ''): string {
   return `${prefix}${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 }
@@ -666,22 +614,14 @@ export function randomFloat(min: number, max: number, decimals: number = 2): num
   return roundTo(Math.random() * (max - min) + min, decimals)
 }
 
-// ===================================
-// CONSTANTS WITH 1 SECOND SUPPORT
-// ===================================
-
 export const DURATIONS = [
-  0.0167,  // ✅ 1 second
+  0.0167,
   1, 2, 3, 4, 5, 
   10, 15, 30, 45, 60
 ] as const
 
 export const QUICK_AMOUNTS = [10000, 25000, 50000, 100000, 250000, 500000, 1000000] as const
-export const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
-
-// ===================================
-// CLEANUP
-// ===================================
+export const TIMEFRAMES = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
 
 export function clearAllCaches(): void {
   currencyCache.clear()
@@ -689,7 +629,6 @@ export function clearAllCaches(): void {
   console.log('🗑️ All utility caches cleared')
 }
 
-// Auto cleanup every 5 minutes
 if (typeof window !== 'undefined') {
   setInterval(() => {
     if (currencyCache.size > MAX_CACHE_SIZE * 0.8) {
@@ -701,7 +640,6 @@ if (typeof window !== 'undefined') {
   }, 300000)
 }
 
-// Export for debugging
 if (typeof window !== 'undefined') {
   (window as any).utils = {
     clearAllCaches,

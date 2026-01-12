@@ -10,7 +10,7 @@ import { api } from '@/lib/api'
 import { subscribeToPriceUpdates, prefetchDefaultAsset } from '@/lib/firebase'
 import { toast } from 'sonner'
 import { Asset, BinaryOrder, AccountType } from '@/types'
-import { formatCurrency, DURATIONS } from '@/lib/utils'
+import { formatCurrency, getDurationDisplay } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 
 import { 
@@ -144,7 +144,7 @@ class AggressivePollingManager {
   }
 }
 
-// ✅ NEW: Extended duration options with 1 second
+// ✅ UPDATED: Extended duration options with 1 second
 const EXTENDED_DURATIONS = [
   { value: 0.0167, label: '1 second', shortLabel: '⚡ 1s', isUltraFast: true },
   { value: 1, label: '1 minute', shortLabel: '1m' },
@@ -195,8 +195,9 @@ export default function TradingPage() {
 
   const currentBalance = selectedAccountType === 'real' ? realBalance : demoBalance
 
-  // ✅ NEW: Check if current duration is ultra-fast
+  // ✅ Check if current duration is ultra-fast
   const isUltraFastMode = duration === 0.0167
+  const durationDisplay = getDurationDisplay(duration)
 
   const detectOrderCompletion = useCallback((active: BinaryOrder[], completed: BinaryOrder[]) => {
     active.forEach((order: BinaryOrder) => {
@@ -418,7 +419,7 @@ export default function TradingPage() {
         duration,
       })
 
-      toast.success(`${direction} order placed successfully!`)
+      toast.success(`${direction} order placed successfully! (${durationDisplay})`)
       
       unstable_batchedUpdates(() => {
         if (selectedAccountType === 'real') {
@@ -435,7 +436,7 @@ export default function TradingPage() {
     } finally {
       setLoading(false)
     }
-  }, [selectedAsset, amount, selectedAccountType, realBalance, demoBalance, duration, loadData])
+  }, [selectedAsset, amount, selectedAccountType, realBalance, demoBalance, duration, durationDisplay, loadData])
 
   const potentialProfit = selectedAsset ? (amount * selectedAsset.profitRate) / 100 : 0
   const potentialPayout = amount + potentialProfit
@@ -444,7 +445,7 @@ export default function TradingPage() {
 
   return (
     <div className="h-screen flex flex-col bg-[#0a0e17] text-white overflow-hidden">
-      {/* Header - Desktop & Mobile */}
+      {/* Header */}
       <div className="h-14 lg:h-16 bg-[#1a1f2e] border-b border-gray-800/50 flex items-center justify-between px-2 flex-shrink-0">
         {/* Desktop Header */}
         <div className="hidden lg:flex items-center gap-4 w-full">
@@ -706,9 +707,9 @@ export default function TradingPage() {
         </div>
       </div>
 
-      {/* Main Content Area */}
+      {/* Main Content */}
       <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* Chart Area */}
+        {/* Chart */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           <div className="flex-1 bg-[#0a0e17] relative overflow-hidden">
             {selectedAsset ? (
@@ -729,7 +730,7 @@ export default function TradingPage() {
         {/* Desktop Trading Panel */}
         <div className="hidden lg:block w-64 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
           <div className="h-full flex flex-col p-4 space-y-4 overflow-hidden">
-            {/* Amount Selector */}
+            {/* Amount */}
             <div className="bg-[#1a1f2e] rounded-xl px-3 py-2">
               <div className="text-[10px] text-gray-500 text-center leading-none">Amount</div>
               <div className="flex items-center gap-2">
@@ -745,579 +746,568 @@ export default function TradingPage() {
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
                   className="flex-1 min-w-0 bg-transparent border-0 text-center text-base text-white focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-min="1000"
-step="1000"
-/>
-            <button
-              onClick={() => setAmount(prev => prev + 10000)}
-              className="hover:bg-[#232936] rounded-lg p-1.5 transition-colors flex-shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* ✅ UPDATED: Duration Selector with 1 second option */}
-        <div className={`bg-[#1a1f2e] rounded-xl px-3 py-0 ${isUltraFastMode ? 'ring-2 ring-yellow-500/30' : ''}`}>
-          <div className="text-[10px] text-gray-500 text-center leading-none pt-2 flex items-center justify-center gap-1">
-            Duration
-            {isUltraFastMode && <Zap className="w-3 h-3 text-yellow-400" />}
-          </div>
-          <select
-            value={duration}
-            onChange={(e) => setDuration(Number(e.target.value))}
-            className="w-full bg-transparent border-0 text-center text-base text-white focus:outline-none focus:ring-0 appearance-none cursor-pointer my-0"
-          >
-            {EXTENDED_DURATIONS.map((d) => (
-              <option key={d.value} value={d.value}>
-                {d.label}
-                {d.isUltraFast ? ' ⚡' : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* ✅ NEW: Ultra-Fast Mode Warning */}
-        {isUltraFastMode && (
-          <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-xl px-3 py-2 flex items-center gap-2">
-            <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-            <span className="text-xs text-yellow-400 font-medium">
-              ⚡ Ultra-Fast Mode
-            </span>
-          </div>
-        )}
-
-        {/* Payout Info */}
-        {selectedAsset && (
-          <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl px-3 py-3">
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <span className="text-gray-400">Pendapatan</span>
-                {isUltraFastMode && (
-                  <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-[10px] font-bold">
-                    ⚡ 1s
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-white">+{selectedAsset.profitRate}%</span>
-                <span className="font-bold text-green-400">{formatCurrency(potentialPayout)}</span>
+                  min="1000"
+                  step="1000"
+                />
+                <button
+                  onClick={() => setAmount(prev => prev + 10000)}
+                  className="hover:bg-[#232936] rounded-lg p-1.5 transition-colors flex-shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Buy/Sell Buttons */}
-        <div>
-          <div className="grid grid-cols-2 gap-3">
+            {/* Duration */}
+            <div className={`bg-[#1a1f2e] rounded-xl px-3 py-0 ${isUltraFastMode ? 'ring-2 ring-yellow-500/30' : ''}`}>
+              <div className="text-[10px] text-gray-500 text-center leading-none pt-2 flex items-center justify-center gap-1">
+                Duration
+                {isUltraFastMode && <Zap className="w-3 h-3 text-yellow-400" />}
+              </div>
+              <select
+                value={duration}
+                onChange={(e) => setDuration(Number(e.target.value))}
+                className="w-full bg-transparent border-0 text-center text-base text-white focus:outline-none focus:ring-0 appearance-none cursor-pointer my-0"
+              >
+                {EXTENDED_DURATIONS.map((d) => (
+                  <option key={d.value} value={d.value}>
+                    {d.label}
+                    {d.isUltraFast ? ' ⚡' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Ultra-Fast Mode Warning */}
+            {isUltraFastMode && (
+              <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-xl px-3 py-2 flex items-center gap-2">
+                <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                <span className="text-xs text-yellow-400 font-medium">
+                  ⚡ Ultra-Fast Mode
+                </span>
+              </div>
+            )}
+
+            {/* Payout Info */}
+            {selectedAsset && (
+              <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl px-3 py-3">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400">Pendapatan</span>
+                    {isUltraFastMode && (
+                      <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-[10px] font-bold">
+                        ⚡ 1s
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-white">+{selectedAsset.profitRate}%</span>
+                    <span className="font-bold text-green-400">{formatCurrency(potentialPayout)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Buy/Sell Buttons */}
+            <div>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => handlePlaceOrder('CALL')}
+                  disabled={loading || !selectedAsset}
+                  className="bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-green-500/20"
+                >
+                  <ArrowUp className="w-6 h-6" />
+                </button>
+
+                <button
+                  onClick={() => handlePlaceOrder('PUT')}
+                  disabled={loading || !selectedAsset}
+                  className="bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-red-500/20"
+                >
+                  <ArrowDown className="w-6 h-6" />
+                </button>
+              </div>
+
+              {loading && (
+                <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-2 mt-3">
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-400"></div>
+                  Processing...
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Trading Panel */}
+      <div className="lg:hidden bg-[#0f1419] border-t border-gray-800/50 p-4">
+        <div className="space-y-4">
+          {/* Amount & Duration */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Amount */}
+            <div className="relative">
+              <label className="text-xs text-gray-400 mb-2 block font-medium">Amount</label>
+              <div className="relative">
+                <div
+                  onClick={() => setShowAmountDropdown(!showAmountDropdown)}
+                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-3 text-center text-sm font-bold text-white hover:bg-[#232936] transition-colors flex items-center justify-between cursor-pointer"
+                >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setAmount(prev => Math.max(1000, prev - 10000))
+                    }}
+                    className="flex items-center justify-center hover:bg-[#2a3142] rounded p-1 transition-colors"
+                  >
+                    <Minus className="w-4 h-4 text-gray-300" />
+                  </button>
+                  
+                  <span className="flex-1">{formatCurrency(amount)}</span>
+                  
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setAmount(prev => prev + 10000)
+                    }}
+                    className="flex items-center justify-center hover:bg-[#2a3142] rounded p-1 transition-colors"
+                  >
+                    <Plus className="w-4 h-4 text-gray-300" />
+                  </button>
+                </div>
+              </div>
+
+              {showAmountDropdown && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setShowAmountDropdown(false)} 
+                  />
+                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden">
+                    {[10000, 25000, 50000, 75000, 100000, 250000, 500000, 1000000].map((preset) => (
+                      <button
+                        key={preset}
+                        onClick={() => {
+                          setAmount(preset)
+                          setShowAmountDropdown(false)
+                        }}
+                        className={`w-full px-4 py-2.5 text-left text-sm hover:bg-[#232936] transition-colors border-b border-gray-800/30 last:border-0 ${
+                          amount === preset ? 'bg-[#232936] text-blue-400' : 'text-gray-300'
+                        }`}
+                      >
+                        {formatCurrency(preset)}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Duration */}
+            <div className="relative">
+              <label className="text-xs text-gray-400 mb-2 block font-medium flex items-center gap-1">
+                Duration
+                {isUltraFastMode && <Zap className="w-3 h-3 text-yellow-400" />}
+              </label>
+              <select
+                value={duration}
+                onChange={(e) => setDuration(Number(e.target.value))}
+                className={`w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-3 text-center text-sm font-bold text-white focus:outline-none focus:border-blue-500/50 appearance-none cursor-pointer ${
+                  isUltraFastMode ? 'ring-2 ring-yellow-500/30' : ''
+                }`}
+              >
+                {EXTENDED_DURATIONS.map((d) => (
+                  <option key={d.value} value={d.value}>
+                    {d.shortLabel}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Ultra-Fast Mode Badge */}
+          {isUltraFastMode && (
+            <div className="flex justify-center">
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-full px-4 py-1.5">
+                <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                <span className="text-xs text-yellow-400 font-bold">
+                  ⚡ Ultra-Fast: 1 Second Trading
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Payout Info */}
+          {selectedAsset && (
+            <div className="flex justify-center py-2">
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-full px-5 py-2.5">
+                <span className="text-xs text-gray-400">Pendapatan</span>
+                <span className="text-xs font-semibold text-green-400">+{selectedAsset.profitRate}%</span>
+                <span className="text-sm font-bold text-green-400">
+                  {formatCurrency(potentialPayout)}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Buy/Sell Buttons */}
+          <div className="grid grid-cols-2 gap-4 pt-2">
             <button
               onClick={() => handlePlaceOrder('CALL')}
               disabled={loading || !selectedAsset}
-              className="bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-green-500/20"
+              className="bg-green-500 hover:bg-green-600 active:bg-green-700 disabled:opacity-50 py-4 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
             >
-              <ArrowUp className="w-6 h-6" />
+              <ArrowUp className="w-5 h-5" />
+              <span>BUY</span>
             </button>
-
             <button
               onClick={() => handlePlaceOrder('PUT')}
               disabled={loading || !selectedAsset}
-              className="bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-red-500/20"
+              className="bg-red-500 hover:bg-red-600 active:bg-red-700 disabled:opacity-50 py-4 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
             >
-              <ArrowDown className="w-6 h-6" />
+              <ArrowDown className="w-5 h-5" />
+              <span>SELL</span>
             </button>
           </div>
 
           {loading && (
-            <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-2 mt-3">
+            <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-2 pt-1">
               <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-400"></div>
-              Processing...
+              Processing order...
             </div>
           )}
         </div>
       </div>
-    </div>
-  </div>
 
-  {/* Mobile Trading Panel */}
-  <div className="lg:hidden bg-[#0f1419] border-t border-gray-800/50 p-4">
-    <div className="space-y-4">
-      {/* Amount & Duration */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Amount */}
-        <div className="relative">
-          <label className="text-xs text-gray-400 mb-2 block font-medium">Amount</label>
-          <div className="relative">
-            <div
-              onClick={() => setShowAmountDropdown(!showAmountDropdown)}
-              className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-3 text-center text-sm font-bold text-white hover:bg-[#232936] transition-colors flex items-center justify-between cursor-pointer"
-            >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setAmount(prev => Math.max(1000, prev - 10000))
-                }}
-                className="flex items-center justify-center hover:bg-[#2a3142] rounded p-1 transition-colors"
-              >
-                <Minus className="w-4 h-4 text-gray-300" />
+      {/* Modals & Sidebars */}
+      {showWalletModal && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/70 z-50 backdrop-blur-sm animate-fade-in" 
+            onClick={() => setShowWalletModal(false)} 
+          />
+          <div className="fixed bottom-0 left-0 right-0 bg-[#0f1419] rounded-t-3xl z-50 animate-slide-up border-t border-gray-800/50">
+            <div className="p-6">
+              <div className="w-12 h-1 bg-gray-700 rounded-full mx-auto mb-6"></div>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold">Wallet</h3>
+                <button 
+                  onClick={() => setShowWalletModal(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#1a1f2e] transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl p-4">
+                  <div className="text-xs text-gray-400 mb-1">REAL Balance</div>
+                  <div className="text-2xl font-bold text-green-400">{formatCurrency(realBalance)}</div>
+                </div>
+                <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-xl p-4">
+                  <div className="text-xs text-gray-400 mb-1">DEMO Balance</div>
+                  <div className="text-2xl font-bold text-blue-400">{formatCurrency(demoBalance)}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => {
+                    setShowWalletModal(false)
+                    setTimeout(() => router.push('/balance'), 300)
+                  }}
+                  className="bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded-xl p-6 transition-all group"
+                >
+                  <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-green-500/30 transition-colors">
+                    <ArrowDownToLine className="w-6 h-6 text-green-400" />
+                  </div>
+                  <div className="text-center">
+                    <div className="font-bold text-green-400 mb-1">Deposit</div>
+                    <div className="text-xs text-gray-400">Add funds</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowWalletModal(false)
+                    setTimeout(() => router.push('/balance'), 300)
+                  }}
+                  className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-xl p-6 transition-all group"
+                >
+                  <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-red-500/30 transition-colors">
+                    <ArrowUpFromLine className="w-6 h-6 text-red-400" />
+                  </div>
+                  <div className="text-center">
+                    <div className="font-bold text-red-400 mb-1">Withdraw</div>
+                    <div className="text-xs text-gray-400">Cash out</div>
+                  </div>
+                </button>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-gray-800/50">
+                <button
+                  onClick={() => {
+                    setShowWalletModal(false)
+                    setTimeout(() => router.push('/history'), 300)
+                  }}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <History className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm">Transaction History</span>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-gray-400 rotate-[-90deg]" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {showMobileMenu && (
+        <>
+          <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setShowMobileMenu(false)} />
+          <div className="fixed top-0 right-0 bottom-0 w-64 bg-[#0f1419] border-l border-gray-800/50 z-50 p-4 animate-slide-left">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-bold">Menu</h3>
+              <button onClick={() => setShowMobileMenu(false)}>
+                <X className="w-5 h-5" />
               </button>
-              
-              <span className="flex-1">{formatCurrency(amount)}</span>
-              
+            </div>
+            
+            <div className="space-y-2">
+              <div className="mb-4">
+                <label className="text-xs text-gray-400 mb-2 block">Select Asset</label>
+                <select
+                  value={selectedAsset?.id || ''}
+                  onChange={(e) => {
+                    const asset = assets.find(a => a.id === e.target.value)
+                    if (asset) {
+                      setSelectedAsset(asset)
+                      setShowMobileMenu(false)
+                    }
+                  }}
+                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                >
+                  {assets.map((asset) => (
+                    <option key={asset.id} value={asset.id}>
+                      {asset.symbol} - {asset.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setAmount(prev => prev + 10000)
-                }}
-                className="flex items-center justify-center hover:bg-[#2a3142] rounded p-1 transition-colors"
-              >
-                <Plus className="w-4 h-4 text-gray-300" />
-              </button>
-            </div>
-          </div>
-
-          {showAmountDropdown && (
-            <>
-              <div 
-                className="fixed inset-0 z-40" 
-                onClick={() => setShowAmountDropdown(false)} 
-              />
-              <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden">
-                {[10000, 25000, 50000, 75000, 100000, 250000, 500000, 1000000].map((preset) => (
-                  <button
-                    key={preset}
-                    onClick={() => {
-                      setAmount(preset)
-                      setShowAmountDropdown(false)
-                    }}
-                    className={`w-full px-4 py-2.5 text-left text-sm hover:bg-[#232936] transition-colors border-b border-gray-800/30 last:border-0 ${
-                      amount === preset ? 'bg-[#232936] text-blue-400' : 'text-gray-300'
-                    }`}
-                  >
-                    {formatCurrency(preset)}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* ✅ UPDATED: Duration with 1 second option */}
-        <div className="relative">
-          <label className="text-xs text-gray-400 mb-2 block font-medium flex items-center gap-1">
-            Duration
-            {isUltraFastMode && <Zap className="w-3 h-3 text-yellow-400" />}
-          </label>
-          <select
-            value={duration}
-            onChange={(e) => setDuration(Number(e.target.value))}
-            className={`w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-3 text-center text-sm font-bold text-white focus:outline-none focus:border-blue-500/50 appearance-none cursor-pointer ${
-              isUltraFastMode ? 'ring-2 ring-yellow-500/30' : ''
-            }`}
-          >
-            {EXTENDED_DURATIONS.map((d) => (
-              <option key={d.value} value={d.value}>
-                {d.shortLabel}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* ✅ NEW: Ultra-Fast Mode Badge */}
-      {isUltraFastMode && (
-        <div className="flex justify-center">
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-full px-4 py-1.5">
-            <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-            <span className="text-xs text-yellow-400 font-bold">
-              ⚡ Ultra-Fast: 1 Second Trading
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Payout Info */}
-      {selectedAsset && (
-        <div className="flex justify-center py-2">
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-full px-5 py-2.5">
-            <span className="text-xs text-gray-400">Pendapatan</span>
-            <span className="text-xs font-semibold text-green-400">+{selectedAsset.profitRate}%</span>
-            <span className="text-sm font-bold text-green-400">
-              {formatCurrency(potentialPayout)}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Buy/Sell Buttons */}
-      <div className="grid grid-cols-2 gap-4 pt-2">
-        <button
-          onClick={() => handlePlaceOrder('CALL')}
-          disabled={loading || !selectedAsset}
-          className="bg-green-500 hover:bg-green-600 active:bg-green-700 disabled:opacity-50 py-4 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
-        >
-          <ArrowUp className="w-5 h-5" />
-          <span>BUY</span>
-        </button>
-        <button
-          onClick={() => handlePlaceOrder('PUT')}
-          disabled={loading || !selectedAsset}
-          className="bg-red-500 hover:bg-red-600 active:bg-red-700 disabled:opacity-50 py-4 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
-        >
-          <ArrowDown className="w-5 h-5" />
-          <span>SELL</span>
-        </button>
-      </div>
-
-      {loading && (
-        <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-2 pt-1">
-          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-400"></div>
-          Processing order...
-        </div>
-      )}
-    </div>
-  </div>
-
-  {/* Modals & Sidebars */}
-  {showWalletModal && (
-    <>
-      <div 
-        className="fixed inset-0 bg-black/70 z-50 backdrop-blur-sm animate-fade-in" 
-        onClick={() => setShowWalletModal(false)} 
-      />
-      <div className="fixed bottom-0 left-0 right-0 bg-[#0f1419] rounded-t-3xl z-50 animate-slide-up border-t border-gray-800/50">
-        <div className="p-6">
-          <div className="w-12 h-1 bg-gray-700 rounded-full mx-auto mb-6"></div>
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold">Wallet</h3>
-            <button 
-              onClick={() => setShowWalletModal(false)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#1a1f2e] transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl p-4">
-              <div className="text-xs text-gray-400 mb-1">REAL Balance</div>
-              <div className="text-2xl font-bold text-green-400">{formatCurrency(realBalance)}</div>
-            </div>
-            <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-xl p-4">
-              <div className="text-xs text-gray-400 mb-1">DEMO Balance</div>
-              <div className="text-2xl font-bold text-blue-400">{formatCurrency(demoBalance)}</div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <button
-              onClick={() => {
-                setShowWalletModal(false)
-                setTimeout(() => router.push('/balance'), 300)
-              }}
-              className="bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded-xl p-6 transition-all group"
-            >
-              <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-green-500/30 transition-colors">
-                <ArrowDownToLine className="w-6 h-6 text-green-400" />
-              </div>
-              <div className="text-center">
-                <div className="font-bold text-green-400 mb-1">Deposit</div>
-                <div className="text-xs text-gray-400">Add funds</div>
-              </div>
-            </button>
-
-            <button
-              onClick={() => {
-                setShowWalletModal(false)
-                setTimeout(() => router.push('/balance'), 300)
-              }}
-              className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-xl p-6 transition-all group"
-            >
-              <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-red-500/30 transition-colors">
-                <ArrowUpFromLine className="w-6 h-6 text-red-400" />
-              </div>
-              <div className="text-center">
-                <div className="font-bold text-red-400 mb-1">Withdraw</div>
-                <div className="text-xs text-gray-400">Cash out</div>
-              </div>
-            </button>
-          </div>
-
-          <div className="mt-4 pt-4 border-t border-gray-800/50">
-            <button
-              onClick={() => {
-                setShowWalletModal(false)
-                setTimeout(() => router.push('/history'), 300)
-              }}
-              className="w-full flex items-center justify-between px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <History className="w-4 h-4 text-gray-400" />
-                <span className="text-sm">Transaction History</span>
-              </div>
-              <ChevronDown className="w-4 h-4 text-gray-400 rotate-[-90deg]" />
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
-  )}
-
-  {showMobileMenu && (
-    <>
-      <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setShowMobileMenu(false)} />
-      <div className="fixed top-0 right-0 bottom-0 w-64 bg-[#0f1419] border-l border-gray-800/50 z-50 p-4 animate-slide-left">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="font-bold">Menu</h3>
-          <button onClick={() => setShowMobileMenu(false)}>
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        
-        <div className="space-y-2">
-          <div className="mb-4">
-            <label className="text-xs text-gray-400 mb-2 block">Select Asset</label>
-            <select
-              value={selectedAsset?.id || ''}
-              onChange={(e) => {
-                const asset = assets.find(a => a.id === e.target.value)
-                if (asset) {
-                  setSelectedAsset(asset)
+                onClick={() => {
+                  setShowHistorySidebar(true)
                   setShowMobileMenu(false)
-                }
-              }}
-              className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
-            >
-              {assets.map((asset) => (
-                <option key={asset.id} value={asset.id}>
-                  {asset.symbol} - {asset.name}
-                </option>
-              ))}
-            </select>
-          </div>
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <History className="w-4 h-4" />
+                <span>History</span>
+              </button>
 
-          <button
-            onClick={() => {
-              setShowHistorySidebar(true)
-              setShowMobileMenu(false)
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-          >
-            <History className="w-4 h-4" />
-            <span>History</span>
-          </button>
+              <button
+                onClick={() => {
+                  router.push('/balance')
+                  setShowMobileMenu(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <Wallet className="w-4 h-4" />
+                <span>Balance</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  router.push('/profile')
+                  setShowMobileMenu(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <Settings className="w-4 h-4" />
+                <span>Settings</span>
+              </button>
 
-          <button
-            onClick={() => {
-              router.push('/balance')
-              setShowMobileMenu(false)
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-          >
-            <Wallet className="w-4 h-4" />
-            <span>Balance</span>
-          </button>
-          
-          <button
-            onClick={() => {
-              router.push('/profile')
-              setShowMobileMenu(false)
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-          >
-            <Settings className="w-4 h-4" />
-            <span>Settings</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setShowMobileMenu(false)
-              handleLogout()
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Logout</span>
-          </button>
-        </div>
-      </div>
-    </>
-  )}
-
-  {showHistorySidebar && (
-    <HistorySidebar 
-      isOpen={showHistorySidebar} 
-      onClose={() => setShowHistorySidebar(false)} 
-    />
-  )}
-
-  {showLeftSidebar && (
-    <>
-      <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setShowLeftSidebar(false)} />
-      <div className="fixed top-0 left-0 bottom-0 w-64 bg-[#0f1419] border-r border-gray-800/50 z-50 p-4 animate-slide-right">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 relative">
-              <Image 
-                src="/stc-logo.png" 
-                alt="STC Logo" 
-                fill
-                className="object-contain rounded-md"
-              />
+              <button
+                onClick={() => {
+                  setShowMobileMenu(false)
+                  handleLogout()
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </button>
             </div>
-            <span className="font-bold">STC AutoTrade</span>
           </div>
-          <button onClick={() => setShowLeftSidebar(false)}>
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        
-        <div className="space-y-2">
-          <button
-            onClick={() => {
-              router.push('/calendar')
-              setShowLeftSidebar(false)
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-          >
-            <Clock className="w-4 h-4" />
-            <span>Kalender</span>
-          </button>
+        </>
+      )}
 
-          <button
-            onClick={() => {
-              router.push('/event')
-              setShowLeftSidebar(false)
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-          >
-            <Activity className="w-4 h-4" />
-            <span>Event</span>
-          </button>
+      {showHistorySidebar && (
+        <HistorySidebar 
+          isOpen={showHistorySidebar} 
+          onClose={() => setShowHistorySidebar(false)} 
+        />
+      )}
 
-          <button
-            onClick={() => {
-              router.push('/tournament')
-              setShowLeftSidebar(false)
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-          >
-            <TrendingUp className="w-4 h-4" />
-            <span>Turnamen</span>
-          </button>
-          
-          <button
-            onClick={() => {
-              router.push('/runner-up')
-              setShowLeftSidebar(false)
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-          >
-            <ArrowUp className="w-4 h-4" />
-            <span>Trader Terbaik</span>
-          </button>
-        </div>
-      </div>
-    </>
-  )}
+      {showLeftSidebar && (
+        <>
+          <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setShowLeftSidebar(false)} />
+          <div className="fixed top-0 left-0 bottom-0 w-64 bg-[#0f1419] border-r border-gray-800/50 z-50 p-4 animate-slide-right">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 relative">
+                  <Image 
+                    src="/stc-logo.png" 
+                    alt="STC Logo" 
+                    fill
+                    className="object-contain rounded-md"
+                  />
+                </div>
+                <span className="font-bold">STC AutoTrade</span>
+              </div>
+              <button onClick={() => setShowLeftSidebar(false)}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  router.push('/calendar')
+                  setShowLeftSidebar(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <Clock className="w-4 h-4" />
+                <span>Kalender</span>
+              </button>
 
-  <OrderNotification 
-    order={notificationOrder}
-    onClose={handleCloseNotification}
-  />
+              <button
+                onClick={() => {
+                  router.push('/event')
+                  setShowLeftSidebar(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <Activity className="w-4 h-4" />
+                <span>Event</span>
+              </button>
 
-  <style jsx>{`
-    @keyframes slide-left {
-      from { 
-        transform: translateX(100%); 
-        opacity: 0;
-      }
-      to { 
-        transform: translateX(0); 
-        opacity: 1;
-      }
-    }
+              <button
+                onClick={() => {
+                  router.push('/tournament')
+                  setShowLeftSidebar(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <TrendingUp className="w-4 h-4" />
+                <span>Turnamen</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  router.push('/runner-up')
+                  setShowLeftSidebar(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <ArrowUp className="w-4 h-4" />
+                <span>Trader Terbaik</span>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
-    @keyframes slide-right {
-      from { 
-        transform: translateX(-100%); 
-        opacity: 0;
-      }
-      to { 
-        transform: translateX(0); 
-        opacity: 1;
-      }
-    }
+      <OrderNotification 
+        order={notificationOrder}
+        onClose={handleCloseNotification}
+      />
 
-    @keyframes slide-up {
-      from { 
-        transform: translateY(100%); 
-        opacity: 0;
-      }
-      to { 
-        transform: translateY(0); 
-        opacity: 1;
-      }
-    }
+      <style jsx>{`
+        @keyframes slide-left {
+          from { 
+            transform: translateX(100%); 
+            opacity: 0;
+          }
+          to { 
+            transform: translateX(0); 
+            opacity: 1;
+          }
+        }
 
-    @keyframes fade-in {
-      from { 
-        opacity: 0; 
-      }
-      to { 
-        opacity: 1; 
-      }
-    }
+        @keyframes slide-right {
+          from { 
+            transform: translateX(-100%); 
+            opacity: 0;
+          }
+          to { 
+            transform: translateX(0); 
+            opacity: 1;
+          }
+        }
 
-    @keyframes pulse-glow {
-      0%, 100% { 
-        opacity: 1; 
-        box-shadow: 0 0 10px rgba(234, 179, 8, 0.3); 
-      }
-      50% { 
-        opacity: 0.8; 
-        box-shadow: 0 0 20px rgba(234, 179, 8, 0.6); 
-      }
-    }
+        @keyframes slide-up {
+          from { 
+            transform: translateY(100%); 
+            opacity: 0;
+          }
+          to { 
+            transform: translateY(0); 
+            opacity: 1;
+          }
+        }
 
-    .animate-slide-left {
-      animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
+        @keyframes fade-in {
+          from { 
+            opacity: 0; 
+          }
+          to { 
+            opacity: 1; 
+          }
+        }
 
-    .animate-slide-right {
-      animation: slide-right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
+        .animate-slide-left {
+          animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
 
-    .animate-slide-up {
-      animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
+        .animate-slide-right {
+          animation: slide-right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
 
-    .animate-fade-in {
-      animation: fade-in 0.2s ease-out;
-    }
+        .animate-slide-up {
+          animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
 
-    button {
-      transition: all 0.2s ease;
-    }
+        .animate-fade-in {
+          animation: fade-in 0.2s ease-out;
+        }
 
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
+        button {
+          transition: all 0.2s ease;
+        }
 
-    ::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 3px;
-    }
+        ::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
 
-    ::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 3px;
-    }
+        ::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 3px;
+        }
 
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
-  `}</style>
-</div>
-)
+        ::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.3);
+        }
+      `}</style>
+    </div>
+  )
 }

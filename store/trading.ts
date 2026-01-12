@@ -1,4 +1,4 @@
-// store/trading.ts - UPDATED with Real/Demo support
+// store/trading.ts - SYNCHRONIZED WITH BACKEND v3.2
 import { create } from 'zustand'
 import { devtools, subscribeWithSelector, persist } from 'zustand/middleware'
 import { Asset, PriceData, AccountType } from '@/types'
@@ -9,18 +9,13 @@ interface TradingState {
   priceHistory: PriceData[]
   isChartReady: boolean
   lastUpdate: number
-  
-  // ✅ NEW: Account type selection
   selectedAccountType: AccountType
   
-  // Actions
   setSelectedAsset: (asset: Asset | null) => void
   setCurrentPrice: (price: PriceData) => void
   addPriceToHistory: (price: PriceData) => void
   clearPriceHistory: () => void
   setChartReady: (ready: boolean) => void
-  
-  // ✅ NEW: Account type actions
   setSelectedAccountType: (accountType: AccountType) => void
 }
 
@@ -36,8 +31,6 @@ export const useTradingStore = create<TradingState>()(
         priceHistory: [],
         isChartReady: false,
         lastUpdate: 0,
-        
-        // ✅ DEFAULT: Demo account
         selectedAccountType: 'demo' as AccountType,
         
         setSelectedAsset: (asset) => {
@@ -103,7 +96,6 @@ export const useTradingStore = create<TradingState>()(
           set({ isChartReady: ready }, false, { type: 'setChartReady' })
         },
         
-        // ✅ NEW: Set account type
         setSelectedAccountType: (accountType) => {
           if (get().selectedAccountType === accountType) return
           set({ selectedAccountType: accountType }, false, { type: 'setSelectedAccountType' })
@@ -111,7 +103,6 @@ export const useTradingStore = create<TradingState>()(
       })),
       {
         name: 'trading-storage',
-        // Only persist account type selection
         partialize: (state) => ({ 
           selectedAccountType: state.selectedAccountType 
         })
@@ -120,10 +111,6 @@ export const useTradingStore = create<TradingState>()(
     { name: 'TradingStore' }
   )
 )
-
-// ===================================
-// OPTIMIZED SELECTORS
-// ===================================
 
 export const useSelectedAsset = () => 
   useTradingStore(state => state.selectedAsset)
@@ -137,7 +124,6 @@ export const useIsChartReady = () =>
 export const usePriceHistory = () => 
   useTradingStore(state => state.priceHistory)
 
-// ✅ NEW: Account type selector
 export const useSelectedAccountType = () =>
   useTradingStore(state => state.selectedAccountType)
 

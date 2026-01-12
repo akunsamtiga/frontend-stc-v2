@@ -1,7 +1,6 @@
 'use client'
-
 import { useState, useEffect } from 'react'
-import { X, Save, AlertCircle, Zap } from 'lucide-react'
+import { X, Save, AlertCircle, Zap, AlertTriangle, Info } from 'lucide-react'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 
@@ -9,7 +8,7 @@ interface Asset {
   id: string
   name: string
   symbol: string
-  category?: 'normal' | 'crypto'
+  category: 'normal' | 'crypto'
   profitRate: number
   isActive: boolean
   dataSource: string
@@ -44,7 +43,6 @@ interface AssetFormModalProps {
   onSuccess: () => void
 }
 
-// ✅ UPDATED: Include 1 second (0.0167 minutes)
 const ALL_DURATIONS = [
   { value: 0.0167, label: '1 second ⚡', shortLabel: '1s', isUltraFast: true },
   { value: 1, label: '1 minute', shortLabel: '1m' },
@@ -57,6 +55,9 @@ const ALL_DURATIONS = [
   { value: 45, label: '45 minutes', shortLabel: '45m' },
   { value: 60, label: '1 hour', shortLabel: '60m' },
 ]
+
+// ✅ VALID DURATIONS for validation
+const VALID_DURATIONS = [0.0167, 1, 2, 3, 4, 5, 15, 30, 45, 60]
 
 export default function AssetFormModal({ mode, asset, onClose, onSuccess }: AssetFormModalProps) {
   const [loading, setLoading] = useState(false)
@@ -74,11 +75,11 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     apiEndpoint: asset?.apiEndpoint || '',
     description: asset?.description || '',
     
-    // ✅ Crypto Config
+    // Crypto Config
     cryptoBaseCurrency: asset?.cryptoConfig?.baseCurrency || '',
     cryptoQuoteCurrency: asset?.cryptoConfig?.quoteCurrency || 'USD',
-    cryptoExchange: asset?.cryptoConfig?.exchange || 'Binance',
-    
+    cryptoExchange: asset?.cryptoConfig?.exchange || '',
+
     // Simulator Settings
     initialPrice: asset?.simulatorSettings?.initialPrice || 40.022,
     dailyVolatilityMin: asset?.simulatorSettings?.dailyVolatilityMin || 0.001,
@@ -87,87 +88,172 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     secondVolatilityMax: asset?.simulatorSettings?.secondVolatilityMax || 0.00008,
     minPrice: asset?.simulatorSettings?.minPrice || 0,
     maxPrice: asset?.simulatorSettings?.maxPrice || 0,
-    
+
     // Trading Settings
     minOrderAmount: asset?.tradingSettings?.minOrderAmount || 1000,
     maxOrderAmount: asset?.tradingSettings?.maxOrderAmount || 1000000,
     allowedDurations: asset?.tradingSettings?.allowedDurations || [0.0167, 1, 2, 3, 4, 5, 15, 30, 45, 60],
   })
 
+  // Auto-switch dataSource when category changes
+  useEffect(() => {
+    if (formData.category === 'crypto') {
+      setFormData(prev => ({
+        ...prev,
+        dataSource: 'cryptocompare'
+      }))
+    } else if (formData.category === 'normal' && formData.dataSource === 'cryptocompare') {
+      setFormData(prev => ({
+        ...prev,
+        dataSource: 'realtime_db'
+      }))
+    }
+  }, [formData.category])
+
   // Auto-calculate min/max price if not set
   useEffect(() => {
-    if (formData.minPrice === 0) {
+    if (formData.minPrice === 0 && formData.initialPrice > 0) {
       setFormData(prev => ({
         ...prev,
         minPrice: prev.initialPrice * 0.5
       }))
     }
-    if (formData.maxPrice === 0) {
+    if (formData.maxPrice === 0 && formData.initialPrice > 0) {
       setFormData(prev => ({
         ...prev,
         maxPrice: prev.initialPrice * 2.0
       }))
     }
-  }, [formData.initialPrice])
+  }, [formData.initialPrice, formData.minPrice, formData.maxPrice])
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
-    // Basic validations
-    if (!formData.name.trim()) newErrors.name = 'Name is required'
-    if (!formData.symbol.trim()) newErrors.symbol = 'Symbol is required'
+    // ============================================
+    // BASIC VALIDATIONS
+    // ============================================
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required'
+    }
+
+    if (!formData.symbol.trim()) {
+      newErrors.symbol = 'Symbol is required'
+    }
+
+    // ✅ FIX: Allow symbols with / for crypto pairs (e.g., BTC/USD)
+    if (!/^[A-Z0-9/_-]+$/i.test(formData.symbol)) {
+      newErrors.symbol = 'Symbol can only contain letters, numbers, /, _, and -'
+    }
+
     if (formData.profitRate < 0 || formData.profitRate > 100) {
       newErrors.profitRate = 'Profit rate must be between 0 and 100'
     }
 
-    // ✅ Crypto validation
+    // ✅ FIX: Validate category
+    if (!formData.category) {
+      newErrors.category = 'Category is required'
+    }
+
+    if (formData.category !== 'normal' && formData.category !== 'crypto') {
+      newErrors.category = 'Invalid category. Must be "normal" or "crypto"'
+    }
+
+    // ============================================
+    // CATEGORY-SPECIFIC VALIDATION
+    // ============================================
     if (formData.category === 'crypto') {
+      // CRYPTO ASSETS REQUIREMENTS
+      
+      if (formData.dataSource !== 'cryptocompare') {
+        newErrors.dataSource = 'Crypto assets MUST use "cryptocompare" data source'
+      }
+      
       if (!formData.cryptoBaseCurrency.trim()) {
         newErrors.cryptoBaseCurrency = 'Base currency is required for crypto assets'
       }
+      
       if (!formData.cryptoQuoteCurrency.trim()) {
         newErrors.cryptoQuoteCurrency = 'Quote currency is required for crypto assets'
       }
-    }
+      
+      // ✅ FIX: Crypto assets should NOT have apiEndpoint OR simulatorSettings
+      if (formData.apiEndpoint.trim()) {
+        newErrors.apiEndpoint = 'Crypto assets should not have API endpoint (CryptoCompare API is used)'
+      }
+      
+      // Check if simulator settings are being set (should not be for crypto)
+      const hasSimulatorSettings = formData.initialPrice !== 40.022 || 
+                                   formData.dailyVolatilityMin !== 0.001 ||
+                                   formData.dailyVolatilityMax !== 0.005
+      
+      if (hasSimulatorSettings) {
+        newErrors.simulatorSettings = 'Crypto assets should not have simulator settings'
+      }
+      
+    } else {
+      // NORMAL ASSETS REQUIREMENTS
+      
+      if (formData.dataSource === 'cryptocompare') {
+        newErrors.dataSource = 'Normal assets cannot use "cryptocompare". Use "realtime_db" or "mock"'
+      }
+      
+      if (formData.cryptoBaseCurrency.trim() || formData.cryptoQuoteCurrency !== 'USD') {
+        newErrors.cryptoBaseCurrency = 'Normal assets should not have crypto configuration'
+      }
+      
+      // Data source specific validations
+      if (formData.dataSource === 'realtime_db') {
+        if (!formData.realtimeDbPath.trim()) {
+          newErrors.realtimeDbPath = 'Realtime DB path is required for this data source'
+        } else if (formData.realtimeDbPath.endsWith('/current_price')) {
+          newErrors.realtimeDbPath = 'Path should NOT include /current_price (added automatically)'
+        } else if (!formData.realtimeDbPath.startsWith('/')) {
+          newErrors.realtimeDbPath = 'Path must start with / (e.g., /idx_stc)'
+        }
+      }
+      
+      if (formData.dataSource === 'api') {
+        if (!formData.apiEndpoint.trim()) {
+          newErrors.apiEndpoint = 'API endpoint is required for this data source'
+        }
+      }
 
-    // Data source validations
-    if (formData.dataSource === 'realtime_db') {
-      if (!formData.realtimeDbPath.trim()) {
-        newErrors.realtimeDbPath = 'Realtime DB path is required'
-      } else if (formData.realtimeDbPath.endsWith('/current_price')) {
-        newErrors.realtimeDbPath = 'Path should NOT include /current_price'
-      } else if (!formData.realtimeDbPath.startsWith('/')) {
-        newErrors.realtimeDbPath = 'Path must start with /'
+      // Simulator settings validation (for normal assets only)
+      if (formData.initialPrice <= 0) {
+        newErrors.initialPrice = 'Initial price must be greater than 0'
+      }
+
+      if (formData.dailyVolatilityMin >= formData.dailyVolatilityMax) {
+        newErrors.dailyVolatilityMin = 'Min must be less than max'
+      }
+
+      if (formData.secondVolatilityMin >= formData.secondVolatilityMax) {
+        newErrors.secondVolatilityMin = 'Min must be less than max'
+      }
+
+      if (formData.minPrice && formData.maxPrice && formData.minPrice >= formData.maxPrice) {
+        newErrors.minPrice = 'Min price must be less than max price'
       }
     }
 
-    if (formData.dataSource === 'api' && !formData.apiEndpoint.trim()) {
-      newErrors.apiEndpoint = 'API endpoint is required'
-    }
-
-    if (formData.dataSource === 'cryptocompare') {
-      if (!formData.cryptoBaseCurrency.trim()) {
-        newErrors.cryptoBaseCurrency = 'Base currency is required for CryptoCompare'
-      }
-    }
-
-    // Simulator settings validations
-    if (formData.initialPrice <= 0) {
-      newErrors.initialPrice = 'Initial price must be greater than 0'
-    }
-    if (formData.dailyVolatilityMin >= formData.dailyVolatilityMax) {
-      newErrors.dailyVolatilityMin = 'Min must be less than max'
-    }
-    if (formData.secondVolatilityMin >= formData.secondVolatilityMax) {
-      newErrors.secondVolatilityMin = 'Min must be less than max'
-    }
-
-    // Trading settings validations
+    // ============================================
+    // TRADING SETTINGS VALIDATION
+    // ============================================
     if (formData.minOrderAmount >= formData.maxOrderAmount) {
       newErrors.minOrderAmount = 'Min must be less than max'
     }
+
     if (formData.allowedDurations.length === 0) {
       newErrors.allowedDurations = 'At least one duration must be selected'
+    }
+
+    // ✅ FIX: Validate each duration value
+    const invalidDurations = formData.allowedDurations.filter(
+      d => !VALID_DURATIONS.some(valid => Math.abs(valid - d) < 0.0001)
+    )
+    
+    if (invalidDurations.length > 0) {
+      newErrors.allowedDurations = `Invalid durations: ${invalidDurations.join(', ')}`
     }
 
     setErrors(newErrors)
@@ -176,7 +262,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
+    
     if (!validateForm()) {
       toast.error('Please fix the errors in the form')
       return
@@ -185,55 +271,96 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     setLoading(true)
 
     try {
-      const payload: any = {
-        name: formData.name.trim(),
-        symbol: formData.symbol.trim().toUpperCase(),
-        category: formData.category,
-        profitRate: formData.profitRate,
-        isActive: formData.isActive,
-        dataSource: formData.dataSource,
-        ...(formData.dataSource === 'realtime_db' && {
-          realtimeDbPath: formData.realtimeDbPath.trim()
-        }),
-        ...(formData.dataSource === 'api' && {
-          apiEndpoint: formData.apiEndpoint.trim()
-        }),
-        description: formData.description.trim(),
-        simulatorSettings: {
-          initialPrice: formData.initialPrice,
-          dailyVolatilityMin: formData.dailyVolatilityMin,
-          dailyVolatilityMax: formData.dailyVolatilityMax,
-          secondVolatilityMin: formData.secondVolatilityMin,
-          secondVolatilityMax: formData.secondVolatilityMax,
-          minPrice: formData.minPrice,
-          maxPrice: formData.maxPrice,
-        },
-        tradingSettings: {
-          minOrderAmount: formData.minOrderAmount,
-          maxOrderAmount: formData.maxOrderAmount,
-          allowedDurations: formData.allowedDurations.sort((a, b) => a - b),
-        },
-      }
+      let payload: any
 
-      // ✅ Add cryptoConfig if category is crypto
-      if (formData.category === 'crypto' && formData.cryptoBaseCurrency.trim()) {
-        payload.cryptoConfig = {
-          baseCurrency: formData.cryptoBaseCurrency.trim().toUpperCase(),
-          quoteCurrency: formData.cryptoQuoteCurrency.trim().toUpperCase(),
-          exchange: formData.cryptoExchange.trim(),
+      if (formData.category === 'crypto') {
+        // CRYPTO ASSET PAYLOAD
+        payload = {
+          name: formData.name.trim(),
+          symbol: formData.symbol.trim().toUpperCase(),
+          category: 'crypto',
+          profitRate: Number(formData.profitRate),
+          isActive: Boolean(formData.isActive),
+          dataSource: 'cryptocompare',
+          description: formData.description.trim(),
+          cryptoConfig: {
+            baseCurrency: formData.cryptoBaseCurrency.trim().toUpperCase(),
+            quoteCurrency: formData.cryptoQuoteCurrency.trim().toUpperCase(),
+            ...(formData.cryptoExchange.trim() && { 
+              exchange: formData.cryptoExchange.trim() 
+            })
+          },
+          // ✅ Optional: Custom Realtime DB path for crypto
+          ...(formData.realtimeDbPath.trim() && {
+            realtimeDbPath: formData.realtimeDbPath.trim()
+          }),
+          tradingSettings: {
+            minOrderAmount: Number(formData.minOrderAmount),
+            maxOrderAmount: Number(formData.maxOrderAmount),
+            allowedDurations: [...formData.allowedDurations].sort((a, b) => a - b)
+          }
+        }
+        
+      } else {
+        // NORMAL ASSET PAYLOAD
+        payload = {
+          name: formData.name.trim(),
+          symbol: formData.symbol.trim().toUpperCase(),
+          category: 'normal',
+          profitRate: Number(formData.profitRate),
+          isActive: Boolean(formData.isActive),
+          dataSource: formData.dataSource,
+          description: formData.description.trim(),
+          simulatorSettings: {
+            initialPrice: Number(formData.initialPrice),
+            dailyVolatilityMin: Number(formData.dailyVolatilityMin),
+            dailyVolatilityMax: Number(formData.dailyVolatilityMax),
+            secondVolatilityMin: Number(formData.secondVolatilityMin),
+            secondVolatilityMax: Number(formData.secondVolatilityMax),
+            minPrice: Number(formData.minPrice) || Number(formData.initialPrice) * 0.5,
+            maxPrice: Number(formData.maxPrice) || Number(formData.initialPrice) * 2.0
+          },
+          tradingSettings: {
+            minOrderAmount: Number(formData.minOrderAmount),
+            maxOrderAmount: Number(formData.maxOrderAmount),
+            allowedDurations: [...formData.allowedDurations].sort((a, b) => a - b)
+          }
+        }
+        
+        // Add data source specific fields
+        if (formData.dataSource === 'realtime_db') {
+          payload.realtimeDbPath = formData.realtimeDbPath.trim()
+        } else if (formData.dataSource === 'api') {
+          payload.apiEndpoint = formData.apiEndpoint.trim()
         }
       }
 
+      console.log('📤 Submitting payload:', JSON.stringify(payload, null, 2))
+
       if (mode === 'create') {
-        await api.createAsset(payload)
+        const response = await api.createAsset(payload)
+        console.log('✅ Create response:', response)
+        toast.success(response.data?.message || 'Asset created successfully')
       } else {
-        await api.updateAsset(asset!.id, payload)
+        const response = await api.updateAsset(asset!.id, payload)
+        console.log('✅ Update response:', response)
+        toast.success(response.data?.message || 'Asset updated successfully')
       }
 
       onSuccess()
     } catch (error: any) {
-      console.error('Submit error:', error)
-      toast.error(error.response?.data?.error || `Failed to ${mode} asset`)
+      console.error('❌ Submit error:', error)
+      
+      const errorMessage = error.response?.data?.error || 
+                          error.response?.data?.message ||
+                          error.message ||
+                          `Failed to ${mode} asset`
+      
+      toast.error(errorMessage)
+      
+      if (error.response?.data) {
+        console.error('Backend error details:', error.response.data)
+      }
     } finally {
       setLoading(false)
     }
@@ -248,8 +375,15 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     }))
   }
 
-  // ✅ Check if ultra-fast mode is enabled
   const hasUltraFast = formData.allowedDurations.includes(0.0167)
+
+  const availableDataSources = formData.category === 'crypto'
+    ? [{ value: 'cryptocompare', label: '₿ CryptoCompare API (Real-time Crypto)' }]
+    : [
+        { value: 'realtime_db', label: '🔥 Firebase Realtime DB' },
+        { value: 'mock', label: '🎲 Mock/Simulator' },
+        { value: 'api', label: '🌐 External API' },
+      ]
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -260,14 +394,24 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             <h2 className="text-2xl font-bold text-gray-900">
               {mode === 'create' ? 'Create New Asset' : 'Edit Asset'}
             </h2>
-            {hasUltraFast && (
-              <div className="flex items-center gap-2 mt-2">
-                <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                <span className="text-xs text-yellow-600 font-semibold">
-                  ⚡ Ultra-Fast Trading Enabled (1s)
+            <div className="flex items-center gap-2 mt-2">
+              {formData.category === 'crypto' && (
+                <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded font-semibold">
+                  ₿ Crypto Mode
                 </span>
-              </div>
-            )}
+              )}
+              {formData.category === 'normal' && (
+                <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded font-semibold">
+                  📊 Normal Mode
+                </span>
+              )}
+              {hasUltraFast && (
+                <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded font-semibold flex items-center gap-1">
+                  <Zap className="w-3 h-3" />
+                  Ultra-Fast (1s)
+                </span>
+              )}
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -315,7 +459,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                   className={`w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none focus:border-purple-500 ${
                     errors.symbol ? 'border-red-500' : 'border-gray-200'
                   }`}
-                  placeholder="e.g., BTC, IDX_STC"
+                  placeholder="e.g., BTC/USD, IDX_STC"
                 />
                 {errors.symbol && (
                   <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
@@ -325,24 +469,72 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                 )}
               </div>
 
-              {/* ✅ NEW: Category Field */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Category *
+              {/* Category Selection */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-bold text-gray-700 mb-3">
+                  Asset Category * <span className="text-red-600">⚠️ Important - Choose Carefully</span>
                 </label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value as 'normal' | 'crypto' })}
-                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
-                >
-                  <option value="normal">📊 Normal Asset</option>
-                  <option value="crypto">₿ Cryptocurrency</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  {formData.category === 'crypto' 
-                    ? 'Crypto assets require base/quote currency configuration' 
-                    : 'Regular trading assets like stocks, indices, commodities'}
-                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, category: 'normal' })}
+                    className={`p-4 rounded-xl border-2 transition-all ${
+                      formData.category === 'normal'
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        formData.category === 'normal' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-400'
+                      }`}>
+                        <span className="text-xl">📊</span>
+                      </div>
+                      <div className="text-left">
+                        <div className="font-bold text-gray-900">Normal Asset</div>
+                        <div className="text-xs text-gray-600">Stocks, Indices, Commodities</div>
+                      </div>
+                    </div>
+                    {formData.category === 'normal' && (
+                      <div className="mt-2 text-xs text-blue-700 bg-blue-100 px-2 py-1 rounded">
+                        Simulated by trading-simulator service
+                      </div>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, category: 'crypto' })}
+                    className={`p-4 rounded-xl border-2 transition-all ${
+                      formData.category === 'crypto'
+                        ? 'border-orange-500 bg-orange-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        formData.category === 'crypto' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-400'
+                      }`}>
+                        <span className="text-xl">₿</span>
+                      </div>
+                      <div className="text-left">
+                        <div className="font-bold text-gray-900">Cryptocurrency</div>
+                        <div className="text-xs text-gray-600">BTC, ETH, BNB, etc</div>
+                      </div>
+                    </div>
+                    {formData.category === 'crypto' && (
+                      <div className="mt-2 text-xs text-orange-700 bg-orange-100 px-2 py-1 rounded">
+                        Real-time CryptoCompare API
+                      </div>
+                    )}
+                  </button>
+                </div>
+                {errors.category && (
+                  <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {errors.category}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -380,7 +572,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                     className="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                   />
                   <span className="text-sm text-gray-700">
-                    {formData.isActive ? 'Active' : 'Inactive'}
+                    {formData.isActive ? '✅ Active' : '❌ Inactive'}
                   </span>
                 </label>
               </div>
@@ -400,252 +592,332 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             </div>
           </div>
 
-          {/* ✅ NEW: Crypto Configuration (conditional) */}
-          {formData.category === 'crypto' && (
-            <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 rounded-xl p-4">
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                ₿ Cryptocurrency Configuration
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Base Currency *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.cryptoBaseCurrency}
-                    onChange={(e) => setFormData({ ...formData, cryptoBaseCurrency: e.target.value.toUpperCase() })}
-                    className={`w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none focus:border-orange-500 ${
-                      errors.cryptoBaseCurrency ? 'border-red-500' : 'border-orange-200'
-                    }`}
-                    placeholder="BTC, ETH, BNB"
-                  />
-                  {errors.cryptoBaseCurrency && (
-                    <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
-                      {errors.cryptoBaseCurrency}
+          {/* Conditional Rendering Based on Category */}
+          {formData.category === 'crypto' ? (
+            // CRYPTO ASSET CONFIGURATION
+            <>
+              <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-300 rounded-xl p-6">
+                <div className="flex items-start gap-3 mb-4">
+                  <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">
+                      ₿ Cryptocurrency Configuration
+                    </h3>
+                    <p className="text-sm text-orange-800">
+                      Crypto assets use <strong>real-time CryptoCompare API</strong>. 
+                      Backend fetches prices and stores to Realtime DB automatically.
                     </p>
-                  )}
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Quote Currency *
-                  </label>
-                  <select
-                    value={formData.cryptoQuoteCurrency}
-                    onChange={(e) => setFormData({ ...formData, cryptoQuoteCurrency: e.target.value })}
-                    className="w-full px-4 py-2.5 border-2 border-orange-200 rounded-xl focus:outline-none focus:border-orange-500"
-                  >
-                    <option value="USD">USD</option>
-                    <option value="USDT">USDT</option>
-                    <option value="EUR">EUR</option>
-                    <option value="IDR">IDR</option>
-                  </select>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      Base Currency * <span className="text-xs">(e.g., BTC)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.cryptoBaseCurrency}
+                      onChange={(e) => setFormData({ ...formData, cryptoBaseCurrency: e.target.value.toUpperCase() })}
+                      className={`w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none focus:border-orange-500 ${
+                        errors.cryptoBaseCurrency ? 'border-red-500' : 'border-orange-200'
+                      }`}
+                      placeholder="BTC, ETH, BNB"
+                    />
+                    {errors.cryptoBaseCurrency && (
+                      <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {errors.cryptoBaseCurrency}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      Quote Currency * <span className="text-xs">(e.g., USD)</span>
+                    </label>
+                    <select
+                      value={formData.cryptoQuoteCurrency}
+                      onChange={(e) => setFormData({ ...formData, cryptoQuoteCurrency: e.target.value })}
+                      className="w-full px-4 py-2.5 border-2 border-orange-200 rounded-xl focus:outline-none focus:border-orange-500"
+                    >
+                      <option value="USD">USD</option>
+                      <option value="USDT">USDT</option>
+                      <option value="EUR">EUR</option>
+                      <option value="IDR">IDR</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      Exchange <span className="text-xs">(Optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.cryptoExchange}
+                      onChange={(e) => setFormData({ ...formData, cryptoExchange: e.target.value })}
+                      className="w-full px-4 py-2.5 border-2 border-orange-200 rounded-xl focus:outline-none focus:border-orange-500"
+                      placeholder="Binance, Coinbase"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Exchange (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.cryptoExchange}
-                    onChange={(e) => setFormData({ ...formData, cryptoExchange: e.target.value })}
-                    className="w-full px-4 py-2.5 border-2 border-orange-200 rounded-xl focus:outline-none focus:border-orange-500"
-                    placeholder="Binance, Coinbase"
-                  />
+                <div className="mt-4 p-3 bg-orange-100 border border-orange-300 rounded-lg">
+                  <p className="text-xs text-orange-900">
+                    💡 <strong>Trading Pair Preview:</strong>{' '}
+                    <code className="px-2 py-1 bg-white rounded font-mono font-bold">
+                      {formData.cryptoBaseCurrency || '???'}/{formData.cryptoQuoteCurrency}
+                    </code>
+                    {formData.cryptoExchange && (
+                      <> from <strong>{formData.cryptoExchange}</strong></>
+                    )}
+                  </p>
                 </div>
-              </div>
-              <p className="text-xs text-gray-600 mt-2">
-                💡 Example: BTC/USD from Binance, ETH/USDT from Coinbase
-              </p>
-            </div>
-          )}
 
-          {/* Data Source */}
-          <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Data Source</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Source Type *
-                </label>
-                <select
-                  value={formData.dataSource}
-                  onChange={(e) => setFormData({ ...formData, dataSource: e.target.value })}
-                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
-                >
-                  <option value="realtime_db">Firebase Realtime DB</option>
-                  <option value="api">External API</option>
-                  <option value="mock">Mock Data (Simulator)</option>
-                  <option value="cryptocompare">CryptoCompare API</option>
-                </select>
-              </div>
-
-              {formData.dataSource === 'realtime_db' && (
-                <div>
+                {/* Optional: Custom Realtime DB Path for Crypto */}
+                <div className="mt-4">
                   <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Realtime DB Path *
+                    <Info className="w-4 h-4 inline mr-1" />
+                    Custom Realtime DB Path <span className="text-xs font-normal">(Optional - auto-generated if empty)</span>
                   </label>
                   <input
                     type="text"
                     value={formData.realtimeDbPath}
                     onChange={(e) => setFormData({ ...formData, realtimeDbPath: e.target.value })}
-                    className={`w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none focus:border-purple-500 ${
-                      errors.realtimeDbPath ? 'border-red-500' : 'border-gray-200'
-                    }`}
-                    placeholder="/btc_usd"
+                    className="w-full px-4 py-2.5 border-2 border-orange-200 rounded-xl focus:outline-none focus:border-orange-500"
+                    placeholder="/crypto/btc_usd (optional)"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Example: /btc_usd (Do NOT include /current_price)
-                  </p>
-                  {errors.realtimeDbPath && (
-                    <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
-                      {errors.realtimeDbPath}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {formData.dataSource === 'api' && (
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    API Endpoint *
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.apiEndpoint}
-                    onChange={(e) => setFormData({ ...formData, apiEndpoint: e.target.value })}
-                    className={`w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none focus:border-purple-500 ${
-                      errors.apiEndpoint ? 'border-red-500' : 'border-gray-200'
-                    }`}
-                    placeholder="https://api.example.com/price"
-                  />
-                  {errors.apiEndpoint && (
-                    <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
-                      {errors.apiEndpoint}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {formData.dataSource === 'cryptocompare' && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                  <p className="text-sm text-blue-900">
-                    <strong>CryptoCompare Integration:</strong> Real-time crypto prices from CryptoCompare API.
-                    Base currency: <span className="font-mono font-bold">{formData.cryptoBaseCurrency || 'Not set'}</span>
+                    Leave empty for auto-generated path like: /crypto/{formData.cryptoBaseCurrency.toLowerCase() || 'base'}_{formData.cryptoQuoteCurrency.toLowerCase() || 'quote'}
                   </p>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Simulator Settings */}
-          <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Simulator Settings</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Initial Price
-                </label>
-                <input
-                  type="number"
-                  value={formData.initialPrice}
-                  onChange={(e) => setFormData({ ...formData, initialPrice: parseFloat(e.target.value) })}
-                  step="0.001"
-                  min="0.001"
-                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
-                />
               </div>
 
+              {/* Data Source - LOCKED for crypto */}
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Daily Volatility Range (%)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    value={formData.dailyVolatilityMin}
-                    onChange={(e) => setFormData({ ...formData, dailyVolatilityMin: parseFloat(e.target.value) })}
-                    step="0.001"
-                    min="0"
-                    max="1"
-                    className="w-1/2 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
-                    placeholder="Min"
-                  />
-                  <input
-                    type="number"
-                    value={formData.dailyVolatilityMax}
-                    onChange={(e) => setFormData({ ...formData, dailyVolatilityMax: parseFloat(e.target.value) })}
-                    step="0.001"
-                    min="0"
-                    max="1"
-                    className="w-1/2 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
-                    placeholder="Max"
-                  />
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Data Source</h3>
+                <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                      <span className="text-xl">₿</span>
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">CryptoCompare API</p>
+                      <p className="text-sm text-gray-600">
+                        Real-time cryptocurrency prices (locked for crypto assets)
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-xs text-blue-900">
+                      <strong>💡 Data Flow:</strong> CryptoCompare API → Backend → Realtime Database → Frontend
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            // NORMAL ASSET CONFIGURATION
+            <>
+              {/* Data Source */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Data Source</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      Source Type *
+                    </label>
+                    <select
+                      value={formData.dataSource}
+                      onChange={(e) => setFormData({ ...formData, dataSource: e.target.value })}
+                      className={`w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none focus:border-purple-500 ${
+                        errors.dataSource ? 'border-red-500' : 'border-gray-200'
+                      }`}
+                    >
+                      {availableDataSources.map(source => (
+                        <option key={source.value} value={source.value}>
+                          {source.label}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.dataSource && (
+                      <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {errors.dataSource}
+                      </p>
+                    )}
+                  </div>
+
+                  {formData.dataSource === 'realtime_db' && (
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                        Firebase Realtime DB Path *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.realtimeDbPath}
+                        onChange={(e) => setFormData({ ...formData, realtimeDbPath: e.target.value })}
+                        className={`w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none focus:border-purple-500 ${
+                          errors.realtimeDbPath ? 'border-red-500' : 'border-gray-200'
+                        }`}
+                        placeholder="/idx_stc"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        ✅ Example: <code className="bg-gray-100 px-1 rounded">/idx_stc</code> (do NOT include /current_price)
+                      </p>
+                      {errors.realtimeDbPath && (
+                        <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {errors.realtimeDbPath}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {formData.dataSource === 'api' && (
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">
+                        API Endpoint *
+                      </label>
+                      <input
+                        type="url"
+                        value={formData.apiEndpoint}
+                        onChange={(e) => setFormData({ ...formData, apiEndpoint: e.target.value })}
+                        className={`w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none focus:border-purple-500 ${
+                          errors.apiEndpoint ? 'border-red-500' : 'border-gray-200'
+                        }`}
+                        placeholder="https://api.example.com/price"
+                      />
+                      {errors.apiEndpoint && (
+                        <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {errors.apiEndpoint}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {formData.dataSource === 'mock' && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                      <p className="text-sm text-blue-900">
+                        <strong>🎲 Mock/Simulator Mode:</strong> Prices will be simulated using the settings below.
+                      </p>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-900">
+                    <strong>💡 Data Flow:</strong> Trading Simulator → Realtime Database → Frontend
+                  </p>
                 </div>
               </div>
 
+              {/* Simulator Settings */}
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Second Volatility Range (%)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    value={formData.secondVolatilityMin}
-                    onChange={(e) => setFormData({ ...formData, secondVolatilityMin: parseFloat(e.target.value) })}
-                    step="0.00001"
-                    min="0"
-                    max="0.01"
-                    className="w-1/2 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
-                    placeholder="Min"
-                  />
-                  <input
-                    type="number"
-                    value={formData.secondVolatilityMax}
-                    onChange={(e) => setFormData({ ...formData, secondVolatilityMax: parseFloat(e.target.value) })}
-                    step="0.00001"
-                    min="0"
-                    max="0.01"
-                    className="w-1/2 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
-                    placeholder="Max"
-                  />
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Simulator Settings</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      Initial Price
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.initialPrice}
+                      onChange={(e) => setFormData({ ...formData, initialPrice: parseFloat(e.target.value) })}
+                      step="0.001"
+                      min="0.001"
+                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      Daily Volatility Range (%)
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={formData.dailyVolatilityMin}
+                        onChange={(e) => setFormData({ ...formData, dailyVolatilityMin: parseFloat(e.target.value) })}
+                        step="0.001"
+                        min="0"
+                        max="1"
+                        className="w-1/2 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                        placeholder="Min"
+                      />
+                      <input
+                        type="number"
+                        value={formData.dailyVolatilityMax}
+                        onChange={(e) => setFormData({ ...formData, dailyVolatilityMax: parseFloat(e.target.value) })}
+                        step="0.001"
+                        min="0"
+                        max="1"
+                        className="w-1/2 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                        placeholder="Max"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      Second Volatility Range (%)
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={formData.secondVolatilityMin}
+                        onChange={(e) => setFormData({ ...formData, secondVolatilityMin: parseFloat(e.target.value) })}
+                        step="0.00001"
+                        min="0"
+                        max="0.01"
+                        className="w-1/2 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                        placeholder="Min"
+                      />
+                      <input
+                        type="number"
+                        value={formData.secondVolatilityMax}
+                        onChange={(e) => setFormData({ ...formData, secondVolatilityMax: parseFloat(e.target.value) })}
+                        step="0.00001"
+                        min="0"
+                        max="0.01"
+                        className="w-1/2 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                        placeholder="Max"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      Price Range (Min/Max)
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={formData.minPrice}
+                        onChange={(e) => setFormData({ ...formData, minPrice: parseFloat(e.target.value) })}
+                        step="0.001"
+                        min="0"
+                        className="w-1/2 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                        placeholder="Min"
+                      />
+                      <input
+                        type="number"
+                        value={formData.maxPrice}
+                        onChange={(e) => setFormData({ ...formData, maxPrice: parseFloat(e.target.value) })}
+                        step="0.001"
+                        min="0"
+                        className="w-1/2 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
+                        placeholder="Max"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
+            </>
+          )}
 
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Price Range (Min/Max)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    value={formData.minPrice}
-                    onChange={(e) => setFormData({ ...formData, minPrice: parseFloat(e.target.value) })}
-                    step="0.001"
-                    min="0"
-                    className="w-1/2 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
-                    placeholder="Min"
-                  />
-                  <input
-                    type="number"
-                    value={formData.maxPrice}
-                    onChange={(e) => setFormData({ ...formData, maxPrice: parseFloat(e.target.value) })}
-                    step="0.001"
-                    min="0"
-                    className="w-1/2 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500"
-                    placeholder="Max"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Trading Settings */}
+          {/* Trading Settings - COMMON FOR BOTH */}
           <div>
             <h3 className="text-lg font-bold text-gray-900 mb-4">Trading Settings</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -719,7 +991,10 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                 <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <p className="text-xs text-yellow-800">
                     <strong>⚡ Ultra-Fast Trading:</strong> 1-second orders require high-frequency data updates. 
-                    Ensure your simulator or data source supports sub-second intervals.
+                    {formData.category === 'crypto' 
+                      ? ' CryptoCompare API provides real-time updates.'
+                      : ' Ensure simulator is running with 1s update interval.'
+                    }
                   </p>
                 </div>
               )}
