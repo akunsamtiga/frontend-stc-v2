@@ -58,21 +58,27 @@ const ALL_DURATIONS = [
 
 const VALID_DURATIONS = [0.0167, 1, 2, 3, 4, 5, 15, 30, 45, 60]
 
-// ✅ FIXED: Changed to Binance
+// ✅ FIXED: Binance supported coins
 const BINANCE_COINS = [
   'BTC', 'ETH', 'BNB', 'XRP', 'ADA', 'SOL', 'DOT', 'DOGE', 
   'MATIC', 'LTC', 'AVAX', 'LINK', 'UNI', 'ATOM', 'XLM', 
   'ALGO', 'VET', 'ICP', 'FIL', 'TRX', 'ETC', 'NEAR', 'APT', 'ARB', 'OP'
 ]
 
-// ✅ FIXED: Binance quote currencies
-const BINANCE_QUOTE_CURRENCIES = ['USD', 'USDT', 'EUR', 'GBP', 'BUSD']
+// ✅ FIXED: Prioritize USDT as default, include USD with warning
+const BINANCE_QUOTE_CURRENCIES = [
+  { value: 'USDT', label: 'USDT (Recommended)', isDefault: true },
+  { value: 'USD', label: 'USD (Auto-mapped to USDT)', warning: true },
+  { value: 'EUR', label: 'EUR' },
+  { value: 'GBP', label: 'GBP' },
+  { value: 'BUSD', label: 'BUSD (Deprecated)' },
+]
 
 export default function AssetFormModal({ mode, asset, onClose, onSuccess }: AssetFormModalProps) {
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // ✅ FIXED: Default dataSource for crypto changed to 'binance'
+  // ✅ FIXED: Default quote currency untuk crypto adalah USDT
   const [formData, setFormData] = useState({
     name: asset?.name || '',
     symbol: asset?.symbol || '',
@@ -86,7 +92,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     
     // Crypto Config
     cryptoBaseCurrency: asset?.cryptoConfig?.baseCurrency || '',
-    cryptoQuoteCurrency: asset?.cryptoConfig?.quoteCurrency || 'USD',
+    cryptoQuoteCurrency: asset?.cryptoConfig?.quoteCurrency || 'USDT', // ✅ Changed from 'USD' to 'USDT'
     cryptoExchange: asset?.cryptoConfig?.exchange || '',
 
     // Simulator Settings
@@ -109,7 +115,8 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     if (formData.category === 'crypto') {
       setFormData(prev => ({
         ...prev,
-        dataSource: 'binance' // ✅ Changed from 'coingecko'
+        dataSource: 'binance',
+        cryptoQuoteCurrency: 'USDT' // ✅ Ensure USDT default for new crypto assets
       }))
     } else if (formData.category === 'normal' && formData.dataSource === 'binance') {
       setFormData(prev => ({
@@ -185,8 +192,8 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
       
       if (!formData.cryptoQuoteCurrency.trim()) {
         newErrors.cryptoQuoteCurrency = 'Quote currency is required for crypto assets'
-      } else if (!BINANCE_QUOTE_CURRENCIES.includes(formData.cryptoQuoteCurrency.toUpperCase())) {
-        newErrors.cryptoQuoteCurrency = `Unsupported quote currency. Supported: ${BINANCE_QUOTE_CURRENCIES.join(', ')}`
+      } else if (!BINANCE_QUOTE_CURRENCIES.some(q => q.value === formData.cryptoQuoteCurrency.toUpperCase())) {
+        newErrors.cryptoQuoteCurrency = `Unsupported quote currency`
       }
       
       // ✅ Crypto assets should NOT have apiEndpoint OR simulatorSettings
@@ -211,7 +218,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
         newErrors.dataSource = 'Normal assets cannot use "binance". Use "realtime_db", "mock", or "api"'
       }
       
-      if (formData.cryptoBaseCurrency.trim() || formData.cryptoQuoteCurrency !== 'USD') {
+      if (formData.cryptoBaseCurrency.trim() || formData.cryptoQuoteCurrency !== 'USDT') {
         newErrors.cryptoBaseCurrency = 'Normal assets should not have crypto configuration'
       }
       
@@ -295,7 +302,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
           category: 'crypto',
           profitRate: Number(formData.profitRate),
           isActive: Boolean(formData.isActive),
-          dataSource: 'binance', // ✅ Changed from 'coingecko'
+          dataSource: 'binance',
           description: formData.description.trim(),
           cryptoConfig: {
             baseCurrency: formData.cryptoBaseCurrency.trim().toUpperCase(),
@@ -394,7 +401,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
 
   const hasUltraFast = formData.allowedDurations.includes(0.0167)
 
-  // ✅ FIXED: Changed CoinGecko to Binance
+  // ✅ FIXED: Data sources untuk crypto hanya Binance
   const availableDataSources = formData.category === 'crypto'
     ? [{ value: 'binance', label: '🪙 Binance API (Real-time Crypto)' }]
     : [
@@ -402,6 +409,17 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
         { value: 'mock', label: '🎲 Mock/Simulator' },
         { value: 'api', label: '🌐 External API' },
       ]
+
+  // ✅ FIXED: Preview untuk Binance symbol
+  const getBinancePreview = () => {
+    const base = formData.cryptoBaseCurrency.toUpperCase()
+    const quote = formData.cryptoQuoteCurrency.toUpperCase()
+    if (!base || !quote) return '???'
+    
+    // ✅ Auto-map USD ke USDT untuk preview
+    const normalizedQuote = quote === 'USD' ? 'USDT' : quote
+    return `${base}/${quote} → ${base}${normalizedQuote}`
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -415,7 +433,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             <div className="flex items-center gap-2 mt-2">
               {formData.category === 'crypto' && (
                 <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded font-semibold">
-                  🪙 Crypto Mode (Binance) {/* ✅ Changed from CoinGecko */}
+                  🪙 Crypto Mode (Binance)
                 </span>
               )}
               {formData.category === 'normal' && (
@@ -542,7 +560,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                     </div>
                     {formData.category === 'crypto' && (
                       <div className="mt-2 text-xs text-orange-700 bg-orange-100 px-2 py-1 rounded">
-                        Real-time Binance API {/* ✅ Changed from CoinGecko */}
+                        Real-time Binance API
                       </div>
                     )}
                   </button>
@@ -619,10 +637,10 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                   <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 mb-1">
-                      🪙 Cryptocurrency Configuration (Binance) {/* ✅ Changed from CoinGecko */}
+                      🪙 Cryptocurrency Configuration (Binance)
                     </h3>
                     <p className="text-sm text-orange-800">
-                      Crypto assets use <strong>real-time Binance API</strong>. {/* ✅ Changed from CoinGecko */}
+                      Crypto assets use <strong>real-time Binance API</strong>.
                       Backend fetches prices and stores to Realtime DB automatically.
                     </p>
                   </div>
@@ -655,17 +673,27 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
 
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">
-                      Quote Currency * <span className="text-xs">(e.g., USD)</span>
+                      Quote Currency * <span className="text-xs">(e.g., USDT)</span>
                     </label>
                     <select
                       value={formData.cryptoQuoteCurrency}
                       onChange={(e) => setFormData({ ...formData, cryptoQuoteCurrency: e.target.value })}
-                      className="w-full px-4 py-2.5 border-2 border-orange-200 rounded-xl focus:outline-none focus:border-orange-500"
+                      className={`w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none focus:border-orange-500 ${
+                        errors.cryptoQuoteCurrency ? 'border-red-500' : 'border-orange-200'
+                      }`}
                     >
                       {BINANCE_QUOTE_CURRENCIES.map(currency => (
-                        <option key={currency} value={currency}>{currency}</option>
+                        <option key={currency.value} value={currency.value}>
+                          {currency.label}
+                        </option>
                       ))}
                     </select>
+                    {errors.cryptoQuoteCurrency && (
+                      <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {errors.cryptoQuoteCurrency}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -684,15 +712,25 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
 
                 <div className="mt-4 p-3 bg-orange-100 border border-orange-300 rounded-lg">
                   <p className="text-xs text-orange-900">
-                    💡 <strong>Trading Pair Preview:</strong>{' '}
+                    <strong>💡 Trading Pair Preview:</strong>{' '}
                     <code className="px-2 py-1 bg-white rounded font-mono font-bold">
-                      {formData.cryptoBaseCurrency || '???'}/{formData.cryptoQuoteCurrency}
+                      {getBinancePreview()}
                     </code>
                     {formData.cryptoExchange && (
                       <> from <strong>{formData.cryptoExchange}</strong></>
                     )}
                   </p>
                 </div>
+
+                {/* ✅ NEW: Warning if USD is selected */}
+                {formData.cryptoQuoteCurrency === 'USD' && (
+                  <div className="mt-3 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+                    <p className="text-xs text-yellow-800 flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <strong>⚠️ USD selected:</strong> Backend will auto-map to USDT for Binance compatibility.
+                    </p>
+                  </div>
+                )}
 
                 {/* Optional: Custom Realtime DB Path for Crypto */}
                 <div className="mt-4">
@@ -708,7 +746,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                     placeholder="/crypto/btc_usd (optional)"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Leave empty for auto-generated path like: /crypto/{formData.cryptoBaseCurrency.toLowerCase() || 'base'}_{formData.cryptoQuoteCurrency.toLowerCase() || 'quote'}
+                    Leave empty for auto-generated path: /crypto/{formData.cryptoBaseCurrency.toLowerCase() || 'base'}_{formData.cryptoQuoteCurrency === 'USD' ? 'usdt' : formData.cryptoQuoteCurrency.toLowerCase() || 'quote'}
                   </p>
                 </div>
               </div>
@@ -722,7 +760,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                       <span className="text-xl">🪙</span>
                     </div>
                     <div>
-                      <p className="font-bold text-gray-900">Binance API</p> {/* ✅ Changed from CoinGecko */}
+                      <p className="font-bold text-gray-900">Binance API</p>
                       <p className="text-sm text-gray-600">
                         Real-time cryptocurrency prices via Backend (locked for crypto assets)
                       </p>
@@ -730,7 +768,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                   </div>
                   <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-xs text-blue-900">
-                      <strong>💡 Data Flow:</strong> Binance API → Backend → Realtime Database → Frontend {/* ✅ Changed from CoinGecko */}
+                      <strong>💡 Data Flow:</strong> Binance API → Backend → Realtime Database → Frontend
                     </p>
                   </div>
                 </div>
