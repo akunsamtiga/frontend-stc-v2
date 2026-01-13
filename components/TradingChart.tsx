@@ -1,33 +1,23 @@
-// components/TradingChart.tsx
+// components/TradingChart.tsx - ✅ COMPREHENSIVE FIXES
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
-import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp, LineStyle, LineWidth } from 'lightweight-charts'
+import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp } from 'lightweight-charts'
 import { useTradingStore } from '@/store/trading'
-import { fetchHistoricalData, subscribeToOHLCUpdates, subscribeToPriceUpdates } from '@/lib/firebase'
+import { fetchHistoricalData, subscribeToOHLCUpdates } from '@/lib/firebase'
 import { BinaryOrder } from '@/types'
-import { formatCurrency, calculateTimeLeft } from '@/lib/utils'
 import { database, ref, get } from '@/lib/firebase'
 import dynamic from 'next/dynamic'
-import { Maximize2, Minimize2, RefreshCw, Activity, TrendingUp, TrendingDown, ChevronDown, Server, Sliders, Clock, BarChart2, ArrowUp, ArrowDown, HelpCircle, X, MessageCircle, Mail, Send, Minus, TrendingDownIcon as LineIcon, Circle, Square, ArrowRight, Type, Zap } from 'lucide-react'
+import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2, Zap } from 'lucide-react'
 
 const IndicatorControls = dynamic(() => import('./IndicatorControls'), { ssr: false })
 
 type ChartType = 'line' | 'candle'
 type Timeframe = '1s' | '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
-type DrawingTool = 'none' | 'trendline' | 'horizontal' | 'vertical' | 'rectangle' | 'circle' | 'text'
 
 interface TradingChartProps {
   activeOrders?: BinaryOrder[]
   currentPrice?: number
-}
-
-interface DrawingObject {
-  id: string
-  type: DrawingTool
-  points: { time: number; price: number }[]
-  color: string
-  text?: string
 }
 
 interface IndicatorConfig {
@@ -52,6 +42,10 @@ const DEFAULT_INDICATOR_CONFIG: IndicatorConfig = {
   atr: { enabled: false, period: 14 }
 }
 
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+
 function cleanAssetPath(path: string): string {
   if (!path) return ''
   if (path.endsWith('/current_price')) {
@@ -63,16 +57,16 @@ function cleanAssetPath(path: string): string {
 }
 
 function getTimeframeSeconds(timeframe: Timeframe): number {
-  switch (timeframe) {
-    case '1s': return 1
-    case '1m': return 60
-    case '5m': return 300
-    case '15m': return 900
-    case '1h': return 3600
-    case '4h': return 14400
-    case '1d': return 86400
-    default: return 60
+  const map: Record<Timeframe, number> = {
+    '1s': 1,
+    '1m': 60,
+    '5m': 300,
+    '15m': 900,
+    '1h': 3600,
+    '4h': 14400,
+    '1d': 86400
   }
+  return map[timeframe] || 60
 }
 
 function getBarPeriodTimestamp(timestamp: number, timeframe: Timeframe): number {
@@ -130,6 +124,10 @@ async function checkSimulatorStatus(assetPath: string): Promise<{
   }
 }
 
+// ============================================
+// SUBCOMPONENTS
+// ============================================
+
 const RealtimeClock = memo(() => {
   const [time, setTime] = useState(new Date())
 
@@ -185,7 +183,7 @@ const PriceDisplay = memo(({ asset, price }: { asset: any; price: any }) => {
           <div className={`flex items-center gap-1 text-sm font-semibold ${
             price.change >= 0 ? 'text-green-400' : 'text-red-400'
           }`}>
-            {price.change >= 0 ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
+            {price.change >= 0 ? '▲' : '▼'}
             <span>{price.change >= 0 ? '+' : ''}{price.change.toFixed(2)}%</span>
           </div>
         )}
@@ -454,6 +452,10 @@ const DesktopControls = memo(({
 
 DesktopControls.displayName = 'DesktopControls'
 
+// ============================================
+// MAIN COMPONENT - ✅ FIXED VERSION
+// ============================================
+
 const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const fullscreenContainerRef = useRef<HTMLDivElement>(null)
@@ -461,13 +463,13 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null)
   const lineSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   
+  // ✅ FIX: Proper cleanup tracking
   const unsubscribe1sRef = useRef<(() => void) | null>(null)
   const unsubscribeTimeframeRef = useRef<(() => void) | null>(null)
+  const isMountedRef = useRef(false)
+  const cleanupFunctionsRef = useRef<Array<() => void>>([])
   
-  const mountedRef = useRef(false)
-  const currentDataRef = useRef<any[]>([])
-  
-  // ✅ KUNCI: State untuk menyimpan bar yang sedang berlangsung
+  // ✅ FIX: Better state management for current bar
   const currentBarRef = useRef<{
     timestamp: number
     open: number
@@ -476,6 +478,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     close: number
     volume: number
   } | null>(null)
+  
+  const lastUpdateTimeRef = useRef<number>(0)
+  const updateThrottleMs = 50 // Throttle updates to 50ms
   
   const { selectedAsset } = useTradingStore()
 
@@ -504,6 +509,40 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     close: number
   } | null>(null)
   const [showOhlc, setShowOhlc] = useState(false)
+
+  // ============================================
+  // ✅ FIX: Proper cleanup function
+  // ============================================
+  const addCleanup = useCallback((fn: () => void) => {
+    cleanupFunctionsRef.current.push(fn)
+  }, [])
+
+  const cleanupAll = useCallback(() => {
+    // Unsubscribe from Firebase
+    if (unsubscribe1sRef.current) {
+      unsubscribe1sRef.current()
+      unsubscribe1sRef.current = null
+    }
+    
+    if (unsubscribeTimeframeRef.current) {
+      unsubscribeTimeframeRef.current()
+      unsubscribeTimeframeRef.current = null
+    }
+    
+    // Run all cleanup functions
+    cleanupFunctionsRef.current.forEach(fn => {
+      try {
+        fn()
+      } catch (error) {
+        console.error('Cleanup error:', error)
+      }
+    })
+    cleanupFunctionsRef.current = []
+    
+    // Reset refs
+    currentBarRef.current = null
+    lastUpdateTimeRef.current = 0
+  }, [])
 
   const checkSimulator = useCallback(async () => {
     if (!selectedAsset?.realtimeDbPath) return
@@ -542,9 +581,11 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
   }, [])
 
-  // ✅ Initialize chart
+  // ============================================
+  // ✅ FIX: Initialize chart with proper cleanup
+  // ============================================
   useEffect(() => {
-    if (mountedRef.current) return
+    if (isMountedRef.current) return
     
     const container = chartContainerRef.current
     if (!container) return
@@ -552,7 +593,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     const { width, height } = container.getBoundingClientRect()
     if (width === 0 || height === 0) return
 
-    mountedRef.current = true
+    isMountedRef.current = true
 
     try {
       const chart = createChart(container, {
@@ -629,27 +670,28 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       }
 
       window.addEventListener('resize', handleResize)
+      addCleanup(() => window.removeEventListener('resize', handleResize))
 
       return () => {
-        window.removeEventListener('resize', handleResize)
-        
-        if (unsubscribe1sRef.current) unsubscribe1sRef.current()
-        if (unsubscribeTimeframeRef.current) unsubscribeTimeframeRef.current()
-        
-        mountedRef.current = false
+        cleanupAll()
+        isMountedRef.current = false
         setIsInitialized(false)
         
         try {
           chart.remove()
-        } catch (e) {}
+        } catch (e) {
+          console.error('Chart removal error:', e)
+        }
       }
     } catch (err: any) {
       console.error('Chart init error:', err)
-      mountedRef.current = false
+      isMountedRef.current = false
     }
-  }, [chartType])
+  }, [chartType, addCleanup, cleanupAll])
 
-  // ✅ Chart type switch
+  // ============================================
+  // ✅ FIX: Chart type switch
+  // ============================================
   useEffect(() => {
     if (!candleSeriesRef.current || !lineSeriesRef.current) return
 
@@ -662,32 +704,28 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [chartType])
 
-  // ✅ MAIN LOGIC: Load data dan subscribe ke real-time updates
+  // ============================================
+  // ✅ FIX: MAIN LOGIC - Load data and subscribe
+  // ============================================
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
       return
     }
 
     let isCancelled = false
+    let animationFrameId: number | null = null
 
     const loadChartData = async () => {
       setIsLoading(true)
       setOpeningPrice(null)
       setLastPrice(null)
       currentBarRef.current = null
+      lastUpdateTimeRef.current = 0
 
       await checkSimulator()
 
       // Cleanup previous subscriptions
-      if (unsubscribe1sRef.current) {
-        unsubscribe1sRef.current()
-        unsubscribe1sRef.current = null
-      }
-      
-      if (unsubscribeTimeframeRef.current) {
-        unsubscribeTimeframeRef.current()
-        unsubscribeTimeframeRef.current = null
-      }
+      cleanupAll()
 
       try {
         let assetPath = selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`
@@ -702,15 +740,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           setIsLoading(false)
           return
         }
-
-        currentDataRef.current = data.map((bar: any) => ({
-          time: bar.timestamp,
-          open: bar.open,
-          high: bar.high,
-          low: bar.low,
-          close: bar.close,
-          volume: bar.volume
-        }))
 
         const candleData = data.map((bar: any) => ({
           time: bar.timestamp as UTCTimestamp,
@@ -754,93 +783,39 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
         setIsLoading(false)
 
-        // ✅ KUNCI 1: Subscribe to 1s updates (always, regardless of timeframe)
-        // Ini memberikan update price setiap detik untuk smooth animation
-        unsubscribe1sRef.current = subscribeToOHLCUpdates(assetPath, '1s', (tick1s) => {
+        // ✅ FIX: Subscribe to 1s updates with throttling
+        const unsubscribe1s = subscribeToOHLCUpdates(assetPath, '1s', (tick1s) => {
           if (isCancelled || !candleSeriesRef.current || !lineSeriesRef.current) return
 
-          try {
-            const newPrice = tick1s.close
-            const currentTimestamp = Math.floor(Date.now() / 1000)
-            
-            // Calculate which bar period this tick belongs to
-            const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
-            
-            // ✅ KUNCI 2: Update current bar smoothly
-            if (!currentBarRef.current || currentBarRef.current.timestamp !== barPeriod) {
-              // New bar starts
-              currentBarRef.current = {
-                timestamp: barPeriod,
-                open: newPrice,
-                high: newPrice,
-                low: newPrice,
-                close: newPrice,
-                volume: 0
-              }
-            } else {
-              // Update existing bar
-              currentBarRef.current.high = Math.max(currentBarRef.current.high, newPrice)
-              currentBarRef.current.low = Math.min(currentBarRef.current.low, newPrice)
-              currentBarRef.current.close = newPrice
+          // ✅ Throttle updates
+          const now = Date.now()
+          if (now - lastUpdateTimeRef.current < updateThrottleMs) {
+            // Schedule update for next frame
+            if (animationFrameId) {
+              cancelAnimationFrame(animationFrameId)
             }
-
-            // ✅ KUNCI 3: Update chart smoothly with current bar
-            const updatedBar = {
-              time: currentBarRef.current.timestamp as UTCTimestamp,
-              open: currentBarRef.current.open,
-              high: currentBarRef.current.high,
-              low: currentBarRef.current.low,
-              close: currentBarRef.current.close
-            }
-
-            // Check if this is updating the last bar or creating a new one
-            const existingData = candleSeriesRef.current.data()
-            const lastBarTime = existingData.length > 0 ? existingData[existingData.length - 1].time : 0
             
-            if (currentBarRef.current.timestamp === lastBarTime) {
-              // Update existing bar (smooth animation)
-              candleSeriesRef.current.update(updatedBar)
-              lineSeriesRef.current.update({ time: updatedBar.time, value: updatedBar.close })
-            } else {
-              // New bar period - add new bar
-              candleSeriesRef.current.update(updatedBar)
-              lineSeriesRef.current.update({ time: updatedBar.time, value: updatedBar.close })
-              
-              // Update internal data
-              currentDataRef.current.push({
-                time: currentBarRef.current.timestamp,
-                open: currentBarRef.current.open,
-                high: currentBarRef.current.high,
-                low: currentBarRef.current.low,
-                close: currentBarRef.current.close,
-                volume: currentBarRef.current.volume
-              })
-              
-              // Keep only last 1000 bars
-              if (currentDataRef.current.length > 1000) {
-                currentDataRef.current.shift()
-              }
-            }
-
-            setLastPrice(newPrice)
-
-          } catch (error) {
-            console.error('1s update error:', error)
+            animationFrameId = requestAnimationFrame(() => {
+              processTickUpdate(tick1s)
+            })
+            return
           }
+
+          processTickUpdate(tick1s)
         })
 
-        // ✅ Subscribe to selected timeframe updates (for new complete bars)
+        unsubscribe1sRef.current = unsubscribe1s
+
+        // ✅ Subscribe to selected timeframe updates
         if (timeframe !== '1s') {
-          unsubscribeTimeframeRef.current = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
+          const unsubscribeTimeframe = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
             if (isCancelled) return
 
             try {
-              // When a new complete bar arrives from the selected timeframe,
-              // synchronize our current bar data
+              // Sync current bar with complete bar data
               if (newBar.isNewBar) {
                 const barPeriod = getBarPeriodTimestamp(newBar.timestamp, timeframe)
                 
-                // Update current bar ref with complete bar data
                 currentBarRef.current = {
                   timestamp: barPeriod,
                   open: newBar.open,
@@ -854,6 +829,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
               console.error('Timeframe update error:', error)
             }
           })
+
+          unsubscribeTimeframeRef.current = unsubscribeTimeframe
         }
 
       } catch (err: any) {
@@ -863,14 +840,68 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       }
     }
 
+    // ✅ FIX: Process tick update with proper batching
+    const processTickUpdate = (tick1s: any) => {
+      try {
+        const newPrice = tick1s.close
+        const currentTimestamp = Math.floor(Date.now() / 1000)
+        
+        // Calculate bar period
+        const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
+        
+        // Update or create current bar
+        if (!currentBarRef.current || currentBarRef.current.timestamp !== barPeriod) {
+          // New bar period
+          currentBarRef.current = {
+            timestamp: barPeriod,
+            open: newPrice,
+            high: newPrice,
+            low: newPrice,
+            close: newPrice,
+            volume: 0
+          }
+        } else {
+          // Update existing bar
+          currentBarRef.current.high = Math.max(currentBarRef.current.high, newPrice)
+          currentBarRef.current.low = Math.min(currentBarRef.current.low, newPrice)
+          currentBarRef.current.close = newPrice
+        }
+
+        // ✅ Update chart smoothly
+        const updatedBar = {
+          time: currentBarRef.current.timestamp as UTCTimestamp,
+          open: currentBarRef.current.open,
+          high: currentBarRef.current.high,
+          low: currentBarRef.current.low,
+          close: currentBarRef.current.close
+        }
+
+        if (candleSeriesRef.current && lineSeriesRef.current) {
+          candleSeriesRef.current.update(updatedBar)
+          lineSeriesRef.current.update({ 
+            time: updatedBar.time, 
+            value: updatedBar.close 
+          })
+        }
+
+        setLastPrice(newPrice)
+        lastUpdateTimeRef.current = Date.now()
+
+      } catch (error) {
+        console.error('Tick update error:', error)
+      }
+    }
+
     loadChartData()
 
     return () => {
       isCancelled = true
-      if (unsubscribe1sRef.current) unsubscribe1sRef.current()
-      if (unsubscribeTimeframeRef.current) unsubscribeTimeframeRef.current()
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId)
+      }
+      cleanupAll()
     }
-  }, [selectedAsset?.id, timeframe, isInitialized, checkSimulator])
+  }, [selectedAsset?.id, timeframe, isInitialized, checkSimulator, cleanupAll])
 
   const handleRefresh = useCallback(() => {
     if (!selectedAsset) return

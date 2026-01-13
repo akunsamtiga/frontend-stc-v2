@@ -25,41 +25,8 @@ import {
   DollarSign
 } from 'lucide-react'
 import { toast } from 'sonner'
-
-interface Asset {
-  id: string
-  name: string
-  symbol: string
-  category?: 'normal' | 'crypto'
-  profitRate: number
-  isActive: boolean
-  dataSource: string
-  realtimeDbPath?: string
-  apiEndpoint?: string
-  description?: string
-  cryptoConfig?: {
-    baseCurrency: string
-    quoteCurrency: string
-    exchange?: string
-  }
-  simulatorSettings?: {
-    initialPrice: number
-    dailyVolatilityMin: number
-    dailyVolatilityMax: number
-    secondVolatilityMin: number
-    secondVolatilityMax: number
-    minPrice?: number
-    maxPrice?: number
-  }
-  tradingSettings?: {
-    minOrderAmount: number
-    maxOrderAmount: number
-    allowedDurations: number[]
-  }
-  createdAt: string
-  updatedAt?: string
-  createdBy?: string
-}
+// ✅ FIX: Import Asset type from @/types instead of defining locally
+import type { Asset } from '@/types'
 
 const StatCardSkeleton = () => (
   <div className="bg-white rounded-xl p-4 md:p-5 border border-gray-100 animate-pulse">
@@ -125,7 +92,7 @@ export default function AdminAssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([])
   const [loading, setLoading] = useState(true)
   
-  // ✅ NEW: Filter states
+  // Filter states
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'normal' | 'crypto'>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [showFilters, setShowFilters] = useState(false)
@@ -211,11 +178,16 @@ export default function AdminAssetsPage() {
     }
   }
 
-  // ✅ NEW: Filter assets
+  // ✅ FIX: Properly handle category with default value
+  const getAssetCategory = (asset: Asset): 'normal' | 'crypto' => {
+    return asset.category || 'normal'
+  }
+
+  // Filter assets
   const filteredAssets = assets.filter((asset) => {
     // Category filter
     if (categoryFilter !== 'all') {
-      const assetCategory = asset.category || 'normal'
+      const assetCategory = getAssetCategory(asset)
       if (assetCategory !== categoryFilter) return false
     }
     
@@ -228,12 +200,12 @@ export default function AdminAssetsPage() {
     return true
   })
 
-  // ✅ NEW: Calculate stats
+  // Calculate stats
   const stats = {
     total: assets.length,
     active: assets.filter(a => a.isActive).length,
-    normal: assets.filter(a => (a.category || 'normal') === 'normal').length,
-    crypto: assets.filter(a => a.category === 'crypto').length,
+    normal: assets.filter(a => getAssetCategory(a) === 'normal').length,
+    crypto: assets.filter(a => getAssetCategory(a) === 'crypto').length,
     ultraFast: assets.filter(a => 
       a.tradingSettings?.allowedDurations.includes(0.0167)
     ).length,
@@ -272,7 +244,7 @@ export default function AdminAssetsPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              {/* ✅ NEW: Filter Button */}
+              {/* Filter Button */}
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className={`flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-medium transition-all text-xs sm:text-sm border ${
@@ -302,7 +274,7 @@ export default function AdminAssetsPage() {
           </div>
         </div>
 
-        {/* ✅ NEW: Filters Panel */}
+        {/* Filters Panel */}
         {showFilters && (
           <div className="mb-4 sm:mb-6 bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200 animate-slide-down">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -399,7 +371,7 @@ export default function AdminAssetsPage() {
           </div>
         )}
 
-        {/* Stats - ✅ UPDATED with 4 cards */}
+        {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">
           <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border border-gray-100 hover:shadow-lg transition-shadow">
             <div className="flex items-center gap-2 mb-2">
@@ -423,7 +395,6 @@ export default function AdminAssetsPage() {
             </div>
           </div>
 
-          {/* ✅ NEW: Crypto Assets Card */}
           <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border border-orange-100 hover:shadow-lg transition-shadow">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -436,7 +407,6 @@ export default function AdminAssetsPage() {
             </div>
           </div>
 
-          {/* ✅ NEW: Ultra-Fast Assets Card */}
           <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border border-yellow-200 hover:shadow-lg transition-shadow">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -492,7 +462,7 @@ export default function AdminAssetsPage() {
               <div className="hidden sm:block divide-y divide-gray-100">
                 {filteredAssets.map((asset) => {
                   const hasUltraFast = asset.tradingSettings?.allowedDurations.includes(0.0167)
-                  const assetCategory = asset.category || 'normal'
+                  const assetCategory = getAssetCategory(asset)
                   
                   return (
                     <div
@@ -512,7 +482,7 @@ export default function AdminAssetsPage() {
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-bold text-base sm:text-lg text-gray-900">{asset.name}</span>
                             
-                            {/* ✅ Category Badge */}
+                            {/* Category Badge */}
                             {assetCategory === 'crypto' ? (
                               <span className="px-2 py-0.5 bg-gradient-to-r from-orange-100 to-yellow-100 border border-orange-300 text-orange-700 rounded text-xs font-bold">
                                 ₿ Crypto
@@ -523,7 +493,7 @@ export default function AdminAssetsPage() {
                               </span>
                             )}
                             
-                            {/* ✅ Ultra-Fast Badge */}
+                            {/* Ultra-Fast Badge */}
                             {hasUltraFast && (
                               <span className="px-2 py-0.5 bg-gradient-to-r from-yellow-100 to-orange-100 border border-yellow-300 text-yellow-700 rounded text-xs font-bold flex items-center gap-1">
                                 <Zap className="w-3 h-3" />
@@ -541,7 +511,7 @@ export default function AdminAssetsPage() {
                             </span>
                             <span>•</span>
                             <span className="capitalize">{asset.dataSource}</span>
-                            {/* ✅ Crypto Pair Display */}
+                            {/* Crypto Pair Display */}
                             {asset.cryptoConfig && (
                               <>
                                 <span>•</span>
@@ -606,11 +576,11 @@ export default function AdminAssetsPage() {
                 })}
               </div>
 
-              {/* Mobile View - ✅ UPDATED with badges */}
+              {/* Mobile View */}
               <div className="sm:hidden space-y-3 p-3">
                 {filteredAssets.map((asset) => {
                   const hasUltraFast = asset.tradingSettings?.allowedDurations.includes(0.0167)
-                  const assetCategory = asset.category || 'normal'
+                  const assetCategory = getAssetCategory(asset)
                   
                   return (
                     <div
@@ -647,7 +617,7 @@ export default function AdminAssetsPage() {
                               )}
                             </span>
                             
-                            {/* ✅ Category Badge */}
+                            {/* Category Badge */}
                             {assetCategory === 'crypto' ? (
                               <span className="px-2 py-0.5 bg-gradient-to-r from-orange-100 to-yellow-100 border border-orange-300 text-orange-700 rounded-lg text-xs font-bold">
                                 ₿
@@ -658,7 +628,7 @@ export default function AdminAssetsPage() {
                               </span>
                             )}
                             
-                            {/* ✅ Ultra-Fast Badge */}
+                            {/* Ultra-Fast Badge */}
                             {hasUltraFast && (
                               <span className="px-2 py-0.5 bg-gradient-to-r from-yellow-100 to-orange-100 border border-yellow-300 text-yellow-700 rounded-lg text-xs font-bold flex items-center gap-1">
                                 <Zap className="w-3 h-3" />
