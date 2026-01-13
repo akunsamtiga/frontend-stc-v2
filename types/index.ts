@@ -1,5 +1,8 @@
-// types/index.ts - ✅ FIXED: Binance Support (FREE API)
+// types/index.ts - ✅ COMPLETE: Binance Support (FREE API)
 
+// ============================================
+// AUTH & USER TYPES
+// ============================================
 export interface User {
   id: string
   email: string
@@ -55,16 +58,9 @@ export interface UserProfile {
   }
 }
 
-export interface TradingStats {
-  totalOrders: number
-  activeOrders: number
-  wonOrders: number
-  lostOrders: number
-  winRate: number
-  totalProfit: number
-}
-
-// ✅ UPDATED: Asset with Binance support
+// ============================================
+// ASSET TYPES - ✅ UPDATED FOR BINANCE
+// ============================================
 export interface Asset {
   id: string
   name: string
@@ -102,6 +98,9 @@ export interface Asset {
   createdBy?: string
 }
 
+// ============================================
+// BINARY ORDER TYPES
+// ============================================
 export interface BinaryOrder {
   id: string
   user_id: string
@@ -139,6 +138,31 @@ export interface Balance {
   createdAt: string
 }
 
+// ============================================
+// BALANCE & SUMMARY
+// ============================================
+export interface BalanceSummary {
+  realBalance: number
+  demoBalance: number
+  realTransactions: number
+  demoTransactions: number
+}
+
+// ============================================
+// TRADING STATS
+// ============================================
+export interface TradingStats {
+  totalOrders: number
+  activeOrders: number
+  wonOrders: number
+  lostOrders: number
+  winRate: number
+  totalProfit: number
+}
+
+// ============================================
+// PRICE & OHLC DATA
+// ============================================
 export interface PriceData {
   price: number
   timestamp: number
@@ -167,7 +191,9 @@ export interface OHLCData {
   isCompleted?: boolean
 }
 
-// ✅ NEW: Binance specific price interface
+// ============================================
+// ✅ NEW: BINANCE PRICE INTERFACE
+// ============================================
 export interface BinancePrice {
   price: number
   timestamp: number
@@ -183,13 +209,9 @@ export interface BinancePrice {
   pair?: string
 }
 
-export interface AuthResponse {
-  success: boolean
-  message: string
-  user: User
-  token: string
-}
-
+// ============================================
+// API RESPONSES
+// ============================================
 export interface ApiResponse<T = any> {
   success?: boolean
   message?: string
@@ -198,13 +220,16 @@ export interface ApiResponse<T = any> {
   [key: string]: any
 }
 
-export interface BalanceSummary {
-  realBalance: number
-  demoBalance: number
-  realTransactions: number
-  demoTransactions: number
+export interface AuthResponse {
+  success: boolean
+  message: string
+  user: User
+  token: string
 }
 
+// ============================================
+// PROFILE & PREFERENCES
+// ============================================
 export interface UserProfileInfo {
   completion: number
   personal: {
@@ -290,21 +315,9 @@ export interface UpdateProfileRequest {
   }
 }
 
-export interface ChangePasswordRequest {
-  currentPassword: string
-  newPassword: string
-  confirmPassword: string
-}
-
-export interface UploadAvatarRequest {
-  url: string
-}
-
-export interface VerifyPhoneRequest {
-  phoneNumber: string
-  verificationCode: string
-}
-
+// ============================================
+// SYSTEM STATS & ADMIN
+// ============================================
 export interface SystemStatistics {
   users: {
     total: number
@@ -367,6 +380,65 @@ export interface SystemStatistics {
   timestamp: string
 }
 
+// ============================================
+// ✅ NEW: CRYPTO SCHEDULER STATUS
+// ============================================
+export interface CryptoSchedulerStatus {
+  isRunning: boolean
+  schedulerActive: boolean
+  assetCount: number
+  updateCount: number
+  errorCount: number
+  lastUpdate: string
+  updateInterval: string
+  api: string
+  assets: Array<{
+    symbol: string
+    pair: string
+    path: string
+  }>
+  ohlcStats?: any
+}
+
+// ============================================
+// CREATE/UPDATE ASSET REQUESTS
+// ============================================
+export interface CreateAssetRequest {
+  name: string
+  symbol: string
+  category: 'normal' | 'crypto'
+  profitRate: number
+  isActive: boolean
+  dataSource: 'realtime_db' | 'api' | 'mock' | 'binance'
+  realtimeDbPath?: string
+  apiEndpoint?: string
+  cryptoConfig?: {
+    baseCurrency: string
+    quoteCurrency: string
+    exchange?: string
+  }
+  description?: string
+  simulatorSettings?: {
+    initialPrice: number
+    dailyVolatilityMin: number
+    dailyVolatilityMax: number
+    secondVolatilityMin: number
+    secondVolatilityMax: number
+    minPrice?: number
+    maxPrice?: number
+  }
+  tradingSettings?: {
+    minOrderAmount: number
+    maxOrderAmount: number
+    allowedDurations: number[]
+  }
+}
+
+export interface UpdateAssetRequest extends Partial<CreateAssetRequest> {}
+
+// ============================================
+// UTILITY TYPES
+// ============================================
 export interface OrderStats {
   total: number
   active: number
@@ -420,26 +492,9 @@ export interface UserPreferences {
   }
 }
 
-export interface ChartIndicator {
-  id: string
-  name: string
-  type: 'sma' | 'ema' | 'bollinger' | 'rsi' | 'macd' | 'volume' | 'stochastic' | 'atr'
-  enabled: boolean
-  settings: Record<string, any>
-  color?: string
-}
-
-export interface TradingSignal {
-  id: string
-  asset_id: string
-  asset_name: string
-  signal: 'CALL' | 'PUT' | 'NEUTRAL'
-  strength: number
-  indicators: string[]
-  created_at: string
-  expires_at: string
-}
-
+// ============================================
+// CONSTANTS & ENUMS
+// ============================================
 export const DURATIONS = [
   0.0167,
   1, 2, 3, 4, 5, 
@@ -461,7 +516,6 @@ export const DURATION_DISPLAY_MAP: Record<number, string> = {
 }
 
 export const QUICK_AMOUNTS = [10000, 25000, 50000, 100000, 250000, 500000, 1000000] as const
-
 export const TIMEFRAMES = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
 
 export type Duration = typeof DURATIONS[number]
@@ -476,6 +530,9 @@ export type BalanceType = Balance['type']
 export type AssetDataSource = 'realtime_db' | 'api' | 'mock' | 'binance'
 export type AssetCategory = Asset['category']
 
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
 export function formatDurationDisplay(durationMinutes: number): string {
   return DURATION_DISPLAY_MAP[durationMinutes] || `${durationMinutes}m`
 }
@@ -581,6 +638,9 @@ export function isBinanceSupported(baseCurrency: string, quoteCurrency: string):
          BINANCE_SUPPORTED_QUOTE_CURRENCIES.includes(quoteCurrency.toUpperCase() as any)
 }
 
+// ============================================
+// STATUS CONFIGURATION
+// ============================================
 export const STATUS_CONFIG = {
   standard: {
     label: 'Standard',
@@ -608,6 +668,9 @@ export const STATUS_CONFIG = {
   }
 } as const
 
+// ============================================
+// VALIDATION UTILITIES
+// ============================================
 export function validatePhoneNumber(phone: string): boolean {
   const phoneRegex = /^(\+62|62|0)[0-9]{9,12}$/
   return phoneRegex.test(phone)
@@ -708,6 +771,9 @@ export function maskPhoneNumber(phone?: string): string {
   return masked + visible
 }
 
+// ============================================
+// API REQUEST TYPES
+// ============================================
 export interface CreateOrderRequest {
   accountType: AccountType
   asset_id: string
@@ -749,20 +815,9 @@ export interface PaginatedResponse<T> {
   totalPages: number
 }
 
-export interface OrdersResponse extends PaginatedResponse<BinaryOrder> {}
-export interface BalanceHistoryResponse extends PaginatedResponse<Balance> {}
-export interface AssetsResponse {
-  assets: Asset[]
-  total: number
-}
-
-export interface ApiError {
-  error: string
-  message: string
-  statusCode: number
-  details?: any
-}
-
+// ============================================
+// WEBSOCKET & REAL-TIME
+// ============================================
 export interface WSMessage {
   type: 'price_update' | 'order_update' | 'balance_update' | 'notification'
   data: any
@@ -791,6 +846,9 @@ export interface WSBalanceUpdate {
   timestamp: number
 }
 
+// ============================================
+// CHART & INDICATOR TYPES
+// ============================================
 export interface CandlestickData {
   time: number
   open: number
@@ -811,6 +869,9 @@ export interface HistogramData {
   color?: string
 }
 
+// ============================================
+// STATE MANAGEMENT
+// ============================================
 export interface AuthState {
   user: User | null
   token: string | null
@@ -841,6 +902,9 @@ export interface OrderState {
   lastUpdate: number
 }
 
+// ============================================
+// FORM TYPES
+// ============================================
 export interface LoginFormData {
   email: string
   password: string
@@ -866,56 +930,4 @@ export interface BalanceFormData {
   type: 'deposit' | 'withdrawal'
   amount: number
   description?: string
-}
-
-// ✅ NEW: Create Asset DTOs for admin
-export interface CreateAssetRequest {
-  name: string
-  symbol: string
-  category: AssetCategory
-  profitRate: number
-  isActive: boolean
-  dataSource: AssetDataSource
-  realtimeDbPath?: string
-  apiEndpoint?: string
-  cryptoConfig?: {
-    baseCurrency: string
-    quoteCurrency: string
-    exchange?: string
-  }
-  description?: string
-  simulatorSettings?: {
-    initialPrice: number
-    dailyVolatilityMin: number
-    dailyVolatilityMax: number
-    secondVolatilityMin: number
-    secondVolatilityMax: number
-    minPrice?: number
-    maxPrice?: number
-  }
-  tradingSettings?: {
-    minOrderAmount: number
-    maxOrderAmount: number
-    allowedDurations: number[]
-  }
-}
-
-export interface UpdateAssetRequest extends Partial<CreateAssetRequest> {}
-
-// ✅ NEW: Crypto scheduler status
-export interface CryptoSchedulerStatus {
-  isRunning: boolean
-  schedulerActive: boolean
-  assetCount: number
-  updateCount: number
-  errorCount: number
-  lastUpdate: string
-  updateInterval: string
-  api: string
-  assets: Array<{
-    symbol: string
-    pair: string
-    path: string
-  }>
-  ohlcStats?: any
 }

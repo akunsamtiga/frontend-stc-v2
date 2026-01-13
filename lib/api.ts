@@ -1,21 +1,25 @@
-// lib/api.ts - ✅ FIXED: Binance Support
+// lib/api.ts - ✅ FIXED: Complete Binance Support
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
 import type { 
   CreateAssetRequest, 
   UpdateAssetRequest,
-  CryptoSchedulerStatus 
+  CryptoSchedulerStatus,
+  ApiResponse,
+  User,
+  UserProfile,
+  UpdateProfileRequest,
+  Asset,
+  BinaryOrder,
+  Balance,
+  BalanceSummary,
+  TradingStats,
+  SystemStatistics,
+  CreateBalanceEntryRequest,
+  CreateOrderRequest
 } from '@/types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
-
-interface ApiResponse<T = any> {
-  success?: boolean
-  message?: string
-  data?: T
-  error?: string
-  [key: string]: any
-}
 
 interface CacheEntry {
   data: any
@@ -391,7 +395,7 @@ class ApiClient {
   // USER & PROFILE
   // ===================================
 
-  async getProfile(): Promise<ApiResponse> {
+  async getProfile(): Promise<ApiResponse<UserProfile>> {
     const cacheKey = this.getCacheKey('/user/profile')
     
     try {
@@ -410,7 +414,7 @@ class ApiClient {
     }
   }
 
-  async updateProfile(data: any): Promise<ApiResponse> {
+  async updateProfile(data: UpdateProfileRequest): Promise<ApiResponse> {
     try {
       if (!data || typeof data !== 'object') {
         throw new Error('Invalid profile data')
@@ -516,7 +520,7 @@ class ApiClient {
   // BALANCE
   // ===================================
 
-  async getBothBalances(): Promise<ApiResponse> {
+  async getBothBalances(): Promise<ApiResponse<BalanceSummary>> {
     const cacheKey = this.getCacheKey('/balance/both')
     const cached = this.getFromCache(cacheKey)
     
@@ -568,12 +572,7 @@ class ApiClient {
     })
   }
 
-  async createBalanceEntry(data: { 
-    accountType: 'real' | 'demo'
-    type: 'deposit' | 'withdrawal'
-    amount: number
-    description?: string 
-  }): Promise<ApiResponse> {
+  async createBalanceEntry(data: CreateBalanceEntryRequest): Promise<ApiResponse> {
     const result = await this.client.post('/balance', data)
     this.invalidateCache('/balance')
     this.invalidateCache('/user/profile')
@@ -588,7 +587,7 @@ class ApiClient {
   // ASSETS - ✅ UPDATED FOR BINANCE
   // ===================================
 
-  async getAssets(activeOnly = false): Promise<ApiResponse> {
+  async getAssets(activeOnly = false): Promise<ApiResponse<{ assets: Asset[]; total: number }>> {
     const cacheKey = this.getCacheKey('/assets', { activeOnly })
     const cached = this.getFromCache(cacheKey)
     
@@ -601,7 +600,7 @@ class ApiClient {
     })
   }
 
-  async getAssetById(id: string): Promise<ApiResponse> {
+  async getAssetById(id: string): Promise<ApiResponse<Asset>> {
     const cacheKey = this.getCacheKey(`/assets/${id}`)
     const cached = this.getFromCache(cacheKey)
     
@@ -614,7 +613,7 @@ class ApiClient {
     })
   }
 
-  async getCurrentPrice(assetId: string): Promise<ApiResponse> {
+  async getCurrentPrice(assetId: string): Promise<ApiResponse<{ price: number; timestamp: number }>> {
     const cacheKey = this.getCacheKey(`/assets/${assetId}/price`)
     const cached = this.getFromCache(cacheKey)
     
@@ -674,13 +673,7 @@ class ApiClient {
   // BINARY ORDERS
   // ===================================
 
-  async createOrder(data: {
-    accountType: 'real' | 'demo'
-    asset_id: string
-    direction: 'CALL' | 'PUT'
-    amount: number
-    duration: number
-  }): Promise<ApiResponse> {
+  async createOrder(data: CreateOrderRequest): Promise<ApiResponse> {
     const result = await this.client.post('/binary-orders', data, {
       headers: {
         'X-Idempotent': 'true'
@@ -806,7 +799,7 @@ class ApiClient {
   // ADMIN - STATISTICS
   // ===================================
 
-  async getSystemStatistics(): Promise<ApiResponse> {
+  async getSystemStatistics(): Promise<ApiResponse<SystemStatistics>> {
     const cacheKey = this.getCacheKey('/admin/statistics')
     const cached = this.getFromCache(cacheKey)
     
