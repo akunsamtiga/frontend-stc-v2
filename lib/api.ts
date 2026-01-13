@@ -1,4 +1,4 @@
-// lib/api.ts - ✅ FIXED: CoinGecko Support
+// lib/api.ts - ✅ FIXED: Binance Support
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
 import type { 
@@ -585,7 +585,7 @@ class ApiClient {
   }
 
   // ===================================
-  // ASSETS - ✅ UPDATED FOR COINGECKO
+  // ASSETS - ✅ UPDATED FOR BINANCE
   // ===================================
 
   async getAssets(activeOnly = false): Promise<ApiResponse> {
@@ -627,7 +627,7 @@ class ApiClient {
     })
   }
 
-  // ✅ NEW: Admin asset management with CoinGecko support
+  // ✅ NEW: Admin asset management with Binance support
   async createAsset(data: CreateAssetRequest): Promise<ApiResponse> {
     const result = await this.client.post('/assets', data)
     this.invalidateCache('/assets')
@@ -650,7 +650,7 @@ class ApiClient {
     return this.client.get(`/assets/${id}/settings`)
   }
 
-  // ✅ NEW: Crypto scheduler endpoints
+  // ✅ NEW: Crypto scheduler endpoints (Binance)
   async getCryptoSchedulerStatus(): Promise<ApiResponse<CryptoSchedulerStatus>> {
     const cacheKey = this.getCacheKey('/assets/crypto/scheduler/status')
     const cached = this.getFromCache(cacheKey)

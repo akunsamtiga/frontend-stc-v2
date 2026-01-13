@@ -1,4 +1,4 @@
-// types/index.ts - ✅ FIXED: CoinGecko Support
+// types/index.ts - ✅ FIXED: Binance Support (FREE API)
 
 export interface User {
   id: string
@@ -64,7 +64,7 @@ export interface TradingStats {
   totalProfit: number
 }
 
-// ✅ UPDATED: Asset with CoinGecko support
+// ✅ UPDATED: Asset with Binance support
 export interface Asset {
   id: string
   name: string
@@ -72,15 +72,15 @@ export interface Asset {
   category: 'normal' | 'crypto'
   profitRate: number
   isActive: boolean
-  // ✅ FIXED: Changed cryptocompare to coingecko
-  dataSource: 'realtime_db' | 'api' | 'mock' | 'coingecko'
+  // ✅ FIXED: Changed to include 'binance'
+  dataSource: 'realtime_db' | 'api' | 'mock' | 'binance'
   realtimeDbPath?: string
   apiEndpoint?: string
-  // ✅ Crypto config for CoinGecko
+  // ✅ Crypto config for Binance
   cryptoConfig?: {
     baseCurrency: string    // e.g., "BTC", "ETH"
     quoteCurrency: string   // e.g., "USD", "USDT"
-    exchange?: string       // Optional: specific exchange
+    exchange?: string       // Optional: "Binance"
   }
   description?: string
   simulatorSettings?: {
@@ -146,13 +146,12 @@ export interface PriceData {
   datetime_iso?: string
   timezone?: string
   change?: number
-  // ✅ NEW: CoinGecko specific fields
+  // ✅ NEW: Binance specific fields
   volume24h?: number
   change24h?: number
   changePercent24h?: number
   high24h?: number
   low24h?: number
-  marketCap?: number
 }
 
 export interface OHLCData {
@@ -168,8 +167,8 @@ export interface OHLCData {
   isCompleted?: boolean
 }
 
-// ✅ NEW: CoinGecko specific price interface
-export interface CoinGeckoPrice {
+// ✅ NEW: Binance specific price interface
+export interface BinancePrice {
   price: number
   timestamp: number
   datetime: string
@@ -180,8 +179,7 @@ export interface CoinGeckoPrice {
   changePercent24h: number
   high24h: number
   low24h: number
-  marketCap: number
-  source?: 'coingecko'
+  source?: 'binance'
   pair?: string
 }
 
@@ -474,8 +472,8 @@ export type UserStatus = 'standard' | 'gold' | 'vip'
 export type OrderStatus = BinaryOrder['status']
 export type OrderDirection = BinaryOrder['direction']
 export type BalanceType = Balance['type']
-// ✅ FIXED: Changed to include 'coingecko'
-export type AssetDataSource = 'realtime_db' | 'api' | 'mock' | 'coingecko'
+// ✅ FIXED: Changed to include 'binance'
+export type AssetDataSource = 'realtime_db' | 'api' | 'mock' | 'binance'
 export type AssetCategory = Asset['category']
 
 export function formatDurationDisplay(durationMinutes: number): string {
@@ -528,9 +526,9 @@ export function isNormalAsset(asset: Asset): boolean {
   return asset.category === 'normal'
 }
 
-// ✅ NEW: Check if asset uses CoinGecko
-export function usesCoinGecko(asset: Asset): boolean {
-  return asset.dataSource === 'coingecko' || (asset.category === 'crypto' && !!asset.cryptoConfig)
+// ✅ NEW: Check if asset uses Binance
+export function usesBinance(asset: Asset): boolean {
+  return asset.dataSource === 'binance' || (asset.category === 'crypto' && !!asset.cryptoConfig)
 }
 
 export function getAssetCategoryLabel(category: AssetCategory): string {
@@ -543,7 +541,7 @@ export function getDataSourceLabel(dataSource: AssetDataSource): string {
     'realtime_db': 'Realtime Database',
     'api': 'External API',
     'mock': 'Mock Data',
-    'coingecko': 'CoinGecko API'
+    'binance': 'Binance API (FREE)'
   }
   return labels[dataSource] || dataSource
 }
@@ -563,24 +561,24 @@ export function getAssetDisplayName(asset: Asset): string {
   return asset.name
 }
 
-// ✅ NEW: Get CoinGecko supported currencies
-export const COINGECKO_SUPPORTED_COINS = [
+// ✅ NEW: Get Binance supported currencies (from backend mapping)
+export const BINANCE_SUPPORTED_COINS = [
   'BTC', 'ETH', 'BNB', 'XRP', 'ADA', 'SOL', 'DOT', 'DOGE', 
   'MATIC', 'LTC', 'AVAX', 'LINK', 'UNI', 'ATOM', 'XLM', 
   'ALGO', 'VET', 'ICP', 'FIL', 'TRX', 'ETC', 'NEAR', 'APT', 'ARB', 'OP'
 ] as const
 
-export const COINGECKO_SUPPORTED_QUOTE_CURRENCIES = [
-  'USD', 'USDT', 'EUR', 'GBP', 'JPY', 'KRW', 'IDR'
+export const BINANCE_SUPPORTED_QUOTE_CURRENCIES = [
+  'USD', 'USDT', 'BUSD', 'EUR', 'GBP'
 ] as const
 
-export type CoinGeckoSupportedCoin = typeof COINGECKO_SUPPORTED_COINS[number]
-export type CoinGeckoSupportedQuote = typeof COINGECKO_SUPPORTED_QUOTE_CURRENCIES[number]
+export type BinanceSupportedCoin = typeof BINANCE_SUPPORTED_COINS[number]
+export type BinanceSupportedQuote = typeof BINANCE_SUPPORTED_QUOTE_CURRENCIES[number]
 
-// ✅ NEW: Validate CoinGecko crypto config
-export function isCoinGeckoSupported(baseCurrency: string, quoteCurrency: string): boolean {
-  return COINGECKO_SUPPORTED_COINS.includes(baseCurrency.toUpperCase() as any) &&
-         COINGECKO_SUPPORTED_QUOTE_CURRENCIES.includes(quoteCurrency.toUpperCase() as any)
+// ✅ NEW: Validate Binance crypto config
+export function isBinanceSupported(baseCurrency: string, quoteCurrency: string): boolean {
+  return BINANCE_SUPPORTED_COINS.includes(baseCurrency.toUpperCase() as any) &&
+         BINANCE_SUPPORTED_QUOTE_CURRENCIES.includes(quoteCurrency.toUpperCase() as any)
 }
 
 export const STATUS_CONFIG = {
@@ -907,6 +905,7 @@ export interface UpdateAssetRequest extends Partial<CreateAssetRequest> {}
 // ✅ NEW: Crypto scheduler status
 export interface CryptoSchedulerStatus {
   isRunning: boolean
+  schedulerActive: boolean
   assetCount: number
   updateCount: number
   errorCount: number

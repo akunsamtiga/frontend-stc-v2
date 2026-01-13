@@ -58,20 +58,21 @@ const ALL_DURATIONS = [
 
 const VALID_DURATIONS = [0.0167, 1, 2, 3, 4, 5, 15, 30, 45, 60]
 
-// ✅ CoinGecko Supported Coins
-const COINGECKO_COINS = [
+// ✅ FIXED: Changed to Binance
+const BINANCE_COINS = [
   'BTC', 'ETH', 'BNB', 'XRP', 'ADA', 'SOL', 'DOT', 'DOGE', 
   'MATIC', 'LTC', 'AVAX', 'LINK', 'UNI', 'ATOM', 'XLM', 
   'ALGO', 'VET', 'ICP', 'FIL', 'TRX', 'ETC', 'NEAR', 'APT', 'ARB', 'OP'
 ]
 
-const COINGECKO_QUOTE_CURRENCIES = ['USD', 'USDT', 'EUR', 'GBP', 'JPY', 'KRW', 'IDR']
+// ✅ FIXED: Binance quote currencies
+const BINANCE_QUOTE_CURRENCIES = ['USD', 'USDT', 'EUR', 'GBP', 'BUSD']
 
 export default function AssetFormModal({ mode, asset, onClose, onSuccess }: AssetFormModalProps) {
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Form state
+  // ✅ FIXED: Default dataSource for crypto changed to 'binance'
   const [formData, setFormData] = useState({
     name: asset?.name || '',
     symbol: asset?.symbol || '',
@@ -103,14 +104,14 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     allowedDurations: asset?.tradingSettings?.allowedDurations || [0.0167, 1, 2, 3, 4, 5, 15, 30, 45, 60],
   })
 
-  // ✅ Auto-switch dataSource when category changes
+  // ✅ FIXED: Auto-switch to Binance when category changes to crypto
   useEffect(() => {
     if (formData.category === 'crypto') {
       setFormData(prev => ({
         ...prev,
-        dataSource: 'coingecko' // Changed from 'cryptocompare'
+        dataSource: 'binance' // ✅ Changed from 'coingecko'
       }))
-    } else if (formData.category === 'normal' && formData.dataSource === 'coingecko') {
+    } else if (formData.category === 'normal' && formData.dataSource === 'binance') {
       setFormData(prev => ({
         ...prev,
         dataSource: 'realtime_db'
@@ -171,43 +172,43 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     if (formData.category === 'crypto') {
       // CRYPTO ASSETS REQUIREMENTS
       
-      // ✅ FIXED: Changed to 'coingecko'
-      if (formData.dataSource !== 'coingecko') {
-        newErrors.dataSource = 'Crypto assets MUST use "coingecko" data source'
+      // ✅ FIXED: Must use 'binance' data source
+      if (formData.dataSource !== 'binance') {
+        newErrors.dataSource = 'Crypto assets MUST use "binance" data source'
       }
       
       if (!formData.cryptoBaseCurrency.trim()) {
         newErrors.cryptoBaseCurrency = 'Base currency is required for crypto assets'
-      } else if (!COINGECKO_COINS.includes(formData.cryptoBaseCurrency.toUpperCase())) {
-        newErrors.cryptoBaseCurrency = `Unsupported coin. Supported: ${COINGECKO_COINS.join(', ')}`
+      } else if (!BINANCE_COINS.includes(formData.cryptoBaseCurrency.toUpperCase())) {
+        newErrors.cryptoBaseCurrency = `Unsupported coin. Supported: ${BINANCE_COINS.join(', ')}`
       }
       
       if (!formData.cryptoQuoteCurrency.trim()) {
         newErrors.cryptoQuoteCurrency = 'Quote currency is required for crypto assets'
-      } else if (!COINGECKO_QUOTE_CURRENCIES.includes(formData.cryptoQuoteCurrency.toUpperCase())) {
-        newErrors.cryptoQuoteCurrency = `Unsupported quote currency. Supported: ${COINGECKO_QUOTE_CURRENCIES.join(', ')}`
+      } else if (!BINANCE_QUOTE_CURRENCIES.includes(formData.cryptoQuoteCurrency.toUpperCase())) {
+        newErrors.cryptoQuoteCurrency = `Unsupported quote currency. Supported: ${BINANCE_QUOTE_CURRENCIES.join(', ')}`
       }
       
       // ✅ Crypto assets should NOT have apiEndpoint OR simulatorSettings
       if (formData.apiEndpoint.trim()) {
-        newErrors.apiEndpoint = 'Crypto assets should not have API endpoint (CoinGecko API is used automatically)'
+        newErrors.apiEndpoint = 'Crypto assets should not have API endpoint (Binance API is used automatically)'
       }
       
-      // Check if simulator settings are being set (should not be for crypto)
+      // ✅ FIXED: Check if simulator settings are being set (should not be for crypto)
       const hasSimulatorSettings = formData.initialPrice !== 40.022 || 
                                    formData.dailyVolatilityMin !== 0.001 ||
                                    formData.dailyVolatilityMax !== 0.005
       
       if (hasSimulatorSettings) {
-        newErrors.simulatorSettings = 'Crypto assets should not have simulator settings (real-time CoinGecko data is used)'
+        newErrors.simulatorSettings = 'Crypto assets should not have simulator settings (real-time Binance data is used)'
       }
       
     } else {
       // NORMAL ASSETS REQUIREMENTS
       
-      // ✅ FIXED: Changed to 'coingecko'
-      if (formData.dataSource === 'coingecko') {
-        newErrors.dataSource = 'Normal assets cannot use "coingecko". Use "realtime_db" or "mock"'
+      // ✅ FIXED: Normal assets cannot use "binance"
+      if (formData.dataSource === 'binance') {
+        newErrors.dataSource = 'Normal assets cannot use "binance". Use "realtime_db", "mock", or "api"'
       }
       
       if (formData.cryptoBaseCurrency.trim() || formData.cryptoQuoteCurrency !== 'USD') {
@@ -287,14 +288,14 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
       let payload: any
 
       if (formData.category === 'crypto') {
-        // ✅ CRYPTO ASSET PAYLOAD (CoinGecko)
+        // ✅ FIXED: CRYPTO ASSET PAYLOAD (Binance)
         payload = {
           name: formData.name.trim(),
           symbol: formData.symbol.trim().toUpperCase(),
           category: 'crypto',
           profitRate: Number(formData.profitRate),
           isActive: Boolean(formData.isActive),
-          dataSource: 'coingecko', // ✅ FIXED: Changed from 'cryptocompare'
+          dataSource: 'binance', // ✅ Changed from 'coingecko'
           description: formData.description.trim(),
           cryptoConfig: {
             baseCurrency: formData.cryptoBaseCurrency.trim().toUpperCase(),
@@ -313,6 +314,9 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             allowedDurations: [...formData.allowedDurations].sort((a, b) => a - b)
           }
         }
+        
+        // ✅ IMPORTANT: No simulatorSettings for crypto
+        // ✅ IMPORTANT: No apiEndpoint for crypto
         
       } else {
         // NORMAL ASSET PAYLOAD
@@ -390,9 +394,9 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
 
   const hasUltraFast = formData.allowedDurations.includes(0.0167)
 
-  // ✅ FIXED: Changed cryptocompare to coingecko
+  // ✅ FIXED: Changed CoinGecko to Binance
   const availableDataSources = formData.category === 'crypto'
-    ? [{ value: 'coingecko', label: '🪙 CoinGecko API (Real-time Crypto)' }]
+    ? [{ value: 'binance', label: '🪙 Binance API (Real-time Crypto)' }]
     : [
         { value: 'realtime_db', label: '🔥 Firebase Realtime DB' },
         { value: 'mock', label: '🎲 Mock/Simulator' },
@@ -411,7 +415,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             <div className="flex items-center gap-2 mt-2">
               {formData.category === 'crypto' && (
                 <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded font-semibold">
-                  🪙 Crypto Mode (CoinGecko)
+                  🪙 Crypto Mode (Binance) {/* ✅ Changed from CoinGecko */}
                 </span>
               )}
               {formData.category === 'normal' && (
@@ -538,7 +542,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                     </div>
                     {formData.category === 'crypto' && (
                       <div className="mt-2 text-xs text-orange-700 bg-orange-100 px-2 py-1 rounded">
-                        Real-time CoinGecko API
+                        Real-time Binance API {/* ✅ Changed from CoinGecko */}
                       </div>
                     )}
                   </button>
@@ -608,17 +612,17 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
 
           {/* Conditional Rendering Based on Category */}
           {formData.category === 'crypto' ? (
-            // ✅ CRYPTO ASSET CONFIGURATION (CoinGecko)
+            // ✅ FIXED: CRYPTO ASSET CONFIGURATION (Binance)
             <>
               <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-300 rounded-xl p-6">
                 <div className="flex items-start gap-3 mb-4">
                   <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 mb-1">
-                      🪙 Cryptocurrency Configuration (CoinGecko)
+                      🪙 Cryptocurrency Configuration (Binance) {/* ✅ Changed from CoinGecko */}
                     </h3>
                     <p className="text-sm text-orange-800">
-                      Crypto assets use <strong>real-time CoinGecko API</strong>. 
+                      Crypto assets use <strong>real-time Binance API</strong>. {/* ✅ Changed from CoinGecko */}
                       Backend fetches prices and stores to Realtime DB automatically.
                     </p>
                   </div>
@@ -637,7 +641,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                       }`}
                     >
                       <option value="">Select Coin</option>
-                      {COINGECKO_COINS.map(coin => (
+                      {BINANCE_COINS.map(coin => (
                         <option key={coin} value={coin}>{coin}</option>
                       ))}
                     </select>
@@ -658,7 +662,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                       onChange={(e) => setFormData({ ...formData, cryptoQuoteCurrency: e.target.value })}
                       className="w-full px-4 py-2.5 border-2 border-orange-200 rounded-xl focus:outline-none focus:border-orange-500"
                     >
-                      {COINGECKO_QUOTE_CURRENCIES.map(currency => (
+                      {BINANCE_QUOTE_CURRENCIES.map(currency => (
                         <option key={currency} value={currency}>{currency}</option>
                       ))}
                     </select>
@@ -718,15 +722,15 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                       <span className="text-xl">🪙</span>
                     </div>
                     <div>
-                      <p className="font-bold text-gray-900">CoinGecko API</p>
+                      <p className="font-bold text-gray-900">Binance API</p> {/* ✅ Changed from CoinGecko */}
                       <p className="text-sm text-gray-600">
-                        Real-time cryptocurrency prices (locked for crypto assets)
+                        Real-time cryptocurrency prices via Backend (locked for crypto assets)
                       </p>
                     </div>
                   </div>
                   <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-xs text-blue-900">
-                      <strong>💡 Data Flow:</strong> CoinGecko API → Backend → Realtime Database → Frontend
+                      <strong>💡 Data Flow:</strong> Binance API → Backend → Realtime Database → Frontend {/* ✅ Changed from CoinGecko */}
                     </p>
                   </div>
                 </div>
@@ -1008,7 +1012,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                   <p className="text-xs text-yellow-800">
                     <strong>⚡ Ultra-Fast Trading:</strong> 1-second orders require high-frequency data updates. 
                     {formData.category === 'crypto' 
-                      ? ' CoinGecko API provides real-time updates.'
+                      ? ' Binance API provides real-time updates.' 
                       : ' Ensure simulator is running with 1s update interval.'
                     }
                   </p>
