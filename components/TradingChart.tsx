@@ -10,7 +10,6 @@ import { formatCurrency, calculateTimeLeft } from '@/lib/utils'
 import { database, ref, get } from '@/lib/firebase'
 import dynamic from 'next/dynamic'
 import { Maximize2, Minimize2, RefreshCw, Activity, TrendingUp, TrendingDown, ChevronDown, Server, Sliders, Clock, BarChart2, ArrowUp, ArrowDown, HelpCircle, X, MessageCircle, Mail, Send, Minus, TrendingDownIcon as LineIcon, Circle, Square, ArrowRight, Type, Zap } from 'lucide-react'
-import type { IndicatorConfig } from './IndicatorControls'
 
 const IndicatorControls = dynamic(() => import('./IndicatorControls'), { ssr: false })
 
@@ -29,6 +28,17 @@ interface DrawingObject {
   points: { time: number; price: number }[]
   color: string
   text?: string
+}
+
+interface IndicatorConfig {
+  sma?: { enabled: boolean; period: number; color: string }
+  ema?: { enabled: boolean; period: number; color: string }
+  bollinger?: { enabled: boolean; period: number; stdDev: number; colorUpper: string; colorMiddle: string; colorLower: string }
+  rsi?: { enabled: boolean; period: number; overbought: number; oversold: number }
+  macd?: { enabled: boolean; fastPeriod: number; slowPeriod: number; signalPeriod: number }
+  volume?: { enabled: boolean; maPeriod: number }
+  stochastic?: { enabled: boolean; kPeriod: number; dPeriod: number; overbought: number; oversold: number }
+  atr?: { enabled: boolean; period: number }
 }
 
 const DEFAULT_INDICATOR_CONFIG: IndicatorConfig = {
@@ -50,6 +60,24 @@ function cleanAssetPath(path: string): string {
   path = path.replace(/\/$/, '')
   if (!path.startsWith('/')) path = '/' + path
   return path
+}
+
+function getTimeframeSeconds(timeframe: Timeframe): number {
+  switch (timeframe) {
+    case '1s': return 1
+    case '1m': return 60
+    case '5m': return 300
+    case '15m': return 900
+    case '1h': return 3600
+    case '4h': return 14400
+    case '1d': return 86400
+    default: return 60
+  }
+}
+
+function getBarPeriodTimestamp(timestamp: number, timeframe: Timeframe): number {
+  const seconds = getTimeframeSeconds(timeframe)
+  return Math.floor(timestamp / seconds) * seconds
 }
 
 async function checkSimulatorStatus(assetPath: string): Promise<{
@@ -108,7 +136,7 @@ const RealtimeClock = memo(() => {
   useEffect(() => {
     const interval = setInterval(() => {
       setTime(new Date())
-    }, 1000)
+    }, 100)
 
     return () => clearInterval(interval)
   }, [])
@@ -128,13 +156,11 @@ const RealtimeClock = memo(() => {
     timeZone: 'Asia/Jakarta'
   })
 
-  const msStr = time.getMilliseconds().toString().padStart(3, '0')
-
   return (
     <div className="absolute top-14 left-2 z-10 bg-black/20 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/10">
       <div className="flex items-center gap-2">
         <div className="text-xs font-light text-white">
-          {timeStr}.{msStr} <span className="text-gray-400">|</span> {dateStr}
+          {timeStr} <span className="text-gray-400">|</span> {dateStr}
         </div>
       </div>
     </div>
@@ -142,191 +168,6 @@ const RealtimeClock = memo(() => {
 })
 
 RealtimeClock.displayName = 'RealtimeClock'
-
-const SupportPopup = memo(({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
-  if (!isOpen) return null
-
-  const contacts = [
-    {
-      icon: MessageCircle,
-      name: 'WhatsApp',
-      value: '+62 812-3456-7890',
-      color: 'text-green-400',
-      bgColor: 'bg-green-500/10',
-      borderColor: 'border-green-500/30',
-      hoverBg: 'hover:bg-green-500/20',
-      action: () => window.open('https://wa.me/6281234567890', '_blank')
-    },
-    {
-      icon: Send,
-      name: 'Telegram',
-      value: '@stc_support',
-      color: 'text-blue-400',
-      bgColor: 'bg-blue-500/10',
-      borderColor: 'border-blue-500/30',
-      hoverBg: 'hover:bg-blue-500/20',
-      action: () => window.open('https://t.me/stc_support', '_blank')
-    },
-    {
-      icon: Mail,
-      name: 'Email',
-      value: 'support@stc.com',
-      color: 'text-purple-400',
-      bgColor: 'bg-purple-500/10',
-      borderColor: 'border-purple-500/30',
-      hoverBg: 'hover:bg-purple-500/20',
-      action: () => window.open('mailto:support@stc.com', '_blank')
-    }
-  ]
-
-  return (
-    <>
-      <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div className="hidden lg:block absolute top-1/2 right-full mr-3 -translate-y-1/2 w-80 bg-[#0f1419] border border-gray-800/50 rounded-xl shadow-2xl z-50 animate-scale-in overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-b border-gray-800/50 px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
-              <HelpCircle className="w-4 h-4 text-blue-400" />
-            </div>
-            <div>
-              <div className="text-sm font-bold">Butuh Bantuan?</div>
-              <div className="text-xs text-gray-400">Hubungi support kami</div>
-            </div>
-          </div>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center hover:bg-white/10 rounded-lg transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="p-3 space-y-2">
-          {contacts.map((contact) => (
-            <button key={contact.name} onClick={contact.action} className={`w-full ${contact.bgColor} ${contact.borderColor} border ${contact.hoverBg} rounded-lg p-3 transition-all group`}>
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 ${contact.bgColor} rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                  <contact.icon className={`w-5 h-5 ${contact.color}`} />
-                </div>
-                <div className="flex-1 text-left">
-                  <div className="text-sm font-bold text-white">{contact.name}</div>
-                  <div className="text-xs text-gray-400">{contact.value}</div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </button>
-          ))}
-        </div>
-
-        <div className="bg-[#1a1f2e] border-t border-gray-800/50 px-4 py-2.5">
-          <div className="text-xs text-gray-400 text-center">
-            Available 24/7 • Response time: &lt;5 minutes
-          </div>
-        </div>
-      </div>
-    </>
-  )
-})
-
-SupportPopup.displayName = 'SupportPopup'
-
-const DrawingTools = memo(({ 
-  activeTool, 
-  onToolChange,
-  onClear 
-}: { 
-  activeTool: DrawingTool
-  onToolChange: (tool: DrawingTool) => void
-  onClear: () => void
-}) => {
-  const [isOpen, setIsOpen] = useState(false)
-
-  const tools = [
-    { id: 'none' as DrawingTool, icon: ArrowUp, label: 'Select', transform: 'rotate-45' },
-    { id: 'trendline' as DrawingTool, icon: LineIcon, label: 'Trend Line' },
-    { id: 'horizontal' as DrawingTool, icon: Minus, label: 'Horizontal' },
-    { id: 'vertical' as DrawingTool, icon: Minus, label: 'Vertical', transform: 'rotate-90' },
-    { id: 'rectangle' as DrawingTool, icon: Square, label: 'Rectangle' },
-    { id: 'circle' as DrawingTool, icon: Circle, label: 'Circle' },
-    { id: 'text' as DrawingTool, icon: Type, label: 'Text' },
-  ]
-
-  return (
-    <div className="relative">
-      <button onClick={() => setIsOpen(!isOpen)} className={`p-2.5 rounded-lg transition-all ${
-        activeTool !== 'none' ? 'bg-blue-500/20 border border-blue-500/50 text-blue-400' : 'bg-black/20 backdrop-blur-md border border-white/10 hover:bg-black/30'
-      }`} title="Drawing Tools">
-        <LineIcon className="w-5 h-5" />
-      </button>
-
-      {isOpen && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-full right-0 mt-2 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden min-w-[180px]">
-            <div className="p-2">
-              {tools.map((tool) => (
-                <button key={tool.id} onClick={() => { onToolChange(tool.id); setIsOpen(false) }} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-                  activeTool === tool.id ? 'bg-blue-500/20 text-blue-400' : 'hover:bg-[#1a1f2e] text-gray-300'
-                }`}>
-                  <tool.icon className={`w-4 h-4 ${tool.transform || ''}`} />
-                  <span className="text-sm font-medium">{tool.label}</span>
-                </button>
-              ))}
-              
-              {activeTool !== 'none' && (
-                <>
-                  <div className="h-px bg-gray-800/50 my-2" />
-                  <button onClick={() => { onClear(); setIsOpen(false) }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-red-500/10 text-red-400 transition-all">
-                    <X className="w-4 h-4" />
-                    <span className="text-sm font-medium">Clear All</span>
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  )
-})
-
-DrawingTools.displayName = 'DrawingTools'
-
-const SimulatorStatus = memo(({ 
-  status, 
-  onRetry 
-}: { 
-  status: { isRunning: boolean; message: string } | null
-  onRetry: () => void
-}) => {
-  if (!status || status.isRunning) return null
-  
-  return (
-    <div className="absolute inset-0 flex items-center justify-center bg-[#0a0e17]/95 z-20">
-      <div className="text-center max-w-md px-6">
-        <div className="w-16 h-16 bg-red-500/10 border-2 border-red-500/30 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Server className="w-8 h-8 text-red-400" />
-        </div>
-        
-        <div className="text-lg font-bold text-red-400 mb-2">
-          Simulator Not Running
-        </div>
-        
-        <div className="text-sm text-gray-400 mb-1">
-          {status.message}
-        </div>
-        
-        <div className="text-xs text-gray-500 mb-6">
-          Please start the data simulator to view real-time data
-        </div>
-        
-        <button onClick={onRetry} className="px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2 mx-auto">
-          <RefreshCw className="w-4 h-4" />
-          Check Again
-        </button>
-      </div>
-    </div>
-  )
-})
-
-SimulatorStatus.displayName = 'SimulatorStatus'
 
 const PriceDisplay = memo(({ asset, price }: { asset: any; price: any }) => {
   if (!asset || !price) return null
@@ -397,18 +238,54 @@ const OHLCDisplay = memo(({
 
 OHLCDisplay.displayName = 'OHLCDisplay'
 
+const SimulatorStatus = memo(({ 
+  status, 
+  onRetry 
+}: { 
+  status: { isRunning: boolean; message: string } | null
+  onRetry: () => void
+}) => {
+  if (!status || status.isRunning) return null
+  
+  return (
+    <div className="absolute inset-0 flex items-center justify-center bg-[#0a0e17]/95 z-20">
+      <div className="text-center max-w-md px-6">
+        <div className="w-16 h-16 bg-red-500/10 border-2 border-red-500/30 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Server className="w-8 h-8 text-red-400" />
+        </div>
+        
+        <div className="text-lg font-bold text-red-400 mb-2">
+          Simulator Not Running
+        </div>
+        
+        <div className="text-sm text-gray-400 mb-1">
+          {status.message}
+        </div>
+        
+        <div className="text-xs text-gray-500 mb-6">
+          Please start the data simulator to view real-time data
+        </div>
+        
+        <button onClick={onRetry} className="px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2 mx-auto">
+          <RefreshCw className="w-4 h-4" />
+          Check Again
+        </button>
+      </div>
+    </div>
+  )
+})
+
+SimulatorStatus.displayName = 'SimulatorStatus'
+
 const MobileControls = memo(({ 
   timeframe, 
   chartType, 
   isLoading,
-  activeTool,
   onTimeframeChange,
   onChartTypeChange,
   onFitContent,
   onRefresh,
-  onOpenIndicators,
-  onToolChange,
-  onClearDrawings
+  onOpenIndicators
 }: any) => {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -473,16 +350,6 @@ const MobileControls = memo(({
               <button onClick={() => { onOpenIndicators(); setIsOpen(false) }} className="px-2 py-1.5 text-xs font-medium text-gray-300 bg-[#1a1f2e] hover:bg-[#232936] rounded transition-all flex items-center gap-2">
                 <Sliders className="w-3.5 h-3.5" /> Indicators
               </button>
-              <button onClick={() => { onToolChange(activeTool === 'none' ? 'trendline' : 'none'); setIsOpen(false) }} className={`px-2 py-1.5 text-xs font-medium rounded transition-all flex items-center gap-2 ${
-                activeTool !== 'none' ? 'bg-blue-500/20 text-blue-400' : 'text-gray-300 bg-[#1a1f2e] hover:bg-[#232936]'
-              }`}>
-                <LineIcon className="w-3.5 h-3.5" /> Drawing Tools
-              </button>
-              {activeTool !== 'none' && (
-                <button onClick={() => { onClearDrawings(); setIsOpen(false) }} className="px-2 py-1.5 text-xs font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded transition-all flex items-center gap-2">
-                  <X className="w-3.5 h-3.5" /> Clear Drawings
-                </button>
-              )}
               <div className="flex gap-1">
                 <button onClick={() => { onFitContent(); setIsOpen(false) }} className="flex-1 px-2 py-1.5 text-xs font-medium text-gray-300 bg-[#1a1f2e] hover:bg-[#232936] rounded transition-all">Fit</button>
                 <button onClick={() => { onRefresh(); setIsOpen(false) }} disabled={isLoading} className="px-2 py-1.5 text-gray-300 bg-[#1a1f2e] hover:bg-[#232936] rounded transition-all disabled:opacity-50 flex items-center gap-1">
@@ -503,15 +370,12 @@ const DesktopControls = memo(({
   timeframe, 
   chartType, 
   isLoading,
-  activeTool,
   onTimeframeChange,
   onChartTypeChange,
   onFitContent,
   onRefresh,
   onToggleFullscreen,
   onOpenIndicators,
-  onToolChange,
-  onClearDrawings,
   isFullscreen
 }: any) => {
   const [showTimeframeMenu, setShowTimeframeMenu] = useState(false)
@@ -576,7 +440,6 @@ const DesktopControls = memo(({
           <button onClick={onOpenIndicators} className="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors" title="Indicators">
             <Sliders className="w-5 h-5" />
           </button>
-          <DrawingTools activeTool={activeTool} onToolChange={onToolChange} onClear={onClearDrawings} />
           <button onClick={onRefresh} disabled={isLoading} className="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-50" title="Refresh">
             <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
@@ -591,51 +454,6 @@ const DesktopControls = memo(({
 
 DesktopControls.displayName = 'DesktopControls'
 
-const OrderTicker = memo(({ orders, currentPrice }: { orders: BinaryOrder[], currentPrice?: number }) => {
-  if (orders.length === 0) return null
-
-  return (
-    <div className="absolute bottom-4 left-4 z-20 pointer-events-none">
-      <div className="flex flex-col gap-2 items-start">
-        {orders.map((order) => {
-          const timeLeft = calculateTimeLeft(order.exit_time || '')
-          const priceDiff = currentPrice ? currentPrice - order.entry_price : 0
-          const isWinning = order.direction === 'CALL' ? priceDiff > 0 : priceDiff < 0
-
-          return (
-            <div key={order.id} className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg backdrop-blur-md border shadow-lg animate-slide-up pointer-events-auto ${
-              isWinning ? 'bg-green-500/20 border-green-500/50' : 'bg-red-500/20 border-red-500/50'
-            }`}>
-              {order.direction === 'CALL' ? <TrendingUp className="w-4 h-4 text-green-400 flex-shrink-0" /> : <TrendingDown className="w-4 h-4 text-red-400 flex-shrink-0" />}
-
-              <div className="text-xs">
-                <div className="font-semibold leading-tight">{order.asset_name}</div>
-                <div className="text-gray-300 text-[10px]">{order.entry_price.toFixed(3)}</div>
-              </div>
-
-              <div className="w-px h-6 bg-white/10"></div>
-
-              <div className="text-xs">
-                <div className={`font-bold leading-tight ${isWinning ? 'text-green-400' : 'text-red-400'}`}>{isWinning ? 'WIN' : 'LOSE'}</div>
-                <div className="text-gray-300 text-[10px]">{calculateTimeLeft(order.exit_time || '')}</div>
-              </div>
-
-              <div className="w-px h-6 bg-white/10"></div>
-
-              <div className="text-xs text-right">
-                <div className="text-gray-400 text-[10px] leading-tight">Amount</div>
-                <div className="font-bold leading-tight">{formatCurrency(order.amount)}</div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-})
-
-OrderTicker.displayName = 'OrderTicker'
-
 const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const fullscreenContainerRef = useRef<HTMLDivElement>(null)
@@ -643,37 +461,26 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null)
   const lineSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   
-  const indicatorSeriesRefs = useRef<{
-    sma?: ISeriesApi<"Line">
-    ema?: ISeriesApi<"Line">
-    bollingerUpper?: ISeriesApi<"Line">
-    bollingerMiddle?: ISeriesApi<"Line">
-    bollingerLower?: ISeriesApi<"Line">
-    rsi?: ISeriesApi<"Line">
-    macd?: ISeriesApi<"Line">
-    macdSignal?: ISeriesApi<"Line">
-    macdHistogram?: ISeriesApi<"Histogram">
-    volume?: ISeriesApi<"Histogram">
-    volumeMA?: ISeriesApi<"Line">
-    stochasticK?: ISeriesApi<"Line">
-    stochasticD?: ISeriesApi<"Line">
-    atr?: ISeriesApi<"Line">
-  }>({})
-
-  const drawingSeriesRef = useRef<ISeriesApi<"Line">[]>([])
-  const unsubscribeOHLCRef = useRef<(() => void) | null>(null)
-  const unsubscribePriceRef = useRef<(() => void) | null>(null)
-  const unsubscribeUltraFastRef = useRef<(() => void) | null>(null)
+  const unsubscribe1sRef = useRef<(() => void) | null>(null)
+  const unsubscribeTimeframeRef = useRef<(() => void) | null>(null)
   
   const mountedRef = useRef(false)
   const currentDataRef = useRef<any[]>([])
-  const ultraFastDataRef = useRef<any[]>([])
-  const lastUltraFastUpdateRef = useRef<number>(0)
+  
+  // ✅ KUNCI: State untuk menyimpan bar yang sedang berlangsung
+  const currentBarRef = useRef<{
+    timestamp: number
+    open: number
+    high: number
+    low: number
+    close: number
+    volume: number
+  } | null>(null)
   
   const { selectedAsset } = useTradingStore()
 
   const [chartType, setChartType] = useState<ChartType>('candle')
-  const [timeframe, setTimeframe] = useState<Timeframe>('1s')
+  const [timeframe, setTimeframe] = useState<Timeframe>('1m')
   const [isLoading, setIsLoading] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
@@ -698,11 +505,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   } | null>(null)
   const [showOhlc, setShowOhlc] = useState(false)
 
-  const [showSupportPopup, setShowSupportPopup] = useState(false)
-  const [activeTool, setActiveTool] = useState<DrawingTool>('none')
-  const [drawings, setDrawings] = useState<DrawingObject[]>([])
-  const [currentDrawing, setCurrentDrawing] = useState<DrawingObject | null>(null)
-
   const checkSimulator = useCallback(async () => {
     if (!selectedAsset?.realtimeDbPath) return
     
@@ -713,185 +515,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       console.error('Simulator not running:', status.message)
     }
   }, [selectedAsset?.realtimeDbPath])
-
-  const renderIndicators = useCallback(() => {
-    if (!chartRef.current || currentDataRef.current.length === 0) return
-
-    const data = currentDataRef.current
-
-    Object.values(indicatorSeriesRefs.current).forEach(series => {
-      if (series) {
-        try {
-          chartRef.current?.removeSeries(series)
-        } catch (e) {}
-      }
-    })
-    indicatorSeriesRefs.current = {}
-
-    if (indicatorConfig.sma?.enabled && indicatorConfig.sma.period) {
-      try {
-        const { calculateSMA } = require('@/lib/indicators')
-        const smaData = calculateSMA(data, indicatorConfig.sma.period)
-        const smaSeries = chartRef.current.addLineSeries({
-          color: indicatorConfig.sma.color,
-          lineWidth: 2,
-          title: `SMA(${indicatorConfig.sma.period})`,
-          priceLineVisible: false,
-          lastValueVisible: false
-        })
-        smaSeries.setData(smaData.map((d: any) => ({ time: d.time as UTCTimestamp, value: d.value })))
-        indicatorSeriesRefs.current.sma = smaSeries
-      } catch (e) {
-        console.error('SMA error:', e)
-      }
-    }
-
-    if (indicatorConfig.ema?.enabled && indicatorConfig.ema.period) {
-      try {
-        const { calculateEMA } = require('@/lib/indicators')
-        const emaData = calculateEMA(data, indicatorConfig.ema.period)
-        const emaSeries = chartRef.current.addLineSeries({
-          color: indicatorConfig.ema.color,
-          lineWidth: 2,
-          title: `EMA(${indicatorConfig.ema.period})`,
-          priceLineVisible: false,
-          lastValueVisible: false
-        })
-        emaSeries.setData(emaData.map((d: any) => ({ time: d.time as UTCTimestamp, value: d.value })))
-        indicatorSeriesRefs.current.ema = emaSeries
-      } catch (e) {
-        console.error('EMA error:', e)
-      }
-    }
-
-    if (indicatorConfig.bollinger?.enabled && indicatorConfig.bollinger.period) {
-      try {
-        const { calculateBollingerBands } = require('@/lib/indicators')
-        const bbData = calculateBollingerBands(data, indicatorConfig.bollinger.period, indicatorConfig.bollinger.stdDev)
-        
-        const upperSeries = chartRef.current.addLineSeries({
-          color: indicatorConfig.bollinger.colorUpper,
-          lineWidth: 1,
-          lineStyle: LineStyle.Dashed,
-          title: `BB Upper`,
-          priceLineVisible: false,
-          lastValueVisible: false
-        })
-        upperSeries.setData(bbData.map((d: any) => ({ time: d.time as UTCTimestamp, value: d.upper })))
-        
-        const middleSeries = chartRef.current.addLineSeries({
-          color: indicatorConfig.bollinger.colorMiddle,
-          lineWidth: 1,
-          title: `BB Middle`,
-          priceLineVisible: false,
-          lastValueVisible: false
-        })
-        middleSeries.setData(bbData.map((d: any) => ({ time: d.time as UTCTimestamp, value: d.middle })))
-        
-        const lowerSeries = chartRef.current.addLineSeries({
-          color: indicatorConfig.bollinger.colorLower,
-          lineWidth: 1,
-          lineStyle: LineStyle.Dashed,
-          title: `BB Lower`,
-          priceLineVisible: false,
-          lastValueVisible: false
-        })
-        lowerSeries.setData(bbData.map((d: any) => ({ time: d.time as UTCTimestamp, value: d.lower })))
-        
-        indicatorSeriesRefs.current.bollingerUpper = upperSeries
-        indicatorSeriesRefs.current.bollingerMiddle = middleSeries
-        indicatorSeriesRefs.current.bollingerLower = lowerSeries
-      } catch (e) {
-        console.error('Bollinger Bands error:', e)
-      }
-    }
-
-    if (indicatorConfig.volume?.enabled && data.some((d: any) => d.volume)) {
-      try {
-        const volumeSeries = chartRef.current.addHistogramSeries({
-          color: '#26a69a',
-          priceFormat: { type: 'volume' },
-          priceScaleId: 'volume',
-        })
-        volumeSeries.priceScale().applyOptions({
-          scaleMargins: { top: 0.8, bottom: 0 }
-        })
-        volumeSeries.setData(data.map((d: any) => ({
-          time: d.time as UTCTimestamp,
-          value: d.volume || 0,
-          color: d.close >= d.open ? '#26a69a' : '#ef5350'
-        })))
-        indicatorSeriesRefs.current.volume = volumeSeries
-
-        if (indicatorConfig.volume.maPeriod) {
-          const { calculateVolumeMA } = require('@/lib/indicators')
-          const volumeMAData = calculateVolumeMA(data, indicatorConfig.volume.maPeriod)
-          const volumeMASeries = chartRef.current.addLineSeries({
-            color: '#2962FF',
-            lineWidth: 1,
-            priceScaleId: 'volume',
-            priceLineVisible: false,
-            lastValueVisible: false
-          })
-          volumeMASeries.setData(volumeMAData.map((d: any) => ({ time: d.time as UTCTimestamp, value: d.value })))
-          indicatorSeriesRefs.current.volumeMA = volumeMASeries
-        }
-      } catch (e) {
-        console.error('Volume error:', e)
-      }
-    }
-
-  }, [indicatorConfig])
-
-  const clearDrawings = useCallback(() => {
-    drawingSeriesRef.current.forEach(series => {
-      try {
-        chartRef.current?.removeSeries(series)
-      } catch (e) {}
-    })
-    drawingSeriesRef.current = []
-    setDrawings([])
-    setCurrentDrawing(null)
-  }, [])
-
-  const renderDrawings = useCallback(() => {
-    if (!chartRef.current) return
-
-    drawingSeriesRef.current.forEach(series => {
-      try {
-        chartRef.current?.removeSeries(series)
-      } catch (e) {}
-    })
-    drawingSeriesRef.current = []
-
-    drawings.forEach(drawing => {
-      if (drawing.type === 'trendline' || drawing.type === 'horizontal' || drawing.type === 'vertical') {
-        if (drawing.points.length >= 2) {
-          const series = chartRef.current!.addLineSeries({
-            color: drawing.color,
-            lineWidth: 2 as LineWidth,
-            priceLineVisible: false,
-            lastValueVisible: false
-          })
-          
-          const data = drawing.points.map(p => ({
-            time: p.time as UTCTimestamp,
-            value: p.price
-          }))
-          
-          series.setData(data)
-          drawingSeriesRef.current.push(series)
-        }
-      }
-    })
-  }, [drawings])
-
-  useEffect(() => {
-    if (isInitialized && currentDataRef.current.length > 0) {
-      renderIndicators()
-      renderDrawings()
-    }
-  }, [indicatorConfig, isInitialized, renderIndicators, renderDrawings])
 
   const toggleFullscreen = useCallback(async () => {
     const container = fullscreenContainerRef.current
@@ -919,6 +542,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
   }, [])
 
+  // ✅ Initialize chart
   useEffect(() => {
     if (mountedRef.current) return
     
@@ -944,18 +568,11 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         timeScale: {
           borderColor: 'rgba(255, 255, 255, 0.1)',
           timeVisible: true,
-          secondsVisible: timeframe === '1s'
+          secondsVisible: false
         },
         localization: {
           locale: 'id-ID',
-          dateFormat: 'dd/MM/yyyy',
-          timeFormatter: (time: number) => {
-            const date = new Date(time * 1000)
-            const hours = date.getHours().toString().padStart(2, '0')
-            const minutes = date.getMinutes().toString().padStart(2, '0')
-            const seconds = date.getSeconds().toString().padStart(2, '0')
-            return timeframe === '1s' ? `${hours}:${minutes}:${seconds}` : `${hours}:${minutes}`
-          }
+          dateFormat: 'dd/MM/yyyy'
         }
       })
 
@@ -1016,9 +633,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       return () => {
         window.removeEventListener('resize', handleResize)
         
-        if (unsubscribeOHLCRef.current) unsubscribeOHLCRef.current()
-        if (unsubscribePriceRef.current) unsubscribePriceRef.current()
-        if (unsubscribeUltraFastRef.current) unsubscribeUltraFastRef.current()
+        if (unsubscribe1sRef.current) unsubscribe1sRef.current()
+        if (unsubscribeTimeframeRef.current) unsubscribeTimeframeRef.current()
         
         mountedRef.current = false
         setIsInitialized(false)
@@ -1031,8 +647,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       console.error('Chart init error:', err)
       mountedRef.current = false
     }
-  }, [timeframe])
+  }, [chartType])
 
+  // ✅ Chart type switch
   useEffect(() => {
     if (!candleSeriesRef.current || !lineSeriesRef.current) return
 
@@ -1045,6 +662,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [chartType])
 
+  // ✅ MAIN LOGIC: Load data dan subscribe ke real-time updates
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
       return
@@ -1056,28 +674,26 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       setIsLoading(true)
       setOpeningPrice(null)
       setLastPrice(null)
+      currentBarRef.current = null
 
       await checkSimulator()
 
-      if (unsubscribeOHLCRef.current) {
-        unsubscribeOHLCRef.current()
-        unsubscribeOHLCRef.current = null
+      // Cleanup previous subscriptions
+      if (unsubscribe1sRef.current) {
+        unsubscribe1sRef.current()
+        unsubscribe1sRef.current = null
       }
       
-      if (unsubscribePriceRef.current) {
-        unsubscribePriceRef.current()
-        unsubscribePriceRef.current = null
-      }
-      
-      if (unsubscribeUltraFastRef.current) {
-        unsubscribeUltraFastRef.current()
-        unsubscribeUltraFastRef.current = null
+      if (unsubscribeTimeframeRef.current) {
+        unsubscribeTimeframeRef.current()
+        unsubscribeTimeframeRef.current = null
       }
 
       try {
         let assetPath = selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`
         assetPath = cleanAssetPath(assetPath)
 
+        // ✅ Load historical data
         const data = await fetchHistoricalData(assetPath, timeframe)
 
         if (isCancelled) return
@@ -1122,134 +738,123 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
           if (data.length > 0) {
             setOpeningPrice(data[0].open)
             setLastPrice(data[data.length - 1].close)
+            
+            // Initialize current bar
+            const lastBar = data[data.length - 1]
+            currentBarRef.current = {
+              timestamp: lastBar.timestamp,
+              open: lastBar.open,
+              high: lastBar.high,
+              low: lastBar.low,
+              close: lastBar.close,
+              volume: lastBar.volume || 0
+            }
           }
         }
 
-        renderIndicators()
-
         setIsLoading(false)
 
-        unsubscribeUltraFastRef.current = subscribeToOHLCUpdates(assetPath, '1s', (newBar) => {
+        // ✅ KUNCI 1: Subscribe to 1s updates (always, regardless of timeframe)
+        // Ini memberikan update price setiap detik untuk smooth animation
+        unsubscribe1sRef.current = subscribeToOHLCUpdates(assetPath, '1s', (tick1s) => {
           if (isCancelled || !candleSeriesRef.current || !lineSeriesRef.current) return
 
           try {
-            const now = Date.now()
-            if (now - lastUltraFastUpdateRef.current < 50) return
-            lastUltraFastUpdateRef.current = now
-
-            const currentCandleData = candleSeriesRef.current.data()
-            const currentLineData = lineSeriesRef.current.data()
+            const newPrice = tick1s.close
+            const currentTimestamp = Math.floor(Date.now() / 1000)
             
-            if (currentCandleData.length === 0) return
-
-            const lastBar = currentCandleData[currentCandleData.length - 1]
-            const lastTime = typeof lastBar.time === 'number' ? lastBar.time : lastBar.time
-            const newTime = newBar.timestamp
-
-            if (timeframe === '1s') {
-              const candleUpdate = { time: newTime as UTCTimestamp, open: newBar.open, high: newBar.high, low: newBar.low, close: newBar.close }
-              const lineUpdate = { time: newTime as UTCTimestamp, value: newBar.close }
-              
-              if (newBar.isNewBar) {
-                candleSeriesRef.current.update(candleUpdate)
-                lineSeriesRef.current.update(lineUpdate)
-              } else {
-                const updatedCandleData = [...currentCandleData.slice(0, -1), candleUpdate]
-                const updatedLineData = [...currentLineData.slice(0, -1), lineUpdate]
-                candleSeriesRef.current.setData(updatedCandleData as any)
-                lineSeriesRef.current.setData(updatedLineData as any)
+            // Calculate which bar period this tick belongs to
+            const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
+            
+            // ✅ KUNCI 2: Update current bar smoothly
+            if (!currentBarRef.current || currentBarRef.current.timestamp !== barPeriod) {
+              // New bar starts
+              currentBarRef.current = {
+                timestamp: barPeriod,
+                open: newPrice,
+                high: newPrice,
+                low: newPrice,
+                close: newPrice,
+                volume: 0
               }
             } else {
-              const lastTimestamp = currentDataRef.current[currentDataRef.current.length - 1]?.time
-              const timeframeMs = getTimeframeMs(timeframe)
-              const lastBarPeriod = Math.floor(lastTimestamp / timeframeMs) * timeframeMs
-              const newBarPeriod = Math.floor(newTime / timeframeMs) * timeframeMs
+              // Update existing bar
+              currentBarRef.current.high = Math.max(currentBarRef.current.high, newPrice)
+              currentBarRef.current.low = Math.min(currentBarRef.current.low, newPrice)
+              currentBarRef.current.close = newPrice
+            }
+
+            // ✅ KUNCI 3: Update chart smoothly with current bar
+            const updatedBar = {
+              time: currentBarRef.current.timestamp as UTCTimestamp,
+              open: currentBarRef.current.open,
+              high: currentBarRef.current.high,
+              low: currentBarRef.current.low,
+              close: currentBarRef.current.close
+            }
+
+            // Check if this is updating the last bar or creating a new one
+            const existingData = candleSeriesRef.current.data()
+            const lastBarTime = existingData.length > 0 ? existingData[existingData.length - 1].time : 0
+            
+            if (currentBarRef.current.timestamp === lastBarTime) {
+              // Update existing bar (smooth animation)
+              candleSeriesRef.current.update(updatedBar)
+              lineSeriesRef.current.update({ time: updatedBar.time, value: updatedBar.close })
+            } else {
+              // New bar period - add new bar
+              candleSeriesRef.current.update(updatedBar)
+              lineSeriesRef.current.update({ time: updatedBar.time, value: updatedBar.close })
               
-              if (newBarPeriod === lastBarPeriod) {
-                const lastBarData = lastBar as any
-                const updatedLastBar = {
-                  time: lastBarPeriod as UTCTimestamp,
-                  open: lastBarData.open,
-                  high: Math.max(lastBarData.high, newBar.close),
-                  low: Math.min(lastBarData.low, newBar.close),
-                  close: newBar.close
-                }
+              // Update internal data
+              currentDataRef.current.push({
+                time: currentBarRef.current.timestamp,
+                open: currentBarRef.current.open,
+                high: currentBarRef.current.high,
+                low: currentBarRef.current.low,
+                close: currentBarRef.current.close,
+                volume: currentBarRef.current.volume
+              })
+              
+              // Keep only last 1000 bars
+              if (currentDataRef.current.length > 1000) {
+                currentDataRef.current.shift()
+              }
+            }
+
+            setLastPrice(newPrice)
+
+          } catch (error) {
+            console.error('1s update error:', error)
+          }
+        })
+
+        // ✅ Subscribe to selected timeframe updates (for new complete bars)
+        if (timeframe !== '1s') {
+          unsubscribeTimeframeRef.current = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
+            if (isCancelled) return
+
+            try {
+              // When a new complete bar arrives from the selected timeframe,
+              // synchronize our current bar data
+              if (newBar.isNewBar) {
+                const barPeriod = getBarPeriodTimestamp(newBar.timestamp, timeframe)
                 
-                const updatedCandleData = [...currentCandleData.slice(0, -1), updatedLastBar]
-                const updatedLineData = [...currentLineData.slice(0, -1), { time: lastBarPeriod as UTCTimestamp, value: newBar.close }]
-                
-                candleSeriesRef.current.setData(updatedCandleData as any)
-                lineSeriesRef.current.setData(updatedLineData as any)
-                
-                currentDataRef.current[currentDataRef.current.length - 1] = {
-                  time: lastBarPeriod,
-                  open: lastBarData.open,
-                  high: updatedLastBar.high,
-                  low: updatedLastBar.low,
+                // Update current bar ref with complete bar data
+                currentBarRef.current = {
+                  timestamp: barPeriod,
+                  open: newBar.open,
+                  high: newBar.high,
+                  low: newBar.low,
                   close: newBar.close,
-                  volume: lastBarData.volume || 0
+                  volume: newBar.volume || 0
                 }
               }
+            } catch (error) {
+              console.error('Timeframe update error:', error)
             }
-
-            setLastPrice(newBar.close)
-
-          } catch (error) {
-            console.error('Ultra-fast update error:', error)
-          }
-        })
-
-        unsubscribeOHLCRef.current = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
-          if (isCancelled || !candleSeriesRef.current || !lineSeriesRef.current) return
-
-          try {
-            const candleUpdate = {
-              time: newBar.timestamp as UTCTimestamp,
-              open: newBar.open,
-              high: newBar.high,
-              low: newBar.low,
-              close: newBar.close
-            }
-
-            const lineUpdate = {
-              time: newBar.timestamp as UTCTimestamp,
-              value: newBar.close
-            }
-
-            if (newBar.isNewBar) {
-              candleSeriesRef.current.update(candleUpdate)
-              lineSeriesRef.current.update(lineUpdate)
-              
-              const existingIndex = currentDataRef.current.findIndex(d => d.time === newBar.timestamp)
-              const newData = {
-                time: newBar.timestamp,
-                open: newBar.open,
-                high: newBar.high,
-                low: newBar.low,
-                close: newBar.close,
-                volume: newBar.volume
-              }
-
-              if (existingIndex >= 0) {
-                currentDataRef.current[existingIndex] = newData
-              } else {
-                currentDataRef.current.push(newData)
-                if (currentDataRef.current.length > 1000) {
-                  currentDataRef.current.shift()
-                }
-              }
-              
-              if (newBar.isNewBar && timeframe !== '1s') {
-                renderIndicators()
-              }
-            }
-
-            setLastPrice(newBar.close)
-
-          } catch (error) {
-            console.error('Chart update error:', error)
-          }
-        })
+          })
+        }
 
       } catch (err: any) {
         if (isCancelled) return
@@ -1262,17 +867,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
     return () => {
       isCancelled = true
-      if (unsubscribeOHLCRef.current) unsubscribeOHLCRef.current()
-      if (unsubscribePriceRef.current) unsubscribePriceRef.current()
-      if (unsubscribeUltraFastRef.current) unsubscribeUltraFastRef.current()
+      if (unsubscribe1sRef.current) unsubscribe1sRef.current()
+      if (unsubscribeTimeframeRef.current) unsubscribeTimeframeRef.current()
     }
-  }, [selectedAsset?.id, timeframe, isInitialized, checkSimulator, renderIndicators])
-
-  useEffect(() => {
-    if (currentPrice && isInitialized) {
-      setLastPrice(currentPrice)
-    }
-  }, [currentPrice, isInitialized])
+  }, [selectedAsset?.id, timeframe, isInitialized, checkSimulator])
 
   const handleRefresh = useCallback(() => {
     if (!selectedAsset) return
@@ -1321,43 +919,40 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     datetime: new Date().toISOString()
   }
 
-  function getTimeframeMs(timeframe: Timeframe): number {
-    switch (timeframe) {
-      case '1s': return 1000
-      case '1m': return 60000
-      case '5m': return 300000
-      case '15m': return 900000
-      case '1h': return 3600000
-      case '4h': return 14400000
-      case '1d': return 86400000
-      default: return 60000
-    }
-  }
-
   return (
     <div ref={fullscreenContainerRef} className={`relative h-full ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : ''}`}>
       <PriceDisplay asset={selectedAsset} price={currentPriceData} />
       <RealtimeClock />
 
-      <DesktopControls timeframe={timeframe} chartType={chartType} isLoading={isLoading} activeTool={activeTool} onTimeframeChange={handleTimeframeChange} onChartTypeChange={handleChartTypeChange} onFitContent={handleFitContent} onRefresh={handleRefresh} onToggleFullscreen={toggleFullscreen} onOpenIndicators={() => setShowIndicators(true)} onToolChange={setActiveTool} onClearDrawings={clearDrawings} isFullscreen={isFullscreen} />
+      <DesktopControls 
+        timeframe={timeframe} 
+        chartType={chartType} 
+        isLoading={isLoading} 
+        onTimeframeChange={handleTimeframeChange} 
+        onChartTypeChange={handleChartTypeChange} 
+        onFitContent={handleFitContent} 
+        onRefresh={handleRefresh} 
+        onToggleFullscreen={toggleFullscreen} 
+        onOpenIndicators={() => setShowIndicators(true)} 
+        isFullscreen={isFullscreen} 
+      />
 
-      <MobileControls timeframe={timeframe} chartType={chartType} isLoading={isLoading} activeTool={activeTool} onTimeframeChange={handleTimeframeChange} onChartTypeChange={handleChartTypeChange} onFitContent={handleFitContent} onRefresh={handleRefresh} onOpenIndicators={() => setShowIndicators(true)} onToolChange={setActiveTool} onClearDrawings={clearDrawings} />
+      <MobileControls 
+        timeframe={timeframe} 
+        chartType={chartType} 
+        isLoading={isLoading} 
+        onTimeframeChange={handleTimeframeChange} 
+        onChartTypeChange={handleChartTypeChange} 
+        onFitContent={handleFitContent} 
+        onRefresh={handleRefresh} 
+        onOpenIndicators={() => setShowIndicators(true)} 
+      />
 
       <SimulatorStatus status={simulatorStatus} onRetry={checkSimulator} />
 
       <OHLCDisplay data={ohlcData} visible={showOhlc} />
 
       <div ref={chartContainerRef} className="absolute inset-0 bg-[#0a0e17]" />
-
-      <OrderTicker orders={activeOrders} currentPrice={currentPrice} />
-
-      <div className="absolute right-16 bottom-5 -translate-y-1/2 z-20">
-        <button onClick={() => setShowSupportPopup(!showSupportPopup)} className="w-10 h-10 bg-gradient-to-br from-red-400 to-red-400 hover:from-pink-400 hover:to-red-500 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105 group" title="Need Help?">
-          <HelpCircle className="w-5 h-5 text-white group-hover:rotate-12 transition-transform" />
-        </button>
-
-        <SupportPopup isOpen={showSupportPopup} onClose={() => setShowSupportPopup(false)} />
-      </div>
 
       {isLoading && (
         <div className="absolute inset-0 bg-[#0a0e17]/95 z-20">
@@ -1368,7 +963,12 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         </div>
       )}
 
-      <IndicatorControls isOpen={showIndicators} onClose={() => setShowIndicators(false)} config={indicatorConfig} onChange={setIndicatorConfig} />
+      <IndicatorControls 
+        isOpen={showIndicators} 
+        onClose={() => setShowIndicators(false)} 
+        config={indicatorConfig} 
+        onChange={setIndicatorConfig} 
+      />
 
       <style jsx>{`
         @keyframes scale-in {

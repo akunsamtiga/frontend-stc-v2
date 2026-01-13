@@ -1,4 +1,4 @@
-// types/index.ts
+// types/index.ts - ✅ FIXED: CoinGecko Support
 
 export interface User {
   id: string
@@ -64,6 +64,7 @@ export interface TradingStats {
   totalProfit: number
 }
 
+// ✅ UPDATED: Asset with CoinGecko support
 export interface Asset {
   id: string
   name: string
@@ -71,13 +72,15 @@ export interface Asset {
   category: 'normal' | 'crypto'
   profitRate: number
   isActive: boolean
-  dataSource: 'realtime_db' | 'api' | 'mock' | 'cryptocompare'
+  // ✅ FIXED: Changed cryptocompare to coingecko
+  dataSource: 'realtime_db' | 'api' | 'mock' | 'coingecko'
   realtimeDbPath?: string
   apiEndpoint?: string
+  // ✅ Crypto config for CoinGecko
   cryptoConfig?: {
-    baseCurrency: string
-    quoteCurrency: string
-    exchange?: string
+    baseCurrency: string    // e.g., "BTC", "ETH"
+    quoteCurrency: string   // e.g., "USD", "USDT"
+    exchange?: string       // Optional: specific exchange
   }
   description?: string
   simulatorSettings?: {
@@ -143,6 +146,13 @@ export interface PriceData {
   datetime_iso?: string
   timezone?: string
   change?: number
+  // ✅ NEW: CoinGecko specific fields
+  volume24h?: number
+  change24h?: number
+  changePercent24h?: number
+  high24h?: number
+  low24h?: number
+  marketCap?: number
 }
 
 export interface OHLCData {
@@ -156,6 +166,23 @@ export interface OHLCData {
   close: number
   volume: number
   isCompleted?: boolean
+}
+
+// ✅ NEW: CoinGecko specific price interface
+export interface CoinGeckoPrice {
+  price: number
+  timestamp: number
+  datetime: string
+  datetime_iso?: string
+  timezone?: string
+  volume24h: number
+  change24h: number
+  changePercent24h: number
+  high24h: number
+  low24h: number
+  marketCap: number
+  source?: 'coingecko'
+  pair?: string
 }
 
 export interface AuthResponse {
@@ -447,7 +474,8 @@ export type UserStatus = 'standard' | 'gold' | 'vip'
 export type OrderStatus = BinaryOrder['status']
 export type OrderDirection = BinaryOrder['direction']
 export type BalanceType = Balance['type']
-export type AssetDataSource = Asset['dataSource']
+// ✅ FIXED: Changed to include 'coingecko'
+export type AssetDataSource = 'realtime_db' | 'api' | 'mock' | 'coingecko'
 export type AssetCategory = Asset['category']
 
 export function formatDurationDisplay(durationMinutes: number): string {
@@ -500,8 +528,24 @@ export function isNormalAsset(asset: Asset): boolean {
   return asset.category === 'normal'
 }
 
+// ✅ NEW: Check if asset uses CoinGecko
+export function usesCoinGecko(asset: Asset): boolean {
+  return asset.dataSource === 'coingecko' || (asset.category === 'crypto' && !!asset.cryptoConfig)
+}
+
 export function getAssetCategoryLabel(category: AssetCategory): string {
   return category === 'crypto' ? 'Cryptocurrency' : 'Normal Asset'
+}
+
+// ✅ NEW: Get data source display label
+export function getDataSourceLabel(dataSource: AssetDataSource): string {
+  const labels: Record<AssetDataSource, string> = {
+    'realtime_db': 'Realtime Database',
+    'api': 'External API',
+    'mock': 'Mock Data',
+    'coingecko': 'CoinGecko API'
+  }
+  return labels[dataSource] || dataSource
 }
 
 export function getCryptoPairDisplay(asset: Asset): string | null {
@@ -517,6 +561,26 @@ export function getAssetDisplayName(asset: Asset): string {
     return pair || asset.name
   }
   return asset.name
+}
+
+// ✅ NEW: Get CoinGecko supported currencies
+export const COINGECKO_SUPPORTED_COINS = [
+  'BTC', 'ETH', 'BNB', 'XRP', 'ADA', 'SOL', 'DOT', 'DOGE', 
+  'MATIC', 'LTC', 'AVAX', 'LINK', 'UNI', 'ATOM', 'XLM', 
+  'ALGO', 'VET', 'ICP', 'FIL', 'TRX', 'ETC', 'NEAR', 'APT', 'ARB', 'OP'
+] as const
+
+export const COINGECKO_SUPPORTED_QUOTE_CURRENCIES = [
+  'USD', 'USDT', 'EUR', 'GBP', 'JPY', 'KRW', 'IDR'
+] as const
+
+export type CoinGeckoSupportedCoin = typeof COINGECKO_SUPPORTED_COINS[number]
+export type CoinGeckoSupportedQuote = typeof COINGECKO_SUPPORTED_QUOTE_CURRENCIES[number]
+
+// ✅ NEW: Validate CoinGecko crypto config
+export function isCoinGeckoSupported(baseCurrency: string, quoteCurrency: string): boolean {
+  return COINGECKO_SUPPORTED_COINS.includes(baseCurrency.toUpperCase() as any) &&
+         COINGECKO_SUPPORTED_QUOTE_CURRENCIES.includes(quoteCurrency.toUpperCase() as any)
 }
 
 export const STATUS_CONFIG = {
@@ -804,4 +868,55 @@ export interface BalanceFormData {
   type: 'deposit' | 'withdrawal'
   amount: number
   description?: string
+}
+
+// ✅ NEW: Create Asset DTOs for admin
+export interface CreateAssetRequest {
+  name: string
+  symbol: string
+  category: AssetCategory
+  profitRate: number
+  isActive: boolean
+  dataSource: AssetDataSource
+  realtimeDbPath?: string
+  apiEndpoint?: string
+  cryptoConfig?: {
+    baseCurrency: string
+    quoteCurrency: string
+    exchange?: string
+  }
+  description?: string
+  simulatorSettings?: {
+    initialPrice: number
+    dailyVolatilityMin: number
+    dailyVolatilityMax: number
+    secondVolatilityMin: number
+    secondVolatilityMax: number
+    minPrice?: number
+    maxPrice?: number
+  }
+  tradingSettings?: {
+    minOrderAmount: number
+    maxOrderAmount: number
+    allowedDurations: number[]
+  }
+}
+
+export interface UpdateAssetRequest extends Partial<CreateAssetRequest> {}
+
+// ✅ NEW: Crypto scheduler status
+export interface CryptoSchedulerStatus {
+  isRunning: boolean
+  assetCount: number
+  updateCount: number
+  errorCount: number
+  lastUpdate: string
+  updateInterval: string
+  api: string
+  assets: Array<{
+    symbol: string
+    pair: string
+    path: string
+  }>
+  ohlcStats?: any
 }

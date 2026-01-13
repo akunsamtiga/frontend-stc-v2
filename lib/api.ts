@@ -1,6 +1,11 @@
-// lib/api.ts - COMPLETE API CLIENT
+// lib/api.ts - ✅ FIXED: CoinGecko Support
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
+import type { 
+  CreateAssetRequest, 
+  UpdateAssetRequest,
+  CryptoSchedulerStatus 
+} from '@/types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
 
@@ -266,7 +271,6 @@ class ApiClient {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token')
     }
-    // ✅ Remove from axios headers
     if (this.client?.defaults?.headers?.common) {
       delete this.client.defaults.headers.common['Authorization']
     }
@@ -379,7 +383,6 @@ class ApiClient {
     }
   }
 
-
   async register(email: string, password: string, referralCode?: string): Promise<ApiResponse> {
     return this.client.post('/auth/register', { email, password, referralCode })
   }
@@ -389,136 +392,125 @@ class ApiClient {
   // ===================================
 
   async getProfile(): Promise<ApiResponse> {
-  const cacheKey = this.getCacheKey('/user/profile')
-  
-  // Don't use cache for profile - always fetch fresh data
-  try {
-    return this.withDeduplication(cacheKey, async () => {
-      const data = await this.client.get('/user/profile')
-      
-      // Validate response
+    const cacheKey = this.getCacheKey('/user/profile')
+    
+    try {
+      return this.withDeduplication(cacheKey, async () => {
+        const data = await this.client.get('/user/profile')
+        
+        if (!data || typeof data !== 'object') {
+          throw new Error('Invalid profile response')
+        }
+        
+        return data
+      })
+    } catch (error) {
+      console.error('Profile fetch failed:', error)
+      throw error
+    }
+  }
+
+  async updateProfile(data: any): Promise<ApiResponse> {
+    try {
       if (!data || typeof data !== 'object') {
-        throw new Error('Invalid profile response')
+        throw new Error('Invalid profile data')
       }
+
+      const result = await this.client.put('/user/profile', data, {
+        headers: {
+          'X-Silent-Error': 'false'
+        }
+      })
       
-      return data
-    })
-  } catch (error) {
-    console.error('Profile fetch failed:', error)
-    throw error
-  }
-}
-
-async updateProfile(data: any): Promise<ApiResponse> {
-  try {
-    // Validate input
-    if (!data || typeof data !== 'object') {
-      throw new Error('Invalid profile data')
+      this.invalidateCache('/user/profile')
+      
+      return result
+    } catch (error) {
+      console.error('Profile update failed:', error)
+      throw error
     }
+  }
 
-    const result = await this.client.put('/user/profile', data, {
-      headers: {
-        'X-Silent-Error': 'false' // Show errors
+  async uploadAvatar(data: { url: string }): Promise<ApiResponse> {
+    try {
+      if (!data?.url) {
+        throw new Error('Avatar URL is required')
       }
-    })
-    
-    // Clear profile cache after update
-    this.invalidateCache('/user/profile')
-    
-    return result
-  } catch (error) {
-    console.error('Profile update failed:', error)
-    throw error
-  }
-}
 
-async uploadAvatar(data: { url: string }): Promise<ApiResponse> {
-  try {
-    // Validate image URL/data
-    if (!data?.url) {
-      throw new Error('Avatar URL is required')
-    }
-
-    // Check if it's a valid base64 image
-    if (!data.url.startsWith('data:image/')) {
-      throw new Error('Invalid image format')
-    }
-
-    const result = await this.client.post('/user/avatar', data, {
-      timeout: 30000, // 30 second timeout for image upload
-      headers: {
-        'X-Silent-Error': 'false'
+      if (!data.url.startsWith('data:image/')) {
+        throw new Error('Invalid image format')
       }
-    })
-    
-    // Clear profile cache
-    this.invalidateCache('/user/profile')
-    
-    return result
-  } catch (error) {
-    console.error('Avatar upload failed:', error)
-    throw error
+
+      const result = await this.client.post('/user/avatar', data, {
+        timeout: 30000,
+        headers: {
+          'X-Silent-Error': 'false'
+        }
+      })
+      
+      this.invalidateCache('/user/profile')
+      
+      return result
+    } catch (error) {
+      console.error('Avatar upload failed:', error)
+      throw error
+    }
   }
-}
 
-async changePassword(data: {
-  currentPassword: string
-  newPassword: string
-  confirmPassword: string
-}): Promise<ApiResponse> {
-  try {
-    // Validate passwords
-    if (!data.currentPassword || !data.newPassword || !data.confirmPassword) {
-      throw new Error('All password fields are required')
-    }
-
-    if (data.newPassword !== data.confirmPassword) {
-      throw new Error('New passwords do not match')
-    }
-
-    if (data.newPassword.length < 8) {
-      throw new Error('Password must be at least 8 characters')
-    }
-
-    const result = await this.client.post('/user/change-password', data, {
-      headers: {
-        'X-Silent-Error': 'false'
+  async changePassword(data: {
+    currentPassword: string
+    newPassword: string
+    confirmPassword: string
+  }): Promise<ApiResponse> {
+    try {
+      if (!data.currentPassword || !data.newPassword || !data.confirmPassword) {
+        throw new Error('All password fields are required')
       }
-    })
-    
-    return result
-  } catch (error) {
-    console.error('Password change failed:', error)
-    throw error
-  }
-}
 
-async verifyPhone(data: {
-  phoneNumber: string
-  verificationCode: string
-}): Promise<ApiResponse> {
-  try {
-    // Validate input
-    if (!data.phoneNumber || !data.verificationCode) {
-      throw new Error('Phone number and verification code are required')
-    }
-
-    const result = await this.client.post('/user/verify-phone', data, {
-      headers: {
-        'X-Silent-Error': 'false'
+      if (data.newPassword !== data.confirmPassword) {
+        throw new Error('New passwords do not match')
       }
-    })
-    
-    // Clear profile cache
-    this.invalidateCache('/user/profile')
-    
-    return result
-  } catch (error) {
-    console.error('Phone verification failed:', error)
-    throw error
-  }
-}
 
+      if (data.newPassword.length < 8) {
+        throw new Error('Password must be at least 8 characters')
+      }
+
+      const result = await this.client.post('/user/change-password', data, {
+        headers: {
+          'X-Silent-Error': 'false'
+        }
+      })
+      
+      return result
+    } catch (error) {
+      console.error('Password change failed:', error)
+      throw error
+    }
+  }
+
+  async verifyPhone(data: {
+    phoneNumber: string
+    verificationCode: string
+  }): Promise<ApiResponse> {
+    try {
+      if (!data.phoneNumber || !data.verificationCode) {
+        throw new Error('Phone number and verification code are required')
+      }
+
+      const result = await this.client.post('/user/verify-phone', data, {
+        headers: {
+          'X-Silent-Error': 'false'
+        }
+      })
+      
+      this.invalidateCache('/user/profile')
+      
+      return result
+    } catch (error) {
+      console.error('Phone verification failed:', error)
+      throw error
+    }
+  }
 
   // ===================================
   // BALANCE
@@ -593,7 +585,7 @@ async verifyPhone(data: {
   }
 
   // ===================================
-  // ASSETS
+  // ASSETS - ✅ UPDATED FOR COINGECKO
   // ===================================
 
   async getAssets(activeOnly = false): Promise<ApiResponse> {
@@ -635,13 +627,14 @@ async verifyPhone(data: {
     })
   }
 
-  async createAsset(data: any): Promise<ApiResponse> {
+  // ✅ NEW: Admin asset management with CoinGecko support
+  async createAsset(data: CreateAssetRequest): Promise<ApiResponse> {
     const result = await this.client.post('/assets', data)
     this.invalidateCache('/assets')
     return result
   }
 
-  async updateAsset(id: string, data: any): Promise<ApiResponse> {
+  async updateAsset(id: string, data: UpdateAssetRequest): Promise<ApiResponse> {
     const result = await this.client.put(`/assets/${id}`, data)
     this.invalidateCache('/assets')
     return result
@@ -650,6 +643,30 @@ async verifyPhone(data: {
   async deleteAsset(id: string): Promise<ApiResponse> {
     const result = await this.client.delete(`/assets/${id}`)
     this.invalidateCache('/assets')
+    return result
+  }
+
+  async getAssetSettings(id: string): Promise<ApiResponse> {
+    return this.client.get(`/assets/${id}/settings`)
+  }
+
+  // ✅ NEW: Crypto scheduler endpoints
+  async getCryptoSchedulerStatus(): Promise<ApiResponse<CryptoSchedulerStatus>> {
+    const cacheKey = this.getCacheKey('/assets/crypto/scheduler/status')
+    const cached = this.getFromCache(cacheKey)
+    
+    if (cached) return cached
+    
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get('/assets/crypto/scheduler/status')
+      this.setCache(cacheKey, data, 5000)
+      return data
+    })
+  }
+
+  async triggerCryptoUpdate(): Promise<ApiResponse> {
+    const result = await this.client.post('/assets/crypto/scheduler/trigger')
+    this.invalidateCache('/assets/crypto')
     return result
   }
 
