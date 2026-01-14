@@ -32,7 +32,8 @@ import {
   TrendingUp,
   Activity,
   Logs,
-  Zap
+  Zap,
+  Info, // ✅ ADD
 } from 'lucide-react'
 import OrderNotification from '@/components/OrderNotification'
 
@@ -164,7 +165,7 @@ export default function TradingPage() {
   const router = useRouter()
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
-    const [showTutorial, setShowTutorial] = useState(false)
+  const [showTutorial, setShowTutorial] = useState(false)
 
   const selectedAsset = useSelectedAsset()
   const currentPrice = useCurrentPrice()
@@ -302,9 +303,11 @@ export default function TradingPage() {
 
     const handleCompleteTutorial = useCallback(async () => {
     try {
+      console.log('🎓 Completing tutorial...')
+      
       await api.completeTutorial()
       
-      // Update local user state
+      // Update local state immediately
       const updatedUser = {
         ...user!,
         tutorialCompleted: true,
@@ -315,15 +318,21 @@ export default function TradingPage() {
       
       setShowTutorial(false)
       toast.success('Tutorial selesai! Selamat trading! 🎉')
+      
+      console.log('✅ Tutorial completed')
     } catch (error) {
-      console.error('Failed to complete tutorial:', error)
+      console.error('❌ Tutorial completion failed:', error)
+      // Still close tutorial
       setShowTutorial(false)
     }
   }, [user])
 
+
   // ✅ Handle skip tutorial
   const handleSkipTutorial = useCallback(async () => {
     try {
+      console.log('⏭️ Skipping tutorial...')
+      
       await api.completeTutorial()
       
       const updatedUser = {
@@ -335,12 +344,20 @@ export default function TradingPage() {
       useAuthStore.setState({ user: updatedUser })
       
       setShowTutorial(false)
-      toast.info('Tutorial dilewati. Anda bisa mengaksesnya lagi dari menu Settings.')
+      toast.info('Tutorial dilewati. Akses lagi dari Settings > Show Tutorial')
+      
+      console.log('✅ Tutorial skipped')
     } catch (error) {
-      console.error('Failed to skip tutorial:', error)
+      console.error('❌ Tutorial skip failed:', error)
       setShowTutorial(false)
     }
   }, [user])
+
+  // ✅ NEW: Manual tutorial trigger (for Settings menu)
+  const handleShowTutorialManually = useCallback(() => {
+    console.log('🎓 Manually showing tutorial')
+    setShowTutorial(true)
+  }, [])
 
   const handleLogout = useCallback(async () => {
     try {
@@ -391,16 +408,43 @@ export default function TradingPage() {
   }, [user, router])
 
 
-    useEffect(() => {
-    if (user && user.isNewUser && !user.tutorialCompleted) {
-      // Show tutorial after a short delay
-      const timer = setTimeout(() => {
-        setShowTutorial(true)
-      }, 1000)
-      
-      return () => clearTimeout(timer)
-    }
-  }, [user])
+      useEffect(() => {
+  if (!user) {
+    console.log('❌ Tutorial check: No user')
+    return
+  }
+
+  console.log('🔍 Tutorial Check:', {
+    email: user.email,
+    isNewUser: user.isNewUser,
+    tutorialCompleted: user.tutorialCompleted,
+    loginCount: user.loginCount,
+  })
+
+  // ✅ FIX: Handle undefined values for existing users
+  // Show tutorial if ANY of these conditions are true:
+  const shouldShowTutorial = 
+    user.isNewUser === true ||                           // Explicitly marked as new user
+    user.tutorialCompleted === false ||                  // Explicitly marked as incomplete
+    (user.tutorialCompleted === undefined &&             // NEW: Undefined for existing users
+     typeof user.loginCount === 'number' && 
+     user.loginCount <= 2)                               // But only if they haven't logged in much
+
+  if (shouldShowTutorial) {
+    console.log('✅ Tutorial SHOULD be shown')
+    
+    // Wait for UI to be ready
+    const timer = setTimeout(() => {
+      console.log('🎓 Showing tutorial NOW')
+      setShowTutorial(true)
+    }, 1500)
+    
+    return () => clearTimeout(timer)
+  } else {
+    console.log('ℹ️ Tutorial NOT needed (user is experienced)')
+    console.log('💡 Tip: You can manually show tutorial from Settings menu')
+  }
+}, [user])
 
 
   useEffect(() => {
@@ -642,35 +686,55 @@ export default function TradingPage() {
             </button>
 
             {showUserMenu && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
-                <div className="absolute top-full right-0 mt-2 w-56 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50">
-                  <div className="px-4 py-3 border-b border-gray-800/30">
-                    <div className="text-sm font-medium truncate">{user.email}</div>
-                    <div className="text-xs text-gray-400 mt-1">{user.role}</div>
-                  </div>
-                  <button
-                    onClick={() => router.push('/profile')}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#232936] transition-colors text-left"
-                  >
-                    <Settings className="w-4 h-4" />
-                    <span className="text-sm">Settings</span>
-                  </button>
-                  <div className="border-t border-gray-800/30">
-                    <button
-                      onClick={() => {
-                        setShowUserMenu(false)
-                        handleLogout()
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors text-left text-red-400"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span className="text-sm">Logout</span>
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
+  <>
+    <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+    <div className="absolute top-full right-0 mt-2 w-56 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50">
+      <div className="px-4 py-3 border-b border-gray-800/30">
+        <div className="text-sm font-medium truncate">{user.email}</div>
+        <div className="text-xs text-gray-400 mt-1">{user.role}</div>
+      </div>
+      
+      <button
+        onClick={() => {
+          router.push('/profile')
+          setShowUserMenu(false)
+        }}
+        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#232936] transition-colors text-left"
+      >
+        <Settings className="w-4 h-4" />
+        <span className="text-sm">Settings</span>
+      </button>
+
+      {/* ✅ NEW: Manual Tutorial Button */}
+      <button
+        onClick={() => {
+          setShowUserMenu(false)
+          setTimeout(() => {
+            console.log('🎓 Manually triggering tutorial')
+            setShowTutorial(true)
+          }, 300)
+        }}
+        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-blue-500/10 transition-colors text-left text-blue-400"
+      >
+        <Info className="w-4 h-4" />
+        <span className="text-sm">Show Tutorial</span>
+      </button>
+      
+      <div className="border-t border-gray-800/30">
+        <button
+          onClick={() => {
+            setShowUserMenu(false)
+            handleLogout()
+          }}
+          className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors text-left text-red-400"
+        >
+          <LogOut className="w-4 h-4" />
+          <span className="text-sm">Logout</span>
+        </button>
+      </div>
+    </div>
+  </>
+)}
           </div>
         </div>
 
@@ -1121,85 +1185,100 @@ export default function TradingPage() {
       )}
 
       {showMobileMenu && (
-        <>
-          <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setShowMobileMenu(false)} />
-          <div className="fixed top-0 right-0 bottom-0 w-64 bg-[#0f1419] border-l border-gray-800/50 z-50 p-4 animate-slide-left">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="font-bold">Menu</h3>
-              <button onClick={() => setShowMobileMenu(false)}>
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="mb-4">
-                <label className="text-xs text-gray-400 mb-2 block">Select Asset</label>
-                <select
-                  value={selectedAsset?.id || ''}
-                  onChange={(e) => {
-                    const asset = assets.find(a => a.id === e.target.value)
-                    if (asset) {
-                      setSelectedAsset(asset)
-                      setShowMobileMenu(false)
-                    }
-                  }}
-                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
-                >
-                  {assets.map((asset) => (
-                    <option key={asset.id} value={asset.id}>
-                      {asset.symbol} - {asset.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+  <>
+    <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setShowMobileMenu(false)} />
+    <div className="fixed top-0 right-0 bottom-0 w-64 bg-[#0f1419] border-l border-gray-800/50 z-50 p-4 animate-slide-left">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="font-bold">Menu</h3>
+        <button onClick={() => setShowMobileMenu(false)}>
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+      
+      <div className="space-y-2">
+        <div className="mb-4">
+          <label className="text-xs text-gray-400 mb-2 block">Select Asset</label>
+          <select
+            value={selectedAsset?.id || ''}
+            onChange={(e) => {
+              const asset = assets.find(a => a.id === e.target.value)
+              if (asset) {
+                setSelectedAsset(asset)
+                setShowMobileMenu(false)
+              }
+            }}
+            className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
+          >
+            {assets.map((asset) => (
+              <option key={asset.id} value={asset.id}>
+                {asset.symbol} - {asset.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-              <button
-                onClick={() => {
-                  setShowHistorySidebar(true)
-                  setShowMobileMenu(false)
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-              >
-                <History className="w-4 h-4" />
-                <span>History</span>
-              </button>
+        <button
+          onClick={() => {
+            setShowHistorySidebar(true)
+            setShowMobileMenu(false)
+          }}
+          className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+        >
+          <History className="w-4 h-4" />
+          <span>History</span>
+        </button>
 
-              <button
-                onClick={() => {
-                  router.push('/balance')
-                  setShowMobileMenu(false)
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-              >
-                <Wallet className="w-4 h-4" />
-                <span>Balance</span>
-              </button>
-              
-              <button
-                onClick={() => {
-                  router.push('/profile')
-                  setShowMobileMenu(false)
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-              >
-                <Settings className="w-4 h-4" />
-                <span>Settings</span>
-              </button>
+        <button
+          onClick={() => {
+            router.push('/balance')
+            setShowMobileMenu(false)
+          }}
+          className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+        >
+          <Wallet className="w-4 h-4" />
+          <span>Balance</span>
+        </button>
+        
+        <button
+          onClick={() => {
+            router.push('/profile')
+            setShowMobileMenu(false)
+          }}
+          className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+        >
+          <Settings className="w-4 h-4" />
+          <span>Settings</span>
+        </button>
 
-              <button
-                onClick={() => {
-                  setShowMobileMenu(false)
-                  handleLogout()
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Logout</span>
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+        {/* ✅ NEW: Manual Tutorial Button */}
+        <button
+          onClick={() => {
+            setShowMobileMenu(false)
+            setTimeout(() => {
+              console.log('🎓 Manually triggering tutorial')
+              setShowTutorial(true)
+            }, 300)
+          }}
+          className="w-full flex items-center gap-3 px-4 py-3 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg transition-colors text-blue-400"
+        >
+          <Info className="w-4 h-4" />
+          <span>Show Tutorial</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setShowMobileMenu(false)
+            handleLogout()
+          }}
+          className="w-full flex items-center gap-3 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+  </>
+)}
 
       {showHistorySidebar && (
         <HistorySidebar 
