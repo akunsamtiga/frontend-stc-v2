@@ -1,4 +1,4 @@
-// lib/firebase.ts
+// lib/firebase.ts - ✅ FIXED: Full Crypto Asset Support
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
 import { getDatabase, Database, ref, onValue, off, query, limitToLast, get } from 'firebase/database'
 
@@ -24,12 +24,17 @@ if (typeof window !== 'undefined') {
       app = getApps()[0]
       database = getDatabase(app)
     }
+    console.log('✅ Firebase initialized successfully')
   } catch (error) {
-    console.error('Firebase initialization error:', error)
+    console.error('❌ Firebase initialization error:', error)
   }
 }
 
 export { database, ref, onValue, off, query, limitToLast, get }
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
 
 function cleanAssetPath(path: string): string {
   if (!path) return ''
@@ -51,17 +56,186 @@ function getOHLCPath(assetPath: string, timeframe: string): string {
   return `${clean}/ohlc_${timeframe}`
 }
 
+// ✅ FIXED: Check both normal and crypto asset structures
+async function checkSimulatorStatus(assetPath: string): Promise<{
+  isRunning: boolean
+  hasCurrentPrice: boolean
+  hasOHLC: boolean
+  message: string
+}> {
+  if (!database) {
+    return { 
+      isRunning: false, 
+      hasCurrentPrice: false, 
+      hasOHLC: false,
+      message: 'Firebase not initialized' 
+    }
+  }
+
+  try {
+    const basePath = cleanAssetPath(assetPath)
+    
+    // Check current_price
+    const priceRef = ref(database, `${basePath}/current_price`)
+    const priceSnapshot = await get(priceRef)
+    const hasCurrentPrice = priceSnapshot.exists()
+    
+    // ✅ FIX: Check OHLC with proper structure detection
+    let hasOHLC = false
+    let ohlcMessage = ''
+    
+    // Try multiple timeframes
+    const timeframesToCheck = ['1m', '1s', '5m']
+    
+    for (const tf of timeframesToCheck) {
+      const ohlcRef = ref(database, `${basePath}/ohlc_${tf}`)
+      const ohlcSnapshot = await get(ohlcRef)
+      
+      if (ohlcSnapshot.exists()) {
+        const data = ohlcSnapshot.val()
+        
+        // Check if it has data (array or object with keys)
+        if (Array.isArray(data) && data.length > 0) {
+          hasOHLC = true
+          ohlcMessage = `✅ Found ${data.length} bars in ohlc_${tf} (array)`
+          break
+        } else if (typeof data === 'object' && Object.keys(data).length > 0) {
+          hasOHLC = true
+          ohlcMessage = `✅ Found ${Object.keys(data).length} bars in ohlc_${tf} (object)`
+          break
+        }
+      }
+    }
+    
+    const isRunning = hasCurrentPrice && hasOHLC
+    
+    let message = ''
+    if (!hasCurrentPrice && !hasOHLC) {
+      message = '❌ No data found - Simulator not running'
+    } else if (!hasCurrentPrice) {
+      message = '❌ Missing current_price data'
+    } else if (!hasOHLC) {
+      message = `❌ Missing OHLC data (checked: ${timeframesToCheck.join(', ')})`
+    } else {
+      message = ohlcMessage
+    }
+    
+    console.log(`🔍 Simulator check for ${basePath}:`, {
+      hasCurrentPrice,
+      hasOHLC,
+      message
+    })
+    
+    return { isRunning, hasCurrentPrice, hasOHLC, message }
+  } catch (error) {
+    console.error('❌ Simulator check error:', error)
+    return { 
+      isRunning: false, 
+      hasCurrentPrice: false, 
+      hasOHLC: false,
+      message: 'Check failed: ' + (error as Error).message 
+    }
+  }
+}
+
+// ============================================
+// TYPES
+// ============================================
+
 type Timeframe = '1s' | '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
 
 const TIMEFRAME_CONFIG: Record<Timeframe, { path: string; barsToFetch: number; cacheTTL: number }> = {
-  '1s': { path: 'ohlc_1s', barsToFetch: 60, cacheTTL: 1000 },
-  '1m': { path: 'ohlc_1m', barsToFetch: 100, cacheTTL: 3000 },
-  '5m': { path: 'ohlc_5m', barsToFetch: 100, cacheTTL: 10000 },
-  '15m': { path: 'ohlc_15m', barsToFetch: 150, cacheTTL: 20000 },
-  '1h': { path: 'ohlc_1h', barsToFetch: 150, cacheTTL: 40000 },
-  '4h': { path: 'ohlc_4h', barsToFetch: 100, cacheTTL: 80000 },
-  '1d': { path: 'ohlc_1d', barsToFetch: 60, cacheTTL: 180000 }
+  '1s': { path: 'ohlc_1s', barsToFetch: 100, cacheTTL: 1000 },
+  '1m': { path: 'ohlc_1m', barsToFetch: 150, cacheTTL: 3000 },
+  '5m': { path: 'ohlc_5m', barsToFetch: 150, cacheTTL: 10000 },
+  '15m': { path: 'ohlc_15m', barsToFetch: 200, cacheTTL: 20000 },
+  '1h': { path: 'ohlc_1h', barsToFetch: 200, cacheTTL: 40000 },
+  '4h': { path: 'ohlc_4h', barsToFetch: 150, cacheTTL: 80000 },
+  '1d': { path: 'ohlc_1d', barsToFetch: 100, cacheTTL: 180000 }
 }
+
+// ============================================
+// CACHE MANAGEMENT
+// ============================================
+
+interface CacheEntry {
+  data: any[]
+  timestamp: number
+  ttl: number
+  accessCount: number
+  lastAccess: number
+}
+
+class LRUCache {
+  private cache = new Map<string, CacheEntry>()
+  private maxSize = 50
+
+  get(key: string): any[] | null {
+    const entry = this.cache.get(key)
+    
+    if (!entry) return null
+    
+    const now = Date.now()
+    if (now - entry.timestamp > entry.ttl) {
+      this.cache.delete(key)
+      return null
+    }
+    
+    entry.accessCount++
+    entry.lastAccess = now
+    
+    return entry.data
+  }
+
+  set(key: string, data: any[], ttl: number) {
+    if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
+      this.evictLRU()
+    }
+    
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      ttl,
+      accessCount: 1,
+      lastAccess: Date.now()
+    })
+  }
+
+  delete(key: string) {
+    this.cache.delete(key)
+  }
+
+  clear() {
+    this.cache.clear()
+  }
+
+  private evictLRU() {
+    let oldestKey: string | null = null
+    let oldestTime = Infinity
+    
+    this.cache.forEach((entry, key) => {
+      if (entry.lastAccess < oldestTime) {
+        oldestTime = entry.lastAccess
+        oldestKey = key
+      }
+    })
+    
+    if (oldestKey) {
+      this.cache.delete(oldestKey)
+      console.log(`🗑️ Evicted LRU cache entry: ${oldestKey}`)
+    }
+  }
+
+  getStats() {
+    return {
+      size: this.cache.size,
+      maxSize: this.maxSize,
+      keys: Array.from(this.cache.keys())
+    }
+  }
+}
+
+const memoryCache = new LRUCache()
 
 class IndexedDBCache {
   private dbName = 'trading_chart_cache'
@@ -130,7 +304,7 @@ class IndexedDBCache {
     
     this.writeTimeout = setTimeout(() => {
       this.flushWrites()
-    }, 50)
+    }, 100)
   }
 
   private async flushWrites(): Promise<void> {
@@ -205,7 +379,7 @@ class IndexedDBCache {
 
       transaction.oncomplete = () => {
         if (deleteCount > 0) {
-          console.log(`Cleaned up ${deleteCount} expired cache entries`)
+          console.log(`🗑️ Cleaned up ${deleteCount} expired cache entries`)
         }
         resolve()
       }
@@ -222,84 +396,95 @@ if (typeof window !== 'undefined') {
   }, 120000)
 }
 
-interface CacheEntry {
-  data: any[]
-  timestamp: number
-  ttl: number
-  accessCount: number
-  lastAccess: number
-}
+// ============================================
+// ✅ FIXED: Process historical data - Support both structures
+// ============================================
 
-class LRUCache {
-  private cache = new Map<string, CacheEntry>()
-  private maxSize = 50
-
-  get(key: string): any[] | null {
-    const entry = this.cache.get(key)
-    
-    if (!entry) return null
-    
-    const now = Date.now()
-    if (now - entry.timestamp > entry.ttl) {
-      this.cache.delete(key)
-      return null
-    }
-    
-    entry.accessCount++
-    entry.lastAccess = now
-    
-    return entry.data
+function processHistoricalData(data: any, limit: number): any[] {
+  if (!data || typeof data !== 'object') {
+    console.warn('⚠️ Invalid data received:', typeof data)
+    return []
   }
 
-  set(key: string, data: any[], ttl: number) {
-    if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
-      this.evictLRU()
-    }
+  const historicalData: any[] = []
+  
+  // ✅ FIX: Detect structure type
+  const isArray = Array.isArray(data)
+  
+  if (isArray) {
+    console.log('📊 Processing array structure (normal asset)')
     
-    this.cache.set(key, {
-      data,
-      timestamp: Date.now(),
-      ttl,
-      accessCount: 1,
-      lastAccess: Date.now()
+    // Normal asset structure (array)
+    data.forEach((item: any, index: number) => {
+      if (!item || typeof item !== 'object') return
+      
+      const timestamp = item.timestamp
+      if (!timestamp || isNaN(timestamp)) return
+      if (typeof item.close !== 'number' || item.close <= 0) return
+      
+      historicalData.push({
+        timestamp: timestamp,
+        datetime: item.datetime || new Date(timestamp * 1000).toISOString(),
+        open: item.open || item.close,
+        high: item.high || item.close,
+        low: item.low || item.close,
+        close: item.close,
+        volume: item.volume || 0
+      })
     })
-  }
-
-  delete(key: string) {
-    this.cache.delete(key)
-  }
-
-  clear() {
-    this.cache.clear()
-  }
-
-  private evictLRU() {
-    let oldestKey: string | null = null
-    let oldestTime = Infinity
+  } else {
+    console.log('📊 Processing object structure (crypto asset)')
     
-    this.cache.forEach((entry, key) => {
-      if (entry.lastAccess < oldestTime) {
-        oldestTime = entry.lastAccess
-        oldestKey = key
+    // ✅ Crypto asset structure (object with timestamp keys)
+    const keys = Object.keys(data)
+    
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i]
+      const item = data[key]
+      
+      if (!item || typeof item !== 'object') continue
+
+      // ✅ FIX: Try to get timestamp from key first (crypto structure)
+      let timestamp = parseInt(key)
+      
+      // If key is not a number, try item.timestamp
+      if (isNaN(timestamp)) {
+        timestamp = item.timestamp
       }
-    })
-    
-    if (oldestKey) {
-      this.cache.delete(oldestKey)
-      console.log(`Evicted LRU cache entry: ${oldestKey}`)
+      
+      if (!timestamp || isNaN(timestamp)) continue
+      if (typeof item.close !== 'number' || item.close <= 0) continue
+
+      historicalData.push({
+        timestamp: timestamp,
+        datetime: item.datetime || new Date(timestamp * 1000).toISOString(),
+        open: item.open || item.close,
+        high: item.high || item.close,
+        low: item.low || item.close,
+        close: item.close,
+        volume: item.volume || 0
+      })
     }
   }
 
-  getStats() {
-    return {
-      size: this.cache.size,
-      maxSize: this.maxSize,
-      keys: Array.from(this.cache.keys())
-    }
+  if (historicalData.length === 0) {
+    console.warn('⚠️ No valid bars found in data')
+    return []
   }
+
+  // Sort by timestamp
+  historicalData.sort((a, b) => a.timestamp - b.timestamp)
+  
+  const result = historicalData.slice(-limit)
+  
+  console.log(`✅ Processed ${result.length} bars (structure: ${isArray ? 'array' : 'object'})`)
+  
+  return result
 }
 
-const memoryCache = new LRUCache()
+// ============================================
+// ✅ FIXED: Fetch historical data
+// ============================================
 
 export async function fetchHistoricalData(
   assetPath: string,
@@ -312,94 +497,72 @@ export async function fetchHistoricalData(
   try {
     const config = TIMEFRAME_CONFIG[timeframe]
     if (!config) {
-      console.error(`Invalid timeframe: ${timeframe}`)
+      console.error(`❌ Invalid timeframe: ${timeframe}`)
       return []
     }
 
     const basePath = cleanAssetPath(assetPath)
     const cacheKey = `${basePath}-${timeframe}`
 
+    // Check memory cache
     const memCached = memoryCache.get(cacheKey)
     if (memCached) {
-      console.log(`Memory cache hit for ${timeframe}`)
+      console.log(`⚡ Memory cache hit for ${timeframe}`)
       return memCached
     }
 
+    // Check IndexedDB cache
     const idbCached = await idbCache.get(cacheKey)
     if (idbCached) {
-      console.log(`IndexedDB cache hit for ${timeframe}`)
+      console.log(`💾 IndexedDB cache hit for ${timeframe}`)
       memoryCache.set(cacheKey, idbCached, config.cacheTTL)
       return idbCached
     }
 
-    console.log(`Fetching ${timeframe} data from Firebase...`)
+    console.log(`📡 Fetching ${timeframe} data from Firebase for ${basePath}...`)
+    
     const ohlcPath = getOHLCPath(basePath, timeframe)
     const ohlcRef = ref(database, ohlcPath)
-    const limitedQuery = query(ohlcRef, limitToLast(config.barsToFetch))
     
-    const snapshot = await get(limitedQuery)
+    // ✅ FIX: Don't use limitToLast for crypto (object structure)
+    // Just get all data and process in memory
+    const snapshot = await get(ohlcRef)
     
     if (!snapshot.exists()) {
-      console.warn(`No data at: ${ohlcPath}`)
+      console.warn(`⚠️ No data at: ${ohlcPath}`)
       return []
     }
 
     const rawData = snapshot.val()
+    console.log(`📦 Raw data type: ${Array.isArray(rawData) ? 'array' : 'object'}`)
+    
     const result = processHistoricalData(rawData, config.barsToFetch)
     
     if (result.length === 0) {
+      console.warn(`⚠️ No valid bars after processing`)
       return []
     }
     
+    // Cache the results
     memoryCache.set(cacheKey, result, config.cacheTTL)
     await idbCache.set(cacheKey, result, config.cacheTTL)
     
-    console.log(`Fetched ${result.length} ${timeframe} bars`)
+    console.log(`✅ Fetched ${result.length} ${timeframe} bars for ${basePath}`)
+    console.log(`   First bar: ${new Date(result[0].timestamp * 1000).toISOString()}`)
+    console.log(`   Last bar: ${new Date(result[result.length - 1].timestamp * 1000).toISOString()}`)
+    
     return result
 
   } catch (error: any) {
-    console.error('Fetch error:', error.message)
+    console.error('❌ Fetch error:', error.message)
+    console.error(error)
     return []
   }
 }
 
-function processHistoricalData(data: any, limit: number): any[] {
-  if (!data || typeof data !== 'object') {
-    return []
-  }
-
-  const historicalData: any[] = []
-  const keys = Object.keys(data)
-  
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i]
-    const item = data[key]
-    
-    if (!item || typeof item !== 'object') continue
-
-    const timestamp = item.timestamp || parseInt(key)
-    
-    if (!timestamp || isNaN(timestamp)) continue
-    if (typeof item.close !== 'number' || item.close <= 0) continue
-
-    historicalData.push({
-      timestamp: timestamp,
-      datetime: item.datetime || new Date(timestamp * 1000).toISOString(),
-      open: item.open || item.close,
-      high: item.high || item.close,
-      low: item.low || item.close,
-      close: item.close,
-      volume: item.volume || 0
-    })
-  }
-
-  if (historicalData.length === 0) {
-    return []
-  }
-
-  historicalData.sort((a, b) => a.timestamp - b.timestamp)
-  return historicalData.slice(-limit)
-}
+// ============================================
+// ✅ FIXED: Subscribe to OHLC updates
+// ============================================
 
 export function subscribeToOHLCUpdates(
   assetPath: string,
@@ -412,7 +575,7 @@ export function subscribeToOHLCUpdates(
 
   const config = TIMEFRAME_CONFIG[timeframe]
   if (!config) {
-    console.error(`Invalid timeframe: ${timeframe}`)
+    console.error(`❌ Invalid timeframe: ${timeframe}`)
     return () => {}
   }
 
@@ -427,13 +590,52 @@ export function subscribeToOHLCUpdates(
     const data = snapshot.val()
     if (!data) return
 
-    const keys = Object.keys(data)
-    const latestKey = keys[keys.length - 1]
-    const latestData = data[latestKey]
+    // ✅ FIX: Handle both array and object structures
+    let latestData: any = null
+    let latestKey: string | null = null
+    let isArray = Array.isArray(data)
     
-    if (!latestData || !latestData.close) return
+    if (isArray) {
+      // Normal asset (array structure)
+      latestData = data[data.length - 1]
+      latestKey = String(data.length - 1)
+    } else {
+      // ✅ Crypto asset (object with timestamp keys)
+      const keys = Object.keys(data)
+      
+      // Sort keys numerically (timestamps)
+      keys.sort((a, b) => {
+        const numA = parseInt(a)
+        const numB = parseInt(b)
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return numB - numA // Descending order
+        }
+        return b.localeCompare(a)
+      })
+      
+      latestKey = keys[0]
+      latestData = data[latestKey]
+    }
+    
+    if (!latestData || !latestData.close) {
+      console.warn(`⚠️ Invalid latest data for ${timeframe}`)
+      return
+    }
 
-    const barTimestamp = latestData.timestamp || parseInt(latestKey)
+    // ✅ Get timestamp from key or data
+    let barTimestamp = latestData.timestamp
+    
+    if (!barTimestamp && latestKey) {
+      const parsedKey = parseInt(latestKey)
+      if (!isNaN(parsedKey)) {
+        barTimestamp = parsedKey
+      }
+    }
+    
+    if (!barTimestamp) {
+      console.warn(`⚠️ No timestamp found for ${timeframe} bar`)
+      return
+    }
     
     const isNewBar = barTimestamp !== lastBarTimestamp
     
@@ -443,7 +645,9 @@ export function subscribeToOHLCUpdates(
       memoryCache.delete(cacheKey)
       
       if (timeframe === '1s') {
-        console.log(`New 1s bar: ${new Date(barTimestamp * 1000).toISOString()}`)
+        console.log(`✅ New 1s bar: ${new Date(barTimestamp * 1000).toISOString()}`)
+      } else if (timeframe === '1m') {
+        console.log(`✅ New 1m bar: ${new Date(barTimestamp * 1000).toISOString()}`)
       }
     }
     
@@ -467,22 +671,27 @@ export function subscribeToOHLCUpdates(
       low: latestData.low || latestData.close,
       close: latestData.close,
       volume: latestData.volume || 0,
-      isNewBar
+      isNewBar,
+      isCompleted: latestData.isCompleted || false
     }
     
     callback(barData)
 
   }, (error) => {
-    console.error(`OHLC subscription error (${timeframe}):`, error)
+    console.error(`❌ OHLC subscription error (${timeframe}):`, error)
   })
 
-  console.log(`Subscribed to ${timeframe} OHLC updates at ${ohlcPath}`)
+  console.log(`📊 Subscribed to ${timeframe} OHLC updates at ${ohlcPath}`)
 
   return () => {
-    console.log(`Unsubscribed from ${timeframe} OHLC updates`)
+    console.log(`🔌 Unsubscribed from ${timeframe} OHLC updates`)
     off(ohlcRef)
   }
 }
+
+// ============================================
+// PRICE UPDATES (current_price)
+// ============================================
 
 export function subscribeToPriceUpdates(
   assetPath: string,
@@ -514,35 +723,40 @@ export function subscribeToPriceUpdates(
     callback(data)
     
   }, (error) => {
-    console.error('Price subscription error:', error)
+    console.error('❌ Price subscription error:', error)
   })
 
-  console.log(`Subscribed to price updates at ${pricePath}`)
+  console.log(`💰 Subscribed to price updates at ${pricePath}`)
 
   return () => {
-    console.log(`Unsubscribed from price updates`)
+    console.log(`🔌 Unsubscribed from price updates`)
     off(priceRef)
   }
 }
+
+// ============================================
+// PREFETCH & UTILITIES
+// ============================================
 
 export async function prefetchDefaultAsset(assetPath: string): Promise<void> {
   const basePath = cleanAssetPath(assetPath)
   const timeframes: Timeframe[] = ['1s', '1m', '5m']
   
-  console.log(`Prefetching data for ${basePath}...`)
+  console.log(`🚀 Prefetching data for ${basePath}...`)
   
-  await Promise.allSettled(
+  const results = await Promise.allSettled(
     timeframes.map(tf => fetchHistoricalData(basePath, tf))
   )
   
-  console.log(`Prefetch complete for ${basePath}`)
+  const successful = results.filter(r => r.status === 'fulfilled').length
+  console.log(`✅ Prefetch complete for ${basePath} (${successful}/${timeframes.length} successful)`)
 }
 
 export async function clearDataCache(pattern?: string): Promise<void> {
   if (!pattern) {
     memoryCache.clear()
     await idbCache.clear()
-    console.log('All cache cleared')
+    console.log('🗑️ All cache cleared')
     return
   }
   
@@ -553,7 +767,7 @@ export async function clearDataCache(pattern?: string): Promise<void> {
     }
   })
   
-  console.log(`Cache cleared for pattern: ${pattern}`)
+  console.log(`🗑️ Cache cleared for pattern: ${pattern}`)
 }
 
 export function getCacheStats(): any {
@@ -572,6 +786,10 @@ export function getTimeframeInfo(timeframe: Timeframe) {
   return TIMEFRAME_CONFIG[timeframe]
 }
 
+// ============================================
+// DEBUG UTILITIES
+// ============================================
+
 if (typeof window !== 'undefined') {
   (window as any).firebaseDebug = {
     getCacheStats,
@@ -579,8 +797,39 @@ if (typeof window !== 'undefined') {
     getSupportedTimeframes,
     getTimeframeInfo,
     isValidTimeframe,
-    prefetchDefaultAsset
+    prefetchDefaultAsset,
+    checkSimulatorStatus,
+    // ✅ NEW: Manual data inspection
+    async inspectPath(path: string) {
+      if (!database) return null
+      const snapshot = await get(ref(database, path))
+      console.log(`📦 Data at ${path}:`, snapshot.val())
+      return snapshot.val()
+    },
+    // ✅ NEW: Test crypto structure
+    async testCryptoAsset(assetPath: string) {
+      console.log(`🧪 Testing crypto asset: ${assetPath}`)
+      
+      const status = await checkSimulatorStatus(assetPath)
+      console.log('Status:', status)
+      
+      if (status.hasOHLC) {
+        const data = await fetchHistoricalData(assetPath, '1m')
+        console.log(`Fetched ${data.length} bars`)
+        if (data.length > 0) {
+          console.log('First bar:', data[0])
+          console.log('Last bar:', data[data.length - 1])
+        }
+      }
+      
+      return status
+    }
   }
   
-  console.log('Firebase debug utilities available at window.firebaseDebug')
+  console.log('🔧 Firebase debug utilities available at window.firebaseDebug')
+  console.log('   - getCacheStats()')
+  console.log('   - clearDataCache(pattern?)')
+  console.log('   - inspectPath(path)')
+  console.log('   - testCryptoAsset(assetPath)')
+  console.log('   - checkSimulatorStatus(assetPath)')
 }
