@@ -136,21 +136,38 @@ export default function AdminDashboard() {
   }, [user, router])
 
   const loadStats = async (showRefreshing = false) => {
-    try {
-      if (showRefreshing) setRefreshing(true)
-      
-      const response = await api.getSystemStatistics()
-      const data = response?.data || response
-      
-      setStats(data)
-      setLastUpdated(new Date())
-    } catch (error) {
-      console.error('Failed to load stats:', error)
-    } finally {
-      setLoading(false)
-      if (showRefreshing) setRefreshing(false)
+  try {
+    if (showRefreshing) setRefreshing(true)
+    
+    const response = await api.getSystemStatistics()
+    
+    // ✅ FIX: Properly extract SystemStatistics from response
+    let statsData: SystemStatistics | null = null
+    
+    if (response && typeof response === 'object') {
+      // Check if response has a data property (ApiResponse structure)
+      if ('data' in response && response.data) {
+        statsData = response.data as SystemStatistics
+      } 
+      // Otherwise, response itself is SystemStatistics
+      else if ('users' in response && 'realAccount' in response) {
+        statsData = response as SystemStatistics
+      }
     }
+    
+    if (statsData) {
+      setStats(statsData)
+      setLastUpdated(new Date())
+    } else {
+      console.error('Invalid statistics data received')
+    }
+  } catch (error) {
+    console.error('Failed to load stats:', error)
+  } finally {
+    setLoading(false)
+    if (showRefreshing) setRefreshing(false)
   }
+}
 
   const handleRefresh = () => {
     loadStats(true)
