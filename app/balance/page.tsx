@@ -50,25 +50,44 @@ export default function BalancePage() {
   }, [user])
 
   const loadData = async () => {
-    try {
-      const [balancesRes, historyRes, profileRes] = await Promise.all([
-        api.getBothBalances(),
-        api.getBalanceHistory(1, 100),
-        api.getProfile()
-      ])
-      
-      const balances = balancesRes?.data || balancesRes
-      setRealBalance(balances?.realBalance || 0)
-      setDemoBalance(balances?.demoBalance || 0)
-      setAllTransactions(historyRes?.data?.transactions || historyRes?.transactions || [])
-      const profileData = profileRes?.data || profileRes
-      setProfile(profileData)
-    } catch (error) {
-      console.error('Failed to load balance:', error)
-    } finally {
-      setInitialLoading(false)
+  try {
+    const [balancesRes, historyRes, profileRes] = await Promise.all([
+      api.getBothBalances(),
+      api.getBalanceHistory(1, 100),
+      api.getProfile()
+    ])
+    
+    // ✅ FIX: Extract balance data properly
+    const balances = balancesRes?.data || balancesRes
+    setRealBalance(balances?.realBalance || 0)
+    setDemoBalance(balances?.demoBalance || 0)
+    
+    // ✅ FIX: Extract transactions properly
+    setAllTransactions(historyRes?.data?.transactions || historyRes?.transactions || [])
+    
+    // ✅ FIX: Extract UserProfile properly with type checking
+    let profileData: UserProfile | null = null
+    
+    if (profileRes && typeof profileRes === 'object') {
+      // Check if it's wrapped in ApiResponse (has data property)
+      if ('data' in profileRes && profileRes.data) {
+        profileData = profileRes.data as UserProfile
+      } 
+      // Otherwise, response itself is UserProfile (has user property)
+      else if ('user' in profileRes && 'statusInfo' in profileRes) {
+        profileData = profileRes as UserProfile
+      }
     }
+    
+    if (profileData) {
+      setProfile(profileData)
+    }
+  } catch (error) {
+    console.error('Failed to load balance:', error)
+  } finally {
+    setInitialLoading(false)
   }
+}
 
   const handleDeposit = async () => {
     const amt = parseFloat(amount)

@@ -39,6 +39,7 @@ export interface UserProfile {
   user: User
   statusInfo: StatusInfo
   affiliate: AffiliateInfo
+  profileInfo?: UserProfileInfo  
   balances: {
     real: number
     demo: number
@@ -933,4 +934,10 @@ export interface BalanceFormData {
   type: 'deposit' | 'withdrawal'
   amount: number
   description?: string
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
 }

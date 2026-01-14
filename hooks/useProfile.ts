@@ -1,4 +1,4 @@
-// hooks/useProfile.ts
+// hooks/useProfile.ts - ✅ FIXED VERSION
 
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
@@ -7,8 +7,7 @@ import type {
   UserProfile, 
   UserProfileInfo, 
   UpdateProfileRequest,
-  ChangePasswordRequest,
-  UploadAvatarRequest 
+  ChangePasswordRequest 
 } from '@/types'
 
 interface UseProfileReturn {
@@ -44,16 +43,26 @@ export function useProfile(): UseProfileReturn {
       setLoading(true)
       
       const response = await api.getProfile()
-      const data = response?.data || response
       
-      if (!data) {
+      // ✅ FIX: Properly extract UserProfile from ApiResponse
+      let profileData: UserProfile
+      
+      // Check if response has a 'data' property (ApiResponse wrapper)
+      if (response && 'data' in response && response.data) {
+        profileData = response.data as UserProfile
+      } else {
+        // Response is already UserProfile
+        profileData = response as UserProfile
+      }
+      
+      if (!profileData) {
         throw new Error('No profile data received')
       }
 
-      setProfile(data)
+      setProfile(profileData)
       
-      if (data.profileInfo) {
-        setProfileInfo(data.profileInfo)
+      if (profileData.profileInfo) {
+        setProfileInfo(profileData.profileInfo)
       }
       
     } catch (error: any) {
@@ -204,7 +213,7 @@ export function useProfile(): UseProfileReturn {
 }
 
 /**
- * Hook untuk form validation
+ * Hook for form validation
  */
 export function useProfileFormValidation() {
   const validateFullName = (name: string): string | null => {
@@ -251,9 +260,49 @@ export function useProfileFormValidation() {
     return null
   }
 
+  const validateIdentityNumber = (number: string, type: 'ktp' | 'passport' | 'sim'): string | null => {
+    if (!number || number.trim().length === 0) {
+      return null // Optional field
+    }
+
+    switch (type) {
+      case 'ktp':
+        if (!/^\d{16}$/.test(number)) {
+          return 'KTP must be 16 digits'
+        }
+        break
+      case 'passport':
+        if (!/^[A-Z0-9]{6,9}$/.test(number.toUpperCase())) {
+          return 'Invalid passport number format'
+        }
+        break
+      case 'sim':
+        if (!/^\d{12}$/.test(number)) {
+          return 'SIM must be 12 digits'
+        }
+        break
+    }
+    
+    return null
+  }
+
+  const validateBankAccount = (accountNumber: string): string | null => {
+    if (!accountNumber || accountNumber.trim().length === 0) {
+      return null // Optional field
+    }
+    
+    if (!/^\d{10,16}$/.test(accountNumber)) {
+      return 'Bank account number must be 10-16 digits'
+    }
+    
+    return null
+  }
+
   return {
     validateFullName,
     validatePhoneNumber,
-    validateDateOfBirth
+    validateDateOfBirth,
+    validateIdentityNumber,
+    validateBankAccount
   }
 }

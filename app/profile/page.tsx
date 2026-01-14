@@ -428,66 +428,82 @@ export default function ProfilePage() {
   }, [debouncedPersonalData, editingPersonal])
 
   const loadProfile = async () => {
-    try {
-      setInitialLoading(true)
-      const response = await api.getProfile()
-      const data = response?.data || response
-      
-      if (!data) throw new Error('No profile data received')
-
-      setProfile(data)
-      
-      if (data.profileInfo) {
-        setProfileInfo(data.profileInfo)
-        
-        setPersonalData({
-          fullName: data.profileInfo.personal?.fullName || '',
-          phoneNumber: data.profileInfo.personal?.phoneNumber || '',
-          dateOfBirth: data.profileInfo.personal?.dateOfBirth || '',
-          gender: data.profileInfo.personal?.gender || '',
-          nationality: data.profileInfo.personal?.nationality || ''
-        })
-        
-        if (data.profileInfo.address) {
-          setAddressData({
-            street: data.profileInfo.address.street || '',
-            city: data.profileInfo.address.city || '',
-            province: data.profileInfo.address.province || '',
-            postalCode: data.profileInfo.address.postalCode || '',
-            country: data.profileInfo.address.country || 'Indonesia'
-          })
-        }
-        
-        if (data.profileInfo.identity) {
-          setIdentityData({
-            type: data.profileInfo.identity.type || 'ktp',
-            number: data.profileInfo.identity.number || '',
-            issuedDate: '',
-            expiryDate: ''
-          })
-        }
-        
-        if (data.profileInfo.bankAccount) {
-          setBankData({
-            bankName: data.profileInfo.bankAccount.bankName || '',
-            accountNumber: data.profileInfo.bankAccount.accountNumber || '',
-            accountHolderName: data.profileInfo.bankAccount.accountHolderName || ''
-          })
-        }
-        
-        if (data.profileInfo.settings) {
-          setSettings(data.profileInfo.settings)
-        }
+  try {
+    setInitialLoading(true)
+    const response = await api.getProfile()
+    
+    // ✅ FIX: Properly extract UserProfile from response
+    let data: UserProfile | null = null
+    
+    if (response && typeof response === 'object') {
+      // Check if it's wrapped in ApiResponse (has data property)
+      if ('data' in response && response.data) {
+        data = response.data as UserProfile
+      } 
+      // Otherwise, response itself is UserProfile (has user property)
+      else if ('user' in response && 'statusInfo' in response) {
+        data = response as UserProfile
       }
-    } catch (error: any) {
-      console.error('Failed to load profile:', error)
-      toast.error(error?.message || 'Failed to load profile', {
-        style: { background: '#ef4444', color: '#fff' }
-      })
-    } finally {
-      setInitialLoading(false)
     }
+    
+    if (!data) {
+      throw new Error('No profile data received')
+    }
+
+    setProfile(data)
+    
+    // ✅ FIX: Safely access profileInfo
+    if (data.profileInfo) {
+      setProfileInfo(data.profileInfo)
+      
+      setPersonalData({
+        fullName: data.profileInfo.personal?.fullName || '',
+        phoneNumber: data.profileInfo.personal?.phoneNumber || '',
+        dateOfBirth: data.profileInfo.personal?.dateOfBirth || '',
+        gender: data.profileInfo.personal?.gender || '',
+        nationality: data.profileInfo.personal?.nationality || ''
+      })
+      
+      if (data.profileInfo.address) {
+        setAddressData({
+          street: data.profileInfo.address.street || '',
+          city: data.profileInfo.address.city || '',
+          province: data.profileInfo.address.province || '',
+          postalCode: data.profileInfo.address.postalCode || '',
+          country: data.profileInfo.address.country || 'Indonesia'
+        })
+      }
+      
+      if (data.profileInfo.identity) {
+        setIdentityData({
+          type: data.profileInfo.identity.type || 'ktp',
+          number: data.profileInfo.identity.number || '',
+          issuedDate: '',
+          expiryDate: ''
+        })
+      }
+      
+      if (data.profileInfo.bankAccount) {
+        setBankData({
+          bankName: data.profileInfo.bankAccount.bankName || '',
+          accountNumber: data.profileInfo.bankAccount.accountNumber || '',
+          accountHolderName: data.profileInfo.bankAccount.accountHolderName || ''
+        })
+      }
+      
+      if (data.profileInfo.settings) {
+        setSettings(data.profileInfo.settings)
+      }
+    }
+  } catch (error: any) {
+    console.error('Failed to load profile:', error)
+    toast.error(error?.message || 'Failed to load profile', {
+      style: { background: '#ef4444', color: '#fff' }
+    })
+  } finally {
+    setInitialLoading(false)
   }
+}
 
   // Validation functions
   const validateField = useCallback((field: string, value: string): string => {
