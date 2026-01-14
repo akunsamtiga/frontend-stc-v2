@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import { Asset, BinaryOrder, AccountType } from '@/types'
 import { formatCurrency, getDurationDisplay } from '@/lib/utils'
 import dynamic from 'next/dynamic'
+import TradingTutorial from '@/components/TradingTutorial'
 
 import { 
   ArrowUp,
@@ -163,7 +164,8 @@ export default function TradingPage() {
   const router = useRouter()
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
-  
+    const [showTutorial, setShowTutorial] = useState(false)
+
   const selectedAsset = useSelectedAsset()
   const currentPrice = useCurrentPrice()
   const selectedAccountType = useSelectedAccountType()
@@ -298,6 +300,48 @@ export default function TradingPage() {
     }
   }, [selectedAsset, detectOrderCompletion, setSelectedAsset])
 
+    const handleCompleteTutorial = useCallback(async () => {
+    try {
+      await api.completeTutorial()
+      
+      // Update local user state
+      const updatedUser = {
+        ...user!,
+        tutorialCompleted: true,
+        isNewUser: false,
+      }
+      
+      useAuthStore.setState({ user: updatedUser })
+      
+      setShowTutorial(false)
+      toast.success('Tutorial selesai! Selamat trading! 🎉')
+    } catch (error) {
+      console.error('Failed to complete tutorial:', error)
+      setShowTutorial(false)
+    }
+  }, [user])
+
+  // ✅ Handle skip tutorial
+  const handleSkipTutorial = useCallback(async () => {
+    try {
+      await api.completeTutorial()
+      
+      const updatedUser = {
+        ...user!,
+        tutorialCompleted: true,
+        isNewUser: false,
+      }
+      
+      useAuthStore.setState({ user: updatedUser })
+      
+      setShowTutorial(false)
+      toast.info('Tutorial dilewati. Anda bisa mengaksesnya lagi dari menu Settings.')
+    } catch (error) {
+      console.error('Failed to skip tutorial:', error)
+      setShowTutorial(false)
+    }
+  }, [user])
+
   const handleLogout = useCallback(async () => {
     try {
       console.log('🚪 Starting logout...')
@@ -345,6 +389,19 @@ export default function TradingPage() {
     
     initializeData()
   }, [user, router])
+
+
+    useEffect(() => {
+    if (user && user.isNewUser && !user.tutorialCompleted) {
+      // Show tutorial after a short delay
+      const timer = setTimeout(() => {
+        setShowTutorial(true)
+      }, 1000)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [user])
+
 
   useEffect(() => {
     if (!user) return
@@ -1219,6 +1276,13 @@ export default function TradingPage() {
             </div>
           </div>
         </>
+      )}
+
+      {showTutorial && (
+        <TradingTutorial
+          onComplete={handleCompleteTutorial}
+          onSkip={handleSkipTutorial}
+        />
       )}
 
       <OrderNotification 

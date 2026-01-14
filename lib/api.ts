@@ -394,6 +394,16 @@ class ApiClient {
   // ===================================
   // USER & PROFILE
   // ===================================
+async completeTutorial(): Promise<ApiResponse> {
+  try {
+    const result = await this.client.post('/user/complete-tutorial')
+    this.invalidateCache('/user/profile')
+    return result
+  } catch (error) {
+    console.error('Tutorial completion failed:', error)
+    throw error
+  }
+}
 
   async getProfile(): Promise<ApiResponse<UserProfile>> {
     const cacheKey = this.getCacheKey('/user/profile')

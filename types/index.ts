@@ -11,6 +11,8 @@ export interface User {
   isActive: boolean
   referralCode: string
   referredBy?: string
+  isNewUser: boolean  
+  tutorialCompleted: boolean  
   createdAt: string
   updatedAt?: string
 }
