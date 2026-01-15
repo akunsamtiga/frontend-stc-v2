@@ -1,4 +1,4 @@
-// app/(authenticated)/balance/page.tsx - RESPONSIVE OPTIMIZED
+// app/(authenticated)/balance/page.tsx - FIXED VERSION
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -15,7 +15,6 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-// Skeleton Components remain the same...
 const CardSkeleton = () => (
   <div className="bg-gradient-to-br from-gray-200 to-gray-300 rounded-xl sm:rounded-2xl p-4 sm:p-6 min-h-[220px] sm:min-h-[280px] animate-pulse">
     <div className="flex justify-between mb-4 sm:mb-6">
@@ -50,44 +49,41 @@ export default function BalancePage() {
   }, [user])
 
   const loadData = async () => {
-  try {
-    const [balancesRes, historyRes, profileRes] = await Promise.all([
-      api.getBothBalances(),
-      api.getBalanceHistory(1, 100),
-      api.getProfile()
-    ])
-    
-    // ✅ FIX: Extract balance data properly
-    const balances = balancesRes?.data || balancesRes
-    setRealBalance(balances?.realBalance || 0)
-    setDemoBalance(balances?.demoBalance || 0)
-    
-    // ✅ FIX: Extract transactions properly
-    setAllTransactions(historyRes?.data?.transactions || historyRes?.transactions || [])
-    
-    // ✅ FIX: Extract UserProfile properly with type checking
-    let profileData: UserProfile | null = null
-    
-    if (profileRes && typeof profileRes === 'object') {
-      // Check if it's wrapped in ApiResponse (has data property)
-      if ('data' in profileRes && profileRes.data) {
-        profileData = profileRes.data as UserProfile
-      } 
-      // Otherwise, response itself is UserProfile (has user property)
-      else if ('user' in profileRes && 'statusInfo' in profileRes) {
-        profileData = profileRes as UserProfile
+    try {
+      const [balancesRes, historyRes, profileRes] = await Promise.all([
+        api.getBothBalances(),
+        api.getBalanceHistory(1, 100),
+        api.getProfile()
+      ])
+      
+      // Extract balance data properly
+      const balances = balancesRes?.data || balancesRes
+      setRealBalance(balances?.realBalance || 0)
+      setDemoBalance(balances?.demoBalance || 0)
+      
+      // Extract transactions properly
+      setAllTransactions(historyRes?.data?.transactions || historyRes?.transactions || [])
+      
+      // Extract UserProfile properly with type checking
+      let profileData: UserProfile | null = null
+      
+      if (profileRes && typeof profileRes === 'object') {
+        if ('data' in profileRes && profileRes.data) {
+          profileData = profileRes.data as UserProfile
+        } else if ('user' in profileRes && 'statusInfo' in profileRes) {
+          profileData = profileRes as UserProfile
+        }
       }
+      
+      if (profileData) {
+        setProfile(profileData)
+      }
+    } catch (error) {
+      console.error('Failed to load balance:', error)
+    } finally {
+      setInitialLoading(false)
     }
-    
-    if (profileData) {
-      setProfile(profileData)
-    }
-  } catch (error) {
-    console.error('Failed to load balance:', error)
-  } finally {
-    setInitialLoading(false)
   }
-}
 
   const handleDeposit = async () => {
     const amt = parseFloat(amount)
@@ -265,7 +261,7 @@ export default function BalancePage() {
                 </div>
               </div>
 
-              {/* Real Card - Responsive */}
+              {/* Real Card */}
               <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-teal-600 to-green-700 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-2xl min-h-[200px] sm:min-h-[280px]">
                 <div className="absolute inset-0 opacity-10">
                   <div className="absolute top-0 right-0 w-40 h-40 sm:w-64 sm:h-64 bg-white rounded-full blur-3xl -translate-y-20 sm:-translate-y-32 translate-x-20 sm:translate-x-32"></div>
@@ -316,7 +312,7 @@ export default function BalancePage() {
               </div>
             </div>
 
-            {/* DEMO ACCOUNT - Similar structure */}
+            {/* DEMO ACCOUNT */}
             <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl sm:rounded-3xl border-2 border-blue-200 p-4 sm:p-6 shadow-xl">
               <div className="flex items-center justify-between mb-4 sm:mb-6">
                 <h2 className="text-sm sm:text-base lg:text-lg font-bold text-gray-900 flex items-center gap-1.5 sm:gap-2">
@@ -396,7 +392,7 @@ export default function BalancePage() {
           </div>
         </div>
 
-        {/* Transaction History - Responsive */}
+        {/* Transaction History */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
           <div className="p-4 sm:p-5 lg:p-6 border-b border-gray-200">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -481,7 +477,7 @@ export default function BalancePage() {
         </div>
       </div>
 
-      {/* Modals remain the same but with responsive padding */}
+      {/* Deposit Modal - FIXED */}
       {showDeposit && (
         <>
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => setShowDeposit(false)} />
@@ -514,14 +510,28 @@ export default function BalancePage() {
               </div>
 
               <div className="p-5 sm:p-6 space-y-5 sm:space-y-6">
-                {transactionAccount === 'real' && statusInfo && statusInfo.nextStatus && (
+                {/* Status Upgrade Banner - FIXED */}
+                {transactionAccount === 'real' && statusInfo?.nextStatus && (
                   <div className="p-3 sm:p-4 bg-purple-50 border border-purple-200 rounded-xl">
                     <div className="flex items-center gap-2 mb-2">
                       <TrendingUp className="w-4 h-4 text-purple-600" />
                       <span className="text-xs sm:text-sm font-semibold text-purple-900">Status Upgrade Available</span>
                     </div>
                     <p className="text-xs sm:text-sm text-purple-700">
-                      Deposit {formatCurrency(statusInfo.depositNeeded || 0)} more to reach <span className="font-bold">{statusInfo.nextStatus.toUpperCase()}</span> status and get +{getStatusProfitBonus(statusInfo.nextStatus)}% profit bonus!
+                      Deposit {formatCurrency(statusInfo.depositNeeded || 0)} more to reach <span className="font-bold">{statusInfo.nextStatus.toUpperCase()}</span> status and get +{(() => {
+                        try {
+                          // Safe profit bonus calculation - normalize to lowercase
+                          const nextStatus = (statusInfo.nextStatus as string).toLowerCase() as 'gold' | 'vip';
+                          if (nextStatus === 'gold') {
+                            return getStatusProfitBonus('gold');
+                          } else if (nextStatus === 'vip') {
+                            return getStatusProfitBonus('vip');
+                          }
+                          return 0;
+                        } catch {
+                          return 0;
+                        }
+                      })()}% profit bonus!
                     </p>
                   </div>
                 )}

@@ -1793,13 +1793,13 @@ export default function LandingPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-semibold text-emerald-400">Kode Referral Terdeteksi</span>
+                        <span className="text-sm font-semibold text-emerald-400">Kode Referral</span>
                         <span className="px-2 py-0.5 bg-emerald-500/20 rounded text-xs font-mono text-emerald-300">
                           {referralCode}
                         </span>
                       </div>
                       <p className="text-xs text-gray-400">
-                        Daftar sekarang untuk mendapatkan bonus dan komisi untuk yang mereferensikan Anda!
+                        Daftar sekarang untuk mendapatkan bonus dan komisi Anda!
                       </p>
                     </div>
                   </div>
