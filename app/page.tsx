@@ -1,13 +1,12 @@
-// app/(landing)/page.tsx - COMPLETE FIXED VERSION
+// app/(landing)/page.tsx - ✅ FIXED: Referral Code Support
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
-import EnhancedFooter from '@/components/EnhancedFooter'
 import { 
   TrendingUp, 
   Zap, 
@@ -29,7 +28,6 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react'
-
 import {
   subscribeToCryptoPrices,
   generateLiveTrade,
@@ -39,7 +37,7 @@ import {
   LiveTradeData
 } from '@/lib/crypto-price'
 import { signInWithGoogle, getIdToken, isRedirectPending } from '@/lib/firebase-auth'
-import React from 'react'
+import EnhancedFooter from '@/components/EnhancedFooter'
 
 // ===================================
 // DATA CONSTANTS
@@ -121,6 +119,39 @@ const testimonials = [
     location: 'Bandung',
     duration: '1 tahun'
   },
+]
+
+const dummyTrades = [
+  { user: 'kingtrader88', asset: 'BTC/USD', profit: 2450000, time: 'Baru saja' },
+  { user: 'moon_hunter', asset: 'ETH/USD', profit: 1850000, time: '1 menit lalu' },
+  { user: 'trader_pro21', asset: 'BNB/USD', profit: 950000, time: '2 menit lalu' },
+  { user: 'master_mind', asset: 'BTC/USD', profit: 3200000, time: '3 menit lalu' },
+  { user: 'hodl4life', asset: 'ETH/USD', profit: 1650000, time: '4 menit lalu' },
+  { user: 'profit_seeker', asset: 'BNB/USD', profit: 780000, time: '5 menit lalu' },
+  { user: 'diamond_hands', asset: 'BTC/USD', profit: 2980000, time: '6 menit lalu' },
+  { user: 'fire_warrior', asset: 'ETH/USD', profit: 1420000, time: '7 menit lalu' },
+  { user: 'swift_ninja', asset: 'BNB/USD', profit: 890000, time: '8 menit lalu' },
+  { user: 'bullrun2024', asset: 'BTC/USD', profit: 2750000, time: '9 menit lalu' },
+  { user: 'satoshi_fan', asset: 'ETH/USD', profit: 1950000, time: '10 menit lalu' },
+  { user: 'whale_alert', asset: 'BNB/USD', profit: 1120000, time: '11 menit lalu' },
+  { user: 'defi_king', asset: 'BTC/USD', profit: 3450000, time: '12 menit lalu' },
+  { user: 'moon_boy', asset: 'ETH/USD', profit: 1680000, time: '13 menit lalu' },
+  { user: 'alpha_trader', asset: 'BNB/USD', profit: 920000, time: '14 menit lalu' },
+  { user: 'lambo_soon', asset: 'BTC/USD', profit: 2850000, time: '15 menit lalu' },
+  { user: 'degen_ape', asset: 'ETH/USD', profit: 1780000, time: '16 menit lalu' },
+  { user: 'paper_hands', asset: 'BNB/USD', profit: 1050000, time: '17 menit lalu' },
+  { user: 'rekt_veteran', asset: 'BTC/USD', profit: 3100000, time: '18 menit lalu' },
+  { user: 'pumpit_up', asset: 'ETH/USD', profit: 1520000, time: '19 menit lalu' },
+  { user: 'gem_hunter99', asset: 'BNB/USD', profit: 850000, time: '20 menit lalu' },
+  { user: 'stack_lord', asset: 'BTC/USD', profit: 2650000, time: '21 menit lalu' },
+  { user: 'alt_season', asset: 'ETH/USD', profit: 1890000, time: '22 menit lalu' },
+  { user: 'wagmi_bro', asset: 'BNB/USD', profit: 980000, time: '23 menit lalu' },
+  { user: 'wen_moon', asset: 'BTC/USD', profit: 3350000, time: '24 menit lalu' },
+  { user: 'buy_the_dip', asset: 'ETH/USD', profit: 1720000, time: '25 menit lalu' },
+  { user: 'chart_wizard', asset: 'BNB/USD', profit: 1180000, time: '26 menit lalu' },
+  { user: 'bull_gang', asset: 'BTC/USD', profit: 2920000, time: '27 menit lalu' },
+  { user: 'legendary_ape', asset: 'ETH/USD', profit: 1580000, time: '28 menit lalu' },
+  { user: 'to_the_moon', asset: 'BNB/USD', profit: 890000, time: '29 menit lalu' },
 ]
 
 // ===================================
@@ -256,39 +287,6 @@ const LiveCryptoChart = () => {
   const [priceHistory, setPriceHistory] = useState<number[]>([])
   const [currentTradeIndex, setCurrentTradeIndex] = useState(0)
 
-const dummyTrades = [
-    { user: 'kingtrader88', asset: 'BTC/USD', profit: 2450000, time: 'Baru saja' },
-    { user: 'moon_hunter', asset: 'ETH/USD', profit: 1850000, time: '1 menit lalu' },
-    { user: 'trader_pro21', asset: 'BNB/USD', profit: 950000, time: '2 menit lalu' },
-    { user: 'master_mind', asset: 'BTC/USD', profit: 3200000, time: '3 menit lalu' },
-    { user: 'hodl4life', asset: 'ETH/USD', profit: 1650000, time: '4 menit lalu' },
-    { user: 'profit_seeker', asset: 'BNB/USD', profit: 780000, time: '5 menit lalu' },
-    { user: 'diamond_hands', asset: 'BTC/USD', profit: 2980000, time: '6 menit lalu' },
-    { user: 'fire_warrior', asset: 'ETH/USD', profit: 1420000, time: '7 menit lalu' },
-    { user: 'swift_ninja', asset: 'BNB/USD', profit: 890000, time: '8 menit lalu' },
-    { user: 'bullrun2024', asset: 'BTC/USD', profit: 2750000, time: '9 menit lalu' },
-    { user: 'satoshi_fan', asset: 'ETH/USD', profit: 1950000, time: '10 menit lalu' },
-    { user: 'whale_alert', asset: 'BNB/USD', profit: 1120000, time: '11 menit lalu' },
-    { user: 'defi_king', asset: 'BTC/USD', profit: 3450000, time: '12 menit lalu' },
-    { user: 'moon_boy', asset: 'ETH/USD', profit: 1680000, time: '13 menit lalu' },
-    { user: 'alpha_trader', asset: 'BNB/USD', profit: 920000, time: '14 menit lalu' },
-    { user: 'lambo_soon', asset: 'BTC/USD', profit: 2850000, time: '15 menit lalu' },
-    { user: 'degen_ape', asset: 'ETH/USD', profit: 1780000, time: '16 menit lalu' },
-    { user: 'paper_hands', asset: 'BNB/USD', profit: 1050000, time: '17 menit lalu' },
-    { user: 'rekt_veteran', asset: 'BTC/USD', profit: 3100000, time: '18 menit lalu' },
-    { user: 'pumpit_up', asset: 'ETH/USD', profit: 1520000, time: '19 menit lalu' },
-    { user: 'gem_hunter99', asset: 'BNB/USD', profit: 850000, time: '20 menit lalu' },
-    { user: 'stack_lord', asset: 'BTC/USD', profit: 2650000, time: '21 menit lalu' },
-    { user: 'alt_season', asset: 'ETH/USD', profit: 1890000, time: '22 menit lalu' },
-    { user: 'wagmi_bro', asset: 'BNB/USD', profit: 980000, time: '23 menit lalu' },
-    { user: 'wen_moon', asset: 'BTC/USD', profit: 3350000, time: '24 menit lalu' },
-    { user: 'buy_the_dip', asset: 'ETH/USD', profit: 1720000, time: '25 menit lalu' },
-    { user: 'chart_wizard', asset: 'BNB/USD', profit: 1180000, time: '26 menit lalu' },
-    { user: 'bull_gang', asset: 'BTC/USD', profit: 2920000, time: '27 menit lalu' },
-    { user: 'legendary_ape', asset: 'ETH/USD', profit: 1580000, time: '28 menit lalu' },
-    { user: 'to_the_moon', asset: 'BNB/USD', profit: 890000, time: '29 menit lalu' },
-  ]
-  
   useEffect(() => {
     setPriceHistory([])
     
@@ -466,6 +464,10 @@ export default function LandingPage() {
   const [touchEnd, setTouchEnd] = useState(0)
   const [logoPhase, setLogoPhase] = useState<'stc-logo-in' | 'stc-text-in' | 'stc-hold' | 'stc-text-out' | 'stc-logo-out' | 'stockity-logo-in' | 'stockity-text-in' | 'stockity-hold' | 'stockity-text-out' | 'stockity-logo-out'>('stc-logo-in')
   const [loadingGoogle, setLoadingGoogle] = useState(false)
+  
+  // ✅ NEW: Referral code state
+  const [referralCode, setReferralCode] = useState<string>('')
+  const [hasReferralCode, setHasReferralCode] = useState(false)
 
   // ✅ Effect 1: Check auth timeout
   useEffect(() => {
@@ -482,6 +484,27 @@ export default function LandingPage() {
       router.push('/trading')
     }
   }, [user, router, isCheckingAuth])
+
+  // ✅ NEW Effect 3: Read referral code from URL
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    
+    // Read ?ref=WUTJ8JGX from URL
+    const urlParams = new URLSearchParams(window.location.search)
+    const refCode = urlParams.get('ref')
+    
+    if (refCode && refCode.trim() !== '') {
+      setReferralCode(refCode.trim())
+      setHasReferralCode(true)
+      console.log('✅ Referral code detected:', refCode)
+      
+      // Show toast
+      toast.info(`Kode referral: ${refCode}`, {
+        description: 'Anda akan mendapatkan bonus saat mendaftar',
+        duration: 5000
+      })
+    }
+  }, [])
 
   // Effect 3: Logo animation
   useEffect(() => {
@@ -597,7 +620,7 @@ export default function LandingPage() {
     try {
       const response = isLogin
         ? await api.login(email, password)
-        : await api.register(email, password)
+        : await api.register(email, password, referralCode || undefined) // ✅ KIRIM referralCode!
 
       const userData = response.user || response.data?.user
       const token = response.token || response.data?.token
@@ -610,7 +633,19 @@ export default function LandingPage() {
       setAuth(userData, token)
       api.setToken(token)
 
-      toast.success(response.message || 'Login berhasil!')
+      // ✅ Show affiliate info if available
+      if (!isLogin && response.data?.affiliate) {
+        const affiliate = response.data.affiliate
+        toast.success('Akun berhasil dibuat!', {
+          description: affiliate.referredBy 
+            ? `Dirujuk oleh: ${affiliate.referredBy}. Komisi menunggu deposit pertama.`
+            : 'Selamat bergabung!',
+          duration: 5000
+        })
+      } else {
+        toast.success(response.message || 'Login berhasil!')
+      }
+
       router.replace('/trading')
     } catch (error: any) {
       const errorMessage = 
@@ -625,7 +660,7 @@ export default function LandingPage() {
     }
   }
 
-  // ✅ IMPROVED: Google Sign-In handler
+  // ✅ FIXED: handleGoogleSignIn sudah OK (sudah ada referralCode)
   const handleGoogleSignIn = async () => {
     setLoadingGoogle(true)
 
@@ -634,10 +669,8 @@ export default function LandingPage() {
       
       const result = await signInWithGoogle()
       
-      // If we get here, popup succeeded (not redirect)
       if (!result || !result.user) {
         console.log('🔄 Redirecting to Google...')
-        // Redirect is happening, no error
         return
       }
 
@@ -646,11 +679,9 @@ export default function LandingPage() {
       const idToken = await getIdToken(result.user)
       console.log('✅ ID Token obtained')
 
-      const urlParams = new URLSearchParams(window.location.search)
-      const referralCode = urlParams.get('ref') || undefined
-
-      console.log('📤 Sending to backend...')
-      const response = await api.googleSignIn(idToken, referralCode)
+      // ✅ Use referralCode from state (already read from URL)
+      console.log('📤 Sending to backend with referral:', referralCode || 'none')
+      const response = await api.googleSignIn(idToken, referralCode || undefined)
       
       const userData = response.user || response.data?.user
       const token = response.token || response.data?.token
@@ -664,11 +695,20 @@ export default function LandingPage() {
       setAuth(userData, token)
       api.setToken(token)
 
-      const message = response.data?.isNewUser 
-        ? 'Akun berhasil dibuat! Selamat datang!' 
-        : 'Selamat datang kembali!'
+      // ✅ Show affiliate info
+      const isNewUser = response.data?.isNewUser || false
+      const affiliate = response.data?.affiliate
       
-      toast.success(message)
+      let message = isNewUser ? 'Akun berhasil dibuat! Selamat datang!' : 'Selamat datang kembali!'
+      
+      if (affiliate?.referredBy) {
+        toast.success(message, {
+          description: `Dirujuk oleh: ${affiliate.referredBy}. Komisi menunggu deposit pertama.`,
+          duration: 5000
+        })
+      } else {
+        toast.success(message)
+      }
 
       setShowAuthModal(false)
       router.push('/trading')
@@ -676,7 +716,6 @@ export default function LandingPage() {
     } catch (error: any) {
       console.error('❌ Google Sign-In failed:', error)
       
-      // Don't show error if redirect is happening
       if (error.code === 'auth/popup-blocked' || 
           error.code === 'auth/popup-closed-by-user' ||
           error.code === 'auth/cancelled-popup-request') {
@@ -715,7 +754,18 @@ export default function LandingPage() {
             animationDelay: '1s'
           }}
         />
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-05"></div>
+
+        {/* AI Image Layer */}
+        <div className="hidden lg:block absolute left-0 bottom-0 w-2/5 h-2/5 opacity-25 pointer-events-none z-0">
+          <Image
+            src="/ai1.png"
+            alt=""
+            fill
+            className="object-contain object-left-bottom"
+            priority
+          />
+        </div>
       </div>
 
       {/* Navigation */}
@@ -829,7 +879,6 @@ export default function LandingPage() {
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px]"></div>
           <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-600/8 rounded-full blur-[100px]"></div>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-600/8 rounded-full blur-[100px]"></div>
-          
           <div 
             className="absolute inset-0 opacity-[0.03]"
             style={{
@@ -840,17 +889,6 @@ export default function LandingPage() {
               backgroundSize: '60px 60px',
             }}
           ></div>
-
-          {/* AI Image Layer */}
-          <div className="hidden lg:block absolute left-0 bottom-0 w-2/5 h-2/5 opacity-25 pointer-events-none z-0">
-            <Image
-              src="/ai1.png"
-              alt=""
-              fill
-              className="object-contain object-left-bottom"
-              priority
-            />
-          </div>
         </div>
         
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
@@ -1192,7 +1230,7 @@ export default function LandingPage() {
                 {i < 2 && <div className="absolute left-7 top-16 w-px h-6 bg-gray-800"></div>}
                 
                 <div className="flex-shrink-0">
-                  <div className={`relative w-14 h-14 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-full flex items-center justify-center`}>
+                  <div className={`w-14 h-14 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-full flex items-center justify-center`}>
                     <span className={`text-lg font-bold text-${step.color}-400`}>{step.num}</span>
                   </div>
                 </div>
@@ -1224,7 +1262,6 @@ export default function LandingPage() {
                 `,
                 backgroundSize: '40px 40px'
               }}></div>
-              
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px]"></div>
             </div>
 
@@ -1321,6 +1358,7 @@ export default function LandingPage() {
       {/* Payment Methods */}
       <section className="py-16 sm:py-20 relative border-t border-yellow-800/50">
         <div className="container mx-auto px-4 sm:px-6">
+          {/* Header */}
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full mb-6">
               <Shield className="w-3.5 h-3.5 text-yellow-400" />
@@ -1744,6 +1782,30 @@ export default function LandingPage() {
                 </button>
               </div>
 
+              {/* ✅ NEW: Referral Code Banner */}
+              {hasReferralCode && !isLogin && (
+                <div className="mb-6 p-4 bg-gradient-to-r from-emerald-500/10 to-green-500/10 border border-emerald-500/30 rounded-xl animate-fade-in-up">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-semibold text-emerald-400">Kode Referral Terdeteksi</span>
+                        <span className="px-2 py-0.5 bg-emerald-500/20 rounded text-xs font-mono text-emerald-300">
+                          {referralCode}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        Daftar sekarang untuk mendapatkan bonus dan komisi untuk yang mereferensikan Anda!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Header Text */}
               <div className="mb-6">
                 <h3 className="text-2xl font-bold mb-2">
@@ -1752,7 +1814,9 @@ export default function LandingPage() {
                 <p className="text-gray-400">
                   {isLogin 
                     ? 'Masuk untuk melanjutkan trading' 
-                    : 'Bergabung dengan ribuan trader sukses'}
+                    : hasReferralCode 
+                      ? 'Bergabung dengan bonus referral'
+                      : 'Bergabung dengan ribuan trader sukses'}
                 </p>
               </div>
 
@@ -1807,11 +1871,32 @@ export default function LandingPage() {
                         </li>
                       </ul>
                       <p className="text-xs text-gray-500 mt-2">
-                        Contoh: <span className=" text-green-400">SecurePass123!</span>
+                        Contoh: <span className="text-green-400">SecurePass123!</span>
                       </p>
                     </div>
                   )}
                 </div>
+
+                {/* ✅ NEW: Manual Referral Code Input (jika belum ada di URL) */}
+                {!isLogin && !hasReferralCode && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Kode Referral <span className="text-gray-500">(Opsional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={referralCode}
+                      onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                      placeholder="Contoh: WUTJ8JGX"
+                      disabled={loading}
+                      className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all font-mono"
+                      maxLength={8}
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Masukkan kode referral dari teman Anda untuk mendapatkan bonus
+                    </p>
+                  </div>
+                )}
 
                 <button
                   type="submit"
@@ -1847,14 +1932,16 @@ export default function LandingPage() {
                     </div>
                     <span className="text-gray-300">Tanpa kartu kredit</span>
                   </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <div className="w-6 h-6 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
+                  {hasReferralCode && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="w-6 h-6 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                        <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <span className="text-emerald-400 font-medium">Bonus referral aktif!</span>
                     </div>
-                    <span className="text-gray-300">Dukungan pelanggan 24/7</span>
-                  </div>
+                  )}
                 </div>
               )}
 
@@ -1881,6 +1968,7 @@ export default function LandingPage() {
                 ) : (
                   <>
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                      {/* Google icon paths */}
                       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                       <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
                       <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
@@ -1894,9 +1982,9 @@ export default function LandingPage() {
               {/* Terms */}
               <p className="mt-6 text-xs text-center text-gray-500 leading-relaxed">
                 Dengan melanjutkan, Anda menyetujui{' '}
-                <a href="https://stockity.id/information/agreement" className="text-blue-400 hover:text-blue-300">Syarat & Ketentuan</a>
+                <a href="https://stockity.id/information/agreement " className="text-blue-400 hover:text-blue-300">Syarat & Ketentuan</a>
                 {' '}dan{' '}
-                <a href="https://stockity.id/information/privacy" className="text-blue-400 hover:text-blue-300">Kebijakan Privasi</a> kami
+                <a href="https://stockity.id/information/privacy " className="text-blue-400 hover:text-blue-300">Kebijakan Privasi</a> kami
               </p>
             </div>
           </div>
