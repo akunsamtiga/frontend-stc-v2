@@ -256,19 +256,39 @@ const LiveCryptoChart = () => {
   const [priceHistory, setPriceHistory] = useState<number[]>([])
   const [currentTradeIndex, setCurrentTradeIndex] = useState(0)
 
-  const dummyTrades = [
-    { user: 'Ahmad R.', asset: 'BTC/USD', profit: 2450000, time: 'Baru saja' },
-    { user: 'Siti N.', asset: 'ETH/USD', profit: 1850000, time: '1 menit lalu' },
-    { user: 'Budi S.', asset: 'BNB/USD', profit: 950000, time: '2 menit lalu' },
-    { user: 'Dewi L.', asset: 'BTC/USD', profit: 3200000, time: '3 menit lalu' },
-    { user: 'Andi P.', asset: 'ETH/USD', profit: 1650000, time: '5 menit lalu' },
-    { user: 'Rina M.', asset: 'BNB/USD', profit: 780000, time: '7 menit lalu' },
-    { user: 'Joko W.', asset: 'BTC/USD', profit: 2980000, time: '10 menit lalu' },
-    { user: 'Maya S.', asset: 'ETH/USD', profit: 1420000, time: '12 menit lalu' },
-    { user: 'Hendra K.', asset: 'BNB/USD', profit: 890000, time: '15 menit lalu' },
-    { user: 'Lisa A.', asset: 'BTC/USD', profit: 2750000, time: '18 menit lalu' },
+const dummyTrades = [
+    { user: 'kingtrader88', asset: 'BTC/USD', profit: 2450000, time: 'Baru saja' },
+    { user: 'moon_hunter', asset: 'ETH/USD', profit: 1850000, time: '1 menit lalu' },
+    { user: 'trader_pro21', asset: 'BNB/USD', profit: 950000, time: '2 menit lalu' },
+    { user: 'master_mind', asset: 'BTC/USD', profit: 3200000, time: '3 menit lalu' },
+    { user: 'hodl4life', asset: 'ETH/USD', profit: 1650000, time: '4 menit lalu' },
+    { user: 'profit_seeker', asset: 'BNB/USD', profit: 780000, time: '5 menit lalu' },
+    { user: 'diamond_hands', asset: 'BTC/USD', profit: 2980000, time: '6 menit lalu' },
+    { user: 'fire_warrior', asset: 'ETH/USD', profit: 1420000, time: '7 menit lalu' },
+    { user: 'swift_ninja', asset: 'BNB/USD', profit: 890000, time: '8 menit lalu' },
+    { user: 'bullrun2024', asset: 'BTC/USD', profit: 2750000, time: '9 menit lalu' },
+    { user: 'satoshi_fan', asset: 'ETH/USD', profit: 1950000, time: '10 menit lalu' },
+    { user: 'whale_alert', asset: 'BNB/USD', profit: 1120000, time: '11 menit lalu' },
+    { user: 'defi_king', asset: 'BTC/USD', profit: 3450000, time: '12 menit lalu' },
+    { user: 'moon_boy', asset: 'ETH/USD', profit: 1680000, time: '13 menit lalu' },
+    { user: 'alpha_trader', asset: 'BNB/USD', profit: 920000, time: '14 menit lalu' },
+    { user: 'lambo_soon', asset: 'BTC/USD', profit: 2850000, time: '15 menit lalu' },
+    { user: 'degen_ape', asset: 'ETH/USD', profit: 1780000, time: '16 menit lalu' },
+    { user: 'paper_hands', asset: 'BNB/USD', profit: 1050000, time: '17 menit lalu' },
+    { user: 'rekt_veteran', asset: 'BTC/USD', profit: 3100000, time: '18 menit lalu' },
+    { user: 'pumpit_up', asset: 'ETH/USD', profit: 1520000, time: '19 menit lalu' },
+    { user: 'gem_hunter99', asset: 'BNB/USD', profit: 850000, time: '20 menit lalu' },
+    { user: 'stack_lord', asset: 'BTC/USD', profit: 2650000, time: '21 menit lalu' },
+    { user: 'alt_season', asset: 'ETH/USD', profit: 1890000, time: '22 menit lalu' },
+    { user: 'wagmi_bro', asset: 'BNB/USD', profit: 980000, time: '23 menit lalu' },
+    { user: 'wen_moon', asset: 'BTC/USD', profit: 3350000, time: '24 menit lalu' },
+    { user: 'buy_the_dip', asset: 'ETH/USD', profit: 1720000, time: '25 menit lalu' },
+    { user: 'chart_wizard', asset: 'BNB/USD', profit: 1180000, time: '26 menit lalu' },
+    { user: 'bull_gang', asset: 'BTC/USD', profit: 2920000, time: '27 menit lalu' },
+    { user: 'legendary_ape', asset: 'ETH/USD', profit: 1580000, time: '28 menit lalu' },
+    { user: 'to_the_moon', asset: 'BNB/USD', profit: 890000, time: '29 menit lalu' },
   ]
-
+  
   useEffect(() => {
     setPriceHistory([])
     
