@@ -17,7 +17,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: 'STC AutoTrade',
-  description: 'Platform trading binary option dengan eksekusi kilat, profit hingga 95%, dan keamanan maksimal. Dipercaya 50.000+ trader.',
+  description: 'Platform dengan penarikan kilat, profit hingga 100%, dan keamanan maksimal.',
   keywords: ['binary option', 'trading', 'IDX_STC', 'forex', 'crypto', 'STC AutoTrade'],
   themeColor: '#0f1419', 
   icons: {
