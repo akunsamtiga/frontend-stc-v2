@@ -526,6 +526,17 @@ async completeTutorial(): Promise<ApiResponse> {
     }
   }
 
+  async uploadAssetIcon(assetId: string, iconUrl: string): Promise<ApiResponse> {
+  try {
+    const result = await this.client.post(`/assets/${assetId}/icon`, { iconUrl })
+    this.invalidateCache('/assets')
+    return result
+  } catch (error) {
+    console.error('Asset icon upload failed:', error)
+    throw error
+  }
+}
+
   // ===================================
   // BALANCE
   // ===================================

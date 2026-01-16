@@ -72,6 +72,7 @@ export interface Asset {
   category: 'normal' | 'crypto'
   profitRate: number
   isActive: boolean
+   icon?: string
   // ✅ FIXED: Changed to include 'binance'
   dataSource: 'realtime_db' | 'api' | 'mock' | 'binance'
   realtimeDbPath?: string
@@ -412,6 +413,7 @@ export interface CreateAssetRequest {
   symbol: string
   category: 'normal' | 'crypto'
   profitRate: number
+  icon?: string
   isActive: boolean
   dataSource: 'realtime_db' | 'api' | 'mock' | 'binance'
   realtimeDbPath?: string

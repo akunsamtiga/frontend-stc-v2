@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { X, Save, AlertCircle, Zap, AlertTriangle, Info } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { X, Save, AlertCircle, Zap, AlertTriangle, Info, Upload, Image as ImageIcon } from 'lucide-react'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 
@@ -12,6 +12,7 @@ interface Asset {
   profitRate: number
   isActive: boolean
   dataSource: string
+  icon?: string
   realtimeDbPath?: string
   apiEndpoint?: string
   description?: string
@@ -58,14 +59,12 @@ const ALL_DURATIONS = [
 
 const VALID_DURATIONS = [0.0167, 1, 2, 3, 4, 5, 15, 30, 45, 60]
 
-// ✅ FIXED: Binance supported coins
 const BINANCE_COINS = [
   'BTC', 'ETH', 'BNB', 'XRP', 'ADA', 'SOL', 'DOT', 'DOGE', 
   'MATIC', 'LTC', 'AVAX', 'LINK', 'UNI', 'ATOM', 'XLM', 
   'ALGO', 'VET', 'ICP', 'FIL', 'TRX', 'ETC', 'NEAR', 'APT', 'ARB', 'OP'
 ]
 
-// ✅ FIXED: Prioritize USDT as default, include USD with warning
 const BINANCE_QUOTE_CURRENCIES = [
   { value: 'USDT', label: 'USDT (Recommended)', isDefault: true },
   { value: 'USD', label: 'USD (Auto-mapped to USDT)', warning: true },
@@ -77,11 +76,13 @@ const BINANCE_QUOTE_CURRENCIES = [
 export default function AssetFormModal({ mode, asset, onClose, onSuccess }: AssetFormModalProps) {
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [uploadingIcon, setUploadingIcon] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // ✅ FIXED: Default quote currency untuk crypto adalah USDT
   const [formData, setFormData] = useState({
     name: asset?.name || '',
     symbol: asset?.symbol || '',
+    icon: asset?.icon || '',
     category: asset?.category || 'normal' as 'normal' | 'crypto',
     profitRate: asset?.profitRate || 85,
     isActive: asset?.isActive ?? true,
@@ -90,12 +91,10 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     apiEndpoint: asset?.apiEndpoint || '',
     description: asset?.description || '',
     
-    // Crypto Config
     cryptoBaseCurrency: asset?.cryptoConfig?.baseCurrency || '',
-    cryptoQuoteCurrency: asset?.cryptoConfig?.quoteCurrency || 'USDT', // ✅ Changed from 'USD' to 'USDT'
+    cryptoQuoteCurrency: asset?.cryptoConfig?.quoteCurrency || 'USDT',
     cryptoExchange: asset?.cryptoConfig?.exchange || '',
 
-    // Simulator Settings
     initialPrice: asset?.simulatorSettings?.initialPrice || 40.022,
     dailyVolatilityMin: asset?.simulatorSettings?.dailyVolatilityMin || 0.001,
     dailyVolatilityMax: asset?.simulatorSettings?.dailyVolatilityMax || 0.005,
@@ -104,19 +103,17 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     minPrice: asset?.simulatorSettings?.minPrice || 0,
     maxPrice: asset?.simulatorSettings?.maxPrice || 0,
 
-    // Trading Settings
     minOrderAmount: asset?.tradingSettings?.minOrderAmount || 1000,
     maxOrderAmount: asset?.tradingSettings?.maxOrderAmount || 1000000,
     allowedDurations: asset?.tradingSettings?.allowedDurations || [0.0167, 1, 2, 3, 4, 5, 15, 30, 45, 60],
   })
 
-  // ✅ FIXED: Auto-switch to Binance when category changes to crypto
   useEffect(() => {
     if (formData.category === 'crypto') {
       setFormData(prev => ({
         ...prev,
         dataSource: 'binance',
-        cryptoQuoteCurrency: 'USDT' // ✅ Ensure USDT default for new crypto assets
+        cryptoQuoteCurrency: 'USDT'
       }))
     } else if (formData.category === 'normal' && formData.dataSource === 'binance') {
       setFormData(prev => ({
@@ -126,7 +123,6 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     }
   }, [formData.category])
 
-  // Auto-calculate min/max price if not set
   useEffect(() => {
     if (formData.minPrice === 0 && formData.initialPrice > 0) {
       setFormData(prev => ({
@@ -142,12 +138,52 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     }
   }, [formData.initialPrice, formData.minPrice, formData.maxPrice])
 
+  const handleIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file')
+      return
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image size must be less than 2MB')
+      return
+    }
+
+    setUploadingIcon(true)
+
+    try {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64String = reader.result as string
+        setFormData(prev => ({ ...prev, icon: base64String }))
+        toast.success('Icon uploaded successfully')
+        setUploadingIcon(false)
+      }
+      reader.onerror = () => {
+        toast.error('Failed to read image file')
+        setUploadingIcon(false)
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error('Icon upload error:', error)
+      toast.error('Failed to upload icon')
+      setUploadingIcon(false)
+    }
+  }
+
+  const handleRemoveIcon = () => {
+    setFormData(prev => ({ ...prev, icon: '' }))
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
-    // ============================================
-    // BASIC VALIDATIONS
-    // ============================================
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required'
     }
@@ -156,7 +192,6 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
       newErrors.symbol = 'Symbol is required'
     }
 
-    // ✅ Allow symbols with / for crypto pairs (e.g., BTC/USD)
     if (!/^[A-Z0-9/_-]+$/i.test(formData.symbol)) {
       newErrors.symbol = 'Symbol can only contain letters, numbers, /, _, and -'
     }
@@ -173,13 +208,11 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
       newErrors.category = 'Invalid category. Must be "normal" or "crypto"'
     }
 
-    // ============================================
-    // CATEGORY-SPECIFIC VALIDATION
-    // ============================================
+    if (formData.icon && !formData.icon.startsWith('data:image/') && !formData.icon.startsWith('http')) {
+      newErrors.icon = 'Invalid icon URL or format'
+    }
+
     if (formData.category === 'crypto') {
-      // CRYPTO ASSETS REQUIREMENTS
-      
-      // ✅ FIXED: Must use 'binance' data source
       if (formData.dataSource !== 'binance') {
         newErrors.dataSource = 'Crypto assets MUST use "binance" data source'
       }
@@ -196,12 +229,10 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
         newErrors.cryptoQuoteCurrency = `Unsupported quote currency`
       }
       
-      // ✅ Crypto assets should NOT have apiEndpoint OR simulatorSettings
       if (formData.apiEndpoint.trim()) {
         newErrors.apiEndpoint = 'Crypto assets should not have API endpoint (Binance API is used automatically)'
       }
       
-      // ✅ FIXED: Check if simulator settings are being set (should not be for crypto)
       const hasSimulatorSettings = formData.initialPrice !== 40.022 || 
                                    formData.dailyVolatilityMin !== 0.001 ||
                                    formData.dailyVolatilityMax !== 0.005
@@ -211,9 +242,6 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
       }
       
     } else {
-      // NORMAL ASSETS REQUIREMENTS
-      
-      // ✅ FIXED: Normal assets cannot use "binance"
       if (formData.dataSource === 'binance') {
         newErrors.dataSource = 'Normal assets cannot use "binance". Use "realtime_db", "mock", or "api"'
       }
@@ -222,7 +250,6 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
         newErrors.cryptoBaseCurrency = 'Normal assets should not have crypto configuration'
       }
       
-      // Data source specific validations
       if (formData.dataSource === 'realtime_db') {
         if (!formData.realtimeDbPath.trim()) {
           newErrors.realtimeDbPath = 'Realtime DB path is required for this data source'
@@ -239,7 +266,6 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
         }
       }
 
-      // Simulator settings validation (for normal assets only)
       if (formData.initialPrice <= 0) {
         newErrors.initialPrice = 'Initial price must be greater than 0'
       }
@@ -257,9 +283,6 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
       }
     }
 
-    // ============================================
-    // TRADING SETTINGS VALIDATION
-    // ============================================
     if (formData.minOrderAmount >= formData.maxOrderAmount) {
       newErrors.minOrderAmount = 'Min must be less than max'
     }
@@ -268,7 +291,6 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
       newErrors.allowedDurations = 'At least one duration must be selected'
     }
 
-    // Validate each duration value
     const invalidDurations = formData.allowedDurations.filter(
       d => !VALID_DURATIONS.some(valid => Math.abs(valid - d) < 0.0001)
     )
@@ -295,10 +317,10 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
       let payload: any
 
       if (formData.category === 'crypto') {
-        // ✅ FIXED: CRYPTO ASSET PAYLOAD (Binance)
         payload = {
           name: formData.name.trim(),
           symbol: formData.symbol.trim().toUpperCase(),
+          icon: formData.icon || undefined,
           category: 'crypto',
           profitRate: Number(formData.profitRate),
           isActive: Boolean(formData.isActive),
@@ -311,7 +333,6 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
               exchange: formData.cryptoExchange.trim() 
             })
           },
-          // ✅ Optional: Custom Realtime DB path for crypto
           ...(formData.realtimeDbPath.trim() && {
             realtimeDbPath: formData.realtimeDbPath.trim()
           }),
@@ -321,15 +342,11 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             allowedDurations: [...formData.allowedDurations].sort((a, b) => a - b)
           }
         }
-        
-        // ✅ IMPORTANT: No simulatorSettings for crypto
-        // ✅ IMPORTANT: No apiEndpoint for crypto
-        
       } else {
-        // NORMAL ASSET PAYLOAD
         payload = {
           name: formData.name.trim(),
           symbol: formData.symbol.trim().toUpperCase(),
+          icon: formData.icon || undefined,
           category: 'normal',
           profitRate: Number(formData.profitRate),
           isActive: Boolean(formData.isActive),
@@ -351,7 +368,6 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
           }
         }
         
-        // Add data source specific fields
         if (formData.dataSource === 'realtime_db') {
           payload.realtimeDbPath = formData.realtimeDbPath.trim()
         } else if (formData.dataSource === 'api') {
@@ -359,21 +375,21 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
         }
       }
 
-      console.log('📤 Submitting payload:', JSON.stringify(payload, null, 2))
+      console.log('Submitting payload:', JSON.stringify(payload, null, 2))
 
       if (mode === 'create') {
         const response = await api.createAsset(payload)
-        console.log('✅ Create response:', response)
+        console.log('Create response:', response)
         toast.success(response.data?.message || 'Asset created successfully')
       } else {
         const response = await api.updateAsset(asset!.id, payload)
-        console.log('✅ Update response:', response)
+        console.log('Update response:', response)
         toast.success(response.data?.message || 'Asset updated successfully')
       }
 
       onSuccess()
     } catch (error: any) {
-      console.error('❌ Submit error:', error)
+      console.error('Submit error:', error)
       
       const errorMessage = error.response?.data?.error || 
                           error.response?.data?.message ||
@@ -401,7 +417,6 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
 
   const hasUltraFast = formData.allowedDurations.includes(0.0167)
 
-  // ✅ FIXED: Data sources untuk crypto hanya Binance
   const availableDataSources = formData.category === 'crypto'
     ? [{ value: 'binance', label: '🪙 Binance API (Real-time Crypto)' }]
     : [
@@ -410,13 +425,11 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
         { value: 'api', label: '🌐 External API' },
       ]
 
-  // ✅ FIXED: Preview untuk Binance symbol
   const getBinancePreview = () => {
     const base = formData.cryptoBaseCurrency.toUpperCase()
     const quote = formData.cryptoQuoteCurrency.toUpperCase()
     if (!base || !quote) return '???'
     
-    // ✅ Auto-map USD ke USDT untuk preview
     const normalizedQuote = quote === 'USD' ? 'USDT' : quote
     return `${base}/${quote} → ${base}${normalizedQuote}`
   }
@@ -424,7 +437,6 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">
@@ -457,11 +469,88 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-6">
-          {/* Basic Information */}
           <div>
             <h3 className="text-lg font-bold text-gray-900 mb-4">Basic Information</h3>
+            
+            <div className="mb-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl">
+              <label className="block text-sm font-bold text-gray-700 mb-3">
+                <ImageIcon className="w-4 h-4 inline mr-1" />
+                Asset Icon (Optional)
+              </label>
+              
+              <div className="flex items-center gap-4">
+                {formData.icon ? (
+                  <div className="relative w-20 h-20 rounded-xl border-2 border-purple-300 overflow-hidden bg-white flex-shrink-0">
+                    <img 
+                      src={formData.icon} 
+                      alt="Asset icon preview" 
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><text y="32" font-size="32">🪙</text></svg>'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveIcon}
+                      className="absolute top-0 right-0 p-1 bg-red-500 text-white rounded-bl-lg hover:bg-red-600 transition-colors"
+                      title="Remove icon"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center flex-shrink-0">
+                    <ImageIcon className="w-8 h-8 text-gray-400" />
+                  </div>
+                )}
+
+                <div className="flex-1">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleIconUpload}
+                    className="hidden"
+                    id="icon-upload"
+                  />
+                  <label
+                    htmlFor="icon-upload"
+                    className={`inline-flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium cursor-pointer transition-colors ${
+                      uploadingIcon ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {uploadingIcon ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4" />
+                        Upload Icon
+                      </>
+                    )}
+                  </label>
+                  <p className="text-xs text-gray-600 mt-2">
+                    Recommended: 64x64px, PNG/JPG/SVG, max 2MB
+                  </p>
+                  {formData.category === 'crypto' && !formData.icon && (
+                    <p className="text-xs text-purple-600 mt-1">
+                      Tip: Crypto icons will auto-fallback to {formData.cryptoBaseCurrency || 'coin'} icon if not uploaded
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {errors.icon && (
+                <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {errors.icon}
+                </p>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">
@@ -505,7 +594,6 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                 )}
               </div>
 
-              {/* Category Selection */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-bold text-gray-700 mb-3">
                   Asset Category * <span className="text-red-600">⚠️ Important - Choose Carefully</span>
@@ -628,9 +716,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             </div>
           </div>
 
-          {/* Conditional Rendering Based on Category */}
           {formData.category === 'crypto' ? (
-            // ✅ FIXED: CRYPTO ASSET CONFIGURATION (Binance)
             <>
               <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-300 rounded-xl p-6">
                 <div className="flex items-start gap-3 mb-4">
@@ -712,7 +798,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
 
                 <div className="mt-4 p-3 bg-orange-100 border border-orange-300 rounded-lg">
                   <p className="text-xs text-orange-900">
-                    <strong>💡 Trading Pair Preview:</strong>{' '}
+                    <strong>Trading Pair Preview:</strong>{' '}
                     <code className="px-2 py-1 bg-white rounded font-mono font-bold">
                       {getBinancePreview()}
                     </code>
@@ -722,17 +808,15 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                   </p>
                 </div>
 
-                {/* ✅ NEW: Warning if USD is selected */}
                 {formData.cryptoQuoteCurrency === 'USD' && (
                   <div className="mt-3 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
                     <p className="text-xs text-yellow-800 flex items-start gap-2">
                       <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                      <strong>⚠️ USD selected:</strong> Backend will auto-map to USDT for Binance compatibility.
+                      <strong>USD selected:</strong> Backend will auto-map to USDT for Binance compatibility.
                     </p>
                   </div>
                 )}
 
-                {/* Optional: Custom Realtime DB Path for Crypto */}
                 <div className="mt-4">
                   <label className="block text-sm font-bold text-gray-700 mb-2">
                     <Info className="w-4 h-4 inline mr-1" />
@@ -751,7 +835,6 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                 </div>
               </div>
 
-              {/* Data Source - LOCKED for crypto */}
               <div>
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Data Source</h3>
                 <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4">
@@ -768,16 +851,14 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                   </div>
                   <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-xs text-blue-900">
-                      <strong>💡 Data Flow:</strong> Binance API → Backend → Realtime Database → Frontend
+                      <strong>Data Flow:</strong> Binance API → Backend → Realtime Database → Frontend
                     </p>
                   </div>
                 </div>
               </div>
             </>
           ) : (
-            // NORMAL ASSET CONFIGURATION
             <>
-              {/* Data Source */}
               <div>
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Data Source</h3>
                 <div className="space-y-4">
@@ -821,7 +902,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                         placeholder="/idx_stc"
                       />
                       <p className="text-xs text-gray-500 mt-1">
-                        ✅ Example: <code className="bg-gray-100 px-1 rounded">/idx_stc</code> (do NOT include /current_price)
+                        Example: <code className="bg-gray-100 px-1 rounded">/idx_stc</code> (do NOT include /current_price)
                       </p>
                       {errors.realtimeDbPath && (
                         <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
@@ -858,7 +939,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                   {formData.dataSource === 'mock' && (
                     <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                       <p className="text-sm text-blue-900">
-                        <strong>🎲 Mock/Simulator Mode:</strong> Prices will be simulated using the settings below.
+                        <strong>Mock/Simulator Mode:</strong> Prices will be simulated using the settings below.
                       </p>
                     </div>
                   )}
@@ -866,12 +947,11 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                 
                 <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-xs text-blue-900">
-                    <strong>💡 Data Flow:</strong> Trading Simulator → Realtime Database → Frontend
+                    <strong>Data Flow:</strong> Trading Simulator → Realtime Database → Frontend
                   </p>
                 </div>
               </div>
 
-              {/* Simulator Settings */}
               <div>
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Simulator Settings</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -975,7 +1055,6 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             </>
           )}
 
-          {/* Trading Settings - COMMON FOR BOTH */}
           <div>
             <h3 className="text-lg font-bold text-gray-900 mb-4">Trading Settings</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1059,7 +1138,6 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex gap-3 pt-4 border-t border-gray-200">
             <button
               type="button"
