@@ -120,7 +120,7 @@ export default function EnhancedFooter() {
               </Link>
 
               <p className="text-sm text-gray-400 leading-relaxed mb-6">
-                Platform trading dengan teknologi terdepan dan keamanan tinggi, disediakan oleh Stockity yang merupakan broker online berlinsensi dan teregulasi.
+                Platform disediakan oleh Stockity yang merupakan broker online berlinsensi dan teregulasi.
               </p>
 
               {/* Social Links */}
