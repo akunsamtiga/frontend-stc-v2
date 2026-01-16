@@ -13,7 +13,7 @@ import { Asset, BinaryOrder, AccountType } from '@/types'
 import { formatCurrency, getDurationDisplay } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 import TradingTutorial from '@/components/TradingTutorial'
-
+import AssetIcon from '@/components/common/AssetIcon'
 import { 
   ArrowUp,
   ArrowDown,
@@ -570,6 +570,8 @@ export default function TradingPage() {
             >
               {selectedAsset ? (
                 <>
+                  {/* ✅ NEW: Asset Icon */}
+                  <AssetIcon asset={selectedAsset} size="xs" />
                   <span className="text-sm font-medium">{selectedAsset.symbol}</span>
                   <span className="text-xs font-bold text-green-400">+{selectedAsset.profitRate}%</span>
                 </>
@@ -593,8 +595,13 @@ export default function TradingPage() {
                         selectedAsset?.id === asset.id ? 'bg-[#2a3142]' : ''
                       }`}
                     >
-                      <div className="text-left">
-                        <div className="text-sm font-medium">{asset.symbol}</div>
+                      <div className="flex items-center gap-3">
+                        {/* ✅ NEW: Asset Icon */}
+                        <AssetIcon asset={asset} size="xs" />
+                        <div className="text-left">
+                          <div className="text-sm font-medium">{asset.symbol}</div>
+                          <div className="text-xs text-gray-400">{asset.name}</div>
+                        </div>
                       </div>
                       <div className="text-xs font-bold text-green-400">+{asset.profitRate}%</div>
                     </button>
@@ -756,6 +763,15 @@ export default function TradingPage() {
               />
             </div>
           </div>
+
+          {/* ✅ UPDATED: Mobile Asset Display with Icon */}
+          {selectedAsset && (
+            <div className="flex items-center gap-2 px-2 py-1 bg-[#1a1f2e] rounded-lg border border-gray-800/50">
+              <AssetIcon asset={selectedAsset} size="xs" />
+              <span className="text-xs font-medium">{selectedAsset.symbol}</span>
+            </div>
+          )}
+
 
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -1184,101 +1200,110 @@ export default function TradingPage() {
         </>
       )}
 
-      {showMobileMenu && (
-  <>
-    <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setShowMobileMenu(false)} />
-    <div className="fixed top-0 right-0 bottom-0 w-64 bg-[#0f1419] border-l border-gray-800/50 z-50 p-4 animate-slide-left">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="font-bold">Menu</h3>
-        <button onClick={() => setShowMobileMenu(false)}>
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-      
-      <div className="space-y-2">
-        <div className="mb-4">
-          <label className="text-xs text-gray-400 mb-2 block">Select Asset</label>
-          <select
-            value={selectedAsset?.id || ''}
-            onChange={(e) => {
-              const asset = assets.find(a => a.id === e.target.value)
-              if (asset) {
-                setSelectedAsset(asset)
-                setShowMobileMenu(false)
-              }
-            }}
-            className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
-          >
-            {assets.map((asset) => (
-              <option key={asset.id} value={asset.id}>
-                {asset.symbol} - {asset.name}
-              </option>
-            ))}
-          </select>
-        </div>
+     {showMobileMenu && (
+        <>
+          <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setShowMobileMenu(false)} />
+          <div className="fixed top-0 right-0 bottom-0 w-64 bg-[#0f1419] border-l border-gray-800/50 z-50 p-4 animate-slide-left">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-bold">Menu</h3>
+              <button onClick={() => setShowMobileMenu(false)}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              {/* ✅ UPDATED: Mobile Asset Selector with Icons */}
+              <div className="mb-4">
+                <label className="text-xs text-gray-400 mb-2 block">Select Asset</label>
+                <div className="space-y-1 max-h-64 overflow-y-auto">
+                  {assets.map((asset) => (
+                    <button
+                      key={asset.id}
+                      onClick={() => {
+                        setSelectedAsset(asset)
+                        setShowMobileMenu(false)
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                        selectedAsset?.id === asset.id 
+                          ? 'bg-blue-500/20 border border-blue-500/50' 
+                          : 'bg-[#1a1f2e] hover:bg-[#232936]'
+                      }`}
+                    >
+                      <AssetIcon asset={asset} size="sm" />
+                      <div className="flex-1 text-left">
+                        <div className="text-sm font-medium">{asset.symbol}</div>
+                        <div className="text-xs text-gray-400">{asset.name}</div>
+                      </div>
+                      <div className="text-xs font-bold text-green-400">
+                        +{asset.profitRate}%
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-        <button
-          onClick={() => {
-            setShowHistorySidebar(true)
-            setShowMobileMenu(false)
-          }}
-          className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-        >
-          <History className="w-4 h-4" />
-          <span>History</span>
-        </button>
+              <button
+                onClick={() => {
+                  setShowHistorySidebar(true)
+                  setShowMobileMenu(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <History className="w-4 h-4" />
+                <span>History</span>
+              </button>
 
-        <button
-          onClick={() => {
-            router.push('/balance')
-            setShowMobileMenu(false)
-          }}
-          className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-        >
-          <Wallet className="w-4 h-4" />
-          <span>Balance</span>
-        </button>
-        
-        <button
-          onClick={() => {
-            router.push('/profile')
-            setShowMobileMenu(false)
-          }}
-          className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-        >
-          <Settings className="w-4 h-4" />
-          <span>Settings</span>
-        </button>
+              <button
+                onClick={() => {
+                  router.push('/balance')
+                  setShowMobileMenu(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <Wallet className="w-4 h-4" />
+                <span>Balance</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  router.push('/profile')
+                  setShowMobileMenu(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <Settings className="w-4 h-4" />
+                <span>Settings</span>
+              </button>
 
-        {/* ✅ NEW: Manual Tutorial Button */}
-        <button
-          onClick={() => {
-            setShowMobileMenu(false)
-            setTimeout(() => {
-              console.log('🎓 Manually triggering tutorial')
-              setShowTutorial(true)
-            }, 300)
-          }}
-          className="w-full flex items-center gap-3 px-4 py-3 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg transition-colors text-blue-400"
-        >
-          <Info className="w-4 h-4" />
-          <span>Show Tutorial</span>
-        </button>
+              {/* ✅ Manual Tutorial Button */}
+              <button
+                onClick={() => {
+                  setShowMobileMenu(false)
+                  setTimeout(() => {
+                    console.log('🎓 Manually triggering tutorial')
+                    setShowTutorial(true)
+                  }, 300)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg transition-colors text-blue-400"
+              >
+                <Info className="w-4 h-4" />
+                <span>Show Tutorial</span>
+              </button>
 
-        <button
-          onClick={() => {
-            setShowMobileMenu(false)
-            handleLogout()
-          }}
-          className="w-full flex items-center gap-3 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
-        >
-          <LogOut className="w-4 h-4" />
-          <span>Logout</span>
-        </button>
-      </div>
-    </div>
-  </>
-)}
+              <button
+                onClick={() => {
+                  setShowMobileMenu(false)
+                  handleLogout()
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {showHistorySidebar && (
         <HistorySidebar 

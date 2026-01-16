@@ -84,7 +84,7 @@ export default function AssetIcon({
         <img 
           src={iconUrl}
           alt={`${asset.name} icon`}
-          className="w-full h-full object-contain"
+          className="w-full h-full object-contain p-1"
           onError={() => setImageError(true)}
         />
       </div>

@@ -108,6 +108,37 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     allowedDurations: asset?.tradingSettings?.allowedDurations || [0.0167, 1, 2, 3, 4, 5, 15, 30, 45, 60],
   })
 
+  // Auto-set crypto icon when base currency changes
+useEffect(() => {
+  if (formData.category === 'crypto' && formData.cryptoBaseCurrency && !uploadingIcon) {
+    const iconMap: Record<string, string> = {
+      'BTC': 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
+      'ETH': 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
+      'BNB': 'https://cryptologos.cc/logos/bnb-bnb-logo.png',
+      'XRP': 'https://cryptologos.cc/logos/xrp-xrp-logo.png',
+      'ADA': 'https://cryptologos.cc/logos/cardano-ada-logo.png',
+      'SOL': 'https://cryptologos.cc/logos/solana-sol-logo.png',
+      'DOT': 'https://cryptologos.cc/logos/polkadot-new-dot-logo.png',
+      'DOGE': 'https://cryptologos.cc/logos/dogecoin-doge-logo.png',
+      'MATIC': 'https://cryptologos.cc/logos/polygon-matic-logo.png',
+      'LTC': 'https://cryptologos.cc/logos/litecoin-ltc-logo.png',
+      'AVAX': 'https://cryptologos.cc/logos/avalanche-avax-logo.png',
+      'LINK': 'https://cryptologos.cc/logos/chainlink-link-logo.png',
+      'UNI': 'https://cryptologos.cc/logos/uniswap-uni-logo.png',
+      'ATOM': 'https://cryptologos.cc/logos/cosmos-atom-logo.png',
+      'XLM': 'https://cryptologos.cc/logos/stellar-xlm-logo.png',
+    }
+    
+    const autoIcon = iconMap[formData.cryptoBaseCurrency.toUpperCase()]
+    if (autoIcon) {
+      setFormData(prev => ({
+        ...prev,
+        icon: autoIcon
+      }))
+    }
+  }
+}, [formData.category, formData.cryptoBaseCurrency, uploadingIcon])
+
   useEffect(() => {
     if (formData.category === 'crypto') {
       setFormData(prev => ({
@@ -175,11 +206,39 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
   }
 
   const handleRemoveIcon = () => {
-    setFormData(prev => ({ ...prev, icon: '' }))
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
+  setFormData(prev => ({ ...prev, icon: '' }))
+  if (fileInputRef.current) {
+    fileInputRef.current.value = ''
   }
+  
+  // Auto-refill crypto icon if applicable
+  if (formData.category === 'crypto' && formData.cryptoBaseCurrency) {
+    const iconMap: Record<string, string> = {
+      'BTC': 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
+      'ETH': 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
+      'BNB': 'https://cryptologos.cc/logos/bnb-bnb-logo.png',
+      'XRP': 'https://cryptologos.cc/logos/xrp-xrp-logo.png',
+      'ADA': 'https://cryptologos.cc/logos/cardano-ada-logo.png',
+      'SOL': 'https://cryptologos.cc/logos/solana-sol-logo.png',
+      'DOT': 'https://cryptologos.cc/logos/polkadot-new-dot-logo.png',
+      'DOGE': 'https://cryptologos.cc/logos/dogecoin-doge-logo.png',
+      'MATIC': 'https://cryptologos.cc/logos/polygon-matic-logo.png',
+      'LTC': 'https://cryptologos.cc/logos/litecoin-ltc-logo.png',
+      'AVAX': 'https://cryptologos.cc/logos/avalanche-avax-logo.png',
+      'LINK': 'https://cryptologos.cc/logos/chainlink-link-logo.png',
+      'UNI': 'https://cryptologos.cc/logos/uniswap-uni-logo.png',
+      'ATOM': 'https://cryptologos.cc/logos/cosmos-atom-logo.png',
+      'XLM': 'https://cryptologos.cc/logos/stellar-xlm-logo.png',
+    }
+    
+    setTimeout(() => {
+      const autoIcon = iconMap[formData.cryptoBaseCurrency.toUpperCase()]
+      if (autoIcon) {
+        setFormData(prev => ({ ...prev, icon: autoIcon }))
+      }
+    }, 100)
+  }
+}
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -208,8 +267,18 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
       newErrors.category = 'Invalid category. Must be "normal" or "crypto"'
     }
 
-    if (formData.icon && !formData.icon.startsWith('data:image/') && !formData.icon.startsWith('http')) {
-      newErrors.icon = 'Invalid icon URL or format'
+    if (formData.icon) {
+      const isBase64 = formData.icon.startsWith('data:image/')
+      const isURL = formData.icon.startsWith('http://') || formData.icon.startsWith('https://')
+      
+      if (!isBase64 && !isURL) {
+        newErrors.icon = 'Icon must be a valid image (base64 or URL)'
+      }
+      
+      // Validasi ukuran base64 (max 2MB dalam base64 ≈ 2.7MB string)
+      if (isBase64 && formData.icon.length > 2800000) {
+        newErrors.icon = 'Icon file too large (max 2MB)'
+      }
     }
 
     if (formData.category === 'crypto') {
@@ -535,11 +604,17 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                   <p className="text-xs text-gray-600 mt-2">
                     Recommended: 64x64px, PNG/JPG/SVG, max 2MB
                   </p>
-                  {formData.category === 'crypto' && !formData.icon && (
-                    <p className="text-xs text-purple-600 mt-1">
-                      Tip: Crypto icons will auto-fallback to {formData.cryptoBaseCurrency || 'coin'} icon if not uploaded
-                    </p>
-                  )}
+                  {formData.category === 'crypto' && !formData.icon && formData.cryptoBaseCurrency && (
+  <p className="text-xs text-purple-600 mt-1 flex items-center gap-1">
+    <Info className="w-3 h-3" />
+    Auto-filled: {formData.cryptoBaseCurrency.toUpperCase()} icon will be used
+  </p>
+)}
+{formData.category === 'crypto' && !formData.icon && !formData.cryptoBaseCurrency && (
+  <p className="text-xs text-purple-600 mt-1">
+    Tip: Select a coin to auto-fill icon
+  </p>
+)}
                 </div>
               </div>
 
