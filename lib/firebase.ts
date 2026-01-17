@@ -1,4 +1,5 @@
-// lib/firebase.ts - Optimized for Fast Loading
+// lib/firebase.ts - ✅ COMPLETE VERSION - Optimized with Request Deduplication
+
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
 import { getDatabase, Database, ref, onValue, off, query, limitToLast, get } from 'firebase/database'
 
@@ -32,411 +33,232 @@ if (typeof window !== 'undefined') {
 
 export { database, ref, onValue, off, query, limitToLast, get }
 
-function cleanAssetPath(path: string): string {
-  if (!path) return ''
-  if (path.endsWith('/current_price')) {
-    path = path.replace('/current_price', '')
-  }
-  path = path.replace(/\/$/, '')
-  if (!path.startsWith('/')) path = '/' + path
-  return path
+// ============================================
+// REQUEST DEDUPLICATION
+// ============================================
+
+interface PendingRequest {
+  promise: Promise<any>
+  timestamp: number
 }
 
-function getPricePath(assetPath: string): string {
-  const clean = cleanAssetPath(assetPath)
-  return `${clean}/current_price`
-}
+const pendingRequests = new Map<string, PendingRequest>()
+const REQUEST_TIMEOUT = 10000 // 10s timeout
 
-function getOHLCPath(assetPath: string, timeframe: string): string {
-  const clean = cleanAssetPath(assetPath)
-  return `${clean}/ohlc_${timeframe}`
-}
-
-async function checkSimulatorStatus(assetPath: string): Promise<{
-  isRunning: boolean
-  hasCurrentPrice: boolean
-  hasOHLC: boolean
-  message: string
-}> {
-  if (!database) {
-    return { 
-      isRunning: false, 
-      hasCurrentPrice: false, 
-      hasOHLC: false,
-      message: 'Firebase not initialized' 
+/**
+ * ✅ Deduplicate concurrent requests to same endpoint
+ * Prevents multiple components from fetching the same data simultaneously
+ */
+function deduplicateRequest<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  // Clean expired requests
+  const now = Date.now()
+  for (const [k, req] of pendingRequests.entries()) {
+    if (now - req.timestamp > REQUEST_TIMEOUT) {
+      pendingRequests.delete(k)
     }
   }
 
-  try {
-    const basePath = cleanAssetPath(assetPath)
-    
-    const priceRef = ref(database, `${basePath}/current_price`)
-    const priceSnapshot = await get(priceRef)
-    const hasCurrentPrice = priceSnapshot.exists()
-    
-    let hasOHLC = false
-    let ohlcMessage = ''
-    
-    const timeframesToCheck = ['1m', '1s', '5m']
-    
-    for (const tf of timeframesToCheck) {
-      const ohlcRef = ref(database, `${basePath}/ohlc_${tf}`)
-      const ohlcSnapshot = await get(ohlcRef)
-      
-      if (ohlcSnapshot.exists()) {
-        const data = ohlcSnapshot.val()
-        
-        if (Array.isArray(data) && data.length > 0) {
-          hasOHLC = true
-          ohlcMessage = `✅ Found ${data.length} bars in ohlc_${tf}`
-          break
-        } else if (typeof data === 'object' && Object.keys(data).length > 0) {
-          hasOHLC = true
-          ohlcMessage = `✅ Found ${Object.keys(data).length} bars in ohlc_${tf}`
-          break
-        }
-      }
-    }
-    
-    const isRunning = hasCurrentPrice && hasOHLC
-    
-    let message = ''
-    if (!hasCurrentPrice && !hasOHLC) {
-      message = '❌ No data found - Simulator not running'
-    } else if (!hasCurrentPrice) {
-      message = '❌ Missing current_price data'
-    } else if (!hasOHLC) {
-      message = `❌ Missing OHLC data`
-    } else {
-      message = ohlcMessage
-    }
-    
-    return { isRunning, hasCurrentPrice, hasOHLC, message }
-  } catch (error) {
-    return { 
-      isRunning: false, 
-      hasCurrentPrice: false, 
-      hasOHLC: false,
-      message: 'Check failed: ' + (error as Error).message 
-    }
+  // Check if request is already in progress
+  const pending = pendingRequests.get(key)
+  
+  if (pending) {
+    const age = now - pending.timestamp
+    console.log(`🔄 Deduplicated request (age: ${age}ms):`, key.slice(0, 50))
+    return pending.promise as Promise<T>
   }
+  
+  // Create new request
+  const promise = fn().finally(() => {
+    pendingRequests.delete(key)
+  })
+  
+  pendingRequests.set(key, {
+    promise,
+    timestamp: now,
+  })
+  
+  return promise
 }
 
-type Timeframe = '1s' | '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
-
-const TIMEFRAME_CONFIG: Record<Timeframe, { path: string; barsToFetch: number; cacheTTL: number }> = {
-  '1s': { path: 'ohlc_1s', barsToFetch: 60, cacheTTL: 1000 },
-  '1m': { path: 'ohlc_1m', barsToFetch: 100, cacheTTL: 3000 },
-  '5m': { path: 'ohlc_5m', barsToFetch: 100, cacheTTL: 10000 },
-  '15m': { path: 'ohlc_15m', barsToFetch: 150, cacheTTL: 20000 },
-  '1h': { path: 'ohlc_1h', barsToFetch: 150, cacheTTL: 40000 },
-  '4h': { path: 'ohlc_4h', barsToFetch: 100, cacheTTL: 80000 },
-  '1d': { path: 'ohlc_1d', barsToFetch: 60, cacheTTL: 180000 }
-}
+// ============================================
+// FAST IN-MEMORY CACHE
+// ============================================
 
 interface CacheEntry {
-  data: any[]
+  data: any
   timestamp: number
-  ttl: number
-  accessCount: number
-  lastAccess: number
 }
 
-class LRUCache {
+class FastMemoryCache {
   private cache = new Map<string, CacheEntry>()
-  private maxSize = 50
+  private readonly CACHE_TTL = 15000 // 15s for realtime data
+  private readonly MAX_SIZE = 100 // Max cache entries
 
-  get(key: string): any[] | null {
+  get(key: string): any | null {
     const entry = this.cache.get(key)
     
-    if (!entry) return null
-    
-    const now = Date.now()
-    if (now - entry.timestamp > entry.ttl) {
-      this.cache.delete(key)
+    if (!entry) {
       return null
     }
     
-    entry.accessCount++
-    entry.lastAccess = now
+    const age = Date.now() - entry.timestamp
     
-    return entry.data
+    // Return if still fresh
+    if (age <= this.CACHE_TTL) {
+      console.log(`⚡ Memory cache HIT (age: ${age}ms):`, key.slice(0, 50))
+      return entry.data
+    }
+    
+    // Delete if expired
+    this.cache.delete(key)
+    return null
   }
 
-  set(key: string, data: any[], ttl: number) {
-    if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
-      this.evictLRU()
+  set(key: string, data: any): void {
+    // Auto-cleanup if cache is getting too large
+    if (this.cache.size >= this.MAX_SIZE) {
+      this.cleanup()
     }
     
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
-      ttl,
-      accessCount: 1,
-      lastAccess: Date.now()
     })
   }
 
-  delete(key: string) {
+  delete(key: string): void {
     this.cache.delete(key)
   }
 
-  clear() {
+  clear(): void {
     this.cache.clear()
+    console.log('🗑️ Memory cache cleared')
   }
 
-  private evictLRU() {
-    let oldestKey: string | null = null
-    let oldestTime = Infinity
+  private cleanup(): void {
+    const now = Date.now()
+    let deletedCount = 0
     
-    this.cache.forEach((entry, key) => {
-      if (entry.lastAccess < oldestTime) {
-        oldestTime = entry.lastAccess
-        oldestKey = key
+    for (const [key, entry] of this.cache.entries()) {
+      const age = now - entry.timestamp
+      
+      // Delete entries older than TTL
+      if (age > this.CACHE_TTL) {
+        this.cache.delete(key)
+        deletedCount++
       }
-    })
+    }
     
-    if (oldestKey) {
-      this.cache.delete(oldestKey)
+    // If still too large, delete oldest entries
+    if (this.cache.size >= this.MAX_SIZE) {
+      const entries = Array.from(this.cache.entries())
+      entries.sort((a, b) => a[1].timestamp - b[1].timestamp)
+      
+      const toDelete = entries.slice(0, Math.floor(this.MAX_SIZE / 4))
+      toDelete.forEach(([key]) => this.cache.delete(key))
+      deletedCount += toDelete.length
+    }
+    
+    if (deletedCount > 0) {
+      console.log(`🗑️ Cleaned ${deletedCount} cache entries`)
     }
   }
 
   getStats() {
     return {
       size: this.cache.size,
-      maxSize: this.maxSize,
-      keys: Array.from(this.cache.keys())
+      maxSize: this.MAX_SIZE,
+      ttl: this.CACHE_TTL,
     }
   }
 }
 
-const memoryCache = new LRUCache()
+const memoryCache = new FastMemoryCache()
 
-class IndexedDBCache {
-  private dbName = 'trading_chart_cache'
-  private storeName = 'ohlc_data'
-  private db: IDBDatabase | null = null
-  private initPromise: Promise<void> | null = null
-  private pendingWrites: Map<string, any> = new Map()
-  private writeTimeout: NodeJS.Timeout | null = null
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
 
-  async init(): Promise<void> {
-    if (this.db) return
-    if (this.initPromise) return this.initPromise
-
-    this.initPromise = new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, 1)
-
-      request.onerror = () => reject(request.error)
-      request.onsuccess = () => {
-        this.db = request.result
-        resolve()
-      }
-
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result
-        if (!db.objectStoreNames.contains(this.storeName)) {
-          const store = db.createObjectStore(this.storeName, { keyPath: 'key' })
-          store.createIndex('timestamp', 'timestamp', { unique: false })
-          store.createIndex('expiry', 'expiry', { unique: false })
-        }
-      }
-    })
-
-    return this.initPromise
+function cleanAssetPath(path: string): string {
+  if (!path) return ''
+  
+  // Remove trailing current_price
+  if (path.endsWith('/current_price')) {
+    path = path.replace('/current_price', '')
   }
-
-  async get(key: string): Promise<any | null> {
-    await this.init()
-    if (!this.db) return null
-
-    return new Promise((resolve) => {
-      const transaction = this.db!.transaction([this.storeName], 'readonly')
-      const store = transaction.objectStore(this.storeName)
-      const request = store.get(key)
-
-      request.onsuccess = () => {
-        const result = request.result
-        if (result && result.expiry > Date.now()) {
-          resolve(result.data)
-        } else {
-          if (result) {
-            this.delete(key).catch(() => {})
-          }
-          resolve(null)
-        }
-      }
-      request.onerror = () => resolve(null)
-    })
+  
+  // Remove trailing slash
+  path = path.replace(/\/$/, '')
+  
+  // Ensure leading slash
+  if (!path.startsWith('/')) {
+    path = '/' + path
   }
-
-  async set(key: string, data: any, ttl: number): Promise<void> {
-    this.pendingWrites.set(key, { data, ttl })
-    
-    if (this.writeTimeout) {
-      clearTimeout(this.writeTimeout)
-    }
-    
-    this.writeTimeout = setTimeout(() => {
-      this.flushWrites()
-    }, 100)
-  }
-
-  private async flushWrites(): Promise<void> {
-    if (this.pendingWrites.size === 0) return
-    
-    await this.init()
-    if (!this.db) return
-
-    const writes = Array.from(this.pendingWrites.entries())
-    this.pendingWrites.clear()
-
-    return new Promise((resolve) => {
-      const transaction = this.db!.transaction([this.storeName], 'readwrite')
-      const store = transaction.objectStore(this.storeName)
-      
-      writes.forEach(([key, { data, ttl }]) => {
-        const expiry = Date.now() + ttl
-        store.put({ key, data, timestamp: Date.now(), expiry })
-      })
-      
-      transaction.oncomplete = () => resolve()
-      transaction.onerror = () => resolve()
-    })
-  }
-
-  async delete(key: string): Promise<void> {
-    await this.init()
-    if (!this.db) return
-
-    return new Promise((resolve) => {
-      const transaction = this.db!.transaction([this.storeName], 'readwrite')
-      const store = transaction.objectStore(this.storeName)
-      store.delete(key)
-      transaction.oncomplete = () => resolve()
-      transaction.onerror = () => resolve()
-    })
-  }
-
-  async clear(): Promise<void> {
-    await this.init()
-    if (!this.db) return
-
-    return new Promise((resolve) => {
-      const transaction = this.db!.transaction([this.storeName], 'readwrite')
-      const store = transaction.objectStore(this.storeName)
-      store.clear()
-      transaction.oncomplete = () => resolve()
-      transaction.onerror = () => resolve()
-    })
-  }
-
-  async cleanup(): Promise<void> {
-    await this.init()
-    if (!this.db) return
-
-    return new Promise((resolve) => {
-      const transaction = this.db!.transaction([this.storeName], 'readwrite')
-      const store = transaction.objectStore(this.storeName)
-      const index = store.index('expiry')
-      const range = IDBKeyRange.upperBound(Date.now())
-      const request = index.openCursor(range)
-
-      let deleteCount = 0
-      request.onsuccess = (event) => {
-        const cursor = (event.target as IDBRequest).result
-        if (cursor) {
-          cursor.delete()
-          deleteCount++
-          cursor.continue()
-        }
-      }
-
-      transaction.oncomplete = () => {
-        if (deleteCount > 0) {
-          console.log(`🗑️ Cleaned ${deleteCount} expired entries`)
-        }
-        resolve()
-      }
-      transaction.onerror = () => resolve()
-    })
-  }
+  
+  return path
 }
 
-const idbCache = new IndexedDBCache()
-
-if (typeof window !== 'undefined') {
-  setInterval(() => {
-    idbCache.cleanup().catch(() => {})
-  }, 120000)
-}
-
-const pendingFetches = new Map<string, Promise<any[]>>()
-
-function processHistoricalData(data: any, limit: number): any[] {
-  if (!data || typeof data !== 'object') {
+function processHistoricalData(rawData: any, limit: number): any[] {
+  if (!rawData || typeof rawData !== 'object') {
     return []
   }
 
-  const historicalData: any[] = []
-  const isArray = Array.isArray(data)
+  const isArray = Array.isArray(rawData)
+  let bars: any[] = []
   
   if (isArray) {
-    data.forEach((item: any) => {
-      if (!item || typeof item !== 'object') return
-      
-      const timestamp = item.timestamp
-      if (!timestamp || isNaN(timestamp)) return
-      if (typeof item.close !== 'number' || item.close <= 0) return
-      
-      historicalData.push({
-        timestamp: timestamp,
-        datetime: item.datetime || new Date(timestamp * 1000).toISOString(),
-        open: item.open || item.close,
-        high: item.high || item.close,
-        low: item.low || item.close,
-        close: item.close,
-        volume: item.volume || 0
-      })
-    })
+    // Process array data
+    bars = rawData.filter(item => 
+      item && 
+      typeof item === 'object' && 
+      item.timestamp && 
+      typeof item.close === 'number' &&
+      item.close > 0
+    ).map(item => ({
+      timestamp: item.timestamp,
+      datetime: item.datetime || new Date(item.timestamp * 1000).toISOString(),
+      open: item.open || item.close,
+      high: item.high || item.close,
+      low: item.low || item.close,
+      close: item.close,
+      volume: item.volume || 0,
+    }))
   } else {
-    const keys = Object.keys(data)
-    
-    for (let i = 0; i < keys.length; i++) {
-      const key = keys[i]
-      const item = data[key]
-      
-      if (!item || typeof item !== 'object') continue
-
-      let timestamp = parseInt(key)
-      
-      if (isNaN(timestamp)) {
-        timestamp = item.timestamp
-      }
-      
-      if (!timestamp || isNaN(timestamp)) continue
-      if (typeof item.close !== 'number' || item.close <= 0) continue
-
-      historicalData.push({
-        timestamp: timestamp,
-        datetime: item.datetime || new Date(timestamp * 1000).toISOString(),
+    // Process object data
+    bars = Object.entries(rawData)
+      .filter(([_, item]: [string, any]) => 
+        item && 
+        typeof item === 'object' && 
+        typeof item.close === 'number' &&
+        item.close > 0
+      )
+      .map(([key, item]: [string, any]) => ({
+        timestamp: parseInt(key) || item.timestamp,
+        datetime: item.datetime || new Date((parseInt(key) || item.timestamp) * 1000).toISOString(),
         open: item.open || item.close,
         high: item.high || item.close,
         low: item.low || item.close,
         close: item.close,
-        volume: item.volume || 0
-      })
-    }
+        volume: item.volume || 0,
+      }))
   }
 
-  if (historicalData.length === 0) {
+  if (bars.length === 0) {
     return []
   }
 
-  historicalData.sort((a, b) => a.timestamp - b.timestamp)
+  // Sort by timestamp
+  bars.sort((a, b) => a.timestamp - b.timestamp)
   
-  return historicalData.slice(-limit)
+  // Return last N bars
+  return bars.slice(-limit)
 }
+
+// ============================================
+// MAIN FETCH FUNCTION - WITH DEDUPLICATION
+// ============================================
+
+type Timeframe = '1s' | '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
 
 export async function fetchHistoricalData(
   assetPath: string,
@@ -447,97 +269,100 @@ export async function fetchHistoricalData(
   }
 
   try {
-    const config = TIMEFRAME_CONFIG[timeframe]
-    if (!config) {
-      console.error(`❌ Invalid timeframe: ${timeframe}`)
-      return []
+    const cleanPath = cleanAssetPath(assetPath)
+    const cacheKey = `${cleanPath}-${timeframe}`
+
+    // ✅ Try memory cache first (fastest!)
+    const cached = memoryCache.get(cacheKey)
+    if (cached) {
+      return cached
     }
 
-    const basePath = cleanAssetPath(assetPath)
-    const cacheKey = `${basePath}-${timeframe}`
-
-    const memCached = memoryCache.get(cacheKey)
-    if (memCached) {
-      console.log(`⚡ Memory cache hit: ${timeframe}`)
-      return memCached
-    }
-
-    if (pendingFetches.has(cacheKey)) {
-      console.log(`🔄 Deduplicating fetch: ${timeframe}`)
-      return await pendingFetches.get(cacheKey)!
-    }
-
-    const fetchPromise = (async () => {
-      try {
-        const idbCached = await idbCache.get(cacheKey)
-        if (idbCached) {
-          console.log(`💾 IndexedDB cache hit: ${timeframe}`)
-          memoryCache.set(cacheKey, idbCached, config.cacheTTL)
-          return idbCached
-        }
-
-        console.log(`📡 Fetching ${timeframe} from Firebase...`)
-        
-        const ohlcPath = getOHLCPath(basePath, timeframe)
-        const ohlcRef = ref(database, ohlcPath)
-        
-        const snapshot = await get(ohlcRef)
-        
-        if (!snapshot.exists()) {
-          console.warn(`⚠️ No data at: ${ohlcPath}`)
-          return []
-        }
-
-        const rawData = snapshot.val()
-        const result = processHistoricalData(rawData, config.barsToFetch)
-        
-        if (result.length === 0) {
-          return []
-        }
-        
-        memoryCache.set(cacheKey, result, config.cacheTTL)
-        await idbCache.set(cacheKey, result, config.cacheTTL)
-        
-        console.log(`✅ Fetched ${result.length} ${timeframe} bars`)
-        
-        return result
-      } finally {
-        pendingFetches.delete(cacheKey)
+    // ✅ Deduplicate concurrent requests
+    return await deduplicateRequest(cacheKey, async () => {
+      console.log(`📡 Fetching ${timeframe} from Firebase...`)
+      const startTime = Date.now()
+      
+      const ohlcPath = `${cleanPath}/ohlc_${timeframe}`
+      const snapshot = await get(ref(database, ohlcPath))
+      
+      if (!snapshot.exists()) {
+        console.warn(`⚠️ No data at: ${ohlcPath}`)
+        return []
       }
-    })()
-
-    pendingFetches.set(cacheKey, fetchPromise)
-    return await fetchPromise
+      
+      const rawData = snapshot.val()
+      
+      // Determine limit based on timeframe
+      const limit = timeframe === '1m' ? 100 : 
+                   timeframe === '1s' ? 60 : 
+                   60
+      
+      const processed = processHistoricalData(rawData, limit)
+      
+      // ✅ Cache the result
+      if (processed.length > 0) {
+        memoryCache.set(cacheKey, processed)
+      }
+      
+      const duration = Date.now() - startTime
+      console.log(`✅ Fetched ${processed.length} ${timeframe} bars in ${duration}ms`)
+      
+      return processed
+    })
 
   } catch (error: any) {
-    console.error('❌ Fetch error:', error.message)
+    console.error(`❌ Fetch error for ${timeframe}:`, error.message)
     return []
   }
 }
 
+// ============================================
+// PARALLEL PREFETCH - LOAD MULTIPLE TIMEFRAMES
+// ============================================
+
 export async function prefetchMultipleTimeframes(
   assetPath: string,
-  timeframes: Timeframe[] = ['1m', '5m', '15m']
+  timeframes: Timeframe[] = ['1m', '5m']
 ): Promise<Map<Timeframe, any[]>> {
   const results = new Map<Timeframe, any[]>()
   
-  const promises = timeframes.map(async (tf) => {
-    const data = await fetchHistoricalData(assetPath, tf)
-    return { timeframe: tf, data }
-  })
+  console.log(`🔄 Prefetching ${timeframes.length} timeframes in parallel...`)
+  const startTime = Date.now()
+  
+  // ✅ PARALLEL FETCH - All at once!
+  const promises = timeframes.map(tf => 
+    fetchHistoricalData(assetPath, tf)
+      .then(data => ({ tf, data, success: true }))
+      .catch(error => ({ tf, data: [], success: false, error }))
+  )
   
   const settled = await Promise.allSettled(promises)
   
-  settled.forEach((result) => {
+  settled.forEach(result => {
     if (result.status === 'fulfilled') {
-      results.set(result.value.timeframe, result.value.data)
+      const { tf, data } = result.value
+      results.set(tf, data)
+      
+      if (data.length === 0) {
+        console.warn(`⚠️ No data for ${tf}`)
+      }
+    } else {
+      console.error(`❌ Prefetch failed:`, result.reason)
     }
   })
   
-  console.log(`✅ Prefetched ${results.size} timeframes`)
+  const duration = Date.now() - startTime
+  const successful = Array.from(results.values()).filter(d => d.length > 0).length
+  
+  console.log(`✅ Prefetched ${successful}/${timeframes.length} timeframes in ${duration}ms`)
   
   return results
 }
+
+// ============================================
+// SUBSCRIBE TO OHLC UPDATES
+// ============================================
 
 export function subscribeToOHLCUpdates(
   assetPath: string,
@@ -548,97 +373,62 @@ export function subscribeToOHLCUpdates(
     return () => {}
   }
 
-  const config = TIMEFRAME_CONFIG[timeframe]
-  if (!config) {
-    console.error(`❌ Invalid timeframe: ${timeframe}`)
-    return () => {}
-  }
-
-  const basePath = cleanAssetPath(assetPath)
-  const ohlcPath = getOHLCPath(basePath, timeframe)
+  const cleanPath = cleanAssetPath(assetPath)
+  const ohlcPath = `${cleanPath}/ohlc_${timeframe}`
   const ohlcRef = ref(database, ohlcPath)
   
-  let lastBarTimestamp: number | null = null
+  let lastTimestamp: number | null = null
   let lastData: any = null
   
   const unsubscribe = onValue(ohlcRef, (snapshot) => {
     const data = snapshot.val()
     if (!data) return
 
-    let latestData: any = null
-    let latestKey: string | null = null
-    let isArray = Array.isArray(data)
+    // Get latest bar
+    const isArray = Array.isArray(data)
+    const latestBar = isArray 
+      ? data[data.length - 1]
+      : data[Object.keys(data).sort().pop()!]
     
-    if (isArray) {
-      latestData = data[data.length - 1]
-      latestKey = String(data.length - 1)
-    } else {
-      const keys = Object.keys(data)
+    if (!latestBar || !latestBar.close) return
+
+    // Determine timestamp
+    const timestamp = latestBar.timestamp || 
+                     (isArray ? data.length - 1 : parseInt(Object.keys(data).pop()!))
+    
+    // Check if this is a new bar
+    const isNewBar = timestamp !== lastTimestamp
+    
+    // Check if data changed
+    const hasChanged = !lastData || 
+                      lastData.open !== latestBar.open ||
+                      lastData.high !== latestBar.high ||
+                      lastData.low !== latestBar.low ||
+                      lastData.close !== latestBar.close
+    
+    // Only callback if new bar or data changed
+    if (isNewBar || hasChanged) {
+      lastTimestamp = timestamp
+      lastData = latestBar
       
-      keys.sort((a, b) => {
-        const numA = parseInt(a)
-        const numB = parseInt(b)
-        if (!isNaN(numA) && !isNaN(numB)) {
-          return numB - numA
-        }
-        return b.localeCompare(a)
+      callback({
+        timestamp,
+        datetime: latestBar.datetime || new Date(timestamp * 1000).toISOString(),
+        open: latestBar.open || latestBar.close,
+        high: latestBar.high || latestBar.close,
+        low: latestBar.low || latestBar.close,
+        close: latestBar.close,
+        volume: latestBar.volume || 0,
+        isNewBar,
+        isCompleted: latestBar.isCompleted || false,
       })
       
-      latestKey = keys[0]
-      latestData = data[latestKey]
-    }
-    
-    if (!latestData || !latestData.close) {
-      return
-    }
-
-    let barTimestamp = latestData.timestamp
-    
-    if (!barTimestamp && latestKey) {
-      const parsedKey = parseInt(latestKey)
-      if (!isNaN(parsedKey)) {
-        barTimestamp = parsedKey
+      // Invalidate cache on update
+      if (isNewBar) {
+        const cacheKey = `${cleanPath}-${timeframe}`
+        memoryCache.delete(cacheKey)
       }
     }
-    
-    if (!barTimestamp) {
-      return
-    }
-    
-    const isNewBar = barTimestamp !== lastBarTimestamp
-    
-    if (isNewBar) {
-      lastBarTimestamp = barTimestamp
-      const cacheKey = `${basePath}-${timeframe}`
-      memoryCache.delete(cacheKey)
-    }
-    
-    const hasChanged = !lastData || 
-      lastData.open !== latestData.open ||
-      lastData.high !== latestData.high ||
-      lastData.low !== latestData.low ||
-      lastData.close !== latestData.close
-    
-    if (!hasChanged && !isNewBar) {
-      return
-    }
-    
-    lastData = latestData
-    
-    const barData = {
-      timestamp: barTimestamp,
-      datetime: latestData.datetime || new Date(barTimestamp * 1000).toISOString(),
-      open: latestData.open || latestData.close,
-      high: latestData.high || latestData.close,
-      low: latestData.low || latestData.close,
-      close: latestData.close,
-      volume: latestData.volume || 0,
-      isNewBar,
-      isCompleted: latestData.isCompleted || false
-    }
-    
-    callback(barData)
-
   }, (error) => {
     console.error(`❌ OHLC subscription error (${timeframe}):`, error)
   })
@@ -648,6 +438,10 @@ export function subscribeToOHLCUpdates(
   }
 }
 
+// ============================================
+// SUBSCRIBE TO PRICE UPDATES
+// ============================================
+
 export function subscribeToPriceUpdates(
   assetPath: string,
   callback: (data: any) => void
@@ -656,7 +450,8 @@ export function subscribeToPriceUpdates(
     return () => {}
   }
 
-  const pricePath = getPricePath(assetPath)
+  const cleanPath = cleanAssetPath(assetPath)
+  const pricePath = `${cleanPath}/current_price`
   const priceRef = ref(database, pricePath)
   
   let lastPrice: number | null = null
@@ -666,7 +461,8 @@ export function subscribeToPriceUpdates(
     const data = snapshot.val()
     if (!data || !data.price) return
     
-    const isDuplicate = lastPrice && 
+    // Prevent duplicate updates
+    const isDuplicate = lastPrice !== null && 
                        lastTimestamp === data.timestamp &&
                        Math.abs(data.price - lastPrice) < 0.000001
     
@@ -686,76 +482,52 @@ export function subscribeToPriceUpdates(
   }
 }
 
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+
 export async function prefetchDefaultAsset(assetPath: string): Promise<void> {
-  const basePath = cleanAssetPath(assetPath)
-  const timeframes: Timeframe[] = ['1s', '1m', '5m']
-  
-  await prefetchMultipleTimeframes(basePath, timeframes)
+  const cleanPath = cleanAssetPath(assetPath)
+  await prefetchMultipleTimeframes(cleanPath, ['1m', '5m'])
 }
 
-export async function clearDataCache(pattern?: string): Promise<void> {
-  if (!pattern) {
-    memoryCache.clear()
-    await idbCache.clear()
-    console.log('🗑️ All cache cleared')
-    return
+export async function clearDataCache(): Promise<void> {
+  memoryCache.clear()
+  pendingRequests.clear()
+  console.log('🗑️ All caches cleared')
+}
+
+export function getCacheStats() {
+  return {
+    memory: memoryCache.getStats(),
+    pending: pendingRequests.size,
   }
-  
-  const stats = memoryCache.getStats()
-  stats.keys.forEach(key => {
-    if (key.includes(pattern)) {
-      memoryCache.delete(key)
-    }
-  })
 }
 
-export function getCacheStats(): any {
-  return memoryCache.getStats()
-}
-
-export function isValidTimeframe(timeframe: string): timeframe is Timeframe {
-  return timeframe in TIMEFRAME_CONFIG
-}
-
-export function getSupportedTimeframes(): Timeframe[] {
-  return Object.keys(TIMEFRAME_CONFIG) as Timeframe[]
-}
-
-export function getTimeframeInfo(timeframe: Timeframe) {
-  return TIMEFRAME_CONFIG[timeframe]
-}
+// ============================================
+// DEBUG UTILITIES (available in window)
+// ============================================
 
 if (typeof window !== 'undefined') {
   (window as any).firebaseDebug = {
     getCacheStats,
     clearDataCache,
-    getSupportedTimeframes,
-    getTimeframeInfo,
-    isValidTimeframe,
-    prefetchDefaultAsset,
-    checkSimulatorStatus,
-    async inspectPath(path: string) {
-      if (!database) return null
-      const snapshot = await get(ref(database, path))
-      console.log(`📦 Data at ${path}:`, snapshot.val())
-      return snapshot.val()
-    },
-    async testCryptoAsset(assetPath: string) {
-      console.log(`🧪 Testing crypto asset: ${assetPath}`)
-      
-      const status = await checkSimulatorStatus(assetPath)
-      console.log('Status:', status)
-      
-      if (status.hasOHLC) {
-        const data = await fetchHistoricalData(assetPath, '1m')
-        console.log(`Fetched ${data.length} bars`)
-        if (data.length > 0) {
-          console.log('First bar:', data[0])
-          console.log('Last bar:', data[data.length - 1])
-        }
-      }
-      
-      return status
-    }
+    memoryCache,
+    pendingRequests,
   }
+}
+
+// ============================================
+// AUTO CLEANUP - Every minute
+// ============================================
+
+if (typeof window !== 'undefined') {
+  setInterval(() => {
+    const stats = memoryCache.getStats()
+    
+    if (stats.size > stats.maxSize * 0.8) {
+      console.log('🧹 Auto-cleanup triggered')
+      memoryCache.clear()
+    }
+  }, 60000)
 }
