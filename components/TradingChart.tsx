@@ -1,10 +1,10 @@
-// components/TradingChart.tsx - ✅ COMPREHENSIVE FIXES
+// components/TradingChart.tsx - Optimized for Fast Loading
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
 import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp } from 'lightweight-charts'
 import { useTradingStore } from '@/store/trading'
-import { fetchHistoricalData, subscribeToOHLCUpdates } from '@/lib/firebase'
+import { fetchHistoricalData, subscribeToOHLCUpdates, prefetchMultipleTimeframes } from '@/lib/firebase'
 import { BinaryOrder } from '@/types'
 import { database, ref, get } from '@/lib/firebase'
 import dynamic from 'next/dynamic'
@@ -42,9 +42,37 @@ const DEFAULT_INDICATOR_CONFIG: IndicatorConfig = {
   atr: { enabled: false, period: 14 }
 }
 
-// ============================================
-// UTILITY FUNCTIONS
-// ============================================
+const GLOBAL_DATA_CACHE = new Map<string, {
+  data: any[]
+  timestamp: number
+  timeframe: Timeframe
+}>()
+
+const CACHE_TTL = 30000
+
+function getCachedData(assetId: string, timeframe: Timeframe): any[] | null {
+  const key = `${assetId}-${timeframe}`
+  const cached = GLOBAL_DATA_CACHE.get(key)
+  
+  if (!cached) return null
+  
+  const now = Date.now()
+  if (now - cached.timestamp > CACHE_TTL) {
+    GLOBAL_DATA_CACHE.delete(key)
+    return null
+  }
+  
+  return cached.data
+}
+
+function setCachedData(assetId: string, timeframe: Timeframe, data: any[]) {
+  const key = `${assetId}-${timeframe}`
+  GLOBAL_DATA_CACHE.set(key, {
+    data,
+    timestamp: Date.now(),
+    timeframe
+  })
+}
 
 function cleanAssetPath(path: string): string {
   if (!path) return ''
@@ -123,10 +151,6 @@ async function checkSimulatorStatus(assetPath: string): Promise<{
     }
   }
 }
-
-// ============================================
-// SUBCOMPONENTS
-// ============================================
 
 const RealtimeClock = memo(() => {
   const [time, setTime] = useState(new Date())
@@ -274,6 +298,21 @@ const SimulatorStatus = memo(({
 })
 
 SimulatorStatus.displayName = 'SimulatorStatus'
+
+const ChartSkeleton = memo(() => (
+  <div className="absolute inset-0 bg-[#0a0e17] flex items-center justify-center z-20">
+    <div className="text-center">
+      <div className="relative w-16 h-16 mx-auto mb-4">
+        <div className="absolute inset-0 border-4 border-gray-800 rounded-full"></div>
+        <div className="absolute inset-0 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
+      </div>
+      <div className="text-sm text-gray-400 mb-2">Loading chart data...</div>
+      <div className="text-xs text-gray-600">This should take less than 2 seconds</div>
+    </div>
+  </div>
+))
+
+ChartSkeleton.displayName = 'ChartSkeleton'
 
 const MobileControls = memo(({ 
   timeframe, 
@@ -452,10 +491,6 @@ const DesktopControls = memo(({
 
 DesktopControls.displayName = 'DesktopControls'
 
-// ============================================
-// MAIN COMPONENT - ✅ FIXED VERSION
-// ============================================
-
 const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const fullscreenContainerRef = useRef<HTMLDivElement>(null)
@@ -463,13 +498,11 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null)
   const lineSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   
-  // ✅ FIX: Proper cleanup tracking
   const unsubscribe1sRef = useRef<(() => void) | null>(null)
   const unsubscribeTimeframeRef = useRef<(() => void) | null>(null)
   const isMountedRef = useRef(false)
   const cleanupFunctionsRef = useRef<Array<() => void>>([])
   
-  // ✅ FIX: Better state management for current bar
   const currentBarRef = useRef<{
     timestamp: number
     open: number
@@ -480,7 +513,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   } | null>(null)
   
   const lastUpdateTimeRef = useRef<number>(0)
-  const updateThrottleMs = 50 // Throttle updates to 50ms
+  const updateThrottleMs = 50
+  
+  const previousAssetIdRef = useRef<string | null>(null)
   
   const { selectedAsset } = useTradingStore()
 
@@ -510,15 +545,11 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   } | null>(null)
   const [showOhlc, setShowOhlc] = useState(false)
 
-  // ============================================
-  // ✅ FIX: Proper cleanup function
-  // ============================================
   const addCleanup = useCallback((fn: () => void) => {
     cleanupFunctionsRef.current.push(fn)
   }, [])
 
   const cleanupAll = useCallback(() => {
-    // Unsubscribe from Firebase
     if (unsubscribe1sRef.current) {
       unsubscribe1sRef.current()
       unsubscribe1sRef.current = null
@@ -529,7 +560,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       unsubscribeTimeframeRef.current = null
     }
     
-    // Run all cleanup functions
     cleanupFunctionsRef.current.forEach(fn => {
       try {
         fn()
@@ -539,7 +569,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     })
     cleanupFunctionsRef.current = []
     
-    // Reset refs
     currentBarRef.current = null
     lastUpdateTimeRef.current = 0
   }, [])
@@ -581,9 +610,20 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
   }, [])
 
-  // ============================================
-  // ✅ FIX: Initialize chart with proper cleanup
-  // ============================================
+  useEffect(() => {
+    if (!selectedAsset?.realtimeDbPath) return
+
+    const prefetch = async () => {
+      const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath!)
+      
+      prefetchMultipleTimeframes(assetPath, ['1m', '5m', '15m'])
+        .catch(err => console.log('Prefetch failed:', err))
+    }
+
+    const timer = setTimeout(prefetch, 500)
+    return () => clearTimeout(timer)
+  }, [selectedAsset?.id])
+
   useEffect(() => {
     if (isMountedRef.current) return
     
@@ -689,9 +729,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [chartType, addCleanup, cleanupAll])
 
-  // ============================================
-  // ✅ FIX: Chart type switch
-  // ============================================
   useEffect(() => {
     if (!candleSeriesRef.current || !lineSeriesRef.current) return
 
@@ -704,40 +741,47 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [chartType])
 
-  // ============================================
-  // ✅ FIX: MAIN LOGIC - Load data and subscribe
-  // ============================================
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
       return
     }
 
+    const isAssetChange = previousAssetIdRef.current !== selectedAsset.id
+    previousAssetIdRef.current = selectedAsset.id
+
     let isCancelled = false
     let animationFrameId: number | null = null
 
     const loadChartData = async () => {
-      setIsLoading(true)
+      if (isAssetChange) {
+        setIsLoading(true)
+      }
+      
       setOpeningPrice(null)
       setLastPrice(null)
       currentBarRef.current = null
       lastUpdateTimeRef.current = 0
 
-      await checkSimulator()
-
-      // Cleanup previous subscriptions
+      checkSimulator().catch(err => console.log('Simulator check failed:', err))
+      
       cleanupAll()
 
       try {
         let assetPath = selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`
         assetPath = cleanAssetPath(assetPath)
 
-        // ✅ Load historical data
+        console.log(`🚀 Loading ${timeframe} chart for ${selectedAsset.symbol}...`)
+        console.time('chart-load')
+        
         const data = await fetchHistoricalData(assetPath, timeframe)
+        
+        console.timeEnd('chart-load')
 
         if (isCancelled) return
 
         if (!data || data.length === 0) {
           setIsLoading(false)
+          console.warn('⚠️ No chart data available')
           return
         }
 
@@ -768,7 +812,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
             setOpeningPrice(data[0].open)
             setLastPrice(data[data.length - 1].close)
             
-            // Initialize current bar
             const lastBar = data[data.length - 1]
             currentBarRef.current = {
               timestamp: lastBar.timestamp,
@@ -783,55 +826,54 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
         setIsLoading(false)
 
-        // ✅ FIX: Subscribe to 1s updates with throttling
-        const unsubscribe1s = subscribeToOHLCUpdates(assetPath, '1s', (tick1s) => {
-          if (isCancelled || !candleSeriesRef.current || !lineSeriesRef.current) return
+        requestAnimationFrame(() => {
+          if (isCancelled) return
 
-          // ✅ Throttle updates
-          const now = Date.now()
-          if (now - lastUpdateTimeRef.current < updateThrottleMs) {
-            // Schedule update for next frame
-            if (animationFrameId) {
-              cancelAnimationFrame(animationFrameId)
-            }
-            
-            animationFrameId = requestAnimationFrame(() => {
-              processTickUpdate(tick1s)
-            })
-            return
-          }
+          const unsubscribe1s = subscribeToOHLCUpdates(assetPath, '1s', (tick1s) => {
+            if (isCancelled || !candleSeriesRef.current || !lineSeriesRef.current) return
 
-          processTickUpdate(tick1s)
-        })
-
-        unsubscribe1sRef.current = unsubscribe1s
-
-        // ✅ Subscribe to selected timeframe updates
-        if (timeframe !== '1s') {
-          const unsubscribeTimeframe = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
-            if (isCancelled) return
-
-            try {
-              // Sync current bar with complete bar data
-              if (newBar.isNewBar) {
-                const barPeriod = getBarPeriodTimestamp(newBar.timestamp, timeframe)
-                
-                currentBarRef.current = {
-                  timestamp: barPeriod,
-                  open: newBar.open,
-                  high: newBar.high,
-                  low: newBar.low,
-                  close: newBar.close,
-                  volume: newBar.volume || 0
-                }
+            const now = Date.now()
+            if (now - lastUpdateTimeRef.current < updateThrottleMs) {
+              if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId)
               }
-            } catch (error) {
-              console.error('Timeframe update error:', error)
+              
+              animationFrameId = requestAnimationFrame(() => {
+                processTickUpdate(tick1s)
+              })
+              return
             }
+
+            processTickUpdate(tick1s)
           })
 
-          unsubscribeTimeframeRef.current = unsubscribeTimeframe
-        }
+          unsubscribe1sRef.current = unsubscribe1s
+
+          if (timeframe !== '1s') {
+            const unsubscribeTimeframe = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
+              if (isCancelled) return
+
+              try {
+                if (newBar.isNewBar) {
+                  const barPeriod = getBarPeriodTimestamp(newBar.timestamp, timeframe)
+                  
+                  currentBarRef.current = {
+                    timestamp: barPeriod,
+                    open: newBar.open,
+                    high: newBar.high,
+                    low: newBar.low,
+                    close: newBar.close,
+                    volume: newBar.volume || 0
+                  }
+                }
+              } catch (error) {
+                console.error('Timeframe update error:', error)
+              }
+            })
+
+            unsubscribeTimeframeRef.current = unsubscribeTimeframe
+          }
+        })
 
       } catch (err: any) {
         if (isCancelled) return
@@ -840,18 +882,14 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       }
     }
 
-    // ✅ FIX: Process tick update with proper batching
     const processTickUpdate = (tick1s: any) => {
       try {
         const newPrice = tick1s.close
         const currentTimestamp = Math.floor(Date.now() / 1000)
         
-        // Calculate bar period
         const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
         
-        // Update or create current bar
         if (!currentBarRef.current || currentBarRef.current.timestamp !== barPeriod) {
-          // New bar period
           currentBarRef.current = {
             timestamp: barPeriod,
             open: newPrice,
@@ -861,13 +899,11 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
             volume: 0
           }
         } else {
-          // Update existing bar
           currentBarRef.current.high = Math.max(currentBarRef.current.high, newPrice)
           currentBarRef.current.low = Math.min(currentBarRef.current.low, newPrice)
           currentBarRef.current.close = newPrice
         }
 
-        // ✅ Update chart smoothly
         const updatedBar = {
           time: currentBarRef.current.timestamp as UTCTimestamp,
           open: currentBarRef.current.open,
@@ -905,6 +941,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
   const handleRefresh = useCallback(() => {
     if (!selectedAsset) return
+    
+    GLOBAL_DATA_CACHE.delete(`${selectedAsset.id}-${timeframe}`)
+    
     checkSimulator()
     
     const currentAsset = selectedAsset
@@ -912,7 +951,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     setTimeout(() => {
       useTradingStore.setState({ selectedAsset: currentAsset })
     }, 100)
-  }, [selectedAsset, checkSimulator])
+  }, [selectedAsset, timeframe, checkSimulator])
 
   const handleFitContent = useCallback(() => {
     if (chartRef.current) {
@@ -985,14 +1024,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
       <div ref={chartContainerRef} className="absolute inset-0 bg-[#0a0e17]" />
 
-      {isLoading && (
-        <div className="absolute inset-0 bg-[#0a0e17]/95 z-20">
-          <div className="h-full flex flex-col items-center justify-center p-6">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mb-4"></div>
-            <div className="text-sm text-gray-400">Loading {timeframe} chart data...</div>
-          </div>
-        </div>
-      )}
+      {isLoading && <ChartSkeleton />}
 
       <IndicatorControls 
         isOpen={showIndicators} 

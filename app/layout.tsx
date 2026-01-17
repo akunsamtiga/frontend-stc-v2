@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { IBM_Plex_Sans, JetBrains_Mono } from 'next/font/google'
 import { Toaster } from 'sonner'
 import GoogleAuthHandler from '@/components/GoogleAuthHandler'
+import ChartPreloader from '@/components/ChartPreloader'
+import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar' // ✅ NEW
 import './globals.css'
 
 const ibmPlexSans = IBM_Plex_Sans({ 
@@ -64,6 +66,10 @@ export default function RootLayout({
       </head>
       <body className="bg-[#0a0e17] text-white">
         <GoogleAuthHandler />
+        {/* ✅ Register Service Worker */}
+        <ServiceWorkerRegistrar />
+        {/* ✅ Preload chart data on app start */}
+        <ChartPreloader />
         {children}
         <Toaster 
           position="top-right" 

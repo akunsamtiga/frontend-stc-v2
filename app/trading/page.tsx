@@ -7,7 +7,7 @@ import { unstable_batchedUpdates } from 'react-dom'
 import { useAuthStore } from '@/store/auth'
 import { useTradingStore, useSelectedAsset, useCurrentPrice, useSelectedAccountType, useTradingActions } from '@/store/trading'
 import { api } from '@/lib/api'
-import { subscribeToPriceUpdates, prefetchDefaultAsset } from '@/lib/firebase'
+import { subscribeToPriceUpdates, prefetchDefaultAsset, prefetchMultipleTimeframes } from '@/lib/firebase'
 import { toast } from 'sonner'
 import { Asset, BinaryOrder, AccountType } from '@/types'
 import { formatCurrency, getDurationDisplay } from '@/lib/utils'
@@ -585,16 +585,25 @@ export default function TradingPage() {
                 <div className="fixed inset-0 z-40" onClick={() => setShowAssetMenu(false)} />
                 <div className="absolute top-full left-0 mt-2 w-64 bg-[#232936] border border-gray-800/50 rounded-lg shadow-2xl z-50 max-h-80 overflow-y-auto">
                   {assets.map((asset) => (
-                    <button
-                      key={asset.id}
-                      onClick={() => {
-                        setSelectedAsset(asset)
-                        setShowAssetMenu(false)
-                      }}
-                      className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 last:border-0 ${
-                        selectedAsset?.id === asset.id ? 'bg-[#2a3142]' : ''
-                      }`}
-                    >
+  <button
+    key={asset.id}
+    onClick={() => {
+      setSelectedAsset(asset)
+      setShowAssetMenu(false)
+    }}
+    // ✅ NEW: Prefetch on hover
+    onMouseEnter={() => {
+      if (asset.realtimeDbPath) {
+        prefetchMultipleTimeframes(
+          asset.realtimeDbPath,
+          ['1m', '5m', '15m']
+        ).catch(err => console.log('Prefetch failed:', err))
+      }
+    }}
+    className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 last:border-0 ${
+      selectedAsset?.id === asset.id ? 'bg-[#2a3142]' : ''
+    }`}
+  >
                       <div className="flex items-center gap-3">
                         {/* ✅ NEW: Asset Icon */}
                         <AssetIcon asset={asset} size="xs" />
@@ -1217,18 +1226,27 @@ export default function TradingPage() {
                 <label className="text-xs text-gray-400 mb-2 block">Select Asset</label>
                 <div className="space-y-1 max-h-64 overflow-y-auto">
                   {assets.map((asset) => (
-                    <button
-                      key={asset.id}
-                      onClick={() => {
-                        setSelectedAsset(asset)
-                        setShowMobileMenu(false)
-                      }}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                        selectedAsset?.id === asset.id 
-                          ? 'bg-blue-500/20 border border-blue-500/50' 
-                          : 'bg-[#1a1f2e] hover:bg-[#232936]'
-                      }`}
-                    >
+  <button
+    key={asset.id}
+    onClick={() => {
+      setSelectedAsset(asset)
+      setShowMobileMenu(false)
+    }}
+    // ✅ NEW: Prefetch on hover (mobile touch)
+    onTouchStart={() => {
+      if (asset.realtimeDbPath) {
+        prefetchMultipleTimeframes(
+          asset.realtimeDbPath,
+          ['1m', '5m']
+        ).catch(err => console.log('Prefetch failed:', err))
+      }
+    }}
+    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+      selectedAsset?.id === asset.id 
+        ? 'bg-blue-500/20 border border-blue-500/50' 
+        : 'bg-[#1a1f2e] hover:bg-[#232936]'
+    }`}
+  >
                       <AssetIcon asset={asset} size="sm" />
                       <div className="flex-1 text-left">
                         <div className="text-sm font-medium">{asset.symbol}</div>
