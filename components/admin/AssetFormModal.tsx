@@ -3,11 +3,13 @@ import { useState, useEffect, useRef } from 'react'
 import { X, Save, AlertCircle, Zap, AlertTriangle, Info, Upload, Image as ImageIcon } from 'lucide-react'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
+import { ASSET_TYPE_INFO, AssetType } from '@/types'
 
 interface Asset {
   id: string
   name: string
   symbol: string
+  type: AssetType
   category: 'normal' | 'crypto'
   profitRate: number
   isActive: boolean
@@ -83,6 +85,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     name: asset?.name || '',
     symbol: asset?.symbol || '',
     icon: asset?.icon || '',
+    type: asset?.type || 'forex' as AssetType,
     category: asset?.category || 'normal' as 'normal' | 'crypto',
     profitRate: asset?.profitRate || 85,
     isActive: asset?.isActive ?? true,
@@ -109,51 +112,55 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
   })
 
   // Auto-set crypto icon when base currency changes
-useEffect(() => {
-  if (formData.category === 'crypto' && formData.cryptoBaseCurrency && !uploadingIcon) {
-    const iconMap: Record<string, string> = {
-      'BTC': 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
-      'ETH': 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
-      'BNB': 'https://cryptologos.cc/logos/bnb-bnb-logo.png',
-      'XRP': 'https://cryptologos.cc/logos/xrp-xrp-logo.png',
-      'ADA': 'https://cryptologos.cc/logos/cardano-ada-logo.png',
-      'SOL': 'https://cryptologos.cc/logos/solana-sol-logo.png',
-      'DOT': 'https://cryptologos.cc/logos/polkadot-new-dot-logo.png',
-      'DOGE': 'https://cryptologos.cc/logos/dogecoin-doge-logo.png',
-      'MATIC': 'https://cryptologos.cc/logos/polygon-matic-logo.png',
-      'LTC': 'https://cryptologos.cc/logos/litecoin-ltc-logo.png',
-      'AVAX': 'https://cryptologos.cc/logos/avalanche-avax-logo.png',
-      'LINK': 'https://cryptologos.cc/logos/chainlink-link-logo.png',
-      'UNI': 'https://cryptologos.cc/logos/uniswap-uni-logo.png',
-      'ATOM': 'https://cryptologos.cc/logos/cosmos-atom-logo.png',
-      'XLM': 'https://cryptologos.cc/logos/stellar-xlm-logo.png',
-    }
-    
-    const autoIcon = iconMap[formData.cryptoBaseCurrency.toUpperCase()]
-    if (autoIcon) {
-      setFormData(prev => ({
-        ...prev,
-        icon: autoIcon
-      }))
-    }
-  }
-}, [formData.category, formData.cryptoBaseCurrency, uploadingIcon])
-
   useEffect(() => {
-    if (formData.category === 'crypto') {
+    if (formData.category === 'crypto' && formData.cryptoBaseCurrency && !uploadingIcon) {
+      const iconMap: Record<string, string> = {
+        'BTC': 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
+        'ETH': 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
+        'BNB': 'https://cryptologos.cc/logos/bnb-bnb-logo.png',
+        'XRP': 'https://cryptologos.cc/logos/xrp-xrp-logo.png',
+        'ADA': 'https://cryptologos.cc/logos/cardano-ada-logo.png',
+        'SOL': 'https://cryptologos.cc/logos/solana-sol-logo.png',
+        'DOT': 'https://cryptologos.cc/logos/polkadot-new-dot-logo.png',
+        'DOGE': 'https://cryptologos.cc/logos/dogecoin-doge-logo.png',
+        'MATIC': 'https://cryptologos.cc/logos/polygon-matic-logo.png',
+        'LTC': 'https://cryptologos.cc/logos/litecoin-ltc-logo.png',
+        'AVAX': 'https://cryptologos.cc/logos/avalanche-avax-logo.png',
+        'LINK': 'https://cryptologos.cc/logos/chainlink-link-logo.png',
+        'UNI': 'https://cryptologos.cc/logos/uniswap-uni-logo.png',
+        'ATOM': 'https://cryptologos.cc/logos/cosmos-atom-logo.png',
+        'XLM': 'https://cryptologos.cc/logos/stellar-xlm-logo.png',
+      }
+      
+      const autoIcon = iconMap[formData.cryptoBaseCurrency.toUpperCase()]
+      if (autoIcon) {
+        setFormData(prev => ({
+          ...prev,
+          icon: autoIcon
+        }))
+      }
+    }
+  }, [formData.category, formData.cryptoBaseCurrency, uploadingIcon])
+
+  // Auto-update category and dataSource based on type
+  useEffect(() => {
+    if (formData.type === 'crypto') {
       setFormData(prev => ({
         ...prev,
+        category: 'crypto',
         dataSource: 'binance',
         cryptoQuoteCurrency: 'USDT'
       }))
-    } else if (formData.category === 'normal' && formData.dataSource === 'binance') {
-      setFormData(prev => ({
+      } else if (formData.category === 'crypto' && formData.type !== 'crypto' as AssetType) {
+        setFormData(prev => ({
         ...prev,
+        category: 'normal',
         dataSource: 'realtime_db'
       }))
     }
-  }, [formData.category])
+  }, [formData.type])
 
+  // Auto-calculate min/max price
   useEffect(() => {
     if (formData.minPrice === 0 && formData.initialPrice > 0) {
       setFormData(prev => ({
@@ -206,39 +213,39 @@ useEffect(() => {
   }
 
   const handleRemoveIcon = () => {
-  setFormData(prev => ({ ...prev, icon: '' }))
-  if (fileInputRef.current) {
-    fileInputRef.current.value = ''
-  }
-  
-  // Auto-refill crypto icon if applicable
-  if (formData.category === 'crypto' && formData.cryptoBaseCurrency) {
-    const iconMap: Record<string, string> = {
-      'BTC': 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
-      'ETH': 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
-      'BNB': 'https://cryptologos.cc/logos/bnb-bnb-logo.png',
-      'XRP': 'https://cryptologos.cc/logos/xrp-xrp-logo.png',
-      'ADA': 'https://cryptologos.cc/logos/cardano-ada-logo.png',
-      'SOL': 'https://cryptologos.cc/logos/solana-sol-logo.png',
-      'DOT': 'https://cryptologos.cc/logos/polkadot-new-dot-logo.png',
-      'DOGE': 'https://cryptologos.cc/logos/dogecoin-doge-logo.png',
-      'MATIC': 'https://cryptologos.cc/logos/polygon-matic-logo.png',
-      'LTC': 'https://cryptologos.cc/logos/litecoin-ltc-logo.png',
-      'AVAX': 'https://cryptologos.cc/logos/avalanche-avax-logo.png',
-      'LINK': 'https://cryptologos.cc/logos/chainlink-link-logo.png',
-      'UNI': 'https://cryptologos.cc/logos/uniswap-uni-logo.png',
-      'ATOM': 'https://cryptologos.cc/logos/cosmos-atom-logo.png',
-      'XLM': 'https://cryptologos.cc/logos/stellar-xlm-logo.png',
+    setFormData(prev => ({ ...prev, icon: '' }))
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
     }
     
-    setTimeout(() => {
-      const autoIcon = iconMap[formData.cryptoBaseCurrency.toUpperCase()]
-      if (autoIcon) {
-        setFormData(prev => ({ ...prev, icon: autoIcon }))
+    // Auto-refill crypto icon if applicable
+    if (formData.category === 'crypto' && formData.cryptoBaseCurrency) {
+      const iconMap: Record<string, string> = {
+        'BTC': 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
+        'ETH': 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
+        'BNB': 'https://cryptologos.cc/logos/bnb-bnb-logo.png',
+        'XRP': 'https://cryptologos.cc/logos/xrp-xrp-logo.png',
+        'ADA': 'https://cryptologos.cc/logos/cardano-ada-logo.png',
+        'SOL': 'https://cryptologos.cc/logos/solana-sol-logo.png',
+        'DOT': 'https://cryptologos.cc/logos/polkadot-new-dot-logo.png',
+        'DOGE': 'https://cryptologos.cc/logos/dogecoin-doge-logo.png',
+        'MATIC': 'https://cryptologos.cc/logos/polygon-matic-logo.png',
+        'LTC': 'https://cryptologos.cc/logos/litecoin-ltc-logo.png',
+        'AVAX': 'https://cryptologos.cc/logos/avalanche-avax-logo.png',
+        'LINK': 'https://cryptologos.cc/logos/chainlink-link-logo.png',
+        'UNI': 'https://cryptologos.cc/logos/uniswap-uni-logo.png',
+        'ATOM': 'https://cryptologos.cc/logos/cosmos-atom-logo.png',
+        'XLM': 'https://cryptologos.cc/logos/stellar-xlm-logo.png',
       }
-    }, 100)
+      
+      setTimeout(() => {
+        const autoIcon = iconMap[formData.cryptoBaseCurrency.toUpperCase()]
+        if (autoIcon) {
+          setFormData(prev => ({ ...prev, icon: autoIcon }))
+        }
+      }, 100)
+    }
   }
-}
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -253,6 +260,24 @@ useEffect(() => {
 
     if (!/^[A-Z0-9/_-]+$/i.test(formData.symbol)) {
       newErrors.symbol = 'Symbol can only contain letters, numbers, /, _, and -'
+    }
+
+    // Validate type
+    if (!formData.type) {
+      newErrors.type = 'Asset type is required'
+    }
+
+    if (!['forex', 'stock', 'commodity', 'crypto', 'index'].includes(formData.type)) {
+      newErrors.type = 'Invalid asset type'
+    }
+
+    // Type-category consistency check
+    if (formData.type === 'crypto' && formData.category !== 'crypto') {
+      newErrors.type = 'Type "crypto" must have category "crypto"'
+    }
+
+    if (formData.type !== 'crypto' && formData.category === 'crypto') {
+      newErrors.type = `Category "crypto" requires type "crypto", not "${formData.type}"`
     }
 
     if (formData.profitRate < 0 || formData.profitRate > 100) {
@@ -275,7 +300,6 @@ useEffect(() => {
         newErrors.icon = 'Icon must be a valid image (base64 or URL)'
       }
       
-      // Validasi ukuran base64 (max 2MB dalam base64 ≈ 2.7MB string)
       if (isBase64 && formData.icon.length > 2800000) {
         newErrors.icon = 'Icon file too large (max 2MB)'
       }
@@ -390,6 +414,7 @@ useEffect(() => {
           name: formData.name.trim(),
           symbol: formData.symbol.trim().toUpperCase(),
           icon: formData.icon || undefined,
+          type: 'crypto',
           category: 'crypto',
           profitRate: Number(formData.profitRate),
           isActive: Boolean(formData.isActive),
@@ -416,6 +441,7 @@ useEffect(() => {
           name: formData.name.trim(),
           symbol: formData.symbol.trim().toUpperCase(),
           icon: formData.icon || undefined,
+          type: formData.type,
           category: 'normal',
           profitRate: Number(formData.profitRate),
           isActive: Boolean(formData.isActive),
@@ -503,6 +529,11 @@ useEffect(() => {
     return `${base}/${quote} → ${base}${normalizedQuote}`
   }
 
+  const getTypePlaceholder = () => {
+    const typeInfo = ASSET_TYPE_INFO[formData.type]
+    return typeInfo ? typeInfo.examples[0] : 'Asset name'
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
@@ -512,6 +543,17 @@ useEffect(() => {
               {mode === 'create' ? 'Create New Asset' : 'Edit Asset'}
             </h2>
             <div className="flex items-center gap-2 mt-2">
+              {formData.type && (
+                <span className={`text-xs px-2 py-1 rounded font-semibold ${
+                  formData.type === 'crypto' ? 'bg-orange-100 text-orange-700' :
+                  formData.type === 'forex' ? 'bg-blue-100 text-blue-700' :
+                  formData.type === 'stock' ? 'bg-green-100 text-green-700' :
+                  formData.type === 'commodity' ? 'bg-yellow-100 text-yellow-700' :
+                  'bg-purple-100 text-purple-700'
+                }`}>
+                  {ASSET_TYPE_INFO[formData.type]?.icon} {ASSET_TYPE_INFO[formData.type]?.label}
+                </span>
+              )}
               {formData.category === 'crypto' && (
                 <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded font-semibold">
                   🪙 Crypto Mode (Binance)
@@ -542,6 +584,7 @@ useEffect(() => {
           <div>
             <h3 className="text-lg font-bold text-gray-900 mb-4">Basic Information</h3>
             
+            {/* Icon Upload */}
             <div className="mb-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl">
               <label className="block text-sm font-bold text-gray-700 mb-3">
                 <ImageIcon className="w-4 h-4 inline mr-1" />
@@ -605,16 +648,16 @@ useEffect(() => {
                     Recommended: 64x64px, PNG/JPG/SVG, max 2MB
                   </p>
                   {formData.category === 'crypto' && !formData.icon && formData.cryptoBaseCurrency && (
-  <p className="text-xs text-purple-600 mt-1 flex items-center gap-1">
-    <Info className="w-3 h-3" />
-    Auto-filled: {formData.cryptoBaseCurrency.toUpperCase()} icon will be used
-  </p>
-)}
-{formData.category === 'crypto' && !formData.icon && !formData.cryptoBaseCurrency && (
-  <p className="text-xs text-purple-600 mt-1">
-    Tip: Select a coin to auto-fill icon
-  </p>
-)}
+                    <p className="text-xs text-purple-600 mt-1 flex items-center gap-1">
+                      <Info className="w-3 h-3" />
+                      Auto-filled: {formData.cryptoBaseCurrency.toUpperCase()} icon will be used
+                    </p>
+                  )}
+                  {formData.category === 'crypto' && !formData.icon && !formData.cryptoBaseCurrency && (
+                    <p className="text-xs text-purple-600 mt-1">
+                      Tip: Select a coin to auto-fill icon
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -626,7 +669,65 @@ useEffect(() => {
               )}
             </div>
 
+            {/* Asset Type Selection */}
+            <div className="mb-4">
+              <label className="block text-sm font-bold text-gray-700 mb-3">
+                Asset Type * <span className="text-xs text-gray-600">(Choose the type of asset)</span>
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                {Object.entries(ASSET_TYPE_INFO).map(([typeKey, typeInfo]) => {
+                  const isSelected = formData.type === typeKey
+                  const isCrypto = typeKey === 'crypto'
+                  
+                  return (
+                    <button
+                      key={typeKey}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, type: typeKey as AssetType })}
+                      className={`p-4 rounded-xl border-2 transition-all ${
+                        isSelected
+                          ? isCrypto
+                            ? 'border-orange-500 bg-orange-50 shadow-md'
+                            : 'border-purple-500 bg-purple-50 shadow-md'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex flex-col items-center gap-2 text-center">
+                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl ${
+                          isSelected
+                            ? isCrypto
+                              ? 'bg-orange-100'
+                              : 'bg-purple-100'
+                            : 'bg-gray-100'
+                        }`}>
+                          {typeInfo.icon}
+                        </div>
+                        <div>
+                          <div className="font-bold text-sm text-gray-900">{typeInfo.label}</div>
+                          <div className="text-xs text-gray-600 mt-1">
+                            {typeInfo.examples[0]}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+              {errors.type && (
+                <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {errors.type}
+                </p>
+              )}
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs text-blue-900">
+                  <strong>Selected:</strong> {ASSET_TYPE_INFO[formData.type]?.description}
+                </p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Asset Name */}
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">
                   Asset Name *
@@ -638,7 +739,7 @@ useEffect(() => {
                   className={`w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none focus:border-purple-500 ${
                     errors.name ? 'border-red-500' : 'border-gray-200'
                   }`}
-                  placeholder="e.g., Bitcoin, IDX STC"
+                  placeholder={getTypePlaceholder()}
                 />
                 {errors.name && (
                   <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
@@ -648,6 +749,7 @@ useEffect(() => {
                 )}
               </div>
 
+              {/* Symbol */}
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">
                   Symbol *
@@ -659,7 +761,7 @@ useEffect(() => {
                   className={`w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none focus:border-purple-500 ${
                     errors.symbol ? 'border-red-500' : 'border-gray-200'
                   }`}
-                  placeholder="e.g., BTC/USD, IDX_STC"
+                  placeholder={getTypePlaceholder()}
                 />
                 {errors.symbol && (
                   <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
@@ -669,19 +771,26 @@ useEffect(() => {
                 )}
               </div>
 
+              {/* Category Selection - Auto-locked for crypto type */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-bold text-gray-700 mb-3">
-                  Asset Category * <span className="text-red-600">⚠️ Important - Choose Carefully</span>
+                  Asset Category *
+                  {formData.type === 'crypto' && (
+                    <span className="ml-2 text-xs text-orange-600">
+                      (Auto-locked for Crypto type)
+                    </span>
+                  )}
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, category: 'normal' })}
+                    disabled={formData.type === 'crypto'}
                     className={`p-4 rounded-xl border-2 transition-all ${
                       formData.category === 'normal'
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                    } ${formData.type === 'crypto' ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
@@ -691,7 +800,13 @@ useEffect(() => {
                       </div>
                       <div className="text-left">
                         <div className="font-bold text-gray-900">Normal Asset</div>
-                        <div className="text-xs text-gray-600">Stocks, Indices, Commodities</div>
+                        <div className="text-xs text-gray-600">
+                          {formData.type === 'forex' && 'Currency Pairs'}
+                          {formData.type === 'stock' && 'Company Shares'}
+                          {formData.type === 'commodity' && 'Raw Materials'}
+                          {formData.type === 'index' && 'Market Indices'}
+                          {!['forex', 'stock', 'commodity', 'index', 'crypto'].includes(formData.type) && 'Non-crypto assets'}
+                        </div>
                       </div>
                     </div>
                     {formData.category === 'normal' && (
@@ -703,12 +818,13 @@ useEffect(() => {
 
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, category: 'crypto' })}
+                    onClick={() => setFormData({ ...formData, category: 'crypto', type: 'crypto' })}
+                    disabled={formData.type !== 'crypto'}
                     className={`p-4 rounded-xl border-2 transition-all ${
                       formData.category === 'crypto'
                         ? 'border-orange-500 bg-orange-50'
                         : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                    } ${formData.type !== 'crypto' ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
@@ -728,6 +844,11 @@ useEffect(() => {
                     )}
                   </button>
                 </div>
+                {formData.type !== 'crypto' && (
+                  <p className="text-xs text-blue-600 mt-2">
+                    💡 Tip: For crypto assets, select "crypto" type first
+                  </p>
+                )}
                 {errors.category && (
                   <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" />
@@ -736,6 +857,7 @@ useEffect(() => {
                 )}
               </div>
 
+              {/* Profit Rate */}
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">
                   Profit Rate (%) *
@@ -759,6 +881,7 @@ useEffect(() => {
                 )}
               </div>
 
+              {/* Status */}
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">
                   Status
@@ -777,6 +900,7 @@ useEffect(() => {
               </div>
             </div>
 
+            {/* Description */}
             <div className="mt-4">
               <label className="block text-sm font-bold text-gray-700 mb-2">
                 Description
@@ -791,6 +915,7 @@ useEffect(() => {
             </div>
           </div>
 
+          {/* Crypto Configuration or Normal Asset Configuration */}
           {formData.category === 'crypto' ? (
             <>
               <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-300 rounded-xl p-6">
@@ -1130,6 +1255,7 @@ useEffect(() => {
             </>
           )}
 
+          {/* Trading Settings */}
           <div>
             <h3 className="text-lg font-bold text-gray-900 mb-4">Trading Settings</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1213,6 +1339,7 @@ useEffect(() => {
             </div>
           </div>
 
+          {/* Form Actions */}
           <div className="flex gap-3 pt-4 border-t border-gray-200">
             <button
               type="button"

@@ -318,10 +318,13 @@ export default function ProfilePage() {
   const [initialLoading, setInitialLoading] = useState(true)
   const [savingSection, setSavingSection] = useState<string | null>(null)
   const [autoSaving, setAutoSaving] = useState<string | null>(null)
-  
+  const [updating, setUpdating] = useState(false) // ✅ TAMBAHKAN INI
+
   // Profile data
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [profileInfo, setProfileInfo] = useState<UserProfileInfo | null>(null)
+  const [ktpFrontFile, setKtpFrontFile] = useState<File | null>(null)
+  const [ktpBackFile, setKtpBackFile] = useState<File | null>(null)
   
   // Edit states
   const [editingPersonal, setEditingPersonal] = useState(false)
@@ -798,6 +801,147 @@ export default function ProfilePage() {
     }
   }
 
+  // ✅ NEW: Upload KTP photos handler
+  const uploadKTP = async (photoFront: File, photoBack?: File | null): Promise<boolean> => {
+    try {
+      if (!photoFront.type.startsWith('image/')) {
+        toast.error('Front photo must be an image file', {
+          style: { background: '#ef4444', color: '#fff' }
+        })
+        return false
+      }
+
+      if (photoFront.size > 2 * 1024 * 1024) {
+        toast.error('Front photo size must be less than 2MB', {
+          style: { background: '#ef4444', color: '#fff' }
+        })
+        return false
+      }
+
+      if (photoBack) {
+        if (!photoBack.type.startsWith('image/')) {
+          toast.error('Back photo must be an image file', {
+            style: { background: '#ef4444', color: '#fff' }
+          })
+          return false
+        }
+        if (photoBack.size > 2 * 1024 * 1024) {
+          toast.error('Back photo size must be less than 2MB', {
+            style: { background: '#ef4444', color: '#fff' }
+          })
+          return false
+        }
+      }
+
+      setUpdating(true)
+      const uploadToast = toast.loading('Uploading KTP photos...', {
+        style: { background: '#f59e0b', color: '#fff' }
+      })
+
+      // Convert front photo to base64
+      const photoFrontBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = () => reject(new Error('Failed to read front photo'))
+        reader.readAsDataURL(photoFront)
+      })
+
+      const uploadData: any = {
+        photoFront: {
+          url: photoFrontBase64,
+          fileSize: photoFront.size,
+          mimeType: photoFront.type
+        }
+      }
+
+      // Convert back photo if provided
+      if (photoBack) {
+        const photoBackBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(reader.result as string)
+          reader.onerror = () => reject(new Error('Failed to read back photo'))
+          reader.readAsDataURL(photoBack)
+        })
+
+        uploadData.photoBack = {
+          url: photoBackBase64,
+          fileSize: photoBack.size,
+          mimeType: photoBack.type
+        }
+      }
+
+      await api.uploadKTP(uploadData)
+      
+      toast.success('KTP photos uploaded! Waiting for admin verification.', {
+        id: uploadToast,
+        style: { background: '#10b981', color: '#fff' }
+      })
+      
+      await loadProfile()
+      return true
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error || 'Failed to upload KTP photos', {
+        style: { background: '#ef4444', color: '#fff' }
+      })
+      return false
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  // ✅ NEW: Upload selfie handler
+  const uploadSelfie = async (file: File): Promise<boolean> => {
+    try {
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select an image file', {
+          style: { background: '#ef4444', color: '#fff' }
+        })
+        return false
+      }
+
+      if (file.size > 1 * 1024 * 1024) {
+        toast.error('Selfie size must be less than 1MB', {
+          style: { background: '#ef4444', color: '#fff' }
+        })
+        return false
+      }
+
+      setUpdating(true)
+      const uploadToast = toast.loading('Uploading selfie...', {
+        style: { background: '#f59e0b', color: '#fff' }
+      })
+
+      // Convert to base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = () => reject(new Error('Failed to read selfie'))
+        reader.readAsDataURL(file)
+      })
+
+      await api.uploadSelfie({
+        url: base64,
+        fileSize: file.size,
+        mimeType: file.type
+      })
+      
+      toast.success('Selfie uploaded! Waiting for admin verification.', {
+        id: uploadToast,
+        style: { background: '#10b981', color: '#fff' }
+      })
+      
+      await loadProfile()
+      return true
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error || 'Failed to upload selfie', {
+        style: { background: '#ef4444', color: '#fff' }
+      })
+      return false
+    } finally {
+      setUpdating(false)
+    }
+  }
+  
   const handleLogout = () => {
     setShowLogoutModal(true)
   }
@@ -1526,26 +1670,165 @@ export default function ProfilePage() {
                 initial="hidden"
                 animate="visible"
               >
-                <motion.div variants={fadeInUp}>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Document Type
-                  </label>
-                  {editingIdentity ? (
-                    <select
-                      value={identityData.type}
-                      onChange={(e) => setIdentityData({ ...identityData, type: e.target.value as any })}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-colors"
-                    >
-                      <option value="ktp">KTP</option>
-                      <option value="passport">Passport</option>
-                      <option value="sim">SIM</option>
-                    </select>
-                  ) : (
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium uppercase">
-                      {identityData.type || '-'}
-                    </div>
-                  )}
-                </motion.div>
+                      {/* ✅ SECTION UPLOAD KTP */}
+      <motion.div variants={fadeInUp} className="border-t pt-4">
+        <h4 className="text-base font-semibold text-gray-900 mb-3 flex items-center">
+          <Camera className="w-5 h-5 mr-2 text-purple-500" />
+          Upload KTP Photos
+        </h4>
+        
+        {/* Front Photo */}
+        <div className="mb-4">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Front Photo <span className="text-red-500">*</span>
+          </label>
+          {profileInfo?.identity?.photoFront ? (
+            <div className="relative">
+              <img 
+                src={profileInfo.identity.photoFront.url} 
+                alt="KTP Front"
+                className="w-full h-48 object-cover rounded-xl border-2 border-gray-200"
+              />
+              {profileInfo.identity.isVerified ? (
+                <div className="absolute top-2 right-2 bg-green-500 text-white px-3 py-1 rounded-full text-xs flex items-center gap-1">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Verified
+                </div>
+              ) : (
+                <div className="absolute top-2 right-2 bg-yellow-500 text-white px-3 py-1 rounded-full text-xs flex items-center gap-1">
+                  <AlertCircle className="w-4 h-4" />
+                  Pending Verification
+                </div>
+              )}
+            </div>
+          ) : (
+            <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-purple-500 transition-colors bg-gray-50">
+              <Camera className="w-12 h-12 text-gray-400 mb-2" />
+              <span className="text-sm text-gray-600">Click to upload front photo</span>
+              <span className="text-xs text-gray-500 mt-1">Max 2MB (JPG, PNG, WEBP)</span>
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    // Store temporarily
+                    setKtpFrontFile(e.target.files[0])
+                  }
+                }}
+              />
+            </label>
+          )}
+        </div>
+
+        {/* Back Photo */}
+        <div className="mb-4">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Back Photo (Optional)
+          </label>
+          {profileInfo?.identity?.photoBack ? (
+            <img 
+              src={profileInfo.identity.photoBack.url} 
+              alt="KTP Back"
+              className="w-full h-48 object-cover rounded-xl border-2 border-gray-200"
+            />
+          ) : (
+            <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-purple-500 transition-colors bg-gray-50">
+              <Camera className="w-12 h-12 text-gray-400 mb-2" />
+              <span className="text-sm text-gray-600">Click to upload back photo</span>
+              <span className="text-xs text-gray-500 mt-1">Max 2MB (JPG, PNG, WEBP)</span>
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    setKtpBackFile(e.target.files[0])
+                  }
+                }}
+              />
+            </label>
+          )}
+        </div>
+
+        {/* Upload Button */}
+        {(ktpFrontFile || ktpBackFile) && !profileInfo?.identity?.photoFront && (
+          <motion.button
+            onClick={async () => {
+              if (ktpFrontFile) {
+                const success = await uploadKTP(ktpFrontFile, ktpBackFile)
+                if (success) {
+                  setKtpFrontFile(null)
+                  setKtpBackFile(null)
+                }
+              }
+            }}
+            disabled={updating}
+            className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl hover:from-purple-600 hover:to-pink-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {updating ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Camera className="w-5 h-5" />
+                Upload KTP Photos
+              </>
+            )}
+          </motion.button>
+        )}
+      </motion.div>
+
+      {/* ✅ SECTION UPLOAD SELFIE */}
+      <motion.div variants={fadeInUp} className="border-t pt-4">
+        <h4 className="text-base font-semibold text-gray-900 mb-3 flex items-center">
+          <UserCheck className="w-5 h-5 mr-2 text-purple-500" />
+          Upload Selfie Verification
+        </h4>
+        
+        {profileInfo?.selfie ? (
+          <div className="relative">
+            <img 
+              src={profileInfo.selfie.url} 
+              alt="Selfie"
+              className="w-full h-64 object-cover rounded-xl border-2 border-gray-200"
+            />
+            {profileInfo.selfie.isVerified ? (
+              <div className="absolute top-2 right-2 bg-green-500 text-white px-3 py-1 rounded-full text-xs flex items-center gap-1">
+                <CheckCircle2 className="w-4 h-4" />
+                Verified
+              </div>
+            ) : (
+              <div className="absolute top-2 right-2 bg-yellow-500 text-white px-3 py-1 rounded-full text-xs flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                Pending Verification
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-purple-500 transition-colors bg-gray-50">
+              <UserCheck className="w-12 h-12 text-gray-400 mb-2" />
+              <span className="text-sm text-gray-600">Click to upload selfie</span>
+              <span className="text-xs text-gray-500 mt-1">Max 1MB (JPG, PNG, WEBP)</span>
+              <span className="text-xs text-gray-500">Clear face photo required</span>
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden"
+                onChange={async (e) => {
+                  if (e.target.files?.[0]) {
+                    await uploadSelfie(e.target.files[0])
+                  }
+                }}
+                disabled={updating}
+              />
+            </label>
+          </>
+        )}
+      </motion.div>
                 
                 <motion.div variants={fadeInUp}>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">

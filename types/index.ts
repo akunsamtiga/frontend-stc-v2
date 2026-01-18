@@ -1,4 +1,4 @@
-// types/index.ts - ✅ COMPLETE: Binance Support (FREE API)
+// types/index.ts - ✅ COMPLETE: Binance Support + Photo Upload Types
 
 // ============================================
 // AUTH & USER TYPES
@@ -35,6 +35,7 @@ export interface AffiliateInfo {
   totalCommission: number
 }
 
+// ✅ ENHANCED: UserProfile with Photo Upload Support
 export interface UserProfile {
   user: User
   statusInfo: StatusInfo
@@ -62,6 +63,84 @@ export interface UserProfile {
   }
 }
 
+// ✅ ENHANCED: UserProfileInfo with Photo Upload Support
+export interface UserProfileInfo {
+  completion: number
+  personal: {
+    fullName: string | null
+    email: string
+    phoneNumber: string | null
+    dateOfBirth: string | null
+    gender: 'male' | 'female' | 'other' | null
+    nationality: string | null
+  }
+  address?: {
+    street?: string
+    city?: string
+    province?: string
+    postalCode?: string
+    country?: string
+  } | null
+  identity?: {
+    type?: 'ktp' | 'passport' | 'sim'
+    number?: string
+    isVerified?: boolean
+    verifiedAt?: string
+    // ✅ NEW: Photo Upload Support
+    photoFront?: {
+      url: string
+      uploadedAt: string
+      fileSize?: number
+      mimeType?: string
+    } | null
+    photoBack?: {
+      url: string
+      uploadedAt: string
+      fileSize?: number
+      mimeType?: string
+    } | null
+  } | null
+  bankAccount?: {
+    bankName?: string
+    accountNumber?: string
+    accountHolderName?: string
+    isVerified?: boolean
+    verifiedAt?: string
+  } | null
+  avatar?: {
+    url: string
+    uploadedAt: string
+    fileSize?: number
+    mimeType?: string
+  } | null
+  // ✅ NEW: Selfie Verification Support
+  selfie?: {
+    url: string
+    uploadedAt: string
+    isVerified: boolean
+    verifiedAt?: string
+    fileSize?: number
+    mimeType?: string
+  } | null
+  settings: {
+    emailNotifications: boolean
+    smsNotifications: boolean
+    tradingAlerts: boolean
+    twoFactorEnabled: boolean
+    language: string
+    timezone: string
+  }
+  verification: {
+    emailVerified: boolean
+    phoneVerified: boolean
+    identityVerified: boolean
+    // ✅ NEW: Selfie Verification Status
+    selfieVerified: boolean
+    bankVerified: boolean
+    verificationLevel: 'unverified' | 'basic' | 'intermediate' | 'advanced'
+  }
+}
+
 // ============================================
 // ASSET TYPES - ✅ UPDATED FOR BINANCE
 // ============================================
@@ -69,10 +148,11 @@ export interface Asset {
   id: string
   name: string
   symbol: string
+  type: 'forex' | 'stock' | 'commodity' | 'crypto' | 'index'  
   category: 'normal' | 'crypto'
   profitRate: number
   isActive: boolean
-   icon?: string
+  icon?: string
   // ✅ FIXED: Changed to include 'binance'
   dataSource: 'realtime_db' | 'api' | 'mock' | 'binance'
   realtimeDbPath?: string
@@ -101,6 +181,60 @@ export interface Asset {
   createdAt: string
   updatedAt?: string
   createdBy?: string
+}
+
+export const ASSET_TYPES = ['forex', 'stock', 'commodity', 'crypto', 'index'] as const
+export type AssetType = typeof ASSET_TYPES[number]
+
+export const ASSET_TYPE_INFO = {
+  forex: {
+    label: 'Forex',
+    description: 'Foreign Exchange Currency Pairs',
+    examples: ['EUR/USD', 'GBP/USD', 'USD/JPY'],
+    icon: '💱',
+    color: 'blue'
+  },
+  stock: {
+    label: 'Stocks',
+    description: 'Company Shares & Equities',
+    examples: ['AAPL', 'GOOGL', 'TSLA'],
+    icon: '📈',
+    color: 'green'
+  },
+  commodity: {
+    label: 'Commodities',
+    description: 'Raw Materials & Resources',
+    examples: ['Gold', 'Silver', 'Oil'],
+    icon: '🛢️',
+    color: 'yellow'
+  },
+  crypto: {
+    label: 'Cryptocurrency',
+    description: 'Digital Currencies',
+    examples: ['BTC/USD', 'ETH/USD', 'BNB/USD'],
+    icon: '₿',
+    color: 'orange'
+  },
+  index: {
+    label: 'Indices',
+    description: 'Stock Market Indices',
+    examples: ['S&P 500', 'NASDAQ', 'Dow Jones'],
+    icon: '📊',
+    color: 'purple'
+  }
+} as const
+
+// ✅ ADD: Helper functions
+export function getAssetTypeLabel(type: AssetType): string {
+  return ASSET_TYPE_INFO[type]?.label || type
+}
+
+export function getAssetTypeIcon(type: AssetType): string {
+  return ASSET_TYPE_INFO[type]?.icon || '📊'
+}
+
+export function getAssetTypeColor(type: AssetType): string {
+  return ASSET_TYPE_INFO[type]?.color || 'gray'
 }
 
 // ============================================
@@ -233,59 +367,8 @@ export interface AuthResponse {
 }
 
 // ============================================
-// PROFILE & PREFERENCES
+// PROFILE & PREFERENCES - ✅ ENHANCED
 // ============================================
-export interface UserProfileInfo {
-  completion: number
-  personal: {
-    fullName: string | null
-    email: string
-    phoneNumber: string | null
-    dateOfBirth: string | null
-    gender: 'male' | 'female' | 'other' | null
-    nationality: string | null
-  }
-  address: {
-    street?: string
-    city?: string
-    province?: string
-    postalCode?: string
-    country?: string
-  } | null
-  identity: {
-    type?: 'ktp' | 'passport' | 'sim'
-    number?: string
-    isVerified?: boolean
-    verifiedAt?: string
-  } | null
-  bankAccount: {
-    bankName?: string
-    accountNumber?: string
-    accountHolderName?: string
-    isVerified?: boolean
-    verifiedAt?: string
-  } | null
-  avatar: {
-    url?: string
-    uploadedAt?: string
-  } | null
-  settings: {
-    emailNotifications: boolean
-    smsNotifications: boolean
-    tradingAlerts: boolean
-    twoFactorEnabled: boolean
-    language: string
-    timezone: string
-  }
-  verification: {
-    emailVerified: boolean
-    phoneVerified: boolean
-    identityVerified: boolean
-    bankVerified: boolean
-    verificationLevel: 'unverified' | 'basic' | 'intermediate' | 'advanced'
-  }
-}
-
 export interface UpdateProfileRequest {
   fullName?: string
   phoneNumber?: string
@@ -304,6 +387,17 @@ export interface UpdateProfileRequest {
     number?: string
     issuedDate?: string
     expiryDate?: string
+    // ✅ NEW: Photo upload support in update
+    photoFront?: {
+      url: string
+      fileSize?: number
+      mimeType?: string
+    }
+    photoBack?: {
+      url: string
+      fileSize?: number
+      mimeType?: string
+    }
   }
   bankAccount?: {
     bankName?: string

@@ -1,4 +1,4 @@
-// lib/api.ts - ✅ FIXED: Complete Binance Support
+// lib/api.ts - ✅ COMPLETE FIXED: Photo Upload Support
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
 import type { 
@@ -394,16 +394,16 @@ class ApiClient {
   // ===================================
   // USER & PROFILE
   // ===================================
-async completeTutorial(): Promise<ApiResponse> {
-  try {
-    const result = await this.client.post('/user/complete-tutorial')
-    this.invalidateCache('/user/profile')
-    return result
-  } catch (error) {
-    console.error('Tutorial completion failed:', error)
-    throw error
+  async completeTutorial(): Promise<ApiResponse> {
+    try {
+      const result = await this.client.post('/user/complete-tutorial')
+      this.invalidateCache('/user/profile')
+      return result
+    } catch (error) {
+      console.error('Tutorial completion failed:', error)
+      throw error
+    }
   }
-}
 
   async getProfile(): Promise<ApiResponse<UserProfile>> {
     const cacheKey = this.getCacheKey('/user/profile')
@@ -445,7 +445,7 @@ async completeTutorial(): Promise<ApiResponse> {
     }
   }
 
-  async uploadAvatar(data: { url: string }): Promise<ApiResponse> {
+  async uploadAvatar(data: { url: string; fileSize?: number; mimeType?: string }): Promise<ApiResponse> {
     try {
       if (!data?.url) {
         throw new Error('Avatar URL is required')
@@ -467,6 +467,67 @@ async completeTutorial(): Promise<ApiResponse> {
       return result
     } catch (error) {
       console.error('Avatar upload failed:', error)
+      throw error
+    }
+  }
+
+  // ✅ NEW: Upload KTP photos
+  async uploadKTP(data: { 
+    photoFront: { url: string; fileSize?: number; mimeType?: string }
+    photoBack?: { url: string; fileSize?: number; mimeType?: string }
+  }): Promise<ApiResponse> {
+    try {
+      if (!data?.photoFront?.url) {
+        throw new Error('Front photo is required')
+      }
+
+      if (!data.photoFront.url.startsWith('data:image/')) {
+        throw new Error('Invalid front photo format')
+      }
+
+      if (data.photoBack?.url && !data.photoBack.url.startsWith('data:image/')) {
+        throw new Error('Invalid back photo format')
+      }
+
+      const result = await this.client.post('/user/ktp', data, {
+        timeout: 30000,
+        headers: {
+          'X-Silent-Error': 'false'
+        }
+      })
+      
+      this.invalidateCache('/user/profile')
+      
+      return result
+    } catch (error) {
+      console.error('KTP upload failed:', error)
+      throw error
+    }
+  }
+
+  // ✅ NEW: Upload selfie photo
+  async uploadSelfie(data: { url: string; fileSize?: number; mimeType?: string }): Promise<ApiResponse> {
+    try {
+      if (!data?.url) {
+        throw new Error('Selfie is required')
+      }
+
+      if (!data.url.startsWith('data:image/')) {
+        throw new Error('Invalid selfie format')
+      }
+
+      const result = await this.client.post('/user/selfie', data, {
+        timeout: 30000,
+        headers: {
+          'X-Silent-Error': 'false'
+        }
+      })
+      
+      this.invalidateCache('/user/profile')
+      
+      return result
+    } catch (error) {
+      console.error('Selfie upload failed:', error)
       throw error
     }
   }
@@ -527,15 +588,15 @@ async completeTutorial(): Promise<ApiResponse> {
   }
 
   async uploadAssetIcon(assetId: string, iconUrl: string): Promise<ApiResponse> {
-  try {
-    const result = await this.client.post(`/assets/${assetId}/icon`, { iconUrl })
-    this.invalidateCache('/assets')
-    return result
-  } catch (error) {
-    console.error('Asset icon upload failed:', error)
-    throw error
+    try {
+      const result = await this.client.post(`/assets/${assetId}/icon`, { iconUrl })
+      this.invalidateCache('/assets')
+      return result
+    } catch (error) {
+      console.error('Asset icon upload failed:', error)
+      throw error
+    }
   }
-}
 
   // ===================================
   // BALANCE

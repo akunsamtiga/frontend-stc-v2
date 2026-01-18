@@ -1,4 +1,4 @@
-// hooks/useProfile.ts - ✅ FIXED VERSION
+// hooks/useProfile.ts - ✅ COMPLETE FIXED VERSION with Photo Upload
 
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
@@ -24,6 +24,8 @@ interface UseProfileReturn {
   updateProfile: (data: UpdateProfileRequest) => Promise<boolean>
   changePassword: (data: ChangePasswordRequest) => Promise<boolean>
   uploadAvatar: (file: File) => Promise<boolean>
+  uploadKTP: (photoFront: File, photoBack?: File) => Promise<boolean>
+  uploadSelfie: (file: File) => Promise<boolean>
   
   // Helper
   getCompletionPercentage: () => number
@@ -142,9 +144,9 @@ export function useProfile(): UseProfileReturn {
         return false
       }
 
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image size must be less than 5MB')
+      // Validate file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('Image size must be less than 2MB')
         return false
       }
 
@@ -170,7 +172,11 @@ export function useProfile(): UseProfileReturn {
       })
 
       // Upload to API
-      await api.uploadAvatar({ url: base64 })
+      await api.uploadAvatar({ 
+        url: base64,
+        fileSize: file.size,
+        mimeType: file.type
+      })
       
       // Reload profile
       await loadProfile()
@@ -181,6 +187,136 @@ export function useProfile(): UseProfileReturn {
     } catch (error: any) {
       console.error('Failed to upload avatar:', error)
       toast.error(error?.message || 'Failed to upload avatar')
+      return false
+    } finally {
+      setUpdating(false)
+    }
+  }, [loadProfile])
+
+  /**
+   * ✅ NEW: Upload KTP photos (front & back)
+   */
+  const uploadKTP = useCallback(async (photoFront: File, photoBack?: File): Promise<boolean> => {
+    try {
+      // Validate front photo
+      if (!photoFront.type.startsWith('image/')) {
+        toast.error('Front photo must be an image file')
+        return false
+      }
+      if (photoFront.size > 2 * 1024 * 1024) {
+        toast.error('Front photo size must be less than 2MB')
+        return false
+      }
+
+      // Validate back photo if provided
+      if (photoBack) {
+        if (!photoBack.type.startsWith('image/')) {
+          toast.error('Back photo must be an image file')
+          return false
+        }
+        if (photoBack.size > 2 * 1024 * 1024) {
+          toast.error('Back photo size must be less than 2MB')
+          return false
+        }
+      }
+
+      setUpdating(true)
+      const uploadToast = toast.loading('Uploading KTP photos...')
+
+      // Convert front photo to base64
+      const photoFrontBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = () => reject(new Error('Failed to read front photo'))
+        reader.readAsDataURL(photoFront)
+      })
+
+      const uploadData: any = {
+        photoFront: {
+          url: photoFrontBase64,
+          fileSize: photoFront.size,
+          mimeType: photoFront.type
+        }
+      }
+
+      // Convert back photo to base64 if provided
+      if (photoBack) {
+        const photoBackBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(reader.result as string)
+          reader.onerror = () => reject(new Error('Failed to read back photo'))
+          reader.readAsDataURL(photoBack)
+        })
+
+        uploadData.photoBack = {
+          url: photoBackBase64,
+          fileSize: photoBack.size,
+          mimeType: photoBack.type
+        }
+      }
+
+      // Upload to API
+      await api.uploadKTP(uploadData)
+      
+      // Reload profile
+      await loadProfile()
+      
+      toast.success('KTP photos uploaded successfully! Waiting for admin verification.', { id: uploadToast })
+      return true
+      
+    } catch (error: any) {
+      console.error('Failed to upload KTP:', error)
+      toast.error(error?.response?.data?.error || 'Failed to upload KTP photos')
+      return false
+    } finally {
+      setUpdating(false)
+    }
+  }, [loadProfile])
+
+  /**
+   * ✅ NEW: Upload selfie photo
+   */
+  const uploadSelfie = useCallback(async (file: File): Promise<boolean> => {
+    try {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select an image file')
+        return false
+      }
+
+      // Validate file size (max 1MB for selfie)
+      if (file.size > 1 * 1024 * 1024) {
+        toast.error('Selfie size must be less than 1MB')
+        return false
+      }
+
+      setUpdating(true)
+      const uploadToast = toast.loading('Uploading selfie...')
+
+      // Convert to base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = () => reject(new Error('Failed to read selfie'))
+        reader.readAsDataURL(file)
+      })
+
+      // Upload to API
+      await api.uploadSelfie({
+        url: base64,
+        fileSize: file.size,
+        mimeType: file.type
+      })
+      
+      // Reload profile
+      await loadProfile()
+      
+      toast.success('Selfie uploaded successfully! Waiting for admin verification.', { id: uploadToast })
+      return true
+      
+    } catch (error: any) {
+      console.error('Failed to upload selfie:', error)
+      toast.error(error?.response?.data?.error || 'Failed to upload selfie')
       return false
     } finally {
       setUpdating(false)
@@ -208,6 +344,8 @@ export function useProfile(): UseProfileReturn {
     updateProfile,
     changePassword,
     uploadAvatar,
+    uploadKTP,      
+    uploadSelfie,   
     getCompletionPercentage
   }
 }
