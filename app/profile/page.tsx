@@ -563,6 +563,70 @@ export default function ProfilePage() {
     setFormErrors(prev => ({ ...prev, [field]: error }))
   }
 
+  const compressImage = async (file: File, maxSizeMB: number = 0.5): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    
+    reader.onload = (e) => {
+      const img = new Image()
+      
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let width = img.width
+        let height = img.height
+        
+        // Resize if too large
+        const maxDimension = 1920
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = (height / width) * maxDimension
+            width = maxDimension
+          } else {
+            width = (width / height) * maxDimension
+            height = maxDimension
+          }
+        }
+        
+        canvas.width = width
+        canvas.height = height
+        
+        const ctx = canvas.getContext('2d')
+        ctx?.drawImage(img, 0, 0, width, height)
+        
+        // Compress to JPEG with quality
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+              })
+              
+              console.log('🗜️ Compression:', {
+                original: `${(file.size / 1024).toFixed(2)} KB`,
+                compressed: `${(compressedFile.size / 1024).toFixed(2)} KB`,
+                reduction: `${(((file.size - compressedFile.size) / file.size) * 100).toFixed(1)}%`
+              })
+              
+              resolve(compressedFile)
+            } else {
+              reject(new Error('Compression failed'))
+            }
+          },
+          'image/jpeg',
+          0.7 // Quality 70%
+        )
+      }
+      
+      img.onerror = () => reject(new Error('Failed to load image'))
+      img.src = e.target?.result as string
+    }
+    
+    reader.onerror = () => reject(new Error('Failed to read file'))
+    reader.readAsDataURL(file)
+  })
+}
+
   // Enhanced update handlers
   const handleUpdatePersonal = async () => {
     const isValid = validateForm({
@@ -806,126 +870,98 @@ export default function ProfilePage() {
   // ✅ NEW: Upload KTP photos handler
   const uploadKTP = async (photoFront: File, photoBack?: File | null): Promise<boolean> => {
   try {
-    console.log('📸 Starting KTP upload...', {
-      frontSize: photoFront.size,
-      frontType: photoFront.type,
-      frontName: photoFront.name,
-      hasBack: !!photoBack,
-      backSize: photoBack?.size,
-      backType: photoBack?.type,
-      backName: photoBack?.name
-    })
+    console.log('📸 Starting KTP upload...')
     
-    // Validate front photo
+    // Validate files
     if (!photoFront.type.startsWith('image/')) {
-      toast.error('Front photo must be an image file', {
-        style: { background: '#ef4444', color: '#fff' }
-      })
+      toast.error('Front photo must be an image file')
       return false
     }
 
-    if (photoFront.size > 2 * 1024 * 1024) {
-      toast.error('Front photo size must be less than 2MB', {
-        style: { background: '#ef4444', color: '#fff' }
-      })
+    if (photoBack && !photoBack.type.startsWith('image/')) {
+      toast.error('Back photo must be an image file')
       return false
-    }
-
-    // Validate back photo if provided
-    if (photoBack) {
-      if (!photoBack.type.startsWith('image/')) {
-        toast.error('Back photo must be an image file', {
-          style: { background: '#ef4444', color: '#fff' }
-        })
-        return false
-      }
-      if (photoBack.size > 2 * 1024 * 1024) {
-        toast.error('Back photo size must be less than 2MB', {
-          style: { background: '#ef4444', color: '#fff' }
-        })
-        return false
-      }
     }
 
     setUpdating(true)
-    const uploadToast = toast.loading('Uploading KTP photos...', {
-      style: { background: '#f59e0b', color: '#fff' }
-    })
+    const uploadToast = toast.loading('Compressing and uploading KTP photos...')
 
     try {
-      // Convert front photo to base64
-      console.log('📄 Converting front photo to base64...')
+      // ✅ COMPRESS IMAGES FIRST
+      console.log('🗜️ Compressing front photo...')
+      const compressedFront = await compressImage(photoFront, 0.5) // Max 500KB
+      
+      let compressedBack: File | undefined
+      if (photoBack) {
+        console.log('🗜️ Compressing back photo...')
+        compressedBack = await compressImage(photoBack, 0.5)
+      }
+
+      // Convert to base64
+      console.log('📄 Converting to base64...')
       const photoFrontBase64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
         reader.onloadend = () => {
           if (reader.result) {
-            console.log('✅ Front photo converted successfully')
-            console.log('Front base64 length:', (reader.result as string).length)
-            resolve(reader.result as string)
+            const base64 = reader.result as string
+            console.log('✅ Front photo converted:', {
+              size: `${(base64.length / 1024).toFixed(2)} KB`,
+              type: compressedFront.type
+            })
+            resolve(base64)
           } else {
             reject(new Error('Failed to read front photo'))
           }
         }
-        reader.onerror = (error) => {
-          console.error('❌ FileReader error (front):', error)
-          reject(new Error('Failed to read front photo'))
-        }
-        reader.readAsDataURL(photoFront)
+        reader.onerror = () => reject(new Error('Failed to read front photo'))
+        reader.readAsDataURL(compressedFront)
       })
 
       const uploadData: any = {
         photoFront: {
           url: photoFrontBase64,
-          fileSize: photoFront.size,
-          mimeType: photoFront.type
+          fileSize: compressedFront.size,
+          mimeType: compressedFront.type
         }
       }
 
-      // Convert back photo if provided
-      if (photoBack) {
-        console.log('📄 Converting back photo to base64...')
+      if (compressedBack) {
         const photoBackBase64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader()
           reader.onloadend = () => {
             if (reader.result) {
-              console.log('✅ Back photo converted successfully')
-              console.log('Back base64 length:', (reader.result as string).length)
-              resolve(reader.result as string)
+              const base64 = reader.result as string
+              console.log('✅ Back photo converted:', {
+                size: `${(base64.length / 1024).toFixed(2)} KB`,
+                type: compressedBack.type
+              })
+              resolve(base64)
             } else {
               reject(new Error('Failed to read back photo'))
             }
           }
-          reader.onerror = (error) => {
-            console.error('❌ FileReader error (back):', error)
-            reject(new Error('Failed to read back photo'))
-          }
-          reader.readAsDataURL(photoBack)
+          reader.onerror = () => reject(new Error('Failed to read back photo'))
+          reader.readAsDataURL(compressedBack)
         })
 
         uploadData.photoBack = {
           url: photoBackBase64,
-          fileSize: photoBack.size,
-          mimeType: photoBack.type
+          fileSize: compressedBack.size,
+          mimeType: compressedBack.type
         }
       }
 
-      console.log('📤 Sending to API...', {
-        hasFront: !!uploadData.photoFront,
-        hasBack: !!uploadData.photoBack,
-        frontUrlLength: uploadData.photoFront?.url?.length,
-        backUrlLength: uploadData.photoBack?.url?.length
-      })
+      console.log('📤 Sending to API...')
       
       const response = await api.uploadKTP(uploadData)
       
-      console.log('✅ API Response:', response)
+      console.log('✅ Upload successful:', response)
       
       toast.success('KTP photos uploaded! Waiting for admin verification.', {
-        id: uploadToast,
-        style: { background: '#10b981', color: '#fff' }
+        id: uploadToast
       })
       
-      // Clear preview and files
+      // Clear state
       setKtpFrontFile(null)
       setKtpBackFile(null)
       setKtpFrontPreview(null)
@@ -936,30 +972,29 @@ export default function ProfilePage() {
       
     } catch (uploadError: any) {
       console.error('❌ Upload error:', uploadError)
-      console.error('Error details:', {
-        message: uploadError?.message,
-        response: uploadError?.response?.data,
-        status: uploadError?.response?.status,
-        stack: uploadError?.stack
-      })
       
-      const errorMessage = uploadError?.response?.data?.error 
-        || uploadError?.response?.data?.message
-        || uploadError?.message 
-        || 'Failed to upload KTP photos'
+      let errorMessage = 'Failed to upload KTP photos'
       
-      toast.error(errorMessage, {
-        id: uploadToast,
-        style: { background: '#ef4444', color: '#fff' }
-      })
+      // Better error messages
+      if (uploadError?.response?.status === 413) {
+        errorMessage = 'Image too large. Please use a smaller image.'
+      } else if (uploadError?.response?.status === 500) {
+        errorMessage = 'Server error. Please try again or use a smaller image.'
+      } else if (uploadError?.response?.status === 502) {
+        errorMessage = 'Upload timeout. Image might be too large.'
+      } else if (uploadError?.response?.data?.error) {
+        errorMessage = uploadError.response.data.error
+      } else if (uploadError?.message) {
+        errorMessage = uploadError.message
+      }
+      
+      toast.error(errorMessage, { id: uploadToast })
       return false
     }
     
   } catch (error: any) {
     console.error('❌ KTP upload failed:', error)
-    toast.error(error?.message || 'Failed to process photos', {
-      style: { background: '#ef4444', color: '#fff' }
-    })
+    toast.error(error?.message || 'Failed to process photos')
     return false
   } finally {
     setUpdating(false)
