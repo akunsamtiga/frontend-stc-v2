@@ -471,39 +471,48 @@ class ApiClient {
     }
   }
 
-  // ✅ NEW: Upload KTP photos
   async uploadKTP(data: { 
-    photoFront: { url: string; fileSize?: number; mimeType?: string }
-    photoBack?: { url: string; fileSize?: number; mimeType?: string }
-  }): Promise<ApiResponse> {
-    try {
-      if (!data?.photoFront?.url) {
-        throw new Error('Front photo is required')
-      }
+  photoFront: { url: string; fileSize?: number; mimeType?: string }
+  photoBack?: { url: string; fileSize?: number; mimeType?: string }
+}): Promise<ApiResponse> {
+  try {
+    console.log('📤 API uploadKTP called with:', {
+      hasFront: !!data.photoFront,
+      hasBack: !!data.photoBack,
+      frontSize: data.photoFront?.fileSize,
+      backSize: data.photoBack?.fileSize
+    })
 
-      if (!data.photoFront.url.startsWith('data:image/')) {
-        throw new Error('Invalid front photo format')
-      }
-
-      if (data.photoBack?.url && !data.photoBack.url.startsWith('data:image/')) {
-        throw new Error('Invalid back photo format')
-      }
-
-      const result = await this.client.post('/user/ktp', data, {
-        timeout: 30000,
-        headers: {
-          'X-Silent-Error': 'false'
-        }
-      })
-      
-      this.invalidateCache('/user/profile')
-      
-      return result
-    } catch (error) {
-      console.error('KTP upload failed:', error)
-      throw error
+    if (!data?.photoFront?.url) {
+      throw new Error('Front photo is required')
     }
+
+    if (!data.photoFront.url.startsWith('data:image/')) {
+      throw new Error('Invalid front photo format')
+    }
+
+    if (data.photoBack?.url && !data.photoBack.url.startsWith('data:image/')) {
+      throw new Error('Invalid back photo format')
+    }
+
+    const result = await this.client.post('/user/ktp', data, {
+      timeout: 30000,
+      headers: {
+        'X-Silent-Error': 'false'
+      }
+    })
+    
+    console.log('✅ API uploadKTP response:', result)
+    
+    this.invalidateCache('/user/profile')
+    
+    return result
+  } catch (error: any) {
+    console.error('❌ API uploadKTP error:', error)
+    console.error('Error response:', error?.response?.data)
+    throw error
   }
+}
 
   // ✅ NEW: Upload selfie photo
   async uploadSelfie(data: { url: string; fileSize?: number; mimeType?: string }): Promise<ApiResponse> {
