@@ -803,45 +803,63 @@ export default function ProfilePage() {
 
   // ✅ NEW: Upload KTP photos handler
   const uploadKTP = async (photoFront: File, photoBack?: File | null): Promise<boolean> => {
-    try {
-      if (!photoFront.type.startsWith('image/')) {
-        toast.error('Front photo must be an image file', {
-          style: { background: '#ef4444', color: '#fff' }
-        })
-        return false
-      }
-
-      if (photoFront.size > 2 * 1024 * 1024) {
-        toast.error('Front photo size must be less than 2MB', {
-          style: { background: '#ef4444', color: '#fff' }
-        })
-        return false
-      }
-
-      if (photoBack) {
-        if (!photoBack.type.startsWith('image/')) {
-          toast.error('Back photo must be an image file', {
-            style: { background: '#ef4444', color: '#fff' }
-          })
-          return false
-        }
-        if (photoBack.size > 2 * 1024 * 1024) {
-          toast.error('Back photo size must be less than 2MB', {
-            style: { background: '#ef4444', color: '#fff' }
-          })
-          return false
-        }
-      }
-
-      setUpdating(true)
-      const uploadToast = toast.loading('Uploading KTP photos...', {
-        style: { background: '#f59e0b', color: '#fff' }
+  try {
+    console.log('ðŸ"¸ Starting KTP upload...', {
+      frontSize: photoFront.size,
+      frontType: photoFront.type,
+      hasBack: !!photoBack
+    })
+    
+    // Validate file types
+    if (!photoFront.type.startsWith('image/')) {
+      toast.error('Front photo must be an image file', {
+        style: { background: '#ef4444', color: '#fff' }
       })
+      return false
+    }
 
+    // Validate file size (2MB)
+    if (photoFront.size > 2 * 1024 * 1024) {
+      toast.error('Front photo size must be less than 2MB', {
+        style: { background: '#ef4444', color: '#fff' }
+      })
+      return false
+    }
+
+    // Validate back photo if provided
+    if (photoBack) {
+      if (!photoBack.type.startsWith('image/')) {
+        toast.error('Back photo must be an image file', {
+          style: { background: '#ef4444', color: '#fff' }
+        })
+        return false
+      }
+      if (photoBack.size > 2 * 1024 * 1024) {
+        toast.error('Back photo size must be less than 2MB', {
+          style: { background: '#ef4444', color: '#fff' }
+        })
+        return false
+      }
+    }
+
+    setUpdating(true)
+    const uploadToast = toast.loading('Uploading KTP photos...', {
+      style: { background: '#f59e0b', color: '#fff' }
+    })
+
+    try {
       // Convert front photo to base64
+      console.log('ðŸ"„ Converting front photo to base64...')
       const photoFrontBase64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
-        reader.onloadend = () => resolve(reader.result as string)
+        reader.onloadend = () => {
+          if (reader.result) {
+            console.log('âœ… Front photo converted')
+            resolve(reader.result as string)
+          } else {
+            reject(new Error('Failed to read front photo'))
+          }
+        }
         reader.onerror = () => reject(new Error('Failed to read front photo'))
         reader.readAsDataURL(photoFront)
       })
@@ -856,9 +874,17 @@ export default function ProfilePage() {
 
       // Convert back photo if provided
       if (photoBack) {
+        console.log('ðŸ"„ Converting back photo to base64...')
         const photoBackBase64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader()
-          reader.onloadend = () => resolve(reader.result as string)
+          reader.onloadend = () => {
+            if (reader.result) {
+              console.log('âœ… Back photo converted')
+              resolve(reader.result as string)
+            } else {
+              reject(new Error('Failed to read back photo'))
+            }
+          }
           reader.onerror = () => reject(new Error('Failed to read back photo'))
           reader.readAsDataURL(photoBack)
         })
@@ -870,8 +896,14 @@ export default function ProfilePage() {
         }
       }
 
+      console.log('ðŸ"¤ Sending to API...', {
+        hasFront: !!uploadData.photoFront,
+        hasBack: !!uploadData.photoBack
+      })
+      
       await api.uploadKTP(uploadData)
       
+      console.log('âœ… Upload successful!')
       toast.success('KTP photos uploaded! Waiting for admin verification.', {
         id: uploadToast,
         style: { background: '#10b981', color: '#fff' }
@@ -879,52 +911,94 @@ export default function ProfilePage() {
       
       await loadProfile()
       return true
-    } catch (error: any) {
-      toast.error(error?.response?.data?.error || 'Failed to upload KTP photos', {
+      
+    } catch (uploadError: any) {
+      console.error('âŒ Upload error:', uploadError)
+      console.error('Error details:', {
+        message: uploadError?.message,
+        response: uploadError?.response?.data,
+        status: uploadError?.response?.status
+      })
+      
+      // More specific error messages
+      const errorMessage = uploadError?.response?.data?.error 
+        || uploadError?.response?.data?.message
+        || uploadError?.message 
+        || 'Failed to upload KTP photos'
+      
+      toast.error(errorMessage, {
+        id: uploadToast,
         style: { background: '#ef4444', color: '#fff' }
       })
       return false
-    } finally {
-      setUpdating(false)
     }
+    
+  } catch (error: any) {
+    console.error('âŒ KTP upload failed:', error)
+    toast.error(error?.message || 'Failed to process photos', {
+      style: { background: '#ef4444', color: '#fff' }
+    })
+    return false
+  } finally {
+    setUpdating(false)
   }
+}
+
 
   // ✅ NEW: Upload selfie handler
   const uploadSelfie = async (file: File): Promise<boolean> => {
-    try {
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file', {
-          style: { background: '#ef4444', color: '#fff' }
-        })
-        return false
-      }
-
-      if (file.size > 1 * 1024 * 1024) {
-        toast.error('Selfie size must be less than 1MB', {
-          style: { background: '#ef4444', color: '#fff' }
-        })
-        return false
-      }
-
-      setUpdating(true)
-      const uploadToast = toast.loading('Uploading selfie...', {
-        style: { background: '#f59e0b', color: '#fff' }
+  try {
+    console.log('ðŸ"¸ Starting selfie upload...', {
+      size: file.size,
+      type: file.type
+    })
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file', {
+        style: { background: '#ef4444', color: '#fff' }
       })
+      return false
+    }
 
+    // Validate file size (1MB for selfie)
+    if (file.size > 1 * 1024 * 1024) {
+      toast.error('Selfie size must be less than 1MB', {
+        style: { background: '#ef4444', color: '#fff' }
+      })
+      return false
+    }
+
+    setUpdating(true)
+    const uploadToast = toast.loading('Uploading selfie...', {
+      style: { background: '#f59e0b', color: '#fff' }
+    })
+
+    try {
       // Convert to base64
+      console.log('ðŸ"„ Converting selfie to base64...')
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
-        reader.onloadend = () => resolve(reader.result as string)
+        reader.onloadend = () => {
+          if (reader.result) {
+            console.log('âœ… Selfie converted')
+            resolve(reader.result as string)
+          } else {
+            reject(new Error('Failed to read selfie'))
+          }
+        }
         reader.onerror = () => reject(new Error('Failed to read selfie'))
         reader.readAsDataURL(file)
       })
 
+      console.log('ðŸ"¤ Sending to API...')
       await api.uploadSelfie({
         url: base64,
         fileSize: file.size,
         mimeType: file.type
       })
       
+      console.log('âœ… Upload successful!')
       toast.success('Selfie uploaded! Waiting for admin verification.', {
         id: uploadToast,
         style: { background: '#10b981', color: '#fff' }
@@ -932,15 +1006,39 @@ export default function ProfilePage() {
       
       await loadProfile()
       return true
-    } catch (error: any) {
-      toast.error(error?.response?.data?.error || 'Failed to upload selfie', {
+      
+    } catch (uploadError: any) {
+      console.error('âŒ Upload error:', uploadError)
+      console.error('Error details:', {
+        message: uploadError?.message,
+        response: uploadError?.response?.data,
+        status: uploadError?.response?.status
+      })
+      
+      // More specific error messages
+      const errorMessage = uploadError?.response?.data?.error 
+        || uploadError?.response?.data?.message
+        || uploadError?.message 
+        || 'Failed to upload selfie'
+      
+      toast.error(errorMessage, {
+        id: uploadToast,
         style: { background: '#ef4444', color: '#fff' }
       })
       return false
-    } finally {
-      setUpdating(false)
     }
+    
+  } catch (error: any) {
+    console.error('âŒ Selfie upload failed:', error)
+    toast.error(error?.message || 'Failed to process photo', {
+      style: { background: '#ef4444', color: '#fff' }
+    })
+    return false
+  } finally {
+    setUpdating(false)
   }
+}
+
   
   const handleLogout = () => {
     setShowLogoutModal(true)
