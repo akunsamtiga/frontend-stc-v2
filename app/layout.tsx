@@ -3,7 +3,8 @@ import { IBM_Plex_Sans, JetBrains_Mono } from 'next/font/google'
 import { Toaster } from 'sonner'
 import GoogleAuthHandler from '@/components/GoogleAuthHandler'
 import ChartPreloader from '@/components/ChartPreloader'
-import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar' // ✅ NEW
+import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar'
+import { WebSocketProvider } from '@/components/providers/WebSocketProvider' // ✅ WebSocket Provider
 import './globals.css'
 
 const ibmPlexSans = IBM_Plex_Sans({ 
@@ -65,23 +66,31 @@ export default function RootLayout({
         <meta name="msapplication-navbutton-color" content="#0f1419" />
       </head>
       <body className="bg-[#0a0e17] text-white">
+        {/* Auth Handler - Harus di paling atas */}
         <GoogleAuthHandler />
-        {/* ✅ Register Service Worker */}
-        <ServiceWorkerRegistrar />
-        {/* ✅ Preload chart data on app start */}
-        <ChartPreloader />
-        {children}
-        <Toaster 
-          position="top-right" 
-          theme="dark"
-          toastOptions={{
-            style: {
-              background: '#1e293b',
-              border: '1px solid #334155',
-              color: '#f1f5f9',
-            },
-          }}
-        />
+        
+        {/* WebSocket Provider - Bungkus seluruh aplikasi untuk real-time */}
+        <WebSocketProvider>
+          {/* Background Services */}
+          <ServiceWorkerRegistrar />
+          <ChartPreloader />
+          
+          {/* Main Content */}
+          {children}
+          
+          {/* Toast Notifications */}
+          <Toaster 
+            position="top-right" 
+            theme="dark"
+            toastOptions={{
+              style: {
+                background: '#1e293b',
+                border: '1px solid #334155',
+                color: '#f1f5f9',
+              },
+            }}
+          />
+        </WebSocketProvider>
       </body>
     </html>
   )

@@ -33,9 +33,12 @@ import {
   Activity,
   Logs,
   Zap,
-  Info, // ✅ ADD
+  Info,
+  Wifi, // ✅ WebSocket Status
+  WifiOff, // ✅ WebSocket Status
 } from 'lucide-react'
 import OrderNotification from '@/components/OrderNotification'
+import { useWebSocket, usePriceSubscription, useOrderSubscription } from '@/components/providers/WebSocketProvider' // ✅ WebSocket Hooks
 
 const TradingChart = dynamic(() => import('@/components/TradingChart'), {
   ssr: false,
@@ -202,6 +205,49 @@ export default function TradingPage() {
   const isUltraFastMode = duration === 0.0167
   const durationDisplay = getDurationDisplay(duration)
 
+  // ✅ WebSocket Integration
+  const { isConnected, isConnecting } = useWebSocket()
+  
+  // 📡 Subscribe to price updates via WebSocket
+  const { priceData: wsPrice, lastUpdate: priceLastUpdate } = usePriceSubscription(
+    selectedAsset?.id || null,
+    true
+  )
+
+  // 📡 Subscribe to order updates via WebSocket
+  const { orderUpdate: wsOrder, lastUpdate: orderLastUpdate } = useOrderSubscription(
+    user?.id || null,
+    true
+  )
+
+  // ✅ Process WebSocket price updates
+  useEffect(() => {
+    if (wsPrice && selectedAsset?.id === wsPrice.assetId) {
+      console.log('📡 WebSocket price update:', wsPrice.price)
+      
+      setCurrentPrice({
+        price: wsPrice.price,
+        timestamp: wsPrice.timestamp,
+        datetime: wsPrice.datetime,
+        change: wsPrice.changePercent24h || 0,
+      })
+    }
+  }, [wsPrice, priceLastUpdate, selectedAsset?.id, setCurrentPrice])
+
+  // ✅ Process WebSocket order updates
+  useEffect(() => {
+    if (wsOrder) {
+      console.log('📦 WebSocket order update:', wsOrder)
+
+      if (wsOrder.event === 'order:created') {
+        loadActiveOrders()
+      } else if (wsOrder.event === 'order:settled') {
+        setActiveOrders(prev => prev.filter((o: BinaryOrder) => o.id !== wsOrder.id))
+        loadData() // Reload balance & history
+      }
+    }
+  }, [wsOrder, orderLastUpdate])
+
   const detectOrderCompletion = useCallback((active: BinaryOrder[], completed: BinaryOrder[]) => {
     active.forEach((order: BinaryOrder) => {
       previousOrdersRef.current.set(order.id, order)
@@ -301,13 +347,23 @@ export default function TradingPage() {
     }
   }, [selectedAsset, detectOrderCompletion, setSelectedAsset])
 
-    const handleCompleteTutorial = useCallback(async () => {
+  const loadActiveOrders = useCallback(async () => {
+    try {
+      const response = await api.getOrders('ACTIVE', 1, 100)
+      const orders = response?.data?.orders || response?.orders || []
+      setActiveOrders(orders)
+      pollingManagerRef.current.updateActiveOrders(orders)
+    } catch (error) {
+      console.error('Failed to load active orders:', error)
+    }
+  }, [])
+
+  const handleCompleteTutorial = useCallback(async () => {
     try {
       console.log('🎓 Completing tutorial...')
       
       await api.completeTutorial()
       
-      // Update local state immediately
       const updatedUser = {
         ...user!,
         tutorialCompleted: true,
@@ -322,13 +378,10 @@ export default function TradingPage() {
       console.log('✅ Tutorial completed')
     } catch (error) {
       console.error('❌ Tutorial completion failed:', error)
-      // Still close tutorial
       setShowTutorial(false)
     }
   }, [user])
 
-
-  // ✅ Handle skip tutorial
   const handleSkipTutorial = useCallback(async () => {
     try {
       console.log('⏭️ Skipping tutorial...')
@@ -353,7 +406,6 @@ export default function TradingPage() {
     }
   }, [user])
 
-  // ✅ NEW: Manual tutorial trigger (for Settings menu)
   const handleShowTutorialManually = useCallback(() => {
     console.log('🎓 Manually showing tutorial')
     setShowTutorial(true)
@@ -407,45 +459,40 @@ export default function TradingPage() {
     initializeData()
   }, [user, router])
 
+  useEffect(() => {
+    if (!user) {
+      console.log('❌ Tutorial check: No user')
+      return
+    }
 
-      useEffect(() => {
-  if (!user) {
-    console.log('❌ Tutorial check: No user')
-    return
-  }
+    console.log('🔍 Tutorial Check:', {
+      email: user.email,
+      isNewUser: user.isNewUser,
+      tutorialCompleted: user.tutorialCompleted,
+      loginCount: user.loginCount,
+    })
 
-  console.log('🔍 Tutorial Check:', {
-    email: user.email,
-    isNewUser: user.isNewUser,
-    tutorialCompleted: user.tutorialCompleted,
-    loginCount: user.loginCount,
-  })
+    const shouldShowTutorial = 
+      user.isNewUser === true ||
+      user.tutorialCompleted === false ||
+      (user.tutorialCompleted === undefined &&
+       typeof user.loginCount === 'number' && 
+       user.loginCount <= 2)
 
-  // ✅ FIX: Handle undefined values for existing users
-  // Show tutorial if ANY of these conditions are true:
-  const shouldShowTutorial = 
-    user.isNewUser === true ||                           // Explicitly marked as new user
-    user.tutorialCompleted === false ||                  // Explicitly marked as incomplete
-    (user.tutorialCompleted === undefined &&             // NEW: Undefined for existing users
-     typeof user.loginCount === 'number' && 
-     user.loginCount <= 2)                               // But only if they haven't logged in much
-
-  if (shouldShowTutorial) {
-    console.log('✅ Tutorial SHOULD be shown')
-    
-    // Wait for UI to be ready
-    const timer = setTimeout(() => {
-      console.log('🎓 Showing tutorial NOW')
-      setShowTutorial(true)
-    }, 1500)
-    
-    return () => clearTimeout(timer)
-  } else {
-    console.log('ℹ️ Tutorial NOT needed (user is experienced)')
-    console.log('💡 Tip: You can manually show tutorial from Settings menu')
-  }
-}, [user])
-
+    if (shouldShowTutorial) {
+      console.log('✅ Tutorial SHOULD be shown')
+      
+      const timer = setTimeout(() => {
+        console.log('🎓 Showing tutorial NOW')
+        setShowTutorial(true)
+      }, 1500)
+      
+      return () => clearTimeout(timer)
+    } else {
+      console.log('ℹ️ Tutorial NOT needed (user is experienced)')
+      console.log('💡 Tip: You can manually show tutorial from Settings menu')
+    }
+  }, [user])
 
   useEffect(() => {
     if (!user) return
@@ -530,6 +577,7 @@ export default function TradingPage() {
         }
       })
       
+      // WebSocket akan otomatis mengirim update, tapi tetap reload untuk safety
       setTimeout(loadData, 200)
     } catch (error: any) {
       const errorMsg = error?.response?.data?.error || 'Failed to place order'
@@ -570,7 +618,6 @@ export default function TradingPage() {
             >
               {selectedAsset ? (
                 <>
-                  {/* ✅ NEW: Asset Icon */}
                   <AssetIcon asset={selectedAsset} size="xs" />
                   <span className="text-sm font-medium">{selectedAsset.symbol}</span>
                   <span className="text-xs font-bold text-green-400">+{selectedAsset.profitRate}%</span>
@@ -585,27 +632,25 @@ export default function TradingPage() {
                 <div className="fixed inset-0 z-40" onClick={() => setShowAssetMenu(false)} />
                 <div className="absolute top-full left-0 mt-2 w-64 bg-[#232936] border border-gray-800/50 rounded-lg shadow-2xl z-50 max-h-80 overflow-y-auto">
                   {assets.map((asset) => (
-  <button
-    key={asset.id}
-    onClick={() => {
-      setSelectedAsset(asset)
-      setShowAssetMenu(false)
-    }}
-    // ✅ NEW: Prefetch on hover
-    onMouseEnter={() => {
-      if (asset.realtimeDbPath) {
-        prefetchMultipleTimeframes(
-          asset.realtimeDbPath,
-          ['1m', '5m', '15m']
-        ).catch(err => console.log('Prefetch failed:', err))
-      }
-    }}
-    className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 last:border-0 ${
-      selectedAsset?.id === asset.id ? 'bg-[#2a3142]' : ''
-    }`}
-  >
+                    <button
+                      key={asset.id}
+                      onClick={() => {
+                        setSelectedAsset(asset)
+                        setShowAssetMenu(false)
+                      }}
+                      onMouseEnter={() => {
+                        if (asset.realtimeDbPath) {
+                          prefetchMultipleTimeframes(
+                            asset.realtimeDbPath,
+                            ['1m', '5m', '15m']
+                          ).catch(err => console.log('Prefetch failed:', err))
+                        }
+                      }}
+                      className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 last:border-0 ${
+                        selectedAsset?.id === asset.id ? 'bg-[#2a3142]' : ''
+                      }`}
+                    >
                       <div className="flex items-center gap-3">
-                        {/* ✅ NEW: Asset Icon */}
                         <AssetIcon asset={asset} size="xs" />
                         <div className="text-left">
                           <div className="text-sm font-medium">{asset.symbol}</div>
@@ -621,6 +666,32 @@ export default function TradingPage() {
           </div>
 
           <div className="flex-1"></div>
+
+          {/* ✅ WebSocket Status Indicator - Desktop */}
+          <div className={`hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors ${
+            isConnected 
+              ? 'bg-green-500/10 border border-green-500/30' 
+              : isConnecting
+              ? 'bg-yellow-500/10 border border-yellow-500/30'
+              : 'bg-red-500/10 border border-red-500/30'
+          }`}>
+            {isConnected ? (
+              <>
+                <Wifi className="w-4 h-4 text-green-400" />
+                <span className="text-xs text-green-400 font-medium">Live</span>
+              </>
+            ) : isConnecting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs text-yellow-400 font-medium">Connecting...</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="w-4 h-4 text-red-400" />
+                <span className="text-xs text-red-400 font-medium">Offline</span>
+              </>
+            )}
+          </div>
 
           {/* Account Balance Selector */}
           <div className="relative">
@@ -702,55 +773,55 @@ export default function TradingPage() {
             </button>
 
             {showUserMenu && (
-  <>
-    <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
-    <div className="absolute top-full right-0 mt-2 w-56 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50">
-      <div className="px-4 py-3 border-b border-gray-800/30">
-        <div className="text-sm font-medium truncate">{user.email}</div>
-        <div className="text-xs text-gray-400 mt-1">{user.role}</div>
-      </div>
-      
-      <button
-        onClick={() => {
-          router.push('/profile')
-          setShowUserMenu(false)
-        }}
-        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#232936] transition-colors text-left"
-      >
-        <Settings className="w-4 h-4" />
-        <span className="text-sm">Settings</span>
-      </button>
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+                <div className="absolute top-full right-0 mt-2 w-56 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50">
+                  <div className="px-4 py-3 border-b border-gray-800/30">
+                    <div className="text-sm font-medium truncate">{user.email}</div>
+                    <div className="text-xs text-gray-400 mt-1">{user.role}</div>
+                  </div>
+                  
+                  <button
+                    onClick={() => {
+                      router.push('/profile')
+                      setShowUserMenu(false)
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#232936] transition-colors text-left"
+                  >
+                    <Settings className="w-4 h-4" />
+                    <span className="text-sm">Settings</span>
+                  </button>
 
-      {/* ✅ NEW: Manual Tutorial Button */}
-      <button
-        onClick={() => {
-          setShowUserMenu(false)
-          setTimeout(() => {
-            console.log('🎓 Manually triggering tutorial')
-            setShowTutorial(true)
-          }, 300)
-        }}
-        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-blue-500/10 transition-colors text-left text-blue-400"
-      >
-        <Info className="w-4 h-4" />
-        <span className="text-sm">Show Tutorial</span>
-      </button>
-      
-      <div className="border-t border-gray-800/30">
-        <button
-          onClick={() => {
-            setShowUserMenu(false)
-            handleLogout()
-          }}
-          className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors text-left text-red-400"
-        >
-          <LogOut className="w-4 h-4" />
-          <span className="text-sm">Logout</span>
-        </button>
-      </div>
-    </div>
-  </>
-)}
+                  {/* Manual Tutorial Button */}
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false)
+                      setTimeout(() => {
+                        console.log('🎓 Manually triggering tutorial')
+                        setShowTutorial(true)
+                      }, 300)
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-blue-500/10 transition-colors text-left text-blue-400"
+                  >
+                    <Info className="w-4 h-4" />
+                    <span className="text-sm">Show Tutorial</span>
+                  </button>
+                  
+                  <div className="border-t border-gray-800/30">
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false)
+                        handleLogout()
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors text-left text-red-400"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span className="text-sm">Logout</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -773,14 +844,29 @@ export default function TradingPage() {
             </div>
           </div>
 
-          {/* ✅ UPDATED: Mobile Asset Display with Icon */}
+          {/* ✅ WebSocket Status Indicator - Mobile */}
+          <div className={`lg:hidden flex items-center gap-2 px-2 py-1 rounded-lg transition-colors ${
+            isConnected 
+              ? 'bg-green-500/10 border border-green-500/30' 
+              : isConnecting
+              ? 'bg-yellow-500/10 border border-yellow-500/30'
+              : 'bg-red-500/10 border border-red-500/30'
+          }`}>
+            {isConnected ? (
+              <Wifi className="w-3 h-3 text-green-400" />
+            ) : isConnecting ? (
+              <div className="w-3 h-3 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <WifiOff className="w-3 h-3 text-red-400" />
+            )}
+          </div>
+
           {selectedAsset && (
             <div className="flex items-center gap-2 px-2 py-1 bg-[#1a1f2e] rounded-lg border border-gray-800/50">
               <AssetIcon asset={selectedAsset} size="xs" />
               <span className="text-xs font-medium">{selectedAsset.symbol}</span>
             </div>
           )}
-
 
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -959,7 +1045,7 @@ export default function TradingPage() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handlePlaceOrder('CALL')}
-                  disabled={loading || !selectedAsset}
+                  disabled={loading || !selectedAsset || !isConnected}
                   className="bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-green-500/20"
                 >
                   <ArrowUp className="w-6 h-6" />
@@ -967,12 +1053,19 @@ export default function TradingPage() {
 
                 <button
                   onClick={() => handlePlaceOrder('PUT')}
-                  disabled={loading || !selectedAsset}
+                  disabled={loading || !selectedAsset || !isConnected}
                   className="bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-red-500/20"
                 >
                   <ArrowDown className="w-6 h-6" />
                 </button>
               </div>
+
+              {/* WebSocket Connection Warning */}
+              {!isConnected && (
+                <div className="text-center text-xs text-yellow-400 mt-2">
+                  ⚠️ Waiting for real-time connection...
+                </div>
+              )}
 
               {loading && (
                 <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-2 mt-3">
@@ -1099,7 +1192,7 @@ export default function TradingPage() {
           <div className="grid grid-cols-2 gap-4 pt-2">
             <button
               onClick={() => handlePlaceOrder('CALL')}
-              disabled={loading || !selectedAsset}
+              disabled={loading || !selectedAsset || !isConnected}
               className="bg-green-500 hover:bg-green-600 active:bg-green-700 disabled:opacity-50 py-4 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
             >
               <ArrowUp className="w-5 h-5" />
@@ -1107,13 +1200,20 @@ export default function TradingPage() {
             </button>
             <button
               onClick={() => handlePlaceOrder('PUT')}
-              disabled={loading || !selectedAsset}
+              disabled={loading || !selectedAsset || !isConnected}
               className="bg-red-500 hover:bg-red-600 active:bg-red-700 disabled:opacity-50 py-4 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
             >
               <ArrowDown className="w-5 h-5" />
               <span>SELL</span>
             </button>
           </div>
+
+          {/* WebSocket Connection Warning */}
+          {!isConnected && (
+            <div className="text-center text-xs text-yellow-400 pt-1">
+              ⚠️ Waiting for real-time connection...
+            </div>
+          )}
 
           {loading && (
             <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-2 pt-1">
@@ -1209,7 +1309,7 @@ export default function TradingPage() {
         </>
       )}
 
-     {showMobileMenu && (
+      {showMobileMenu && (
         <>
           <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setShowMobileMenu(false)} />
           <div className="fixed top-0 right-0 bottom-0 w-64 bg-[#0f1419] border-l border-gray-800/50 z-50 p-4 animate-slide-left">
@@ -1221,32 +1321,30 @@ export default function TradingPage() {
             </div>
             
             <div className="space-y-2">
-              {/* ✅ UPDATED: Mobile Asset Selector with Icons */}
               <div className="mb-4">
                 <label className="text-xs text-gray-400 mb-2 block">Select Asset</label>
                 <div className="space-y-1 max-h-64 overflow-y-auto">
                   {assets.map((asset) => (
-  <button
-    key={asset.id}
-    onClick={() => {
-      setSelectedAsset(asset)
-      setShowMobileMenu(false)
-    }}
-    // ✅ NEW: Prefetch on hover (mobile touch)
-    onTouchStart={() => {
-      if (asset.realtimeDbPath) {
-        prefetchMultipleTimeframes(
-          asset.realtimeDbPath,
-          ['1m', '5m']
-        ).catch(err => console.log('Prefetch failed:', err))
-      }
-    }}
-    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-      selectedAsset?.id === asset.id 
-        ? 'bg-blue-500/20 border border-blue-500/50' 
-        : 'bg-[#1a1f2e] hover:bg-[#232936]'
-    }`}
-  >
+                    <button
+                      key={asset.id}
+                      onClick={() => {
+                        setSelectedAsset(asset)
+                        setShowMobileMenu(false)
+                      }}
+                      onTouchStart={() => {
+                        if (asset.realtimeDbPath) {
+                          prefetchMultipleTimeframes(
+                            asset.realtimeDbPath,
+                            ['1m', '5m']
+                          ).catch(err => console.log('Prefetch failed:', err))
+                        }
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                        selectedAsset?.id === asset.id 
+                          ? 'bg-blue-500/20 border border-blue-500/50' 
+                          : 'bg-[#1a1f2e] hover:bg-[#232936]'
+                      }`}
+                    >
                       <AssetIcon asset={asset} size="sm" />
                       <div className="flex-1 text-left">
                         <div className="text-sm font-medium">{asset.symbol}</div>
@@ -1293,7 +1391,6 @@ export default function TradingPage() {
                 <span>Settings</span>
               </button>
 
-              {/* ✅ Manual Tutorial Button */}
               <button
                 onClick={() => {
                   setShowMobileMenu(false)
