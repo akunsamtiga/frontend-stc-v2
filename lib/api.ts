@@ -424,6 +424,121 @@ class ApiClient {
     }
   }
 
+
+  async requestWithdrawal(data: {
+  amount: number
+  description?: string
+}): Promise<ApiResponse> {
+  try {
+    const result = await this.client.post('/balance/withdrawal/request', data, {
+      headers: {
+        'X-Idempotent': 'true'
+      }
+    })
+    
+    this.invalidateCache('/balance')
+    this.invalidateCache('/user/profile')
+    
+    return result
+  } catch (error) {
+    console.error('Withdrawal request failed:', error)
+    throw error
+  }
+}
+
+async getMyWithdrawalRequests(): Promise<ApiResponse<{
+  requests: WithdrawalRequest[]
+  summary: WithdrawalSummary
+}>> {
+  const cacheKey = this.getCacheKey('/balance/withdrawal/my-requests')
+  const cached = this.getFromCache(cacheKey)
+  
+  if (cached) return cached
+  
+  return this.withDeduplication(cacheKey, async () => {
+    const data = await this.client.get('/balance/withdrawal/my-requests')
+    this.setCache(cacheKey, data, 5000)
+    return data
+  })
+}
+
+async cancelWithdrawalRequest(requestId: string): Promise<ApiResponse> {
+  try {
+    const result = await this.client.delete(`/balance/withdrawal/cancel/${requestId}`)
+    
+    this.invalidateCache('/balance/withdrawal')
+    this.invalidateCache('/balance')
+    
+    return result
+  } catch (error) {
+    console.error('Cancel withdrawal failed:', error)
+    throw error
+  }
+}
+
+// ===================================
+// WITHDRAWAL MANAGEMENT (ADMIN)
+// ===================================
+
+async getAllWithdrawalRequests(status?: string): Promise<ApiResponse<{
+  requests: WithdrawalRequest[]
+  summary: WithdrawalSummary
+}>> {
+  const params = new URLSearchParams()
+  if (status) params.append('status', status)
+  
+  const cacheKey = this.getCacheKey('/admin/withdrawals', { status })
+  const cached = this.getFromCache(cacheKey)
+  
+  if (cached) return cached
+  
+  return this.withDeduplication(cacheKey, async () => {
+    const data = await this.client.get(`/admin/withdrawals?${params}`)
+    this.setCache(cacheKey, data, 3000)
+    return data
+  })
+}
+
+async getWithdrawalRequestById(requestId: string): Promise<ApiResponse> {
+  const cacheKey = this.getCacheKey(`/admin/withdrawals/${requestId}`)
+  const cached = this.getFromCache(cacheKey)
+  
+  if (cached) return cached
+  
+  return this.withDeduplication(cacheKey, async () => {
+    const data = await this.client.get(`/admin/withdrawals/${requestId}`)
+    this.setCache(cacheKey, data, 5000)
+    return data
+  })
+}
+
+async approveWithdrawal(
+  requestId: string,
+  data: {
+    approve: boolean
+    adminNotes?: string
+    rejectionReason?: string
+  }
+): Promise<ApiResponse> {
+  try {
+    if (!data.approve && !data.rejectionReason) {
+      throw new Error('Rejection reason is required when rejecting withdrawal')
+    }
+
+    const result = await this.client.post(`/admin/withdrawals/${requestId}/approve`, data)
+    
+    this.invalidateCache('/admin/withdrawals')
+    this.invalidateCache('/balance')
+    this.invalidateCache('/admin/statistics')
+    
+    return result
+  } catch (error) {
+    console.error('Approve withdrawal failed:', error)
+    throw error
+  }
+}
+
+
   async updateProfile(data: UpdateProfileRequest): Promise<ApiResponse> {
     try {
       if (!data || typeof data !== 'object') {

@@ -1,8 +1,8 @@
-// app/(authenticated)/balance/page.tsx - FIXED VERSION
 'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import Navbar from '@/components/Navbar'
@@ -35,7 +35,6 @@ export default function BalancePage() {
   const [transactionAccount, setTransactionAccount] = useState<AccountType>('demo')
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [showDeposit, setShowDeposit] = useState(false)
-  const [showWithdraw, setShowWithdraw] = useState(false)
   const [amount, setAmount] = useState('')
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
@@ -56,15 +55,12 @@ export default function BalancePage() {
         api.getProfile()
       ])
       
-      // Extract balance data properly
       const balances = balancesRes?.data || balancesRes
       setRealBalance(balances?.realBalance || 0)
       setDemoBalance(balances?.demoBalance || 0)
       
-      // Extract transactions properly
       setAllTransactions(historyRes?.data?.transactions || historyRes?.transactions || [])
       
-      // Extract UserProfile properly with type checking
       let profileData: UserProfile | null = null
       
       if (profileRes && typeof profileRes === 'object') {
@@ -111,39 +107,6 @@ export default function BalancePage() {
     }
   }
 
-  const handleWithdraw = async () => {
-    const amt = parseFloat(amount)
-    const currentBalance = transactionAccount === 'real' ? realBalance : demoBalance
-    
-    if (isNaN(amt) || amt <= 0) {
-      toast.error('Invalid amount')
-      return
-    }
-    
-    if (amt > currentBalance) {
-      toast.error('Insufficient balance')
-      return
-    }
-
-    setLoading(true)
-    try {
-      await api.createBalanceEntry({
-        accountType: transactionAccount,
-        type: 'withdrawal',
-        amount: amt,
-        description: `Withdrawal from ${transactionAccount} account`,
-      })
-      toast.success(`Withdrawal successful!`)
-      setShowWithdraw(false)
-      setAmount('')
-      loadData()
-    } catch (error) {
-      toast.error('Withdrawal failed')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const quickAmounts = [10000, 50000, 100000, 250000, 500000, 1000000]
   const filteredTransactions = selectedAccount === 'all' 
     ? allTransactions 
@@ -159,7 +122,6 @@ export default function BalancePage() {
       <Navbar />
 
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">
-        {/* Header - Responsive */}
         <div className="mb-4 sm:mb-6">
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-500 mb-2 sm:mb-3">
             <span>Dashboard</span>
@@ -177,7 +139,6 @@ export default function BalancePage() {
               </div>
             </div>
             
-            {/* Status Badge - Desktop Only */}
             {statusInfo && (
               <div className={`hidden lg:flex items-center gap-3 px-4 py-2 rounded-xl text-white shadow-2xl border-2 border-white/30 ${
                 statusInfo.current === 'standard' ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
@@ -194,7 +155,6 @@ export default function BalancePage() {
           </div>
         </div>
 
-        {/* Status Info Banner - Mobile & Tablet */}
         {statusInfo && (
           <div className="lg:hidden mb-4 sm:mb-6">
             <div className={`p-3 sm:p-4 rounded-xl text-white shadow-lg ${
@@ -221,10 +181,8 @@ export default function BalancePage() {
           </div>
         )}
 
-        {/* Account Cards - Responsive Grid */}
         <div className="mb-4 sm:mb-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {/* REAL ACCOUNT */}
             <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50 rounded-2xl sm:rounded-3xl border-2 border-emerald-200 p-4 sm:p-6 shadow-xl">
               <div className="flex items-center justify-between mb-4 sm:mb-6">
                 <h2 className="text-sm sm:text-base lg:text-lg font-bold text-gray-900 flex items-center gap-1.5 sm:gap-2">
@@ -248,20 +206,16 @@ export default function BalancePage() {
                     <ArrowDownToLine className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span className="hidden sm:inline">Deposit</span>
                   </button>
-                  <button
-                    onClick={() => {
-                      setTransactionAccount('real')
-                      setShowWithdraw(true)
-                    }}
+                  <Link
+                    href="/withdrawal"
                     className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md touch-manipulation"
                   >
                     <ArrowUpFromLine className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span className="hidden sm:inline">Withdraw</span>
-                  </button>
+                  </Link>
                 </div>
               </div>
 
-              {/* Real Card */}
               <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-teal-600 to-green-700 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-2xl min-h-[200px] sm:min-h-[280px]">
                 <div className="absolute inset-0 opacity-10">
                   <div className="absolute top-0 right-0 w-40 h-40 sm:w-64 sm:h-64 bg-white rounded-full blur-3xl -translate-y-20 sm:-translate-y-32 translate-x-20 sm:translate-x-32"></div>
@@ -312,7 +266,6 @@ export default function BalancePage() {
               </div>
             </div>
 
-            {/* DEMO ACCOUNT */}
             <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl sm:rounded-3xl border-2 border-blue-200 p-4 sm:p-6 shadow-xl">
               <div className="flex items-center justify-between mb-4 sm:mb-6">
                 <h2 className="text-sm sm:text-base lg:text-lg font-bold text-gray-900 flex items-center gap-1.5 sm:gap-2">
@@ -329,13 +282,6 @@ export default function BalancePage() {
                   >
                     <ArrowDownToLine className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span className="hidden sm:inline">Add</span>
-                  </button>
-                  <button
-                    onClick={() => { setTransactionAccount('demo'); setShowWithdraw(true) }}
-                    className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md touch-manipulation"
-                  >
-                    <ArrowUpFromLine className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    <span className="hidden sm:inline">Remove</span>
                   </button>
                 </div>
               </div>
@@ -392,7 +338,6 @@ export default function BalancePage() {
           </div>
         </div>
 
-        {/* Transaction History */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
           <div className="p-4 sm:p-5 lg:p-6 border-b border-gray-200">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -477,7 +422,6 @@ export default function BalancePage() {
         </div>
       </div>
 
-      {/* Deposit Modal - FIXED */}
       {showDeposit && (
         <>
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => setShowDeposit(false)} />
@@ -510,7 +454,6 @@ export default function BalancePage() {
               </div>
 
               <div className="p-5 sm:p-6 space-y-5 sm:space-y-6">
-                {/* Status Upgrade Banner - FIXED */}
                 {transactionAccount === 'real' && statusInfo?.nextStatus && (
                   <div className="p-3 sm:p-4 bg-purple-50 border border-purple-200 rounded-xl">
                     <div className="flex items-center gap-2 mb-2">
@@ -520,7 +463,6 @@ export default function BalancePage() {
                     <p className="text-xs sm:text-sm text-purple-700">
                       Deposit {formatCurrency(statusInfo.depositNeeded || 0)} more to reach <span className="font-bold">{statusInfo.nextStatus.toUpperCase()}</span> status and get +{(() => {
                         try {
-                          // Safe profit bonus calculation - normalize to lowercase
                           const nextStatus = (statusInfo.nextStatus as string).toLowerCase() as 'gold' | 'vip';
                           if (nextStatus === 'gold') {
                             return getStatusProfitBonus('gold');
@@ -583,89 +525,6 @@ export default function BalancePage() {
                     </>
                   ) : (
                     'Confirm Deposit'
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Withdraw Modal */}
-      {showWithdraw && (
-        <>
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => setShowWithdraw(false)} />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
-              <div className="p-5 sm:p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <ArrowUpFromLine className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h2 className="text-lg sm:text-xl font-bold text-gray-900">Withdraw Funds</h2>
-                      <p className="text-xs sm:text-sm text-gray-500 truncate">
-                        Max: {formatCurrency(transactionAccount === 'real' ? realBalance : demoBalance)}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setShowWithdraw(false)}
-                    className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors flex-shrink-0 ml-2 touch-manipulation"
-                  >
-                    <X className="w-5 h-5 text-gray-500" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-5 sm:p-6 space-y-5 sm:space-y-6">
-                <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">Enter Amount (IDR)</label>
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0"
-                    max={transactionAccount === 'real' ? realBalance : demoBalance}
-                    className="w-full text-center text-2xl sm:text-3xl font-bold bg-gray-50 border-2 border-gray-200 rounded-xl py-3 sm:py-4 focus:border-red-500 focus:bg-white transition-all focus:outline-none"
-                    autoFocus
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">Quick Select</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {quickAmounts
-                      .filter(p => p <= (transactionAccount === 'real' ? realBalance : demoBalance))
-                      .map((preset) => (
-                        <button
-                          key={preset}
-                          onClick={() => setAmount(preset.toString())}
-                          className={`py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold transition-all touch-manipulation ${
-                            amount === preset.toString()
-                              ? 'bg-red-500 text-white shadow-sm'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
-                          }`}
-                        >
-                          {preset >= 1000000 ? `${preset/1000000}M` : `${preset/1000}K`}
-                        </button>
-                      ))}
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleWithdraw}
-                  disabled={loading}
-                  className="w-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white py-3.5 sm:py-4 rounded-xl font-semibold shadow-sm transition-all disabled:opacity-50 text-sm sm:text-base flex items-center justify-center gap-2 touch-manipulation"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    'Confirm Withdrawal'
                   )}
                 </button>
               </div>

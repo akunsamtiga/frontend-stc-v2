@@ -17,7 +17,8 @@ import {
   Settings,
   BarChart3,
   Shield,
-  RefreshCw
+  RefreshCw,
+  ArrowUpFromLine
 } from 'lucide-react'
 import { SystemStatistics } from '@/types'
 
@@ -136,38 +137,35 @@ export default function AdminDashboard() {
   }, [user, router])
 
   const loadStats = async (showRefreshing = false) => {
-  try {
-    if (showRefreshing) setRefreshing(true)
-    
-    const response = await api.getSystemStatistics()
-    
-    // ✅ FIX: Properly extract SystemStatistics from response
-    let statsData: SystemStatistics | null = null
-    
-    if (response && typeof response === 'object') {
-      // Check if response has a data property (ApiResponse structure)
-      if ('data' in response && response.data) {
-        statsData = response.data as SystemStatistics
-      } 
-      // Otherwise, response itself is SystemStatistics
-      else if ('users' in response && 'realAccount' in response) {
-        statsData = response as SystemStatistics
+    try {
+      if (showRefreshing) setRefreshing(true)
+      
+      const response = await api.getSystemStatistics()
+      
+      let statsData: SystemStatistics | null = null
+      
+      if (response && typeof response === 'object') {
+        if ('data' in response && response.data) {
+          statsData = response.data as SystemStatistics
+        } 
+        else if ('users' in response && 'realAccount' in response) {
+          statsData = response as SystemStatistics
+        }
       }
+      
+      if (statsData) {
+        setStats(statsData)
+        setLastUpdated(new Date())
+      } else {
+        console.error('Invalid statistics data received')
+      }
+    } catch (error) {
+      console.error('Failed to load stats:', error)
+    } finally {
+      setLoading(false)
+      if (showRefreshing) setRefreshing(false)
     }
-    
-    if (statsData) {
-      setStats(statsData)
-      setLastUpdated(new Date())
-    } else {
-      console.error('Invalid statistics data received')
-    }
-  } catch (error) {
-    console.error('Failed to load stats:', error)
-  } finally {
-    setLoading(false)
-    if (showRefreshing) setRefreshing(false)
   }
-}
 
   const handleRefresh = () => {
     loadStats(true)
@@ -254,6 +252,14 @@ export default function AdminDashboard() {
       icon: Package,
       href: '/admin/assets',
       color: 'purple'
+    },
+    {
+      title: 'Withdrawal Requests',
+      description: 'Review and approve withdrawals',
+      icon: ArrowUpFromLine,
+      href: '/admin/withdrawals',
+      color: 'red',
+      badge: stats?.withdrawal?.pending && stats.withdrawal.pending > 0 ? stats.withdrawal.pending : undefined
     },
     {
       title: 'System Settings',
@@ -413,9 +419,16 @@ export default function AdminDashboard() {
                       <Icon className={`w-5 h-5 md:w-6 md:h-6 text-${action.color}-600`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm md:text-base font-bold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
-                        {action.title}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm md:text-base font-bold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
+                          {action.title}
+                        </h3>
+                        {action.badge && (
+                          <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">
+                            {action.badge}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs md:text-sm text-gray-500">{action.description}</p>
                     </div>
                     <ArrowRight className="w-4 h-4 md:w-5 md:h-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all flex-shrink-0" />
@@ -580,6 +593,83 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
+
+        {stats?.withdrawal && (
+          <div className="mt-4 md:mt-6 bg-gradient-to-r from-red-50 to-orange-50 rounded-xl p-4 md:p-5 lg:p-6 border border-red-100">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
+                <ArrowUpFromLine className="w-5 h-5 text-red-500" />
+                Withdrawal Overview
+              </h2>
+              <Link 
+                href="/admin/withdrawals"
+                className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1 font-medium"
+              >
+                Manage Requests
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              {[
+                { 
+                  label: 'Pending', 
+                  value: stats.withdrawal?.pending ?? 0, 
+                  color: 'yellow',
+                  urgent: (stats.withdrawal?.pending ?? 0) > 0
+                },
+                { 
+                  label: 'Approved', 
+                  value: stats.withdrawal?.approved ?? 0, 
+                  color: 'blue',
+                  urgent: false
+                },
+                { 
+                  label: 'Completed', 
+                  value: stats.withdrawal?.completed ?? 0, 
+                  color: 'green',
+                  urgent: false
+                },
+                { 
+                  label: 'Rejected', 
+                  value: stats.withdrawal?.rejected ?? 0, 
+                  color: 'red',
+                  urgent: false
+                },
+              ].map((stat, idx) => (
+                <div key={idx} className={`bg-white rounded-lg p-3 md:p-4 border-2 ${
+                  stat.urgent ? 'border-yellow-300 animate-pulse' : 'border-gray-200'
+                }`}>
+                  <div className={`text-2xl md:text-3xl font-bold text-${stat.color}-600 mb-1`}>
+                    {stat.value}
+                  </div>
+                  <div className="text-xs text-gray-600">{stat.label}</div>
+                  {stat.urgent && (
+                    <div className="mt-1 text-[10px] text-yellow-600 font-semibold">
+                      Needs Review!
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            {(stats.withdrawal?.totalAmount ?? 0) > 0 && (
+              <div className="mt-4 pt-4 border-t border-red-200">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Total Withdrawn:</span>
+                  <span className="text-lg font-bold text-gray-900">
+                    {new Intl.NumberFormat('id-ID', { 
+                      style: 'currency', 
+                      currency: 'IDR',
+                      minimumFractionDigits: 0,
+                      notation: 'compact'
+                    }).format(stats.withdrawal?.totalAmount ?? 0)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {accountFilter === 'combined' && (
           <div className="mt-4 md:mt-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 md:p-5 lg:p-6 border border-gray-100">

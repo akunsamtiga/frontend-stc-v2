@@ -63,7 +63,124 @@ export interface UserProfile {
   }
 }
 
-// ✅ ENHANCED: UserProfileInfo with Photo Upload Support
+export interface WithdrawalRequest {
+  id: string
+  user_id: string
+  amount: number
+  status: 'pending' | 'approved' | 'rejected' | 'completed'
+  description?: string
+  
+  // User info snapshot
+  userEmail: string
+  userName?: string
+  bankAccount?: {
+    bankName: string
+    accountNumber: string
+    accountHolderName: string
+  }
+  
+  // Verification proof
+  ktpVerified: boolean
+  selfieVerified: boolean
+  currentBalance: number
+  
+  // Admin action
+  reviewedBy?: string
+  reviewedAt?: string
+  rejectionReason?: string
+  adminNotes?: string
+  
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface WithdrawalSummary {
+  total: number
+  pending: number
+  approved: number
+  rejected: number
+  completed: number
+}
+
+export interface RequestWithdrawalDto {
+  amount: number
+  description?: string
+}
+
+export interface ApproveWithdrawalDto {
+  approve: boolean
+  adminNotes?: string
+  rejectionReason?: string
+}
+
+export const WITHDRAWAL_STATUS = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  COMPLETED: 'completed',
+} as const
+
+export type WithdrawalStatus = typeof WITHDRAWAL_STATUS[keyof typeof WITHDRAWAL_STATUS]
+
+export const WITHDRAWAL_CONFIG = {
+  MIN_AMOUNT: 100000, // Rp 100,000
+  REQUIRE_KTP: true,
+  REQUIRE_SELFIE: true,
+  REQUIRE_BANK_ACCOUNT: true,
+} as const
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+export function getWithdrawalStatusColor(status: WithdrawalStatus): string {
+  const colors = {
+    pending: 'text-yellow-600',
+    approved: 'text-blue-600',
+    rejected: 'text-red-600',
+    completed: 'text-green-600',
+  }
+  return colors[status] || 'text-gray-600'
+}
+
+export function getWithdrawalStatusBg(status: WithdrawalStatus): string {
+  const backgrounds = {
+    pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+    approved: 'bg-blue-100 text-blue-700 border-blue-200',
+    rejected: 'bg-red-100 text-red-700 border-red-200',
+    completed: 'bg-green-100 text-green-700 border-green-200',
+  }
+  return backgrounds[status] || 'bg-gray-100 text-gray-700 border-gray-200'
+}
+
+export function getWithdrawalStatusLabel(status: WithdrawalStatus): string {
+  const labels = {
+    pending: 'Pending',
+    approved: 'Approved',
+    rejected: 'Rejected',
+    completed: 'Completed',
+  }
+  return labels[status] || status
+}
+
+export function canCancelWithdrawal(request: WithdrawalRequest): boolean {
+  return request.status === 'pending'
+}
+
+export function formatWithdrawalStatus(request: WithdrawalRequest): {
+  label: string
+  color: string
+  bgClass: string
+  canCancel: boolean
+} {
+  return {
+    label: getWithdrawalStatusLabel(request.status as WithdrawalStatus),
+    color: getWithdrawalStatusColor(request.status as WithdrawalStatus),
+    bgClass: getWithdrawalStatusBg(request.status as WithdrawalStatus),
+    canCancel: canCancelWithdrawal(request),
+  }
+}
+
 export interface UserProfileInfo {
   completion: number
   personal: {
@@ -435,6 +552,13 @@ export interface SystemStatistics {
     totalCommissionsPaid: number
     commissionRate: number
     conversionRate: number
+  }
+   withdrawal?: {
+    pending: number
+    approved: number
+    rejected: number
+    completed: number
+    totalAmount: number
   }
   realAccount: {
     trading: {
