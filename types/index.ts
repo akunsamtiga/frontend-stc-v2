@@ -203,7 +203,10 @@ export interface UserProfileInfo {
     number?: string
     isVerified?: boolean
     verifiedAt?: string
-    // ✅ NEW: Photo Upload Support
+    verifiedBy?: string  // ✅ NEW
+    rejectionReason?: string  // ✅ NEW
+    rejectedAt?: string  // ✅ NEW
+    rejectedBy?: string  // ✅ NEW
     photoFront?: {
       url: string
       uploadedAt: string
@@ -230,12 +233,15 @@ export interface UserProfileInfo {
     fileSize?: number
     mimeType?: string
   } | null
-  // ✅ NEW: Selfie Verification Support
   selfie?: {
     url: string
     uploadedAt: string
     isVerified: boolean
     verifiedAt?: string
+    verifiedBy?: string  // ✅ NEW
+    rejectionReason?: string  // ✅ NEW
+    rejectedAt?: string  // ✅ NEW
+    rejectedBy?: string  // ✅ NEW
     fileSize?: number
     mimeType?: string
   } | null
@@ -251,12 +257,53 @@ export interface UserProfileInfo {
     emailVerified: boolean
     phoneVerified: boolean
     identityVerified: boolean
-    // ✅ NEW: Selfie Verification Status
     selfieVerified: boolean
     bankVerified: boolean
     verificationLevel: 'unverified' | 'basic' | 'intermediate' | 'advanced'
   }
 }
+
+export interface PendingKTPVerification {
+  userId: string
+  email: string
+  fullName?: string
+  documentType?: 'ktp' | 'passport' | 'sim'
+  documentNumber?: string
+  photoFront?: {
+    url: string
+    uploadedAt: string
+  }
+  photoBack?: {
+    url: string
+    uploadedAt: string
+  }
+  uploadedAt: string
+}
+
+export interface PendingSelfieVerification {
+  userId: string
+  email: string
+  fullName?: string
+  photoUrl: string
+  uploadedAt: string
+}
+
+export interface PendingVerifications {
+  ktpVerifications: PendingKTPVerification[]
+  selfieVerifications: PendingSelfieVerification[]
+  summary: {
+    totalPendingKTP: number
+    totalPendingSelfie: number
+    total: number
+  }
+}
+
+export interface VerifyDocumentRequest {
+  approve: boolean
+  adminNotes?: string
+  rejectionReason?: string
+}
+
 
 // ============================================
 // ASSET TYPES - ✅ UPDATED FOR BINANCE

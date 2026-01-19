@@ -18,7 +18,9 @@ import type {
   CreateBalanceEntryRequest,
   CreateOrderRequest,
   WithdrawalRequest,
-  WithdrawalSummary
+  WithdrawalSummary,
+  PendingVerifications,  // ✅ TAMBAHKAN INI
+  VerifyDocumentRequest  // ✅ TAMBAHKAN INI
 } from '@/types'
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
 
@@ -1022,6 +1024,55 @@ async approveWithdrawal(
       this.setCache(cacheKey, data, 3000)
       return data
     })
+  }
+
+    async getPendingVerifications(): Promise<ApiResponse<PendingVerifications>> {
+    const cacheKey = this.getCacheKey('/admin/verifications/pending')
+    const cached = this.getFromCache(cacheKey)
+    
+    if (cached) return cached
+    
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get('/admin/verifications/pending')
+      this.setCache(cacheKey, data, 30000) // Cache 30s
+      return data
+    })
+  }
+
+  async verifyKTP(
+    userId: string,
+    data: VerifyDocumentRequest
+  ): Promise<ApiResponse> {
+    try {
+      const result = await this.client.post(`/admin/verifications/${userId}/ktp`, data)
+      
+      // Invalidate caches
+      this.invalidateCache('/admin/verifications')
+      this.invalidateCache('/admin/users')
+      
+      return result
+    } catch (error) {
+      console.error('Verify KTP failed:', error)
+      throw error
+    }
+  }
+
+  async verifySelfie(
+    userId: string,
+    data: VerifyDocumentRequest
+  ): Promise<ApiResponse> {
+    try {
+      const result = await this.client.post(`/admin/verifications/${userId}/selfie`, data)
+      
+      // Invalidate caches
+      this.invalidateCache('/admin/verifications')
+      this.invalidateCache('/admin/users')
+      
+      return result
+    } catch (error) {
+      console.error('Verify Selfie failed:', error)
+      throw error
+    }
   }
 
   // ===================================
