@@ -16,9 +16,10 @@ import type {
   TradingStats,
   SystemStatistics,
   CreateBalanceEntryRequest,
-  CreateOrderRequest
+  CreateOrderRequest,
+  WithdrawalRequest,
+  WithdrawalSummary
 } from '@/types'
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
 
 interface CacheEntry {
