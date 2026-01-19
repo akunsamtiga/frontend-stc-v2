@@ -238,7 +238,7 @@ export default function AdminDashboard() {
 
   const filteredStats = getFilteredStats()
 
-  const quickActions = [
+const quickActions = [
     {
       title: 'User Management',
       description: 'Manage users and permissions',
@@ -252,6 +252,14 @@ export default function AdminDashboard() {
       icon: Package,
       href: '/admin/assets',
       color: 'purple'
+    },
+    {
+      title: 'Verification Management',
+      description: 'Review KTP & Selfie verifications',
+      icon: Shield,
+      href: '/admin/verifications',
+      color: 'indigo',
+      badge: (stats as any)?.verifications?.pending ? (stats as any).verifications.pending : undefined
     },
     {
       title: 'Withdrawal Requests',
