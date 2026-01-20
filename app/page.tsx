@@ -852,7 +852,7 @@ export default function LandingPage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div className="space-y-8">
-              <h1 className="text-5xl sm:text-6xl md:text-7xl font-medium leading-tight">
+              <h1 className="text-5xl sm:text-6xl md:text-7xl font-black leading-tight">
                 Raih Bonus
                 <span className="block mt-2 font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-emerald-400 to-cyan-400 animate-gradient bg-[length:200%_auto]">
                   Deposit 100%

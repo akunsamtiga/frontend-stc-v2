@@ -34,11 +34,11 @@ import {
   Logs,
   Zap,
   Info,
-  Wifi, // ✅ WebSocket Status
-  WifiOff, // ✅ WebSocket Status
+  Wifi,
+  WifiOff,
 } from 'lucide-react'
 import OrderNotification from '@/components/OrderNotification'
-import { useWebSocket, usePriceSubscription, useOrderSubscription } from '@/components/providers/WebSocketProvider' // ✅ WebSocket Hooks
+import { useWebSocket, usePriceSubscription, useOrderSubscription } from '@/components/providers/WebSocketProvider'
 
 const TradingChart = dynamic(() => import('@/components/TradingChart'), {
   ssr: false,
@@ -149,7 +149,6 @@ class AggressivePollingManager {
   }
 }
 
-// ✅ UPDATED: Extended duration options with 1 second
 const EXTENDED_DURATIONS = [
   { value: 0.0167, label: '1 second', shortLabel: '⚡ 1s', isUltraFast: true },
   { value: 1, label: '1 minute', shortLabel: '1m' },
@@ -201,30 +200,23 @@ export default function TradingPage() {
 
   const currentBalance = selectedAccountType === 'real' ? realBalance : demoBalance
 
-  // ✅ Check if current duration is ultra-fast
   const isUltraFastMode = duration === 0.0167
   const durationDisplay = getDurationDisplay(duration)
 
-  // ✅ WebSocket Integration
   const { isConnected, isConnecting } = useWebSocket()
   
-  // 📡 Subscribe to price updates via WebSocket
   const { priceData: wsPrice, lastUpdate: priceLastUpdate } = usePriceSubscription(
     selectedAsset?.id || null,
     true
   )
 
-  // 📡 Subscribe to order updates via WebSocket
   const { orderUpdate: wsOrder, lastUpdate: orderLastUpdate } = useOrderSubscription(
     user?.id || null,
     true
   )
 
-  // ✅ Process WebSocket price updates
   useEffect(() => {
     if (wsPrice && selectedAsset?.id === wsPrice.assetId) {
-      console.log('📡 WebSocket price update:', wsPrice.price)
-      
       setCurrentPrice({
         price: wsPrice.price,
         timestamp: wsPrice.timestamp,
@@ -234,16 +226,13 @@ export default function TradingPage() {
     }
   }, [wsPrice, priceLastUpdate, selectedAsset?.id, setCurrentPrice])
 
-  // ✅ Process WebSocket order updates
   useEffect(() => {
     if (wsOrder) {
-      console.log('📦 WebSocket order update:', wsOrder)
-
       if (wsOrder.event === 'order:created') {
         loadActiveOrders()
       } else if (wsOrder.event === 'order:settled') {
         setActiveOrders(prev => prev.filter((o: BinaryOrder) => o.id !== wsOrder.id))
-        loadData() // Reload balance & history
+        loadData()
       }
     }
   }, [wsOrder, orderLastUpdate])
@@ -360,8 +349,6 @@ export default function TradingPage() {
 
   const handleCompleteTutorial = useCallback(async () => {
     try {
-      console.log('🎓 Completing tutorial...')
-      
       await api.completeTutorial()
       
       const updatedUser = {
@@ -374,18 +361,14 @@ export default function TradingPage() {
       
       setShowTutorial(false)
       toast.success('Tutorial selesai! Selamat trading! 🎉')
-      
-      console.log('✅ Tutorial completed')
     } catch (error) {
-      console.error('❌ Tutorial completion failed:', error)
+      console.error('Tutorial completion failed:', error)
       setShowTutorial(false)
     }
   }, [user])
 
   const handleSkipTutorial = useCallback(async () => {
     try {
-      console.log('⏭️ Skipping tutorial...')
-      
       await api.completeTutorial()
       
       const updatedUser = {
@@ -398,23 +381,18 @@ export default function TradingPage() {
       
       setShowTutorial(false)
       toast.info('Tutorial dilewati. Akses lagi dari Settings > Show Tutorial')
-      
-      console.log('✅ Tutorial skipped')
     } catch (error) {
-      console.error('❌ Tutorial skip failed:', error)
+      console.error('Tutorial skip failed:', error)
       setShowTutorial(false)
     }
   }, [user])
 
   const handleShowTutorialManually = useCallback(() => {
-    console.log('🎓 Manually showing tutorial')
     setShowTutorial(true)
   }, [])
 
   const handleLogout = useCallback(async () => {
     try {
-      console.log('🚪 Starting logout...')
-      
       api.removeToken()
       api.clearCache()
       
@@ -428,10 +406,8 @@ export default function TradingPage() {
       await new Promise(resolve => setTimeout(resolve, 100))
       
       router.replace('/')
-      
-      console.log('✅ Logout completed')
     } catch (error) {
-      console.error('❌ Logout error:', error)
+      console.error('Logout error:', error)
       router.replace('/')
     }
   }, [logout, router])
@@ -460,17 +436,7 @@ export default function TradingPage() {
   }, [user, router])
 
   useEffect(() => {
-    if (!user) {
-      console.log('❌ Tutorial check: No user')
-      return
-    }
-
-    console.log('🔍 Tutorial Check:', {
-      email: user.email,
-      isNewUser: user.isNewUser,
-      tutorialCompleted: user.tutorialCompleted,
-      loginCount: user.loginCount,
-    })
+    if (!user) return
 
     const shouldShowTutorial = 
       user.isNewUser === true ||
@@ -480,17 +446,11 @@ export default function TradingPage() {
        user.loginCount <= 2)
 
     if (shouldShowTutorial) {
-      console.log('✅ Tutorial SHOULD be shown')
-      
       const timer = setTimeout(() => {
-        console.log('🎓 Showing tutorial NOW')
         setShowTutorial(true)
       }, 1500)
       
       return () => clearTimeout(timer)
-    } else {
-      console.log('ℹ️ Tutorial NOT needed (user is experienced)')
-      console.log('💡 Tip: You can manually show tutorial from Settings menu')
     }
   }, [user])
 
@@ -510,6 +470,12 @@ export default function TradingPage() {
     let unsubscribe: (() => void) | undefined
 
     if (selectedAsset.dataSource === 'realtime_db' && selectedAsset.realtimeDbPath) {
+      let basePath = selectedAsset.realtimeDbPath
+      
+      if (basePath.endsWith('/current_price')) {
+        basePath = basePath.replace('/current_price', '')
+      }
+      
       unsubscribe = subscribeToPriceUpdates(
         selectedAsset.realtimeDbPath,
         (data) => {
@@ -577,7 +543,6 @@ export default function TradingPage() {
         }
       })
       
-      // WebSocket akan otomatis mengirim update, tapi tetap reload untuk safety
       setTimeout(loadData, 200)
     } catch (error: any) {
       const errorMsg = error?.response?.data?.error || 'Failed to place order'
@@ -594,9 +559,7 @@ export default function TradingPage() {
 
   return (
     <div className="h-screen flex flex-col bg-[#0a0e17] text-white overflow-hidden">
-      {/* Header */}
       <div className="h-14 lg:h-16 bg-[#1a1f2e] border-b border-gray-800/50 flex items-center justify-between px-2 flex-shrink-0">
-        {/* Desktop Header */}
         <div className="hidden lg:flex items-center gap-4 w-full">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 relative">
@@ -610,7 +573,6 @@ export default function TradingPage() {
             <span className="font-bold text-xl">STC AutoTrade</span>
           </div>
 
-          {/* Asset Selector */}
           <div className="relative">
             <button
               onClick={() => setShowAssetMenu(!showAssetMenu)}
@@ -642,7 +604,7 @@ export default function TradingPage() {
                         if (asset.realtimeDbPath) {
                           prefetchMultipleTimeframes(
                             asset.realtimeDbPath,
-                            ['1m', '5m', '15m']
+                            ['1m', '5m']
                           ).catch(err => console.log('Prefetch failed:', err))
                         }
                       }}
@@ -667,7 +629,6 @@ export default function TradingPage() {
 
           <div className="flex-1"></div>
 
-          {/* ✅ WebSocket Status Indicator - Desktop */}
           <div className={`hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors ${
             isConnected 
               ? 'bg-green-500/10 border border-green-500/30' 
@@ -693,7 +654,6 @@ export default function TradingPage() {
             )}
           </div>
 
-          {/* Account Balance Selector */}
           <div className="relative">
             <button
               onClick={() => setShowAccountMenu(!showAccountMenu)}
@@ -763,7 +723,6 @@ export default function TradingPage() {
             <span className="text-sm">History</span>
           </button>
 
-          {/* User Menu */}
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
@@ -792,12 +751,10 @@ export default function TradingPage() {
                     <span className="text-sm">Settings</span>
                   </button>
 
-                  {/* Manual Tutorial Button */}
                   <button
                     onClick={() => {
                       setShowUserMenu(false)
                       setTimeout(() => {
-                        console.log('🎓 Manually triggering tutorial')
                         setShowTutorial(true)
                       }, 300)
                     }}
@@ -825,7 +782,6 @@ export default function TradingPage() {
           </div>
         </div>
 
-        {/* Mobile Header */}
         <div className="flex lg:hidden items-center justify-between w-full px-1">
           <div className="flex items-center gap-3">
             <button
@@ -844,7 +800,6 @@ export default function TradingPage() {
             </div>
           </div>
 
-          {/* ✅ WebSocket Status Indicator - Mobile */}
           <div className={`lg:hidden flex items-center gap-2 px-2 py-1 rounded-lg transition-colors ${
             isConnected 
               ? 'bg-green-500/10 border border-green-500/30' 
@@ -939,9 +894,7 @@ export default function TradingPage() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* Chart */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           <div className="flex-1 bg-[#0a0e17] relative overflow-hidden">
             {selectedAsset ? (
@@ -959,10 +912,8 @@ export default function TradingPage() {
           </div>
         </div>
 
-        {/* Desktop Trading Panel */}
         <div className="hidden lg:block w-64 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
           <div className="h-full flex flex-col p-4 space-y-4 overflow-hidden">
-            {/* Amount */}
             <div className="bg-[#1a1f2e] rounded-xl px-3 py-2">
               <div className="text-[10px] text-gray-500 text-center leading-none">Amount</div>
               <div className="flex items-center gap-2">
@@ -990,7 +941,6 @@ export default function TradingPage() {
               </div>
             </div>
 
-            {/* Duration */}
             <div className={`bg-[#1a1f2e] rounded-xl px-3 py-0 ${isUltraFastMode ? 'ring-2 ring-yellow-500/30' : ''}`}>
               <div className="text-[10px] text-gray-500 text-center leading-none pt-2 flex items-center justify-center gap-1">
                 Duration
@@ -1010,7 +960,6 @@ export default function TradingPage() {
               </select>
             </div>
 
-            {/* Ultra-Fast Mode Warning */}
             {isUltraFastMode && (
               <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-xl px-3 py-2 flex items-center gap-2">
                 <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
@@ -1020,7 +969,6 @@ export default function TradingPage() {
               </div>
             )}
 
-            {/* Payout Info */}
             {selectedAsset && (
               <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl px-3 py-3">
                 <div className="flex items-center justify-between text-xs">
@@ -1040,7 +988,6 @@ export default function TradingPage() {
               </div>
             )}
 
-            {/* Buy/Sell Buttons */}
             <div>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -1060,7 +1007,6 @@ export default function TradingPage() {
                 </button>
               </div>
 
-              {/* WebSocket Connection Warning */}
               {!isConnected && (
                 <div className="text-center text-xs text-yellow-400 mt-2">
                   ⚠️ Waiting for real-time connection...
@@ -1078,12 +1024,9 @@ export default function TradingPage() {
         </div>
       </div>
 
-      {/* Mobile Trading Panel */}
       <div className="lg:hidden bg-[#0f1419] border-t border-gray-800/50 p-4">
         <div className="space-y-4">
-          {/* Amount & Duration */}
           <div className="grid grid-cols-2 gap-4">
-            {/* Amount */}
             <div className="relative">
               <label className="text-xs text-gray-400 mb-2 block font-medium">Amount</label>
               <div className="relative">
@@ -1141,7 +1084,6 @@ export default function TradingPage() {
               )}
             </div>
 
-            {/* Duration */}
             <div className="relative">
               <label className="text-xs text-gray-400 mb-2 block font-medium flex items-center gap-1">
                 Duration
@@ -1163,7 +1105,6 @@ export default function TradingPage() {
             </div>
           </div>
 
-          {/* Ultra-Fast Mode Badge */}
           {isUltraFastMode && (
             <div className="flex justify-center">
               <div className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-full px-4 py-1.5">
@@ -1175,7 +1116,6 @@ export default function TradingPage() {
             </div>
           )}
 
-          {/* Payout Info */}
           {selectedAsset && (
             <div className="flex justify-center py-2">
               <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-full px-5 py-2.5">
@@ -1188,7 +1128,6 @@ export default function TradingPage() {
             </div>
           )}
 
-          {/* Buy/Sell Buttons */}
           <div className="grid grid-cols-2 gap-4 pt-2">
             <button
               onClick={() => handlePlaceOrder('CALL')}
@@ -1208,7 +1147,6 @@ export default function TradingPage() {
             </button>
           </div>
 
-          {/* WebSocket Connection Warning */}
           {!isConnected && (
             <div className="text-center text-xs text-yellow-400 pt-1">
               ⚠️ Waiting for real-time connection...
@@ -1224,7 +1162,6 @@ export default function TradingPage() {
         </div>
       </div>
 
-      {/* Modals & Sidebars */}
       {showWalletModal && (
         <>
           <div 
@@ -1395,7 +1332,6 @@ export default function TradingPage() {
                 onClick={() => {
                   setShowMobileMenu(false)
                   setTimeout(() => {
-                    console.log('🎓 Manually triggering tutorial')
                     setShowTutorial(true)
                   }, 300)
                 }}

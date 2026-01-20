@@ -1,7 +1,7 @@
-// components/TradingChart.tsx - Optimized for Fast Loading
+// components/TradingChart.tsx
 'use client'
 
-import { useEffect, useRef, useState, useCallback, memo } from 'react'
+import { useEffect, useRef, useState, useCallback, memo, useMemo } from 'react'
 import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp } from 'lightweight-charts'
 import { useTradingStore } from '@/store/trading'
 import { fetchHistoricalData, subscribeToOHLCUpdates, prefetchMultipleTimeframes } from '@/lib/firebase'
@@ -48,20 +48,17 @@ const GLOBAL_DATA_CACHE = new Map<string, {
   timeframe: Timeframe
 }>()
 
-const CACHE_TTL = 30000
+const CACHE_TTL = 60000
 
 function getCachedData(assetId: string, timeframe: Timeframe): any[] | null {
   const key = `${assetId}-${timeframe}`
   const cached = GLOBAL_DATA_CACHE.get(key)
-  
   if (!cached) return null
-  
   const now = Date.now()
   if (now - cached.timestamp > CACHE_TTL) {
     GLOBAL_DATA_CACHE.delete(key)
     return null
   }
-  
   return cached.data
 }
 
@@ -306,7 +303,7 @@ const ChartSkeleton = memo(() => (
         <div className="absolute inset-0 border-4 border-gray-800 rounded-full"></div>
         <div className="absolute inset-0 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
       </div>
-      <div className="text-sm text-gray-400 mb-2">Loading chart data...</div>
+      <div className="text-sm text-gray-400 mb-1">Loading chart data...</div>
       <div className="text-xs text-gray-600">This should take less than 2 seconds</div>
     </div>
   </div>
@@ -770,19 +767,22 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         let assetPath = selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`
         assetPath = cleanAssetPath(assetPath)
 
-        console.log(`🚀 Loading ${timeframe} chart for ${selectedAsset.symbol}...`)
-        console.time('chart-load')
-        
-        const data = await fetchHistoricalData(assetPath, timeframe)
-        
-        console.timeEnd('chart-load')
+        let data: any[]
 
-        if (isCancelled) return
+        const cachedData = getCachedData(selectedAsset.id, timeframe)
+        
+        if (cachedData) {
+          data = cachedData
+        } else {
+          data = await fetchHistoricalData(assetPath, timeframe)
+          
+          if (isCancelled) return
 
-        if (!data || data.length === 0) {
-          setIsLoading(false)
-          console.warn('⚠️ No chart data available')
-          return
+          if (!data || data.length === 0) {
+            setIsLoading(false)
+            console.warn('No chart data available')
+            return
+          }
         }
 
         const candleData = data.map((bar: any) => ({
@@ -825,6 +825,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
         }
 
         setIsLoading(false)
+        setCachedData(selectedAsset.id, timeframe, data)
 
         requestAnimationFrame(() => {
           if (isCancelled) return
@@ -938,6 +939,17 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       cleanupAll()
     }
   }, [selectedAsset?.id, timeframe, isInitialized, checkSimulator, cleanupAll])
+
+  const candleData = useMemo(() => {
+    if (!currentBarRef.current) return []
+    return [{
+      time: currentBarRef.current.timestamp as UTCTimestamp,
+      open: currentBarRef.current.open,
+      high: currentBarRef.current.high,
+      low: currentBarRef.current.low,
+      close: currentBarRef.current.close
+    }]
+  }, [currentBarRef.current?.close])
 
   const handleRefresh = useCallback(() => {
     if (!selectedAsset) return
