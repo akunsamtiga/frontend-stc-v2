@@ -1,10 +1,10 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { IBM_Plex_Sans, JetBrains_Mono } from 'next/font/google'
 import { Toaster } from 'sonner'
 import GoogleAuthHandler from '@/components/GoogleAuthHandler'
 import ChartPreloader from '@/components/ChartPreloader'
 import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar'
-import { WebSocketProvider } from '@/components/providers/WebSocketProvider' // ✅ WebSocket Provider
+import { WebSocketProvider } from '@/components/providers/WebSocketProvider'
 import './globals.css'
 
 const ibmPlexSans = IBM_Plex_Sans({ 
@@ -18,26 +18,29 @@ const jetbrainsMono = JetBrains_Mono({
   variable: '--font-mono',
 })
 
+// ✅ Metadata tanpa themeColor dan viewport
 export const metadata: Metadata = {
   title: 'STC AutoTrade',
   description: 'Platform dengan penarikan kilat, profit hingga 100%, dan keamanan maksimal.',
   keywords: ['binary option', 'trading', 'IDX_STC', 'forex', 'crypto', 'STC AutoTrade'],
-  themeColor: '#0f1419', 
   icons: {
     icon: '/stc.ico',
     shortcut: '/stc.ico',
     apple: '/stc.ico',
-  },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'STC AutoTrade',
   },
+}
+
+// ✅ Viewport di-export terpisah
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#0f1419',
 }
 
 export default function RootLayout({
@@ -49,10 +52,7 @@ export default function RootLayout({
     <html lang="id" className={`${ibmPlexSans.variable} ${jetbrainsMono.variable}`}>
       <head>
         <link rel="icon" href="/stc.ico" sizes="any" />
-        {/* Dark theme for mobile browsers */}
-        <meta name="theme-color" content="#0f1419" />
-        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1419" />
-        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0f1419" />
+        {/* Dark theme sudah di-handle oleh viewport export */}
         
         {/* Apple specific */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
