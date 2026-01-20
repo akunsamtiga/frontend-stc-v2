@@ -1,3 +1,4 @@
+// components/providers/WebSocketProvider.tsx
 'use client'
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
@@ -98,6 +99,7 @@ export function useWebSocket() {
   return context
 }
 
+// ✅ EXISTING: Price subscription hook
 export function usePriceSubscription(assetId: string | null, enabled = true) {
   const { subscribeToPrice } = useWebSocket()
   const [priceData, setPriceData] = useState<any>(null)
@@ -117,6 +119,7 @@ export function usePriceSubscription(assetId: string | null, enabled = true) {
   return { priceData, lastUpdate }
 }
 
+// ✅ EXISTING: Order subscription hook
 export function useOrderSubscription(userId: string | null, enabled = true) {
   const { subscribeToOrders } = useWebSocket()
   const [orderUpdate, setOrderUpdate] = useState<any>(null)
@@ -147,4 +150,26 @@ export function useOrderSubscription(userId: string | null, enabled = true) {
   }, [userId, enabled, subscribeToOrders])
 
   return { orderUpdate, lastUpdate }
+}
+
+// ✅ NEW: Direct price stream hook for TradingChart
+export function usePriceStream(assetId: string | null) {
+  const { isConnected } = useWebSocket()
+  const [price, setPrice] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!assetId || !isConnected) return
+    
+    // Subscribe to price updates
+    const unsubscribe = websocketService.subscribeToPrice(assetId, (data) => {
+      setPrice(data.price)
+    })
+    
+    return () => {
+      unsubscribe()
+      setPrice(null)
+    }
+  }, [assetId, isConnected])
+
+  return price
 }

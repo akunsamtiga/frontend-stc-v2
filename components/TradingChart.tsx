@@ -4,11 +4,12 @@
 import { useEffect, useRef, useState, useCallback, memo, useMemo } from 'react'
 import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp } from 'lightweight-charts'
 import { useTradingStore } from '@/store/trading'
-import { fetchHistoricalData, subscribeToOHLCUpdates, prefetchMultipleTimeframes } from '@/lib/firebase'
+import { fetchHistoricalData, subscribeToOHLCUpdates, subscribeToPriceUpdates, prefetchMultipleTimeframes } from '@/lib/firebase'
 import { BinaryOrder } from '@/types'
 import { database, ref, get } from '@/lib/firebase'
 import dynamic from 'next/dynamic'
 import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2, Zap } from 'lucide-react'
+import { usePriceStream } from '@/components/providers/WebSocketProvider' // ✅ NEW: WebSocket hook
 
 const IndicatorControls = dynamic(() => import('./IndicatorControls'), { ssr: false })
 
@@ -542,6 +543,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   } | null>(null)
   const [showOhlc, setShowOhlc] = useState(false)
 
+  // ✅ NEW: WebSocket price stream for instant updates
+  const wsPrice = usePriceStream(selectedAsset?.id || null)
+
   const addCleanup = useCallback((fn: () => void) => {
     cleanupFunctionsRef.current.push(fn)
   }, [])
@@ -608,18 +612,57 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
   }, [])
 
   useEffect(() => {
+  if (!selectedAsset?.realtimeDbPath) return
+
+  const prefetch = async () => {
+    const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath!)
+    
+    prefetchMultipleTimeframes(assetPath, ['1m', '5m', '15m'])
+      .catch((err: Error) => console.log('Prefetch failed:', err.message)) // ✅ FIXED: Typed error
+  }
+
+  const timer = setTimeout(prefetch, 500)
+  return () => clearTimeout(timer)
+}, [selectedAsset?.id])
+
+  // ✅ STEP 1: IMMEDIATE PRICE FETCH ON MOUNT
+  const fetchCurrentPriceImmediately = useCallback(async () => {
     if (!selectedAsset?.realtimeDbPath) return
-
-    const prefetch = async () => {
-      const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath!)
+    
+    try {
+      const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath)
+      const priceData = await get(ref(database, `${assetPath}/current_price`))
       
-      prefetchMultipleTimeframes(assetPath, ['1m', '5m', '15m'])
-        .catch(err => console.log('Prefetch failed:', err))
+      if (priceData.exists()) {
+        const data = priceData.val()
+        setLastPrice(data.price)
+        setOpeningPrice(data.price) // Use current as opening if no data
+        lastUpdateTimeRef.current = Date.now()
+      }
+    } catch (error) {
+      console.warn('Immediate price fetch failed:', error)
     }
+  }, [selectedAsset?.realtimeDbPath])
 
-    const timer = setTimeout(prefetch, 500)
-    return () => clearTimeout(timer)
-  }, [selectedAsset?.id])
+  useEffect(() => {
+    if (selectedAsset && isInitialized) {
+      fetchCurrentPriceImmediately()
+    }
+  }, [selectedAsset?.id, isInitialized, fetchCurrentPriceImmediately])
+
+  // ✅ STEP 2: WEBSOCKET PRICE UPDATES (Ultra-fast)
+  useEffect(() => {
+    if (!selectedAsset?.id || wsPrice === null) return
+
+    // Update price immediately from WebSocket
+    setLastPrice(wsPrice)
+    lastUpdateTimeRef.current = Date.now()
+
+    // Update chart bar if initialized
+    if (candleSeriesRef.current && currentBarRef.current) {
+      updateChartWithRealtimePrice(wsPrice)
+    }
+  }, [wsPrice, selectedAsset?.id])
 
   useEffect(() => {
     if (isMountedRef.current) return
@@ -738,6 +781,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [chartType])
 
+  // ✅ MAIN EFFECT: Parallel Realtime + Historical Loading
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
       return
@@ -749,207 +793,194 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     let isCancelled = false
     let animationFrameId: number | null = null
 
-    const loadChartData = async () => {
-      if (isAssetChange) {
-        setIsLoading(true)
+    // ✅ STEP 1: Set up real-time subscriptions immediately
+    const setupRealtime = async () => {
+      if (!selectedAsset.realtimeDbPath) return
+
+      const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath)
+
+      // Firebase fallback for OHLC bar updates (essential for chart formation)
+      const unsubscribe1s = subscribeToOHLCUpdates(assetPath, '1s', (tick1s) => {
+        if (isCancelled) return
+        processTickUpdate(tick1s)
+      })
+      
+      unsubscribe1sRef.current = unsubscribe1s
+      addCleanup(unsubscribe1s)
+
+      if (timeframe !== '1s') {
+        const unsubscribeTf = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
+          if (isCancelled || !newBar.isNewBar) return
+          // Handle new bar formation - update currentBarRef
+          const barPeriod = getBarPeriodTimestamp(newBar.timestamp, timeframe)
+          currentBarRef.current = {
+            timestamp: barPeriod,
+            open: newBar.open,
+            high: newBar.high,
+            low: newBar.low,
+            close: newBar.close,
+            volume: newBar.volume || 0
+          }
+        })
+        unsubscribeTimeframeRef.current = unsubscribeTf
+        addCleanup(unsubscribeTf)
       }
-      
-      setOpeningPrice(null)
-      setLastPrice(null)
-      currentBarRef.current = null
-      lastUpdateTimeRef.current = 0
+    }
 
-      checkSimulator().catch(err => console.log('Simulator check failed:', err))
+    // ✅ STEP 2: Load historical data in background
+    const loadHistoricalData = async () => {
+      setIsLoading(true)
       
-      cleanupAll()
-
       try {
-        let assetPath = selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`
-        assetPath = cleanAssetPath(assetPath)
-
-        let data: any[]
-
+        const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`)
         const cachedData = getCachedData(selectedAsset.id, timeframe)
+        
+        let data: any[]
         
         if (cachedData) {
           data = cachedData
         } else {
           data = await fetchHistoricalData(assetPath, timeframe)
+          setCachedData(selectedAsset.id, timeframe, data)
+        }
+        
+        if (isCancelled) return
+
+        if (data.length > 0) {
+          const candleData = data.map((bar: any) => ({
+            time: bar.timestamp as UTCTimestamp,
+            open: bar.open,
+            high: bar.high,
+            low: bar.low,
+            close: bar.close
+          }))
+
+          candleSeriesRef.current!.setData(candleData)
+          lineSeriesRef.current!.setData(candleData.map(bar => ({ time: bar.time, value: bar.close })))
           
-          if (isCancelled) return
+          chartRef.current?.timeScale().fitContent()
 
-          if (!data || data.length === 0) {
-            setIsLoading(false)
-            console.warn('No chart data available')
-            return
-          }
-        }
-
-        const candleData = data.map((bar: any) => ({
-          time: bar.timestamp as UTCTimestamp,
-          open: bar.open,
-          high: bar.high,
-          low: bar.low,
-          close: bar.close
-        }))
-
-        const lineData = data.map((bar: any) => ({
-          time: bar.timestamp as UTCTimestamp,
-          value: bar.close
-        }))
-
-        if (isCancelled) return
-
-        if (candleSeriesRef.current && lineSeriesRef.current) {
-          candleSeriesRef.current.setData(candleData)
-          lineSeriesRef.current.setData(lineData)
-
-          if (chartRef.current) {
-            chartRef.current.timeScale().fitContent()
-          }
-
-          if (data.length > 0) {
-            setOpeningPrice(data[0].open)
-            setLastPrice(data[data.length - 1].close)
-            
-            const lastBar = data[data.length - 1]
-            currentBarRef.current = {
-              timestamp: lastBar.timestamp,
-              open: lastBar.open,
-              high: lastBar.high,
-              low: lastBar.low,
-              close: lastBar.close,
-              volume: lastBar.volume || 0
-            }
-          }
-        }
-
-        setIsLoading(false)
-        setCachedData(selectedAsset.id, timeframe, data)
-
-        requestAnimationFrame(() => {
-          if (isCancelled) return
-
-          const unsubscribe1s = subscribeToOHLCUpdates(assetPath, '1s', (tick1s) => {
-            if (isCancelled || !candleSeriesRef.current || !lineSeriesRef.current) return
-
-            const now = Date.now()
-            if (now - lastUpdateTimeRef.current < updateThrottleMs) {
-              if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId)
-              }
-              
-              animationFrameId = requestAnimationFrame(() => {
-                processTickUpdate(tick1s)
-              })
-              return
-            }
-
-            processTickUpdate(tick1s)
-          })
-
-          unsubscribe1sRef.current = unsubscribe1s
-
-          if (timeframe !== '1s') {
-            const unsubscribeTimeframe = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
-              if (isCancelled) return
-
-              try {
-                if (newBar.isNewBar) {
-                  const barPeriod = getBarPeriodTimestamp(newBar.timestamp, timeframe)
-                  
-                  currentBarRef.current = {
-                    timestamp: barPeriod,
-                    open: newBar.open,
-                    high: newBar.high,
-                    low: newBar.low,
-                    close: newBar.close,
-                    volume: newBar.volume || 0
-                  }
-                }
-              } catch (error) {
-                console.error('Timeframe update error:', error)
-              }
-            })
-
-            unsubscribeTimeframeRef.current = unsubscribeTimeframe
-          }
-        })
-
-      } catch (err: any) {
-        if (isCancelled) return
-        console.error('Error loading data:', err)
-        setIsLoading(false)
-      }
-    }
-
-    const processTickUpdate = (tick1s: any) => {
-      try {
-        const newPrice = tick1s.close
-        const currentTimestamp = Math.floor(Date.now() / 1000)
-        
-        const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
-        
-        if (!currentBarRef.current || currentBarRef.current.timestamp !== barPeriod) {
+          const lastBar = data[data.length - 1]
           currentBarRef.current = {
-            timestamp: barPeriod,
-            open: newPrice,
-            high: newPrice,
-            low: newPrice,
-            close: newPrice,
-            volume: 0
+            timestamp: lastBar.timestamp,
+            open: lastBar.open,
+            high: lastBar.high,
+            low: lastBar.low,
+            close: lastBar.close,
+            volume: lastBar.volume || 0
           }
-        } else {
-          currentBarRef.current.high = Math.max(currentBarRef.current.high, newPrice)
-          currentBarRef.current.low = Math.min(currentBarRef.current.low, newPrice)
-          currentBarRef.current.close = newPrice
+          
+          setOpeningPrice(data[0].open)
+          setLastPrice(lastBar.close)
         }
-
-        const updatedBar = {
-          time: currentBarRef.current.timestamp as UTCTimestamp,
-          open: currentBarRef.current.open,
-          high: currentBarRef.current.high,
-          low: currentBarRef.current.low,
-          close: currentBarRef.current.close
-        }
-
-        if (candleSeriesRef.current && lineSeriesRef.current) {
-          candleSeriesRef.current.update(updatedBar)
-          lineSeriesRef.current.update({ 
-            time: updatedBar.time, 
-            value: updatedBar.close 
-          })
-        }
-
-        setLastPrice(newPrice)
-        lastUpdateTimeRef.current = Date.now()
-
       } catch (error) {
-        console.error('Tick update error:', error)
+        console.error('Historical data load error:', error)
+      } finally {
+        setIsLoading(false)
       }
     }
 
-    loadChartData()
+    // ✅ STEP 3: Execute in parallel, not sequentially
+    checkSimulator().catch(err => console.log('Simulator check failed:', err))
+    setupRealtime() // Start subscriptions immediately
+    loadHistoricalData() // Load history in background
 
     return () => {
       isCancelled = true
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId)
-      }
+      if (animationFrameId) cancelAnimationFrame(animationFrameId)
       cleanupAll()
     }
-  }, [selectedAsset?.id, timeframe, isInitialized, checkSimulator, cleanupAll])
+  }, [selectedAsset?.id, timeframe, isInitialized, checkSimulator, cleanupAll, addCleanup])
 
-  const candleData = useMemo(() => {
-    if (!currentBarRef.current) return []
-    return [{
-      time: currentBarRef.current.timestamp as UTCTimestamp,
-      open: currentBarRef.current.open,
-      high: currentBarRef.current.high,
-      low: currentBarRef.current.low,
-      close: currentBarRef.current.close
-    }]
-  }, [currentBarRef.current?.close])
+  // ✅ HELPER: Update chart with real-time price
+  const updateChartWithRealtimePrice = useCallback((price: number) => {
+    if (!candleSeriesRef.current || !currentBarRef.current) return
+
+    const currentTimestamp = Math.floor(Date.now() / 1000)
+    const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
+    
+    let currentBar = currentBarRef.current
+    
+    if (currentBar.timestamp !== barPeriod) {
+      // New bar needed
+      currentBar = {
+        timestamp: barPeriod,
+        open: price,
+        high: price,
+        low: price,
+        close: price,
+        volume: 0
+      }
+      currentBarRef.current = currentBar
+    } else {
+      // Update existing bar
+      currentBar.high = Math.max(currentBar.high, price)
+      currentBar.low = Math.min(currentBar.low, price)
+      currentBar.close = price
+    }
+
+    const updatedBar = {
+      time: currentBar.timestamp as UTCTimestamp,
+      open: currentBar.open,
+      high: currentBar.high,
+      low: currentBar.low,
+      close: currentBar.close
+    }
+
+    try {
+      candleSeriesRef.current.update(updatedBar)
+      lineSeriesRef.current?.update({ time: updatedBar.time, value: updatedBar.close })
+    } catch (e) {
+      console.warn('Chart update error:', e)
+    }
+  }, [timeframe])
+
+  // ✅ HELPER: Process 1s tick updates
+  const processTickUpdate = useCallback((tick1s: any) => {
+    try {
+      const newPrice = tick1s.close
+      const currentTimestamp = Math.floor(Date.now() / 1000)
+      
+      const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
+      
+      if (!currentBarRef.current || currentBarRef.current.timestamp !== barPeriod) {
+        currentBarRef.current = {
+          timestamp: barPeriod,
+          open: newPrice,
+          high: newPrice,
+          low: newPrice,
+          close: newPrice,
+          volume: 0
+        }
+      } else {
+        currentBarRef.current.high = Math.max(currentBarRef.current.high, newPrice)
+        currentBarRef.current.low = Math.min(currentBarRef.current.low, newPrice)
+        currentBarRef.current.close = newPrice
+      }
+
+      const updatedBar = {
+        time: currentBarRef.current.timestamp as UTCTimestamp,
+        open: currentBarRef.current.open,
+        high: currentBarRef.current.high,
+        low: currentBarRef.current.low,
+        close: currentBarRef.current.close
+      }
+
+      if (candleSeriesRef.current && lineSeriesRef.current) {
+        candleSeriesRef.current.update(updatedBar)
+        lineSeriesRef.current.update({ 
+          time: updatedBar.time, 
+          value: updatedBar.close 
+        })
+      }
+
+      setLastPrice(newPrice)
+      lastUpdateTimeRef.current = Date.now()
+
+    } catch (error) {
+      console.error('Tick update error:', error)
+    }
+  }, [timeframe])
 
   const handleRefresh = useCallback(() => {
     if (!selectedAsset) return

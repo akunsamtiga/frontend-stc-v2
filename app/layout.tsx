@@ -18,7 +18,6 @@ const jetbrainsMono = JetBrains_Mono({
   variable: '--font-mono',
 })
 
-// ✅ Metadata tanpa themeColor dan viewport
 export const metadata: Metadata = {
   title: 'STC AutoTrade',
   description: 'Platform dengan penarikan kilat, profit hingga 100%, dan keamanan maksimal.',
@@ -35,7 +34,6 @@ export const metadata: Metadata = {
   },
 }
 
-// ✅ Viewport di-export terpisah
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -52,33 +50,24 @@ export default function RootLayout({
     <html lang="id" className={`${ibmPlexSans.variable} ${jetbrainsMono.variable}`}>
       <head>
         <link rel="icon" href="/stc.ico" sizes="any" />
-        {/* Dark theme sudah di-handle oleh viewport export */}
-        
-        {/* Apple specific */}
+
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         
-        {/* Android Chrome */}
         <meta name="mobile-web-app-capable" content="yes" />
         
-        {/* Microsoft */}
         <meta name="msapplication-TileColor" content="#0f1419" />
         <meta name="msapplication-navbutton-color" content="#0f1419" />
       </head>
       <body className="bg-[#0a0e17] text-white">
-        {/* Auth Handler - Harus di paling atas */}
         <GoogleAuthHandler />
         
-        {/* WebSocket Provider - Bungkus seluruh aplikasi untuk real-time */}
         <WebSocketProvider>
-          {/* Background Services */}
           <ServiceWorkerRegistrar />
           <ChartPreloader />
           
-          {/* Main Content */}
           {children}
           
-          {/* Toast Notifications */}
           <Toaster 
             position="top-right" 
             theme="dark"

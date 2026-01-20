@@ -250,14 +250,19 @@ class WebSocketService {
   // SUBSCRIPTION METHODS
   // ============================================
 
+  /**
+   * ✅ Subscribe to price updates for a specific asset
+   * Uses WebSocket for instant updates (< 50ms latency)
+   */
   subscribeToPrice(assetId: string, callback: PriceCallback) {
-    console.log('📡 Subscribing to price for asset:', assetId);
-
-    // Add callback to map
+    console.log('📡 Subscribing to price stream for:', assetId);
+    
+    // Initialize callback set for this asset if needed
     if (!this.priceCallbacks.has(assetId)) {
       this.priceCallbacks.set(assetId, new Set());
     }
     
+    // Add callback
     this.priceCallbacks.get(assetId)!.add(callback);
 
     // ✅ Subscribe via WebSocket if connected
@@ -287,6 +292,9 @@ class WebSocketService {
     };
   }
 
+  /**
+   * ✅ Subscribe to order updates for a specific user
+   */
   subscribeToOrders(userId: string, callback: OrderCallback) {
     console.log('📡 Subscribing to orders for user:', userId);
 
