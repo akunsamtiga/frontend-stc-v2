@@ -1,7 +1,8 @@
-// components/ChartPreloader.tsx
+// components/ChartPreloader.tsx - ✅ FIXED
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useAuthStore } from '@/store/auth'
 import { prefetchMultipleTimeframes } from '@/lib/firebase'
 import { Asset } from '@/types'
 
@@ -13,6 +14,7 @@ interface PreloadStatus {
 }
 
 export default function ChartPreloader() {
+  const token = useAuthStore(state => state.token)
   const [status, setStatus] = useState<PreloadStatus>({
     loading: true,
     progress: 0,
@@ -21,16 +23,48 @@ export default function ChartPreloader() {
   })
 
   useEffect(() => {
+    if (!token) {
+      console.log('⏭️ ChartPreloader: No token, skipping preload')
+      setStatus(prev => ({ ...prev, loading: false, progress: 100 }))
+      return
+    }
+
     const preloadAllAssets = async () => {
+      setStatus({ loading: true, progress: 0, total: 0, loaded: 0 })
+
       try {
-        const response = await fetch('/api/v1/assets?activeOnly=true')
-        const { data } = await response.json()
-        const assets: Asset[] = data.assets
+        const response = await fetch('/api/v1/assets?activeOnly=true', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          credentials: 'omit'
+        })
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            console.log('⏭️ Preload skipped: Unauthorized')
+          } else {
+            console.error('❌ Preload failed:', response.status, response.statusText)
+          }
+          setStatus(prev => ({ ...prev, loading: false, progress: 100 }))
+          return
+        }
+        
+        const result = await response.json()
+        const assets: Asset[] = result?.data?.assets || []
+        
+        if (!assets.length) {
+          console.log('⏭️ Preload skipped: No assets')
+          setStatus(prev => ({ ...prev, loading: false, progress: 100 }))
+          return
+        }
 
         setStatus(prev => ({ ...prev, total: assets.length }))
 
         const preloadPromises = assets.map(asset => {
           if (!asset.realtimeDbPath) return null
+          
           return prefetchMultipleTimeframes(asset.realtimeDbPath, ['1m', '5m'])
             .then(() => {
               setStatus(prev => ({
@@ -39,12 +73,16 @@ export default function ChartPreloader() {
                 progress: Math.round(((prev.loaded + 1) / assets.length) * 100)
               }))
             })
-            .catch(() => null)
+            .catch(err => {
+              console.warn(`⚠️ Prefetch failed for ${asset.symbol}:`, err.message)
+              return null
+            })
         })
 
         await Promise.allSettled(preloadPromises)
+        
       } catch (error) {
-        console.error('Preload failed:', error)
+        console.error('❌ Preload error:', error)
       } finally {
         setStatus(prev => ({ ...prev, loading: false, progress: 100 }))
       }
@@ -52,7 +90,7 @@ export default function ChartPreloader() {
 
     const timer = setTimeout(preloadAllAssets, 1000)
     return () => clearTimeout(timer)
-  }, [])
+  }, [token])
 
   if (!status.loading) return null
 

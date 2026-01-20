@@ -1,15 +1,15 @@
-// components/TradingChart.tsx
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo, useMemo } from 'react'
 import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp } from 'lightweight-charts'
-import { useTradingStore } from '@/store/trading'
-import { fetchHistoricalData, subscribeToOHLCUpdates, subscribeToPriceUpdates, prefetchMultipleTimeframes } from '@/lib/firebase'
+import { useTradingStore, useTradingActions } from '@/store/trading'
+import { fetchHistoricalData, subscribeToOHLCUpdates, prefetchMultipleTimeframes } from '@/lib/firebase'
 import { BinaryOrder, TIMEFRAMES, Timeframe as TimeframeType } from '@/types'
 import { database, ref, get } from '@/lib/firebase'
 import dynamic from 'next/dynamic'
 import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2, Zap } from 'lucide-react'
 import { usePriceStream } from '@/components/providers/WebSocketProvider'
+import AssetIcon from '@/components/common/AssetIcon'
 
 const IndicatorControls = dynamic(() => import('./IndicatorControls'), { ssr: false })
 
@@ -19,6 +19,8 @@ type Timeframe = TimeframeType
 interface TradingChartProps {
   activeOrders?: BinaryOrder[]
   currentPrice?: number
+  assets?: any[]
+  onAssetSelect?: (asset: any) => void
 }
 
 interface IndicatorConfig {
@@ -190,14 +192,19 @@ const RealtimeClock = memo(() => {
 
 RealtimeClock.displayName = 'RealtimeClock'
 
-const PriceDisplay = memo(({ asset, price }: { asset: any; price: any }) => {
+const PriceDisplay = memo(({ asset, price, onClick, showMenu, assets, onSelectAsset }: any) => {
   if (!asset || !price) return null
 
   const hasChange = price.change !== undefined && price.change !== 0
 
   return (
-    <div className="absolute top-2 left-2 z-10 bg-black/20 backdrop-blur-sm rounded-lg px-4 py-2">
-      <div className="flex items-center gap-4">
+    <div className="absolute top-2 left-2 z-20">
+      <button
+        onClick={onClick}
+        className="bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 hover:bg-black/50 transition-all flex items-center gap-3"
+      >
+        {asset && <AssetIcon asset={asset} size="sm" />}
+        
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-400">{asset.name}</span>
           <span className="text-xl font-bold">{price.price.toFixed(3)}</span>
@@ -210,7 +217,46 @@ const PriceDisplay = memo(({ asset, price }: { asset: any; price: any }) => {
             <span>{price.change >= 0 ? '+' : ''}{price.change.toFixed(2)}%</span>
           </div>
         )}
-      </div>
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${
+          showMenu ? 'rotate-180' : ''
+        }`} />
+      </button>
+
+      {showMenu && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={onClick} />
+          <div className="absolute top-full left-0 mt-2 w-72 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl z-40 max-h-80 overflow-y-auto lg:hidden">
+            {assets.map((assetItem: any) => (
+              <button
+                key={assetItem.id}
+                onClick={() => {
+                  onSelectAsset(assetItem)
+                }}
+                onMouseEnter={() => {
+                  if (assetItem.realtimeDbPath) {
+                    prefetchMultipleTimeframes(
+                      assetItem.realtimeDbPath,
+                      ['1m', '5m']
+                    ).catch(err => console.log('Prefetch failed:', err))
+                  }
+                }}
+                className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#1a1f2e] transition-colors border-b border-gray-800/30 last:border-0 ${
+                  assetItem.id === asset?.id ? 'bg-[#1a1f2e]' : ''
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <AssetIcon asset={assetItem} size="xs" />
+                  <div className="text-left">
+                    <div className="text-sm font-medium">{assetItem.symbol}</div>
+                    <div className="text-xs text-gray-400">{assetItem.name}</div>
+                  </div>
+                </div>
+                <div className="text-xs font-bold text-green-400">+{assetItem.profitRate}%</div>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 })
@@ -490,18 +536,16 @@ const DesktopControls = memo(({
 
 DesktopControls.displayName = 'DesktopControls'
 
-const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProps) => {
+const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAssetSelect }: TradingChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const fullscreenContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null)
   const lineSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
-  
   const unsubscribe1sRef = useRef<(() => void) | null>(null)
   const unsubscribeTimeframeRef = useRef<(() => void) | null>(null)
   const isMountedRef = useRef(false)
   const cleanupFunctionsRef = useRef<Array<() => void>>([])
-  
   const currentBarRef = useRef<{
     timestamp: number
     open: number
@@ -510,14 +554,14 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     close: number
     volume: number
   } | null>(null)
-  
   const lastUpdateTimeRef = useRef<number>(0)
   const updateThrottleMs = 50
-  
   const previousAssetIdRef = useRef<string | null>(null)
-  
   const { selectedAsset } = useTradingStore()
-
+  const { setSelectedAsset } = useTradingActions()
+  const storeAssets = useTradingStore(state => state.assets)
+  const availableAssets = assets.length > 0 ? assets : storeAssets || []
+  
   const [chartType, setChartType] = useState<ChartType>('candle')
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
   const [isLoading, setIsLoading] = useState(false)
@@ -531,10 +575,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     hasOHLC: boolean
     message: string
   } | null>(null)
-  
   const [showIndicators, setShowIndicators] = useState(false)
   const [indicatorConfig, setIndicatorConfig] = useState<IndicatorConfig>(DEFAULT_INDICATOR_CONFIG)
-  
   const [ohlcData, setOhlcData] = useState<{
     time: number
     open: number
@@ -543,11 +585,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     close: number
   } | null>(null)
   const [showOhlc, setShowOhlc] = useState(false)
-
-  // ✅ NEW: WebSocket price stream for instant updates
-  const wsPrice = usePriceStream(selectedAsset?.id || null)
+  const [showAssetMenu, setShowAssetMenu] = useState(false)
   
-  // ✅ NEW: Track prefetched assets to avoid duplicate requests
+  const wsPrice = usePriceStream(selectedAsset?.id || null)
   const [prefetchedAssets, setPrefetchedAssets] = useState<Set<string>>(new Set())
 
   const addCleanup = useCallback((fn: () => void) => {
@@ -615,7 +655,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
   }, [])
 
-  // ✅ NEW: Prefetch all timeframes for current asset
   const prefetchAllTimeframes = useCallback(async (assetId: string, assetPath: string) => {
     if (prefetchedAssets.has(assetId)) {
       console.log(`⏭️ Asset ${assetId} already prefetched, skipping`)
@@ -626,7 +665,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     console.log(`🔄 Starting full prefetch for asset: ${assetId}`)
 
     try {
-      // Semua timeframe kecuali yang sedang aktif
       const allTimeframes = [...TIMEFRAMES]
       const timeframesToPrefetch = allTimeframes.filter(tf => tf !== timeframe)
       
@@ -650,7 +688,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       
       console.log(`✅ Full prefetch complete: ${successful}/${timeframesToPrefetch.length} timeframes loaded`)
       
-      // Mark asset as prefetched
       setPrefetchedAssets(prev => new Set(prev).add(assetId))
       
     } catch (error) {
@@ -665,8 +702,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
     const prefetch = async () => {
       const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath!)
-      
-      // Early prefetch untuk timeframe yang sering digunakan
       const criticalTimeframes = ['1m', '5m', '15m']
       
       await prefetchMultipleTimeframes(assetPath, criticalTimeframes as Timeframe[])
@@ -678,7 +713,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     return () => clearTimeout(timer)
   }, [selectedAsset?.id, selectedAsset?.realtimeDbPath])
 
-  // ✅ STEP 1: IMMEDIATE PRICE FETCH ON MOUNT
   const fetchCurrentPriceImmediately = useCallback(async () => {
     if (!selectedAsset?.realtimeDbPath) return
     
@@ -703,15 +737,12 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [selectedAsset?.id, isInitialized, fetchCurrentPriceImmediately])
 
-  // ✅ STEP 2: WEBSOCKET PRICE UPDATES (Ultra-fast)
   useEffect(() => {
     if (!selectedAsset?.id || wsPrice === null) return
 
-    // Update price immediately from WebSocket
     setLastPrice(wsPrice)
     lastUpdateTimeRef.current = Date.now()
 
-    // Update chart bar if initialized
     if (candleSeriesRef.current && currentBarRef.current) {
       updateChartWithRealtimePrice(wsPrice)
     }
@@ -834,7 +865,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [chartType])
 
-  // ✅ MAIN EFFECT: Parallel Realtime + Historical Loading
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
       return
@@ -846,13 +876,11 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     let isCancelled = false
     let animationFrameId: number | null = null
 
-    // ✅ STEP 1: Set up real-time subscriptions immediately
     const setupRealtime = async () => {
       if (!selectedAsset.realtimeDbPath) return
 
       const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath)
 
-      // Firebase fallback for OHLC bar updates (essential for chart formation)
       const unsubscribe1s = subscribeToOHLCUpdates(assetPath, '1s', (tick1s) => {
         if (isCancelled) return
         processTickUpdate(tick1s)
@@ -864,7 +892,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       if (timeframe !== '1s') {
         const unsubscribeTf = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
           if (isCancelled || !newBar.isNewBar) return
-          // Handle new bar formation - update currentBarRef
           const barPeriod = getBarPeriodTimestamp(newBar.timestamp, timeframe)
           currentBarRef.current = {
             timestamp: barPeriod,
@@ -880,7 +907,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       }
     }
 
-    // ✅ STEP 2: Load historical data (PRIMARY)
     const loadHistoricalData = async () => {
       setIsLoading(true)
       
@@ -933,10 +959,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       }
     }
 
-    // ✅ STEP 3: Execute in parallel, not sequentially
     checkSimulator().catch(err => console.log('Simulator check failed:', err))
-    setupRealtime() // Start subscriptions immediately
-    loadHistoricalData() // Load history in background
+    setupRealtime()
+    loadHistoricalData()
 
     return () => {
       isCancelled = true
@@ -945,11 +970,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [selectedAsset?.id, timeframe, isInitialized, checkSimulator, cleanupAll, addCleanup])
 
-  // ✅ NEW: Background prefetch effect after main data loads
   useEffect(() => {
     if (!selectedAsset || !isInitialized || isLoading) return
 
-    // Jangan prefetch jika asset sudah diprefetch sebelumnya
     if (prefetchedAssets.has(selectedAsset.id)) {
       console.log(`⏭️ Background prefetch skipped for ${selectedAsset.id} - already prefetched`)
       return
@@ -957,7 +980,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
     const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`)
 
-    // Tunggu 1 detik setelah chart utama selesai load
     const prefetchTimer = setTimeout(() => {
       console.log(`🔄 Starting background prefetch for all timeframes...`)
       prefetchAllTimeframes(selectedAsset.id, assetPath)
@@ -966,7 +988,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     return () => clearTimeout(prefetchTimer)
   }, [selectedAsset?.id, isInitialized, isLoading, prefetchedAssets, prefetchAllTimeframes])
 
-  // ✅ HELPER: Update chart with real-time price
   const updateChartWithRealtimePrice = useCallback((price: number) => {
     if (!candleSeriesRef.current || !currentBarRef.current) return
 
@@ -976,7 +997,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     let currentBar = currentBarRef.current
     
     if (currentBar.timestamp !== barPeriod) {
-      // New bar needed
       currentBar = {
         timestamp: barPeriod,
         open: price,
@@ -987,7 +1007,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       }
       currentBarRef.current = currentBar
     } else {
-      // Update existing bar
       currentBar.high = Math.max(currentBar.high, price)
       currentBar.low = Math.min(currentBar.low, price)
       currentBar.close = price
@@ -1009,7 +1028,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     }
   }, [timeframe])
 
-  // ✅ HELPER: Process 1s tick updates
   const processTickUpdate = useCallback((tick1s: any) => {
     try {
       const newPrice = tick1s.close
@@ -1061,7 +1079,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     
     GLOBAL_DATA_CACHE.delete(`${selectedAsset.id}-${timeframe}`)
     
-    // Reset prefetch status untuk force reload
     setPrefetchedAssets(prev => {
       const newSet = new Set(prev)
       newSet.delete(selectedAsset.id)
@@ -1096,6 +1113,11 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     return ((lastPrice - openingPrice) / openingPrice) * 100
   }, [lastPrice, openingPrice])
 
+  const handleAssetSelect = useCallback((asset: any) => {
+    setSelectedAsset(asset)
+    onAssetSelect?.(asset)
+  }, [setSelectedAsset, onAssetSelect])
+
   if (!selectedAsset) {
     return (
       <div className="h-full flex items-center justify-center bg-[#0a0e17]">
@@ -1115,7 +1137,14 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
   return (
     <div ref={fullscreenContainerRef} className={`relative h-full ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : ''}`}>
-      <PriceDisplay asset={selectedAsset} price={currentPriceData} />
+      <PriceDisplay 
+        asset={selectedAsset} 
+        price={currentPriceData} 
+        onClick={() => setShowAssetMenu(!showAssetMenu)}
+        showMenu={showAssetMenu}
+        assets={availableAssets}
+        onSelectAsset={handleAssetSelect}
+      />
       <RealtimeClock />
 
       <DesktopControls 

@@ -1206,7 +1206,7 @@ export default function ProfilePage() {
                     
                     {statusInfo && (
                       <motion.div 
-                        className={`inline-flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-lg md:rounded-xl text-white shadow-lg text-sm md:text-base ${getStatusGradient(statusInfo.current)}`}
+                        className={`inline-flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-lg md:rounded-xl text-white shadow-lg text-sm md:text-base bg-gradient-to-r ${getStatusGradient(statusInfo.current)}`}
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.3, type: "spring" }}
@@ -2310,11 +2310,10 @@ export default function ProfilePage() {
                   Your Status
                 </h3>
                 <motion.div 
-                  className={`flex flex-col sm:flex-row items-center sm:items-center gap-4 p-4 md:p-6 rounded-xl text-white shadow-xl ${getStatusGradient(statusInfo.current)}`}
+                  className={`flex flex-col sm:flex-row items-center sm:items-center gap-4 p-4 md:p-6 rounded-xl text-white shadow-xl bg-gradient-to-r ${getStatusGradient(statusInfo.current)}`}
                   whileHover={{ scale: 1.01 }}
                 >
                   <motion.div
-                    animate={{ rotate: 360 }}
                     transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                   >
                     {React.createElement(getStatusIcon(statusInfo.current), { className: "w-10 h-10 md:w-12 md:h-12" })}

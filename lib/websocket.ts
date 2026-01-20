@@ -120,11 +120,6 @@ class WebSocketService {
       this.isConnected = true;
       this.isConnecting = false;
       this.reconnectAttempts = 0;
-      
-      toast.success('Real-time updates enabled', {
-        duration: 2000,
-        position: 'top-right',
-      });
 
       // ✅ Resubscribe to all active subscriptions
       this.resubscribeAll();

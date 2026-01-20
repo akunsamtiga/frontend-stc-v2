@@ -1,4 +1,4 @@
-// store/trading.ts - SYNCHRONIZED WITH BACKEND v3.2
+// store/trading.ts - ✅ TAMBAHKAN ASSETS STATE
 import { create } from 'zustand'
 import { devtools, subscribeWithSelector, persist } from 'zustand/middleware'
 import { Asset, PriceData, AccountType } from '@/types'
@@ -10,6 +10,7 @@ interface TradingState {
   isChartReady: boolean
   lastUpdate: number
   selectedAccountType: AccountType
+  assets: Asset[] // ✅ TAMBAHKAN INI
   
   setSelectedAsset: (asset: Asset | null) => void
   setCurrentPrice: (price: PriceData) => void
@@ -17,6 +18,7 @@ interface TradingState {
   clearPriceHistory: () => void
   setChartReady: (ready: boolean) => void
   setSelectedAccountType: (accountType: AccountType) => void
+  setAssets: (assets: Asset[]) => void // ✅ TAMBAHKAN INI
 }
 
 const MAX_HISTORY = 100
@@ -32,6 +34,7 @@ export const useTradingStore = create<TradingState>()(
         isChartReady: false,
         lastUpdate: 0,
         selectedAccountType: 'demo' as AccountType,
+        assets: [], // ✅ INITIAL STATE
         
         setSelectedAsset: (asset) => {
           const current = get().selectedAsset
@@ -99,6 +102,10 @@ export const useTradingStore = create<TradingState>()(
         setSelectedAccountType: (accountType) => {
           if (get().selectedAccountType === accountType) return
           set({ selectedAccountType: accountType }, false, { type: 'setSelectedAccountType' })
+        },
+        
+        setAssets: (assets) => { // ✅ ACTION BARU
+          set({ assets }, false, { type: 'setAssets' })
         }
       })),
       {
@@ -127,13 +134,17 @@ export const usePriceHistory = () =>
 export const useSelectedAccountType = () =>
   useTradingStore(state => state.selectedAccountType)
 
+export const useTradingAssets = () => // ✅ HOOK BARU
+  useTradingStore(state => state.assets)
+
 export const useTradingData = () => {
   const selectedAsset = useTradingStore(state => state.selectedAsset)
   const currentPrice = useTradingStore(state => state.currentPrice)
   const isChartReady = useTradingStore(state => state.isChartReady)
   const selectedAccountType = useTradingStore(state => state.selectedAccountType)
+  const assets = useTradingStore(state => state.assets) // ✅ TAMBAHKAN
   
-  return { selectedAsset, currentPrice, isChartReady, selectedAccountType }
+  return { selectedAsset, currentPrice, isChartReady, selectedAccountType, assets }
 }
 
 export const useTradingActions = () => {
@@ -143,6 +154,7 @@ export const useTradingActions = () => {
   const clearPriceHistory = useTradingStore(state => state.clearPriceHistory)
   const setChartReady = useTradingStore(state => state.setChartReady)
   const setSelectedAccountType = useTradingStore(state => state.setSelectedAccountType)
+  const setAssets = useTradingStore(state => state.setAssets) // ✅ TAMBAHKAN
   
   return {
     setSelectedAsset,
@@ -150,6 +162,7 @@ export const useTradingActions = () => {
     addPriceToHistory,
     clearPriceHistory,
     setChartReady,
-    setSelectedAccountType
+    setSelectedAccountType,
+    setAssets // ✅ TAMBAHKAN
   }
 }

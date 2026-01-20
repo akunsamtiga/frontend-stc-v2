@@ -432,8 +432,13 @@ export default function TradingPage() {
       }
     }
     
+    if (assets.length > 0) {
+      useTradingStore.getState().setAssets(assets)
+    }
+    
     initializeData()
-  }, [user, router])
+  }, [user, router, assets]) 
+
 
   useEffect(() => {
     if (!user) return
@@ -629,30 +634,7 @@ export default function TradingPage() {
 
           <div className="flex-1"></div>
 
-          <div className={`hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors ${
-            isConnected 
-              ? 'bg-green-500/10 border border-green-500/30' 
-              : isConnecting
-              ? 'bg-yellow-500/10 border border-yellow-500/30'
-              : 'bg-red-500/10 border border-red-500/30'
-          }`}>
-            {isConnected ? (
-              <>
-                <Wifi className="w-4 h-4 text-green-400" />
-                <span className="text-xs text-green-400 font-medium">Live</span>
-              </>
-            ) : isConnecting ? (
-              <>
-                <div className="w-4 h-4 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
-                <span className="text-xs text-yellow-400 font-medium">Connecting...</span>
-              </>
-            ) : (
-              <>
-                <WifiOff className="w-4 h-4 text-red-400" />
-                <span className="text-xs text-red-400 font-medium">Offline</span>
-              </>
-            )}
-          </div>
+          
 
           <div className="relative">
             <button
@@ -800,28 +782,6 @@ export default function TradingPage() {
             </div>
           </div>
 
-          <div className={`lg:hidden flex items-center gap-2 px-2 py-1 rounded-lg transition-colors ${
-            isConnected 
-              ? 'bg-green-500/10 border border-green-500/30' 
-              : isConnecting
-              ? 'bg-yellow-500/10 border border-yellow-500/30'
-              : 'bg-red-500/10 border border-red-500/30'
-          }`}>
-            {isConnected ? (
-              <Wifi className="w-3 h-3 text-green-400" />
-            ) : isConnecting ? (
-              <div className="w-3 h-3 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <WifiOff className="w-3 h-3 text-red-400" />
-            )}
-          </div>
-
-          {selectedAsset && (
-            <div className="flex items-center gap-2 px-2 py-1 bg-[#1a1f2e] rounded-lg border border-gray-800/50">
-              <AssetIcon asset={selectedAsset} size="xs" />
-              <span className="text-xs font-medium">{selectedAsset.symbol}</span>
-            </div>
-          )}
 
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -898,10 +858,12 @@ export default function TradingPage() {
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           <div className="flex-1 bg-[#0a0e17] relative overflow-hidden">
             {selectedAsset ? (
-              <TradingChart 
-                activeOrders={activeOrders}
-                currentPrice={currentPrice?.price}
-              />
+            <TradingChart 
+              activeOrders={activeOrders}
+              currentPrice={currentPrice?.price}
+              assets={assets} // ✅ Kirim list assets
+              onAssetSelect={setSelectedAsset} // ✅ Kirim handler
+            />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center text-gray-500">
@@ -1007,11 +969,6 @@ export default function TradingPage() {
                 </button>
               </div>
 
-              {!isConnected && (
-                <div className="text-center text-xs text-yellow-400 mt-2">
-                  ⚠️ Waiting for real-time connection...
-                </div>
-              )}
 
               {loading && (
                 <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-2 mt-3">
@@ -1147,11 +1104,6 @@ export default function TradingPage() {
             </button>
           </div>
 
-          {!isConnected && (
-            <div className="text-center text-xs text-yellow-400 pt-1">
-              ⚠️ Waiting for real-time connection...
-            </div>
-          )}
 
           {loading && (
             <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-2 pt-1">
