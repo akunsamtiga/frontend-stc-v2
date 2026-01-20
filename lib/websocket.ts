@@ -1,4 +1,4 @@
-// lib/websocket.ts - Real-time WebSocket Service
+// lib/websocket.ts - ✅ FIXED: Correct Backend URL
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 
@@ -65,18 +65,22 @@ class WebSocketService {
     this.token = token;
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-      const wsUrl = API_URL.replace('/api/v1', '').replace('http', 'ws');
+      // ✅ FIXED: Use backend server URL directly
+      const BACKEND_WS_URL = 'http://103.171.85.146:3000';
 
-      console.log('🔌 Connecting to WebSocket:', wsUrl);
+      console.log('🔌 Connecting to WebSocket:', BACKEND_WS_URL);
 
-      this.socket = io(wsUrl, {
+      this.socket = io(BACKEND_WS_URL, {
         auth: { token },
-        transports: ['websocket', 'polling'],
+        transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
         reconnection: true,
         reconnectionAttempts: this.maxReconnectAttempts,
         reconnectionDelay: this.reconnectDelay,
         timeout: 10000,
+        // ✅ IMPORTANT: Force new connection
+        forceNew: true,
+        // ✅ Allow cross-origin
+        withCredentials: false,
       });
 
       this.setupEventHandlers();
