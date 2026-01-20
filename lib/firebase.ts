@@ -258,7 +258,7 @@ function processHistoricalData(rawData: any, limit: number): any[] {
 // MAIN FETCH FUNCTION - WITH DEDUPLICATION
 // ============================================
 
-type Timeframe = '1s' | '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
+import type { Timeframe } from '@/types'
 
 export async function fetchHistoricalData(
   assetPath: string,

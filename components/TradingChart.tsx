@@ -5,16 +5,16 @@ import { useEffect, useRef, useState, useCallback, memo, useMemo } from 'react'
 import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp } from 'lightweight-charts'
 import { useTradingStore } from '@/store/trading'
 import { fetchHistoricalData, subscribeToOHLCUpdates, subscribeToPriceUpdates, prefetchMultipleTimeframes } from '@/lib/firebase'
-import { BinaryOrder } from '@/types'
+import { BinaryOrder, TIMEFRAMES, Timeframe as TimeframeType } from '@/types'
 import { database, ref, get } from '@/lib/firebase'
 import dynamic from 'next/dynamic'
 import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2, Zap } from 'lucide-react'
-import { usePriceStream } from '@/components/providers/WebSocketProvider' // ✅ NEW: WebSocket hook
+import { usePriceStream } from '@/components/providers/WebSocketProvider'
 
 const IndicatorControls = dynamic(() => import('./IndicatorControls'), { ssr: false })
 
 type ChartType = 'line' | 'candle'
-type Timeframe = '1s' | '1m' | '5m' | '15m' | '1h' | '4h' | '1d'
+type Timeframe = TimeframeType
 
 interface TradingChartProps {
   activeOrders?: BinaryOrder[]
@@ -88,6 +88,7 @@ function getTimeframeSeconds(timeframe: Timeframe): number {
     '1m': 60,
     '5m': 300,
     '15m': 900,
+    '30m': 1800,
     '1h': 3600,
     '4h': 14400,
     '1d': 86400
@@ -325,7 +326,7 @@ const MobileControls = memo(({
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const timeframes: Timeframe[] = ['1s', '1m', '5m', '15m', '1h', '4h', '1d']
+  const timeframes: Timeframe[] = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d']
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -416,7 +417,7 @@ const DesktopControls = memo(({
   const [showTimeframeMenu, setShowTimeframeMenu] = useState(false)
   const timeframeRef = useRef<HTMLDivElement>(null)
 
-  const timeframes: Timeframe[] = ['1s', '1m', '5m', '15m', '1h', '4h', '1d']
+  const timeframes: Timeframe[] = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d']
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -447,7 +448,7 @@ const DesktopControls = memo(({
               <div className="absolute top-full right-0 mt-1 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden min-w-[120px]">
                 {timeframes.map((tf) => (
                   <button key={tf} onClick={() => { onTimeframeChange(tf); setShowTimeframeMenu(false) }} disabled={isLoading} className={`w-full px-4 py-2.5 text-left text-sm font-bold transition-all flex items-center gap-2 ${
-                    timeframe === tf ? 'bg-blue-500 text-white' : 'text-gray-300 hover:bg-[#1a1f2e]'
+                    timeframe === tf ? 'bg-blue-500 text-white shadow-sm' : 'text-gray-300 hover:bg-[#1a1f2e]'
                   } disabled:opacity-50`}>
                     {tf === '1s' && <Zap className="w-3.5 h-3.5" />}
                     {tf}
@@ -545,6 +546,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
 
   // ✅ NEW: WebSocket price stream for instant updates
   const wsPrice = usePriceStream(selectedAsset?.id || null)
+  
+  // ✅ NEW: Track prefetched assets to avoid duplicate requests
+  const [prefetchedAssets, setPrefetchedAssets] = useState<Set<string>>(new Set())
 
   const addCleanup = useCallback((fn: () => void) => {
     cleanupFunctionsRef.current.push(fn)
@@ -611,19 +615,68 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
   }, [])
 
+  // ✅ NEW: Prefetch all timeframes for current asset
+  const prefetchAllTimeframes = useCallback(async (assetId: string, assetPath: string) => {
+    if (prefetchedAssets.has(assetId)) {
+      console.log(`⏭️ Asset ${assetId} already prefetched, skipping`)
+      return
+    }
+
+    setIsLoading(true)
+    console.log(`🔄 Starting full prefetch for asset: ${assetId}`)
+
+    try {
+      // Semua timeframe kecuali yang sedang aktif
+      const allTimeframes = [...TIMEFRAMES]
+      const timeframesToPrefetch = allTimeframes.filter(tf => tf !== timeframe)
+      
+      const prefetchPromises = timeframesToPrefetch.map(tf => 
+        fetchHistoricalData(assetPath, tf as Timeframe)
+          .then(data => {
+            if (data.length > 0) {
+              setCachedData(assetId, tf as Timeframe, data)
+              console.log(`✅ Prefetched ${tf}: ${data.length} bars`)
+            }
+            return { timeframe: tf, success: true, bars: data.length }
+          })
+          .catch(error => {
+            console.warn(`⚠️ Prefetch failed for ${tf}:`, error.message)
+            return { timeframe: tf, success: false, error: error.message }
+          })
+      )
+
+      const results = await Promise.allSettled(prefetchPromises)
+      const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length
+      
+      console.log(`✅ Full prefetch complete: ${successful}/${timeframesToPrefetch.length} timeframes loaded`)
+      
+      // Mark asset as prefetched
+      setPrefetchedAssets(prev => new Set(prev).add(assetId))
+      
+    } catch (error) {
+      console.error('❌ Full prefetch error:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [prefetchedAssets, timeframe])
+
   useEffect(() => {
-  if (!selectedAsset?.realtimeDbPath) return
+    if (!selectedAsset?.realtimeDbPath) return
 
-  const prefetch = async () => {
-    const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath!)
-    
-    prefetchMultipleTimeframes(assetPath, ['1m', '5m', '15m'])
-      .catch((err: Error) => console.log('Prefetch failed:', err.message)) // ✅ FIXED: Typed error
-  }
+    const prefetch = async () => {
+      const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath!)
+      
+      // Early prefetch untuk timeframe yang sering digunakan
+      const criticalTimeframes = ['1m', '5m', '15m']
+      
+      await prefetchMultipleTimeframes(assetPath, criticalTimeframes as Timeframe[])
+        .then(() => console.log('✅ Critical timeframes prefetched'))
+        .catch(err => console.log('Critical prefetch failed:', err.message))
+    }
 
-  const timer = setTimeout(prefetch, 500)
-  return () => clearTimeout(timer)
-}, [selectedAsset?.id])
+    const timer = setTimeout(prefetch, 500)
+    return () => clearTimeout(timer)
+  }, [selectedAsset?.id, selectedAsset?.realtimeDbPath])
 
   // ✅ STEP 1: IMMEDIATE PRICE FETCH ON MOUNT
   const fetchCurrentPriceImmediately = useCallback(async () => {
@@ -636,7 +689,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       if (priceData.exists()) {
         const data = priceData.val()
         setLastPrice(data.price)
-        setOpeningPrice(data.price) // Use current as opening if no data
+        setOpeningPrice(data.price)
         lastUpdateTimeRef.current = Date.now()
       }
     } catch (error) {
@@ -827,7 +880,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       }
     }
 
-    // ✅ STEP 2: Load historical data in background
+    // ✅ STEP 2: Load historical data (PRIMARY)
     const loadHistoricalData = async () => {
       setIsLoading(true)
       
@@ -891,6 +944,27 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
       cleanupAll()
     }
   }, [selectedAsset?.id, timeframe, isInitialized, checkSimulator, cleanupAll, addCleanup])
+
+  // ✅ NEW: Background prefetch effect after main data loads
+  useEffect(() => {
+    if (!selectedAsset || !isInitialized || isLoading) return
+
+    // Jangan prefetch jika asset sudah diprefetch sebelumnya
+    if (prefetchedAssets.has(selectedAsset.id)) {
+      console.log(`⏭️ Background prefetch skipped for ${selectedAsset.id} - already prefetched`)
+      return
+    }
+
+    const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`)
+
+    // Tunggu 1 detik setelah chart utama selesai load
+    const prefetchTimer = setTimeout(() => {
+      console.log(`🔄 Starting background prefetch for all timeframes...`)
+      prefetchAllTimeframes(selectedAsset.id, assetPath)
+    }, 1000)
+
+    return () => clearTimeout(prefetchTimer)
+  }, [selectedAsset?.id, isInitialized, isLoading, prefetchedAssets, prefetchAllTimeframes])
 
   // ✅ HELPER: Update chart with real-time price
   const updateChartWithRealtimePrice = useCallback((price: number) => {
@@ -986,6 +1060,13 @@ const TradingChart = memo(({ activeOrders = [], currentPrice }: TradingChartProp
     if (!selectedAsset) return
     
     GLOBAL_DATA_CACHE.delete(`${selectedAsset.id}-${timeframe}`)
+    
+    // Reset prefetch status untuk force reload
+    setPrefetchedAssets(prev => {
+      const newSet = new Set(prev)
+      newSet.delete(selectedAsset.id)
+      return newSet
+    })
     
     checkSimulator()
     
