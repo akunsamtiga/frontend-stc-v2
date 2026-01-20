@@ -1,4 +1,4 @@
-// lib/websocket.ts - ✅ FIXED: Correct Backend URL
+// lib/websocket.ts - ✅ FIXED: Proper WebSocket Implementation
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 
@@ -19,6 +19,7 @@ interface OrderUpdate {
   status?: string;
   exit_price?: number;
   profit?: number;
+  asset_symbol?: string;
   timestamp: number;
 }
 
@@ -34,6 +35,7 @@ class WebSocketService {
   
   private priceCallbacks: Map<string, Set<PriceCallback>> = new Map();
   private orderCallbacks: Set<OrderCallback> = new Set();
+  private currentUserId: string | null = null;
   
   private isConnecting = false;
   private isConnected = false;
@@ -56,8 +58,13 @@ class WebSocketService {
   }
 
   async connect(token: string) {
-    if (this.isConnecting || this.isConnected) {
-      console.log('⚠️ WebSocket already connecting or connected');
+    if (this.isConnecting) {
+      console.log('⚠️ WebSocket already connecting');
+      return;
+    }
+
+    if (this.isConnected && this.socket?.connected) {
+      console.log('✅ WebSocket already connected');
       return;
     }
 
@@ -65,22 +72,31 @@ class WebSocketService {
     this.token = token;
 
     try {
-     
-const BACKEND_WS_URL = process.env.NEXT_PUBLIC_BACKEND_WS_URL || 'https://api.stcautotrade.id';
+      // ✅ FIXED: Get backend URL from env
+      const BACKEND_WS_URL = process.env.NEXT_PUBLIC_BACKEND_WS_URL || 'https://api.stcautotrade.id';
 
       console.log('🔌 Connecting to WebSocket:', BACKEND_WS_URL);
 
+      // ✅ Disconnect old socket if exists
+      if (this.socket) {
+        this.socket.removeAllListeners();
+        this.socket.disconnect();
+        this.socket = null;
+      }
+
+      // ✅ Create new socket connection
       this.socket = io(BACKEND_WS_URL, {
         auth: { token },
-        transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
+        transports: ['websocket', 'polling'], // Try websocket first
         reconnection: true,
         reconnectionAttempts: this.maxReconnectAttempts,
         reconnectionDelay: this.reconnectDelay,
+        reconnectionDelayMax: 5000,
         timeout: 10000,
-        // ✅ IMPORTANT: Force new connection
         forceNew: true,
-        // ✅ Allow cross-origin
         withCredentials: false,
+        // ✅ IMPORTANT: Socket.IO path (default is /socket.io/)
+        path: '/socket.io/',
       });
 
       this.setupEventHandlers();
@@ -95,7 +111,10 @@ const BACKEND_WS_URL = process.env.NEXT_PUBLIC_BACKEND_WS_URL || 'https://api.st
   private setupEventHandlers() {
     if (!this.socket) return;
 
-    // Connection events
+    // ============================================
+    // CONNECTION EVENTS
+    // ============================================
+
     this.socket.on('connect', () => {
       console.log('✅ WebSocket connected:', this.socket?.id);
       this.isConnected = true;
@@ -107,6 +126,7 @@ const BACKEND_WS_URL = process.env.NEXT_PUBLIC_BACKEND_WS_URL || 'https://api.st
         position: 'top-right',
       });
 
+      // ✅ Resubscribe to all active subscriptions
       this.resubscribeAll();
     });
 
@@ -115,10 +135,11 @@ const BACKEND_WS_URL = process.env.NEXT_PUBLIC_BACKEND_WS_URL || 'https://api.st
       this.isConnected = false;
       this.isConnecting = false;
 
+      // ✅ Auto-reconnect if server disconnected us
       if (reason === 'io server disconnect') {
-        // Server disconnected, try to reconnect
         setTimeout(() => {
           if (this.token) {
+            console.log('🔄 Attempting to reconnect...');
             this.connect(this.token);
           }
         }, this.reconnectDelay);
@@ -135,6 +156,13 @@ const BACKEND_WS_URL = process.env.NEXT_PUBLIC_BACKEND_WS_URL || 'https://api.st
       this.reconnectAttempts = attempt;
     });
 
+    this.socket.on('reconnect', (attempt) => {
+      console.log(`✅ Reconnected after ${attempt} attempts`);
+      this.isConnected = true;
+      this.isConnecting = false;
+      this.reconnectAttempts = 0;
+    });
+
     this.socket.on('reconnect_failed', () => {
       console.error('❌ WebSocket reconnection failed');
       this.isConnecting = false;
@@ -143,17 +171,24 @@ const BACKEND_WS_URL = process.env.NEXT_PUBLIC_BACKEND_WS_URL || 'https://api.st
       });
     });
 
-    // Price updates
+    // ============================================
+    // DATA EVENTS
+    // ============================================
+
+    // ✅ Price updates (matches backend event name)
     this.socket.on('price:update', (data: PriceUpdate) => {
       this.handlePriceUpdate(data);
     });
 
-    // Order updates
+    // ✅ Order updates (matches backend event name)
     this.socket.on('order:update', (data: OrderUpdate) => {
       this.handleOrderUpdate(data);
     });
 
-    // Subscription confirmations
+    // ============================================
+    // SUBSCRIPTION CONFIRMATIONS
+    // ============================================
+
     this.socket.on('user:subscribed', (data) => {
       console.log('✅ User subscribed:', data);
     });
@@ -162,7 +197,10 @@ const BACKEND_WS_URL = process.env.NEXT_PUBLIC_BACKEND_WS_URL || 'https://api.st
       console.log('✅ Price subscribed:', data);
     });
 
-    // Error handling
+    // ============================================
+    // ERROR HANDLING
+    // ============================================
+
     this.socket.on('error', (error) => {
       console.error('❌ WebSocket error:', error);
       toast.error(error.message || 'WebSocket error', {
@@ -185,7 +223,7 @@ const BACKEND_WS_URL = process.env.NEXT_PUBLIC_BACKEND_WS_URL || 'https://api.st
 
   private handlePriceUpdate(data: PriceUpdate) {
     const callbacks = this.priceCallbacks.get(data.assetId);
-    if (callbacks) {
+    if (callbacks && callbacks.size > 0) {
       callbacks.forEach(callback => {
         try {
           callback(data);
@@ -197,69 +235,123 @@ const BACKEND_WS_URL = process.env.NEXT_PUBLIC_BACKEND_WS_URL || 'https://api.st
   }
 
   private handleOrderUpdate(data: OrderUpdate) {
-    this.orderCallbacks.forEach(callback => {
-      try {
-        callback(data);
-      } catch (error) {
-        console.error('Order callback error:', error);
-      }
-    });
+    if (this.orderCallbacks.size > 0) {
+      this.orderCallbacks.forEach(callback => {
+        try {
+          callback(data);
+        } catch (error) {
+          console.error('Order callback error:', error);
+        }
+      });
+    }
   }
 
+  // ============================================
+  // SUBSCRIPTION METHODS
+  // ============================================
+
   subscribeToPrice(assetId: string, callback: PriceCallback) {
+    console.log('📡 Subscribing to price for asset:', assetId);
+
+    // Add callback to map
     if (!this.priceCallbacks.has(assetId)) {
       this.priceCallbacks.set(assetId, new Set());
     }
     
     this.priceCallbacks.get(assetId)!.add(callback);
 
-    // Subscribe via WebSocket if connected
-    if (this.isConnected && this.socket) {
+    // ✅ Subscribe via WebSocket if connected
+    if (this.isConnected && this.socket?.connected) {
       this.socket.emit('price:subscribe', { assetIds: [assetId] });
+      console.log('✅ Sent price:subscribe event for:', assetId);
     }
 
     // Return unsubscribe function
     return () => {
+      console.log('🔕 Unsubscribing from price for asset:', assetId);
+      
       const callbacks = this.priceCallbacks.get(assetId);
       if (callbacks) {
         callbacks.delete(callback);
+        
+        // ✅ If no more callbacks, unsubscribe from backend
         if (callbacks.size === 0) {
           this.priceCallbacks.delete(assetId);
+          
+          if (this.isConnected && this.socket?.connected) {
+            this.socket.emit('price:unsubscribe', { assetIds: [assetId] });
+            console.log('✅ Sent price:unsubscribe event for:', assetId);
+          }
         }
       }
     };
   }
 
   subscribeToOrders(userId: string, callback: OrderCallback) {
+    console.log('📡 Subscribing to orders for user:', userId);
+
+    this.currentUserId = userId;
     this.orderCallbacks.add(callback);
 
-    // Subscribe to user room if connected
-    if (this.isConnected && this.socket) {
+    // ✅ Subscribe to user room if connected
+    if (this.isConnected && this.socket?.connected) {
       this.socket.emit('user:subscribe', { userId });
+      console.log('✅ Sent user:subscribe event for:', userId);
     }
 
     // Return unsubscribe function
     return () => {
+      console.log('🔕 Unsubscribing from orders for user:', userId);
       this.orderCallbacks.delete(callback);
+      
+      // ✅ If no more order callbacks, unsubscribe from backend
+      if (this.orderCallbacks.size === 0) {
+        this.currentUserId = null;
+        
+        if (this.isConnected && this.socket?.connected) {
+          this.socket.emit('user:unsubscribe', { userId });
+          console.log('✅ Sent user:unsubscribe event for:', userId);
+        }
+      }
     };
   }
 
-  private resubscribeAll() {
-    if (!this.isConnected || !this.socket) return;
+  // ============================================
+  // RESUBSCRIPTION LOGIC
+  // ============================================
 
-    // Resubscribe to all prices
+  private resubscribeAll() {
+    if (!this.isConnected || !this.socket?.connected) {
+      console.log('⚠️ Cannot resubscribe: not connected');
+      return;
+    }
+
+    console.log('🔄 Resubscribing to all subscriptions...');
+
+    // ✅ Resubscribe to all prices
     const assetIds = Array.from(this.priceCallbacks.keys());
     if (assetIds.length > 0) {
       this.socket.emit('price:subscribe', { assetIds });
-      console.log('🔄 Resubscribed to prices:', assetIds);
+      console.log('✅ Resubscribed to prices:', assetIds);
     }
 
-    // Resubscribe to orders will happen when user room is joined
+    // ✅ Resubscribe to user orders
+    if (this.currentUserId && this.orderCallbacks.size > 0) {
+      this.socket.emit('user:subscribe', { userId: this.currentUserId });
+      console.log('✅ Resubscribed to user orders:', this.currentUserId);
+    }
   }
+
+  // ============================================
+  // UTILITY METHODS
+  // ============================================
 
   disconnect() {
     if (this.socket) {
       console.log('🔌 Disconnecting WebSocket');
+      
+      // ✅ Clean disconnect
+      this.socket.removeAllListeners();
       this.socket.disconnect();
       this.socket = null;
     }
@@ -267,6 +359,7 @@ const BACKEND_WS_URL = process.env.NEXT_PUBLIC_BACKEND_WS_URL || 'https://api.st
     this.isConnected = false;
     this.isConnecting = false;
     this.token = null;
+    this.currentUserId = null;
     this.priceCallbacks.clear();
     this.orderCallbacks.clear();
   }
@@ -277,14 +370,41 @@ const BACKEND_WS_URL = process.env.NEXT_PUBLIC_BACKEND_WS_URL || 'https://api.st
       isConnecting: this.isConnecting,
       reconnectAttempts: this.reconnectAttempts,
       socketId: this.socket?.id,
+      connected: this.socket?.connected || false,
+      activeSubscriptions: {
+        prices: this.priceCallbacks.size,
+        orders: this.orderCallbacks.size,
+      },
     };
+  }
+
+  // ✅ Force reconnect (useful for debugging)
+  forceReconnect() {
+    console.log('🔄 Force reconnecting...');
+    
+    if (this.socket) {
+      this.socket.disconnect();
+    }
+    
+    if (this.token) {
+      setTimeout(() => {
+        this.connect(this.token!);
+      }, 500);
+    }
   }
 }
 
-// Singleton instance
+// ✅ Singleton instance
 export const websocketService = new WebSocketService();
 
-// Expose for debugging
+// ✅ Expose for debugging in browser console
 if (typeof window !== 'undefined') {
   (window as any).ws = websocketService;
+  
+  // Debug helper functions
+  (window as any).wsDebug = {
+    status: () => websocketService.getConnectionStatus(),
+    reconnect: () => websocketService.forceReconnect(),
+    disconnect: () => websocketService.disconnect(),
+  };
 }
