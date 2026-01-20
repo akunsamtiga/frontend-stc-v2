@@ -65,8 +65,8 @@ class WebSocketService {
     this.token = token;
 
     try {
-      // ✅ FIXED: Use backend server URL directly
-      const BACKEND_WS_URL = 'http://103.171.85.146:3000';
+     
+const BACKEND_WS_URL = process.env.NEXT_PUBLIC_BACKEND_WS_URL || 'https://api.stcautotrade.id';
 
       console.log('🔌 Connecting to WebSocket:', BACKEND_WS_URL);
 
