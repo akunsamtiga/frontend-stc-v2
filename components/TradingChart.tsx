@@ -204,16 +204,22 @@ const GLOBAL_DATA_CACHE = new Map<string, {
   timeframe: Timeframe
 }>()
 
-const CACHE_TTL = 60000
+const CACHE_TTL = 300000
+const STALE_CACHE_TTL = 600000
 
 function getCachedData(assetId: string, timeframe: Timeframe): any[] | null {
   const key = `${assetId}-${timeframe}`
   const cached = GLOBAL_DATA_CACHE.get(key)
   if (!cached) return null
   const now = Date.now()
-  if (now - cached.timestamp > CACHE_TTL) {
-    GLOBAL_DATA_CACHE.delete(key)
-    return null
+  const age = now - cached.timestamp
+  
+  if (age > CACHE_TTL) {
+    if (age > STALE_CACHE_TTL) {
+      GLOBAL_DATA_CACHE.delete(key)
+      return null
+    }
+    return cached.data
   }
   return cached.data
 }
@@ -225,6 +231,13 @@ function setCachedData(assetId: string, timeframe: Timeframe, data: any[]) {
     timestamp: Date.now(),
     timeframe
   })
+  
+  if (GLOBAL_DATA_CACHE.size > 100) {
+    const entries = Array.from(GLOBAL_DATA_CACHE.entries())
+    entries.sort((a, b) => a[1].timestamp - b[1].timestamp)
+    const toDelete = entries.slice(0, 25)
+    toDelete.forEach(([key]) => GLOBAL_DATA_CACHE.delete(key))
+  }
 }
 
 function cleanAssetPath(path: string): string {
@@ -1102,12 +1115,46 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
           close: wsPrice,
           volume: 0
         }
-        candleAnimatorRef.current?.updateCandle(currentBarRef.current)
+        
+        if (timeframe === '1s' || timeframe === '1m') {
+          candleAnimatorRef.current?.updateCandle(currentBarRef.current)
+        } else {
+          const chartCandle = {
+            time: currentBarRef.current.timestamp as UTCTimestamp,
+            open: currentBarRef.current.open,
+            high: currentBarRef.current.high,
+            low: currentBarRef.current.low,
+            close: currentBarRef.current.close,
+          }
+          
+          candleSeriesRef.current?.update(chartCandle)
+          lineSeriesRef.current?.update({
+            time: chartCandle.time,
+            value: chartCandle.close
+          })
+        }
       } else {
         currentBarRef.current.high = Math.max(currentBarRef.current.high, wsPrice)
         currentBarRef.current.low = Math.min(currentBarRef.current.low, wsPrice)
         currentBarRef.current.close = wsPrice
-        candleAnimatorRef.current?.updateCandle(currentBarRef.current)
+        
+        if (timeframe === '1s' || timeframe === '1m') {
+          candleAnimatorRef.current?.updateCandle(currentBarRef.current)
+        } else {
+          const chartCandle = {
+            time: currentBarRef.current.timestamp as UTCTimestamp,
+            open: currentBarRef.current.open,
+            high: currentBarRef.current.high,
+            low: currentBarRef.current.low,
+            close: currentBarRef.current.close,
+          }
+          
+          candleSeriesRef.current?.update(chartCandle)
+          lineSeriesRef.current?.update({
+            time: chartCandle.time,
+            value: chartCandle.close
+          })
+        }
       }
     }
   }, [wsPrice, selectedAsset?.id, timeframe])
@@ -1302,54 +1349,64 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       }
     }
 
+    const processAndDisplayData = (data: any[]) => {
+      if (data.length > 0 && !isCancelled) {
+        const candleData = data.map((bar: any) => ({
+          time: bar.timestamp as UTCTimestamp,
+          open: bar.open,
+          high: bar.high,
+          low: bar.low,
+          close: bar.close
+        }))
+
+        candleSeriesRef.current!.setData(candleData)
+        lineSeriesRef.current!.setData(candleData.map(bar => ({ time: bar.time, value: bar.close })))
+        
+        chartRef.current?.timeScale().fitContent()
+
+        const lastBar = data[data.length - 1]
+        currentBarRef.current = {
+          timestamp: lastBar.timestamp,
+          open: lastBar.open,
+          high: lastBar.high,
+          low: lastBar.low,
+          close: lastBar.close,
+          volume: lastBar.volume || 0
+        }
+        
+        setOpeningPrice(data[0].open)
+        setLastPrice(lastBar.close)
+      }
+    }
+
     const loadHistoricalData = async () => {
-      setIsLoading(true)
-      
       try {
         const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`)
         const cachedData = getCachedData(selectedAsset.id, timeframe)
         
-        let data: any[]
-        
-        if (cachedData) {
-          data = cachedData
+        if (cachedData && cachedData.length > 0) {
+          processAndDisplayData(cachedData)
+          setIsLoading(false)
+          
+          setTimeout(async () => {
+            const freshData = await fetchHistoricalData(assetPath, timeframe)
+            if (freshData.length > 0) {
+              setCachedData(selectedAsset.id, timeframe, freshData)
+              processAndDisplayData(freshData)
+            }
+          }, 0)
         } else {
-          data = await fetchHistoricalData(assetPath, timeframe)
+          setIsLoading(true)
+          const data = await fetchHistoricalData(assetPath, timeframe)
           setCachedData(selectedAsset.id, timeframe, data)
-        }
-        
-        if (isCancelled) return
-
-        if (data.length > 0) {
-          const candleData = data.map((bar: any) => ({
-            time: bar.timestamp as UTCTimestamp,
-            open: bar.open,
-            high: bar.high,
-            low: bar.low,
-            close: bar.close
-          }))
-
-          candleSeriesRef.current!.setData(candleData)
-          lineSeriesRef.current!.setData(candleData.map(bar => ({ time: bar.time, value: bar.close })))
           
-          chartRef.current?.timeScale().fitContent()
-
-          const lastBar = data[data.length - 1]
-          currentBarRef.current = {
-            timestamp: lastBar.timestamp,
-            open: lastBar.open,
-            high: lastBar.high,
-            low: lastBar.low,
-            close: lastBar.close,
-            volume: lastBar.volume || 0
-          }
+          if (isCancelled) return
           
-          setOpeningPrice(data[0].open)
-          setLastPrice(lastBar.close)
+          processAndDisplayData(data)
+          setIsLoading(false)
         }
       } catch (error) {
         console.error('Historical data load error:', error)
-      } finally {
         setIsLoading(false)
       }
     }
@@ -1395,12 +1452,46 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
           close: newPrice,
           volume: 0
         }
-        candleAnimatorRef.current?.updateCandle(currentBarRef.current)
+        
+        if (timeframe === '1s' || timeframe === '1m') {
+          candleAnimatorRef.current?.updateCandle(currentBarRef.current)
+        } else {
+          const chartCandle = {
+            time: currentBarRef.current.timestamp as UTCTimestamp,
+            open: currentBarRef.current.open,
+            high: currentBarRef.current.high,
+            low: currentBarRef.current.low,
+            close: currentBarRef.current.close,
+          }
+          
+          candleSeriesRef.current?.update(chartCandle)
+          lineSeriesRef.current?.update({
+            time: chartCandle.time,
+            value: chartCandle.close
+          })
+        }
       } else {
         currentBarRef.current.high = Math.max(currentBarRef.current.high, newPrice)
         currentBarRef.current.low = Math.min(currentBarRef.current.low, newPrice)
         currentBarRef.current.close = newPrice
-        candleAnimatorRef.current?.updateCandle(currentBarRef.current)
+        
+        if (timeframe === '1s' || timeframe === '1m') {
+          candleAnimatorRef.current?.updateCandle(currentBarRef.current)
+        } else {
+          const chartCandle = {
+            time: currentBarRef.current.timestamp as UTCTimestamp,
+            open: currentBarRef.current.open,
+            high: currentBarRef.current.high,
+            low: currentBarRef.current.low,
+            close: currentBarRef.current.close,
+          }
+          
+          candleSeriesRef.current?.update(chartCandle)
+          lineSeriesRef.current?.update({
+            time: chartCandle.time,
+            value: chartCandle.close
+          })
+        }
       }
 
       setLastPrice(newPrice)

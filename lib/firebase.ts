@@ -1,4 +1,4 @@
-// lib/firebase.ts - ✅ COMPLETE VERSION - Optimized with Request Deduplication
+// lib/firebase.ts - OPTIMIZED VERSION
 
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
 import { getDatabase, Database, ref, onValue, off, query, limitToLast, get } from 'firebase/database'
@@ -33,24 +33,15 @@ if (typeof window !== 'undefined') {
 
 export { database, ref, onValue, off, query, limitToLast, get }
 
-// ============================================
-// REQUEST DEDUPLICATION
-// ============================================
-
 interface PendingRequest {
   promise: Promise<any>
   timestamp: number
 }
 
 const pendingRequests = new Map<string, PendingRequest>()
-const REQUEST_TIMEOUT = 10000 // 10s timeout
+const REQUEST_TIMEOUT = 10000
 
-/**
- * ✅ Deduplicate concurrent requests to same endpoint
- * Prevents multiple components from fetching the same data simultaneously
- */
 function deduplicateRequest<T>(key: string, fn: () => Promise<T>): Promise<T> {
-  // Clean expired requests
   const now = Date.now()
   for (const [k, req] of pendingRequests.entries()) {
     if (now - req.timestamp > REQUEST_TIMEOUT) {
@@ -58,7 +49,6 @@ function deduplicateRequest<T>(key: string, fn: () => Promise<T>): Promise<T> {
     }
   }
 
-  // Check if request is already in progress
   const pending = pendingRequests.get(key)
   
   if (pending) {
@@ -67,7 +57,6 @@ function deduplicateRequest<T>(key: string, fn: () => Promise<T>): Promise<T> {
     return pending.promise as Promise<T>
   }
   
-  // Create new request
   const promise = fn().finally(() => {
     pendingRequests.delete(key)
   })
@@ -80,10 +69,6 @@ function deduplicateRequest<T>(key: string, fn: () => Promise<T>): Promise<T> {
   return promise
 }
 
-// ============================================
-// FAST IN-MEMORY CACHE
-// ============================================
-
 interface CacheEntry {
   data: any
   timestamp: number
@@ -91,8 +76,9 @@ interface CacheEntry {
 
 class FastMemoryCache {
   private cache = new Map<string, CacheEntry>()
-  private readonly CACHE_TTL = 15000 // 15s for realtime data
-  private readonly MAX_SIZE = 100 // Max cache entries
+  private readonly CACHE_TTL = 300000
+  private readonly STALE_TTL = 600000
+  private readonly MAX_SIZE = 100
 
   get(key: string): any | null {
     const entry = this.cache.get(key)
@@ -103,19 +89,34 @@ class FastMemoryCache {
     
     const age = Date.now() - entry.timestamp
     
-    // Return if still fresh
     if (age <= this.CACHE_TTL) {
       console.log(`⚡ Memory cache HIT (age: ${age}ms):`, key.slice(0, 50))
       return entry.data
     }
     
-    // Delete if expired
+    if (age <= this.STALE_TTL) {
+      console.log(`⚠️ Stale cache (age: ${age}ms):`, key.slice(0, 50))
+      return entry.data
+    }
+    
     this.cache.delete(key)
     return null
   }
 
+  getStale(key: string): any | null {
+    const entry = this.cache.get(key)
+    if (!entry) return null
+    
+    const age = Date.now() - entry.timestamp
+    if (age > this.STALE_TTL) {
+      this.cache.delete(key)
+      return null
+    }
+    
+    return entry.data
+  }
+
   set(key: string, data: any): void {
-    // Auto-cleanup if cache is getting too large
     if (this.cache.size >= this.MAX_SIZE) {
       this.cleanup()
     }
@@ -142,14 +143,12 @@ class FastMemoryCache {
     for (const [key, entry] of this.cache.entries()) {
       const age = now - entry.timestamp
       
-      // Delete entries older than TTL
-      if (age > this.CACHE_TTL) {
+      if (age > this.STALE_TTL) {
         this.cache.delete(key)
         deletedCount++
       }
     }
     
-    // If still too large, delete oldest entries
     if (this.cache.size >= this.MAX_SIZE) {
       const entries = Array.from(this.cache.entries())
       entries.sort((a, b) => a[1].timestamp - b[1].timestamp)
@@ -175,22 +174,15 @@ class FastMemoryCache {
 
 const memoryCache = new FastMemoryCache()
 
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
-
 function cleanAssetPath(path: string): string {
   if (!path) return ''
   
-  // Remove trailing current_price
   if (path.endsWith('/current_price')) {
     path = path.replace('/current_price', '')
   }
   
-  // Remove trailing slash
   path = path.replace(/\/$/, '')
   
-  // Ensure leading slash
   if (!path.startsWith('/')) {
     path = '/' + path
   }
@@ -207,7 +199,6 @@ function processHistoricalData(rawData: any, limit: number): any[] {
   let bars: any[] = []
   
   if (isArray) {
-    // Process array data
     bars = rawData.filter(item => 
       item && 
       typeof item === 'object' && 
@@ -224,7 +215,6 @@ function processHistoricalData(rawData: any, limit: number): any[] {
       volume: item.volume || 0,
     }))
   } else {
-    // Process object data
     bars = Object.entries(rawData)
       .filter(([_, item]: [string, any]) => 
         item && 
@@ -247,16 +237,10 @@ function processHistoricalData(rawData: any, limit: number): any[] {
     return []
   }
 
-  // Sort by timestamp
   bars.sort((a, b) => a.timestamp - b.timestamp)
   
-  // Return last N bars
   return bars.slice(-limit)
 }
-
-// ============================================
-// MAIN FETCH FUNCTION - WITH DEDUPLICATION
-// ============================================
 
 import type { Timeframe } from '@/types'
 
@@ -272,13 +256,11 @@ export async function fetchHistoricalData(
     const cleanPath = cleanAssetPath(assetPath)
     const cacheKey = `${cleanPath}-${timeframe}`
 
-    // ✅ Try memory cache first (fastest!)
     const cached = memoryCache.get(cacheKey)
     if (cached) {
       return cached
     }
 
-    // ✅ Deduplicate concurrent requests
     return await deduplicateRequest(cacheKey, async () => {
       console.log(`📡 Fetching ${timeframe} from Firebase...`)
       const startTime = Date.now()
@@ -293,14 +275,12 @@ export async function fetchHistoricalData(
       
       const rawData = snapshot.val()
       
-      // Determine limit based on timeframe
       const limit = timeframe === '1m' ? 100 : 
                    timeframe === '1s' ? 60 : 
                    60
       
       const processed = processHistoricalData(rawData, limit)
       
-      // ✅ Cache the result
       if (processed.length > 0) {
         memoryCache.set(cacheKey, processed)
       }
@@ -317,9 +297,40 @@ export async function fetchHistoricalData(
   }
 }
 
-// ============================================
-// PARALLEL PREFETCH - LOAD MULTIPLE TIMEFRAMES
-// ============================================
+export async function fetchHistoricalDataWithStale(
+  assetPath: string,
+  timeframe: Timeframe = '1m'
+): Promise<{ data: any[], isStale: boolean }> {
+  if (typeof window === 'undefined' || !database) {
+    return { data: [], isStale: false }
+  }
+
+  try {
+    const cleanPath = cleanAssetPath(assetPath)
+    const cacheKey = `${cleanPath}-${timeframe}`
+
+    const cached = memoryCache.get(cacheKey)
+    if (cached) {
+      return { data: cached, isStale: false }
+    }
+
+    const stale = memoryCache.getStale(cacheKey)
+    if (stale) {
+      setTimeout(() => {
+        fetchHistoricalData(assetPath, timeframe)
+      }, 0)
+      
+      return { data: stale, isStale: true }
+    }
+
+    const data = await fetchHistoricalData(assetPath, timeframe)
+    return { data, isStale: false }
+
+  } catch (error: any) {
+    console.error(`❌ Fetch error for ${timeframe}:`, error.message)
+    return { data: [], isStale: false }
+  }
+}
 
 export async function prefetchMultipleTimeframes(
   assetPath: string,
@@ -330,7 +341,6 @@ export async function prefetchMultipleTimeframes(
   console.log(`🔄 Prefetching ${timeframes.length} timeframes in parallel...`)
   const startTime = Date.now()
   
-  // ✅ PARALLEL FETCH - All at once!
   const promises = timeframes.map(tf => 
     fetchHistoricalData(assetPath, tf)
       .then(data => ({ tf, data, success: true }))
@@ -360,10 +370,6 @@ export async function prefetchMultipleTimeframes(
   return results
 }
 
-// ============================================
-// SUBSCRIBE TO OHLC UPDATES
-// ============================================
-
 export function subscribeToOHLCUpdates(
   assetPath: string,
   timeframe: Timeframe,
@@ -384,7 +390,6 @@ export function subscribeToOHLCUpdates(
     const data = snapshot.val()
     if (!data) return
 
-    // Get latest bar
     const isArray = Array.isArray(data)
     const latestBar = isArray 
       ? data[data.length - 1]
@@ -392,21 +397,17 @@ export function subscribeToOHLCUpdates(
     
     if (!latestBar || !latestBar.close) return
 
-    // Determine timestamp
     const timestamp = latestBar.timestamp || 
                      (isArray ? data.length - 1 : parseInt(Object.keys(data).pop()!))
     
-    // Check if this is a new bar
     const isNewBar = timestamp !== lastTimestamp
     
-    // Check if data changed
     const hasChanged = !lastData || 
                       lastData.open !== latestBar.open ||
                       lastData.high !== latestBar.high ||
                       lastData.low !== latestBar.low ||
                       lastData.close !== latestBar.close
     
-    // Only callback if new bar or data changed
     if (isNewBar || hasChanged) {
       lastTimestamp = timestamp
       lastData = latestBar
@@ -423,7 +424,6 @@ export function subscribeToOHLCUpdates(
         isCompleted: latestBar.isCompleted || false,
       })
       
-      // Invalidate cache on update
       if (isNewBar) {
         const cacheKey = `${cleanPath}-${timeframe}`
         memoryCache.delete(cacheKey)
@@ -437,10 +437,6 @@ export function subscribeToOHLCUpdates(
     off(ohlcRef)
   }
 }
-
-// ============================================
-// SUBSCRIBE TO PRICE UPDATES
-// ============================================
 
 export function subscribeToPriceUpdates(
   assetPath: string,
@@ -461,7 +457,6 @@ export function subscribeToPriceUpdates(
     const data = snapshot.val()
     if (!data || !data.price) return
     
-    // Prevent duplicate updates
     const isDuplicate = lastPrice !== null && 
                        lastTimestamp === data.timestamp &&
                        Math.abs(data.price - lastPrice) < 0.000001
@@ -482,10 +477,6 @@ export function subscribeToPriceUpdates(
   }
 }
 
-// ============================================
-// UTILITY FUNCTIONS
-// ============================================
-
 export async function prefetchDefaultAsset(assetPath: string): Promise<void> {
   const cleanPath = cleanAssetPath(assetPath)
   await prefetchMultipleTimeframes(cleanPath, ['1m', '5m'])
@@ -504,10 +495,6 @@ export function getCacheStats() {
   }
 }
 
-// ============================================
-// DEBUG UTILITIES (available in window)
-// ============================================
-
 if (typeof window !== 'undefined') {
   (window as any).firebaseDebug = {
     getCacheStats,
@@ -516,10 +503,6 @@ if (typeof window !== 'undefined') {
     pendingRequests,
   }
 }
-
-// ============================================
-// AUTO CLEANUP - Every minute
-// ============================================
 
 if (typeof window !== 'undefined') {
   setInterval(() => {

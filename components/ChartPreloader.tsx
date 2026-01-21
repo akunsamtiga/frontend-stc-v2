@@ -1,10 +1,10 @@
-// components/ChartPreloader.tsx - ✅ FIXED
+// components/ChartPreloader.tsx - OPTIMIZED
 'use client'
 
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/store/auth'
 import { prefetchMultipleTimeframes } from '@/lib/firebase'
-import { Asset } from '@/types'
+import { Asset, Timeframe } from '@/types'
 
 interface PreloadStatus {
   loading: boolean
@@ -12,6 +12,8 @@ interface PreloadStatus {
   total: number
   loaded: number
 }
+
+const ALL_TIMEFRAMES: Timeframe[] = ['1m', '5m', '15m', '30m', '1h', '4h', '1d']
 
 export default function ChartPreloader() {
   const token = useAuthStore(state => state.token)
@@ -60,24 +62,30 @@ export default function ChartPreloader() {
           return
         }
 
-        setStatus(prev => ({ ...prev, total: assets.length }))
+        const totalTasks = assets.length
+        setStatus(prev => ({ ...prev, total: totalTasks }))
 
         const preloadPromises = assets.map(asset => {
           if (!asset.realtimeDbPath) return null
           
-          return prefetchMultipleTimeframes(asset.realtimeDbPath, ['1m', '5m'])
+          return prefetchMultipleTimeframes(asset.realtimeDbPath, ALL_TIMEFRAMES)
             .then(() => {
               setStatus(prev => ({
                 ...prev,
                 loaded: prev.loaded + 1,
-                progress: Math.round(((prev.loaded + 1) / assets.length) * 100)
+                progress: Math.round(((prev.loaded + 1) / totalTasks) * 100)
               }))
             })
             .catch(err => {
               console.warn(`⚠️ Prefetch failed for ${asset.symbol}:`, err.message)
+              setStatus(prev => ({
+                ...prev,
+                loaded: prev.loaded + 1,
+                progress: Math.round(((prev.loaded + 1) / totalTasks) * 100)
+              }))
               return null
             })
-        })
+        }).filter(Boolean)
 
         await Promise.allSettled(preloadPromises)
         
@@ -104,6 +112,7 @@ export default function ChartPreloader() {
         <div className="space-y-1 text-[10px] text-gray-300">
           <div>Assets: {status.loaded}/{status.total}</div>
           <div>Progress: {status.progress}%</div>
+          <div className="text-gray-400">Timeframes: All (1m-1d)</div>
         </div>
         <div className="mt-2 bg-gray-700 rounded-full h-1.5 overflow-hidden">
           <div 
@@ -122,7 +131,7 @@ export async function manualPreload(assetPaths: string[]) {
   const start = Date.now()
   const results = await Promise.allSettled(
     assetPaths.map(path => 
-      prefetchMultipleTimeframes(path, ['1m', '5m'])
+      prefetchMultipleTimeframes(path, ALL_TIMEFRAMES)
         .then(() => ({ success: true }))
         .catch(() => ({ success: false }))
     )
