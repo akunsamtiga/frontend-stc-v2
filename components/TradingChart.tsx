@@ -735,6 +735,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const currentBarRef = useRef<CandleData | null>(null)
   const lastUpdateTimeRef = useRef<number>(0)
   const previousAssetIdRef = useRef<string | null>(null)
+  
+  const isLoadingRef = useRef(false)
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  
   const { selectedAsset } = useTradingStore()
   const { setSelectedAsset } = useTradingActions()
   const storeAssets = useTradingStore(state => state.assets)
@@ -747,21 +751,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const [isInitialized, setIsInitialized] = useState(false)
   const [lastPrice, setLastPrice] = useState<number | null>(null)
   const [openingPrice, setOpeningPrice] = useState<number | null>(null)
-  const [simulatorStatus, setSimulatorStatus] = useState<{
-    isRunning: boolean
-    hasCurrentPrice: boolean
-    hasOHLC: boolean
-    message: string
-  } | null>(null)
+  const [simulatorStatus, setSimulatorStatus] = useState<any>(null)
   const [showIndicators, setShowIndicators] = useState(false)
-  const [indicatorConfig, setIndicatorConfig] = useState<IndicatorConfig>(DEFAULT_INDICATOR_CONFIG)
-  const [ohlcData, setOhlcData] = useState<{
-    time: number
-    open: number
-    high: number
-    low: number
-    close: number
-  } | null>(null)
+  const [indicatorConfig, setIndicatorConfig] = useState<any>(DEFAULT_INDICATOR_CONFIG)
+  const [ohlcData, setOhlcData] = useState<any>(null)
   const [showOhlc, setShowOhlc] = useState(false)
   const [showAssetMenu, setShowAssetMenu] = useState(false)
   
@@ -773,6 +766,11 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   }, [])
 
   const cleanupAll = useCallback(() => {
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current)
+      loadingTimeoutRef.current = null
+    }
+    
     if (unsubscribe1sRef.current) {
       unsubscribe1sRef.current()
       unsubscribe1sRef.current = null
@@ -794,13 +792,28 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     
     currentBarRef.current = null
     lastUpdateTimeRef.current = 0
+    isLoadingRef.current = false
+  }, [])
+
+  const setSafeLoading = useCallback((loading: boolean, delay: number = 0) => {
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current)
+      loadingTimeoutRef.current = null
+    }
+    
+    if (delay > 0) {
+      loadingTimeoutRef.current = setTimeout(() => {
+        isLoadingRef.current = loading
+        setIsLoading(loading)
+      }, delay)
+    } else {
+      isLoadingRef.current = loading
+      setIsLoading(loading)
+    }
   }, [])
 
   const createOrderPriceLine = useCallback((order: BinaryOrder) => {
-    if (!candleSeriesRef.current && !lineSeriesRef.current) {
-      console.warn('⚠️ Cannot create price line: series not ready')
-      return
-    }
+    if (!candleSeriesRef.current && !lineSeriesRef.current) return
 
     if (priceLinesRef.current.has(order.id)) {
       return
@@ -838,10 +851,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   }, [])
 
   const createOrderMarker = useCallback((order: BinaryOrder) => {
-    if (!candleSeriesRef.current) {
-      console.warn('⚠️ Cannot create marker: candlestick series not ready')
-      return
-    }
+    if (!candleSeriesRef.current) return
 
     if (orderMarkersRef.current.has(order.id)) {
       return
@@ -990,10 +1000,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     
     const status = await checkSimulatorStatus(selectedAsset.realtimeDbPath)
     setSimulatorStatus(status)
-    
-    if (!status.isRunning) {
-      console.error('Simulator not running:', status.message)
-    }
   }, [selectedAsset?.realtimeDbPath])
 
   const toggleFullscreen = useCallback(async () => {
@@ -1027,7 +1033,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       return
     }
 
-    setIsLoading(true)
+    setSafeLoading(true, 0)
 
     try {
       const allTimeframes = [...TIMEFRAMES]
@@ -1053,9 +1059,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     } catch (error) {
       console.error('Full prefetch error:', error)
     } finally {
-      setIsLoading(false)
+      setSafeLoading(false, 0)
     }
-  }, [prefetchedAssets, timeframe])
+  }, [prefetchedAssets, timeframe, setSafeLoading])
 
   useEffect(() => {
     if (!selectedAsset?.realtimeDbPath) return
@@ -1314,12 +1320,18 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
 
     const isAssetChange = previousAssetIdRef.current !== selectedAsset.id
+    
+    if (isAssetChange) {
+      setSafeLoading(true, 0)
+    }
+    
     previousAssetIdRef.current = selectedAsset.id
 
     let isCancelled = false
+    let dataLoaded = false
 
     const setupRealtime = async () => {
-      if (!selectedAsset.realtimeDbPath) return
+      if (!selectedAsset.realtimeDbPath || isCancelled) return
 
       const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath)
 
@@ -1376,50 +1388,76 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         
         setOpeningPrice(data[0].open)
         setLastPrice(lastBar.close)
+        
+        dataLoaded = true
+        
+        setSafeLoading(false, 100)
       }
     }
 
     const loadHistoricalData = async () => {
       try {
         const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`)
+        
         const cachedData = getCachedData(selectedAsset.id, timeframe)
         
-        if (cachedData && cachedData.length > 0) {
+        if (cachedData && cachedData.length > 0 && !isAssetChange) {
           processAndDisplayData(cachedData)
-          setIsLoading(false)
           
           setTimeout(async () => {
             const freshData = await fetchHistoricalData(assetPath, timeframe)
-            if (freshData.length > 0) {
+            if (freshData.length > 0 && !isCancelled) {
               setCachedData(selectedAsset.id, timeframe, freshData)
               processAndDisplayData(freshData)
             }
           }, 0)
         } else {
-          setIsLoading(true)
           const data = await fetchHistoricalData(assetPath, timeframe)
+          
+          if (isCancelled) {
+            return
+          }
+          
           setCachedData(selectedAsset.id, timeframe, data)
-          
-          if (isCancelled) return
-          
           processAndDisplayData(data)
-          setIsLoading(false)
         }
       } catch (error) {
         console.error('Historical data load error:', error)
-        setIsLoading(false)
+        setSafeLoading(false, 0)
       }
     }
 
-    checkSimulator().catch(err => console.log('Simulator check failed:', err))
-    setupRealtime()
-    loadHistoricalData()
+    const initializeData = async () => {
+      await checkSimulator().catch(err => console.log('Simulator check failed:', err))
+      setupRealtime()
+      await loadHistoricalData()
+    }
+
+    initializeData()
 
     return () => {
       isCancelled = true
       cleanupAll()
+      
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current)
+        loadingTimeoutRef.current = null
+      }
+      setSafeLoading(false, 0)
     }
-  }, [selectedAsset?.id, timeframe, isInitialized, checkSimulator, cleanupAll, addCleanup])
+  }, [selectedAsset?.id, timeframe, isInitialized, checkSimulator, cleanupAll, addCleanup, setSafeLoading])
+
+  useEffect(() => {
+    if (isLoading) {
+      const safetyTimeout = setTimeout(() => {
+        if (isLoadingRef.current) {
+          setSafeLoading(false, 0)
+        }
+      }, 5000)
+      
+      return () => clearTimeout(safetyTimeout)
+    }
+  }, [isLoading, setSafeLoading])
 
   useEffect(() => {
     if (!selectedAsset || !isInitialized || isLoading) return
@@ -1544,6 +1582,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const handleAssetSelect = useCallback((asset: any) => {
     setSelectedAsset(asset)
     onAssetSelect?.(asset)
+    setShowAssetMenu(false)
   }, [setSelectedAsset, onAssetSelect])
 
   if (!selectedAsset) {
@@ -1605,7 +1644,20 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
 
       <div ref={chartContainerRef} className="absolute inset-0 bg-[#0a0e17]" />
 
-      {isLoading && <ChartSkeleton />}
+      {isLoading && (
+        <div className="absolute inset-0 bg-[#0a0e17] flex items-center justify-center z-20">
+          <div className="text-center">
+            <div className="relative w-16 h-16 mx-auto mb-4">
+              <div className="absolute inset-0 border-4 border-gray-800 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
+            </div>
+            <div className="text-sm text-gray-400 mb-1">Loading chart data...</div>
+            <div className="text-xs text-gray-600">
+              {selectedAsset.symbol} • {timeframe}
+            </div>
+          </div>
+        </div>
+      )}
 
       <IndicatorControls 
         isOpen={showIndicators} 
