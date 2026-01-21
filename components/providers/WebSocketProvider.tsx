@@ -1,10 +1,8 @@
-// components/providers/WebSocketProvider.tsx
 'use client'
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
 import { useAuthStore } from '@/store/auth'
 import { websocketService } from '@/lib/websocket'
-import { toast } from 'sonner'
 
 interface WebSocketContextValue {
   isConnected: boolean
@@ -99,7 +97,6 @@ export function useWebSocket() {
   return context
 }
 
-// ✅ EXISTING: Price subscription hook
 export function usePriceSubscription(assetId: string | null, enabled = true) {
   const { subscribeToPrice } = useWebSocket()
   const [priceData, setPriceData] = useState<any>(null)
@@ -119,7 +116,6 @@ export function usePriceSubscription(assetId: string | null, enabled = true) {
   return { priceData, lastUpdate }
 }
 
-// ✅ EXISTING: Order subscription hook
 export function useOrderSubscription(userId: string | null, enabled = true) {
   const { subscribeToOrders } = useWebSocket()
   const [orderUpdate, setOrderUpdate] = useState<any>(null)
@@ -131,19 +127,6 @@ export function useOrderSubscription(userId: string | null, enabled = true) {
     const unsubscribe = subscribeToOrders(userId, (data) => {
       setOrderUpdate(data)
       setLastUpdate(Date.now())
-
-      if (data.event === 'order:settled') {
-        const isWin = data.status === 'WON'
-        const profitText = data.profit > 0 ? `+${data.profit.toFixed(0)}` : data.profit.toFixed(0)
-        
-        toast[isWin ? 'success' : 'error'](
-          `Order ${isWin ? 'Won! 🎉' : 'Lost'}`,
-          {
-            description: `${data.asset_symbol || 'Order'} - ${profitText}`,
-            duration: 4000,
-          }
-        )
-      }
     })
 
     return unsubscribe
@@ -152,7 +135,6 @@ export function useOrderSubscription(userId: string | null, enabled = true) {
   return { orderUpdate, lastUpdate }
 }
 
-// ✅ NEW: Direct price stream hook for TradingChart
 export function usePriceStream(assetId: string | null) {
   const { isConnected } = useWebSocket()
   const [price, setPrice] = useState<number | null>(null)
@@ -160,7 +142,6 @@ export function usePriceStream(assetId: string | null) {
   useEffect(() => {
     if (!assetId || !isConnected) return
     
-    // Subscribe to price updates
     const unsubscribe = websocketService.subscribeToPrice(assetId, (data) => {
       setPrice(data.price)
     })

@@ -1,20 +1,16 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback, memo, useMemo } from 'react'
-import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp } from 'lightweight-charts'
+import { useEffect, useRef, useState, useCallback, memo } from 'react'
+import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp, IPriceLine, SeriesMarker, Time } from 'lightweight-charts'
 import { useTradingStore, useTradingActions } from '@/store/trading'
 import { fetchHistoricalData, subscribeToOHLCUpdates, prefetchMultipleTimeframes } from '@/lib/firebase'
 import { BinaryOrder, TIMEFRAMES, Timeframe as TimeframeType } from '@/types'
 import { database, ref, get } from '@/lib/firebase'
+import { formatCurrency } from '@/lib/utils'
 import dynamic from 'next/dynamic'
-import { 
-  Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2, Zap 
-} from 'lucide-react'
+import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2, Zap } from 'lucide-react'
 import { usePriceStream } from '@/components/providers/WebSocketProvider'
 import AssetIcon from '@/components/common/AssetIcon'
-
-// ✅ TAMBAHKAN IMPORT FRAMER-MOTION
-import { motion, AnimatePresence } from 'framer-motion'
 
 const IndicatorControls = dynamic(() => import('./IndicatorControls'), { ssr: false })
 
@@ -48,6 +44,158 @@ const DEFAULT_INDICATOR_CONFIG: IndicatorConfig = {
   volume: { enabled: false, maPeriod: 20 },
   stochastic: { enabled: false, kPeriod: 14, dPeriod: 3, overbought: 80, oversold: 20 },
   atr: { enabled: false, period: 14 }
+}
+
+interface CandleData {
+  timestamp: number
+  open: number
+  high: number
+  low: number
+  close: number
+  volume?: number
+}
+
+interface AnimatedCandle extends CandleData {
+  targetHigh: number
+  targetLow: number
+  targetClose: number
+  isAnimating: boolean
+}
+
+class SmoothCandleAnimator {
+  private currentCandle: AnimatedCandle | null = null
+  private animationFrame: number | null = null
+  private duration: number = 300
+  private startTime: number = 0
+  private onUpdate: (candle: CandleData) => void
+  private initialHigh: number = 0
+  private initialLow: number = 0
+  private initialClose: number = 0
+
+  constructor(onUpdate: (candle: CandleData) => void, duration: number = 300) {
+    this.onUpdate = onUpdate
+    this.duration = duration
+  }
+
+  private easeOutCubic(t: number): number {
+    return 1 - Math.pow(1 - t, 3)
+  }
+
+  updateCandle(newCandle: CandleData) {
+    if (!this.currentCandle || this.currentCandle.timestamp !== newCandle.timestamp) {
+      this.currentCandle = {
+        ...newCandle,
+        targetHigh: newCandle.high,
+        targetLow: newCandle.low,
+        targetClose: newCandle.close,
+        isAnimating: false,
+      }
+      
+      this.onUpdate({
+        timestamp: newCandle.timestamp,
+        open: newCandle.open,
+        high: newCandle.high,
+        low: newCandle.low,
+        close: newCandle.close,
+        volume: newCandle.volume,
+      })
+      
+      return
+    }
+
+    const hasChanges = 
+      this.currentCandle.high !== newCandle.high ||
+      this.currentCandle.low !== newCandle.low ||
+      this.currentCandle.close !== newCandle.close
+
+    if (!hasChanges) return
+
+    this.initialHigh = this.currentCandle.high
+    this.initialLow = this.currentCandle.low
+    this.initialClose = this.currentCandle.close
+
+    this.currentCandle.targetHigh = newCandle.high
+    this.currentCandle.targetLow = newCandle.low
+    this.currentCandle.targetClose = newCandle.close
+    this.currentCandle.volume = newCandle.volume
+    this.currentCandle.isAnimating = true
+
+    this.startAnimation()
+  }
+
+  private startAnimation() {
+    if (this.animationFrame) {
+      cancelAnimationFrame(this.animationFrame)
+    }
+
+    this.startTime = performance.now()
+
+    const animate = (currentTime: number) => {
+      if (!this.currentCandle || !this.currentCandle.isAnimating) return
+
+      const elapsed = currentTime - this.startTime
+      const progress = Math.min(elapsed / this.duration, 1)
+      const easedProgress = this.easeOutCubic(progress)
+      
+      const newHigh = this.lerp(this.initialHigh, this.currentCandle.targetHigh, easedProgress)
+      const newLow = this.lerp(this.initialLow, this.currentCandle.targetLow, easedProgress)
+      const newClose = this.lerp(this.initialClose, this.currentCandle.targetClose, easedProgress)
+
+      this.currentCandle.high = Math.max(newHigh, this.currentCandle.open, newClose)
+      this.currentCandle.low = Math.min(newLow, this.currentCandle.open, newClose)
+      this.currentCandle.close = newClose
+
+      this.onUpdate({
+        timestamp: this.currentCandle.timestamp,
+        open: this.currentCandle.open,
+        high: this.currentCandle.high,
+        low: this.currentCandle.low,
+        close: this.currentCandle.close,
+        volume: this.currentCandle.volume,
+      })
+
+      if (progress < 1) {
+        this.animationFrame = requestAnimationFrame(animate)
+      } else {
+        this.currentCandle.isAnimating = false
+        this.animationFrame = null
+        
+        this.currentCandle.high = this.currentCandle.targetHigh
+        this.currentCandle.low = this.currentCandle.targetLow
+        this.currentCandle.close = this.currentCandle.targetClose
+        
+        this.onUpdate({
+          timestamp: this.currentCandle.timestamp,
+          open: this.currentCandle.open,
+          high: this.currentCandle.targetHigh,
+          low: this.currentCandle.targetLow,
+          close: this.currentCandle.targetClose,
+          volume: this.currentCandle.volume,
+        })
+      }
+    }
+
+    this.animationFrame = requestAnimationFrame(animate)
+  }
+
+  private lerp(start: number, end: number, t: number): number {
+    return start + (end - start) * t
+  }
+
+  stop() {
+    if (this.animationFrame) {
+      cancelAnimationFrame(this.animationFrame)
+      this.animationFrame = null
+    }
+    if (this.currentCandle) {
+      this.currentCandle.isAnimating = false
+    }
+  }
+
+  reset() {
+    this.stop()
+    this.currentCandle = null
+  }
 }
 
 const GLOBAL_DATA_CACHE = new Map<string, {
@@ -197,135 +345,86 @@ const RealtimeClock = memo(() => {
 
 RealtimeClock.displayName = 'RealtimeClock'
 
-// ✅ MODIFIED: PriceDisplay dengan animasi smooth
-const PriceDisplay = memo(({ 
-  asset, 
-  price, 
-  onClick, 
-  showMenu, 
-  assets, 
-  onSelectAsset 
-}: any) => {
+const PriceDisplay = memo(({ asset, price, onClick, showMenu, assets, onSelectAsset }: any) => {
   if (!asset || !price) return null
 
   const hasChange = price.change !== undefined && price.change !== 0
-  const isUp = price.change >= 0
 
   return (
     <div className="absolute top-2 left-2 z-20">
-      {/* Versi Mobile */}
-      <motion.button
+      <button
         onClick={onClick}
         className="lg:hidden bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 hover:bg-black/50 transition-all flex items-center gap-3"
-        whileTap={{ scale: 0.95 }}
-        whileHover={{ scale: 1.02 }}
       >
         {asset && <AssetIcon asset={asset} size="sm" />}
         
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-400">{asset.name}</span>
-          
-          {/* ✅ ANIMATED PRICE */}
-          <motion.span 
-            key={price.price} // Trigger animasi setiap kali harga berubah
-            initial={{ opacity: 0.8, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ 
-              type: "spring",
-              stiffness: 200,
-              damping: 40,
-              duration: 0.5
-            }}
-            className="text-xl font-bold"
-          >
-            {price.price.toFixed(3)}
-          </motion.span>
+          <span className="text-xl font-bold">{price.price.toFixed(3)}</span>
         </div>
-        
         {hasChange && (
-          <motion.div 
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className={`flex items-center gap-1 text-sm font-semibold ${
-              isUp ? 'text-green-400' : 'text-red-400'
-            }`}
-          >
-            {isUp ? '▲' : '▼'}
-            <span>{isUp ? '+' : ''}{price.change.toFixed(2)}%</span>
-          </motion.div>
+          <div className={`flex items-center gap-1 text-sm font-semibold ${
+            price.change >= 0 ? 'text-green-400' : 'text-red-400'
+          }`}>
+            {price.change >= 0 ? '▲' : '▼'}
+            <span>{price.change >= 0 ? '+' : ''}{price.change.toFixed(2)}%</span>
+          </div>
         )}
-        
-        <motion.div
-          animate={{ rotate: showMenu ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <ChevronDown className="w-4 h-4 text-gray-400" />
-        </motion.div>
-      </motion.button>
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${
+          showMenu ? 'rotate-180' : ''
+        }`} />
+      </button>
 
-      {/* Versi Desktop */}
       <div className="hidden lg:flex bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 items-center gap-3">
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-400">{asset.name}</span>
-          
-          {/* ✅ ANIMATED PRICE */}
-          <motion.span 
-            key={price.price}
-            initial={{ opacity: 0.8 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.2 }}
-            className="text-xl font-bold"
-          >
-            {price.price.toFixed(3)}
-          </motion.span>
+          <span className="text-xl font-bold">{price.price.toFixed(3)}</span>
         </div>
-        
         {hasChange && (
           <div className={`flex items-center gap-1 text-sm font-semibold ${
-            isUp ? 'text-green-400' : 'text-red-400'
+            price.change >= 0 ? 'text-green-400' : 'text-red-400'
           }`}>
-            {isUp ? '▲' : '▼'}
-            <span>{isUp ? '+' : ''}{price.change.toFixed(2)}%</span>
+            {price.change >= 0 ? '▲' : '▼'}
+            <span>{price.change >= 0 ? '+' : ''}{price.change.toFixed(2)}%</span>
           </div>
         )}
       </div>
 
-      {/* Dropdown menu */}
-      <AnimatePresence>
-        {showMenu && (
-          <>
-            <div className="fixed inset-0 z-30 lg:hidden" onClick={onClick} />
-            <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="absolute top-full left-0 mt-2 w-72 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl z-40 max-h-80 overflow-y-auto lg:hidden"
-            >
-              {assets.map((assetItem: any) => (
-                <motion.button
-                  key={assetItem.id}
-                  onClick={() => onSelectAsset(assetItem)}
-                  whileHover={{ backgroundColor: '#1a1f2e' }}
-                  className={`w-full flex items-center justify-between px-4 py-3 transition-colors border-b border-gray-800/30 last:border-0 ${
-                    assetItem.id === asset?.id ? 'bg-[#1a1f2e]' : ''
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <AssetIcon asset={assetItem} size="xs" />
-                    <div className="text-left">
-                      <div className="text-sm font-medium">{assetItem.symbol}</div>
-                      <div className="text-xs text-gray-400">{assetItem.name}</div>
-                    </div>
+      {showMenu && (
+        <>
+          <div className="fixed inset-0 z-30 lg:hidden" onClick={onClick} />
+          <div className="absolute top-full left-0 mt-2 w-72 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl z-40 max-h-80 overflow-y-auto lg:hidden">
+            {assets.map((assetItem: any) => (
+              <button
+                key={assetItem.id}
+                onClick={() => {
+                  onSelectAsset(assetItem)
+                }}
+                onMouseEnter={() => {
+                  if (assetItem.realtimeDbPath) {
+                    prefetchMultipleTimeframes(
+                      assetItem.realtimeDbPath,
+                      ['1m', '5m']
+                    ).catch(err => console.log('Prefetch failed:', err))
+                  }
+                }}
+                className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#1a1f2e] transition-colors border-b border-gray-800/30 last:border-0 ${
+                  assetItem.id === asset?.id ? 'bg-[#1a1f2e]' : ''
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <AssetIcon asset={assetItem} size="xs" />
+                  <div className="text-left">
+                    <div className="text-sm font-medium">{assetItem.symbol}</div>
+                    <div className="text-xs text-gray-400">{assetItem.name}</div>
                   </div>
-                  <div className="text-xs font-bold text-green-400">+{assetItem.profitRate}%</div>
-                </motion.button>
-              ))}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+                </div>
+                <div className="text-xs font-bold text-green-400">+{assetItem.profitRate}%</div>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 })
@@ -611,20 +710,17 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const chartRef = useRef<IChartApi | null>(null)
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null)
   const lineSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
+  const candleAnimatorRef = useRef<SmoothCandleAnimator | null>(null)
+  
+  const priceLinesRef = useRef<Map<string, IPriceLine>>(new Map())
+  const orderMarkersRef = useRef<Map<string, SeriesMarker<Time>[]>>(new Map())
+  
   const unsubscribe1sRef = useRef<(() => void) | null>(null)
   const unsubscribeTimeframeRef = useRef<(() => void) | null>(null)
   const isMountedRef = useRef(false)
   const cleanupFunctionsRef = useRef<Array<() => void>>([])
-  const currentBarRef = useRef<{
-    timestamp: number
-    open: number
-    high: number
-    low: number
-    close: number
-    volume: number
-  } | null>(null)
+  const currentBarRef = useRef<CandleData | null>(null)
   const lastUpdateTimeRef = useRef<number>(0)
-  const updateThrottleMs = 50
   const previousAssetIdRef = useRef<string | null>(null)
   const { selectedAsset } = useTradingStore()
   const { setSelectedAsset } = useTradingActions()
@@ -655,14 +751,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   } | null>(null)
   const [showOhlc, setShowOhlc] = useState(false)
   const [showAssetMenu, setShowAssetMenu] = useState(false)
-  const [animKey, setAnimKey] = useState(0) // ✅ Untuk trigger animasi
   
   const wsPrice = usePriceStream(selectedAsset?.id || null)
   const [prefetchedAssets, setPrefetchedAssets] = useState<Set<string>>(new Set())
-
-  // ✅ THROTTLED PRICE UPDATE untuk optimasi
-  const throttledPriceRef = useRef<number | null>(null)
-  const priceThrottleTimer = useRef<NodeJS.Timeout | null>(null)
 
   const addCleanup = useCallback((fn: () => void) => {
     cleanupFunctionsRef.current.push(fn)
@@ -691,6 +782,195 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     currentBarRef.current = null
     lastUpdateTimeRef.current = 0
   }, [])
+
+  const createOrderPriceLine = useCallback((order: BinaryOrder) => {
+    if (!candleSeriesRef.current && !lineSeriesRef.current) {
+      console.warn('⚠️ Cannot create price line: series not ready')
+      return
+    }
+
+    if (priceLinesRef.current.has(order.id)) {
+      return
+    }
+
+    try {
+      const isCall = order.direction === 'CALL'
+      const color = isCall ? '#10b981' : '#ef4444'
+      
+      const now = Date.now()
+      const exitTime = new Date(order.exit_time!).getTime()
+      const timeLeft = Math.max(0, Math.floor((exitTime - now) / 1000))
+      const timeLeftDisplay = timeLeft < 60 
+        ? `${timeLeft}s` 
+        : `${Math.floor(timeLeft / 60)}m ${timeLeft % 60}s`
+      
+      const title = `${order.direction} ${formatCurrency(order.amount)} • ${timeLeftDisplay}`
+      
+      const activeSeries = candleSeriesRef.current || lineSeriesRef.current
+      
+      const priceLine = activeSeries!.createPriceLine({
+        price: order.entry_price,
+        color: color,
+        lineWidth: 2,
+        lineStyle: 2,
+        axisLabelVisible: true,
+        title: title,
+      })
+
+      priceLinesRef.current.set(order.id, priceLine)
+      
+    } catch (error) {
+      console.error(`Failed to create price line:`, error)
+    }
+  }, [])
+
+  const createOrderMarker = useCallback((order: BinaryOrder) => {
+    if (!candleSeriesRef.current) {
+      console.warn('⚠️ Cannot create marker: candlestick series not ready')
+      return
+    }
+
+    if (orderMarkersRef.current.has(order.id)) {
+      return
+    }
+
+    try {
+      const entryTime = Math.floor(new Date(order.entry_time).getTime() / 1000)
+      const isCall = order.direction === 'CALL'
+      
+      const marker: SeriesMarker<Time> = {
+        time: entryTime as Time,
+        position: isCall ? 'belowBar' : 'aboveBar',
+        color: isCall ? '#10b981' : '#ef4444',
+        shape: isCall ? 'arrowUp' : 'arrowDown',
+        text: `${order.direction}`,
+        size: 1.5,
+      }
+
+      const markers = orderMarkersRef.current.get(order.id) || []
+      markers.push(marker)
+      orderMarkersRef.current.set(order.id, markers)
+
+      const allMarkers = Array.from(orderMarkersRef.current.values()).flat()
+      candleSeriesRef.current.setMarkers(allMarkers)
+      
+    } catch (error) {
+      console.error(`Failed to create marker:`, error)
+    }
+  }, [])
+
+  const removeOrderVisualization = useCallback((orderId: string) => {
+    const priceLine = priceLinesRef.current.get(orderId)
+    if (priceLine && candleSeriesRef.current) {
+      candleSeriesRef.current.removePriceLine(priceLine)
+      priceLinesRef.current.delete(orderId)
+    }
+
+    orderMarkersRef.current.delete(orderId)
+    
+    if (candleSeriesRef.current) {
+      const allMarkers = Array.from(orderMarkersRef.current.values()).flat()
+      candleSeriesRef.current.setMarkers(allMarkers)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
+      return
+    }
+
+    if (!activeOrders || activeOrders.length === 0) {
+      priceLinesRef.current.forEach((priceLine) => {
+        if (candleSeriesRef.current) {
+          candleSeriesRef.current.removePriceLine(priceLine)
+        }
+      })
+      priceLinesRef.current.clear()
+      orderMarkersRef.current.clear()
+      
+      if (candleSeriesRef.current) {
+        candleSeriesRef.current.setMarkers([])
+      }
+      
+      return
+    }
+
+    const currentOrderIds = new Set(activeOrders.map(o => o.id))
+    const visualizedOrderIds = new Set(priceLinesRef.current.keys())
+
+    activeOrders.forEach(order => {
+      if (!visualizedOrderIds.has(order.id)) {
+        try {
+          createOrderPriceLine(order)
+          createOrderMarker(order)
+        } catch (error) {
+          console.error(`Failed to add visualization:`, error)
+        }
+      }
+    })
+
+    visualizedOrderIds.forEach(orderId => {
+      if (!currentOrderIds.has(orderId)) {
+        removeOrderVisualization(orderId)
+      }
+    })
+
+  }, [activeOrders, isInitialized, createOrderPriceLine, createOrderMarker, removeOrderVisualization])
+
+  useEffect(() => {
+    if (!isInitialized || activeOrders.length === 0) return
+
+    const updateInterval = setInterval(() => {
+      activeOrders.forEach(order => {
+        const priceLine = priceLinesRef.current.get(order.id)
+        if (!priceLine) return
+
+        try {
+          const now = Date.now()
+          const exitTime = new Date(order.exit_time!).getTime()
+          const timeLeft = Math.max(0, Math.floor((exitTime - now) / 1000))
+          
+          if (timeLeft === 0) {
+            removeOrderVisualization(order.id)
+            return
+          }
+          
+          const timeLeftDisplay = timeLeft < 60 
+            ? `${timeLeft}s` 
+            : `${Math.floor(timeLeft / 60)}m ${timeLeft % 60}s`
+          
+          const title = `${order.direction} ${formatCurrency(order.amount)} • ${timeLeftDisplay}`
+          
+          const isCall = order.direction === 'CALL'
+          const color = isCall ? '#10b981' : '#ef4444'
+          
+          priceLine.applyOptions({
+            title: title,
+            color: color,
+          })
+          
+        } catch (error) {
+          console.error('Failed to update price line:', error)
+        }
+      })
+    }, 1000)
+
+    return () => clearInterval(updateInterval)
+  }, [isInitialized, activeOrders, removeOrderVisualization])
+
+  useEffect(() => {
+    return () => {
+      priceLinesRef.current.forEach((priceLine) => {
+        if (candleSeriesRef.current) {
+          try {
+            candleSeriesRef.current.removePriceLine(priceLine)
+          } catch (e) {}
+        }
+      })
+      priceLinesRef.current.clear()
+      orderMarkersRef.current.clear()
+    }
+  }, [selectedAsset?.id])
 
   const checkSimulator = useCallback(async () => {
     if (!selectedAsset?.realtimeDbPath) return
@@ -731,12 +1011,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
 
   const prefetchAllTimeframes = useCallback(async (assetId: string, assetPath: string) => {
     if (prefetchedAssets.has(assetId)) {
-      console.log(`⏭️ Asset ${assetId} already prefetched, skipping`)
       return
     }
 
     setIsLoading(true)
-    console.log(`🔄 Starting full prefetch for asset: ${assetId}`)
 
     try {
       const allTimeframes = [...TIMEFRAMES]
@@ -747,25 +1025,20 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
           .then(data => {
             if (data.length > 0) {
               setCachedData(assetId, tf as Timeframe, data)
-              console.log(`✅ Prefetched ${tf}: ${data.length} bars`)
             }
             return { timeframe: tf, success: true, bars: data.length }
           })
           .catch(error => {
-            console.warn(`⚠️ Prefetch failed for ${tf}:`, error.message)
             return { timeframe: tf, success: false, error: error.message }
           })
       )
 
-      const results = await Promise.allSettled(prefetchPromises)
-      const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length
-      
-      console.log(`✅ Full prefetch complete: ${successful}/${timeframesToPrefetch.length} timeframes loaded`)
+      await Promise.allSettled(prefetchPromises)
       
       setPrefetchedAssets(prev => new Set(prev).add(assetId))
       
     } catch (error) {
-      console.error('❌ Full prefetch error:', error)
+      console.error('Full prefetch error:', error)
     } finally {
       setIsLoading(false)
     }
@@ -779,7 +1052,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       const criticalTimeframes = ['1m', '5m', '15m']
       
       await prefetchMultipleTimeframes(assetPath, criticalTimeframes as Timeframe[])
-        .then(() => console.log('✅ Critical timeframes prefetched'))
         .catch(err => console.log('Critical prefetch failed:', err.message))
     }
 
@@ -811,32 +1083,34 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
   }, [selectedAsset?.id, isInitialized, fetchCurrentPriceImmediately])
 
-  // ✅ THROTTLED WEBSOCKET PRICE UPDATE dengan animasi
   useEffect(() => {
     if (!selectedAsset?.id || wsPrice === null) return
 
-    // Clear timer sebelumnya
-    if (priceThrottleTimer.current) {
-      clearTimeout(priceThrottleTimer.current)
-    }
+    setLastPrice(wsPrice)
+    lastUpdateTimeRef.current = Date.now()
 
-    // Throttle update (max 1x per 150ms)
-    priceThrottleTimer.current = setTimeout(() => {
-      setLastPrice(wsPrice)
-      setAnimKey(prev => prev + 1) // Trigger animasi
-      lastUpdateTimeRef.current = Date.now()
-
-      if (candleSeriesRef.current && currentBarRef.current) {
-        updateChartWithRealtimePrice(wsPrice)
+    if (currentBarRef.current) {
+      const currentTimestamp = Math.floor(Date.now() / 1000)
+      const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
+      
+      if (currentBarRef.current.timestamp !== barPeriod) {
+        currentBarRef.current = {
+          timestamp: barPeriod,
+          open: wsPrice,
+          high: wsPrice,
+          low: wsPrice,
+          close: wsPrice,
+          volume: 0
+        }
+        candleAnimatorRef.current?.updateCandle(currentBarRef.current)
+      } else {
+        currentBarRef.current.high = Math.max(currentBarRef.current.high, wsPrice)
+        currentBarRef.current.low = Math.min(currentBarRef.current.low, wsPrice)
+        currentBarRef.current.close = wsPrice
+        candleAnimatorRef.current?.updateCandle(currentBarRef.current)
       }
-    }, 150)
-
-    return () => {
-      if (priceThrottleTimer.current) {
-        clearTimeout(priceThrottleTimer.current)
-      }
     }
-  }, [wsPrice, selectedAsset?.id])
+  }, [wsPrice, selectedAsset?.id, timeframe])
 
   useEffect(() => {
     if (isMountedRef.current) return
@@ -912,6 +1186,29 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       candleSeriesRef.current = candleSeries
       lineSeriesRef.current = lineSeries
 
+      candleAnimatorRef.current = new SmoothCandleAnimator(
+        (animatedCandle) => {
+          const chartCandle = {
+            time: animatedCandle.timestamp as UTCTimestamp,
+            open: animatedCandle.open,
+            high: animatedCandle.high,
+            low: animatedCandle.low,
+            close: animatedCandle.close,
+          }
+          
+          try {
+            candleSeriesRef.current?.update(chartCandle)
+            lineSeriesRef.current?.update({
+              time: chartCandle.time,
+              value: chartCandle.close
+            })
+          } catch (e) {
+            console.warn('Chart update error:', e)
+          }
+        },
+        300
+      )
+
       setIsInitialized(true)
 
       const handleResize = () => {
@@ -931,7 +1228,16 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         isMountedRef.current = false
         setIsInitialized(false)
         
+        priceLinesRef.current.forEach((priceLine) => {
+          if (candleSeriesRef.current) {
+            candleSeriesRef.current.removePriceLine(priceLine)
+          }
+        })
+        priceLinesRef.current.clear()
+        orderMarkersRef.current.clear()
+        
         try {
+          candleAnimatorRef.current?.stop()
           chart.remove()
         } catch (e) {
           console.error('Chart removal error:', e)
@@ -964,7 +1270,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     previousAssetIdRef.current = selectedAsset.id
 
     let isCancelled = false
-    let animationFrameId: number | null = null
 
     const setupRealtime = async () => {
       if (!selectedAsset.realtimeDbPath) return
@@ -1055,7 +1360,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
 
     return () => {
       isCancelled = true
-      if (animationFrameId) cancelAnimationFrame(animationFrameId)
       cleanupAll()
     }
   }, [selectedAsset?.id, timeframe, isInitialized, checkSimulator, cleanupAll, addCleanup])
@@ -1064,65 +1368,22 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     if (!selectedAsset || !isInitialized || isLoading) return
 
     if (prefetchedAssets.has(selectedAsset.id)) {
-      console.log(`⏭️ Background prefetch skipped for ${selectedAsset.id} - already prefetched`)
       return
     }
 
     const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`)
 
     const prefetchTimer = setTimeout(() => {
-      console.log(`🔄 Starting background prefetch for all timeframes...`)
       prefetchAllTimeframes(selectedAsset.id, assetPath)
     }, 1000)
 
     return () => clearTimeout(prefetchTimer)
   }, [selectedAsset?.id, isInitialized, isLoading, prefetchedAssets, prefetchAllTimeframes])
 
-  const updateChartWithRealtimePrice = useCallback((price: number) => {
-    if (!candleSeriesRef.current || !currentBarRef.current) return
-
-    const currentTimestamp = Math.floor(Date.now() / 1000)
-    const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
-    
-    let currentBar = currentBarRef.current
-    
-    if (currentBar.timestamp !== barPeriod) {
-      currentBar = {
-        timestamp: barPeriod,
-        open: price,
-        high: price,
-        low: price,
-        close: price,
-        volume: 0
-      }
-      currentBarRef.current = currentBar
-    } else {
-      currentBar.high = Math.max(currentBar.high, price)
-      currentBar.low = Math.min(currentBar.low, price)
-      currentBar.close = price
-    }
-
-    const updatedBar = {
-      time: currentBar.timestamp as UTCTimestamp,
-      open: currentBar.open,
-      high: currentBar.high,
-      low: currentBar.low,
-      close: currentBar.close
-    }
-
-    try {
-      candleSeriesRef.current.update(updatedBar)
-      lineSeriesRef.current?.update({ time: updatedBar.time, value: updatedBar.close })
-    } catch (e) {
-      console.warn('Chart update error:', e)
-    }
-  }, [timeframe])
-
   const processTickUpdate = useCallback((tick1s: any) => {
     try {
       const newPrice = tick1s.close
       const currentTimestamp = Math.floor(Date.now() / 1000)
-      
       const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
       
       if (!currentBarRef.current || currentBarRef.current.timestamp !== barPeriod) {
@@ -1134,26 +1395,12 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
           close: newPrice,
           volume: 0
         }
+        candleAnimatorRef.current?.updateCandle(currentBarRef.current)
       } else {
         currentBarRef.current.high = Math.max(currentBarRef.current.high, newPrice)
         currentBarRef.current.low = Math.min(currentBarRef.current.low, newPrice)
         currentBarRef.current.close = newPrice
-      }
-
-      const updatedBar = {
-        time: currentBarRef.current.timestamp as UTCTimestamp,
-        open: currentBarRef.current.open,
-        high: currentBarRef.current.high,
-        low: currentBarRef.current.low,
-        close: currentBarRef.current.close
-      }
-
-      if (candleSeriesRef.current && lineSeriesRef.current) {
-        candleSeriesRef.current.update(updatedBar)
-        lineSeriesRef.current.update({ 
-          time: updatedBar.time, 
-          value: updatedBar.close 
-        })
+        candleAnimatorRef.current?.updateCandle(currentBarRef.current)
       }
 
       setLastPrice(newPrice)
