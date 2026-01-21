@@ -40,7 +40,7 @@ const DemoTradingTutorial: React.FC<DemoTradingTutorialProps> = ({ onClose }) =>
 
   const steps = [
     {
-      title: "Selamat Datang di Demo Trading! 🎉",
+      title: "Selamat Datang di Demo Trading!",
       description: "Mari pelajari cara trading binary option dalam 4 langkah mudah. Anda akan mendapat akun demo Rp 10.000.000 untuk berlatih tanpa risiko.",
       icon: Play,
       highlight: null,
@@ -84,7 +84,7 @@ const DemoTradingTutorial: React.FC<DemoTradingTutorialProps> = ({ onClose }) =>
       ]
     },
     {
-      title: "4. Selesai! Siap Trading! 🚀",
+      title: "4. Selesai! Siap Trading!",
       description: "Anda sudah siap! Coba demo ini sekarang atau langsung trading dengan akun real untuk profit nyata.",
       icon: CheckCircle2,
       highlight: null,

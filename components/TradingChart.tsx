@@ -7,9 +7,14 @@ import { fetchHistoricalData, subscribeToOHLCUpdates, prefetchMultipleTimeframes
 import { BinaryOrder, TIMEFRAMES, Timeframe as TimeframeType } from '@/types'
 import { database, ref, get } from '@/lib/firebase'
 import dynamic from 'next/dynamic'
-import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2, Zap } from 'lucide-react'
+import { 
+  Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2, Zap 
+} from 'lucide-react'
 import { usePriceStream } from '@/components/providers/WebSocketProvider'
 import AssetIcon from '@/components/common/AssetIcon'
+
+// ✅ TAMBAHKAN IMPORT FRAMER-MOTION
+import { motion, AnimatePresence } from 'framer-motion'
 
 const IndicatorControls = dynamic(() => import('./IndicatorControls'), { ssr: false })
 
@@ -192,71 +197,135 @@ const RealtimeClock = memo(() => {
 
 RealtimeClock.displayName = 'RealtimeClock'
 
-const PriceDisplay = memo(({ asset, price, onClick, showMenu, assets, onSelectAsset }: any) => {
+// ✅ MODIFIED: PriceDisplay dengan animasi smooth
+const PriceDisplay = memo(({ 
+  asset, 
+  price, 
+  onClick, 
+  showMenu, 
+  assets, 
+  onSelectAsset 
+}: any) => {
   if (!asset || !price) return null
 
   const hasChange = price.change !== undefined && price.change !== 0
+  const isUp = price.change >= 0
 
   return (
     <div className="absolute top-2 left-2 z-20">
-      <button
+      {/* Versi Mobile */}
+      <motion.button
         onClick={onClick}
-        className="bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 hover:bg-black/50 transition-all flex items-center gap-3"
+        className="lg:hidden bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 hover:bg-black/50 transition-all flex items-center gap-3"
+        whileTap={{ scale: 0.95 }}
+        whileHover={{ scale: 1.02 }}
       >
         {asset && <AssetIcon asset={asset} size="sm" />}
         
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-400">{asset.name}</span>
-          <span className="text-xl font-bold">{price.price.toFixed(3)}</span>
+          
+          {/* ✅ ANIMATED PRICE */}
+          <motion.span 
+            key={price.price} // Trigger animasi setiap kali harga berubah
+            initial={{ opacity: 0.8, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ 
+              type: "spring",
+              stiffness: 200,
+              damping: 40,
+              duration: 0.5
+            }}
+            className="text-xl font-bold"
+          >
+            {price.price.toFixed(3)}
+          </motion.span>
         </div>
+        
+        {hasChange && (
+          <motion.div 
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className={`flex items-center gap-1 text-sm font-semibold ${
+              isUp ? 'text-green-400' : 'text-red-400'
+            }`}
+          >
+            {isUp ? '▲' : '▼'}
+            <span>{isUp ? '+' : ''}{price.change.toFixed(2)}%</span>
+          </motion.div>
+        )}
+        
+        <motion.div
+          animate={{ rotate: showMenu ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <ChevronDown className="w-4 h-4 text-gray-400" />
+        </motion.div>
+      </motion.button>
+
+      {/* Versi Desktop */}
+      <div className="hidden lg:flex bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 items-center gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-400">{asset.name}</span>
+          
+          {/* ✅ ANIMATED PRICE */}
+          <motion.span 
+            key={price.price}
+            initial={{ opacity: 0.8 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
+            className="text-xl font-bold"
+          >
+            {price.price.toFixed(3)}
+          </motion.span>
+        </div>
+        
         {hasChange && (
           <div className={`flex items-center gap-1 text-sm font-semibold ${
-            price.change >= 0 ? 'text-green-400' : 'text-red-400'
+            isUp ? 'text-green-400' : 'text-red-400'
           }`}>
-            {price.change >= 0 ? '▲' : '▼'}
-            <span>{price.change >= 0 ? '+' : ''}{price.change.toFixed(2)}%</span>
+            {isUp ? '▲' : '▼'}
+            <span>{isUp ? '+' : ''}{price.change.toFixed(2)}%</span>
           </div>
         )}
-        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${
-          showMenu ? 'rotate-180' : ''
-        }`} />
-      </button>
+      </div>
 
-      {showMenu && (
-        <>
-          <div className="fixed inset-0 z-30" onClick={onClick} />
-          <div className="absolute top-full left-0 mt-2 w-72 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl z-40 max-h-80 overflow-y-auto lg:hidden">
-            {assets.map((assetItem: any) => (
-              <button
-                key={assetItem.id}
-                onClick={() => {
-                  onSelectAsset(assetItem)
-                }}
-                onMouseEnter={() => {
-                  if (assetItem.realtimeDbPath) {
-                    prefetchMultipleTimeframes(
-                      assetItem.realtimeDbPath,
-                      ['1m', '5m']
-                    ).catch(err => console.log('Prefetch failed:', err))
-                  }
-                }}
-                className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#1a1f2e] transition-colors border-b border-gray-800/30 last:border-0 ${
-                  assetItem.id === asset?.id ? 'bg-[#1a1f2e]' : ''
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <AssetIcon asset={assetItem} size="xs" />
-                  <div className="text-left">
-                    <div className="text-sm font-medium">{assetItem.symbol}</div>
-                    <div className="text-xs text-gray-400">{assetItem.name}</div>
+      {/* Dropdown menu */}
+      <AnimatePresence>
+        {showMenu && (
+          <>
+            <div className="fixed inset-0 z-30 lg:hidden" onClick={onClick} />
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="absolute top-full left-0 mt-2 w-72 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl z-40 max-h-80 overflow-y-auto lg:hidden"
+            >
+              {assets.map((assetItem: any) => (
+                <motion.button
+                  key={assetItem.id}
+                  onClick={() => onSelectAsset(assetItem)}
+                  whileHover={{ backgroundColor: '#1a1f2e' }}
+                  className={`w-full flex items-center justify-between px-4 py-3 transition-colors border-b border-gray-800/30 last:border-0 ${
+                    assetItem.id === asset?.id ? 'bg-[#1a1f2e]' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <AssetIcon asset={assetItem} size="xs" />
+                    <div className="text-left">
+                      <div className="text-sm font-medium">{assetItem.symbol}</div>
+                      <div className="text-xs text-gray-400">{assetItem.name}</div>
+                    </div>
                   </div>
-                </div>
-                <div className="text-xs font-bold text-green-400">+{assetItem.profitRate}%</div>
-              </button>
-            ))}
-          </div>
-        </>
-      )}
+                  <div className="text-xs font-bold text-green-400">+{assetItem.profitRate}%</div>
+                </motion.button>
+              ))}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 })
@@ -586,9 +655,14 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   } | null>(null)
   const [showOhlc, setShowOhlc] = useState(false)
   const [showAssetMenu, setShowAssetMenu] = useState(false)
+  const [animKey, setAnimKey] = useState(0) // ✅ Untuk trigger animasi
   
   const wsPrice = usePriceStream(selectedAsset?.id || null)
   const [prefetchedAssets, setPrefetchedAssets] = useState<Set<string>>(new Set())
+
+  // ✅ THROTTLED PRICE UPDATE untuk optimasi
+  const throttledPriceRef = useRef<number | null>(null)
+  const priceThrottleTimer = useRef<NodeJS.Timeout | null>(null)
 
   const addCleanup = useCallback((fn: () => void) => {
     cleanupFunctionsRef.current.push(fn)
@@ -737,14 +811,30 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
   }, [selectedAsset?.id, isInitialized, fetchCurrentPriceImmediately])
 
+  // ✅ THROTTLED WEBSOCKET PRICE UPDATE dengan animasi
   useEffect(() => {
     if (!selectedAsset?.id || wsPrice === null) return
 
-    setLastPrice(wsPrice)
-    lastUpdateTimeRef.current = Date.now()
+    // Clear timer sebelumnya
+    if (priceThrottleTimer.current) {
+      clearTimeout(priceThrottleTimer.current)
+    }
 
-    if (candleSeriesRef.current && currentBarRef.current) {
-      updateChartWithRealtimePrice(wsPrice)
+    // Throttle update (max 1x per 150ms)
+    priceThrottleTimer.current = setTimeout(() => {
+      setLastPrice(wsPrice)
+      setAnimKey(prev => prev + 1) // Trigger animasi
+      lastUpdateTimeRef.current = Date.now()
+
+      if (candleSeriesRef.current && currentBarRef.current) {
+        updateChartWithRealtimePrice(wsPrice)
+      }
+    }, 150)
+
+    return () => {
+      if (priceThrottleTimer.current) {
+        clearTimeout(priceThrottleTimer.current)
+      }
     }
   }, [wsPrice, selectedAsset?.id])
 
