@@ -827,6 +827,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     loadingManagerRef.current.setLoading(loading, delay)
   }, [])
 
+  const isLoadingDataRef = useRef(false)
+
   const createOrderPriceLine = useCallback((order: BinaryOrder) => {
     if (!candleSeriesRef.current && !lineSeriesRef.current) return
 
@@ -1048,8 +1050,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       return
     }
 
-    setSafeLoading(true, 0)
-
     try {
       const allTimeframes = [...TIMEFRAMES]
       const timeframesToPrefetch = allTimeframes.filter(tf => tf !== timeframe)
@@ -1073,10 +1073,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       
     } catch (error) {
       console.error('Full prefetch error:', error)
-    } finally {
-      setSafeLoading(false, 0)
     }
-  }, [prefetchedAssets, timeframe, setSafeLoading])
+  }, [prefetchedAssets, timeframe])
 
   useEffect(() => {
     if (!selectedAsset?.realtimeDbPath) return
@@ -1118,7 +1116,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   }, [selectedAsset?.id, isInitialized, fetchCurrentPriceImmediately])
 
   useEffect(() => {
-    if (!selectedAsset?.id || wsPrice === null) return
+    if (!selectedAsset?.id || wsPrice === null || !isInitialized || isLoadingDataRef.current) return
 
     setLastPrice(wsPrice)
     lastUpdateTimeRef.current = Date.now()
@@ -1178,7 +1176,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         }
       }
     }
-  }, [wsPrice, selectedAsset?.id, timeframe])
+  }, [wsPrice, selectedAsset?.id, timeframe, isInitialized])
 
   useEffect(() => {
     if (isMountedRef.current) return
@@ -1334,14 +1332,19 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       return
     }
 
+    if (isLoadingDataRef.current) {
+      return
+    }
+
     const isAssetChange = previousAssetIdRef.current !== selectedAsset.id
+    const isTimeframeChange = previousAssetIdRef.current === selectedAsset.id
     
     if (isAssetChange) {
+      previousAssetIdRef.current = selectedAsset.id
       setSafeLoading(true, 0)
     }
-    
-    previousAssetIdRef.current = selectedAsset.id
 
+    isLoadingDataRef.current = true
     let isCancelled = false
     let dataLoadSuccess = false
 
@@ -1405,10 +1408,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         setLastPrice(lastBar.close)
         
         dataLoadSuccess = true
-        
-        if (dataLoadSuccess) {
-          setSafeLoading(false, 200)
-        }
       }
     }
 
@@ -1422,6 +1421,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
           processAndDisplayData(cachedData)
           
           setTimeout(async () => {
+            if (isCancelled) return
             const freshData = await fetchHistoricalData(assetPath, timeframe)
             if (freshData.length > 0 && !isCancelled) {
               setCachedData(selectedAsset.id, timeframe, freshData)
@@ -1440,7 +1440,11 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         }
       } catch (error) {
         console.error('Historical data load error:', error)
-        setSafeLoading(false, 0)
+      } finally {
+        if (!isCancelled && dataLoadSuccess) {
+          setSafeLoading(false, 200)
+        }
+        isLoadingDataRef.current = false
       }
     }
 
@@ -1454,9 +1458,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
 
     return () => {
       isCancelled = true
+      isLoadingDataRef.current = false
       cleanupAll()
     }
-  }, [selectedAsset?.id, timeframe, isInitialized, checkSimulator, cleanupAll, addCleanup, setSafeLoading])
+  }, [selectedAsset?.id, timeframe, isInitialized])
 
   useEffect(() => {
     if (isLoading) {
@@ -1471,9 +1476,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   }, [isLoading, setSafeLoading])
 
   useEffect(() => {
-    if (!selectedAsset || !isInitialized || isLoading) return
-
-    if (prefetchedAssets.has(selectedAsset.id)) {
+    if (!selectedAsset || !isInitialized || isLoading || prefetchedAssets.has(selectedAsset.id)) {
       return
     }
 
@@ -1481,12 +1484,14 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
 
     const prefetchTimer = setTimeout(() => {
       prefetchAllTimeframes(selectedAsset.id, assetPath)
-    }, 1000)
+    }, 2000)
 
     return () => clearTimeout(prefetchTimer)
-  }, [selectedAsset?.id, isInitialized, isLoading, prefetchedAssets, prefetchAllTimeframes])
+  }, [selectedAsset?.id, isInitialized, isLoading, prefetchedAssets])
 
   const processTickUpdate = useCallback((tick1s: any) => {
+    if (isLoadingDataRef.current) return
+    
     try {
       const newPrice = tick1s.close
       const currentTimestamp = Math.floor(Date.now() / 1000)
