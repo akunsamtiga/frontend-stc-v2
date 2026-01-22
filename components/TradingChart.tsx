@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
-import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp } from 'lightweight-charts'
+import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp, IPriceLine, SeriesMarker, Time } from 'lightweight-charts'
 import { useTradingStore, useTradingActions } from '@/store/trading'
 import { fetchHistoricalData, subscribeToOHLCUpdates, prefetchMultipleTimeframes } from '@/lib/firebase'
 import { BinaryOrder, TIMEFRAMES, Timeframe as TimeframeType } from '@/types'
@@ -55,6 +55,13 @@ interface CandleData {
   volume?: number
 }
 
+interface AnimatedCandle extends CandleData {
+  targetHigh: number
+  targetLow: number
+  targetClose: number
+  isAnimating: boolean
+}
+
 class LoadingStateManager {
   private isLoading = false
   private loadingTimeouts: NodeJS.Timeout[] = []
@@ -96,16 +103,16 @@ class LoadingStateManager {
 }
 
 class SmoothCandleAnimator {
-  private currentCandle: any = null
+  private currentCandle: AnimatedCandle | null = null
   private animationFrame: number | null = null
   private duration: number = 300
   private startTime: number = 0
-  private onUpdate: (candle: any) => void
+  private onUpdate: (candle: CandleData) => void
   private initialHigh: number = 0
   private initialLow: number = 0
   private initialClose: number = 0
 
-  constructor(onUpdate: (candle: any) => void, duration: number = 300) {
+  constructor(onUpdate: (candle: CandleData) => void, duration: number = 300) {
     this.onUpdate = onUpdate
     this.duration = duration
   }
@@ -114,7 +121,7 @@ class SmoothCandleAnimator {
     return 1 - Math.pow(1 - t, 3)
   }
 
-  updateCandle(newCandle: any) {
+  updateCandle(newCandle: CandleData) {
     if (!this.currentCandle || this.currentCandle.timestamp !== newCandle.timestamp) {
       this.currentCandle = {
         ...newCandle,
@@ -319,6 +326,7 @@ async function checkSimulatorStatus(assetPath: string): Promise<{
 
   try {
     const basePath = cleanAssetPath(assetPath)
+    
     const priceRef = ref(database, `${basePath}/current_price`)
     const priceSnapshot = await get(priceRef)
     const hasCurrentPrice = priceSnapshot.exists()
@@ -353,8 +361,12 @@ async function checkSimulatorStatus(assetPath: string): Promise<{
 
 const RealtimeClock = memo(() => {
   const [time, setTime] = useState(new Date())
+
   useEffect(() => {
-    const interval = setInterval(() => setTime(new Date()), 100)
+    const interval = setInterval(() => {
+      setTime(new Date())
+    }, 100)
+
     return () => clearInterval(interval)
   }, [])
 
@@ -398,6 +410,7 @@ const PriceDisplay = memo(({ asset, price, onClick, showMenu, assets, onSelectAs
         className="lg:hidden bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 hover:bg-black/50 transition-all flex items-center gap-3"
       >
         {asset && <AssetIcon asset={asset} size="sm" />}
+        
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-400">{asset.name}</span>
           <span className="text-xl font-bold">{price.price.toFixed(3)}</span>
@@ -437,7 +450,9 @@ const PriceDisplay = memo(({ asset, price, onClick, showMenu, assets, onSelectAs
             {assets.map((assetItem: any) => (
               <button
                 key={assetItem.id}
-                onClick={() => onSelectAsset(assetItem)}
+                onClick={() => {
+                  onSelectAsset(assetItem)
+                }}
                 onMouseEnter={() => {
                   if (assetItem.realtimeDbPath) {
                     prefetchMultipleTimeframes(
@@ -469,7 +484,19 @@ const PriceDisplay = memo(({ asset, price, onClick, showMenu, assets, onSelectAs
 
 PriceDisplay.displayName = 'PriceDisplay'
 
-const OHLCDisplay = memo(({ data, visible }: { data: any; visible: boolean }) => {
+const OHLCDisplay = memo(({ 
+  data,
+  visible 
+}: { 
+  data: { 
+    time: number
+    open: number
+    high: number
+    low: number
+    close: number
+  } | null
+  visible: boolean 
+}) => {
   if (!visible || !data) return null
 
   const date = new Date(data.time * 1000)
@@ -499,7 +526,13 @@ const OHLCDisplay = memo(({ data, visible }: { data: any; visible: boolean }) =>
 
 OHLCDisplay.displayName = 'OHLCDisplay'
 
-const SimulatorStatus = memo(({ status, onRetry }: { status: any; onRetry: () => void }) => {
+const SimulatorStatus = memo(({ 
+  status, 
+  onRetry 
+}: { 
+  status: { isRunning: boolean; message: string } | null
+  onRetry: () => void
+}) => {
   if (!status || status.isRunning) return null
   
   return (
@@ -508,9 +541,19 @@ const SimulatorStatus = memo(({ status, onRetry }: { status: any; onRetry: () =>
         <div className="w-16 h-16 bg-red-500/10 border-2 border-red-500/30 rounded-full flex items-center justify-center mx-auto mb-4">
           <Server className="w-8 h-8 text-red-400" />
         </div>
-        <div className="text-lg font-bold text-red-400 mb-2">Market Not Available</div>
-        <div className="text-sm text-gray-400 mb-1">{status.message}</div>
-        <div className="text-xs text-gray-500 mb-6">Loading to view real-time data</div>
+        
+        <div className="text-lg font-bold text-red-400 mb-2">
+          Market Not Available
+        </div>
+        
+        <div className="text-sm text-gray-400 mb-1">
+          {status.message}
+        </div>
+        
+        <div className="text-xs text-gray-500 mb-6">
+          Loading to view real-time data
+        </div>
+        
         <button onClick={onRetry} className="px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2 mx-auto">
           <RefreshCw className="w-4 h-4" />
           Check Again
@@ -522,9 +565,19 @@ const SimulatorStatus = memo(({ status, onRetry }: { status: any; onRetry: () =>
 
 SimulatorStatus.displayName = 'SimulatorStatus'
 
-const MobileControls = memo(({ timeframe, chartType, isLoading, onTimeframeChange, onChartTypeChange, onFitContent, onRefresh, onOpenIndicators }: any) => {
+const MobileControls = memo(({ 
+  timeframe, 
+  chartType, 
+  isLoading,
+  onTimeframeChange,
+  onChartTypeChange,
+  onFitContent,
+  onRefresh,
+  onOpenIndicators
+}: any) => {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
   const timeframes: Timeframe[] = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d']
 
   useEffect(() => {
@@ -601,9 +654,21 @@ const MobileControls = memo(({ timeframe, chartType, isLoading, onTimeframeChang
 
 MobileControls.displayName = 'MobileControls'
 
-const DesktopControls = memo(({ timeframe, chartType, isLoading, onTimeframeChange, onChartTypeChange, onFitContent, onRefresh, onToggleFullscreen, onOpenIndicators, isFullscreen }: any) => {
+const DesktopControls = memo(({ 
+  timeframe, 
+  chartType, 
+  isLoading,
+  onTimeframeChange,
+  onChartTypeChange,
+  onFitContent,
+  onRefresh,
+  onToggleFullscreen,
+  onOpenIndicators,
+  isFullscreen
+}: any) => {
   const [showTimeframeMenu, setShowTimeframeMenu] = useState(false)
   const timeframeRef = useRef<HTMLDivElement>(null)
+
   const timeframes: Timeframe[] = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d']
 
   useEffect(() => {
@@ -685,14 +750,14 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const lineSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   const candleAnimatorRef = useRef<SmoothCandleAnimator | null>(null)
   
-  const priceLinesRef = useRef<Map<string, any>>(new Map())
-  const orderMarkersRef = useRef<Map<string, any[]>>(new Map())
+  const priceLinesRef = useRef<Map<string, IPriceLine>>(new Map())
+  const orderMarkersRef = useRef<Map<string, SeriesMarker<Time>[]>>(new Map())
   
   const unsubscribe1sRef = useRef<(() => void) | null>(null)
   const unsubscribeTimeframeRef = useRef<(() => void) | null>(null)
   const isMountedRef = useRef(false)
   const cleanupFunctionsRef = useRef<Array<() => void>>([])
-  const currentBarRef = useRef<any>(null)
+  const currentBarRef = useRef<CandleData | null>(null)
   const lastUpdateTimeRef = useRef<number>(0)
   const previousAssetIdRef = useRef<string | null>(null)
   
@@ -706,7 +771,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const [chartType, setChartType] = useState<ChartType>('candle')
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
   const [isLoading, setIsLoading] = useState(false)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const [lastPrice, setLastPrice] = useState<number | null>(null)
@@ -720,17 +784,13 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   
   const wsPrice = usePriceStream(selectedAsset?.id || null)
   const [prefetchedAssets, setPrefetchedAssets] = useState<Set<string>>(new Set())
-  
-  const SCROLL_LOAD_TIMEFRAMES: Timeframe[] = ['1s', '1m', '5m', '15m', '30m']
-  const loadedDataRangesRef = useRef<Map<Timeframe, {
-    data: any[],
-    earliestTimestamp: number,
-    count: number
-  }>>(new Map())
 
   useEffect(() => {
     loadingManagerRef.current.setCallback(setIsLoading)
-    return () => loadingManagerRef.current.reset()
+    
+    return () => {
+      loadingManagerRef.current.reset()
+    }
   }, [])
 
   const addCleanup = useCallback((fn: () => void) => {
@@ -751,7 +811,11 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
     
     cleanupFunctionsRef.current.forEach(fn => {
-      try { fn() } catch (error) { console.error('Cleanup error:', error) }
+      try {
+        fn()
+      } catch (error) {
+        console.error('Cleanup error:', error)
+      }
     })
     cleanupFunctionsRef.current = []
     
@@ -763,10 +827,14 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     loadingManagerRef.current.setLoading(loading, delay)
   }, [])
 
-  const createOrderPriceLine = useCallback((order: BinaryOrder) => {
-    if (!candleSeriesRef.current) return
+  const isLoadingDataRef = useRef(false)
 
-    if (priceLinesRef.current.has(order.id)) return
+  const createOrderPriceLine = useCallback((order: BinaryOrder) => {
+    if (!candleSeriesRef.current && !lineSeriesRef.current) return
+
+    if (priceLinesRef.current.has(order.id)) {
+      return
+    }
 
     try {
       const isCall = order.direction === 'CALL'
@@ -775,10 +843,15 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       const now = Date.now()
       const exitTime = new Date(order.exit_time!).getTime()
       const timeLeft = Math.max(0, Math.floor((exitTime - now) / 1000))
-      const timeLeftDisplay = timeLeft < 60 ? `${timeLeft}s` : `${Math.floor(timeLeft / 60)}m ${timeLeft % 60}s`
+      const timeLeftDisplay = timeLeft < 60 
+        ? `${timeLeft}s` 
+        : `${Math.floor(timeLeft / 60)}m ${timeLeft % 60}s`
+      
       const title = `${order.direction} ${formatCurrency(order.amount)} • ${timeLeftDisplay}`
       
-      const priceLine = candleSeriesRef.current!.createPriceLine({
+      const activeSeries = candleSeriesRef.current || lineSeriesRef.current
+      
+      const priceLine = activeSeries!.createPriceLine({
         price: order.entry_price,
         color: color,
         lineWidth: 2,
@@ -797,14 +870,16 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const createOrderMarker = useCallback((order: BinaryOrder) => {
     if (!candleSeriesRef.current) return
 
-    if (orderMarkersRef.current.has(order.id)) return
+    if (orderMarkersRef.current.has(order.id)) {
+      return
+    }
 
     try {
       const entryTime = Math.floor(new Date(order.entry_time).getTime() / 1000)
       const isCall = order.direction === 'CALL'
       
-      const marker = {
-        time: entryTime as UTCTimestamp,
+      const marker: SeriesMarker<Time> = {
+        time: entryTime as Time,
         position: isCall ? 'belowBar' : 'aboveBar',
         color: isCall ? '#10b981' : '#ef4444',
         shape: isCall ? 'arrowUp' : 'arrowDown',
@@ -817,7 +892,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       orderMarkersRef.current.set(order.id, markers)
 
       const allMarkers = Array.from(orderMarkersRef.current.values()).flat()
-      candleSeriesRef.current!.setMarkers(allMarkers)
+      candleSeriesRef.current.setMarkers(allMarkers)
       
     } catch (error) {
       console.error(`Failed to create marker:`, error)
@@ -840,7 +915,11 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   }, [])
 
   useEffect(() => {
-    if (!isInitialized || !activeOrders || activeOrders.length === 0) {
+    if (!isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
+      return
+    }
+
+    if (!activeOrders || activeOrders.length === 0) {
       priceLinesRef.current.forEach((priceLine) => {
         if (candleSeriesRef.current) {
           candleSeriesRef.current.removePriceLine(priceLine)
@@ -896,8 +975,12 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
             return
           }
           
-          const timeLeftDisplay = timeLeft < 60 ? `${timeLeft}s` : `${Math.floor(timeLeft / 60)}m ${timeLeft % 60}s`
+          const timeLeftDisplay = timeLeft < 60 
+            ? `${timeLeft}s` 
+            : `${Math.floor(timeLeft / 60)}m ${timeLeft % 60}s`
+          
           const title = `${order.direction} ${formatCurrency(order.amount)} • ${timeLeftDisplay}`
+          
           const isCall = order.direction === 'CALL'
           const color = isCall ? '#10b981' : '#ef4444'
           
@@ -963,7 +1046,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   }, [])
 
   const prefetchAllTimeframes = useCallback(async (assetId: string, assetPath: string) => {
-    if (prefetchedAssets.has(assetId)) return
+    if (prefetchedAssets.has(assetId)) {
+      return
+    }
 
     try {
       const allTimeframes = [...TIMEFRAMES]
@@ -983,6 +1068,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       )
 
       await Promise.allSettled(prefetchPromises)
+      
       setPrefetchedAssets(prev => new Set(prev).add(assetId))
       
     } catch (error) {
@@ -996,6 +1082,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     const prefetch = async () => {
       const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath!)
       const criticalTimeframes = ['1m', '5m', '15m']
+      
       await prefetchMultipleTimeframes(assetPath, criticalTimeframes as Timeframe[])
         .catch(err => console.log('Critical prefetch failed:', err.message))
     }
@@ -1029,8 +1116,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   }, [selectedAsset?.id, isInitialized, fetchCurrentPriceImmediately])
 
   useEffect(() => {
-    if (!selectedAsset?.id || wsPrice === null || !isInitialized) return
-    
+    if (!selectedAsset?.id || wsPrice === null || !isInitialized || isLoadingDataRef.current) return
+
     setLastPrice(wsPrice)
     lastUpdateTimeRef.current = Date.now()
 
@@ -1060,7 +1147,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
           }
           
           candleSeriesRef.current?.update(chartCandle)
-          lineSeriesRef.current?.update({ time: chartCandle.time, value: chartCandle.close })
+          lineSeriesRef.current?.update({
+            time: chartCandle.time,
+            value: chartCandle.close
+          })
         }
       } else {
         currentBarRef.current.high = Math.max(currentBarRef.current.high, wsPrice)
@@ -1079,7 +1169,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
           }
           
           candleSeriesRef.current?.update(chartCandle)
-          lineSeriesRef.current?.update({ time: chartCandle.time, value: chartCandle.close })
+          lineSeriesRef.current?.update({
+            time: chartCandle.time,
+            value: chartCandle.close
+          })
         }
       }
     }
@@ -1100,10 +1193,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       const chart = createChart(container, {
         width,
         height,
-        layout: { 
-          background: { type: ColorType.Solid, color: '#0a0e17' }, 
-          textColor: '#9ca3af' 
-        },
+        layout: { background: { type: ColorType.Solid, color: '#0a0e17' }, textColor: '#9ca3af' },
         grid: {
           vertLines: { color: 'rgba(255, 255, 255, 0.08)', style: 0, visible: true },
           horzLines: { color: 'rgba(255, 255, 255, 0.08)', style: 0, visible: true }
@@ -1144,7 +1234,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         }
 
         const data = candleSeries.dataByIndex(Math.round(param.logical as number))
-        if (data && 'open' in data) {
+        if (data && 'open' in data && 'high' in data && 'low' in data && 'close' in data) {
           setOhlcData({ 
             time: param.time as number, 
             open: (data as any).open, 
@@ -1162,22 +1252,28 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       candleSeriesRef.current = candleSeries
       lineSeriesRef.current = lineSeries
 
-      candleAnimatorRef.current = new SmoothCandleAnimator((animatedCandle) => {
-        const chartCandle = {
-          time: animatedCandle.timestamp as UTCTimestamp,
-          open: animatedCandle.open,
-          high: animatedCandle.high,
-          low: animatedCandle.low,
-          close: animatedCandle.close,
-        }
-        
-        try {
-          candleSeriesRef.current?.update(chartCandle)
-          lineSeriesRef.current?.update({ time: chartCandle.time, value: chartCandle.close })
-        } catch (e) {
-          console.warn('Chart update error:', e)
-        }
-      }, 300)
+      candleAnimatorRef.current = new SmoothCandleAnimator(
+        (animatedCandle) => {
+          const chartCandle = {
+            time: animatedCandle.timestamp as UTCTimestamp,
+            open: animatedCandle.open,
+            high: animatedCandle.high,
+            low: animatedCandle.low,
+            close: animatedCandle.close,
+          }
+          
+          try {
+            candleSeriesRef.current?.update(chartCandle)
+            lineSeriesRef.current?.update({
+              time: chartCandle.time,
+              value: chartCandle.close
+            })
+          } catch (e) {
+            console.warn('Chart update error:', e)
+          }
+        },
+        300
+      )
 
       setIsInitialized(true)
 
@@ -1200,9 +1296,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         
         priceLinesRef.current.forEach((priceLine) => {
           if (candleSeriesRef.current) {
-            try {
-              candleSeriesRef.current.removePriceLine(priceLine)
-            } catch (e) {}
+            candleSeriesRef.current.removePriceLine(priceLine)
           }
         })
         priceLinesRef.current.clear()
@@ -1233,86 +1327,34 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
   }, [chartType])
 
-  const loadHistoricalData = useCallback(async (isLoadMore: boolean = false) => {
-    if (!selectedAsset || !isInitialized) return
-
-    const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`)
-    const currentRange = loadedDataRangesRef.current.get(timeframe)
-    
-    const baseLimit = timeframe === '1m' ? 100 : timeframe === '1s' ? 60 : 60
-    const currentCount = currentRange?.count || baseLimit
-    const newLimit = isLoadMore ? Math.min(currentCount * 2, 1000) : baseLimit
-
-    try {
-      if (isLoadMore) {
-        setIsLoadingMore(true)
-      } else {
-        setSafeLoading(true, 0)
-      }
-
-      const data = await fetchHistoricalData(assetPath, timeframe, newLimit)
-      
-      if (data.length > 0) {
-        let mergedData = data
-        if (isLoadMore && currentRange) {
-          const existingDataMap = new Map(currentRange.data.map(d => [d.timestamp, d]))
-          data.forEach(d => existingDataMap.set(d.timestamp, d))
-          mergedData = Array.from(existingDataMap.values())
-            .sort((a, b) => a.timestamp - b.timestamp)
-        }
-
-        const candleData = mergedData.map((bar: any) => ({
-          time: bar.timestamp as UTCTimestamp,
-          open: bar.open,
-          high: bar.high,
-          low: bar.low,
-          close: bar.close
-        }))
-
-        candleSeriesRef.current?.setData(candleData)
-        lineSeriesRef.current?.setData(candleData.map(bar => ({ time: bar.time, value: bar.close })))
-
-        const earliestTimestamp = mergedData[0].timestamp
-        loadedDataRangesRef.current.set(timeframe, {
-          data: mergedData,
-          earliestTimestamp,
-          count: newLimit
-        })
-
-        if (!isLoadMore) {
-          chartRef.current?.timeScale().fitContent()
-          setOpeningPrice(data[0].open)
-        }
-        
-        setLastPrice(data[data.length - 1].close)
-      }
-    } catch (error) {
-      console.error('Historical data load error:', error)
-    } finally {
-      if (isLoadMore) {
-        setIsLoadingMore(false)
-      } else {
-        setSafeLoading(false, 200)
-      }
-    }
-  }, [selectedAsset, timeframe, isInitialized, setSafeLoading])
-
   useEffect(() => {
-    if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) return
+    if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
+      return
+    }
+
+    if (isLoadingDataRef.current) {
+      return
+    }
 
     const isAssetChange = previousAssetIdRef.current !== selectedAsset.id
+    const isTimeframeChange = previousAssetIdRef.current === selectedAsset.id
+    
     if (isAssetChange) {
       previousAssetIdRef.current = selectedAsset.id
       setSafeLoading(true, 0)
-      loadedDataRangesRef.current.delete(timeframe)
     }
 
-    const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`)
+    isLoadingDataRef.current = true
+    let isCancelled = false
+    let dataLoadSuccess = false
 
     const setupRealtime = async () => {
-      if (!selectedAsset.realtimeDbPath) return
+      if (!selectedAsset.realtimeDbPath || isCancelled) return
+
+      const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath)
 
       const unsubscribe1s = subscribeToOHLCUpdates(assetPath, '1s', (tick1s) => {
+        if (isCancelled) return
         processTickUpdate(tick1s)
       })
       
@@ -1321,7 +1363,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
 
       if (timeframe !== '1s') {
         const unsubscribeTf = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
-          if (!newBar.isNewBar) return
+          if (isCancelled || !newBar.isNewBar) return
           const barPeriod = getBarPeriodTimestamp(newBar.timestamp, timeframe)
           currentBarRef.current = {
             timestamp: barPeriod,
@@ -1337,67 +1379,125 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       }
     }
 
+    const processAndDisplayData = (data: any[]) => {
+      if (data.length > 0 && !isCancelled) {
+        const candleData = data.map((bar: any) => ({
+          time: bar.timestamp as UTCTimestamp,
+          open: bar.open,
+          high: bar.high,
+          low: bar.low,
+          close: bar.close
+        }))
+
+        candleSeriesRef.current!.setData(candleData)
+        lineSeriesRef.current!.setData(candleData.map(bar => ({ time: bar.time, value: bar.close })))
+        
+        chartRef.current?.timeScale().fitContent()
+
+        const lastBar = data[data.length - 1]
+        currentBarRef.current = {
+          timestamp: lastBar.timestamp,
+          open: lastBar.open,
+          high: lastBar.high,
+          low: lastBar.low,
+          close: lastBar.close,
+          volume: lastBar.volume || 0
+        }
+        
+        setOpeningPrice(data[0].open)
+        setLastPrice(lastBar.close)
+        
+        dataLoadSuccess = true
+      }
+    }
+
+    const loadHistoricalData = async () => {
+      try {
+        const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`)
+        
+        const cachedData = getCachedData(selectedAsset.id, timeframe)
+        
+        if (cachedData && cachedData.length > 0 && !isAssetChange) {
+          processAndDisplayData(cachedData)
+          
+          setTimeout(async () => {
+            if (isCancelled) return
+            const freshData = await fetchHistoricalData(assetPath, timeframe)
+            if (freshData.length > 0 && !isCancelled) {
+              setCachedData(selectedAsset.id, timeframe, freshData)
+              processAndDisplayData(freshData)
+            }
+          }, 0)
+        } else {
+          const data = await fetchHistoricalData(assetPath, timeframe)
+          
+          if (isCancelled) {
+            return
+          }
+          
+          setCachedData(selectedAsset.id, timeframe, data)
+          processAndDisplayData(data)
+        }
+      } catch (error) {
+        console.error('Historical data load error:', error)
+      } finally {
+        if (!isCancelled && dataLoadSuccess) {
+          setSafeLoading(false, 200)
+        }
+        isLoadingDataRef.current = false
+      }
+    }
+
     const initializeData = async () => {
       await checkSimulator().catch(err => console.log('Market check failed:', err))
       setupRealtime()
-      await loadHistoricalData(false)
+      await loadHistoricalData()
     }
 
     initializeData()
 
     return () => {
+      isCancelled = true
+      isLoadingDataRef.current = false
       cleanupAll()
     }
   }, [selectedAsset?.id, timeframe, isInitialized])
 
   useEffect(() => {
-    if (!SCROLL_LOAD_TIMEFRAMES.includes(timeframe) || !chartRef.current || isLoadingMore) return
-
-    const timeScale = chartRef.current.timeScale()
-    
-    const handleVisibleRangeChange = () => {
-      const visibleRange = timeScale.getVisibleLogicalRange()
-      if (!visibleRange) return
-
-      const isNearLeftEdge = visibleRange.from <= 10
-      if (isNearLeftEdge) {
-        const currentRange = loadedDataRangesRef.current.get(timeframe)
-        if (currentRange && currentRange.count < 1000) {
-          loadHistoricalData(true)
-        }
-      }
-    }
-
-    timeScale.subscribeVisibleLogicalRangeChange(handleVisibleRangeChange)
-    return () => timeScale.unsubscribeVisibleLogicalRangeChange(handleVisibleRangeChange)
-  }, [timeframe, isInitialized, isLoadingMore, loadHistoricalData])
-
-  useEffect(() => {
     if (isLoading) {
       const safetyTimeout = setTimeout(() => {
-        if (loadingManagerRef.current.getLoading()) setSafeLoading(false, 0)
+        if (loadingManagerRef.current.getLoading()) {
+          setSafeLoading(false, 0)
+        }
       }, 5000)
+      
       return () => clearTimeout(safetyTimeout)
     }
   }, [isLoading, setSafeLoading])
 
   useEffect(() => {
-    if (!selectedAsset || !isInitialized || prefetchedAssets.has(selectedAsset.id)) return
+    if (!selectedAsset || !isInitialized || isLoading || prefetchedAssets.has(selectedAsset.id)) {
+      return
+    }
 
     const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`)
-    const prefetchTimer = setTimeout(() => prefetchAllTimeframes(selectedAsset.id, assetPath), 2000)
+
+    const prefetchTimer = setTimeout(() => {
+      prefetchAllTimeframes(selectedAsset.id, assetPath)
+    }, 2000)
+
     return () => clearTimeout(prefetchTimer)
-  }, [selectedAsset?.id, isInitialized, prefetchedAssets, prefetchAllTimeframes])
+  }, [selectedAsset?.id, isInitialized, isLoading, prefetchedAssets])
 
   const processTickUpdate = useCallback((tick1s: any) => {
-    if (!currentBarRef.current) return
+    if (isLoadingDataRef.current) return
     
     try {
       const newPrice = tick1s.close
       const currentTimestamp = Math.floor(Date.now() / 1000)
       const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
       
-      if (currentBarRef.current.timestamp !== barPeriod) {
+      if (!currentBarRef.current || currentBarRef.current.timestamp !== barPeriod) {
         currentBarRef.current = {
           timestamp: barPeriod,
           open: newPrice,
@@ -1406,29 +1506,51 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
           close: newPrice,
           volume: 0
         }
+        
+        if (timeframe === '1s' || timeframe === '1m') {
+          candleAnimatorRef.current?.updateCandle(currentBarRef.current)
+        } else {
+          const chartCandle = {
+            time: currentBarRef.current.timestamp as UTCTimestamp,
+            open: currentBarRef.current.open,
+            high: currentBarRef.current.high,
+            low: currentBarRef.current.low,
+            close: currentBarRef.current.close,
+          }
+          
+          candleSeriesRef.current?.update(chartCandle)
+          lineSeriesRef.current?.update({
+            time: chartCandle.time,
+            value: chartCandle.close
+          })
+        }
       } else {
         currentBarRef.current.high = Math.max(currentBarRef.current.high, newPrice)
         currentBarRef.current.low = Math.min(currentBarRef.current.low, newPrice)
         currentBarRef.current.close = newPrice
-      }
-
-      const chartCandle = {
-        time: currentBarRef.current.timestamp as UTCTimestamp,
-        open: currentBarRef.current.open,
-        high: currentBarRef.current.high,
-        low: currentBarRef.current.low,
-        close: currentBarRef.current.close,
-      }
-      
-      if (timeframe === '1s' || timeframe === '1m') {
-        candleAnimatorRef.current?.updateCandle(currentBarRef.current)
-      } else {
-        candleSeriesRef.current?.update(chartCandle)
-        lineSeriesRef.current?.update({ time: chartCandle.time, value: chartCandle.close })
+        
+        if (timeframe === '1s' || timeframe === '1m') {
+          candleAnimatorRef.current?.updateCandle(currentBarRef.current)
+        } else {
+          const chartCandle = {
+            time: currentBarRef.current.timestamp as UTCTimestamp,
+            open: currentBarRef.current.open,
+            high: currentBarRef.current.high,
+            low: currentBarRef.current.low,
+            close: currentBarRef.current.close,
+          }
+          
+          candleSeriesRef.current?.update(chartCandle)
+          lineSeriesRef.current?.update({
+            time: chartCandle.time,
+            value: chartCandle.close
+          })
+        }
       }
 
       setLastPrice(newPrice)
       lastUpdateTimeRef.current = Date.now()
+
     } catch (error) {
       console.error('Tick update error:', error)
     }
@@ -1437,7 +1559,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const handleRefresh = useCallback(() => {
     if (!selectedAsset) return
     
-    loadedDataRangesRef.current.delete(timeframe)
     GLOBAL_DATA_CACHE.delete(`${selectedAsset.id}-${timeframe}`)
     
     setPrefetchedAssets(prev => {
@@ -1452,9 +1573,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     useTradingStore.setState({ selectedAsset: null })
     setTimeout(() => {
       useTradingStore.setState({ selectedAsset: currentAsset })
-      loadHistoricalData(false)
     }, 100)
-  }, [selectedAsset, timeframe, checkSimulator, loadHistoricalData])
+  }, [selectedAsset, timeframe, checkSimulator])
 
   const handleFitContent = useCallback(() => {
     if (chartRef.current) {
@@ -1509,24 +1629,59 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         onSelectAsset={handleAssetSelect}
       />
       <RealtimeClock />
-      <DesktopControls timeframe={timeframe} chartType={chartType} isLoading={isLoading} onTimeframeChange={handleTimeframeChange} onChartTypeChange={handleChartTypeChange} onFitContent={handleFitContent} onRefresh={handleRefresh} onToggleFullscreen={toggleFullscreen} onOpenIndicators={() => setShowIndicators(true)} isFullscreen={isFullscreen} />
-      <MobileControls timeframe={timeframe} chartType={chartType} isLoading={isLoading} onTimeframeChange={handleTimeframeChange} onChartTypeChange={handleChartTypeChange} onFitContent={handleFitContent} onRefresh={handleRefresh} onOpenIndicators={() => setShowIndicators(true)} />
+
+      <DesktopControls 
+        timeframe={timeframe} 
+        chartType={chartType} 
+        isLoading={isLoading} 
+        onTimeframeChange={handleTimeframeChange} 
+        onChartTypeChange={handleChartTypeChange} 
+        onFitContent={handleFitContent} 
+        onRefresh={handleRefresh} 
+        onToggleFullscreen={toggleFullscreen} 
+        onOpenIndicators={() => setShowIndicators(true)} 
+        isFullscreen={isFullscreen} 
+      />
+
+      <MobileControls 
+        timeframe={timeframe} 
+        chartType={chartType} 
+        isLoading={isLoading} 
+        onTimeframeChange={handleTimeframeChange} 
+        onChartTypeChange={handleChartTypeChange} 
+        onFitContent={handleFitContent} 
+        onRefresh={handleRefresh} 
+        onOpenIndicators={() => setShowIndicators(true)} 
+      />
+
       <SimulatorStatus status={simulatorStatus} onRetry={checkSimulator} />
+
       <OHLCDisplay data={ohlcData} visible={showOhlc} />
+
       <div ref={chartContainerRef} className="absolute inset-0 bg-[#0a0e17]" />
-      {(isLoading || isLoadingMore) && (
+
+      {isLoading && (
         <div className="absolute inset-0 bg-[#0a0e17] flex items-center justify-center z-20">
           <div className="text-center">
             <div className="relative w-16 h-16 mx-auto mb-4">
               <div className="absolute inset-0 border-4 border-gray-800 rounded-full"></div>
               <div className="absolute inset-0 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
             </div>
-            <div className="text-sm text-gray-400 mb-1">{isLoadingMore ? 'Loading more data...' : `Loading ${timeframe} chart...`}</div>
-            <div className="text-xs text-gray-600">{selectedAsset.symbol}</div>
+            <div className="text-sm text-gray-400 mb-1">Loading {timeframe} chart...</div>
+            <div className="text-xs text-gray-600">
+              {selectedAsset.symbol}
+            </div>
           </div>
         </div>
       )}
-      <IndicatorControls isOpen={showIndicators} onClose={() => setShowIndicators(false)} config={indicatorConfig} onChange={setIndicatorConfig} />
+
+      <IndicatorControls 
+        isOpen={showIndicators} 
+        onClose={() => setShowIndicators(false)} 
+        config={indicatorConfig} 
+        onChange={setIndicatorConfig} 
+      />
+
       <style jsx>{`
         @keyframes scale-in {
           from { opacity: 0; transform: scale(0.95); }

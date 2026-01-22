@@ -833,9 +833,9 @@ export default function LandingPage() {
       <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32 overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-[#1a1f2e] via-[#0f1419] to-[#0a0e17]"></div>
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-sky-600/10 rounded-full blur-[100px]"></div>
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-600/8 rounded-full blur-[100px]"></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-violet-600/8 rounded-full blur-[100px]"></div>
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-600/20 rounded-full blur-[100px]"></div>
+          <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-cyan-600/15 rounded-full blur-[100px]"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-violet-600/10 rounded-full blur-[100px]"></div>
           <div 
             className="absolute inset-0 opacity-[0.03]"
             style={{
@@ -1191,7 +1191,7 @@ export default function LandingPage() {
     <div className="sm:hidden space-y-3">
       {/* Baris 1 - 6 logo pertama */}
       <div className="relative">
-        <div className="absolute right-0 top-0 bottom-0 w-12 h-20 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
+        <div className="absolute right-0 top-0 bottom-0 w-6 z-10 pointer-events-none"></div>
         
         <div className="overflow-x-auto pb-2 hide-scrollbar">
           <div className="flex gap-3 px-4">
@@ -1221,7 +1221,7 @@ export default function LandingPage() {
 
       {/* Baris 2 - 5 logo terakhir */}
       <div className="relative">
-        <div className="absolute right-0 top-0 bottom-0 w-12 h-20 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
+        <div className="absolute right-0 top-0 bottom-0 w-6 z-10 pointer-events-none"></div>
         
         <div className="overflow-x-auto pb-2 hide-scrollbar">
           <div className="flex gap-3 px-4">
@@ -1267,9 +1267,12 @@ export default function LandingPage() {
 </section>
 
       {/* Stockity x LindungiHutan Partnership */}
-<section className="relative py-12 sm:py-16 lg:py-20 bg-[#242837] border-t border-sky-800/30 overflow-hidden">
+<section className="relative py-12 sm:py-16 lg:py-20 bg-[#24283750] border-t border-sky-800/30 overflow-hidden">
   {/* Background Effects */}
   <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-600/40 rounded-full blur-[100px]"></div>
+          <div className="absolute bottom-10 left-1/5 w-96 h-96 bg-red-700/10 rounded-full blur-[100px]"></div>
+
     <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[100px] animate-pulse-slow" />
     <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-sky-500/10 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '2s' }} />
   </div>
@@ -1280,12 +1283,12 @@ export default function LandingPage() {
       <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:gap-12 items-center mb-12 sm:mb-16 lg:mb-24">
         {/* Kiri - Gambar Pohon */}
         <div className="relative">
-          <div className="relative aspect-[4/3] rounded-xl sm:rounded-2xl lg:rounded-3xl overflow-hidden">
+          <div className="relative aspect-[1/1] m-8 lg:m-0 rounded-xl sm:rounded-2xl lg:rounded-3xl overflow-hidden">
             <Image
-              src="/pohon.webp"
+              src="/v1.webp"
               alt="Stockity x LindungiHutan"
               fill
-              className="object-contain"
+              className="object-cover object-top lg:p-0"
             />
           </div>
         </div>
@@ -1315,10 +1318,12 @@ export default function LandingPage() {
           </p>
 
           {/* Button */}
-          <button className="group inline-flex items-center gap-1 sm:gap-2 lg:gap-3 px-3 py-1.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 bg-gradient-to-r from-sky-600 to-cyan-600 hover:from-sky-500 hover:to-cyan-500 rounded-lg sm:rounded-xl text-[10px] sm:text-base lg:text-lg font-semibold text-white transition-all shadow-lg hover:shadow-sky-500/25">
-            <span>Selengkapnya</span>
-            <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 group-hover:translate-x-1 transition-transform" />
-          </button>          
+          <a href="https://stockity.id/id/ad/ecostockity?utm_source=ecostockity_new&utm_medium=marprod&utm_campaign=main_page_banner&a=&ac=main_page_banner" target="_blank" rel="noopener noreferrer">
+            <button className="group inline-flex items-center mt-6 gap-1 sm:gap-2 lg:gap-3 px-3 py-1.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 bg-gradient-to-r from-emerald-600 to-emerald-600 hover:from-emerald-500 hover:to-emerald-500 rounded-lg sm:rounded-xl text-[10px] sm:text-base lg:text-lg font-semibold text-white transition-all shadow-lg hover:shadow-green-500/25">
+              <span>Selengkapnya</span>
+              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </a>   
         </div>
       </div>
 
