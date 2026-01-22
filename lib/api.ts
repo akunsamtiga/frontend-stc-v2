@@ -1,4 +1,4 @@
-// lib/api.ts - ✅ COMPLETE FIXED: Photo Upload Support
+// lib/api.ts - Complete API Client with Optimizations
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
 import type { 
@@ -19,9 +19,10 @@ import type {
   CreateOrderRequest,
   WithdrawalRequest,
   WithdrawalSummary,
-  PendingVerifications,  // ✅ TAMBAHKAN INI
-  VerifyDocumentRequest  // ✅ TAMBAHKAN INI
+  PendingVerifications,
+  VerifyDocumentRequest
 } from '@/types'
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
 
 interface CacheEntry {
@@ -137,8 +138,12 @@ class ApiClient {
 
     this.client.interceptors.response.use(
       (response) => {
-        this.consecutiveErrors = 0
-        return response.data
+        const serverTime = response.headers['x-server-timestamp'];
+        if (serverTime) {
+          response.data._serverTimestamp = parseInt(serverTime);
+        }
+        this.consecutiveErrors = 0;
+        return response.data;
       },
       async (error: AxiosError<any>) => {
         const config = error.config as AxiosRequestConfig & { _retry?: number; _timeoutRetry?: number }
@@ -283,10 +288,6 @@ class ApiClient {
     }
   }
 
-  // ===================================
-  // CACHING UTILITIES
-  // ===================================
-
   private getCacheKey(endpoint: string, params?: any): string {
     return `${endpoint}-${JSON.stringify(params || {})}`
   }
@@ -367,25 +368,17 @@ class ApiClient {
     }
   }
 
-  // ===================================
-  // AUTH
-  // ===================================
-
   async login(email: string, password: string): Promise<ApiResponse> {
     return this.client.post('/auth/login', { email, password })
   }
 
   async googleSignIn(idToken: string, referralCode?: string): Promise<ApiResponse> {
     try {
-      const response = await this.client.post('/auth/google', { 
-        idToken, 
-        referralCode 
-      })
-      
-      console.log('✅ Google Sign-In API response:', response)
+      const response = await this.client.post('/auth/google', { idToken, referralCode })
+      console.log('Google Sign-In API response:', response)
       return response
     } catch (error: any) {
-      console.error('❌ Google Sign-In API error:', error)
+      console.error('Google Sign-In API error:', error)
       throw error
     }
   }
@@ -394,9 +387,6 @@ class ApiClient {
     return this.client.post('/auth/register', { email, password, referralCode })
   }
 
-  // ===================================
-  // USER & PROFILE
-  // ===================================
   async completeTutorial(): Promise<ApiResponse> {
     try {
       const result = await this.client.post('/user/complete-tutorial')
@@ -427,120 +417,114 @@ class ApiClient {
     }
   }
 
-
   async requestWithdrawal(data: {
-  amount: number
-  description?: string
-}): Promise<ApiResponse> {
-  try {
-    const result = await this.client.post('/balance/withdrawal/request', data, {
-      headers: {
-        'X-Idempotent': 'true'
-      }
-    })
-    
-    this.invalidateCache('/balance')
-    this.invalidateCache('/user/profile')
-    
-    return result
-  } catch (error) {
-    console.error('Withdrawal request failed:', error)
-    throw error
-  }
-}
-
-async getMyWithdrawalRequests(): Promise<ApiResponse<{
-  requests: WithdrawalRequest[]
-  summary: WithdrawalSummary
-}>> {
-  const cacheKey = this.getCacheKey('/balance/withdrawal/my-requests')
-  const cached = this.getFromCache(cacheKey)
-  
-  if (cached) return cached
-  
-  return this.withDeduplication(cacheKey, async () => {
-    const data = await this.client.get('/balance/withdrawal/my-requests')
-    this.setCache(cacheKey, data, 5000)
-    return data
-  })
-}
-
-async cancelWithdrawalRequest(requestId: string): Promise<ApiResponse> {
-  try {
-    const result = await this.client.delete(`/balance/withdrawal/cancel/${requestId}`)
-    
-    this.invalidateCache('/balance/withdrawal')
-    this.invalidateCache('/balance')
-    
-    return result
-  } catch (error) {
-    console.error('Cancel withdrawal failed:', error)
-    throw error
-  }
-}
-
-// ===================================
-// WITHDRAWAL MANAGEMENT (ADMIN)
-// ===================================
-
-async getAllWithdrawalRequests(status?: string): Promise<ApiResponse<{
-  requests: WithdrawalRequest[]
-  summary: WithdrawalSummary
-}>> {
-  const params = new URLSearchParams()
-  if (status) params.append('status', status)
-  
-  const cacheKey = this.getCacheKey('/admin/withdrawals', { status })
-  const cached = this.getFromCache(cacheKey)
-  
-  if (cached) return cached
-  
-  return this.withDeduplication(cacheKey, async () => {
-    const data = await this.client.get(`/admin/withdrawals?${params}`)
-    this.setCache(cacheKey, data, 3000)
-    return data
-  })
-}
-
-async getWithdrawalRequestById(requestId: string): Promise<ApiResponse> {
-  const cacheKey = this.getCacheKey(`/admin/withdrawals/${requestId}`)
-  const cached = this.getFromCache(cacheKey)
-  
-  if (cached) return cached
-  
-  return this.withDeduplication(cacheKey, async () => {
-    const data = await this.client.get(`/admin/withdrawals/${requestId}`)
-    this.setCache(cacheKey, data, 5000)
-    return data
-  })
-}
-
-async approveWithdrawal(
-  requestId: string,
-  data: {
-    approve: boolean
-    adminNotes?: string
-    rejectionReason?: string
-  }
-): Promise<ApiResponse> {
-  try {
-    if (!data.approve && !data.rejectionReason) {
-      throw new Error('Rejection reason is required when rejecting withdrawal')
+    amount: number
+    description?: string
+  }): Promise<ApiResponse> {
+    try {
+      const result = await this.client.post('/balance/withdrawal/request', data, {
+        headers: {
+          'X-Idempotent': 'true'
+        }
+      })
+      
+      this.invalidateCache('/balance')
+      this.invalidateCache('/user/profile')
+      
+      return result
+    } catch (error) {
+      console.error('Withdrawal request failed:', error)
+      throw error
     }
-
-    const result = await this.client.post(`/admin/withdrawals/${requestId}/approve`, data)
-    
-    this.invalidateCache('/admin/withdrawals')
-    this.invalidateCache('/balance')
-    this.invalidateCache('/admin/statistics')
-    
-    return result
-  } catch (error) {
-    console.error('Approve withdrawal failed:', error)
-    throw error
   }
-}
 
+  async getMyWithdrawalRequests(): Promise<ApiResponse<{
+    requests: WithdrawalRequest[]
+    summary: WithdrawalSummary
+  }>> {
+    const cacheKey = this.getCacheKey('/balance/withdrawal/my-requests')
+    const cached = this.getFromCache(cacheKey)
+    
+    if (cached) return cached
+    
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get('/balance/withdrawal/my-requests')
+      this.setCache(cacheKey, data, 5000)
+      return data
+    })
+  }
+
+  async cancelWithdrawalRequest(requestId: string): Promise<ApiResponse> {
+    try {
+      const result = await this.client.delete(`/balance/withdrawal/cancel/${requestId}`)
+      
+      this.invalidateCache('/balance/withdrawal')
+      this.invalidateCache('/balance')
+      
+      return result
+    } catch (error) {
+      console.error('Cancel withdrawal failed:', error)
+      throw error
+    }
+  }
+
+  async getAllWithdrawalRequests(status?: string): Promise<ApiResponse<{
+    requests: WithdrawalRequest[]
+    summary: WithdrawalSummary
+  }>> {
+    const params = new URLSearchParams()
+    if (status) params.append('status', status)
+    
+    const cacheKey = this.getCacheKey('/admin/withdrawals', { status })
+    const cached = this.getFromCache(cacheKey)
+    
+    if (cached) return cached
+    
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get(`/admin/withdrawals?${params}`)
+      this.setCache(cacheKey, data, 3000)
+      return data
+    })
+  }
+
+  async getWithdrawalRequestById(requestId: string): Promise<ApiResponse> {
+    const cacheKey = this.getCacheKey(`/admin/withdrawals/${requestId}`)
+    const cached = this.getFromCache(cacheKey)
+    
+    if (cached) return cached
+    
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get(`/admin/withdrawals/${requestId}`)
+      this.setCache(cacheKey, data, 5000)
+      return data
+    })
+  }
+
+  async approveWithdrawal(
+    requestId: string,
+    data: {
+      approve: boolean
+      adminNotes?: string
+      rejectionReason?: string
+    }
+  ): Promise<ApiResponse> {
+    try {
+      if (!data.approve && !data.rejectionReason) {
+        throw new Error('Rejection reason is required when rejecting withdrawal')
+      }
+
+      const result = await this.client.post(`/admin/withdrawals/${requestId}/approve`, data)
+      
+      this.invalidateCache('/admin/withdrawals')
+      this.invalidateCache('/balance')
+      this.invalidateCache('/admin/statistics')
+      
+      return result
+    } catch (error) {
+      console.error('Approve withdrawal failed:', error)
+      throw error
+    }
+  }
 
   async updateProfile(data: UpdateProfileRequest): Promise<ApiResponse> {
     try {
@@ -590,49 +574,46 @@ async approveWithdrawal(
   }
 
   async uploadKTP(data: { 
-  photoFront: { url: string; fileSize?: number; mimeType?: string }
-  photoBack?: { url: string; fileSize?: number; mimeType?: string }
-}): Promise<ApiResponse> {
-  try {
-    console.log('📤 API uploadKTP called with:', {
-      hasFront: !!data.photoFront,
-      hasBack: !!data.photoBack,
-      frontSize: data.photoFront?.fileSize,
-      backSize: data.photoBack?.fileSize
-    })
+    photoFront: { url: string; fileSize?: number; mimeType?: string }
+    photoBack?: { url: string; fileSize?: number; mimeType?: string }
+  }): Promise<ApiResponse> {
+    try {
+      console.log('API uploadKTP called:', {
+        hasFront: !!data.photoFront,
+        hasBack: !!data.photoBack,
+        frontSize: data.photoFront?.fileSize,
+      })
 
-    if (!data?.photoFront?.url) {
-      throw new Error('Front photo is required')
-    }
-
-    if (!data.photoFront.url.startsWith('data:image/')) {
-      throw new Error('Invalid front photo format')
-    }
-
-    if (data.photoBack?.url && !data.photoBack.url.startsWith('data:image/')) {
-      throw new Error('Invalid back photo format')
-    }
-
-    const result = await this.client.post('/user/ktp', data, {
-      timeout: 30000,
-      headers: {
-        'X-Silent-Error': 'false'
+      if (!data?.photoFront?.url) {
+        throw new Error('Front photo is required')
       }
-    })
-    
-    console.log('✅ API uploadKTP response:', result)
-    
-    this.invalidateCache('/user/profile')
-    
-    return result
-  } catch (error: any) {
-    console.error('❌ API uploadKTP error:', error)
-    console.error('Error response:', error?.response?.data)
-    throw error
-  }
-}
 
-  // ✅ NEW: Upload selfie photo
+      if (!data.photoFront.url.startsWith('data:image/')) {
+        throw new Error('Invalid front photo format')
+      }
+
+      if (data.photoBack?.url && !data.photoBack.url.startsWith('data:image/')) {
+        throw new Error('Invalid back photo format')
+      }
+
+      const result = await this.client.post('/user/ktp', data, {
+        timeout: 30000,
+        headers: {
+          'X-Silent-Error': 'false'
+        }
+      })
+      
+      console.log('API uploadKTP response:', result)
+      this.invalidateCache('/user/profile')
+      
+      return result
+    } catch (error: any) {
+      console.error('API uploadKTP error:', error)
+      console.error('Error response:', error?.response?.data)
+      throw error
+    }
+  }
+
   async uploadSelfie(data: { url: string; fileSize?: number; mimeType?: string }): Promise<ApiResponse> {
     try {
       if (!data?.url) {
@@ -725,10 +706,6 @@ async approveWithdrawal(
     }
   }
 
-  // ===================================
-  // BALANCE
-  // ===================================
-
   async getBothBalances(): Promise<ApiResponse<BalanceSummary>> {
     const cacheKey = this.getCacheKey('/balance/both')
     const cached = this.getFromCache(cacheKey)
@@ -792,10 +769,6 @@ async approveWithdrawal(
     return this.client.get('/balance/summary')
   }
 
-  // ===================================
-  // ASSETS - ✅ UPDATED FOR BINANCE
-  // ===================================
-
   async getAssets(activeOnly = false): Promise<ApiResponse<{ assets: Asset[]; total: number }>> {
     const cacheKey = this.getCacheKey('/assets', { activeOnly })
     const cached = this.getFromCache(cacheKey)
@@ -835,7 +808,6 @@ async approveWithdrawal(
     })
   }
 
-  // ✅ NEW: Admin asset management with Binance support
   async createAsset(data: CreateAssetRequest): Promise<ApiResponse> {
     const result = await this.client.post('/assets', data)
     this.invalidateCache('/assets')
@@ -858,7 +830,6 @@ async approveWithdrawal(
     return this.client.get(`/assets/${id}/settings`)
   }
 
-  // ✅ NEW: Crypto scheduler endpoints (Binance)
   async getCryptoSchedulerStatus(): Promise<ApiResponse<CryptoSchedulerStatus>> {
     const cacheKey = this.getCacheKey('/assets/crypto/scheduler/status')
     const cached = this.getFromCache(cacheKey)
@@ -877,10 +848,6 @@ async approveWithdrawal(
     this.invalidateCache('/assets/crypto')
     return result
   }
-
-  // ===================================
-  // BINARY ORDERS
-  // ===================================
 
   async createOrder(data: CreateOrderRequest): Promise<ApiResponse> {
     const result = await this.client.post('/binary-orders', data, {
@@ -935,10 +902,6 @@ async approveWithdrawal(
     })
   }
 
-  // ===================================
-  // ADMIN - USERS
-  // ===================================
-
   async getAllUsers(page = 1, limit = 50, withBalance = false): Promise<ApiResponse> {
     const params = new URLSearchParams({
       page: page.toString(),
@@ -979,10 +942,6 @@ async approveWithdrawal(
     return this.client.delete(`/admin/users/${id}`)
   }
 
-  // ===================================
-  // ADMIN - BALANCE MANAGEMENT
-  // ===================================
-
   async getUserBalance(userId: string): Promise<ApiResponse> {
     return this.client.get(`/admin/users/${userId}/balance`)
   }
@@ -1004,10 +963,6 @@ async approveWithdrawal(
     return this.client.get(`/admin/users/${userId}/trading-stats`)
   }
 
-  // ===================================
-  // ADMIN - STATISTICS
-  // ===================================
-
   async getSystemStatistics(): Promise<ApiResponse<SystemStatistics>> {
     const cacheKey = this.getCacheKey('/admin/statistics')
     const cached = this.getFromCache(cacheKey)
@@ -1026,7 +981,7 @@ async approveWithdrawal(
     })
   }
 
-    async getPendingVerifications(): Promise<ApiResponse<PendingVerifications>> {
+  async getPendingVerifications(): Promise<ApiResponse<PendingVerifications>> {
     const cacheKey = this.getCacheKey('/admin/verifications/pending')
     const cached = this.getFromCache(cacheKey)
     
@@ -1034,19 +989,15 @@ async approveWithdrawal(
     
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get('/admin/verifications/pending')
-      this.setCache(cacheKey, data, 30000) // Cache 30s
+      this.setCache(cacheKey, data, 30000)
       return data
     })
   }
 
-  async verifyKTP(
-    userId: string,
-    data: VerifyDocumentRequest
-  ): Promise<ApiResponse> {
+  async verifyKTP(userId: string, data: VerifyDocumentRequest): Promise<ApiResponse> {
     try {
       const result = await this.client.post(`/admin/verifications/${userId}/ktp`, data)
       
-      // Invalidate caches
       this.invalidateCache('/admin/verifications')
       this.invalidateCache('/admin/users')
       
@@ -1057,14 +1008,10 @@ async approveWithdrawal(
     }
   }
 
-  async verifySelfie(
-    userId: string,
-    data: VerifyDocumentRequest
-  ): Promise<ApiResponse> {
+  async verifySelfie(userId: string, data: VerifyDocumentRequest): Promise<ApiResponse> {
     try {
       const result = await this.client.post(`/admin/verifications/${userId}/selfie`, data)
       
-      // Invalidate caches
       this.invalidateCache('/admin/verifications')
       this.invalidateCache('/admin/users')
       
@@ -1074,10 +1021,6 @@ async approveWithdrawal(
       throw error
     }
   }
-
-  // ===================================
-  // UTILITIES
-  // ===================================
 
   clearCache(pattern?: string) {
     this.invalidateCache(pattern)

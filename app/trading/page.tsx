@@ -34,11 +34,11 @@ import {
   Logs,
   Zap,
   Info,
-  Wifi,
-  WifiOff,
 } from 'lucide-react'
 import OrderNotification from '@/components/OrderNotification'
 import { useWebSocket, usePriceSubscription, useOrderSubscription } from '@/components/providers/WebSocketProvider'
+import { CalculationUtil } from '@/lib/calculation'
+import { TimezoneUtil } from '@/lib/timezone'
 
 const TradingChart = dynamic(() => import('@/components/TradingChart'), {
   ssr: false,
@@ -162,6 +162,14 @@ const EXTENDED_DURATIONS = [
   { value: 45, label: '45 minutes', shortLabel: '45m' },
   { value: 60, label: '1 hour', shortLabel: '60m' },
 ]
+
+const formatExpiryTime = (durationMinutes: number): string => {
+  const asset = useTradingStore.getState().selectedAsset
+  if (!asset) return getDurationDisplay(durationMinutes)
+  
+  const timing = CalculationUtil.formatOrderTiming(asset, durationMinutes)
+  return TimezoneUtil.formatWIBTime(timing.expiryTimestamp)
+}
 
 export default function TradingPage() {
   const router = useRouter()
@@ -439,7 +447,6 @@ export default function TradingPage() {
     initializeData()
   }, [user, router, assets]) 
 
-
   useEffect(() => {
     if (!user) return
 
@@ -530,6 +537,8 @@ export default function TradingPage() {
 
     setLoading(true)
     try {
+      const timing = CalculationUtil.formatOrderTiming(selectedAsset, duration)
+      
       await api.createOrder({
         accountType: selectedAccountType,
         asset_id: selectedAsset.id,
@@ -538,7 +547,7 @@ export default function TradingPage() {
         duration,
       })
 
-      toast.success(`${direction} order placed successfully! (${durationDisplay})`)
+      toast.success(`${direction} order placed! Expires at ${timing.expiryDateTime}`)
       
       unstable_batchedUpdates(() => {
         if (selectedAccountType === 'real') {
@@ -555,7 +564,7 @@ export default function TradingPage() {
     } finally {
       setLoading(false)
     }
-  }, [selectedAsset, amount, selectedAccountType, realBalance, demoBalance, duration, durationDisplay, loadData])
+  }, [selectedAsset, amount, selectedAccountType, realBalance, demoBalance, duration, loadData])
 
   const potentialProfit = selectedAsset ? (amount * selectedAsset.profitRate) / 100 : 0
   const potentialPayout = amount + potentialProfit
@@ -633,8 +642,6 @@ export default function TradingPage() {
           </div>
 
           <div className="flex-1"></div>
-
-          
 
           <div className="relative">
             <button
@@ -730,7 +737,7 @@ export default function TradingPage() {
                     className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#232936] transition-colors text-left"
                   >
                     <Settings className="w-4 h-4" />
-                    <span className="text-sm">Settings</span>
+                    <span className="text-sm">Profile</span>
                   </button>
 
                   <button
@@ -781,7 +788,6 @@ export default function TradingPage() {
               />
             </div>
           </div>
-
 
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -861,8 +867,8 @@ export default function TradingPage() {
             <TradingChart 
               activeOrders={activeOrders}
               currentPrice={currentPrice?.price}
-              assets={assets} // ✅ Kirim list assets
-              onAssetSelect={setSelectedAsset} // ✅ Kirim handler
+              assets={assets}
+              onAssetSelect={setSelectedAsset}
             />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
@@ -913,12 +919,15 @@ export default function TradingPage() {
                 onChange={(e) => setDuration(Number(e.target.value))}
                 className="w-full bg-transparent border-0 text-center text-base text-white focus:outline-none focus:ring-0 appearance-none cursor-pointer my-0"
               >
-                {EXTENDED_DURATIONS.map((d) => (
-                  <option key={d.value} value={d.value}>
-                    {d.label}
-                    {d.isUltraFast ? ' ⚡' : ''}
-                  </option>
-                ))}
+                {EXTENDED_DURATIONS.map((d) => {
+                  const isUltraFast = d.value === 0.0167
+                  const expiryTime = isUltraFast ? null : formatExpiryTime(d.value)
+                  return (
+                    <option key={d.value} value={d.value}>
+                      {isUltraFast ? '1 second ⚡' : `${d.label} → ${expiryTime}`}
+                    </option>
+                  )
+                })}
               </select>
             </div>
 
@@ -968,7 +977,6 @@ export default function TradingPage() {
                   <ArrowDown className="w-6 h-6" />
                 </button>
               </div>
-
 
               {loading && (
                 <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-2 mt-3">
@@ -1053,11 +1061,15 @@ export default function TradingPage() {
                   isUltraFastMode ? 'ring-2 ring-yellow-500/30' : ''
                 }`}
               >
-                {EXTENDED_DURATIONS.map((d) => (
-                  <option key={d.value} value={d.value}>
-                    {d.shortLabel}
-                  </option>
-                ))}
+                {EXTENDED_DURATIONS.map((d) => {
+                  const isUltraFast = d.value === 0.0167
+                  const expiryTime = isUltraFast ? null : formatExpiryTime(d.value)
+                  return (
+                    <option key={d.value} value={d.value}>
+                      {isUltraFast ? '1s ⚡' : `${d.shortLabel} → ${expiryTime}`}
+                    </option>
+                  )
+                })}
               </select>
             </div>
           </div>
@@ -1103,7 +1115,6 @@ export default function TradingPage() {
               <span>SELL</span>
             </button>
           </div>
-
 
           {loading && (
             <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-2 pt-1">
@@ -1277,7 +1288,7 @@ export default function TradingPage() {
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
                 <Settings className="w-4 h-4" />
-                <span>Settings</span>
+                <span>Profile</span>
               </button>
 
               <button

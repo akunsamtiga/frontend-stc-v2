@@ -1,4 +1,3 @@
-// lib/websocket.ts - ✅ FIXED: Proper WebSocket Implementation
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 
@@ -39,6 +38,8 @@ class WebSocketService {
   
   private isConnecting = false;
   private isConnected = false;
+  private lastValidTimestamp: Map<string, number> = new Map();
+  private readonly MAX_ACCEPTABLE_AGE = 5000;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -59,12 +60,12 @@ class WebSocketService {
 
   async connect(token: string) {
     if (this.isConnecting) {
-      console.log('⚠️ WebSocket already connecting');
+      console.log('WebSocket already connecting');
       return;
     }
 
     if (this.isConnected && this.socket?.connected) {
-      console.log('✅ WebSocket already connected');
+      console.log('WebSocket already connected');
       return;
     }
 
@@ -72,22 +73,19 @@ class WebSocketService {
     this.token = token;
 
     try {
-      // ✅ FIXED: Get backend URL from env
       const BACKEND_WS_URL = process.env.NEXT_PUBLIC_BACKEND_WS_URL || 'https://api.stcautotrade.id';
 
-      console.log('🔌 Connecting to WebSocket:', BACKEND_WS_URL);
+      console.log('Connecting to WebSocket:', BACKEND_WS_URL);
 
-      // ✅ Disconnect old socket if exists
       if (this.socket) {
         this.socket.removeAllListeners();
         this.socket.disconnect();
         this.socket = null;
       }
 
-      // ✅ Create new socket connection
       this.socket = io(BACKEND_WS_URL, {
         auth: { token },
-        transports: ['websocket', 'polling'], // Try websocket first
+        transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: this.maxReconnectAttempts,
         reconnectionDelay: this.reconnectDelay,
@@ -95,14 +93,13 @@ class WebSocketService {
         timeout: 10000,
         forceNew: true,
         withCredentials: false,
-        // ✅ IMPORTANT: Socket.IO path (default is /socket.io/)
         path: '/socket.io/',
       });
 
       this.setupEventHandlers();
 
     } catch (error) {
-      console.error('❌ WebSocket connection error:', error);
+      console.error('WebSocket connection error:', error);
       this.isConnecting = false;
       this.handleConnectionError();
     }
@@ -111,30 +108,23 @@ class WebSocketService {
   private setupEventHandlers() {
     if (!this.socket) return;
 
-    // ============================================
-    // CONNECTION EVENTS
-    // ============================================
-
     this.socket.on('connect', () => {
-      console.log('✅ WebSocket connected:', this.socket?.id);
+      console.log('WebSocket connected:', this.socket?.id);
       this.isConnected = true;
       this.isConnecting = false;
       this.reconnectAttempts = 0;
-
-      // ✅ Resubscribe to all active subscriptions
       this.resubscribeAll();
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('🔴 WebSocket disconnected:', reason);
+      console.log('WebSocket disconnected:', reason);
       this.isConnected = false;
       this.isConnecting = false;
 
-      // ✅ Auto-reconnect if server disconnected us
       if (reason === 'io server disconnect') {
         setTimeout(() => {
           if (this.token) {
-            console.log('🔄 Attempting to reconnect...');
+            console.log('Attempting to reconnect...');
             this.connect(this.token);
           }
         }, this.reconnectDelay);
@@ -142,62 +132,48 @@ class WebSocketService {
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('❌ WebSocket connection error:', error.message);
+      console.error('WebSocket connection error:', error.message);
       this.handleConnectionError();
     });
 
     this.socket.on('reconnect_attempt', (attempt) => {
-      console.log(`🔄 Reconnection attempt ${attempt}/${this.maxReconnectAttempts}`);
+      console.log(`Reconnection attempt ${attempt}/${this.maxReconnectAttempts}`);
       this.reconnectAttempts = attempt;
     });
 
     this.socket.on('reconnect', (attempt) => {
-      console.log(`✅ Reconnected after ${attempt} attempts`);
+      console.log(`Reconnected after ${attempt} attempts`);
       this.isConnected = true;
       this.isConnecting = false;
       this.reconnectAttempts = 0;
     });
 
     this.socket.on('reconnect_failed', () => {
-      console.error('❌ WebSocket reconnection failed');
+      console.error('WebSocket reconnection failed');
       this.isConnecting = false;
       toast.error('Failed to reconnect to real-time service', {
         duration: 3000,
       });
     });
 
-    // ============================================
-    // DATA EVENTS
-    // ============================================
-
-    // ✅ Price updates (matches backend event name)
     this.socket.on('price:update', (data: PriceUpdate) => {
       this.handlePriceUpdate(data);
     });
 
-    // ✅ Order updates (matches backend event name)
     this.socket.on('order:update', (data: OrderUpdate) => {
       this.handleOrderUpdate(data);
     });
 
-    // ============================================
-    // SUBSCRIPTION CONFIRMATIONS
-    // ============================================
-
     this.socket.on('user:subscribed', (data) => {
-      console.log('✅ User subscribed:', data);
+      console.log('User subscribed:', data);
     });
 
     this.socket.on('price:subscribed', (data) => {
-      console.log('✅ Price subscribed:', data);
+      console.log('Price subscribed:', data);
     });
 
-    // ============================================
-    // ERROR HANDLING
-    // ============================================
-
     this.socket.on('error', (error) => {
-      console.error('❌ WebSocket error:', error);
+      console.error('WebSocket error:', error);
       toast.error(error.message || 'WebSocket error', {
         duration: 3000,
       });
@@ -206,7 +182,6 @@ class WebSocketService {
 
   private handleConnectionError() {
     this.isConnected = false;
-    this.isConnecting = false;
     
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       toast.error('Unable to connect to real-time service', {
@@ -217,6 +192,12 @@ class WebSocketService {
   }
 
   private handlePriceUpdate(data: PriceUpdate) {
+    const dataAge = Date.now() - data.timestamp;
+    if (dataAge > this.MAX_ACCEPTABLE_AGE) {
+      console.warn(`Stale price data (${dataAge}ms old) for ${data.assetId}`);
+      return;
+    }
+
     const callbacks = this.priceCallbacks.get(data.assetId);
     if (callbacks && callbacks.size > 0) {
       callbacks.forEach(callback => {
@@ -241,119 +222,84 @@ class WebSocketService {
     }
   }
 
-  // ============================================
-  // SUBSCRIPTION METHODS
-  // ============================================
-
-  /**
-   * ✅ Subscribe to price updates for a specific asset
-   * Uses WebSocket for instant updates (< 50ms latency)
-   */
   subscribeToPrice(assetId: string, callback: PriceCallback) {
-    console.log('📡 Subscribing to price stream for:', assetId);
+    console.log('Subscribing to price stream for:', assetId);
     
-    // Initialize callback set for this asset if needed
     if (!this.priceCallbacks.has(assetId)) {
       this.priceCallbacks.set(assetId, new Set());
     }
     
-    // Add callback
     this.priceCallbacks.get(assetId)!.add(callback);
 
-    // ✅ Subscribe via WebSocket if connected
     if (this.isConnected && this.socket?.connected) {
       this.socket.emit('price:subscribe', { assetIds: [assetId] });
-      console.log('✅ Sent price:subscribe event for:', assetId);
     }
 
-    // Return unsubscribe function
     return () => {
-      console.log('🔕 Unsubscribing from price for asset:', assetId);
+      console.log('Unsubscribing from price for asset:', assetId);
       
       const callbacks = this.priceCallbacks.get(assetId);
       if (callbacks) {
         callbacks.delete(callback);
         
-        // ✅ If no more callbacks, unsubscribe from backend
         if (callbacks.size === 0) {
           this.priceCallbacks.delete(assetId);
           
           if (this.isConnected && this.socket?.connected) {
             this.socket.emit('price:unsubscribe', { assetIds: [assetId] });
-            console.log('✅ Sent price:unsubscribe event for:', assetId);
           }
         }
       }
     };
   }
 
-  /**
-   * ✅ Subscribe to order updates for a specific user
-   */
   subscribeToOrders(userId: string, callback: OrderCallback) {
-    console.log('📡 Subscribing to orders for user:', userId);
+    console.log('Subscribing to orders for user:', userId);
 
     this.currentUserId = userId;
     this.orderCallbacks.add(callback);
 
-    // ✅ Subscribe to user room if connected
     if (this.isConnected && this.socket?.connected) {
       this.socket.emit('user:subscribe', { userId });
-      console.log('✅ Sent user:subscribe event for:', userId);
     }
 
-    // Return unsubscribe function
     return () => {
-      console.log('🔕 Unsubscribing from orders for user:', userId);
+      console.log('Unsubscribing from orders for user:', userId);
       this.orderCallbacks.delete(callback);
       
-      // ✅ If no more order callbacks, unsubscribe from backend
       if (this.orderCallbacks.size === 0) {
         this.currentUserId = null;
         
         if (this.isConnected && this.socket?.connected) {
           this.socket.emit('user:unsubscribe', { userId });
-          console.log('✅ Sent user:unsubscribe event for:', userId);
         }
       }
     };
   }
 
-  // ============================================
-  // RESUBSCRIPTION LOGIC
-  // ============================================
-
   private resubscribeAll() {
     if (!this.isConnected || !this.socket?.connected) {
-      console.log('⚠️ Cannot resubscribe: not connected');
+      console.log('Cannot resubscribe: not connected');
       return;
     }
 
-    console.log('🔄 Resubscribing to all subscriptions...');
+    console.log('Resubscribing to all subscriptions...');
 
-    // ✅ Resubscribe to all prices
     const assetIds = Array.from(this.priceCallbacks.keys());
     if (assetIds.length > 0) {
       this.socket.emit('price:subscribe', { assetIds });
-      console.log('✅ Resubscribed to prices:', assetIds);
+      console.log('Resubscribed to prices:', assetIds);
     }
 
-    // ✅ Resubscribe to user orders
     if (this.currentUserId && this.orderCallbacks.size > 0) {
       this.socket.emit('user:subscribe', { userId: this.currentUserId });
-      console.log('✅ Resubscribed to user orders:', this.currentUserId);
+      console.log('Resubscribed to user orders:', this.currentUserId);
     }
   }
 
-  // ============================================
-  // UTILITY METHODS
-  // ============================================
-
   disconnect() {
     if (this.socket) {
-      console.log('🔌 Disconnecting WebSocket');
-      
-      // ✅ Clean disconnect
+      console.log('Disconnecting WebSocket');
       this.socket.removeAllListeners();
       this.socket.disconnect();
       this.socket = null;
@@ -381,9 +327,8 @@ class WebSocketService {
     };
   }
 
-  // ✅ Force reconnect (useful for debugging)
   forceReconnect() {
-    console.log('🔄 Force reconnecting...');
+    console.log('Force reconnecting...');
     
     if (this.socket) {
       this.socket.disconnect();
@@ -397,14 +342,10 @@ class WebSocketService {
   }
 }
 
-// ✅ Singleton instance
 export const websocketService = new WebSocketService();
 
-// ✅ Expose for debugging in browser console
 if (typeof window !== 'undefined') {
   (window as any).ws = websocketService;
-  
-  // Debug helper functions
   (window as any).wsDebug = {
     status: () => websocketService.getConnectionStatus(),
     reconnect: () => websocketService.forceReconnect(),

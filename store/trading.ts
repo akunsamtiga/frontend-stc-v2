@@ -1,6 +1,7 @@
-// store/trading.ts - ✅ TAMBAHKAN ASSETS STATE
 import { create } from 'zustand'
 import { devtools, subscribeWithSelector, persist } from 'zustand/middleware'
+import { TimezoneUtil } from '@/lib/timezone'
+import { CalculationUtil } from '@/lib/calculation'
 import { Asset, PriceData, AccountType } from '@/types'
 
 interface TradingState {
@@ -10,7 +11,13 @@ interface TradingState {
   isChartReady: boolean
   lastUpdate: number
   selectedAccountType: AccountType
-  assets: Asset[] // ✅ TAMBAHKAN INI
+  assets: Asset[]
+  orderTiming: {
+    entryTimestamp: number
+    expiryTimestamp: number
+    durationDisplay: string
+    isEndOfCandle: boolean
+  } | null
   
   setSelectedAsset: (asset: Asset | null) => void
   setCurrentPrice: (price: PriceData) => void
@@ -18,7 +25,9 @@ interface TradingState {
   clearPriceHistory: () => void
   setChartReady: (ready: boolean) => void
   setSelectedAccountType: (accountType: AccountType) => void
-  setAssets: (assets: Asset[]) => void // ✅ TAMBAHKAN INI
+  setAssets: (assets: Asset[]) => void
+  updateOrderTiming: (duration: number) => void
+  clearOrderTiming: () => void
 }
 
 const MAX_HISTORY = 100
@@ -34,7 +43,8 @@ export const useTradingStore = create<TradingState>()(
         isChartReady: false,
         lastUpdate: 0,
         selectedAccountType: 'demo' as AccountType,
-        assets: [], // ✅ INITIAL STATE
+        assets: [],
+        orderTiming: null,
         
         setSelectedAsset: (asset) => {
           const current = get().selectedAsset
@@ -45,8 +55,14 @@ export const useTradingStore = create<TradingState>()(
             isChartReady: false,
             priceHistory: [],
             currentPrice: null,
-            lastUpdate: Date.now()
+            lastUpdate: Date.now(),
+            orderTiming: null
           }, false, { type: 'setSelectedAsset' })
+          
+          const duration = get().selectedAsset?.tradingSettings?.allowedDurations?.[0]
+          if (duration) {
+            get().updateOrderTiming(duration)
+          }
         },
         
         setCurrentPrice: (price) => {
@@ -74,9 +90,7 @@ export const useTradingStore = create<TradingState>()(
         
         addPriceToHistory: (price) => {
           set((state) => {
-            const exists = state.priceHistory.some(p => 
-              p.timestamp === price.timestamp
-            )
+            const exists = state.priceHistory.some(p => p.timestamp === price.timestamp)
             
             if (exists) return state
             
@@ -104,8 +118,29 @@ export const useTradingStore = create<TradingState>()(
           set({ selectedAccountType: accountType }, false, { type: 'setSelectedAccountType' })
         },
         
-        setAssets: (assets) => { // ✅ ACTION BARU
+        setAssets: (assets) => {
           set({ assets }, false, { type: 'setAssets' })
+        },
+        
+        updateOrderTiming: (duration) => {
+          const asset = get().selectedAsset
+          if (!asset) return
+          
+          const timing = CalculationUtil.formatOrderTiming(asset, duration)
+          
+          set({ orderTiming: timing }, false, { type: 'updateOrderTiming' })
+          
+          console.log('Order timing updated:', {
+            asset: asset.symbol,
+            entry: timing.entryDateTime,
+            expiry: timing.expiryDateTime,
+            duration: timing.durationDisplay,
+            isEndOfCandle: timing.isEndOfCandle,
+          })
+        },
+        
+        clearOrderTiming: () => {
+          set({ orderTiming: null }, false, { type: 'clearOrderTiming' })
         }
       })),
       {
@@ -119,50 +154,35 @@ export const useTradingStore = create<TradingState>()(
   )
 )
 
-export const useSelectedAsset = () => 
-  useTradingStore(state => state.selectedAsset)
-
-export const useCurrentPrice = () => 
-  useTradingStore(state => state.currentPrice)
-
-export const useIsChartReady = () => 
-  useTradingStore(state => state.isChartReady)
-
-export const usePriceHistory = () => 
-  useTradingStore(state => state.priceHistory)
-
-export const useSelectedAccountType = () =>
-  useTradingStore(state => state.selectedAccountType)
-
-export const useTradingAssets = () => // ✅ HOOK BARU
-  useTradingStore(state => state.assets)
+export const useSelectedAsset = () => useTradingStore(state => state.selectedAsset)
+export const useCurrentPrice = () => useTradingStore(state => state.currentPrice)
+export const useIsChartReady = () => useTradingStore(state => state.isChartReady)
+export const usePriceHistory = () => useTradingStore(state => state.priceHistory)
+export const useSelectedAccountType = () => useTradingStore(state => state.selectedAccountType)
+export const useTradingAssets = () => useTradingStore(state => state.assets)
+export const useOrderTiming = () => useTradingStore(state => state.orderTiming)
 
 export const useTradingData = () => {
   const selectedAsset = useTradingStore(state => state.selectedAsset)
   const currentPrice = useTradingStore(state => state.currentPrice)
   const isChartReady = useTradingStore(state => state.isChartReady)
   const selectedAccountType = useTradingStore(state => state.selectedAccountType)
-  const assets = useTradingStore(state => state.assets) // ✅ TAMBAHKAN
+  const assets = useTradingStore(state => state.assets)
   
   return { selectedAsset, currentPrice, isChartReady, selectedAccountType, assets }
 }
 
 export const useTradingActions = () => {
-  const setSelectedAsset = useTradingStore(state => state.setSelectedAsset)
-  const setCurrentPrice = useTradingStore(state => state.setCurrentPrice)
-  const addPriceToHistory = useTradingStore(state => state.addPriceToHistory)
-  const clearPriceHistory = useTradingStore(state => state.clearPriceHistory)
-  const setChartReady = useTradingStore(state => state.setChartReady)
-  const setSelectedAccountType = useTradingStore(state => state.setSelectedAccountType)
-  const setAssets = useTradingStore(state => state.setAssets) // ✅ TAMBAHKAN
-  
+  const store = useTradingStore()
   return {
-    setSelectedAsset,
-    setCurrentPrice,
-    addPriceToHistory,
-    clearPriceHistory,
-    setChartReady,
-    setSelectedAccountType,
-    setAssets // ✅ TAMBAHKAN
+    setSelectedAsset: store.setSelectedAsset,
+    setCurrentPrice: store.setCurrentPrice,
+    addPriceToHistory: store.addPriceToHistory,
+    clearPriceHistory: store.clearPriceHistory,
+    setChartReady: store.setChartReady,
+    setSelectedAccountType: store.setSelectedAccountType,
+    setAssets: store.setAssets,
+    updateOrderTiming: store.updateOrderTiming,
+    clearOrderTiming: store.clearOrderTiming,
   }
 }

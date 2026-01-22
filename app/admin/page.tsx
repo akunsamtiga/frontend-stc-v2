@@ -197,44 +197,41 @@ export default function AdminDashboard() {
   }
 
   const getFilteredStats = () => {
-    if (accountFilter === 'real') {
-      return {
-        trading: stats.realAccount.trading,
-        financial: stats.realAccount.financial
-      }
-    } else if (accountFilter === 'demo') {
-      return {
-        trading: stats.demoAccount.trading,
-        financial: stats.demoAccount.financial
-      }
-    } else {
-      const realTrading = stats.realAccount.trading
-      const demoTrading = stats.demoAccount.trading
-      const realFinancial = stats.realAccount.financial
-      const demoFinancial = stats.demoAccount.financial
+  // Financial stats selalu dari akun REAL
+  const realFinancial = stats.realAccount.financial;
+  
+  if (accountFilter === 'real') {
+    return {
+      trading: stats.realAccount.trading,
+      financial: realFinancial
+    }
+  } else if (accountFilter === 'demo') {
+    return {
+      trading: stats.demoAccount.trading,
+      financial: realFinancial // <-- Ubah: pakai real financial bukan demo
+    }
+  } else {
+    const realTrading = stats.realAccount.trading
+    const demoTrading = stats.demoAccount.trading
 
-      return {
-        trading: {
-          totalOrders: realTrading.totalOrders + demoTrading.totalOrders,
-          activeOrders: realTrading.activeOrders + demoTrading.activeOrders,
-          wonOrders: realTrading.wonOrders + demoTrading.wonOrders,
-          lostOrders: realTrading.lostOrders + demoTrading.lostOrders,
-          winRate: Math.round(
-            ((realTrading.wonOrders + demoTrading.wonOrders) / 
-            ((realTrading.wonOrders + demoTrading.wonOrders) + 
-             (realTrading.lostOrders + demoTrading.lostOrders)) || 1) * 100
-          ),
-          totalVolume: realTrading.totalVolume + demoTrading.totalVolume,
-          totalProfit: realTrading.totalProfit + demoTrading.totalProfit,
-        },
-        financial: {
-          totalDeposits: realFinancial.totalDeposits + demoFinancial.totalDeposits,
-          totalWithdrawals: realFinancial.totalWithdrawals + demoFinancial.totalWithdrawals,
-          netFlow: realFinancial.netFlow + demoFinancial.netFlow,
-        }
-      }
+    return {
+      trading: {
+        totalOrders: realTrading.totalOrders + demoTrading.totalOrders,
+        activeOrders: realTrading.activeOrders + demoTrading.activeOrders,
+        wonOrders: realTrading.wonOrders + demoTrading.wonOrders,
+        lostOrders: realTrading.lostOrders + demoTrading.lostOrders,
+        winRate: Math.round(
+          ((realTrading.wonOrders + demoTrading.wonOrders) / 
+          ((realTrading.wonOrders + demoTrading.wonOrders) + 
+           (realTrading.lostOrders + demoTrading.lostOrders)) || 1) * 100
+        ),
+        totalVolume: realTrading.totalVolume + demoTrading.totalVolume,
+        totalProfit: realTrading.totalProfit + demoTrading.totalProfit,
+      },
+      financial: realFinancial 
     }
   }
+}
 
   const filteredStats = getFilteredStats()
 

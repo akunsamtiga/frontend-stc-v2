@@ -299,13 +299,13 @@ async function checkSimulatorStatus(assetPath: string): Promise<{
     
     let message = ''
     if (!hasCurrentPrice && !hasOHLC) {
-      message = 'Simulator not running - no data found'
+      message = 'Market offline - no data found'
     } else if (!hasCurrentPrice) {
       message = 'Missing current_price data'
     } else if (!hasOHLC) {
       message = 'Missing OHLC data'
     } else {
-      message = 'Simulator running'
+      message = 'Market online'
     }
     
     return { isRunning, hasCurrentPrice, hasOHLC, message }
@@ -503,7 +503,7 @@ const SimulatorStatus = memo(({
         </div>
         
         <div className="text-lg font-bold text-red-400 mb-2">
-          Simulator Not Running
+          Market Not Available
         </div>
         
         <div className="text-sm text-gray-400 mb-1">
@@ -511,7 +511,7 @@ const SimulatorStatus = memo(({
         </div>
         
         <div className="text-xs text-gray-500 mb-6">
-          Please start the data simulator to view real-time data
+          Loading to view real-time data
         </div>
         
         <button onClick={onRetry} className="px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2 mx-auto">
@@ -1428,7 +1428,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
 
     const initializeData = async () => {
-      await checkSimulator().catch(err => console.log('Simulator check failed:', err))
+      await checkSimulator().catch(err => console.log('Market check failed:', err))
       setupRealtime()
       await loadHistoricalData()
     }

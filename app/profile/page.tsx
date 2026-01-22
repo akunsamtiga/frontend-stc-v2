@@ -318,7 +318,7 @@ export default function ProfilePage() {
   const [initialLoading, setInitialLoading] = useState(true)
   const [savingSection, setSavingSection] = useState<string | null>(null)
   const [autoSaving, setAutoSaving] = useState<string | null>(null)
-  const [updating, setUpdating] = useState(false) // ✅ TAMBAHKAN INI
+  const [updating, setUpdating] = useState(false)
 
   // Profile data
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -1004,7 +1004,7 @@ export default function ProfilePage() {
   // ✅ NEW: Upload selfie handler
   const uploadSelfie = async (file: File): Promise<boolean> => {
   try {
-    console.log('ðŸ"¸ Starting selfie upload...', {
+    console.log('🤳 Starting selfie upload...', {
       size: file.size,
       type: file.type
     })
@@ -1032,12 +1032,12 @@ export default function ProfilePage() {
 
     try {
       // Convert to base64
-      console.log('ðŸ"„ Converting selfie to base64...')
+      console.log('📄 Converting selfie to base64...')
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
         reader.onloadend = () => {
           if (reader.result) {
-            console.log('âœ… Selfie converted')
+            console.log('✅ Selfie converted')
             resolve(reader.result as string)
           } else {
             reject(new Error('Failed to read selfie'))
@@ -1047,14 +1047,14 @@ export default function ProfilePage() {
         reader.readAsDataURL(file)
       })
 
-      console.log('ðŸ"¤ Sending to API...')
+      console.log('📤 Sending to API...')
       await api.uploadSelfie({
         url: base64,
         fileSize: file.size,
         mimeType: file.type
       })
       
-      console.log('âœ… Upload successful!')
+      console.log('✅ Upload successful!')
       toast.success('Selfie uploaded! Waiting for admin verification.', {
         id: uploadToast,
         style: { background: '#10b981', color: '#fff' }
@@ -1064,7 +1064,7 @@ export default function ProfilePage() {
       return true
       
     } catch (uploadError: any) {
-      console.error('âŒ Upload error:', uploadError)
+      console.error('❌ Upload error:', uploadError)
       console.error('Error details:', {
         message: uploadError?.message,
         response: uploadError?.response?.data,
@@ -1085,7 +1085,7 @@ export default function ProfilePage() {
     }
     
   } catch (error: any) {
-    console.error('âŒ Selfie upload failed:', error)
+    console.error('❌ Selfie upload failed:', error)
     toast.error(error?.message || 'Failed to process photo', {
       style: { background: '#ef4444', color: '#fff' }
     })
@@ -1143,23 +1143,23 @@ export default function ProfilePage() {
         >
           {activeTab === 'overview' && (
             <div className="space-y-4 md:space-y-6">
-              {/* Profile Header */}
+              {/* ========== MODIFIED: Profile Header - Mobile Optimized ========== */}
               <motion.div 
-                className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 hover:shadow-lg transition-shadow"
+                className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow overflow-hidden"
                 whileHover={{ y: -2 }}
               >
-                <div className="flex flex-col sm:flex-row items-start gap-4 md:gap-6">
+                <div className="flex items-start sm:items-center gap-4">
                   {/* Avatar */}
                   <motion.div 
                     className="relative flex-shrink-0"
                     whileHover={{ scale: 1.05 }}
                   >
-                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center overflow-hidden shadow-lg">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg overflow-hidden">
                       {profileInfo?.avatar?.url ? (
                         <img src={profileInfo.avatar.url} alt="Avatar" className="w-full h-full object-cover" />
                       ) : (
                         <motion.span 
-                          className="text-white text-2xl md:text-3xl font-bold"
+                          className="text-white text-2xl sm:text-3xl font-bold"
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           transition={{ type: "spring", stiffness: 260, damping: 20 }}
@@ -1168,8 +1168,8 @@ export default function ProfilePage() {
                         </motion.span>
                       )}
                     </div>
-                    <label className="absolute -bottom-2 -right-2 w-8 h-8 md:w-10 md:h-10 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-all shadow-lg border-2 md:border-4 border-white group">
-                      <Camera className="w-4 h-4 md:w-5 md:h-5 text-white group-hover:scale-110 transition-transform" />
+                    <label className="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-all shadow-lg border-2 border-white group">
+                      <Camera className="w-3.5 h-3.5 text-white group-hover:scale-110 transition-transform" />
                       <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                         if (e.target.files?.[0]) handleUploadAvatar(e.target.files[0])
                       }} />
@@ -1177,9 +1177,9 @@ export default function ProfilePage() {
                   </motion.div>
 
                   {/* Info */}
-                  <div className="flex-1 w-full">
+                  <div className="flex-1 min-w-0">
                     <motion.h2 
-                      className="text-xl md:text-2xl font-bold text-gray-900 mb-1"
+                      className="text-lg sm:text-xl font-bold text-gray-900 mb-1 leading-tight"
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.1 }}
@@ -1191,12 +1191,12 @@ export default function ProfilePage() {
                         transition={{ delay: 0.3 }}
                       >
                         {profileInfo?.verification?.identityVerified && (
-                          <ShieldCheck className="inline-block w-5 h-5 ml-2 text-blue-500" />
+                          <ShieldCheck className="inline-block w-4 h-4 sm:w-5 sm:h-5 ml-2 text-blue-500 align-middle" />
                         )}
                       </motion.span>
                     </motion.h2>
                     <motion.p 
-                      className="text-sm md:text-base text-gray-600 mb-3 break-all"
+                      className="text-sm text-gray-600 break-all mb-2"
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.2 }}
@@ -1206,13 +1206,13 @@ export default function ProfilePage() {
                     
                     {statusInfo && (
                       <motion.div 
-                        className={`inline-flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-lg md:rounded-xl text-white shadow-lg text-sm md:text-base bg-gradient-to-r ${getStatusGradient(statusInfo.current)}`}
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-white shadow-lg text-sm bg-gradient-to-r ${getStatusGradient(statusInfo.current)}`}
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.3, type: "spring" }}
                         whileHover={{ scale: 1.02 }}
                       >
-                        {React.createElement(getStatusIcon(statusInfo.current), { className: "w-4 h-4 md:w-5 md:h-5" })}
+                        {React.createElement(getStatusIcon(statusInfo.current), { className: "w-4 h-4" })}
                         <span className="font-semibold">{statusInfo.current.toUpperCase()}</span>
                         <span className="opacity-90">{statusInfo.profitBonus}% Bonus</span>
                       </motion.div>
@@ -1221,24 +1221,24 @@ export default function ProfilePage() {
                 </div>
               </motion.div>
 
-              {/* Profile Completion */}
+              {/* ========== MODIFIED: Profile Completion - Mobile Optimized ========== */}
               {profileInfo && profileInfo.completion < 100 && (
                 <motion.div 
-                  className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4 md:p-6 overflow-hidden"
+                  className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4 overflow-hidden"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
                 >
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-2">
                     <div>
-                      <h3 className="font-semibold text-blue-900 mb-1 flex items-center">
+                      <h3 className="font-semibold text-blue-900 mb-1 text-sm flex items-center">
                         <TrendingUp className="w-4 h-4 mr-2" />
                         Complete Your Profile
                       </h3>
-                      <p className="text-xs md:text-sm text-blue-700">Unlock all features by completing your profile</p>
+                      <p className="text-xs text-blue-700">Unlock all features by completing your profile</p>
                     </div>
                     <motion.div 
-                      className="text-2xl md:text-3xl font-bold text-blue-600"
+                      className="text-xl sm:text-2xl font-bold text-blue-600"
                       key={profileInfo.completion}
                       initial={{ scale: 1.2 }}
                       animate={{ scale: 1 }}
@@ -1247,9 +1247,9 @@ export default function ProfilePage() {
                       {profileInfo.completion}%
                     </motion.div>
                   </div>
-                  <div className="w-full bg-blue-200 rounded-full h-2 md:h-3 overflow-hidden">
+                  <div className="w-full bg-blue-200 rounded-full h-2 overflow-hidden">
                     <motion.div 
-                      className="h-2 md:h-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-600" 
+                      className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600" 
                       initial={{ width: 0 }}
                       animate={{ width: `${profileInfo.completion}%` }}
                       transition={{ duration: 0.8, ease: "easeOut", delay: 0.5 }}
@@ -1258,29 +1258,44 @@ export default function ProfilePage() {
                 </motion.div>
               )}
 
-              {/* Quick Stats Grid */}
+              {/* ========== MODIFIED: Quick Stats Grid - Mobile Optimized (2 cols) ========== */}
               <motion.div 
-                className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4"
+                className="grid grid-cols-2 gap-3"
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
               >
                 {[
-                  { label: 'Real Balance', value: `Rp ${(profile?.balances?.real ?? 0).toLocaleString('id-ID')}`, icon: CreditCard, color: 'text-green-600' },
-                  { label: 'Demo Balance', value: `Rp ${(profile?.balances?.demo ?? 0).toLocaleString('id-ID')}`, icon: TrendingUp, color: 'text-blue-600' },
-                  { label: 'Total Orders', value: profile?.statistics?.combined?.totalOrders ?? 0, icon: Briefcase, color: 'text-purple-600' }
+                  { 
+                    label: 'Real Balance', 
+                    value: `Rp ${(profile?.balances?.real ?? 0).toLocaleString('id-ID')}`, 
+                    icon: CreditCard, 
+                    color: 'text-green-600' 
+                  },
+                  { 
+                    label: 'Demo Balance', 
+                    value: `Rp ${(profile?.balances?.demo ?? 0).toLocaleString('id-ID')}`, 
+                    icon: TrendingUp, 
+                    color: 'text-blue-600' 
+                  },
+                  { 
+                    label: 'Total Orders', 
+                    value: profile?.statistics?.combined?.totalOrders ?? 0, 
+                    icon: Briefcase, 
+                    color: 'text-purple-600' 
+                  }
                 ].map((stat, i) => (
                   <motion.div 
                     key={stat.label}
-                    className="bg-white border border-gray-200 rounded-xl p-4 md:p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                    className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-shadow cursor-pointer"
                     variants={fadeInUp}
-                    whileHover={{ y: -3 }}
+                    whileHover={{ y: -2 }}
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-2">
                       <div>
-                        <div className="text-xs md:text-sm text-gray-600 mb-1 md:mb-2">{stat.label}</div>
+                        <div className="text-xs text-gray-600 mb-1">{stat.label}</div>
                         <motion.div 
-                          className={`text-lg md:text-2xl font-bold text-gray-900 ${stat.color}`}
+                          className={`text-lg font-bold text-gray-900 ${stat.color}`}
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           transition={{ delay: 0.6 + i * 0.1 }}
@@ -1288,26 +1303,26 @@ export default function ProfilePage() {
                           {stat.value}
                         </motion.div>
                       </div>
-                      <stat.icon className={`w-8 h-8 md:w-10 md:h-10 text-gray-200`} />
+                      <stat.icon className={`w-6 h-6 text-gray-200 ${stat.color}`} />
                     </div>
                   </motion.div>
                 ))}
               </motion.div>
 
-              {/* Verification Status */}
+              {/* ========== MODIFIED: Verification Status - Mobile Optimized ========== */}
               <motion.div 
-                className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 hover:shadow-lg transition-shadow"
+                className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow"
                 variants={fadeInUp}
                 initial="hidden"
                 animate="visible"
                 transition={{ delay: 0.7 }}
               >
-                <h3 className="text-lg font-bold text-gray-900 mb-3 md:mb-4 flex items-center">
+                <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center">
                   <Shield className="w-5 h-5 mr-2 text-blue-500" />
                   Verification Status
                 </h3>
                 <motion.div 
-                  className="grid grid-cols-2 md:grid-cols-2 gap-3 md:gap-4"
+                  className="grid grid-cols-2 gap-2"
                   variants={staggerContainer}
                 >
                   {[
@@ -1319,10 +1334,10 @@ export default function ProfilePage() {
                     <motion.div 
                       key={item.label}
                       variants={fadeInUp}
-                      className={`flex items-center gap-3 p-3 md:p-4 rounded-xl border-2 transition-all ${
+                      className={`flex items-center gap-2 p-3 rounded-lg border-2 text-sm ${
                         item.verified 
-                          ? 'border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 hover:border-green-300' 
-                          : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                          ? 'border-green-200 bg-gradient-to-r from-green-50 to-emerald-50' 
+                          : 'border-gray-200 bg-gray-50'
                       }`}
                       whileHover={{ scale: 1.02 }}
                     >
@@ -1330,10 +1345,10 @@ export default function ProfilePage() {
                         animate={item.verified ? { rotate: 360 } : {}}
                         transition={{ duration: 0.5 }}
                       >
-                        <item.icon className={`w-5 h-6 md:w-6 md:h-6 ${item.verified ? 'text-green-600' : 'text-gray-400'}`} />
+                        <item.icon className={`w-5 h-5 ${item.verified ? 'text-green-600' : 'text-gray-400'}`} />
                       </motion.div>
                       <div className="flex-1">
-                        <div className="text-sm font-semibold text-gray-900">{item.label}</div>
+                        <div className="font-semibold text-gray-900 text-xs">{item.label}</div>
                         <motion.div 
                           className={`text-xs font-medium flex items-center gap-1 ${
                             item.verified ? 'text-green-600' : 'text-gray-500'
@@ -1357,20 +1372,20 @@ export default function ProfilePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <div className="p-4 md:p-6 border-b border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0 bg-gradient-to-r from-blue-50 to-white">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-white">
                 <div>
-                  <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1">Personal Information</h3>
-                  <p className="text-xs md:text-sm text-gray-500">Your basic personal details</p>
+                  <h3 className="text-base font-bold text-gray-900 mb-1">Personal Information</h3>
+                  <p className="text-xs text-gray-500">Your basic personal details</p>
                 </div>
                 <AnimatePresence mode="wait">
                   {!editingPersonal ? (
                     <motion.button 
                       onClick={() => setEditingPersonal(true)} 
-                      className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-md"
-                      whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(59, 130, 246, 0.3)" }}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-md text-xs font-medium"
+                      whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(59, 130, 246, 0.3)" }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      <Edit2 className="w-4 h-4" /> Edit
+                      <Edit2 className="w-3 h-3" /> Edit
                     </motion.button>
                   ) : (
                     <motion.div 
@@ -1382,10 +1397,10 @@ export default function ProfilePage() {
                       <motion.button 
                         onClick={() => {
                           setEditingPersonal(false)
-                          loadProfile() // Reset data
+                          loadProfile()
                         }} 
                         disabled={savingSection === 'personal'} 
-                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                        className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 text-xs font-medium"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
@@ -1394,17 +1409,17 @@ export default function ProfilePage() {
                       <motion.button 
                         onClick={handleUpdatePersonal} 
                         disabled={savingSection === 'personal'} 
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all disabled:opacity-50 shadow-md"
-                        whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(59, 130, 246, 0.3)" }}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all disabled:opacity-50 shadow-md text-xs font-medium"
+                        whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(59, 130, 246, 0.3)" }}
                         whileTap={{ scale: 0.98 }}
                       >
                         {savingSection === 'personal' ? (
                           <>
-                            <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                            <Loader2 className="w-3 h-3 animate-spin" /> Saving...
                           </>
                         ) : (
                           <>
-                            <Save className="w-4 h-4" /> Save Changes
+                            <Save className="w-3 h-3" /> Save
                           </>
                         )}
                       </motion.button>
@@ -1414,7 +1429,7 @@ export default function ProfilePage() {
               </div>
               
               <motion.div 
-                className="p-4 md:p-6 space-y-4"
+                className="p-4 space-y-4"
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
@@ -1479,7 +1494,7 @@ export default function ProfilePage() {
                             value={(personalData as any)[field.key]}
                             onChange={(e) => setPersonalData({ ...personalData, [field.key]: e.target.value })}
                             onBlur={(e) => handleBlur(field.key, e.target.value)}
-                            className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors ${
+                            className={`w-full px-3 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors text-sm ${
                               formErrors[field.key] && touchedFields[field.key]
                                 ? 'border-red-300 focus:border-red-500'
                                 : 'border-gray-200 focus:border-blue-500'
@@ -1495,7 +1510,7 @@ export default function ProfilePage() {
                             value={(personalData as any)[field.key]}
                             onChange={(e) => setPersonalData({ ...personalData, [field.key]: e.target.value })}
                             onBlur={(e) => handleBlur(field.key, e.target.value)}
-                            className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors ${
+                            className={`w-full px-3 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors text-sm ${
                               formErrors[field.key] && touchedFields[field.key]
                                 ? 'border-red-300 focus:border-red-500'
                                 : 'border-gray-200 focus:border-blue-500'
@@ -1516,7 +1531,7 @@ export default function ProfilePage() {
                       </motion.div>
                     ) : (
                       <motion.div 
-                        className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium border-2 border-transparent"
+                        className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium border-2 border-transparent text-sm"
                         whileHover={{ backgroundColor: 'rgb(249 250 251)' }}
                       >
                         {field.key === 'dateOfBirth' && (personalData as any)[field.key]
@@ -1547,20 +1562,20 @@ export default function ProfilePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <div className="p-4 md:p-6 border-b border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0 bg-gradient-to-r from-green-50 to-white">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-green-50 to-white">
                 <div>
-                  <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1">Address Information</h3>
-                  <p className="text-xs md:text-sm text-gray-500">Your residential address</p>
+                  <h3 className="text-base font-bold text-gray-900 mb-1">Address Information</h3>
+                  <p className="text-xs text-gray-500">Your residential address</p>
                 </div>
                 <AnimatePresence mode="wait">
                   {!editingAddress ? (
                     <motion.button 
                       onClick={() => setEditingAddress(true)} 
-                      className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all shadow-md"
-                      whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(16, 185, 129, 0.3)" }}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all shadow-md text-xs font-medium"
+                      whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(16, 185, 129, 0.3)" }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      <Edit2 className="w-4 h-4" /> Edit
+                      <Edit2 className="w-3 h-3" /> Edit
                     </motion.button>
                   ) : (
                     <motion.div 
@@ -1575,7 +1590,7 @@ export default function ProfilePage() {
                           loadProfile()
                         }} 
                         disabled={savingSection === 'address'} 
-                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                        className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 text-xs font-medium"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
@@ -1584,17 +1599,17 @@ export default function ProfilePage() {
                       <motion.button 
                         onClick={handleUpdateAddress} 
                         disabled={savingSection === 'address'} 
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all disabled:opacity-50 shadow-md"
-                        whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(16, 185, 129, 0.3)" }}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all disabled:opacity-50 shadow-md text-xs font-medium"
+                        whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(16, 185, 129, 0.3)" }}
                         whileTap={{ scale: 0.98 }}
                       >
                         {savingSection === 'address' ? (
                           <>
-                            <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                            <Loader2 className="w-3 h-3 animate-spin" /> Saving...
                           </>
                         ) : (
                           <>
-                            <Save className="w-4 h-4" /> Save Changes
+                            <Save className="w-3 h-3" /> Save
                           </>
                         )}
                       </motion.button>
@@ -1604,7 +1619,7 @@ export default function ProfilePage() {
               </div>
               
               <motion.div 
-                className="p-4 md:p-6 space-y-4"
+                className="p-4 space-y-4"
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
@@ -1620,7 +1635,7 @@ export default function ProfilePage() {
                         value={addressData.street}
                         onChange={(e) => setAddressData({ ...addressData, street: e.target.value })}
                         onBlur={(e) => handleBlur('street', e.target.value)}
-                        className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors ${
+                        className={`w-full px-3 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors text-sm ${
                           formErrors.street && touchedFields.street
                             ? 'border-red-300 focus:border-red-500'
                             : 'border-gray-200 focus:border-green-500'
@@ -1639,13 +1654,13 @@ export default function ProfilePage() {
                       )}
                     </>
                   ) : (
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                    <div className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium text-sm">
                       {addressData.street || '-'}
                     </div>
                   )}
                 </motion.div>
                 
-                <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-4" variants={fadeInUp}>
+                <motion.div className="grid grid-cols-1 sm:grid-cols-2 gap-3" variants={fadeInUp}>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       City <span className="text-red-500">*</span>
@@ -1657,7 +1672,7 @@ export default function ProfilePage() {
                           value={addressData.city}
                           onChange={(e) => setAddressData({ ...addressData, city: e.target.value })}
                           onBlur={(e) => handleBlur('city', e.target.value)}
-                          className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors ${
+                          className={`w-full px-3 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors text-sm ${
                             formErrors.city && touchedFields.city
                               ? 'border-red-300 focus:border-red-500'
                               : 'border-gray-200 focus:border-green-500'
@@ -1676,7 +1691,7 @@ export default function ProfilePage() {
                         )}
                       </>
                     ) : (
-                      <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                      <div className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium text-sm">
                         {addressData.city || '-'}
                       </div>
                     )}
@@ -1692,7 +1707,7 @@ export default function ProfilePage() {
                           value={addressData.province}
                           onChange={(e) => setAddressData({ ...addressData, province: e.target.value })}
                           onBlur={(e) => handleBlur('province', e.target.value)}
-                          className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors ${
+                          className={`w-full px-3 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors text-sm ${
                             formErrors.province && touchedFields.province
                               ? 'border-red-300 focus:border-red-500'
                               : 'border-gray-200 focus:border-green-500'
@@ -1711,14 +1726,14 @@ export default function ProfilePage() {
                         )}
                       </>
                     ) : (
-                      <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                      <div className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium text-sm">
                         {addressData.province || '-'}
                       </div>
                     )}
                   </div>
                 </motion.div>
                 
-                <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-4" variants={fadeInUp}>
+                <motion.div className="grid grid-cols-1 sm:grid-cols-2 gap-3" variants={fadeInUp}>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Postal Code</label>
                     {editingAddress ? (
@@ -1726,11 +1741,11 @@ export default function ProfilePage() {
                         type="text"
                         value={addressData.postalCode}
                         onChange={(e) => setAddressData({ ...addressData, postalCode: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors"
+                        className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors text-sm"
                         placeholder="12345"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                      <div className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium text-sm">
                         {addressData.postalCode || '-'}
                       </div>
                     )}
@@ -1742,11 +1757,11 @@ export default function ProfilePage() {
                         type="text"
                         value={addressData.country}
                         onChange={(e) => setAddressData({ ...addressData, country: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors"
+                        className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors text-sm"
                         placeholder="Indonesia"
                       />
                     ) : (
-                      <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                      <div className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium text-sm">
                         {addressData.country || '-'}
                       </div>
                     )}
@@ -1762,20 +1777,20 @@ export default function ProfilePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <div className="p-4 md:p-6 border-b border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0 bg-gradient-to-r from-purple-50 to-white">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-purple-50 to-white">
                 <div>
-                  <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1">Identity Verification</h3>
-                  <p className="text-xs md:text-sm text-gray-500">Verify your identity for higher limits</p>
+                  <h3 className="text-base font-bold text-gray-900 mb-1">Identity Verification</h3>
+                  <p className="text-xs text-gray-500">Verify your identity for higher limits</p>
                 </div>
                 <AnimatePresence mode="wait">
                   {!editingIdentity ? (
                     <motion.button 
                       onClick={() => setEditingIdentity(true)} 
-                      className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all shadow-md"
-                      whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(147, 51, 234, 0.3)" }}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all shadow-md text-xs font-medium"
+                      whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(147, 51, 234, 0.3)" }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      <Edit2 className="w-4 h-4" /> Edit
+                      <Edit2 className="w-3 h-3" /> Edit
                     </motion.button>
                   ) : (
                     <motion.div 
@@ -1790,7 +1805,7 @@ export default function ProfilePage() {
                           loadProfile()
                         }} 
                         disabled={savingSection === 'identity'} 
-                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                        className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 text-xs font-medium"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
@@ -1799,17 +1814,17 @@ export default function ProfilePage() {
                       <motion.button 
                         onClick={handleUpdateIdentity} 
                         disabled={savingSection === 'identity'} 
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all disabled:opacity-50 shadow-md"
-                        whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(147, 51, 234, 0.3)" }}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all disabled:opacity-50 shadow-md text-xs font-medium"
+                        whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(147, 51, 234, 0.3)" }}
                         whileTap={{ scale: 0.98 }}
                       >
                         {savingSection === 'identity' ? (
                           <>
-                            <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                            <Loader2 className="w-3 h-3 animate-spin" /> Saving...
                           </>
                         ) : (
                           <>
-                            <Save className="w-4 h-4" /> Save Changes
+                            <Save className="w-3 h-3" /> Save
                           </>
                         )}
                       </motion.button>
@@ -1819,175 +1834,173 @@ export default function ProfilePage() {
               </div>
               
               <motion.div 
-                className="p-4 md:p-6 space-y-4"
+                className="p-4 space-y-4"
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
               >
 
-{/* SECTION UPLOAD KTP - IMPROVED */}
-<motion.div variants={fadeInUp} className="border-t pt-4">
-  <h4 className="text-base font-semibold text-gray-900 mb-3 flex items-center">
-    <Camera className="w-5 h-5 mr-2 text-purple-500" />
-    Upload KTP Photos
-  </h4>
-  
-  {/* Front Photo */}
-  <div className="mb-4">
-    <label className="block text-sm font-semibold text-gray-700 mb-2">
-      Front Photo <span className="text-red-500">*</span>
-    </label>
-    {profileInfo?.identity?.photoFront ? (
-      <div className="relative">
-        <img 
-          src={profileInfo.identity.photoFront.url} 
-          alt="KTP Front"
-          className="w-full h-48 object-cover rounded-xl border-2 border-gray-200"
-        />
-        {profileInfo.identity.isVerified ? (
-          <div className="absolute top-2 right-2 bg-green-500 text-white px-3 py-1 rounded-full text-xs flex items-center gap-1">
-            <CheckCircle2 className="w-4 h-4" />
-            Verified
-          </div>
-        ) : (
-          <div className="absolute top-2 right-2 bg-yellow-500 text-white px-3 py-1 rounded-full text-xs flex items-center gap-1">
-            <AlertCircle className="w-4 h-4" />
-            Pending Verification
-          </div>
-        )}
-      </div>
-    ) : ktpFrontPreview ? (
-      <div className="relative">
-        <img 
-          src={ktpFrontPreview} 
-          alt="KTP Front Preview"
-          className="w-full h-48 object-cover rounded-xl border-2 border-purple-300"
-        />
-        <button
-          onClick={() => {
-            setKtpFrontFile(null)
-            setKtpFrontPreview(null)
-          }}
-          className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-    ) : (
-      <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-purple-500 transition-colors bg-gray-50">
-        <Camera className="w-12 h-12 text-gray-400 mb-2" />
-        <span className="text-sm text-gray-600">Click to upload front photo</span>
-        <span className="text-xs text-gray-500 mt-1">Max 2MB (JPG, PNG, WEBP)</span>
-        <input 
-          type="file" 
-          accept="image/*" 
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) {
-              setKtpFrontFile(file)
-              // Create preview
-              const reader = new FileReader()
-              reader.onloadend = () => {
-                setKtpFrontPreview(reader.result as string)
-              }
-              reader.readAsDataURL(file)
-            }
-          }}
-        />
-      </label>
-    )}
-  </div>
-
-  {/* Back Photo */}
-  <div className="mb-4">
-    <label className="block text-sm font-semibold text-gray-700 mb-2">
-      Back Photo (Optional)
-    </label>
-    {profileInfo?.identity?.photoBack ? (
-      <img 
-        src={profileInfo.identity.photoBack.url} 
-        alt="KTP Back"
-        className="w-full h-48 object-cover rounded-xl border-2 border-gray-200"
-      />
-    ) : ktpBackPreview ? (
-      <div className="relative">
-        <img 
-          src={ktpBackPreview} 
-          alt="KTP Back Preview"
-          className="w-full h-48 object-cover rounded-xl border-2 border-purple-300"
-        />
-        <button
-          onClick={() => {
-            setKtpBackFile(null)
-            setKtpBackPreview(null)
-          }}
-          className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-    ) : (
-      <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-purple-500 transition-colors bg-gray-50">
-        <Camera className="w-12 h-12 text-gray-400 mb-2" />
-        <span className="text-sm text-gray-600">Click to upload back photo</span>
-        <span className="text-xs text-gray-500 mt-1">Max 2MB (JPG, PNG, WEBP)</span>
-        <input 
-          type="file" 
-          accept="image/*" 
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) {
-              setKtpBackFile(file)
-              // Create preview
-              const reader = new FileReader()
-              reader.onloadend = () => {
-                setKtpBackPreview(reader.result as string)
-              }
-              reader.readAsDataURL(file)
-            }
-          }}
-        />
-      </label>
-    )}
-  </div>
-
-  {/* Upload Button - Show when file is selected */}
-  {ktpFrontFile && !profileInfo?.identity?.photoFront && (
-    <motion.button
-      onClick={async () => {
-        const success = await uploadKTP(ktpFrontFile, ktpBackFile)
-        if (success) {
-          console.log('✅ Upload completed successfully')
-        } else {
-          console.log('❌ Upload failed')
-        }
-      }}
-      disabled={updating}
-      className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl hover:from-purple-600 hover:to-pink-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-    >
-      {updating ? (
-        <>
-          <Loader2 className="w-5 h-5 animate-spin" />
-          Uploading KTP Photos...
-        </>
-      ) : (
-        <>
-          <Camera className="w-5 h-5" />
-          Upload {ktpBackFile ? 'Both Photos' : 'Front Photo Only'}
-        </>
-      )}
-    </motion.button>
-  )}
-</motion.div>      
-
-      {/* ✅ SECTION UPLOAD SELFIE */}
+      {/* ========== MODIFIED: KTP Upload Section - Mobile Optimized ========== */}
       <motion.div variants={fadeInUp} className="border-t pt-4">
-        <h4 className="text-base font-semibold text-gray-900 mb-3 flex items-center">
-          <UserCheck className="w-5 h-5 mr-2 text-purple-500" />
+        <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+          <Camera className="w-4 h-4 mr-2 text-purple-500" />
+          Upload KTP Photos
+        </h4>
+        
+        {/* Front Photo */}
+        <div className="mb-3">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Front Photo <span className="text-red-500">*</span>
+          </label>
+          {profileInfo?.identity?.photoFront ? (
+            <div className="relative">
+              <img 
+                src={profileInfo.identity.photoFront.url} 
+                alt="KTP Front"
+                className="w-full h-40 object-cover rounded-lg border-2 border-gray-200"
+              />
+              {profileInfo.identity.isVerified ? (
+                <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Verified
+                </div>
+              ) : (
+                <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  Pending
+                </div>
+              )}
+            </div>
+          ) : ktpFrontPreview ? (
+            <div className="relative">
+              <img 
+                src={ktpFrontPreview} 
+                alt="KTP Front Preview"
+                className="w-full h-40 object-cover rounded-lg border-2 border-purple-300"
+              />
+              <button
+                onClick={() => {
+                  setKtpFrontFile(null)
+                  setKtpFrontPreview(null)
+                }}
+                className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-500 transition-colors bg-gray-50">
+              <Camera className="w-10 h-10 text-gray-400 mb-1" />
+              <span className="text-xs text-gray-600">Tap to upload</span>
+              <span className="text-[10px] text-gray-500 mt-0.5">Max 2MB (JPG, PNG)</span>
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    setKtpFrontFile(file)
+                    const reader = new FileReader()
+                    reader.onloadend = () => {
+                      setKtpFrontPreview(reader.result as string)
+                    }
+                    reader.readAsDataURL(file)
+                  }
+                }}
+              />
+            </label>
+          )}
+        </div>
+
+        {/* Back Photo */}
+        <div className="mb-3">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Back Photo (Optional)
+          </label>
+          {profileInfo?.identity?.photoBack ? (
+            <img 
+              src={profileInfo.identity.photoBack.url} 
+              alt="KTP Back"
+              className="w-full h-40 object-cover rounded-lg border-2 border-gray-200"
+            />
+          ) : ktpBackPreview ? (
+            <div className="relative">
+              <img 
+                src={ktpBackPreview} 
+                alt="KTP Back Preview"
+                className="w-full h-40 object-cover rounded-lg border-2 border-purple-300"
+              />
+              <button
+                onClick={() => {
+                  setKtpBackFile(null)
+                  setKtpBackPreview(null)
+                }}
+                className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-500 transition-colors bg-gray-50">
+              <Camera className="w-10 h-10 text-gray-400 mb-1" />
+              <span className="text-xs text-gray-600">Tap to upload</span>
+              <span className="text-[10px] text-gray-500 mt-0.5">Max 2MB (JPG, PNG)</span>
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    setKtpBackFile(file)
+                    const reader = new FileReader()
+                    reader.onloadend = () => {
+                      setKtpBackPreview(reader.result as string)
+                    }
+                    reader.readAsDataURL(file)
+                  }
+                }}
+              />
+            </label>
+          )}
+        </div>
+
+        {/* Upload Button */}
+        {ktpFrontFile && !profileInfo?.identity?.photoFront && (
+          <motion.button
+            onClick={async () => {
+              const success = await uploadKTP(ktpFrontFile, ktpBackFile)
+              if (success) {
+                console.log('✅ Upload completed successfully')
+              } else {
+                console.log('❌ Upload failed')
+              }
+            }}
+            disabled={updating}
+            className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm font-medium"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            {updating ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Camera className="w-4 h-4" />
+                Upload {ktpBackFile ? 'Both Photos' : 'Front Photo'}
+              </>
+            )}
+          </motion.button>
+        )}
+      </motion.div>      
+
+      {/* ========== MODIFIED: Selfie Upload Section - Mobile Optimized ========== */}
+      <motion.div variants={fadeInUp} className="border-t pt-4">
+        <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+          <UserCheck className="w-4 h-4 mr-2 text-purple-500" />
           Upload Selfie Verification
         </h4>
         
@@ -1996,27 +2009,26 @@ export default function ProfilePage() {
             <img 
               src={profileInfo.selfie.url} 
               alt="Selfie"
-              className="w-full h-64 object-cover rounded-xl border-2 border-gray-200"
+              className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
             />
             {profileInfo.selfie.isVerified ? (
-              <div className="absolute top-2 right-2 bg-green-500 text-white px-3 py-1 rounded-full text-xs flex items-center gap-1">
-                <CheckCircle2 className="w-4 h-4" />
+              <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />
                 Verified
               </div>
             ) : (
-              <div className="absolute top-2 right-2 bg-yellow-500 text-white px-3 py-1 rounded-full text-xs flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                Pending Verification
+              <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                Pending
               </div>
             )}
           </div>
         ) : (
           <>
-            <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-purple-500 transition-colors bg-gray-50">
-              <UserCheck className="w-12 h-12 text-gray-400 mb-2" />
-              <span className="text-sm text-gray-600">Click to upload selfie</span>
-              <span className="text-xs text-gray-500 mt-1">Max 1MB (JPG, PNG, WEBP)</span>
-              <span className="text-xs text-gray-500">Clear face photo required</span>
+            <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-500 transition-colors bg-gray-50">
+              <UserCheck className="w-10 h-10 text-gray-400 mb-1" />
+              <span className="text-xs text-gray-600">Tap to upload selfie</span>
+              <span className="text-[10px] text-gray-500 mt-0.5">Max 1MB (JPG, PNG)</span>
               <input 
                 type="file" 
                 accept="image/*" 
@@ -2044,7 +2056,7 @@ export default function ProfilePage() {
                         value={identityData.number}
                         onChange={(e) => setIdentityData({ ...identityData, number: e.target.value })}
                         onBlur={(e) => handleBlur('identityNumber', e.target.value)}
-                        className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors ${
+                        className={`w-full px-3 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors text-sm ${
                           formErrors.identityNumber && touchedFields.identityNumber
                             ? 'border-red-300 focus:border-red-500'
                             : 'border-gray-200 focus:border-purple-500'
@@ -2063,7 +2075,7 @@ export default function ProfilePage() {
                       )}
                     </>
                   ) : (
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                    <div className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium text-sm">
                       {identityData.number || '-'}
                     </div>
                   )}
@@ -2071,7 +2083,7 @@ export default function ProfilePage() {
                 
                 {profileInfo?.identity?.isVerified && (
                   <motion.div 
-                    className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl"
+                    className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg"
                     variants={fadeInUp}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -2082,10 +2094,10 @@ export default function ProfilePage() {
                         animate={{ rotate: [0, 360] }}
                         transition={{ duration: 1, ease: "easeInOut" }}
                       >
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        <CheckCircle2 className="w-4 h-4 text-green-600" />
                       </motion.div>
                       <span className="text-sm font-semibold text-green-900">Identity Verified</span>
-                      <ShieldCheck className="w-5 h-5 text-green-600 ml-auto" />
+                      <ShieldCheck className="w-4 h-4 text-green-600 ml-auto" />
                     </div>
                   </motion.div>
                 )}
@@ -2099,20 +2111,20 @@ export default function ProfilePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <div className="p-4 md:p-6 border-b border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0 bg-gradient-to-r from-emerald-50 to-white">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-white">
                 <div>
-                  <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1">Bank Account</h3>
-                  <p className="text-xs md:text-sm text-gray-500">Add your bank account for withdrawals</p>
+                  <h3 className="text-base font-bold text-gray-900 mb-1">Bank Account</h3>
+                  <p className="text-xs text-gray-500">Add your bank account for withdrawals</p>
                 </div>
                 <AnimatePresence mode="wait">
                   {!editingBank ? (
                     <motion.button 
                       onClick={() => setEditingBank(true)} 
-                      className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all shadow-md"
-                      whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(16, 185, 129, 0.3)" }}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all shadow-md text-xs font-medium"
+                      whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(16, 185, 129, 0.3)" }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      <Edit2 className="w-4 h-4" /> Edit
+                      <Edit2 className="w-3 h-3" /> Edit
                     </motion.button>
                   ) : (
                     <motion.div 
@@ -2127,7 +2139,7 @@ export default function ProfilePage() {
                           loadProfile()
                         }} 
                         disabled={savingSection === 'bank'} 
-                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                        className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 text-xs font-medium"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
@@ -2136,17 +2148,17 @@ export default function ProfilePage() {
                       <motion.button 
                         onClick={handleUpdateBank} 
                         disabled={savingSection === 'bank'} 
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all disabled:opacity-50 shadow-md"
-                        whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(16, 185, 129, 0.3)" }}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all disabled:opacity-50 shadow-md text-xs font-medium"
+                        whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(16, 185, 129, 0.3)" }}
                         whileTap={{ scale: 0.98 }}
                       >
                         {savingSection === 'bank' ? (
                           <>
-                            <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                            <Loader2 className="w-3 h-3 animate-spin" /> Saving...
                           </>
                         ) : (
                           <>
-                            <Save className="w-4 h-4" /> Save Changes
+                            <Save className="w-3 h-3" /> Save
                           </>
                         )}
                       </motion.button>
@@ -2156,7 +2168,7 @@ export default function ProfilePage() {
               </div>
               
               <motion.div 
-                className="p-4 md:p-6 space-y-4"
+                className="p-4 space-y-4"
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
@@ -2172,7 +2184,7 @@ export default function ProfilePage() {
                         value={bankData.bankName}
                         onChange={(e) => setBankData({ ...bankData, bankName: e.target.value })}
                         onBlur={(e) => handleBlur('bankName', e.target.value)}
-                        className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors ${
+                        className={`w-full px-3 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors text-sm ${
                           formErrors.bankName && touchedFields.bankName
                             ? 'border-red-300 focus:border-red-500'
                             : 'border-gray-200 focus:border-emerald-500'
@@ -2191,7 +2203,7 @@ export default function ProfilePage() {
                       )}
                     </>
                   ) : (
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                    <div className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium text-sm">
                       {bankData.bankName || '-'}
                     </div>
                   )}
@@ -2208,7 +2220,7 @@ export default function ProfilePage() {
                         value={bankData.accountNumber}
                         onChange={(e) => setBankData({ ...bankData, accountNumber: e.target.value })}
                         onBlur={(e) => handleBlur('accountNumber', e.target.value)}
-                        className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors ${
+                        className={`w-full px-3 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors text-sm ${
                           formErrors.accountNumber && touchedFields.accountNumber
                             ? 'border-red-300 focus:border-red-500'
                             : 'border-gray-200 focus:border-emerald-500'
@@ -2227,7 +2239,7 @@ export default function ProfilePage() {
                       )}
                     </>
                   ) : (
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                    <div className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium text-sm">
                       {bankData.accountNumber ? `•••••${bankData.accountNumber.slice(-4)}` : '-'}
                     </div>
                   )}
@@ -2244,7 +2256,7 @@ export default function ProfilePage() {
                         value={bankData.accountHolderName}
                         onChange={(e) => setBankData({ ...bankData, accountHolderName: e.target.value })}
                         onBlur={(e) => handleBlur('accountHolderName', e.target.value)}
-                        className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors ${
+                        className={`w-full px-3 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors text-sm ${
                           formErrors.accountHolderName && touchedFields.accountHolderName
                             ? 'border-red-300 focus:border-red-500'
                             : 'border-gray-200 focus:border-emerald-500'
@@ -2263,7 +2275,7 @@ export default function ProfilePage() {
                       )}
                     </>
                   ) : (
-                    <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium">
+                    <div className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium text-sm">
                       {bankData.accountHolderName || '-'}
                     </div>
                   )}
@@ -2271,7 +2283,7 @@ export default function ProfilePage() {
                 
                 {profileInfo?.bankAccount?.isVerified && (
                   <motion.div 
-                    className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl"
+                    className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg"
                     variants={fadeInUp}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -2282,7 +2294,7 @@ export default function ProfilePage() {
                         animate={{ rotate: [0, 360] }}
                         transition={{ duration: 1, ease: "easeInOut" }}
                       >
-                        <ShieldCheck className="w-5 h-5 text-green-600" />
+                        <ShieldCheck className="w-4 h-4 text-green-600" />
                       </motion.div>
                       <span className="text-sm font-semibold text-green-900">Bank Account Verified</span>
                     </div>
@@ -2294,33 +2306,33 @@ export default function ProfilePage() {
 
           {activeTab === 'status' && statusInfo && (
             <motion.div 
-              className="space-y-4 md:space-y-6"
+              className="space-y-4"
               variants={staggerContainer}
               initial="hidden"
               animate="visible"
             >
               {/* Current Status */}
               <motion.div 
-                className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 hover:shadow-lg transition-shadow"
+                className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow"
                 variants={fadeInUp}
                 whileHover={{ y: -2 }}
               >
-                <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-3 md:mb-4 flex items-center">
+                <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center">
                   <Award className="w-5 h-5 mr-2 text-yellow-500" />
                   Your Status
                 </h3>
                 <motion.div 
-                  className={`flex flex-col sm:flex-row items-center sm:items-center gap-4 p-4 md:p-6 rounded-xl text-white shadow-xl bg-gradient-to-r ${getStatusGradient(statusInfo.current)}`}
-                  whileHover={{ scale: 1.01 }}
+                  className={`flex flex-col items-center gap-3 p-4 rounded-xl text-white shadow-xl bg-gradient-to-r ${getStatusGradient(statusInfo.current)}`}
+                  whileHover={{ scale: 1.02 }}
                 >
                   <motion.div
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }}
                   >
-                    {React.createElement(getStatusIcon(statusInfo.current), { className: "w-10 h-10 md:w-12 md:h-12" })}
+                    {React.createElement(getStatusIcon(statusInfo.current), { className: "w-10 h-10" })}
                   </motion.div>
-                  <div className="text-center sm:text-left">
-                    <div className="text-xl md:text-2xl font-bold mb-1">{statusInfo.current.toUpperCase()}</div>
-                    <div className="opacity-90 text-sm md:text-base">{formatStatusInfo(statusInfo)}</div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold mb-0.5">{statusInfo.current.toUpperCase()}</div>
+                    <div className="opacity-90 text-sm">{formatStatusInfo(statusInfo)}</div>
                   </div>
                 </motion.div>
               </motion.div>
@@ -2328,16 +2340,16 @@ export default function ProfilePage() {
               {/* Progress to Next Status */}
               {calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current).next && (
                 <motion.div 
-                  className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 hover:shadow-lg transition-shadow"
+                  className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow"
                   variants={fadeInUp}
                   whileHover={{ y: -2 }}
                 >
-                  <h3 className="text-base md:text-lg font-bold text-gray-900 mb-3 md:mb-4 flex items-center">
+                  <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center">
                     <TrendingUp className="w-5 h-5 mr-2 text-blue-500" />
                     Progress to Next Status
                   </h3>
-                  <div className="mb-4">
-                    <div className="flex justify-between text-xs md:text-sm mb-2">
+                  <div className="mb-2">
+                    <div className="flex justify-between text-xs mb-1">
                       <span className="text-gray-600">Progress</span>
                       <motion.span 
                         className="font-semibold"
@@ -2349,9 +2361,9 @@ export default function ProfilePage() {
                         {calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current).progress}%
                       </motion.span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 md:h-3 overflow-hidden">
+                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                       <motion.div 
-                        className={`h-2 md:h-3 rounded-full bg-gradient-to-r ${
+                        className={`h-2 rounded-full bg-gradient-to-r ${
                           statusInfo.current === 'standard' ? 'from-gray-400 to-gray-600' :
                           statusInfo.current === 'gold' ? 'from-yellow-400 to-orange-600' :
                           'from-purple-400 to-pink-600'
@@ -2362,7 +2374,7 @@ export default function ProfilePage() {
                       />
                     </div>
                   </div>
-                  <p className="text-xs md:text-sm text-gray-600">
+                  <p className="text-xs text-gray-600">
                     Deposit <span className="font-bold">{formatDepositRequirement(calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current).depositNeeded)}</span> more to unlock {STATUS_CONFIG[calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current).next!].label} status!
                   </p>
                 </motion.div>
@@ -2370,15 +2382,15 @@ export default function ProfilePage() {
 
               {/* All Status Tiers */}
               <motion.div 
-                className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 hover:shadow-lg transition-shadow"
+                className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow"
                 variants={fadeInUp}
               >
-                <h3 className="text-base md:text-lg font-bold text-gray-900 mb-3 md:mb-4 flex items-center">
+                <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center">
                   <Crown className="w-5 h-5 mr-2 text-yellow-500" />
                   All Status Tiers
                 </h3>
                 <motion.div 
-                  className="space-y-3"
+                  className="space-y-2"
                   variants={staggerContainer}
                 >
                   {getAllStatusTiers().map(({ status, config, icon: Icon }, i) => {
@@ -2388,7 +2400,7 @@ export default function ProfilePage() {
                     return (
                       <motion.div 
                         key={status}
-                        className={`p-3 md:p-4 border-2 rounded-xl transition-all ${
+                        className={`p-3 border-2 rounded-lg transition-all ${
                           isCurrent 
                             ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-blue-100 shadow-md' 
                             : isUnlocked
@@ -2398,7 +2410,7 @@ export default function ProfilePage() {
                         variants={fadeInUp}
                         whileHover={{ 
                           scale: isCurrent ? 1.02 : 1.01,
-                          boxShadow: isCurrent ? "0 10px 25px rgba(59, 130, 246, 0.2)" : "0 5px 15px rgba(0,0,0,0.05)"
+                          boxShadow: isCurrent ? "0 5px 15px rgba(59, 130, 246, 0.2)" : "0 3px 10px rgba(0,0,0,0.05)"
                         }}
                         transition={{ delay: i * 0.05 }}
                       >
@@ -2408,20 +2420,20 @@ export default function ProfilePage() {
                               animate={isCurrent ? { scale: [1, 1.1, 1] } : {}}
                               transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
                             >
-                              <Icon className={`w-5 h-6 md:w-6 md:h-6 ${isCurrent || isUnlocked ? 'text-blue-600' : 'text-gray-400'}`} />
+                              <Icon className={`w-5 h-6 ${isCurrent || isUnlocked ? 'text-blue-600' : 'text-gray-400'}`} />
                             </motion.div>
                             <div>
-                              <div className="font-semibold text-gray-900 text-sm md:text-base">{config.label}</div>
-                              <div className="text-xs md:text-sm text-gray-600">Bonus: {config.profitBonus}%</div>
+                              <div className="font-semibold text-gray-900 text-sm">{config.label}</div>
+                              <div className="text-xs text-gray-600">Bonus: {config.profitBonus}%</div>
                             </div>
                           </div>
-                          <div className="text-xs md:text-sm font-semibold text-gray-900">
+                          <div className="text-xs font-semibold text-gray-900">
                             {formatDepositRequirement(config.minDeposit)}
                           </div>
                         </div>
                         {isCurrent && (
                           <motion.div 
-                            className="mt-2 text-xs text-blue-600 font-medium"
+                            className="mt-1 text-xs text-blue-600 font-medium"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                           >
@@ -2438,23 +2450,23 @@ export default function ProfilePage() {
 
           {activeTab === 'affiliate' && affiliateInfo && (
             <motion.div 
-              className="space-y-4 md:space-y-6"
+              className="space-y-4"
               variants={staggerContainer}
               initial="hidden"
               animate="visible"
             >
               {/* Affiliate Overview */}
               <motion.div 
-                className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 hover:shadow-lg transition-shadow"
+                className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow"
                 variants={fadeInUp}
                 whileHover={{ y: -2 }}
               >
-                <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-3 md:mb-4 flex items-center">
+                <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center">
                   <Users className="w-5 h-5 mr-2 text-purple-500" />
                   Affiliate Program
                 </h3>
                 <motion.div 
-                  className="grid grid-cols-3 gap-3 md:gap-4"
+                  className="grid grid-cols-3 gap-3"
                   variants={staggerContainer}
                 >
                   {[
@@ -2464,20 +2476,20 @@ export default function ProfilePage() {
                   ].map((stat, i) => (
                     <motion.div 
                       key={stat.label}
-                      className={`text-center p-3 md:p-4 ${stat.bg} rounded-xl`}
+                      className={`text-center p-3 ${stat.bg} rounded-lg`}
                       variants={fadeInUp}
                       transition={{ delay: i * 0.1 }}
                       whileHover={{ scale: 1.02 }}
                     >
                       <motion.div 
-                        className={`text-xl md:text-3xl font-bold ${stat.color}`}
+                        className={`text-xl font-bold ${stat.color}`}
                         initial={{ opacity: 0, scale: 0.5 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ type: "spring", delay: i * 0.1 }}
                       >
                         {stat.value}
                       </motion.div>
-                      <div className="text-xs md:text-sm text-gray-600 mt-1">{stat.label}</div>
+                      <div className="text-xs text-gray-600 mt-1">{stat.label}</div>
                     </motion.div>
                   ))}
                 </motion.div>
@@ -2485,22 +2497,22 @@ export default function ProfilePage() {
 
               {/* Referral Link */}
               <motion.div 
-                className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 hover:shadow-lg transition-shadow"
+                className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow"
                 variants={fadeInUp}
                 whileHover={{ y: -2 }}
               >
-                <h3 className="text-base md:text-lg font-bold text-gray-900 mb-3 md:mb-4 flex items-center">
+                <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center">
                   <Share2 className="w-5 h-5 mr-2 text-blue-500" />
                   Your Referral Link
                 </h3>
                 <motion.div 
-                  className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3"
+                  className="flex flex-col gap-2"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.3 }}
                 >
                   <motion.div 
-                    className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-black font-mono text-xs md:text-sm break-all relative"
+                    className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-black font-mono text-xs break-all relative"
                     whileHover={{ backgroundColor: 'rgb(249 250 251)' }}
                   >
                     {typeof window !== 'undefined' && `${window.location.origin}/?ref=${affiliateInfo.referralCode}`}
@@ -2516,8 +2528,8 @@ export default function ProfilePage() {
                         setTimeout(() => setCopied(false), 2000)
                       }
                     }}
-                    className="px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all flex-shrink-0 flex sm:block justify-center"
-                    whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(59, 130, 246, 0.3)" }}
+                    className="w-full px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 text-sm font-medium"
+                    whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(59, 130, 246, 0.3)" }}
                     whileTap={{ scale: 0.98 }}
                   >
                     <AnimatePresence mode="wait">
@@ -2529,7 +2541,7 @@ export default function ProfilePage() {
                           exit={{ scale: 0, rotate: 180 }}
                           transition={{ type: "spring" }}
                         >
-                          <Check className="w-5 h-5" />
+                          <Check className="w-4 h-4" />
                         </motion.div>
                       ) : (
                         <motion.div
@@ -2539,14 +2551,15 @@ export default function ProfilePage() {
                           exit={{ scale: 0 }}
                           transition={{ type: "spring" }}
                         >
-                          <Copy className="w-5 h-5" />
+                          <Copy className="w-4 h-4" />
                         </motion.div>
                       )}
                     </AnimatePresence>
+                    <span className="font-medium">{copied ? 'Copied!' : 'Copy Link'}</span>
                   </motion.button>
                 </motion.div>
                 <motion.p 
-                  className="text-xs md:text-sm text-gray-600 mt-3 flex items-center gap-1"
+                  className="text-xs text-gray-600 mt-2 flex items-center gap-1"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.4 }}
@@ -2558,11 +2571,11 @@ export default function ProfilePage() {
 
               {/* Commission Info */}
               <motion.div 
-                className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 hover:shadow-lg transition-shadow"
+                className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow"
                 variants={fadeInUp}
                 whileHover={{ y: -2 }}
               >
-                <h3 className="text-base md:text-lg font-bold text-gray-900 mb-3 md:mb-4 flex items-center">
+                <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center">
                   <Gift className="w-5 h-5 mr-2 text-yellow-500" />
                   Commission Earned
                 </h3>
@@ -2576,11 +2589,11 @@ export default function ProfilePage() {
                     animate={{ rotate: 360 }}
                     transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                   >
-                    <Gift className="w-10 h-10 md:w-12 md:h-12 text-yellow-500" />
+                    <Gift className="w-8 h-8 text-yellow-500" />
                   </motion.div>
                   <div>
                     <motion.div 
-                      className="text-xl md:text-3xl font-bold text-gray-900"
+                      className="text-xl font-bold text-gray-900"
                       key={affiliateInfo.totalCommission}
                       initial={{ scale: 1.2 }}
                       animate={{ scale: 1 }}
@@ -2588,7 +2601,7 @@ export default function ProfilePage() {
                     >
                       {formatDepositRequirement(affiliateInfo.totalCommission)}
                     </motion.div>
-                    <div className="text-xs md:text-sm text-gray-600">Total Commission</div>
+                    <div className="text-xs text-gray-600">Total Commission</div>
                   </div>
                 </motion.div>
               </motion.div>
@@ -2601,32 +2614,32 @@ export default function ProfilePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <div className="p-4 md:p-6 border-b border-gray-200 bg-gradient-to-r from-red-50 to-white">
-                <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1 flex items-center">
+              <div className="p-4 bg-gradient-to-r from-red-50 to-white">
+                <h3 className="text-base font-bold text-gray-900 mb-1 flex items-center">
                   <Lock className="w-5 h-5 mr-2 text-red-500" />
                   Security Settings
                 </h3>
-                <p className="text-xs md:text-sm text-gray-500">Change your password & security preferences</p>
+                <p className="text-xs text-gray-500">Change your password & security preferences</p>
               </div>
 
               <motion.form 
                 onSubmit={handleChangePassword} 
-                className="p-4 md:p-6 space-y-4 md:space-y-6"
+                className="p-4 space-y-4"
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
               >
                 <motion.div variants={fadeInUp}>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Current Password <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={passwordData.currentPassword}
                       onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                      className="w-full pl-10 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none transition-colors"
+                      className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none transition-colors text-sm"
                       required
                     />
                     <button
@@ -2634,17 +2647,17 @@ export default function ProfilePage() {
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                     >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </motion.div>
 
                 <motion.div variants={fadeInUp}>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     New Password <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
                       type={showNewPassword ? 'text' : 'password'}
                       value={passwordData.newPassword}
@@ -2656,7 +2669,7 @@ export default function ProfilePage() {
                           .map(([key]) => key.replace(/([A-Z])/g, ' $1').trim())
                         setPasswordErrors(errors)
                       }}
-                      className="w-full pl-10 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none transition-colors"
+                      className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none transition-colors text-sm"
                       required
                     />
                     <button
@@ -2664,23 +2677,23 @@ export default function ProfilePage() {
                       onClick={() => setShowNewPassword(!showNewPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                     >
-                      {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                   <PasswordStrengthMeter password={passwordData.newPassword} />
                 </motion.div>
 
                 <motion.div variants={fadeInUp}>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Confirm New Password <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
                       type={showConfirmPassword ? 'text' : 'password'}
                       value={passwordData.confirmPassword}
                       onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                      className="w-full pl-10 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none transition-colors"
+                      className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none transition-colors text-sm"
                       required
                     />
                     <button
@@ -2688,7 +2701,7 @@ export default function ProfilePage() {
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                     >
-                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                   {passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword && (
@@ -2706,17 +2719,17 @@ export default function ProfilePage() {
                 <motion.button 
                   type="submit" 
                   disabled={loading} 
-                  className="w-full bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white py-3 rounded-xl font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-md"
-                  whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(239, 68, 68, 0.3)" }}
+                  className="w-full bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white py-3 rounded-xl font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-md text-sm"
+                  whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(239, 68, 68, 0.3)" }}
                   whileTap={{ scale: 0.98 }}
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" /> Changing Password...
+                      <Loader2 className="w-4 h-4 animate-spin" /> Changing...
                     </>
                   ) : (
                     <>
-                      <Lock className="w-5 h-5" /> Change Password
+                      <Lock className="w-4 h-4" /> Change Password
                     </>
                   )}
                 </motion.button>
@@ -2730,29 +2743,29 @@ export default function ProfilePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <div className="p-4 md:p-6 bg-gradient-to-r from-indigo-50 to-white">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0">
+              <div className="p-4 bg-gradient-to-r from-indigo-50 to-white">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1 flex items-center">
+                    <h3 className="text-base font-bold text-gray-900 mb-1 flex items-center">
                       <Settings className="w-5 h-5 mr-2 text-indigo-500" />
                       Preferences
                     </h3>
-                    <p className="text-xs md:text-sm text-gray-500">Customize your experience</p>
+                    <p className="text-xs text-gray-500">Customize your experience</p>
                   </div>
                   <motion.button 
                     onClick={handleUpdateSettings} 
                     disabled={savingSection === 'settings'} 
-                    className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all disabled:opacity-50 shadow-md"
-                    whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(99, 102, 241, 0.3)" }}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all disabled:opacity-50 shadow-md text-xs font-medium"
+                    whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(99, 102, 241, 0.3)" }}
                     whileTap={{ scale: 0.98 }}
                   >
                     {savingSection === 'settings' ? (
                       <>
-                        <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                        <Loader2 className="w-3 h-3 animate-spin" /> Saving...
                       </>
                     ) : (
                       <>
-                        <Save className="w-4 h-4" /> Save Changes
+                        <Save className="w-3 h-3" /> Save
                       </>
                     )}
                   </motion.button>
@@ -2760,19 +2773,19 @@ export default function ProfilePage() {
               </div>
 
               <motion.div 
-                className="p-4 md:p-6 space-y-4 md:space-y-6"
+                className="p-4 space-y-4"
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
               >
                 {/* Notifications */}
-                <motion.div variants={fadeInUp} className="pb-4 border-b border-gray-100">
-                  <h4 className="text-base md:text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                    <Bell className="w-5 h-5 mr-2 text-indigo-500" />
+                <motion.div variants={fadeInUp} className="pb-3 border-b border-gray-100">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+                    <Bell className="w-4 h-4 mr-2 text-indigo-500" />
                     Notifications
                   </h4>
                   <motion.div 
-                    className="space-y-2 md:space-y-3"
+                    className="space-y-2"
                     variants={staggerContainer}
                   >
                     {[
@@ -2782,7 +2795,7 @@ export default function ProfilePage() {
                     ].map((item, i) => (
                       <motion.label 
                         key={item.key}
-                        className="flex items-center justify-between p-3 md:p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
+                        className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
                         variants={fadeInUp}
                         whileHover={{ scale: 1.01 }}
                       >
@@ -2791,7 +2804,7 @@ export default function ProfilePage() {
                           type="checkbox"
                           checked={(settings as any)[item.key]}
                           onChange={(e) => setSettings({ ...settings, [item.key]: e.target.checked })}
-                          className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer"
+                          className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer"
                           whileTap={{ scale: 0.9 }}
                         />
                       </motion.label>
@@ -2801,12 +2814,12 @@ export default function ProfilePage() {
 
                 {/* Language & Timezone */}
                 <motion.div variants={fadeInUp}>
-                  <h4 className="text-base md:text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                    <Globe className="w-5 h-5 mr-2 text-indigo-500" />
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+                    <Globe className="w-4 h-4 mr-2 text-indigo-500" />
                     Regional Settings
                   </h4>
                   <motion.div 
-                    className="space-y-4"
+                    className="space-y-3"
                     variants={staggerContainer}
                   >
                     <motion.div variants={fadeInUp}>
@@ -2814,7 +2827,7 @@ export default function ProfilePage() {
                       <select
                         value={settings.language}
                         onChange={(e) => setSettings({ ...settings, language: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none transition-colors"
+                        className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none transition-colors text-sm"
                       >
                         <option value="id">Bahasa Indonesia</option>
                         <option value="en">English</option>
@@ -2826,7 +2839,7 @@ export default function ProfilePage() {
                         type="text"
                         value={settings.timezone}
                         onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none transition-colors"
+                        className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none transition-colors text-sm"
                       />
                     </motion.div>
                   </motion.div>
@@ -2844,15 +2857,15 @@ export default function ProfilePage() {
       <Navbar />
       <Toaster position="top-right" expand={true} />
       
-      <div className="container mx-auto px-3 md:px-4 py-6 md:py-8 max-w-7xl">
-        {/* Header */}
+      <div className="container mx-auto px-3 py-4 max-w-7xl">
+        {/* ========== MODIFIED: Header - Mobile Optimized ========== */}
         <motion.div 
-          className="mb-4 md:mb-6"
+          className="mb-4"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="flex items-center gap-2 text-xs md:text-sm text-gray-500 mb-2 md:mb-3">
+          <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-2">
             <motion.span 
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -2877,16 +2890,16 @@ export default function ProfilePage() {
             transition={{ delay: 0.3 }}
           >
             <motion.div 
-              className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md"
+              className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md"
               whileHover={{ rotate: 90, scale: 1.05 }}
               transition={{ type: "spring" }}
             >
-              <Settings className="w-4 h-4 md:w-5 md:h-5 text-white" />
+              <Settings className="w-4 h-4 text-white" />
             </motion.div>
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-gray-900">My Profile</h1>
+              <h1 className="text-lg font-bold text-gray-900">My Profile</h1>
               <motion.p 
-                className="text-xs md:text-sm text-gray-500"
+                className="text-xs text-gray-500"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
@@ -2897,21 +2910,15 @@ export default function ProfilePage() {
           </motion.div>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6">
-          {/* Sidebar - Tabs */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          {/* ========== MODIFIED: Mobile Horizontal Tabs - Optimized ========== */}
           <motion.div 
-            className="col-span-1 md:col-span-4 lg:col-span-3"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
+            className="col-span-1 md:hidden"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
           >
-            {/* Mobile Horizontal Tabs */}
-            <motion.div 
-              className="md:hidden bg-white rounded-xl border border-gray-200 p-2 mb-4 shadow-sm"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-            >
+            <div className="bg-white rounded-xl border border-gray-200 p-2 shadow-sm mb-4 overflow-hidden">
               <div className="overflow-x-auto">
                 <div className="flex gap-1 min-w-max">
                   {tabs.map((tab, i) => {
@@ -2920,7 +2927,7 @@ export default function ProfilePage() {
                       <motion.button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm flex-shrink-0 ${
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs flex-shrink-0 ${
                           activeTab === tab.id
                             ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
                             : 'text-gray-600 hover:bg-gray-50'
@@ -2937,13 +2944,17 @@ export default function ProfilePage() {
                   })}
                 </div>
               </div>
-            </motion.div>
+            </div>
+          </motion.div>
 
-            {/* Desktop/Tablet Vertical Tabs */}
-            <motion.div 
-              className="hidden md:block bg-white rounded-xl border border-gray-200 p-2 sticky top-4 shadow-sm"
-              whileHover={{ boxShadow: "0 10px 25px rgba(0,0,0,0.05)" }}
-            >
+          {/* ========== DESKTOP: Vertical Tabs (Unchanged) ========== */}
+          <motion.div 
+            className="hidden md:block md:col-span-4 lg:col-span-3"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <div className="bg-white rounded-xl border border-gray-200 p-2 sticky top-4 shadow-sm">
               <motion.div 
                 className="space-y-1"
                 variants={staggerContainer}
@@ -2989,7 +3000,7 @@ export default function ProfilePage() {
                   </motion.button>
                 </motion.div>
               </motion.div>
-            </motion.div>
+            </div>
           </motion.div>
 
           {/* Main Content */}

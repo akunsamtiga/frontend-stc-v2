@@ -15,15 +15,6 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-const CardSkeleton = () => (
-  <div className="bg-gradient-to-br from-gray-200 to-gray-300 rounded-xl sm:rounded-2xl p-4 sm:p-6 min-h-[220px] sm:min-h-[280px] animate-pulse">
-    <div className="flex justify-between mb-4 sm:mb-6">
-      <div className="w-10 h-8 sm:w-12 sm:h-10 bg-gray-400 rounded-lg"></div>
-      <div className="w-12 h-5 sm:w-16 sm:h-6 bg-gray-400 rounded-lg"></div>
-    </div>
-  </div>
-)
-
 export default function BalancePage() {
   const router = useRouter()
   const user = useAuthStore((state) => state.user)
@@ -181,7 +172,92 @@ export default function BalancePage() {
           </div>
         )}
 
-        <div className="mb-4 sm:mb-6">
+        {/* MOBILE VERSION - Simplified & Clean */}
+        <div className="lg:hidden mb-4 sm:mb-6">
+          <div className="space-y-4">
+            {/* Real Account */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                    <CreditCard className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-gray-900">Real Account</div>
+                    {profitBonus > 0 && (
+                      <div className="text-xs text-green-600 font-semibold">+{profitBonus}% bonus</div>
+                    )}
+                  </div>
+                </div>
+                <span className="text-xs px-2 py-1 bg-green-500 text-white rounded-md font-bold">REAL</span>
+              </div>
+              
+              <div className="mb-4">
+                <div className="text-xs text-gray-500 mb-1">Balance</div>
+                <div className="text-2xl font-bold text-gray-900 break-all">
+                  {formatCurrency(realBalance)}
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setTransactionAccount('real')
+                    setShowDeposit(true)
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm font-semibold"
+                >
+                  <ArrowDownToLine className="w-4 h-4" />
+                  Deposit
+                </button>
+                <Link
+                  href="/withdrawal"
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-semibold"
+                >
+                  <ArrowUpFromLine className="w-4 h-4" />
+                  Withdraw
+                </Link>
+              </div>
+            </div>
+
+            {/* Demo Account */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                    <CreditCard className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-gray-900">Demo Account</div>
+                    <div className="text-xs text-blue-600 font-semibold">Practice</div>
+                  </div>
+                </div>
+                <span className="text-xs px-2 py-1 bg-blue-500 text-white rounded-md font-bold">DEMO</span>
+              </div>
+              
+              <div className="mb-4">
+                <div className="text-xs text-gray-500 mb-1">Balance</div>
+                <div className="text-2xl font-bold text-gray-900 break-all">
+                  {formatCurrency(demoBalance)}
+                </div>
+              </div>
+              
+              <button
+                onClick={() => {
+                  setTransactionAccount('demo')
+                  setShowDeposit(true)
+                }}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg text-sm font-semibold"
+              >
+                <ArrowDownToLine className="w-4 h-4" />
+                Add Funds
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* DESKTOP VERSION - Original Cards */}
+        <div className="hidden lg:block mb-4 sm:mb-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50 rounded-2xl sm:rounded-3xl border-2 border-emerald-200 p-4 sm:p-6 shadow-xl">
               <div className="flex items-center justify-between mb-4 sm:mb-6">
@@ -461,7 +537,7 @@ export default function BalancePage() {
                       <span className="text-xs sm:text-sm font-semibold text-purple-900">Status Upgrade Available</span>
                     </div>
                     <p className="text-xs sm:text-sm text-purple-700">
-                      Deposit {formatCurrency(statusInfo.depositNeeded || 0)} more to reach <span className="font-bold">{statusInfo.nextStatus.toUpperCase()}</span> status and get +{(() => {
+                      Deposit {formatCurrency(statusInfo.depositNeeded || 0)} more to reach <span className="font-bold">{statusInfo.nextStatus.toUpperCase()}</span> status and +{(() => {
                         try {
                           const nextStatus = (statusInfo.nextStatus as string).toLowerCase() as 'gold' | 'vip';
                           if (nextStatus === 'gold') {
@@ -473,7 +549,7 @@ export default function BalancePage() {
                         } catch {
                           return 0;
                         }
-                      })()}% profit bonus!
+                      })()}% bonus!
                     </p>
                   </div>
                 )}
