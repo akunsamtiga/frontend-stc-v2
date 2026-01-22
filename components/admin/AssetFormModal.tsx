@@ -1037,10 +1037,10 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                     </label>
                     <input
                       type="number"
+                      step="any"
+                      min="0"
                       value={formData.initialPrice}
                       onChange={(e) => setFormData({ ...formData, initialPrice: parseFloat(e.target.value) })}
-                      step="0.001"
-                      min="0.001"
                       className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 transition-colors"
                     />
                   </div>
@@ -1052,17 +1052,17 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                     <div className="flex gap-2">
                       <input
                         type="number"
+                        step="any"
                         value={formData.dailyVolatilityMin}
                         onChange={(e) => setFormData({ ...formData, dailyVolatilityMin: parseFloat(e.target.value) })}
-                        step="0.001"
                         className="w-1/2 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 transition-colors"
                         placeholder="Min"
                       />
                       <input
                         type="number"
+                        step="any"
                         value={formData.dailyVolatilityMax}
                         onChange={(e) => setFormData({ ...formData, dailyVolatilityMax: parseFloat(e.target.value) })}
-                        step="0.001"
                         className="w-1/2 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 transition-colors"
                         placeholder="Max"
                       />
@@ -1076,17 +1076,17 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                     <div className="flex gap-2">
                       <input
                         type="number"
+                        step="any"
                         value={formData.secondVolatilityMin}
                         onChange={(e) => setFormData({ ...formData, secondVolatilityMin: parseFloat(e.target.value) })}
-                        step="0.00001"
                         className="w-1/2 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 transition-colors"
                         placeholder="Min"
                       />
                       <input
                         type="number"
+                        step="any"
                         value={formData.secondVolatilityMax}
                         onChange={(e) => setFormData({ ...formData, secondVolatilityMax: parseFloat(e.target.value) })}
-                        step="0.00001"
                         className="w-1/2 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 transition-colors"
                         placeholder="Max"
                       />
@@ -1100,17 +1100,17 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                     <div className="flex gap-2">
                       <input
                         type="number"
+                        step="any"
                         value={formData.minPrice}
                         onChange={(e) => setFormData({ ...formData, minPrice: parseFloat(e.target.value) })}
-                        step="0.001"
                         className="w-1/2 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 transition-colors"
                         placeholder="Min"
                       />
                       <input
                         type="number"
+                        step="any"
                         value={formData.maxPrice}
                         onChange={(e) => setFormData({ ...formData, maxPrice: parseFloat(e.target.value) })}
-                        step="0.001"
                         className="w-1/2 px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 transition-colors"
                         placeholder="Max"
                       />
