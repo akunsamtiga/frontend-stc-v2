@@ -1,4 +1,4 @@
-// lib/firebase.ts - OPTIMIZED VERSION
+// lib/firebase.ts - OPTIMIZED VERSION with Progressive Loading Support
 
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
 import { getDatabase, Database, ref, onValue, off, query, limitToLast, get } from 'firebase/database'
@@ -244,9 +244,11 @@ function processHistoricalData(rawData: any, limit: number): any[] {
 
 import type { Timeframe } from '@/types'
 
+// ✅ MODIFIED: Added customLimit parameter for progressive loading
 export async function fetchHistoricalData(
   assetPath: string,
-  timeframe: Timeframe = '1m'
+  timeframe: Timeframe = '1m',
+  customLimit?: number  // ✅ NEW: Optional parameter for dynamic limit
 ): Promise<any[]> {
   if (typeof window === 'undefined' || !database) {
     return []
@@ -254,7 +256,7 @@ export async function fetchHistoricalData(
 
   try {
     const cleanPath = cleanAssetPath(assetPath)
-    const cacheKey = `${cleanPath}-${timeframe}`
+    const cacheKey = `${cleanPath}-${timeframe}-${customLimit || 'default'}`
 
     const cached = memoryCache.get(cacheKey)
     if (cached) {
@@ -275,9 +277,11 @@ export async function fetchHistoricalData(
       
       const rawData = snapshot.val()
       
-      const limit = timeframe === '1m' ? 100 : 
-                   timeframe === '1s' ? 60 : 
-                   60
+      // ✅ MODIFIED: Use customLimit if provided, otherwise use defaults
+      const baseLimit = timeframe === '1m' ? 100 : 
+                       timeframe === '1s' ? 60 : 
+                       60
+      const limit = customLimit || baseLimit  // ✅ Use custom limit for progressive loading
       
       const processed = processHistoricalData(rawData, limit)
       
