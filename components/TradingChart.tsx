@@ -62,6 +62,46 @@ interface AnimatedCandle extends CandleData {
   isAnimating: boolean
 }
 
+class LoadingStateManager {
+  private isLoading = false
+  private loadingTimeouts: NodeJS.Timeout[] = []
+  private updateCallback: ((loading: boolean) => void) | null = null
+
+  setCallback(callback: (loading: boolean) => void) {
+    this.updateCallback = callback
+  }
+
+  setLoading(loading: boolean, delay: number = 0) {
+    this.clearTimeouts()
+
+    if (delay > 0) {
+      const timeout = setTimeout(() => {
+        this.isLoading = loading
+        this.updateCallback?.(loading)
+      }, delay)
+      this.loadingTimeouts.push(timeout)
+    } else {
+      this.isLoading = loading
+      this.updateCallback?.(loading)
+    }
+  }
+
+  getLoading(): boolean {
+    return this.isLoading
+  }
+
+  clearTimeouts() {
+    this.loadingTimeouts.forEach(t => clearTimeout(t))
+    this.loadingTimeouts = []
+  }
+
+  reset() {
+    this.clearTimeouts()
+    this.isLoading = false
+    this.updateCallback?.(false)
+  }
+}
+
 class SmoothCandleAnimator {
   private currentCandle: AnimatedCandle | null = null
   private animationFrame: number | null = null
@@ -525,21 +565,6 @@ const SimulatorStatus = memo(({
 
 SimulatorStatus.displayName = 'SimulatorStatus'
 
-const ChartSkeleton = memo(() => (
-  <div className="absolute inset-0 bg-[#0a0e17] flex items-center justify-center z-20">
-    <div className="text-center">
-      <div className="relative w-16 h-16 mx-auto mb-4">
-        <div className="absolute inset-0 border-4 border-gray-800 rounded-full"></div>
-        <div className="absolute inset-0 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
-      </div>
-      <div className="text-sm text-gray-400 mb-1">Loading chart data...</div>
-      <div className="text-xs text-gray-600">This should take less than 2 seconds</div>
-    </div>
-  </div>
-))
-
-ChartSkeleton.displayName = 'ChartSkeleton'
-
 const MobileControls = memo(({ 
   timeframe, 
   chartType, 
@@ -736,8 +761,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const lastUpdateTimeRef = useRef<number>(0)
   const previousAssetIdRef = useRef<string | null>(null)
   
-  const isLoadingRef = useRef(false)
-  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const loadingManagerRef = useRef(new LoadingStateManager())
   
   const { selectedAsset } = useTradingStore()
   const { setSelectedAsset } = useTradingActions()
@@ -761,15 +785,20 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const wsPrice = usePriceStream(selectedAsset?.id || null)
   const [prefetchedAssets, setPrefetchedAssets] = useState<Set<string>>(new Set())
 
+  useEffect(() => {
+    loadingManagerRef.current.setCallback(setIsLoading)
+    
+    return () => {
+      loadingManagerRef.current.reset()
+    }
+  }, [])
+
   const addCleanup = useCallback((fn: () => void) => {
     cleanupFunctionsRef.current.push(fn)
   }, [])
 
   const cleanupAll = useCallback(() => {
-    if (loadingTimeoutRef.current) {
-      clearTimeout(loadingTimeoutRef.current)
-      loadingTimeoutRef.current = null
-    }
+    loadingManagerRef.current.reset()
     
     if (unsubscribe1sRef.current) {
       unsubscribe1sRef.current()
@@ -792,24 +821,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     
     currentBarRef.current = null
     lastUpdateTimeRef.current = 0
-    isLoadingRef.current = false
   }, [])
 
   const setSafeLoading = useCallback((loading: boolean, delay: number = 0) => {
-    if (loadingTimeoutRef.current) {
-      clearTimeout(loadingTimeoutRef.current)
-      loadingTimeoutRef.current = null
-    }
-    
-    if (delay > 0) {
-      loadingTimeoutRef.current = setTimeout(() => {
-        isLoadingRef.current = loading
-        setIsLoading(loading)
-      }, delay)
-    } else {
-      isLoadingRef.current = loading
-      setIsLoading(loading)
-    }
+    loadingManagerRef.current.setLoading(loading, delay)
   }, [])
 
   const createOrderPriceLine = useCallback((order: BinaryOrder) => {
@@ -1328,7 +1343,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     previousAssetIdRef.current = selectedAsset.id
 
     let isCancelled = false
-    let dataLoaded = false
+    let dataLoadSuccess = false
 
     const setupRealtime = async () => {
       if (!selectedAsset.realtimeDbPath || isCancelled) return
@@ -1389,9 +1404,11 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         setOpeningPrice(data[0].open)
         setLastPrice(lastBar.close)
         
-        dataLoaded = true
+        dataLoadSuccess = true
         
-        setSafeLoading(false, 100)
+        if (dataLoadSuccess) {
+          setSafeLoading(false, 200)
+        }
       }
     }
 
@@ -1438,19 +1455,13 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     return () => {
       isCancelled = true
       cleanupAll()
-      
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current)
-        loadingTimeoutRef.current = null
-      }
-      setSafeLoading(false, 0)
     }
   }, [selectedAsset?.id, timeframe, isInitialized, checkSimulator, cleanupAll, addCleanup, setSafeLoading])
 
   useEffect(() => {
     if (isLoading) {
       const safetyTimeout = setTimeout(() => {
-        if (isLoadingRef.current) {
+        if (loadingManagerRef.current.getLoading()) {
           setSafeLoading(false, 0)
         }
       }, 5000)
@@ -1651,9 +1662,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
               <div className="absolute inset-0 border-4 border-gray-800 rounded-full"></div>
               <div className="absolute inset-0 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
             </div>
-            <div className="text-sm text-gray-400 mb-1">Loading chart data...</div>
+            <div className="text-sm text-gray-400 mb-1">Loading {timeframe} chart...</div>
             <div className="text-xs text-gray-600">
-              {selectedAsset.symbol} • {timeframe}
+              {selectedAsset.symbol}
             </div>
           </div>
         </div>
