@@ -39,7 +39,7 @@ class WebSocketService {
   private isConnecting = false;
   private isConnected = false;
   private lastValidTimestamp: Map<string, number> = new Map();
-  private readonly MAX_ACCEPTABLE_AGE = 5000;
+  private readonly MAX_ACCEPTABLE_AGE = 1000;
 
   constructor() {
     if (typeof window !== 'undefined') {

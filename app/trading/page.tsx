@@ -368,7 +368,7 @@ export default function TradingPage() {
       useAuthStore.setState({ user: updatedUser })
       
       setShowTutorial(false)
-      toast.success('Tutorial selesai! Selamat trading! 🎉')
+      toast.success('Tutorial selesai! Selamat trading!')
     } catch (error) {
       console.error('Tutorial completion failed:', error)
       setShowTutorial(false)

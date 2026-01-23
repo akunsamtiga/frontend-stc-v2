@@ -1,4 +1,3 @@
-// components/ChartPreloader.tsx - OPTIMIZED
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -13,7 +12,7 @@ interface PreloadStatus {
   loaded: number
 }
 
-const ALL_TIMEFRAMES: Timeframe[] = ['1m', '5m', '15m', '30m', '1h', '4h', '1d']
+const ALL_TIMEFRAMES: Timeframe[] = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d']
 
 export default function ChartPreloader() {
   const token = useAuthStore(state => state.token)
@@ -26,7 +25,7 @@ export default function ChartPreloader() {
 
   useEffect(() => {
     if (!token) {
-      console.log('⏭️ ChartPreloader: No token, skipping preload')
+      console.log('ChartPreloader: No token, skipping preload')
       setStatus(prev => ({ ...prev, loading: false, progress: 100 }))
       return
     }
@@ -45,9 +44,9 @@ export default function ChartPreloader() {
         
         if (!response.ok) {
           if (response.status === 401) {
-            console.log('⏭️ Preload skipped: Unauthorized')
+            console.log('Preload skipped: Unauthorized')
           } else {
-            console.error('❌ Preload failed:', response.status, response.statusText)
+            console.error('Preload failed:', response.status, response.statusText)
           }
           setStatus(prev => ({ ...prev, loading: false, progress: 100 }))
           return
@@ -57,7 +56,7 @@ export default function ChartPreloader() {
         const assets: Asset[] = result?.data?.assets || []
         
         if (!assets.length) {
-          console.log('⏭️ Preload skipped: No assets')
+          console.log('Preload skipped: No assets')
           setStatus(prev => ({ ...prev, loading: false, progress: 100 }))
           return
         }
@@ -77,7 +76,7 @@ export default function ChartPreloader() {
               }))
             })
             .catch(err => {
-              console.warn(`⚠️ Prefetch failed for ${asset.symbol}:`, err.message)
+              console.warn(`Prefetch failed for ${asset.symbol}:`, err.message)
               setStatus(prev => ({
                 ...prev,
                 loaded: prev.loaded + 1,
@@ -90,7 +89,7 @@ export default function ChartPreloader() {
         await Promise.allSettled(preloadPromises)
         
       } catch (error) {
-        console.error('❌ Preload error:', error)
+        console.error('Preload error:', error)
       } finally {
         setStatus(prev => ({ ...prev, loading: false, progress: 100 }))
       }
@@ -112,7 +111,7 @@ export default function ChartPreloader() {
         <div className="space-y-1 text-[10px] text-gray-300">
           <div>Assets: {status.loaded}/{status.total}</div>
           <div>Progress: {status.progress}%</div>
-          <div className="text-gray-400">Timeframes: All (1m-1d)</div>
+          <div className="text-gray-400">Timeframes: All (1s-1d)</div>
         </div>
         <div className="mt-2 bg-gray-700 rounded-full h-1.5 overflow-hidden">
           <div 

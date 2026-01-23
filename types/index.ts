@@ -1,4 +1,4 @@
-// types/index.ts - ✅ COMPLETE: Binance Support + Photo Upload Types
+// types/index.ts - Full 1-second trading support
 
 // ============================================
 // AUTH & USER TYPES
@@ -35,7 +35,6 @@ export interface AffiliateInfo {
   totalCommission: number
 }
 
-// ✅ ENHANCED: UserProfile with Photo Upload Support
 export interface UserProfile {
   user: User
   statusInfo: StatusInfo
@@ -70,7 +69,6 @@ export interface WithdrawalRequest {
   status: 'pending' | 'approved' | 'rejected' | 'completed'
   description?: string
   
-  // User info snapshot
   userEmail: string
   userName?: string
   bankAccount?: {
@@ -79,12 +77,10 @@ export interface WithdrawalRequest {
     accountHolderName: string
   }
   
-  // Verification proof
   ktpVerified: boolean
   selfieVerified: boolean
   currentBalance: number
   
-  // Admin action
   reviewedBy?: string
   reviewedAt?: string
   rejectionReason?: string
@@ -123,63 +119,11 @@ export const WITHDRAWAL_STATUS = {
 export type WithdrawalStatus = typeof WITHDRAWAL_STATUS[keyof typeof WITHDRAWAL_STATUS]
 
 export const WITHDRAWAL_CONFIG = {
-  MIN_AMOUNT: 100000, // Rp 100,000
+  MIN_AMOUNT: 100000,
   REQUIRE_KTP: true,
   REQUIRE_SELFIE: true,
   REQUIRE_BANK_ACCOUNT: true,
 } as const
-
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
-
-export function getWithdrawalStatusColor(status: WithdrawalStatus): string {
-  const colors = {
-    pending: 'text-yellow-600',
-    approved: 'text-blue-600',
-    rejected: 'text-red-600',
-    completed: 'text-green-600',
-  }
-  return colors[status] || 'text-gray-600'
-}
-
-export function getWithdrawalStatusBg(status: WithdrawalStatus): string {
-  const backgrounds = {
-    pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    approved: 'bg-blue-100 text-blue-700 border-blue-200',
-    rejected: 'bg-red-100 text-red-700 border-red-200',
-    completed: 'bg-green-100 text-green-700 border-green-200',
-  }
-  return backgrounds[status] || 'bg-gray-100 text-gray-700 border-gray-200'
-}
-
-export function getWithdrawalStatusLabel(status: WithdrawalStatus): string {
-  const labels = {
-    pending: 'Pending',
-    approved: 'Approved',
-    rejected: 'Rejected',
-    completed: 'Completed',
-  }
-  return labels[status] || status
-}
-
-export function canCancelWithdrawal(request: WithdrawalRequest): boolean {
-  return request.status === 'pending'
-}
-
-export function formatWithdrawalStatus(request: WithdrawalRequest): {
-  label: string
-  color: string
-  bgClass: string
-  canCancel: boolean
-} {
-  return {
-    label: getWithdrawalStatusLabel(request.status as WithdrawalStatus),
-    color: getWithdrawalStatusColor(request.status as WithdrawalStatus),
-    bgClass: getWithdrawalStatusBg(request.status as WithdrawalStatus),
-    canCancel: canCancelWithdrawal(request),
-  }
-}
 
 export interface UserProfileInfo {
   completion: number
@@ -203,10 +147,10 @@ export interface UserProfileInfo {
     number?: string
     isVerified?: boolean
     verifiedAt?: string
-    verifiedBy?: string  // ✅ NEW
-    rejectionReason?: string  // ✅ NEW
-    rejectedAt?: string  // ✅ NEW
-    rejectedBy?: string  // ✅ NEW
+    verifiedBy?: string
+    rejectionReason?: string
+    rejectedAt?: string
+    rejectedBy?: string
     photoFront?: {
       url: string
       uploadedAt: string
@@ -238,10 +182,10 @@ export interface UserProfileInfo {
     uploadedAt: string
     isVerified: boolean
     verifiedAt?: string
-    verifiedBy?: string  // ✅ NEW
-    rejectionReason?: string  // ✅ NEW
-    rejectedAt?: string  // ✅ NEW
-    rejectedBy?: string  // ✅ NEW
+    verifiedBy?: string
+    rejectionReason?: string
+    rejectedAt?: string
+    rejectedBy?: string
     fileSize?: number
     mimeType?: string
   } | null
@@ -304,28 +248,25 @@ export interface VerifyDocumentRequest {
   rejectionReason?: string
 }
 
-
 // ============================================
-// ASSET TYPES - ✅ UPDATED FOR BINANCE
+// ASSET TYPES - Binance Support
 // ============================================
 export interface Asset {
   id: string
   name: string
   symbol: string
-  type: 'forex' | 'stock' | 'commodity' | 'crypto' | 'index'  
+  type: 'forex' | 'stock' | 'commodity' | 'crypto' | 'index'
   category: 'normal' | 'crypto'
   profitRate: number
   isActive: boolean
   icon?: string
-  // ✅ FIXED: Changed to include 'binance'
   dataSource: 'realtime_db' | 'api' | 'mock' | 'binance'
   realtimeDbPath?: string
   apiEndpoint?: string
-  // ✅ Crypto config for Binance
   cryptoConfig?: {
-    baseCurrency: string    // e.g., "BTC", "ETH"
-    quoteCurrency: string   // e.g., "USD", "USDT"
-    exchange?: string       // Optional: "Binance"
+    baseCurrency: string
+    quoteCurrency: string
+    exchange?: string
   }
   description?: string
   simulatorSettings?: {
@@ -388,7 +329,6 @@ export const ASSET_TYPE_INFO = {
   }
 } as const
 
-// ✅ ADD: Helper functions
 export function getAssetTypeLabel(type: AssetType): string {
   return ASSET_TYPE_INFO[type]?.label || type
 }
@@ -473,7 +413,6 @@ export interface PriceData {
   datetime_iso?: string
   timezone?: string
   change?: number
-  // ✅ NEW: Binance specific fields
   volume24h?: number
   change24h?: number
   changePercent24h?: number
@@ -494,9 +433,6 @@ export interface OHLCData {
   isCompleted?: boolean
 }
 
-// ============================================
-// ✅ NEW: BINANCE PRICE INTERFACE
-// ============================================
 export interface BinancePrice {
   price: number
   timestamp: number
@@ -531,7 +467,7 @@ export interface AuthResponse {
 }
 
 // ============================================
-// PROFILE & PREFERENCES - ✅ ENHANCED
+// PROFILE & PREFERENCES
 // ============================================
 export interface UpdateProfileRequest {
   fullName?: string
@@ -551,7 +487,6 @@ export interface UpdateProfileRequest {
     number?: string
     issuedDate?: string
     expiryDate?: string
-    // ✅ NEW: Photo upload support in update
     photoFront?: {
       url: string
       fileSize?: number
@@ -651,7 +586,7 @@ export interface SystemStatistics {
 }
 
 // ============================================
-// ✅ NEW: CRYPTO SCHEDULER STATUS
+// CRYPTO SCHEDULER STATUS
 // ============================================
 export interface CryptoSchedulerStatus {
   isRunning: boolean
@@ -764,9 +699,11 @@ export interface UserPreferences {
 }
 
 // ============================================
-// CONSTANTS & ENUMS
+// DURATION CONSTANTS - With 1s Support
 // ============================================
+
 export const DURATIONS = [
+  0.0167,
   1, 2, 3, 4, 5, 
   10, 15, 30, 45, 60
 ] as const
@@ -786,7 +723,8 @@ export const DURATION_DISPLAY_MAP: Record<number, string> = {
 }
 
 export const QUICK_AMOUNTS = [10000, 25000, 50000, 100000, 250000, 500000, 1000000] as const
-export const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
+
+export const TIMEFRAMES = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
 
 export type Duration = typeof DURATIONS[number]
 export type QuickAmount = typeof QUICK_AMOUNTS[number]
@@ -796,13 +734,13 @@ export type UserStatus = 'standard' | 'gold' | 'vip'
 export type OrderStatus = BinaryOrder['status']
 export type OrderDirection = BinaryOrder['direction']
 export type BalanceType = Balance['type']
-// ✅ FIXED: Changed to include 'binance'
 export type AssetDataSource = 'realtime_db' | 'api' | 'mock' | 'binance'
 export type AssetCategory = Asset['category']
 
 // ============================================
-// UTILITY FUNCTIONS
+// UTILITY FUNCTIONS - Enhanced for 1s
 // ============================================
+
 export function formatDurationDisplay(durationMinutes: number): string {
   return DURATION_DISPLAY_MAP[durationMinutes] || `${durationMinutes}m`
 }
@@ -845,6 +783,67 @@ export function getDurationLabel(durationMinutes: number): string {
   }
 }
 
+export function isUltraShortDuration(duration: number): boolean {
+  return duration < 1
+}
+
+export function formatUltraShortDuration(durationMinutes: number): string {
+  if (durationMinutes >= 1) return formatDurationDisplay(durationMinutes)
+  const seconds = Math.round(durationMinutes * 60)
+  return `${seconds}s`
+}
+
+export const DURATION_CATEGORIES = {
+  ULTRA_SHORT: [0.0167],
+  SHORT: [1, 2, 3, 4, 5],
+  MEDIUM: [10, 15, 30, 45],
+  LONG: [60]
+} as const
+
+export function getDurationCategory(duration: number): 'ultra_short' | 'short' | 'medium' | 'long' {
+  if (duration < 1) return 'ultra_short'
+  if (duration <= 5) return 'short'
+  if (duration < 60) return 'medium'
+  return 'long'
+}
+
+export interface TradingSettings {
+  minOrderAmount: number
+  maxOrderAmount: number
+  allowedDurations: number[]
+}
+
+export const DEFAULT_TRADING_SETTINGS: TradingSettings = {
+  minOrderAmount: 1000,
+  maxOrderAmount: 1000000,
+  allowedDurations: [
+    0.0167,
+    1, 2, 3, 4, 5,
+    10, 15, 30, 45, 60
+  ]
+}
+
+export function getRecommendedDurations(assetType: string): number[] {
+  const recommendations: Record<string, number[]> = {
+    'crypto': [0.0167, 1, 5, 15, 30, 60],
+    'forex': [1, 5, 15, 30, 60],
+    'stock': [5, 15, 30, 60],
+    'commodity': [15, 30, 60],
+    'index': [15, 30, 60]
+  }
+  
+  return recommendations[assetType] || DEFAULT_TRADING_SETTINGS.allowedDurations
+}
+
+export function supports1sTradingInternal(asset: Asset): boolean {
+  if (!asset.tradingSettings?.allowedDurations) return false
+  
+  const tolerance = 0.0001
+  return asset.tradingSettings.allowedDurations.some(
+    duration => Math.abs(duration - 0.0167) < tolerance
+  )
+}
+
 export function isCryptoAsset(asset: Asset): boolean {
   return asset.category === 'crypto'
 }
@@ -853,7 +852,6 @@ export function isNormalAsset(asset: Asset): boolean {
   return asset.category === 'normal'
 }
 
-// ✅ NEW: Check if asset uses Binance
 export function usesBinance(asset: Asset): boolean {
   return asset.dataSource === 'binance' || (asset.category === 'crypto' && !!asset.cryptoConfig)
 }
@@ -862,7 +860,6 @@ export function getAssetCategoryLabel(category: AssetCategory): string {
   return category === 'crypto' ? 'Cryptocurrency' : 'Normal Asset'
 }
 
-// ✅ NEW: Get data source display label
 export function getDataSourceLabel(dataSource: AssetDataSource): string {
   const labels: Record<AssetDataSource, string> = {
     'realtime_db': 'Realtime Database',
@@ -888,7 +885,6 @@ export function getAssetDisplayName(asset: Asset): string {
   return asset.name
 }
 
-// ✅ NEW: Get Binance supported currencies (from backend mapping)
 export const BINANCE_SUPPORTED_COINS = [
   'BTC', 'ETH', 'BNB', 'XRP', 'ADA', 'SOL', 'DOT', 'DOGE', 
   'MATIC', 'LTC', 'AVAX', 'LINK', 'UNI', 'ATOM', 'XLM', 
@@ -902,7 +898,6 @@ export const BINANCE_SUPPORTED_QUOTE_CURRENCIES = [
 export type BinanceSupportedCoin = typeof BINANCE_SUPPORTED_COINS[number]
 export type BinanceSupportedQuote = typeof BINANCE_SUPPORTED_QUOTE_CURRENCIES[number]
 
-// ✅ NEW: Validate Binance crypto config
 export function isBinanceSupported(baseCurrency: string, quoteCurrency: string): boolean {
   return BINANCE_SUPPORTED_COINS.includes(baseCurrency.toUpperCase() as any) &&
          BINANCE_SUPPORTED_QUOTE_CURRENCIES.includes(quoteCurrency.toUpperCase() as any)

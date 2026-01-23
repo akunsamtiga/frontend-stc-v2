@@ -1,7 +1,8 @@
-// lib/firebase.ts - OPTIMIZED VERSION with Progressive Loading Support
+// lib/firebase.ts - Optimized with 1-second OHLC support
 
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
 import { getDatabase, Database, ref, onValue, off, query, limitToLast, get } from 'firebase/database'
+import type { Timeframe } from '@/types'
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -25,9 +26,9 @@ if (typeof window !== 'undefined') {
       app = getApps()[0]
       database = getDatabase(app)
     }
-    console.log('✅ Firebase initialized')
+    console.log('Firebase initialized')
   } catch (error) {
-    console.error('❌ Firebase init error:', error)
+    console.error('Firebase init error:', error)
   }
 }
 
@@ -53,7 +54,6 @@ function deduplicateRequest<T>(key: string, fn: () => Promise<T>): Promise<T> {
   
   if (pending) {
     const age = now - pending.timestamp
-    console.log(`🔄 Deduplicated request (age: ${age}ms):`, key.slice(0, 50))
     return pending.promise as Promise<T>
   }
   
@@ -78,7 +78,7 @@ class FastMemoryCache {
   private cache = new Map<string, CacheEntry>()
   private readonly CACHE_TTL = 300000
   private readonly STALE_TTL = 600000
-  private readonly MAX_SIZE = 100
+  private readonly MAX_SIZE = 150
 
   get(key: string): any | null {
     const entry = this.cache.get(key)
@@ -90,12 +90,10 @@ class FastMemoryCache {
     const age = Date.now() - entry.timestamp
     
     if (age <= this.CACHE_TTL) {
-      console.log(`⚡ Memory cache HIT (age: ${age}ms):`, key.slice(0, 50))
       return entry.data
     }
     
     if (age <= this.STALE_TTL) {
-      console.log(`⚠️ Stale cache (age: ${age}ms):`, key.slice(0, 50))
       return entry.data
     }
     
@@ -133,7 +131,7 @@ class FastMemoryCache {
 
   clear(): void {
     this.cache.clear()
-    console.log('🗑️ Memory cache cleared')
+    console.log('Memory cache cleared')
   }
 
   private cleanup(): void {
@@ -159,7 +157,7 @@ class FastMemoryCache {
     }
     
     if (deletedCount > 0) {
-      console.log(`🗑️ Cleaned ${deletedCount} cache entries`)
+      console.log(`Cleaned ${deletedCount} cache entries`)
     }
   }
 
@@ -242,13 +240,47 @@ function processHistoricalData(rawData: any, limit: number): any[] {
   return bars.slice(-limit)
 }
 
-import type { Timeframe } from '@/types'
+const TIMEFRAME_CONFIGS: Record<Timeframe, { 
+  seconds: number
+  defaultLimit: number
+  cacheStrategy: 'aggressive' | 'moderate' | 'normal'
+}> = {
+  '1s': { seconds: 1, defaultLimit: 60, cacheStrategy: 'aggressive' },
+  '1m': { seconds: 60, defaultLimit: 100, cacheStrategy: 'aggressive' },
+  '5m': { seconds: 300, defaultLimit: 60, cacheStrategy: 'moderate' },
+  '15m': { seconds: 900, defaultLimit: 60, cacheStrategy: 'moderate' },
+  '30m': { seconds: 1800, defaultLimit: 48, cacheStrategy: 'moderate' },
+  '1h': { seconds: 3600, defaultLimit: 48, cacheStrategy: 'normal' },
+  '4h': { seconds: 14400, defaultLimit: 30, cacheStrategy: 'normal' },
+  '1d': { seconds: 86400, defaultLimit: 30, cacheStrategy: 'normal' }
+}
 
-// ✅ MODIFIED: Added customLimit parameter for progressive loading
+const CACHE_TTL_MAP: Record<Timeframe, number> = {
+  '1s': 500,
+  '1m': 2000,
+  '5m': 10000,
+  '15m': 30000,
+  '30m': 60000,
+  '1h': 120000,
+  '4h': 300000,
+  '1d': 600000
+}
+
+const STALE_CACHE_TTL_MAP: Record<Timeframe, number> = {
+  '1s': 2000,
+  '1m': 10000,
+  '5m': 30000,
+  '15m': 60000,
+  '30m': 120000,
+  '1h': 300000,
+  '4h': 600000,
+  '1d': 1200000
+}
+
 export async function fetchHistoricalData(
   assetPath: string,
   timeframe: Timeframe = '1m',
-  customLimit?: number  // ✅ NEW: Optional parameter for dynamic limit
+  customLimit?: number
 ): Promise<any[]> {
   if (typeof window === 'undefined' || !database) {
     return []
@@ -264,23 +296,22 @@ export async function fetchHistoricalData(
     }
 
     return await deduplicateRequest(cacheKey, async () => {
-      console.log(`📡 Fetching ${timeframe} from Firebase...`)
+      console.log(`Fetching ${timeframe} from Firebase...`)
       const startTime = Date.now()
       
       const ohlcPath = `${cleanPath}/ohlc_${timeframe}`
+      
+      const config = TIMEFRAME_CONFIGS[timeframe]
+      const limit = customLimit || config.defaultLimit
+      
       const snapshot = await get(ref(database, ohlcPath))
       
       if (!snapshot.exists()) {
-        console.warn(`⚠️ No data at: ${ohlcPath}`)
+        console.warn(`No data at: ${ohlcPath}`)
         return []
       }
       
       const rawData = snapshot.val()
-      
-      // ✅ MODIFIED: Use customLimit if provided, otherwise use defaults
-      const baseLimit = timeframe === '1m' ? 100 : 60
-      const limit = customLimit || baseLimit
-
       const processed = processHistoricalData(rawData, limit)
       
       if (processed.length > 0) {
@@ -288,13 +319,13 @@ export async function fetchHistoricalData(
       }
       
       const duration = Date.now() - startTime
-      console.log(`✅ Fetched ${processed.length} ${timeframe} bars in ${duration}ms`)
+      console.log(`Fetched ${processed.length} ${timeframe} bars in ${duration}ms`)
       
       return processed
     })
 
   } catch (error: any) {
-    console.error(`❌ Fetch error for ${timeframe}:`, error.message)
+    console.error(`Fetch error for ${timeframe}:`, error.message)
     return []
   }
 }
@@ -329,47 +360,17 @@ export async function fetchHistoricalDataWithStale(
     return { data, isStale: false }
 
   } catch (error: any) {
-    console.error(`❌ Fetch error for ${timeframe}:`, error.message)
+    console.error(`Fetch error for ${timeframe}:`, error.message)
     return { data: [], isStale: false }
   }
 }
 
-export async function prefetchMultipleTimeframes(
+export function subscribeTo1sOHLC(
   assetPath: string,
-  timeframes: Timeframe[] = ['1m', '5m']
-): Promise<Map<Timeframe, any[]>> {
-  const results = new Map<Timeframe, any[]>()
-  
-  console.log(`🔄 Prefetching ${timeframes.length} timeframes in parallel...`)
-  const startTime = Date.now()
-  
-  const promises = timeframes.map(tf => 
-    fetchHistoricalData(assetPath, tf)
-      .then(data => ({ tf, data, success: true }))
-      .catch(error => ({ tf, data: [], success: false, error }))
-  )
-  
-  const settled = await Promise.allSettled(promises)
-  
-  settled.forEach(result => {
-    if (result.status === 'fulfilled') {
-      const { tf, data } = result.value
-      results.set(tf, data)
-      
-      if (data.length === 0) {
-        console.warn(`⚠️ No data for ${tf}`)
-      }
-    } else {
-      console.error(`❌ Prefetch failed:`, result.reason)
-    }
-  })
-  
-  const duration = Date.now() - startTime
-  const successful = Array.from(results.values()).filter(d => d.length > 0).length
-  
-  console.log(`✅ Prefetched ${successful}/${timeframes.length} timeframes in ${duration}ms`)
-  
-  return results
+  callback: (data: any) => void
+): () => void {
+  console.log('Starting ULTRA-FAST 1s OHLC subscription...')
+  return subscribeToOHLCUpdates(assetPath, '1s', callback)
 }
 
 export function subscribeToOHLCUpdates(
@@ -387,6 +388,8 @@ export function subscribeToOHLCUpdates(
   
   let lastTimestamp: number | null = null
   let lastData: any = null
+  
+  const isUltraFast = timeframe === '1s'
   
   const unsubscribe = onValue(ohlcRef, (snapshot) => {
     const data = snapshot.val()
@@ -410,7 +413,7 @@ export function subscribeToOHLCUpdates(
                       lastData.low !== latestBar.low ||
                       lastData.close !== latestBar.close
     
-    if (isNewBar || hasChanged) {
+    if (isNewBar || (isUltraFast && hasChanged) || (!isUltraFast && hasChanged)) {
       lastTimestamp = timestamp
       lastData = latestBar
       
@@ -432,12 +435,56 @@ export function subscribeToOHLCUpdates(
       }
     }
   }, (error) => {
-    console.error(`❌ OHLC subscription error (${timeframe}):`, error)
+    console.error(`OHLC subscription error (${timeframe}):`, error)
   })
 
   return () => {
     off(ohlcRef)
   }
+}
+
+export async function prefetchMultipleTimeframes(
+  assetPath: string,
+  timeframes: Timeframe[] = ['1s', '1m', '5m']
+): Promise<Map<Timeframe, any[]>> {
+  const results = new Map<Timeframe, any[]>()
+  
+  console.log(`Prefetching ${timeframes.length} timeframes in parallel...`)
+  const startTime = Date.now()
+  
+  const sorted = [...timeframes].sort((a, b) => {
+    if (a === '1s') return -1
+    if (b === '1s') return 1
+    return 0
+  })
+  
+  const promises = sorted.map(tf => 
+    fetchHistoricalData(assetPath, tf)
+      .then(data => ({ tf, data, success: true }))
+      .catch(error => ({ tf, data: [], success: false, error }))
+  )
+  
+  const settled = await Promise.allSettled(promises)
+  
+  settled.forEach(result => {
+    if (result.status === 'fulfilled') {
+      const { tf, data } = result.value
+      results.set(tf, data)
+      
+      if (data.length === 0) {
+        console.warn(`No data for ${tf}`)
+      }
+    } else {
+      console.error(`Prefetch failed:`, result.reason)
+    }
+  })
+  
+  const duration = Date.now() - startTime
+  const successful = Array.from(results.values()).filter(d => d.length > 0).length
+  
+  console.log(`Prefetched ${successful}/${timeframes.length} timeframes in ${duration}ms`)
+  
+  return results
 }
 
 export function subscribeToPriceUpdates(
@@ -471,7 +518,7 @@ export function subscribeToPriceUpdates(
     callback(data)
     
   }, (error) => {
-    console.error('❌ Price subscription error:', error)
+    console.error('Price subscription error:', error)
   })
 
   return () => {
@@ -487,7 +534,7 @@ export async function prefetchDefaultAsset(assetPath: string): Promise<void> {
 export async function clearDataCache(): Promise<void> {
   memoryCache.clear()
   pendingRequests.clear()
-  console.log('🗑️ All caches cleared')
+  console.log('All caches cleared')
 }
 
 export function getCacheStats() {
@@ -511,8 +558,12 @@ if (typeof window !== 'undefined') {
     const stats = memoryCache.getStats()
     
     if (stats.size > stats.maxSize * 0.8) {
-      console.log('🧹 Auto-cleanup triggered')
+      console.log('Auto-cleanup triggered')
       memoryCache.clear()
     }
   }, 60000)
 }
+
+export const SUPPORTS_1S_TRADING = true
+export const ULTRA_FAST_TIMEFRAME = '1s' as Timeframe
+export const DEFAULT_1S_LIMIT = 60

@@ -283,12 +283,15 @@ function cleanAssetPath(path: string): string {
     path = path.replace('/current_price', '')
   }
   path = path.replace(/\/$/, '')
-  if (!path.startsWith('/')) path = '/' + path
+  if (!path.startsWith('/')) {
+    path = '/' + path
+  }
   return path
 }
 
 function getTimeframeSeconds(timeframe: Timeframe): number {
   const map: Record<Timeframe, number> = {
+    '1s': 1,
     '1m': 60,
     '5m': 300,
     '15m': 900,
@@ -585,7 +588,7 @@ const MobileControls = memo(({
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const timeframes: Timeframe[] = ['1m', '5m', '15m', '30m', '1h', '4h', '1d']
+  const timeframes: Timeframe[] = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d']
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -675,7 +678,7 @@ const DesktopControls = memo(({
   const [showTimeframeMenu, setShowTimeframeMenu] = useState(false)
   const timeframeRef = useRef<HTMLDivElement>(null)
 
-  const timeframes: Timeframe[] = ['1m', '5m', '15m', '30m', '1h', '4h', '1d']
+  const timeframes: Timeframe[] = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d']
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -1136,8 +1139,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
 
     wsPriceRef.current = wsPrice
     
+    const updateThrottle = timeframe === '1s' ? 50 : 100
+    
     const now = performance.now()
-    if (now - lastChartUpdateRef.current < CHART_UPDATE_THROTTLE) return
+    if (now - lastChartUpdateRef.current < updateThrottle) return
     lastChartUpdateRef.current = now
 
     if (!currentBarRef.current) {
@@ -1608,7 +1613,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
               <div className="absolute inset-0 border-4 border-gray-800 rounded-full"></div>
               <div className="absolute inset-0 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
             </div>
-            <div className="text-sm text-gray-400 mb-1">Loading {timeframe} chart...</div>
+            <div className="text-sm text-gray-400 mb-1">
+              Loading {timeframe} chart...
+              {timeframe === '1s' && ' ULTRA-FAST'}
+            </div>
             <div className="text-xs text-gray-600">
               {selectedAsset.symbol}
             </div>
@@ -1622,14 +1630,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         config={indicatorConfig} 
         onChange={setIndicatorConfig} 
       />
-
-      <style jsx>{`
-        @keyframes scale-in {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        .animate-scale-in { animation: scale-in 0.2s ease-out; }
-      `}</style>
     </div>
   )
 })
