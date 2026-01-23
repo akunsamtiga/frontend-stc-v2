@@ -227,9 +227,6 @@ class SmoothCandleAnimator {
       cancelAnimationFrame(this.animationFrame)
       this.animationFrame = null
     }
-    if (this.currentCandle) {
-      this.currentCandle.isAnimating = false
-    }
   }
 
   reset() {
@@ -314,7 +311,7 @@ async function checkSimulatorStatus(assetPath: string): Promise<{
   hasOHLC: boolean
   message: string
 }> {
-  if (!database) {
+  if (typeof window === 'undefined' || !database) {
     return { 
       isRunning: false, 
       hasCurrentPrice: false, 
@@ -401,8 +398,6 @@ const PriceDisplay = memo(({ asset, price, onClick, showMenu, assets, onSelectAs
   if (!asset || !price) return null
 
   const hasChange = price.change !== undefined && price.change !== 0
-
-  // ✅ FIXED: Format price dengan semua decimal places
   const formattedPrice = formatPriceAuto(price.price, asset.type)
 
   return (
@@ -415,7 +410,6 @@ const PriceDisplay = memo(({ asset, price, onClick, showMenu, assets, onSelectAs
         
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-400">{asset.name}</span>
-          {/* ✅ FIXED: Tampilkan semua decimal dengan font-mono */}
           <span className="text-xl font-bold font-mono">{formattedPrice}</span>
         </div>
         {hasChange && (
@@ -434,7 +428,6 @@ const PriceDisplay = memo(({ asset, price, onClick, showMenu, assets, onSelectAs
       <div className="hidden lg:flex bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 items-center gap-3">
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-400">{asset.name}</span>
-          {/* ✅ FIXED: Tampilkan semua decimal dengan font-mono */}
           <span className="text-xl font-bold font-mono">{formattedPrice}</span>
         </div>
         {hasChange && (
@@ -512,7 +505,6 @@ const OHLCDisplay = memo(({
     timeZone: 'Asia/Jakarta'
   })
 
-  // ✅ FIXED: Format price dengan semua decimal places
   const formatOHLCPrice = (price: number) => {
     if (price >= 1000) return price.toFixed(2)
     if (price >= 1) return price.toFixed(6)
@@ -525,7 +517,6 @@ const OHLCDisplay = memo(({
         <Clock className="w-3 h-3" />
         <span>{timeStr} WIB</span>
       </div>
-      {/* ✅ FIXED: Tambahkan font-mono untuk alignment */}
       <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 font-mono">
         <div className="text-gray-500">O:</div>
         <div className="text-white text-right">{formatOHLCPrice(data.open)}</div>
@@ -1123,68 +1114,86 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
   }, [selectedAsset?.id, isInitialized, fetchCurrentPriceImmediately])
 
+  const wsPriceRef = useRef<number | null>(null)
+  const lastChartUpdateRef = useRef(0)
+  const CHART_UPDATE_THROTTLE = 100
+
+  const initializeCurrentBar = useCallback((price: number) => {
+    const currentTimestamp = Math.floor(Date.now() / 1000)
+    const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
+    currentBarRef.current = {
+      timestamp: barPeriod,
+      open: price,
+      high: price,
+      low: price,
+      close: price,
+      volume: 0
+    }
+  }, [timeframe])
+
   useEffect(() => {
-    if (!selectedAsset?.id || wsPrice === null || !isInitialized || isLoadingDataRef.current) return
+    if (!selectedAsset?.id || wsPrice === null || !isInitialized) return
+
+    wsPriceRef.current = wsPrice
+    
+    const now = performance.now()
+    if (now - lastChartUpdateRef.current < CHART_UPDATE_THROTTLE) return
+    lastChartUpdateRef.current = now
+
+    if (!currentBarRef.current) {
+      initializeCurrentBar(wsPrice)
+    }
+
+    if (!currentBarRef.current) {
+      console.warn('Failed to initialize current bar')
+      return
+    }
+
+    const currentTimestamp = Math.floor(Date.now() / 1000)
+    const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
+
+    if (currentBarRef.current.timestamp !== barPeriod) {
+      initializeCurrentBar(wsPrice)
+      
+      if (!currentBarRef.current) {
+        console.warn('Failed to re-initialize current bar')
+        return
+      }
+    } else {
+      const currentBar = currentBarRef.current
+      
+      currentBarRef.current = {
+        timestamp: currentBar.timestamp,
+        open: currentBar.open,
+        high: Math.max(currentBar.high, wsPrice),
+        low: Math.min(currentBar.low, wsPrice),
+        close: wsPrice,
+        volume: currentBar.volume
+      }
+
+      if (candleAnimatorRef.current) {
+        candleAnimatorRef.current.updateCandle(currentBarRef.current)
+      } else {
+        const chartCandle = {
+          time: currentBarRef.current.timestamp as UTCTimestamp,
+          open: currentBarRef.current.open,
+          high: currentBarRef.current.high,
+          low: currentBarRef.current.low,
+          close: currentBarRef.current.close,
+        }
+        
+        candleSeriesRef.current?.update(chartCandle)
+        lineSeriesRef.current?.update({
+          time: chartCandle.time,
+          value: chartCandle.close
+        })
+      }
+    }
 
     setLastPrice(wsPrice)
     lastUpdateTimeRef.current = Date.now()
 
-    if (currentBarRef.current) {
-      const currentTimestamp = Math.floor(Date.now() / 1000)
-      const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
-      
-      if (currentBarRef.current.timestamp !== barPeriod) {
-        currentBarRef.current = {
-          timestamp: barPeriod,
-          open: wsPrice,
-          high: wsPrice,
-          low: wsPrice,
-          close: wsPrice,
-          volume: 0
-        }
-        
-        if (timeframe === '1m' || timeframe === '5m') {
-          candleAnimatorRef.current?.updateCandle(currentBarRef.current)
-        } else {
-          const chartCandle = {
-            time: currentBarRef.current.timestamp as UTCTimestamp,
-            open: currentBarRef.current.open,
-            high: currentBarRef.current.high,
-            low: currentBarRef.current.low,
-            close: currentBarRef.current.close,
-          }
-          
-          candleSeriesRef.current?.update(chartCandle)
-          lineSeriesRef.current?.update({
-            time: chartCandle.time,
-            value: chartCandle.close
-          })
-        }
-      } else {
-        currentBarRef.current.high = Math.max(currentBarRef.current.high, wsPrice)
-        currentBarRef.current.low = Math.min(currentBarRef.current.low, wsPrice)
-        currentBarRef.current.close = wsPrice
-        
-        if (timeframe === '1m' || timeframe === '5m') {
-          candleAnimatorRef.current?.updateCandle(currentBarRef.current)
-        } else {
-          const chartCandle = {
-            time: currentBarRef.current.timestamp as UTCTimestamp,
-            open: currentBarRef.current.open,
-            high: currentBarRef.current.high,
-            low: currentBarRef.current.low,
-            close: currentBarRef.current.close,
-          }
-          
-          candleSeriesRef.current?.update(chartCandle)
-          lineSeriesRef.current?.update({
-            time: chartCandle.time,
-            value: chartCandle.close
-          })
-        }
-      }
-    }
-  }, [wsPrice, selectedAsset?.id, timeframe, isInitialized])
+  }, [wsPrice, selectedAsset?.id, timeframe, isInitialized, initializeCurrentBar])
 
   useEffect(() => {
     if (isMountedRef.current) return
@@ -1304,7 +1313,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         
         priceLinesRef.current.forEach((priceLine) => {
           if (candleSeriesRef.current) {
-            candleSeriesRef.current.removePriceLine(priceLine)
+            try {
+              candleSeriesRef.current.removePriceLine(priceLine)
+            } catch (e) {}
           }
         })
         priceLinesRef.current.clear()
@@ -1458,7 +1469,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       isLoadingDataRef.current = false
       cleanupAll()
     }
-  }, [selectedAsset?.id, timeframe, isInitialized])
+  }, [selectedAsset?.id, timeframe, isInitialized, addCleanup, cleanupAll, setSafeLoading, checkSimulator])
 
   useEffect(() => {
     if (isLoading) {
@@ -1484,7 +1495,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }, 2000)
 
     return () => clearTimeout(prefetchTimer)
-  }, [selectedAsset?.id, isInitialized, isLoading, prefetchedAssets])
+  }, [selectedAsset?.id, isInitialized, isLoading, prefetchedAssets, prefetchAllTimeframes])
 
   const handleRefresh = useCallback(() => {
     if (!selectedAsset) return
