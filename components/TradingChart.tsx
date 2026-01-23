@@ -6,7 +6,7 @@ import { useTradingStore, useTradingActions } from '@/store/trading'
 import { fetchHistoricalData, subscribeToOHLCUpdates, prefetchMultipleTimeframes } from '@/lib/firebase'
 import { BinaryOrder, TIMEFRAMES, Timeframe as TimeframeType } from '@/types'
 import { database, ref, get } from '@/lib/firebase'
-import { formatCurrency, throttle } from '@/lib/utils' // ✅ Import throttle
+import { formatCurrency } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2, Zap } from 'lucide-react'
 import { usePriceStream } from '@/components/providers/WebSocketProvider'
@@ -102,7 +102,6 @@ class LoadingStateManager {
   }
 }
 
-// ✅ OPTIMIZED: SmoothCandleAnimator dengan RAF debounce & destroy
 class SmoothCandleAnimator {
   private currentCandle: AnimatedCandle | null = null
   private animationFrame: number | null = null
@@ -112,8 +111,6 @@ class SmoothCandleAnimator {
   private initialHigh: number = 0
   private initialLow: number = 0
   private initialClose: number = 0
-  private RAF_DEBOUNCE = 16 // ✅ ~60fps, tidak perlu diatas ini
-  private lastUpdateTime = 0 // ✅ Track last update
 
   constructor(onUpdate: (candle: CandleData) => void, duration: number = 300) {
     this.onUpdate = onUpdate
@@ -152,13 +149,6 @@ class SmoothCandleAnimator {
       this.currentCandle.close !== newCandle.close
 
     if (!hasChanges) return
-
-    // ✅ Debounce: Skip jika terlalu cepat
-    const now = performance.now()
-    if (now - this.lastUpdateTime < this.RAF_DEBOUNCE) {
-      return
-    }
-    this.lastUpdateTime = now
 
     this.initialHigh = this.currentCandle.high
     this.initialLow = this.currentCandle.low
@@ -245,13 +235,6 @@ class SmoothCandleAnimator {
   reset() {
     this.stop()
     this.currentCandle = null
-  }
-
-  // ✅ NEW: Destroy method untuk cleanup
-  destroy() {
-    this.stop()
-    this.currentCandle = null
-    this.lastUpdateTime = 0
   }
 }
 
@@ -415,7 +398,6 @@ const RealtimeClock = memo(() => {
 
 RealtimeClock.displayName = 'RealtimeClock'
 
-// ✅ OPTIMIZED: Memo dengan comparison yang ketat
 const PriceDisplay = memo(({ asset, price, onClick, showMenu, assets, onSelectAsset }: any) => {
   if (!asset || !price) return null
 
@@ -498,12 +480,6 @@ const PriceDisplay = memo(({ asset, price, onClick, showMenu, assets, onSelectAs
       )}
     </div>
   )
-}, (prevProps, nextProps) => {
-  // ✅ Ketat comparison: hanya re-render jika benar-benar perlu
-  return prevProps.asset?.id === nextProps.asset?.id &&
-         prevProps.price?.price === nextProps.price?.price &&
-         prevProps.price?.change === nextProps.price?.change &&
-         prevProps.showMenu === nextProps.showMenu
 })
 
 PriceDisplay.displayName = 'PriceDisplay'
@@ -546,11 +522,6 @@ const OHLCDisplay = memo(({
       </div>
     </div>
   )
-}, (prevProps, nextProps) => {
-  // ✅ Only re-render if data actually changed
-  return prevProps.visible === nextProps.visible &&
-         prevProps.data?.time === nextProps.data?.time &&
-         prevProps.data?.close === nextProps.data?.close
 })
 
 OHLCDisplay.displayName = 'OHLCDisplay'
@@ -663,7 +634,7 @@ const MobileControls = memo(({
           </div>
 
           <div className="p-2">
-            <div className="flex flex-cuthe gap-1">
+            <div className="flex flex-col gap-1">
               <button onClick={() => { onOpenIndicators(); setIsOpen(false) }} className="px-2 py-1.5 text-xs font-medium text-gray-300 bg-[#1a1f2e] hover:bg-[#232936] rounded transition-all flex items-center gap-2">
                 <Sliders className="w-3.5 h-3.5" /> Indicators
               </button>
@@ -792,11 +763,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   
   const loadingManagerRef = useRef(new LoadingStateManager())
   
-  // ✅ NEW: Progressive loading refs
-  const isLoadingMoreRef = useRef(false)
-  const oldestTimestampRef = useRef<number | null>(null)
-  const lastLoadTimeRef = useRef<number>(0) // ✅ Debounce timer
-  
   const { selectedAsset } = useTradingStore()
   const { setSelectedAsset } = useTradingActions()
   const storeAssets = useTradingStore(state => state.assets)
@@ -815,8 +781,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const [ohlcData, setOhlcData] = useState<any>(null)
   const [showOhlc, setShowOhlc] = useState(false)
   const [showAssetMenu, setShowAssetMenu] = useState(false)
-  const [hasMoreData, setHasMoreData] = useState(true)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
   
   const wsPrice = usePriceStream(selectedAsset?.id || null)
   const [prefetchedAssets, setPrefetchedAssets] = useState<Set<string>>(new Set())
@@ -864,125 +828,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   }, [])
 
   const isLoadingDataRef = useRef(false)
-
-  // ✅ OPTIMIZED: Load more data dengan debounce
-  const loadMoreHistoricalData = useCallback(async () => {
-    if (!selectedAsset?.realtimeDbPath || isLoadingMoreRef.current || !hasMoreData) {
-      return
-    }
-
-    // ✅ Debounce 500ms
-    if (Date.now() - lastLoadTimeRef.current < 500) {
-      return
-    }
-    lastLoadTimeRef.current = Date.now()
-
-    console.log('📥 Loading more historical data...')
-    isLoadingMoreRef.current = true
-    setIsLoadingMore(true)
-
-    try {
-      const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath)
-      
-      // Fetch 200 bars
-      const moreData = await fetchHistoricalData(assetPath, timeframe, 200)
-      
-      if (moreData.length === 0) {
-        console.log('⚠️ No more data available')
-        setHasMoreData(false)
-        return
-      }
-
-      // Filter only older data
-      const olderData = moreData.filter(bar => bar.timestamp < oldestTimestampRef.current!)
-      
-      if (olderData.length === 0) {
-        console.log('⚠️ No older data found')
-        setHasMoreData(false)
-        return
-      }
-
-      console.log(`✅ Loaded ${olderData.length} more bars`)
-
-      // Get current data
-      const currentData: any[] = []
-      if (candleSeriesRef.current) {
-        const data = candleSeriesRef.current.data()
-        data.forEach((item: any) => {
-          currentData.push({
-            timestamp: item.time,
-            open: item.open,
-            high: item.high,
-            low: item.low,
-            close: item.close,
-            volume: item.volume || 0
-          })
-        })
-      }
-      
-      // Merge and sort
-      const mergedData = [...olderData, ...currentData].sort((a, b) => a.timestamp - b.timestamp)
-      
-      // Convert to chart format
-      const candleData = mergedData.map((bar: any) => ({
-        time: bar.timestamp as UTCTimestamp,
-        open: bar.open,
-        high: bar.high,
-        low: bar.low,
-        close: bar.close
-      }))
-
-      // Update chart
-      candleSeriesRef.current?.setData(candleData)
-      lineSeriesRef.current?.setData(candleData.map(bar => ({ time: bar.time, value: bar.close })))
-
-      // Update oldest timestamp
-      oldestTimestampRef.current = olderData[0].timestamp
-
-      // Update cache
-      setCachedData(selectedAsset.id, timeframe, mergedData)
-
-    } catch (error) {
-      console.error('❌ Load more data error:', error)
-    } finally {
-      isLoadingMoreRef.current = false
-      setIsLoadingMore(false)
-    }
-  }, [selectedAsset?.id, selectedAsset?.realtimeDbPath, timeframe, hasMoreData])
-
-  // ✅ Subscribe ke visible range changes
-  useEffect(() => {
-    if (!chartRef.current || !isInitialized) return
-
-    const chart = chartRef.current
-
-    const handleVisibleTimeRangeChange = () => {
-      const logicalRange = chart.timeScale().getVisibleLogicalRange()
-      
-      if (!logicalRange) return
-
-      // Jika scrolled near left edge (within 20 bars dari start)
-      if (logicalRange.from < 20 && !isLoadingMoreRef.current) {
-        console.log('📜 User scrolled to left edge, loading more data...')
-        loadMoreHistoricalData()
-      }
-    }
-
-    chart.timeScale().subscribeVisibleTimeRangeChange(handleVisibleTimeRangeChange)
-
-    return () => {
-      chart.timeScale().unsubscribeVisibleTimeRangeChange(handleVisibleTimeRangeChange)
-    }
-  }, [isInitialized, loadMoreHistoricalData])
-
-  // ✅ Reset progressive loading state on asset/timeframe change
-  useEffect(() => {
-    setHasMoreData(true)
-    oldestTimestampRef.current = null
-    isLoadingMoreRef.current = false
-    setIsLoadingMore(false)
-    lastLoadTimeRef.current = 0 // ✅ Reset debounce timer
-  }, [selectedAsset?.id, timeframe])
 
   const createOrderPriceLine = useCallback((order: BinaryOrder) => {
     if (!candleSeriesRef.current && !lineSeriesRef.current) return
@@ -1270,18 +1115,12 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
   }, [selectedAsset?.id, isInitialized, fetchCurrentPriceImmediately])
 
-  // ✅ OPTIMIZED: Throttled price update (20fps max)
-  const throttledPriceUpdate = useCallback(throttle((price: number) => {
-    setLastPrice(price)
-    lastUpdateTimeRef.current = Date.now()
-  }, 50), [])
-
   useEffect(() => {
     if (!selectedAsset?.id || wsPrice === null || !isInitialized || isLoadingDataRef.current) return
 
-    throttledPriceUpdate(wsPrice)
-    
-    // ... rest of price update logic ...
+    setLastPrice(wsPrice)
+    lastUpdateTimeRef.current = Date.now()
+
     if (currentBarRef.current) {
       const currentTimestamp = Math.floor(Date.now() / 1000)
       const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
@@ -1337,7 +1176,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         }
       }
     }
-  }, [wsPrice, selectedAsset?.id, timeframe, isInitialized, throttledPriceUpdate])
+  }, [wsPrice, selectedAsset?.id, timeframe, isInitialized])
 
   useEffect(() => {
     if (isMountedRef.current) return
@@ -1457,16 +1296,14 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         
         priceLinesRef.current.forEach((priceLine) => {
           if (candleSeriesRef.current) {
-            try {
-              candleSeriesRef.current.removePriceLine(priceLine)
-            } catch (e) {}
+            candleSeriesRef.current.removePriceLine(priceLine)
           }
         })
         priceLinesRef.current.clear()
         orderMarkersRef.current.clear()
         
         try {
-          candleAnimatorRef.current?.destroy() // ✅ Use destroy instead of stop
+          candleAnimatorRef.current?.stop()
           chart.remove()
         } catch (e) {
           console.error('Chart removal error:', e)
@@ -1489,40 +1326,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       lineSeriesRef.current.applyOptions({ visible: true })
     }
   }, [chartType])
-
-  // ✅ Track oldest timestamp when data loads
-  const processAndDisplayData = useCallback((data: any[]) => {
-    if (data.length > 0) {
-      const candleData = data.map((bar: any) => ({
-        time: bar.timestamp as UTCTimestamp,
-        open: bar.open,
-        high: bar.high,
-        low: bar.low,
-        close: bar.close
-      }))
-
-      candleSeriesRef.current!.setData(candleData)
-      lineSeriesRef.current!.setData(candleData.map(bar => ({ time: bar.time, value: bar.close })))
-      
-      chartRef.current?.timeScale().fitContent()
-
-      const lastBar = data[data.length - 1]
-      currentBarRef.current = {
-        timestamp: lastBar.timestamp,
-        open: lastBar.open,
-        high: lastBar.high,
-        low: lastBar.low,
-        close: lastBar.close,
-        volume: lastBar.volume || 0
-      }
-
-      // ✅ Track oldest timestamp
-      oldestTimestampRef.current = data[0].timestamp
-      
-      setOpeningPrice(data[0].open)
-      setLastPrice(lastBar.close)
-    }
-  }, [])
 
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
@@ -1576,6 +1379,38 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       }
     }
 
+    const processAndDisplayData = (data: any[]) => {
+      if (data.length > 0 && !isCancelled) {
+        const candleData = data.map((bar: any) => ({
+          time: bar.timestamp as UTCTimestamp,
+          open: bar.open,
+          high: bar.high,
+          low: bar.low,
+          close: bar.close
+        }))
+
+        candleSeriesRef.current!.setData(candleData)
+        lineSeriesRef.current!.setData(candleData.map(bar => ({ time: bar.time, value: bar.close })))
+        
+        chartRef.current?.timeScale().fitContent()
+
+        const lastBar = data[data.length - 1]
+        currentBarRef.current = {
+          timestamp: lastBar.timestamp,
+          open: lastBar.open,
+          high: lastBar.high,
+          low: lastBar.low,
+          close: lastBar.close,
+          volume: lastBar.volume || 0
+        }
+        
+        setOpeningPrice(data[0].open)
+        setLastPrice(lastBar.close)
+        
+        dataLoadSuccess = true
+      }
+    }
+
     const loadHistoricalData = async () => {
       try {
         const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`)
@@ -1603,8 +1438,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
           setCachedData(selectedAsset.id, timeframe, data)
           processAndDisplayData(data)
         }
-        
-        dataLoadSuccess = true
       } catch (error) {
         console.error('Historical data load error:', error)
       } finally {
@@ -1628,7 +1461,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       isLoadingDataRef.current = false
       cleanupAll()
     }
-  }, [selectedAsset?.id, timeframe, isInitialized, processAndDisplayData, checkSimulator, addCleanup, cleanupAll, setSafeLoading])
+  }, [selectedAsset?.id, timeframe, isInitialized])
 
   useEffect(() => {
     if (isLoading) {
@@ -1654,7 +1487,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }, 2000)
 
     return () => clearTimeout(prefetchTimer)
-  }, [selectedAsset?.id, isInitialized, isLoading, prefetchedAssets, prefetchAllTimeframes])
+  }, [selectedAsset?.id, isInitialized, isLoading, prefetchedAssets])
 
   const processTickUpdate = useCallback((tick1s: any) => {
     if (isLoadingDataRef.current) return
@@ -1715,9 +1548,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         }
       }
 
-      // ✅ Update sudah ditangani oleh throttledPriceUpdate
-      // setLastPrice(newPrice) // ❌ Hapus ini
-      // lastUpdateTimeRef.current = Date.now() // ❌ Hapus ini
+      setLastPrice(newPrice)
+      lastUpdateTimeRef.current = Date.now()
 
     } catch (error) {
       console.error('Tick update error:', error)
@@ -1768,30 +1600,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     onAssetSelect?.(asset)
     setShowAssetMenu(false)
   }, [setSelectedAsset, onAssetSelect])
-
-  // ✅ NEW: Cache cleanup interval
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = Date.now()
-      let deletedCount = 0
-      
-      for (const [key, value] of GLOBAL_DATA_CACHE.entries()) {
-        const age = now - value.timestamp
-        
-        // ✅ Hapus cache asset lama (>5 menit) dan bukan asset yang sedang aktif
-        if (age > 5 * 60 * 1000 && !key.includes(selectedAsset?.id || '')) {
-          GLOBAL_DATA_CACHE.delete(key)
-          deletedCount++
-        }
-      }
-      
-      if (deletedCount > 0) {
-        console.log(`🗑️ Auto-cleanup: ${deletedCount} old cache entries`)
-      }
-    }, 60000) // Setiap 1 menit
-    
-    return () => clearInterval(interval)
-  }, [selectedAsset?.id])
 
   if (!selectedAsset) {
     return (
@@ -1864,14 +1672,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
               {selectedAsset.symbol}
             </div>
           </div>
-        </div>
-      )}
-
-      {/* ✅ NEW: Loading more indicator */}
-      {isLoadingMore && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-black/60 backdrop-blur-sm rounded-lg px-4 py-2 text-xs text-white flex items-center gap-2 border border-white/10">
-          <RefreshCw className="w-3 h-3 animate-spin" />
-          Loading more data...
         </div>
       )}
 

@@ -1,13 +1,9 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode, useRef } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
 import { useAuthStore } from '@/store/auth'
 import { websocketService } from '@/lib/websocket'
-import { throttle } from '@/lib/utils' // ✅ Import throttle
 
-// ============================================
-// TYPES & INTERFACES
-// ============================================
 interface WebSocketContextValue {
   isConnected: boolean
   isConnecting: boolean
@@ -16,35 +12,8 @@ interface WebSocketContextValue {
   subscribeToOrders: (userId: string, callback: (data: any) => void) => () => void
 }
 
-interface PriceUpdate {
-  assetId: string;
-  price: number;
-  timestamp: number;
-  datetime: string;
-  volume24h?: number;
-  changePercent24h?: number;
-  high24h?: number;
-  low24h?: number;
-}
-
-interface OrderUpdate {
-  event: 'order:created' | 'order:settled';
-  id: string;
-  status?: string;
-  exit_price?: number;
-  profit?: number;
-  asset_symbol?: string;
-  timestamp: number;
-}
-
-// ============================================
-// CONTEXT SETUP
-// ============================================
 const WebSocketContext = createContext<WebSocketContextValue | undefined>(undefined)
 
-// ============================================
-// PROVIDER COMPONENT
-// ============================================
 export function WebSocketProvider({ children }: { children: ReactNode }) {
   const user = useAuthStore((state) => state.user)
   const token = useAuthStore((state) => state.token)
@@ -55,7 +24,6 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     reconnectAttempts: 0,
   })
 
-  // ✅ Efek koneksi WebSocket
   useEffect(() => {
     if (!user || !token) {
       websocketService.disconnect()
@@ -96,7 +64,6 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.id, token])
 
-  // ✅ Subscribe functions
   const subscribeToPrice = useCallback((assetId: string, callback: (data: any) => void) => {
     return websocketService.subscribeToPrice(assetId, callback)
   }, [])
@@ -120,9 +87,6 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   )
 }
 
-// ============================================
-// HOOKS
-// ============================================
 export function useWebSocket() {
   const context = useContext(WebSocketContext)
   
@@ -171,28 +135,20 @@ export function useOrderSubscription(userId: string | null, enabled = true) {
   return { orderUpdate, lastUpdate }
 }
 
-// ✅ OPTIMIZED: Throttled price stream dengan threshold
 export function usePriceStream(assetId: string | null) {
   const { isConnected } = useWebSocket()
   const [price, setPrice] = useState<number | null>(null)
-  const lastPriceRef = useRef<number | null>(null) // ✅ Track last price
 
   useEffect(() => {
     if (!assetId || !isConnected) return
     
     const unsubscribe = websocketService.subscribeToPrice(assetId, (data) => {
-      // ✅ Only update jika perubahan signifikan (> 0.001%)
-      if (lastPriceRef.current === null || 
-          Math.abs((data.price - lastPriceRef.current) / lastPriceRef.current) > 0.00001) {
-        lastPriceRef.current = data.price
-        setPrice(data.price)
-      }
+      setPrice(data.price)
     })
     
     return () => {
       unsubscribe()
       setPrice(null)
-      lastPriceRef.current = null // ✅ Reset on unmount
     }
   }, [assetId, isConnected])
 
