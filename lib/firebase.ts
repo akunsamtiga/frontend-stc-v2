@@ -1,4 +1,4 @@
-// lib/firebase.ts - Optimized with 1-second OHLC support
+// lib/firebase.ts - FIXED: Realtime OHLC updates tanpa skip
 
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
 import { getDatabase, Database, ref, onValue, off, query, limitToLast, get } from 'firebase/database'
@@ -53,7 +53,6 @@ function deduplicateRequest<T>(key: string, fn: () => Promise<T>): Promise<T> {
   const pending = pendingRequests.get(key)
   
   if (pending) {
-    const age = now - pending.timestamp
     return pending.promise as Promise<T>
   }
   
@@ -255,28 +254,6 @@ const TIMEFRAME_CONFIGS: Record<Timeframe, {
   '1d': { seconds: 86400, defaultLimit: 30, cacheStrategy: 'normal' }
 }
 
-const CACHE_TTL_MAP: Record<Timeframe, number> = {
-  '1s': 500,
-  '1m': 2000,
-  '5m': 10000,
-  '15m': 30000,
-  '30m': 60000,
-  '1h': 120000,
-  '4h': 300000,
-  '1d': 600000
-}
-
-const STALE_CACHE_TTL_MAP: Record<Timeframe, number> = {
-  '1s': 2000,
-  '1m': 10000,
-  '5m': 30000,
-  '15m': 60000,
-  '30m': 120000,
-  '1h': 300000,
-  '4h': 600000,
-  '1d': 1200000
-}
-
 export async function fetchHistoricalData(
   assetPath: string,
   timeframe: Timeframe = '1m',
@@ -413,7 +390,7 @@ export function subscribeToOHLCUpdates(
                       lastData.low !== latestBar.low ||
                       lastData.close !== latestBar.close
     
-    if (isNewBar || (isUltraFast && hasChanged) || (!isUltraFast && hasChanged)) {
+    if (isNewBar || hasChanged) {
       lastTimestamp = timestamp
       lastData = latestBar
       

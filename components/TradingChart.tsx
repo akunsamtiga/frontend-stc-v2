@@ -9,7 +9,6 @@ import { database, ref, get } from '@/lib/firebase'
 import { formatCurrency, formatPriceAuto } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2 } from 'lucide-react'
-import { usePriceStream } from '@/components/providers/WebSocketProvider'
 import AssetIcon from '@/components/common/AssetIcon'
 
 const IndicatorControls = dynamic(() => import('./IndicatorControls'), { ssr: false })
@@ -761,7 +760,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const priceLinesRef = useRef<Map<string, IPriceLine>>(new Map())
   const orderMarkersRef = useRef<Map<string, SeriesMarker<Time>[]>>(new Map())
   
-  const unsubscribeTimeframeRef = useRef<(() => void) | null>(null)
   const isMountedRef = useRef(false)
   const cleanupFunctionsRef = useRef<Array<() => void>>([])
   const currentBarRef = useRef<CandleData | null>(null)
@@ -789,7 +787,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const [showOhlc, setShowOhlc] = useState(false)
   const [showAssetMenu, setShowAssetMenu] = useState(false)
   
-  const wsPrice = usePriceStream(selectedAsset?.id || null)
   const [prefetchedAssets, setPrefetchedAssets] = useState<Set<string>>(new Set())
 
   useEffect(() => {
@@ -806,11 +803,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
 
   const cleanupAll = useCallback(() => {
     loadingManagerRef.current.reset()
-    
-    if (unsubscribeTimeframeRef.current) {
-      unsubscribeTimeframeRef.current()
-      unsubscribeTimeframeRef.current = null
-    }
     
     cleanupFunctionsRef.current.forEach(fn => {
       try {
@@ -1117,77 +1109,88 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
   }, [selectedAsset?.id, isInitialized, fetchCurrentPriceImmediately])
 
-  // ✅ FIXED: Real-time candle update from WebSocket dengan proper dependency management
+  // ✅ NEW: Real-time candle update dari Firebase OHLC subscription
   useEffect(() => {
-    if (!selectedAsset?.id || wsPrice === null || !isInitialized) return
+    if (!selectedAsset?.realtimeDbPath || !isInitialized) return
     if (!candleSeriesRef.current || !lineSeriesRef.current) return
 
-    const currentTimestamp = Math.floor(Date.now() / 1000)
-    const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
+    const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath)
+    
+    const unsubscribe = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
+      if (!newBar) return
 
-    // Initialize or update current bar
-    if (!currentBarRef.current || currentBarRef.current.timestamp !== barPeriod) {
-      console.log('🆕 New bar started at', new Date(barPeriod * 1000).toISOString())
+      // ✅ FIX: Simpan reference ke series untuk menghindari null check error
+      const candleSeries = candleSeriesRef.current
+      const lineSeries = lineSeriesRef.current
       
-      currentBarRef.current = {
-        timestamp: barPeriod,
-        open: wsPrice,
-        high: wsPrice,
-        low: wsPrice,
-        close: wsPrice,
-        volume: 0
-      }
-    } else {
-      // Update existing bar dengan proper high/low/close
-      const prevHigh = currentBarRef.current.high
-      const prevLow = currentBarRef.current.low
+      if (!candleSeries || !lineSeries) return
+
+      const barPeriod = getBarPeriodTimestamp(newBar.timestamp, timeframe)
       
-      currentBarRef.current = {
-        ...currentBarRef.current,
-        high: Math.max(currentBarRef.current.high, wsPrice),
-        low: Math.min(currentBarRef.current.low, wsPrice),
-        close: wsPrice,
+      if (!currentBarRef.current || currentBarRef.current.timestamp !== barPeriod) {
+        console.log('New bar started:', new Date(barPeriod * 1000).toISOString())
+        
+        currentBarRef.current = {
+          timestamp: barPeriod,
+          open: newBar.open,
+          high: newBar.high,
+          low: newBar.low,
+          close: newBar.close,
+          volume: newBar.volume || 0
+        }
+      } else {
+        const prevHigh = currentBarRef.current.high
+        const prevLow = currentBarRef.current.low
+        
+        currentBarRef.current = {
+          ...currentBarRef.current,
+          high: Math.max(currentBarRef.current.high, newBar.high),
+          low: Math.min(currentBarRef.current.low, newBar.low),
+          close: newBar.close,
+          volume: newBar.volume || 0
+        }
+
+        if (currentBarRef.current.high !== prevHigh || currentBarRef.current.low !== prevLow) {
+          console.log('Bar updated:', {
+            time: new Date(barPeriod * 1000).toISOString(),
+            high: currentBarRef.current.high,
+            low: currentBarRef.current.low,
+            close: currentBarRef.current.close
+          })
+        }
       }
 
-      // Debug log untuk perubahan signifikan
-      if (currentBarRef.current.high !== prevHigh || currentBarRef.current.low !== prevLow) {
-        console.log('📊 Bar updated:', {
-          time: new Date(barPeriod * 1000).toISOString(),
-          high: currentBarRef.current.high,
-          low: currentBarRef.current.low,
-          close: currentBarRef.current.close
-        })
+      const chartCandle = {
+        time: currentBarRef.current.timestamp as UTCTimestamp,
+        open: currentBarRef.current.open,
+        high: currentBarRef.current.high,
+        low: currentBarRef.current.low,
+        close: currentBarRef.current.close,
       }
-    }
 
-    // Apply update to chart
-    const chartCandle = {
-      time: currentBarRef.current.timestamp as UTCTimestamp,
-      open: currentBarRef.current.open,
-      high: currentBarRef.current.high,
-      low: currentBarRef.current.low,
-      close: currentBarRef.current.close,
-    }
-
-    // Gunakan animator jika tersedia, jika tidak langsung update
-    if (candleAnimatorRef.current) {
-      candleAnimatorRef.current.updateCandle(currentBarRef.current)
-    } else {
-      try {
-        candleSeriesRef.current.update(chartCandle)
-        lineSeriesRef.current.update({
-          time: chartCandle.time,
-          value: chartCandle.close
-        })
-      } catch (error) {
-        console.warn('Chart update error:', error)
+      // ✅ FIX: Gunakan local variable yang sudah di-check
+      if (candleAnimatorRef.current) {
+        candleAnimatorRef.current.updateCandle(currentBarRef.current)
+      } else {
+        try {
+          candleSeries.update(chartCandle)
+          lineSeries.update({
+            time: chartCandle.time,
+            value: chartCandle.close
+          })
+        } catch (error) {
+          console.warn('Chart update error:', error)
+        }
       }
+
+      setLastPrice(newBar.close)
+      lastUpdateTimeRef.current = Date.now()
+    })
+
+    return () => {
+      unsubscribe()
     }
-
-    setLastPrice(wsPrice)
-    lastUpdateTimeRef.current = Date.now()
-
-  }, [wsPrice, selectedAsset?.id, timeframe, isInitialized])
+  }, [selectedAsset?.realtimeDbPath, timeframe, isInitialized])
 
   useEffect(() => {
     if (isMountedRef.current) return
@@ -1360,27 +1363,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     let isCancelled = false
     let dataLoadSuccess = false
 
-    const setupRealtime = async () => {
-      if (!selectedAsset.realtimeDbPath || isCancelled) return
-
-      const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath)
-
-      const unsubscribeTf = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
-        if (isCancelled || !newBar.isNewBar) return
-        const barPeriod = getBarPeriodTimestamp(newBar.timestamp, timeframe)
-        currentBarRef.current = {
-          timestamp: barPeriod,
-          open: newBar.open,
-          high: newBar.high,
-          low: newBar.low,
-          close: newBar.close,
-          volume: newBar.volume || 0
-        }
-      })
-      unsubscribeTimeframeRef.current = unsubscribeTf
-      addCleanup(unsubscribeTf)
-    }
-
     const processAndDisplayData = (data: any[]) => {
       if (data.length > 0 && !isCancelled) {
         const candleData = data.map((bar: any) => ({
@@ -1452,7 +1434,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
 
     const initializeData = async () => {
       await checkSimulator().catch(err => console.log('Market check failed:', err))
-      setupRealtime()
       await loadHistoricalData()
     }
 
