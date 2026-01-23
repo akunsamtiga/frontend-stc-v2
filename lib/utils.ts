@@ -1,12 +1,19 @@
-// lib/utils.ts
+// lib/utils.ts - Complete Utility Library with Performance Optimizations
+
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns'
 
+// ============================================
+// CLASSNAME UTILITIES
+// ============================================
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// ============================================
+// TIMEZONE UTILITIES
+// ============================================
 export class TimezoneUtil {
   static readonly TIMEZONE = 'Asia/Jakarta'
   static readonly OFFSET_HOURS = 7
@@ -66,6 +73,9 @@ export class TimezoneUtil {
   }
 }
 
+// ============================================
+// DURATION & TIME UTILITIES
+// ============================================
 export function formatDuration(durationMinutes: number): string {
   if (durationMinutes < 1) {
     const seconds = Math.round(durationMinutes * 60)
@@ -192,7 +202,11 @@ export function getDuration(startTime: string | Date, endTime: string | Date): s
   return `${seconds}s`
 }
 
-const currencyCache = new Map<number, string>()
+// ============================================
+// FORMATTING UTILITIES
+// ============================================
+const currencyCache = new Map<string, string>()
+const dateCache = new Map<string, string>()
 const MAX_CACHE_SIZE = 1000
 
 export function formatCurrency(amount: number, compact = false): string {
@@ -255,8 +269,6 @@ export function formatCompactNumber(value: number): string {
   return value.toString()
 }
 
-const dateCache = new Map<string, string>()
-
 export function formatDate(date: string | Date, formatStr = 'MMM dd, yyyy HH:mm:ss'): string {
   const key = typeof date === 'string' ? `${date}-${formatStr}` : `${date.toISOString()}-${formatStr}`
   
@@ -299,6 +311,9 @@ export function formatRelativeTime(date: string | Date): string {
   return formatDistanceToNow(dateObj, { addSuffix: true })
 }
 
+// ============================================
+// PERFORMANCE UTILITIES
+// ============================================
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
@@ -311,17 +326,34 @@ export function debounce<T extends (...args: any[]) => any>(
   }
 }
 
+// ✅ OPTIMIZED: Throttle with trailing execution
 export function throttle<T extends (...args: any[]) => any>(
   func: T,
   limit: number
 ): (...args: Parameters<T>) => void {
-  let inThrottle: boolean = false
+  let inThrottle = false
+  let lastArgs: Parameters<T> | null = null
+  let lastContext: any = null
   
-  return (...args: Parameters<T>) => {
+  const execute = () => {
+    if (lastArgs) {
+      func.apply(lastContext, lastArgs)
+      lastArgs = null
+      lastContext = null
+      setTimeout(execute, limit)
+    } else {
+      inThrottle = false
+    }
+  }
+  
+  return function (this: any, ...args: Parameters<T>) {
     if (!inThrottle) {
-      func(...args)
+      func.apply(this, args)
       inThrottle = true
-      setTimeout(() => inThrottle = false, limit)
+      setTimeout(execute, limit)
+    } else {
+      lastArgs = args
+      lastContext = this
     }
   }
 }
@@ -363,6 +395,9 @@ export function rafThrottle<T extends (...args: any[]) => any>(
   }
 }
 
+// ============================================
+// STYLE & THEME UTILITIES
+// ============================================
 export function getPriceChangeClass(change: number): string {
   if (change > 0) return 'text-green-400'
   if (change < 0) return 'text-red-400'
@@ -417,6 +452,9 @@ export function getAccountTypeBg(accountType: 'real' | 'demo'): string {
     : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
 }
 
+// ============================================
+// MATH & CALCULATION UTILITIES
+// ============================================
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max)
 }
@@ -439,6 +477,9 @@ export function calculatePayout(amount: number, profitRate: number): number {
   return amount + calculateProfit(amount, profitRate)
 }
 
+// ============================================
+// VALIDATION UTILITIES
+// ============================================
 export function isValidNumber(value: any): boolean {
   return typeof value === 'number' && !isNaN(value) && isFinite(value)
 }
@@ -467,6 +508,9 @@ export function isValidAmount(amount: number, min: number = 0, max?: number): bo
   return true
 }
 
+// ============================================
+// ARRAY & OBJECT UTILITIES
+// ============================================
 export function chunk<T>(array: T[], size: number): T[][] {
   const chunks: T[][] = []
   for (let i = 0; i < array.length; i += size) {
@@ -513,6 +557,9 @@ export function sortBy<T>(array: T[], key: keyof T, order: 'asc' | 'desc' = 'asc
   })
 }
 
+// ============================================
+// STORAGE UTILITIES
+// ============================================
 export function getLocalStorage<T>(key: string, defaultValue: T): T {
   if (typeof window === 'undefined') return defaultValue
   
@@ -555,6 +602,9 @@ export function clearLocalStorage(): void {
   }
 }
 
+// ============================================
+// QUERY & URL UTILITIES
+// ============================================
 export function buildQueryString(params: Record<string, any>): string {
   const searchParams = new URLSearchParams()
   
@@ -578,6 +628,9 @@ export function parseQueryString(queryString: string): Record<string, string> {
   return result
 }
 
+// ============================================
+// BROWSER API UTILITIES
+// ============================================
 export function playSound(soundPath: string, volume: number = 0.3): void {
   if (typeof window === 'undefined') return
   
@@ -602,6 +655,9 @@ export async function copyToClipboard(text: string): Promise<boolean> {
   }
 }
 
+// ============================================
+// GENERATOR UTILITIES
+// ============================================
 export function generateId(prefix: string = ''): string {
   return `${prefix}${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 }
@@ -614,6 +670,9 @@ export function randomFloat(min: number, max: number, decimals: number = 2): num
   return roundTo(Math.random() * (max - min) + min, decimals)
 }
 
+// ============================================
+// CONSTANTS
+// ============================================
 export const DURATIONS = [
   0.0167,
   1, 2, 3, 4, 5, 
@@ -623,12 +682,16 @@ export const DURATIONS = [
 export const QUICK_AMOUNTS = [10000, 25000, 50000, 100000, 250000, 500000, 1000000] as const
 export const TIMEFRAMES = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
 
+// ============================================
+// CACHE MANAGEMENT
+// ============================================
 export function clearAllCaches(): void {
   currencyCache.clear()
   dateCache.clear()
   console.log('🗑️ All utility caches cleared')
 }
 
+// Auto-cleanup cache saat mendekati max size
 if (typeof window !== 'undefined') {
   setInterval(() => {
     if (currencyCache.size > MAX_CACHE_SIZE * 0.8) {
@@ -640,12 +703,16 @@ if (typeof window !== 'undefined') {
   }, 300000)
 }
 
+// Expose utils ke window untuk debugging
 if (typeof window !== 'undefined') {
   (window as any).utils = {
     clearAllCaches,
     getCacheStats: () => ({
       currency: currencyCache.size,
       date: dateCache.size
-    })
+    }),
+    throttle,
+    debounce,
+    memoize,
   }
 }
