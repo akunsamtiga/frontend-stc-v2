@@ -63,10 +63,9 @@ export default function AssetDetailModal({ asset, onClose, onEdit }: AssetDetail
   }
 
   const formatDuration = (minutes: number): string => {
-  if (minutes < 60) return `${minutes}m`
-  return `${Math.floor(minutes / 60)}h`
-}
-
+    if (minutes < 60) return `${minutes}m`
+    return `${Math.floor(minutes / 60)}h`
+  }
 
   const hasUltraFast = asset.tradingSettings?.allowedDurations.includes(0.0167)
 
@@ -84,18 +83,17 @@ export default function AssetDetailModal({ asset, onClose, onEdit }: AssetDetail
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-  <h2 className="text-2xl font-bold text-gray-900">{asset.name}</h2>
-  {asset.category === 'crypto' ? (
-    <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-lg text-xs font-semibold">
-      Crypto
-    </span>
-  ) : (
-    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold">
-      Normal
-    </span>
-  )}
-</div>
-
+                <h2 className="text-2xl font-bold text-gray-900">{asset.name}</h2>
+                {asset.category === 'crypto' ? (
+                  <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-lg text-xs font-semibold">
+                    Crypto
+                  </span>
+                ) : (
+                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold">
+                    Normal
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-gray-600 mt-1">Asset Details & Configuration</p>
             </div>
           </div>
@@ -307,21 +305,20 @@ export default function AssetDetailModal({ asset, onClose, onEdit }: AssetDetail
 
               <div className="bg-white p-4 rounded-lg border border-orange-200">
                 <span className="text-xs text-orange-600 uppercase tracking-wide block mb-3">
-  Allowed Durations
-</span>
+                  Allowed Durations
+                </span>
                 <div className="flex flex-wrap gap-2">
-  {asset.tradingSettings.allowedDurations
-    .sort((a, b) => a - b)
-    .map((duration) => (
-      <span
-        key={duration}
-        className="px-3 py-1.5 rounded-lg text-sm font-semibold border-2 bg-purple-100 text-purple-700 border-purple-200"
-      >
-        {formatDuration(duration)}
-      </span>
-    ))}
-</div>
-
+                  {asset.tradingSettings.allowedDurations
+                    .sort((a, b) => a - b)
+                    .map((duration) => (
+                      <span
+                        key={duration}
+                        className="px-3 py-1.5 rounded-lg text-sm font-semibold border-2 bg-purple-100 text-purple-700 border-purple-200"
+                      >
+                        {formatDuration(duration)}
+                      </span>
+                    ))}
+                </div>
               </div>
             </div>
           )}

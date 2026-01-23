@@ -52,6 +52,7 @@ interface AssetFormModalProps {
 }
 
 const ALL_DURATIONS = [
+  { value: 0.0167, label: '1 second', shortLabel: '1s' },
   { value: 1, label: '1 minute', shortLabel: '1m' },
   { value: 2, label: '2 minutes', shortLabel: '2m' },
   { value: 3, label: '3 minutes', shortLabel: '3m' },
@@ -63,7 +64,7 @@ const ALL_DURATIONS = [
   { value: 60, label: '1 hour', shortLabel: '60m' },
 ]
 
-const VALID_DURATIONS = [1, 2, 3, 4, 5, 15, 30, 45, 60]
+const VALID_DURATIONS = [0.0167, 1, 2, 3, 4, 5, 15, 30, 45, 60]
 
 const BINANCE_COINS = [
   'BTC', 'ETH', 'BNB', 'XRP', 'ADA', 'SOL', 'DOT', 'DOGE', 
@@ -1158,6 +1159,8 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
               <div className="flex flex-wrap gap-2">
   {ALL_DURATIONS.map((duration) => {
     const isSelected = formData.allowedDurations.includes(duration.value)
+    const isUltraFast = Math.abs(duration.value - 0.0167) < 0.0001
+    
     return (
       <button
         key={duration.value}
@@ -1165,7 +1168,9 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
         onClick={() => toggleDuration(duration.value)}
         className={`px-4 py-2.5 rounded-lg font-medium transition-all border-2 ${
           isSelected
-            ? 'bg-purple-600 text-white border-purple-600'
+            ? isUltraFast 
+              ? 'bg-orange-600 text-white border-orange-600 shadow-md animate-pulse' 
+              : 'bg-purple-600 text-white border-purple-600 shadow-md'
             : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
         }`}
       >
