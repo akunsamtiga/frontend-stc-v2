@@ -8,7 +8,7 @@ import { BinaryOrder, TIMEFRAMES, Timeframe as TimeframeType } from '@/types'
 import { database, ref, get } from '@/lib/firebase'
 import { formatCurrency } from '@/lib/utils'
 import dynamic from 'next/dynamic'
-import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2, Zap } from 'lucide-react'
+import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2 } from 'lucide-react'
 import { usePriceStream } from '@/components/providers/WebSocketProvider'
 import AssetIcon from '@/components/common/AssetIcon'
 
@@ -292,7 +292,6 @@ function cleanAssetPath(path: string): string {
 
 function getTimeframeSeconds(timeframe: Timeframe): number {
   const map: Record<Timeframe, number> = {
-    '1s': 1,
     '1m': 60,
     '5m': 300,
     '15m': 900,
@@ -578,7 +577,8 @@ const MobileControls = memo(({
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const timeframes: Timeframe[] = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d']
+  // ✅ HAPUS '1s' dari array
+  const timeframes: Timeframe[] = ['1m', '5m', '15m', '30m', '1h', '4h', '1d']
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -597,7 +597,8 @@ const MobileControls = memo(({
     <div className="lg:hidden absolute top-24 left-2 z-10" ref={dropdownRef}>
       <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg hover:bg-black/50 transition-all">
         <div className="flex items-center gap-1.5">
-          {timeframe === '1s' ? <Zap className="w-3 h-3 text-yellow-400" /> : <Clock className="w-3 h-3 text-gray-300" />}
+          {/* ✅ HAPUS kondisi Zap icon */}
+          <Clock className="w-3 h-3 text-gray-300" />
           <span className="text-xs font-bold text-white">{timeframe}</span>
           <span className="text-xs text-gray-400">|</span>
           <span className="text-xs text-gray-300">{chartType === 'candle' ? 'Candle' : 'Line'}</span>
@@ -614,7 +615,7 @@ const MobileControls = memo(({
                 <button key={tf} onClick={() => { onTimeframeChange(tf); setIsOpen(false) }} disabled={isLoading} className={`px-2 py-1.5 text-xs font-bold rounded transition-all flex items-center justify-center gap-1 ${
                   timeframe === tf ? 'bg-blue-500 text-white shadow-sm' : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#232936]'
                 } disabled:opacity-50`}>
-                  {tf === '1s' && <Zap className="w-2.5 h-2.5" />}
+                  {/* ✅ HAPUS Zap icon */}
                   {tf}
                 </button>
               ))}
@@ -669,7 +670,8 @@ const DesktopControls = memo(({
   const [showTimeframeMenu, setShowTimeframeMenu] = useState(false)
   const timeframeRef = useRef<HTMLDivElement>(null)
 
-  const timeframes: Timeframe[] = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d']
+  // ✅ HAPUS '1s' dari array
+  const timeframes: Timeframe[] = ['1m', '5m', '15m', '30m', '1h', '4h', '1d']
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -689,7 +691,8 @@ const DesktopControls = memo(({
       <div className="flex items-center gap-2">
         <div className="relative" ref={timeframeRef}>
           <button onClick={() => setShowTimeframeMenu(!showTimeframeMenu)} className="p-2.5 bg-black/20 backdrop-blur-md border border-white/10 rounded-lg hover:bg-black/30 transition-all flex items-center gap-1.5" title="Timeframe">
-            {timeframe === '1s' ? <Zap className="w-5 h-5 text-yellow-400" /> : <Clock className="w-5 h-5 text-gray-300" />}
+            {/* ✅ HAPUS kondisi Zap icon */}
+            <Clock className="w-5 h-5 text-gray-300" />
             <span className="text-xs font-bold text-white">{timeframe}</span>
             <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showTimeframeMenu ? 'rotate-180' : ''}`} />
           </button>
@@ -702,7 +705,7 @@ const DesktopControls = memo(({
                   <button key={tf} onClick={() => { onTimeframeChange(tf); setShowTimeframeMenu(false) }} disabled={isLoading} className={`w-full px-4 py-2.5 text-left text-sm font-bold transition-all flex items-center gap-2 ${
                     timeframe === tf ? 'bg-blue-500 text-white shadow-sm' : 'text-gray-300 hover:bg-[#1a1f2e]'
                   } disabled:opacity-50`}>
-                    {tf === '1s' && <Zap className="w-3.5 h-3.5" />}
+                    {/* ✅ HAPUS Zap icon */}
                     {tf}
                   </button>
                 ))}
@@ -753,7 +756,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const priceLinesRef = useRef<Map<string, IPriceLine>>(new Map())
   const orderMarkersRef = useRef<Map<string, SeriesMarker<Time>[]>>(new Map())
   
-  const unsubscribe1sRef = useRef<(() => void) | null>(null)
   const unsubscribeTimeframeRef = useRef<(() => void) | null>(null)
   const isMountedRef = useRef(false)
   const cleanupFunctionsRef = useRef<Array<() => void>>([])
@@ -799,11 +801,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
 
   const cleanupAll = useCallback(() => {
     loadingManagerRef.current.reset()
-    
-    if (unsubscribe1sRef.current) {
-      unsubscribe1sRef.current()
-      unsubscribe1sRef.current = null
-    }
     
     if (unsubscribeTimeframeRef.current) {
       unsubscribeTimeframeRef.current()
@@ -1115,6 +1112,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
   }, [selectedAsset?.id, isInitialized, fetchCurrentPriceImmediately])
 
+  // ✅ UPDATE: Kondisi animasi dari (1s || 1m) → (1m || 5m)
   useEffect(() => {
     if (!selectedAsset?.id || wsPrice === null || !isInitialized || isLoadingDataRef.current) return
 
@@ -1135,7 +1133,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
           volume: 0
         }
         
-        if (timeframe === '1s' || timeframe === '1m') {
+        // ✅ UBAH: Gunakan animasi untuk 1m dan 5m
+        if (timeframe === '1m' || timeframe === '5m') {
           candleAnimatorRef.current?.updateCandle(currentBarRef.current)
         } else {
           const chartCandle = {
@@ -1157,7 +1156,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         currentBarRef.current.low = Math.min(currentBarRef.current.low, wsPrice)
         currentBarRef.current.close = wsPrice
         
-        if (timeframe === '1s' || timeframe === '1m') {
+        // ✅ UBAH: Gunakan animasi untuk 1m dan 5m
+        if (timeframe === '1m' || timeframe === '5m') {
           candleAnimatorRef.current?.updateCandle(currentBarRef.current)
         } else {
           const chartCandle = {
@@ -1337,7 +1337,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
 
     const isAssetChange = previousAssetIdRef.current !== selectedAsset.id
-    const isTimeframeChange = previousAssetIdRef.current === selectedAsset.id
     
     if (isAssetChange) {
       previousAssetIdRef.current = selectedAsset.id
@@ -1348,35 +1347,27 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     let isCancelled = false
     let dataLoadSuccess = false
 
+    // ✅ UBAH: Hapus subscription 1s, hanya subscribe timeframe yang dipilih
     const setupRealtime = async () => {
       if (!selectedAsset.realtimeDbPath || isCancelled) return
 
       const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath)
 
-      const unsubscribe1s = subscribeToOHLCUpdates(assetPath, '1s', (tick1s) => {
-        if (isCancelled) return
-        processTickUpdate(tick1s)
+      // ✅ HANYA subscribe ke timeframe yang dipilih
+      const unsubscribeTf = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
+        if (isCancelled || !newBar.isNewBar) return
+        const barPeriod = getBarPeriodTimestamp(newBar.timestamp, timeframe)
+        currentBarRef.current = {
+          timestamp: barPeriod,
+          open: newBar.open,
+          high: newBar.high,
+          low: newBar.low,
+          close: newBar.close,
+          volume: newBar.volume || 0
+        }
       })
-      
-      unsubscribe1sRef.current = unsubscribe1s
-      addCleanup(unsubscribe1s)
-
-      if (timeframe !== '1s') {
-        const unsubscribeTf = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
-          if (isCancelled || !newBar.isNewBar) return
-          const barPeriod = getBarPeriodTimestamp(newBar.timestamp, timeframe)
-          currentBarRef.current = {
-            timestamp: barPeriod,
-            open: newBar.open,
-            high: newBar.high,
-            low: newBar.low,
-            close: newBar.close,
-            volume: newBar.volume || 0
-          }
-        })
-        unsubscribeTimeframeRef.current = unsubscribeTf
-        addCleanup(unsubscribeTf)
-      }
+      unsubscribeTimeframeRef.current = unsubscribeTf
+      addCleanup(unsubscribeTf)
     }
 
     const processAndDisplayData = (data: any[]) => {
@@ -1488,73 +1479,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
 
     return () => clearTimeout(prefetchTimer)
   }, [selectedAsset?.id, isInitialized, isLoading, prefetchedAssets])
-
-  const processTickUpdate = useCallback((tick1s: any) => {
-    if (isLoadingDataRef.current) return
-    
-    try {
-      const newPrice = tick1s.close
-      const currentTimestamp = Math.floor(Date.now() / 1000)
-      const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
-      
-      if (!currentBarRef.current || currentBarRef.current.timestamp !== barPeriod) {
-        currentBarRef.current = {
-          timestamp: barPeriod,
-          open: newPrice,
-          high: newPrice,
-          low: newPrice,
-          close: newPrice,
-          volume: 0
-        }
-        
-        if (timeframe === '1s' || timeframe === '1m') {
-          candleAnimatorRef.current?.updateCandle(currentBarRef.current)
-        } else {
-          const chartCandle = {
-            time: currentBarRef.current.timestamp as UTCTimestamp,
-            open: currentBarRef.current.open,
-            high: currentBarRef.current.high,
-            low: currentBarRef.current.low,
-            close: currentBarRef.current.close,
-          }
-          
-          candleSeriesRef.current?.update(chartCandle)
-          lineSeriesRef.current?.update({
-            time: chartCandle.time,
-            value: chartCandle.close
-          })
-        }
-      } else {
-        currentBarRef.current.high = Math.max(currentBarRef.current.high, newPrice)
-        currentBarRef.current.low = Math.min(currentBarRef.current.low, newPrice)
-        currentBarRef.current.close = newPrice
-        
-        if (timeframe === '1s' || timeframe === '1m') {
-          candleAnimatorRef.current?.updateCandle(currentBarRef.current)
-        } else {
-          const chartCandle = {
-            time: currentBarRef.current.timestamp as UTCTimestamp,
-            open: currentBarRef.current.open,
-            high: currentBarRef.current.high,
-            low: currentBarRef.current.low,
-            close: currentBarRef.current.close,
-          }
-          
-          candleSeriesRef.current?.update(chartCandle)
-          lineSeriesRef.current?.update({
-            time: chartCandle.time,
-            value: chartCandle.close
-          })
-        }
-      }
-
-      setLastPrice(newPrice)
-      lastUpdateTimeRef.current = Date.now()
-
-    } catch (error) {
-      console.error('Tick update error:', error)
-    }
-  }, [timeframe])
 
   const handleRefresh = useCallback(() => {
     if (!selectedAsset) return

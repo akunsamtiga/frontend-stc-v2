@@ -787,7 +787,7 @@ export const DURATION_DISPLAY_MAP: Record<number, string> = {
 }
 
 export const QUICK_AMOUNTS = [10000, 25000, 50000, 100000, 250000, 500000, 1000000] as const
-export const TIMEFRAMES = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
+export const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
 
 export type Duration = typeof DURATIONS[number]
 export type QuickAmount = typeof QUICK_AMOUNTS[number]
