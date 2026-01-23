@@ -1117,76 +1117,77 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
   }, [selectedAsset?.id, isInitialized, fetchCurrentPriceImmediately])
 
-  const initializeCurrentBar = useCallback((price: number) => {
-    const currentTimestamp = Math.floor(Date.now() / 1000)
-    const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
-    currentBarRef.current = {
-      timestamp: barPeriod,
-      open: price,
-      high: price,
-      low: price,
-      close: price,
-      volume: 0
-    }
-  }, [timeframe])
-
+  // ✅ FIXED: Real-time candle update from WebSocket dengan proper dependency management
   useEffect(() => {
     if (!selectedAsset?.id || wsPrice === null || !isInitialized) return
-
-    if (!currentBarRef.current) {
-      initializeCurrentBar(wsPrice)
-    }
-
-    if (!currentBarRef.current) {
-      console.warn('Failed to initialize current bar')
-      return
-    }
+    if (!candleSeriesRef.current || !lineSeriesRef.current) return
 
     const currentTimestamp = Math.floor(Date.now() / 1000)
     const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
 
-    if (currentBarRef.current.timestamp !== barPeriod) {
-      initializeCurrentBar(wsPrice)
-      
-      if (!currentBarRef.current) {
-        console.warn('Failed to re-initialize current bar')
-        return
-      }
-    } else {
-      const currentBar = currentBarRef.current
+    // Initialize or update current bar
+    if (!currentBarRef.current || currentBarRef.current.timestamp !== barPeriod) {
+      console.log('🆕 New bar started at', new Date(barPeriod * 1000).toISOString())
       
       currentBarRef.current = {
-        timestamp: currentBar.timestamp,
-        open: currentBar.open,
-        high: Math.max(currentBar.high, wsPrice),
-        low: Math.min(currentBar.low, wsPrice),
+        timestamp: barPeriod,
+        open: wsPrice,
+        high: wsPrice,
+        low: wsPrice,
         close: wsPrice,
-        volume: currentBar.volume
+        volume: 0
+      }
+    } else {
+      // Update existing bar dengan proper high/low/close
+      const prevHigh = currentBarRef.current.high
+      const prevLow = currentBarRef.current.low
+      
+      currentBarRef.current = {
+        ...currentBarRef.current,
+        high: Math.max(currentBarRef.current.high, wsPrice),
+        low: Math.min(currentBarRef.current.low, wsPrice),
+        close: wsPrice,
       }
 
-      if (candleAnimatorRef.current) {
-        candleAnimatorRef.current.updateCandle(currentBarRef.current)
-      } else {
-        const chartCandle = {
-          time: currentBarRef.current.timestamp as UTCTimestamp,
-          open: currentBarRef.current.open,
+      // Debug log untuk perubahan signifikan
+      if (currentBarRef.current.high !== prevHigh || currentBarRef.current.low !== prevLow) {
+        console.log('📊 Bar updated:', {
+          time: new Date(barPeriod * 1000).toISOString(),
           high: currentBarRef.current.high,
           low: currentBarRef.current.low,
-          close: currentBarRef.current.close,
-        }
-        
-        candleSeriesRef.current?.update(chartCandle)
-        lineSeriesRef.current?.update({
+          close: currentBarRef.current.close
+        })
+      }
+    }
+
+    // Apply update to chart
+    const chartCandle = {
+      time: currentBarRef.current.timestamp as UTCTimestamp,
+      open: currentBarRef.current.open,
+      high: currentBarRef.current.high,
+      low: currentBarRef.current.low,
+      close: currentBarRef.current.close,
+    }
+
+    // Gunakan animator jika tersedia, jika tidak langsung update
+    if (candleAnimatorRef.current) {
+      candleAnimatorRef.current.updateCandle(currentBarRef.current)
+    } else {
+      try {
+        candleSeriesRef.current.update(chartCandle)
+        lineSeriesRef.current.update({
           time: chartCandle.time,
           value: chartCandle.close
         })
+      } catch (error) {
+        console.warn('Chart update error:', error)
       }
     }
 
     setLastPrice(wsPrice)
     lastUpdateTimeRef.current = Date.now()
 
-  }, [wsPrice, selectedAsset?.id, timeframe, isInitialized, initializeCurrentBar])
+  }, [wsPrice, selectedAsset?.id, timeframe, isInitialized])
 
   useEffect(() => {
     if (isMountedRef.current) return
