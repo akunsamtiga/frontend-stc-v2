@@ -1117,10 +1117,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
   }, [selectedAsset?.id, isInitialized, fetchCurrentPriceImmediately])
 
-  const wsPriceRef = useRef<number | null>(null)
-  const lastChartUpdateRef = useRef(0)
-  const CHART_UPDATE_THROTTLE = 100
-
   const initializeCurrentBar = useCallback((price: number) => {
     const currentTimestamp = Math.floor(Date.now() / 1000)
     const barPeriod = getBarPeriodTimestamp(currentTimestamp, timeframe)
@@ -1136,14 +1132,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
 
   useEffect(() => {
     if (!selectedAsset?.id || wsPrice === null || !isInitialized) return
-
-    wsPriceRef.current = wsPrice
-    
-    const updateThrottle = timeframe === '1s' ? 50 : 100
-    
-    const now = performance.now()
-    if (now - lastChartUpdateRef.current < updateThrottle) return
-    lastChartUpdateRef.current = now
 
     if (!currentBarRef.current) {
       initializeCurrentBar(wsPrice)
@@ -1615,7 +1603,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
             </div>
             <div className="text-sm text-gray-400 mb-1">
               Loading {timeframe} chart...
-              {timeframe === '1s' && ' ULTRA-FAST'}
             </div>
             <div className="text-xs text-gray-600">
               {selectedAsset.symbol}
