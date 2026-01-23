@@ -6,7 +6,7 @@ import { useTradingStore, useTradingActions } from '@/store/trading'
 import { fetchHistoricalData, subscribeToOHLCUpdates, prefetchMultipleTimeframes } from '@/lib/firebase'
 import { BinaryOrder, TIMEFRAMES, Timeframe as TimeframeType } from '@/types'
 import { database, ref, get } from '@/lib/firebase'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatPriceAuto } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2 } from 'lucide-react'
 import { usePriceStream } from '@/components/providers/WebSocketProvider'
@@ -402,6 +402,9 @@ const PriceDisplay = memo(({ asset, price, onClick, showMenu, assets, onSelectAs
 
   const hasChange = price.change !== undefined && price.change !== 0
 
+  // ✅ FIXED: Format price dengan semua decimal places
+  const formattedPrice = formatPriceAuto(price.price, asset.type)
+
   return (
     <div className="absolute top-2 left-2 z-20">
       <button
@@ -412,7 +415,8 @@ const PriceDisplay = memo(({ asset, price, onClick, showMenu, assets, onSelectAs
         
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-400">{asset.name}</span>
-          <span className="text-xl font-bold">{price.price.toFixed(3)}</span>
+          {/* ✅ FIXED: Tampilkan semua decimal dengan font-mono */}
+          <span className="text-xl font-bold font-mono">{formattedPrice}</span>
         </div>
         {hasChange && (
           <div className={`flex items-center gap-1 text-sm font-semibold ${
@@ -430,7 +434,8 @@ const PriceDisplay = memo(({ asset, price, onClick, showMenu, assets, onSelectAs
       <div className="hidden lg:flex bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 items-center gap-3">
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-400">{asset.name}</span>
-          <span className="text-xl font-bold">{price.price.toFixed(3)}</span>
+          {/* ✅ FIXED: Tampilkan semua decimal dengan font-mono */}
+          <span className="text-xl font-bold font-mono">{formattedPrice}</span>
         </div>
         {hasChange && (
           <div className={`flex items-center gap-1 text-sm font-semibold ${
@@ -507,17 +512,29 @@ const OHLCDisplay = memo(({
     timeZone: 'Asia/Jakarta'
   })
 
+  // ✅ FIXED: Format price dengan semua decimal places
+  const formatOHLCPrice = (price: number) => {
+    if (price >= 1000) return price.toFixed(2)
+    if (price >= 1) return price.toFixed(6)
+    return price.toFixed(8)
+  }
+
   return (
     <div className="absolute bottom-12 left-2 z-10 bg-[#0a0e17] border border-gray-800/50 rounded-lg px-3 py-2 text-xs">
       <div className="flex items-center gap-1 text-gray-400 mb-1">
         <Clock className="w-3 h-3" />
         <span>{timeStr} WIB</span>
       </div>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-        <div className="text-gray-500">O:</div><div className="text-white text-right">{data.open.toFixed(3)}</div>
-        <div className="text-gray-500">H:</div><div className="text-green-400 text-right">{data.high.toFixed(3)}</div>
-        <div className="text-gray-500">L:</div><div className="text-red-400 text-right">{data.low.toFixed(3)}</div>
-        <div className="text-gray-500">C:</div><div className="text-blue-400 text-right">{data.close.toFixed(3)}</div>
+      {/* ✅ FIXED: Tambahkan font-mono untuk alignment */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 font-mono">
+        <div className="text-gray-500">O:</div>
+        <div className="text-white text-right">{formatOHLCPrice(data.open)}</div>
+        <div className="text-gray-500">H:</div>
+        <div className="text-green-400 text-right">{formatOHLCPrice(data.high)}</div>
+        <div className="text-gray-500">L:</div>
+        <div className="text-red-400 text-right">{formatOHLCPrice(data.low)}</div>
+        <div className="text-gray-500">C:</div>
+        <div className="text-blue-400 text-right">{formatOHLCPrice(data.close)}</div>
       </div>
     </div>
   )
@@ -577,7 +594,6 @@ const MobileControls = memo(({
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // ✅ HAPUS '1s' dari array
   const timeframes: Timeframe[] = ['1m', '5m', '15m', '30m', '1h', '4h', '1d']
 
   useEffect(() => {
@@ -597,7 +613,6 @@ const MobileControls = memo(({
     <div className="lg:hidden absolute top-24 left-2 z-10" ref={dropdownRef}>
       <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg hover:bg-black/50 transition-all">
         <div className="flex items-center gap-1.5">
-          {/* ✅ HAPUS kondisi Zap icon */}
           <Clock className="w-3 h-3 text-gray-300" />
           <span className="text-xs font-bold text-white">{timeframe}</span>
           <span className="text-xs text-gray-400">|</span>
@@ -615,7 +630,6 @@ const MobileControls = memo(({
                 <button key={tf} onClick={() => { onTimeframeChange(tf); setIsOpen(false) }} disabled={isLoading} className={`px-2 py-1.5 text-xs font-bold rounded transition-all flex items-center justify-center gap-1 ${
                   timeframe === tf ? 'bg-blue-500 text-white shadow-sm' : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#232936]'
                 } disabled:opacity-50`}>
-                  {/* ✅ HAPUS Zap icon */}
                   {tf}
                 </button>
               ))}
@@ -670,7 +684,6 @@ const DesktopControls = memo(({
   const [showTimeframeMenu, setShowTimeframeMenu] = useState(false)
   const timeframeRef = useRef<HTMLDivElement>(null)
 
-  // ✅ HAPUS '1s' dari array
   const timeframes: Timeframe[] = ['1m', '5m', '15m', '30m', '1h', '4h', '1d']
 
   useEffect(() => {
@@ -691,7 +704,6 @@ const DesktopControls = memo(({
       <div className="flex items-center gap-2">
         <div className="relative" ref={timeframeRef}>
           <button onClick={() => setShowTimeframeMenu(!showTimeframeMenu)} className="p-2.5 bg-black/20 backdrop-blur-md border border-white/10 rounded-lg hover:bg-black/30 transition-all flex items-center gap-1.5" title="Timeframe">
-            {/* ✅ HAPUS kondisi Zap icon */}
             <Clock className="w-5 h-5 text-gray-300" />
             <span className="text-xs font-bold text-white">{timeframe}</span>
             <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showTimeframeMenu ? 'rotate-180' : ''}`} />
@@ -705,7 +717,6 @@ const DesktopControls = memo(({
                   <button key={tf} onClick={() => { onTimeframeChange(tf); setShowTimeframeMenu(false) }} disabled={isLoading} className={`w-full px-4 py-2.5 text-left text-sm font-bold transition-all flex items-center gap-2 ${
                     timeframe === tf ? 'bg-blue-500 text-white shadow-sm' : 'text-gray-300 hover:bg-[#1a1f2e]'
                   } disabled:opacity-50`}>
-                    {/* ✅ HAPUS Zap icon */}
                     {tf}
                   </button>
                 ))}
@@ -1112,7 +1123,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
   }, [selectedAsset?.id, isInitialized, fetchCurrentPriceImmediately])
 
-  // ✅ UPDATE: Kondisi animasi dari (1s || 1m) → (1m || 5m)
   useEffect(() => {
     if (!selectedAsset?.id || wsPrice === null || !isInitialized || isLoadingDataRef.current) return
 
@@ -1133,7 +1143,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
           volume: 0
         }
         
-        // ✅ UBAH: Gunakan animasi untuk 1m dan 5m
         if (timeframe === '1m' || timeframe === '5m') {
           candleAnimatorRef.current?.updateCandle(currentBarRef.current)
         } else {
@@ -1156,7 +1165,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         currentBarRef.current.low = Math.min(currentBarRef.current.low, wsPrice)
         currentBarRef.current.close = wsPrice
         
-        // ✅ UBAH: Gunakan animasi untuk 1m dan 5m
         if (timeframe === '1m' || timeframe === '5m') {
           candleAnimatorRef.current?.updateCandle(currentBarRef.current)
         } else {
@@ -1347,13 +1355,11 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     let isCancelled = false
     let dataLoadSuccess = false
 
-    // ✅ UBAH: Hapus subscription 1s, hanya subscribe timeframe yang dipilih
     const setupRealtime = async () => {
       if (!selectedAsset.realtimeDbPath || isCancelled) return
 
       const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath)
 
-      // ✅ HANYA subscribe ke timeframe yang dipilih
       const unsubscribeTf = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
         if (isCancelled || !newBar.isNewBar) return
         const barPeriod = getBarPeriodTimestamp(newBar.timestamp, timeframe)

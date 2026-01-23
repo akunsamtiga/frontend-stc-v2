@@ -1,4 +1,4 @@
-// lib/utils.ts
+// lib/utils.ts - FIXED: Price display with all decimal places
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns'
@@ -76,7 +76,6 @@ export function formatDuration(durationMinutes: number): string {
   }
 }
 
-
 export function getDurationDisplay(minutes: number): string {
   const DISPLAY_MAP: Record<number, string> = {
     1: '1m',
@@ -123,7 +122,6 @@ export function getDurationLabel(durationMinutes: number): string {
     return `${hours} hour${hours > 1 ? 's' : ''}`
   }
 }
-
 
 export function calculateTimeLeft(exitTime: string | Date): string {
   const now = new Date()
@@ -222,12 +220,42 @@ export function formatCurrency(amount: number, compact = false): string {
   return formatted
 }
 
+// ✅ FIXED: Format number dengan trailing zeros
 export function formatNumber(value: number, decimals = 3): string {
+  // Gunakan toFixed untuk mempertahankan trailing zeros
   return value.toFixed(decimals)
 }
 
-export function formatPrice(price: number, decimals = 6): string {
+// ✅ FIXED: Format price dengan semua decimal places (termasuk trailing zeros)
+export function formatPrice(price: number, decimals?: number): string {
+  // Jika decimals tidak ditentukan, deteksi otomatis berdasarkan magnitude
+  if (decimals === undefined) {
+    if (price >= 1000) {
+      decimals = 2 // Untuk harga besar seperti 50000
+    } else if (price >= 1) {
+      decimals = 6 // Untuk harga normal seperti 1.234567
+    } else {
+      decimals = 8 // Untuk harga kecil seperti 0.00001234
+    }
+  }
+  
+  // Gunakan toFixed untuk mempertahankan trailing zeros
   return price.toFixed(decimals)
+}
+
+// ✅ NEW: Format price dengan auto-detection untuk crypto vs forex
+export function formatPriceAuto(price: number, assetType?: string): string {
+  // Crypto biasanya butuh lebih banyak decimal places
+  if (assetType === 'crypto') {
+    if (price >= 1000) return price.toFixed(2)
+    if (price >= 1) return price.toFixed(8)
+    return price.toFixed(10)
+  }
+  
+  // Forex/stocks biasanya 4-6 decimal places
+  if (price >= 1000) return price.toFixed(2)
+  if (price >= 1) return price.toFixed(6)
+  return price.toFixed(8)
 }
 
 export function formatPercentage(value: number, decimals: number = 2, includeSign: boolean = false): string {
@@ -611,7 +639,6 @@ export const DURATIONS = [
   1, 2, 3, 4, 5, 
   10, 15, 30, 45, 60
 ] as const
-
 
 export const QUICK_AMOUNTS = [10000, 25000, 50000, 100000, 250000, 500000, 1000000] as const
 export const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
