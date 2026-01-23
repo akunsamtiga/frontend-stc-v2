@@ -278,11 +278,9 @@ export async function fetchHistoricalData(
       const rawData = snapshot.val()
       
       // ✅ MODIFIED: Use customLimit if provided, otherwise use defaults
-      const baseLimit = timeframe === '1m' ? 100 : 
-                       timeframe === '1s' ? 60 : 
-                       60
-      const limit = customLimit || baseLimit  // ✅ Use custom limit for progressive loading
-      
+      const baseLimit = timeframe === '1m' ? 100 : 60
+      const limit = customLimit || baseLimit
+
       const processed = processHistoricalData(rawData, limit)
       
       if (processed.length > 0) {

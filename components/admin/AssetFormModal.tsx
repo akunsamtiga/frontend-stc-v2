@@ -52,7 +52,6 @@ interface AssetFormModalProps {
 }
 
 const ALL_DURATIONS = [
-  { value: 0.0167, label: '1 second', shortLabel: '1s', isUltraFast: true },
   { value: 1, label: '1 minute', shortLabel: '1m' },
   { value: 2, label: '2 minutes', shortLabel: '2m' },
   { value: 3, label: '3 minutes', shortLabel: '3m' },
@@ -64,7 +63,7 @@ const ALL_DURATIONS = [
   { value: 60, label: '1 hour', shortLabel: '60m' },
 ]
 
-const VALID_DURATIONS = [0.0167, 1, 2, 3, 4, 5, 15, 30, 45, 60]
+const VALID_DURATIONS = [1, 2, 3, 4, 5, 15, 30, 45, 60]
 
 const BINANCE_COINS = [
   'BTC', 'ETH', 'BNB', 'XRP', 'ADA', 'SOL', 'DOT', 'DOGE', 
@@ -113,7 +112,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
 
     minOrderAmount: asset?.tradingSettings?.minOrderAmount || 1000,
     maxOrderAmount: asset?.tradingSettings?.maxOrderAmount || 1000000,
-    allowedDurations: asset?.tradingSettings?.allowedDurations || [0.0167, 1, 2, 3, 4, 5, 15, 30, 45, 60],
+    allowedDurations: asset?.tradingSettings?.allowedDurations || [1, 2, 3, 4, 5, 15, 30, 45, 60],
   })
 
   useEffect(() => {
@@ -488,35 +487,29 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             <h2 className="text-2xl font-bold text-gray-900">
               {mode === 'create' ? 'Create New Asset' : 'Edit Asset'}
             </h2>
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              {formData.type && (
-                <span className={`text-xs px-2 py-1 rounded-lg font-medium ${
-                  formData.type === 'crypto' ? 'bg-orange-100 text-orange-700' :
-                  formData.type === 'forex' ? 'bg-blue-100 text-blue-700' :
-                  formData.type === 'stock' ? 'bg-green-100 text-green-700' :
-                  formData.type === 'commodity' ? 'bg-yellow-100 text-yellow-700' :
-                  'bg-purple-100 text-purple-700'
-                }`}>
-                  {ASSET_TYPE_INFO[formData.type]?.label}
-                </span>
-              )}
-              {formData.category === 'crypto' && (
-                <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded-lg font-medium">
-                  Crypto Mode (Binance)
-                </span>
-              )}
-              {formData.category === 'normal' && (
-                <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-lg font-medium">
-                  Normal Mode
-                </span>
-              )}
-              {hasUltraFast && (
-                <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded-lg font-medium flex items-center gap-1">
-                  <Zap className="w-3 h-3" />
-                  Ultra-Fast (1s)
-                </span>
-              )}
-            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+  {formData.type && (
+    <span className={`text-xs px-2 py-1 rounded-lg font-medium ${
+      formData.type === 'crypto' ? 'bg-orange-100 text-orange-700' :
+      formData.type === 'forex' ? 'bg-blue-100 text-blue-700' :
+      formData.type === 'stock' ? 'bg-green-100 text-green-700' :
+      formData.type === 'commodity' ? 'bg-yellow-100 text-yellow-700' :
+      'bg-purple-100 text-purple-700'
+    }`}>
+      {ASSET_TYPE_INFO[formData.type]?.label}
+    </span>
+  )}
+  {formData.category === 'crypto' && (
+    <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded-lg font-medium">
+      Crypto Mode (Binance)
+    </span>
+  )}
+  {formData.category === 'normal' && (
+    <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-lg font-medium">
+      Normal Mode
+    </span>
+  )}
+</div>
           </div>
           <button
             onClick={onClose}
@@ -1163,27 +1156,25 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                 Allowed Durations *
               </label>
               <div className="flex flex-wrap gap-2">
-                {ALL_DURATIONS.map((duration) => {
-                  const isSelected = formData.allowedDurations.includes(duration.value)
-                  return (
-                    <button
-                      key={duration.value}
-                      type="button"
-                      onClick={() => toggleDuration(duration.value)}
-                      className={`px-4 py-2.5 rounded-lg font-medium transition-all border-2 ${
-                        isSelected
-                          ? duration.isUltraFast
-                            ? 'bg-yellow-400 text-gray-900 border-yellow-500 shadow-lg'
-                            : 'bg-purple-600 text-white border-purple-600'
-                          : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
-                      }`}
-                    >
-                      {duration.isUltraFast && <Zap className="w-4 h-4 inline mr-1" />}
-                      {duration.shortLabel}
-                    </button>
-                  )
-                })}
-              </div>
+  {ALL_DURATIONS.map((duration) => {
+    const isSelected = formData.allowedDurations.includes(duration.value)
+    return (
+      <button
+        key={duration.value}
+        type="button"
+        onClick={() => toggleDuration(duration.value)}
+        className={`px-4 py-2.5 rounded-lg font-medium transition-all border-2 ${
+          isSelected
+            ? 'bg-purple-600 text-white border-purple-600'
+            : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
+        }`}
+      >
+        {duration.shortLabel}
+      </button>
+    )
+  })}
+</div>
+
               {errors.allowedDurations && (
                 <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />

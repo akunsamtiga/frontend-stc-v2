@@ -67,10 +67,7 @@ export class TimezoneUtil {
 }
 
 export function formatDuration(durationMinutes: number): string {
-  if (durationMinutes < 1) {
-    const seconds = Math.round(durationMinutes * 60)
-    return `${seconds}s`
-  } else if (durationMinutes < 60) {
+  if (durationMinutes < 60) {
     return `${durationMinutes}m`
   } else {
     const hours = Math.floor(durationMinutes / 60)
@@ -79,9 +76,9 @@ export function formatDuration(durationMinutes: number): string {
   }
 }
 
+
 export function getDurationDisplay(minutes: number): string {
   const DISPLAY_MAP: Record<number, string> = {
-    0.0167: '1s',
     1: '1m',
     2: '2m',
     3: '3m',
@@ -98,15 +95,13 @@ export function getDurationDisplay(minutes: number): string {
 }
 
 export function parseDuration(display: string): number {
-  const match = display.match(/^(\d+)(s|m|h)$/)
+  const match = display.match(/^(\d+)(m|h)$/)
   if (!match) return 0
   
   const [, value, unit] = match
   const numValue = parseInt(value)
   
   switch (unit) {
-    case 's':
-      return numValue / 60
     case 'm':
       return numValue
     case 'h':
@@ -117,10 +112,7 @@ export function parseDuration(display: string): number {
 }
 
 export function getDurationLabel(durationMinutes: number): string {
-  if (durationMinutes < 1) {
-    const seconds = Math.round(durationMinutes * 60)
-    return `${seconds} second${seconds > 1 ? 's' : ''}`
-  } else if (durationMinutes < 60) {
+  if (durationMinutes < 60) {
     return `${durationMinutes} minute${durationMinutes > 1 ? 's' : ''}`
   } else {
     const hours = Math.floor(durationMinutes / 60)
@@ -131,6 +123,7 @@ export function getDurationLabel(durationMinutes: number): string {
     return `${hours} hour${hours > 1 ? 's' : ''}`
   }
 }
+
 
 export function calculateTimeLeft(exitTime: string | Date): string {
   const now = new Date()
@@ -615,13 +608,13 @@ export function randomFloat(min: number, max: number, decimals: number = 2): num
 }
 
 export const DURATIONS = [
-  0.0167,
   1, 2, 3, 4, 5, 
   10, 15, 30, 45, 60
 ] as const
 
+
 export const QUICK_AMOUNTS = [10000, 25000, 50000, 100000, 250000, 500000, 1000000] as const
-export const TIMEFRAMES = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
+export const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
 
 export function clearAllCaches(): void {
   currencyCache.clear()

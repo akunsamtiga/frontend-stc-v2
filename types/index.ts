@@ -767,7 +767,6 @@ export interface UserPreferences {
 // CONSTANTS & ENUMS
 // ============================================
 export const DURATIONS = [
-  0.0167,
   1, 2, 3, 4, 5, 
   10, 15, 30, 45, 60
 ] as const

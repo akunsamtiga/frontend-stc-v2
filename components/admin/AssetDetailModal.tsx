@@ -63,11 +63,10 @@ export default function AssetDetailModal({ asset, onClose, onEdit }: AssetDetail
   }
 
   const formatDuration = (minutes: number): string => {
-    if (minutes === 0.0167) return '1 second'
-    if (minutes < 1) return `${Math.round(minutes * 60)}s`
-    if (minutes < 60) return `${minutes}m`
-    return `${Math.floor(minutes / 60)}h`
-  }
+  if (minutes < 60) return `${minutes}m`
+  return `${Math.floor(minutes / 60)}h`
+}
+
 
   const hasUltraFast = asset.tradingSettings?.allowedDurations.includes(0.0167)
 
@@ -85,23 +84,18 @@ export default function AssetDetailModal({ asset, onClose, onEdit }: AssetDetail
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-2xl font-bold text-gray-900">{asset.name}</h2>
-                {asset.category === 'crypto' ? (
-                  <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-lg text-xs font-semibold">
-                    Crypto
-                  </span>
-                ) : (
-                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold">
-                    Normal
-                  </span>
-                )}
-                {hasUltraFast && (
-                  <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-lg text-xs font-semibold flex items-center gap-1">
-                    <Zap className="w-3 h-3" />
-                    Ultra-Fast
-                  </span>
-                )}
-              </div>
+  <h2 className="text-2xl font-bold text-gray-900">{asset.name}</h2>
+  {asset.category === 'crypto' ? (
+    <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-lg text-xs font-semibold">
+      Crypto
+    </span>
+  ) : (
+    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold">
+      Normal
+    </span>
+  )}
+</div>
+
               <p className="text-sm text-gray-600 mt-1">Asset Details & Configuration</p>
             </div>
           </div>
@@ -313,31 +307,21 @@ export default function AssetDetailModal({ asset, onClose, onEdit }: AssetDetail
 
               <div className="bg-white p-4 rounded-lg border border-orange-200">
                 <span className="text-xs text-orange-600 uppercase tracking-wide block mb-3">
-                  Allowed Durations
-                  {hasUltraFast && (
-                    <span className="ml-2 text-yellow-600 font-semibold">Ultra-Fast Enabled</span>
-                  )}
-                </span>
+  Allowed Durations
+</span>
                 <div className="flex flex-wrap gap-2">
-                  {asset.tradingSettings.allowedDurations
-                    .sort((a, b) => a - b)
-                    .map((duration) => {
-                      const isUltraFast = duration === 0.0167
-                      return (
-                        <span
-                          key={duration}
-                          className={`px-3 py-1.5 rounded-lg text-sm font-semibold border-2 ${
-                            isUltraFast
-                              ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
-                              : 'bg-purple-100 text-purple-700 border-purple-200'
-                          }`}
-                        >
-                          {isUltraFast && <Zap className="w-3 h-3 inline mr-1" />}
-                          {formatDuration(duration)}
-                        </span>
-                      )
-                    })}
-                </div>
+  {asset.tradingSettings.allowedDurations
+    .sort((a, b) => a - b)
+    .map((duration) => (
+      <span
+        key={duration}
+        className="px-3 py-1.5 rounded-lg text-sm font-semibold border-2 bg-purple-100 text-purple-700 border-purple-200"
+      >
+        {formatDuration(duration)}
+      </span>
+    ))}
+</div>
+
               </div>
             </div>
           )}
