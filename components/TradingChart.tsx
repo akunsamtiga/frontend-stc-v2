@@ -763,6 +763,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   
   const loadingManagerRef = useRef(new LoadingStateManager())
   
+  // ✅ NEW: Progressive loading refs
+  const isLoadingMoreRef = useRef(false)
+  const oldestTimestampRef = useRef<number | null>(null)
+  
   const { selectedAsset } = useTradingStore()
   const { setSelectedAsset } = useTradingActions()
   const storeAssets = useTradingStore(state => state.assets)
@@ -781,6 +785,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const [ohlcData, setOhlcData] = useState<any>(null)
   const [showOhlc, setShowOhlc] = useState(false)
   const [showAssetMenu, setShowAssetMenu] = useState(false)
+  const [hasMoreData, setHasMoreData] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   
   const wsPrice = usePriceStream(selectedAsset?.id || null)
   const [prefetchedAssets, setPrefetchedAssets] = useState<Set<string>>(new Set())
@@ -828,6 +834,122 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   }, [])
 
   const isLoadingDataRef = useRef(false)
+
+  // ✅ NEW: Load more historical data when scrolling left
+  const loadMoreHistoricalData = useCallback(async () => {
+    if (!selectedAsset?.realtimeDbPath || isLoadingMoreRef.current || !hasMoreData) {
+      return
+    }
+
+    if (!oldestTimestampRef.current) {
+      return
+    }
+
+    console.log('📥 Loading more historical data...')
+    isLoadingMoreRef.current = true
+    setIsLoadingMore(true)
+
+    try {
+      const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath)
+      
+      // Fetch 200 bars
+      const moreData = await fetchHistoricalData(assetPath, timeframe, 200)
+      
+      if (moreData.length === 0) {
+        console.log('⚠️ No more data available')
+        setHasMoreData(false)
+        return
+      }
+
+      // Filter only older data
+      const olderData = moreData.filter(bar => bar.timestamp < oldestTimestampRef.current!)
+      
+      if (olderData.length === 0) {
+        console.log('⚠️ No older data found')
+        setHasMoreData(false)
+        return
+      }
+
+      console.log(`✅ Loaded ${olderData.length} more bars`)
+
+      // Get current data
+      const currentData: any[] = []
+      if (candleSeriesRef.current) {
+        const data = candleSeriesRef.current.data()
+        data.forEach((item: any) => {
+          currentData.push({
+            timestamp: item.time,
+            open: item.open,
+            high: item.high,
+            low: item.low,
+            close: item.close,
+            volume: item.volume || 0
+          })
+        })
+      }
+      
+      // Merge and sort
+      const mergedData = [...olderData, ...currentData].sort((a, b) => a.timestamp - b.timestamp)
+      
+      // Convert to chart format
+      const candleData = mergedData.map((bar: any) => ({
+        time: bar.timestamp as UTCTimestamp,
+        open: bar.open,
+        high: bar.high,
+        low: bar.low,
+        close: bar.close
+      }))
+
+      // Update chart
+      candleSeriesRef.current?.setData(candleData)
+      lineSeriesRef.current?.setData(candleData.map(bar => ({ time: bar.time, value: bar.close })))
+
+      // Update oldest timestamp
+      oldestTimestampRef.current = olderData[0].timestamp
+
+      // Update cache
+      setCachedData(selectedAsset.id, timeframe, mergedData)
+
+    } catch (error) {
+      console.error('❌ Load more data error:', error)
+    } finally {
+      isLoadingMoreRef.current = false
+      setIsLoadingMore(false)
+    }
+  }, [selectedAsset?.id, selectedAsset?.realtimeDbPath, timeframe, hasMoreData])
+
+  // ✅ NEW: Subscribe to visible range changes
+  useEffect(() => {
+    if (!chartRef.current || !isInitialized) return
+
+    const chart = chartRef.current
+
+    const handleVisibleTimeRangeChange = () => {
+      const logicalRange = chart.timeScale().getVisibleLogicalRange()
+      
+      if (!logicalRange) return
+
+      // If scrolled near left edge (within 20 bars from start)
+      if (logicalRange.from < 20 && !isLoadingMoreRef.current) {
+        console.log('📜 User scrolled to left edge, loading more data...')
+        loadMoreHistoricalData()
+      }
+    }
+
+    chart.timeScale().subscribeVisibleTimeRangeChange(handleVisibleTimeRangeChange)
+
+    return () => {
+      chart.timeScale().unsubscribeVisibleTimeRangeChange(handleVisibleTimeRangeChange)
+    }
+  }, [isInitialized, loadMoreHistoricalData])
+
+  // ✅ NEW: Reset progressive loading state on asset/timeframe change
+  useEffect(() => {
+    setHasMoreData(true)
+    oldestTimestampRef.current = null
+    isLoadingMoreRef.current = false
+    setIsLoadingMore(false)
+  }, [selectedAsset?.id, timeframe])
 
   const createOrderPriceLine = useCallback((order: BinaryOrder) => {
     if (!candleSeriesRef.current && !lineSeriesRef.current) return
@@ -1327,6 +1449,40 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
   }, [chartType])
 
+  // ✅ MODIFIED: Track oldest timestamp when data loads
+  const processAndDisplayData = useCallback((data: any[]) => {
+    if (data.length > 0) {
+      const candleData = data.map((bar: any) => ({
+        time: bar.timestamp as UTCTimestamp,
+        open: bar.open,
+        high: bar.high,
+        low: bar.low,
+        close: bar.close
+      }))
+
+      candleSeriesRef.current!.setData(candleData)
+      lineSeriesRef.current!.setData(candleData.map(bar => ({ time: bar.time, value: bar.close })))
+      
+      chartRef.current?.timeScale().fitContent()
+
+      const lastBar = data[data.length - 1]
+      currentBarRef.current = {
+        timestamp: lastBar.timestamp,
+        open: lastBar.open,
+        high: lastBar.high,
+        low: lastBar.low,
+        close: lastBar.close,
+        volume: lastBar.volume || 0
+      }
+
+      // ✅ NEW: Track oldest timestamp
+      oldestTimestampRef.current = data[0].timestamp
+      
+      setOpeningPrice(data[0].open)
+      setLastPrice(lastBar.close)
+    }
+  }, [])
+
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
       return
@@ -1379,38 +1535,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       }
     }
 
-    const processAndDisplayData = (data: any[]) => {
-      if (data.length > 0 && !isCancelled) {
-        const candleData = data.map((bar: any) => ({
-          time: bar.timestamp as UTCTimestamp,
-          open: bar.open,
-          high: bar.high,
-          low: bar.low,
-          close: bar.close
-        }))
-
-        candleSeriesRef.current!.setData(candleData)
-        lineSeriesRef.current!.setData(candleData.map(bar => ({ time: bar.time, value: bar.close })))
-        
-        chartRef.current?.timeScale().fitContent()
-
-        const lastBar = data[data.length - 1]
-        currentBarRef.current = {
-          timestamp: lastBar.timestamp,
-          open: lastBar.open,
-          high: lastBar.high,
-          low: lastBar.low,
-          close: lastBar.close,
-          volume: lastBar.volume || 0
-        }
-        
-        setOpeningPrice(data[0].open)
-        setLastPrice(lastBar.close)
-        
-        dataLoadSuccess = true
-      }
-    }
-
     const loadHistoricalData = async () => {
       try {
         const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`)
@@ -1438,6 +1562,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
           setCachedData(selectedAsset.id, timeframe, data)
           processAndDisplayData(data)
         }
+        
+        dataLoadSuccess = true
       } catch (error) {
         console.error('Historical data load error:', error)
       } finally {
@@ -1461,7 +1587,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       isLoadingDataRef.current = false
       cleanupAll()
     }
-  }, [selectedAsset?.id, timeframe, isInitialized])
+  }, [selectedAsset?.id, timeframe, isInitialized, processAndDisplayData, checkSimulator, addCleanup, cleanupAll, setSafeLoading])
 
   useEffect(() => {
     if (isLoading) {
@@ -1487,7 +1613,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }, 2000)
 
     return () => clearTimeout(prefetchTimer)
-  }, [selectedAsset?.id, isInitialized, isLoading, prefetchedAssets])
+  }, [selectedAsset?.id, isInitialized, isLoading, prefetchedAssets, prefetchAllTimeframes])
 
   const processTickUpdate = useCallback((tick1s: any) => {
     if (isLoadingDataRef.current) return
@@ -1672,6 +1798,14 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
               {selectedAsset.symbol}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ✅ NEW: Loading more indicator */}
+      {isLoadingMore && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-black/60 backdrop-blur-sm rounded-lg px-4 py-2 text-xs text-white flex items-center gap-2 border border-white/10">
+          <RefreshCw className="w-3 h-3 animate-spin" />
+          Loading more data...
         </div>
       )}
 
