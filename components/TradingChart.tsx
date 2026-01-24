@@ -1226,20 +1226,30 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       })
 
       const candleSeries = chart.addCandlestickSeries({
-        upColor: '#10b981',
-        downColor: '#ef4444',
-        borderUpColor: '#10b981',
-        borderDownColor: '#ef4444',
-        wickUpColor: '#10b981',
-        wickDownColor: '#ef4444',
-        visible: chartType === 'candle'
-      })
+  upColor: '#10b981',
+  downColor: '#ef4444',
+  borderUpColor: '#10b981',
+  borderDownColor: '#ef4444',
+  wickUpColor: '#10b981',
+  wickDownColor: '#ef4444',
+  visible: chartType === 'candle',
+  priceFormat: {
+    type: 'price',
+    precision: 8,        // 8 desimal untuk crypto
+    minMove: 0.00000001, // Step terkecil
+  },
+})
 
-      const lineSeries = chart.addLineSeries({
-        color: '#3b82f6',
-        lineWidth: 2,
-        visible: chartType === 'line'
-      })
+const lineSeries = chart.addLineSeries({
+  color: '#3b82f6',
+  lineWidth: 2,
+  visible: chartType === 'line',
+  priceFormat: {
+    type: 'price',
+    precision: 8,
+    minMove: 0.00000001,
+  },
+})
 
       chart.subscribeCrosshairMove((param) => {
         if (!param || !param.point || !param.time) {
