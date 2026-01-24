@@ -167,7 +167,10 @@ const formatExpiryTime = (durationMinutes: number): string => {
   const asset = useTradingStore.getState().selectedAsset
   if (!asset) return getDurationDisplay(durationMinutes)
   
-  const timing = CalculationUtil.formatOrderTiming(asset, durationMinutes)
+  // Use current timestamp for real-time calculation
+  const now = TimezoneUtil.getCurrentTimestamp()
+  const timing = CalculationUtil.formatOrderTiming(asset, durationMinutes, now)
+  
   return TimezoneUtil.formatWIBTime(timing.expiryTimestamp)
 }
 
@@ -537,7 +540,9 @@ export default function TradingPage() {
 
     setLoading(true)
     try {
-      const timing = CalculationUtil.formatOrderTiming(selectedAsset, duration)
+    const now = TimezoneUtil.getCurrentTimestamp()
+    const timing = CalculationUtil.formatOrderTiming(selectedAsset, duration, now)
+    
       
       await api.createOrder({
         accountType: selectedAccountType,

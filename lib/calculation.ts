@@ -1,3 +1,4 @@
+// lib/calculation.ts - FIXED: Match backend calculation exactly
 import { TimezoneUtil } from './timezone';
 import type { BinaryOrder, Asset } from '@/types';
 
@@ -18,25 +19,35 @@ export class CalculationUtil {
     }
   }
 
+  /**
+   * ✅ FIXED: Calculate expiry timestamp - MATCHES BACKEND EXACTLY
+   * 
+   * Backend logic:
+   * 1. Get seconds from start of current minute
+   * 2. If seconds > threshold (20), add 1 extra minute
+   * 3. Set to exact minute:00
+   * 
+   * Examples (threshold=20):
+   * - Entry at 10:30:15 + 1m = 10:31:00 (15 ≤ 20, no extra)
+   * - Entry at 10:30:25 + 1m = 10:32:00 (25 > 20, +1 extra)
+   * - Entry at 10:30:50 + 5m = 10:36:00 (50 > 20, +1 extra)
+   */
   static calculateExpiryTimestamp(
     entryTimestamp: number,
     durationMinutes: number,
-    endOfCandleThreshold: number = 20
+    thresholdSeconds: number = 20
   ): number {
-    const remainingSeconds = TimezoneUtil.getRemainingSecondsInMinute(entryTimestamp);
-    const isEndOfCandle = remainingSeconds <= endOfCandleThreshold;
-
-    if (isEndOfCandle) {
-      const nextCandleEnd = TimezoneUtil.getEndOfCurrentMinute(entryTimestamp);
-      const entryDate = TimezoneUtil.fromTimestamp(nextCandleEnd);
-      entryDate.setMinutes(entryDate.getMinutes() + durationMinutes, 0, 0);
-      return TimezoneUtil.toTimestamp(entryDate);
-    } else {
-      const currentCandleEnd = TimezoneUtil.getEndOfCurrentMinute(entryTimestamp);
-      const entryDate = TimezoneUtil.fromTimestamp(currentCandleEnd);
-      entryDate.setMinutes(entryDate.getMinutes() + durationMinutes, 0, 0);
-      return TimezoneUtil.toTimestamp(entryDate);
-    }
+    const date = TimezoneUtil.fromTimestamp(entryTimestamp);
+    const secondsFromStart = date.getSeconds();
+    
+    // Backend logic: if seconds > threshold, add extra minute
+    const needsExtraMinute = secondsFromStart > thresholdSeconds;
+    const totalMinutesToAdd = durationMinutes + (needsExtraMinute ? 1 : 0);
+    
+    // Set to exact minute:00
+    date.setMinutes(date.getMinutes() + totalMinutesToAdd, 0, 0);
+    
+    return TimezoneUtil.toTimestamp(date);
   }
 
   static formatDurationDisplay(durationMinutes: number): string {
@@ -93,6 +104,9 @@ export class CalculationUtil {
     return amount + this.calculateBinaryProfit(amount, profitRate);
   }
 
+  /**
+   * ✅ FIXED: Format order timing with correct expiry calculation
+   */
   static formatOrderTiming(
     asset: Asset,
     duration: number,
@@ -111,8 +125,9 @@ export class CalculationUtil {
     const entryDate = TimezoneUtil.fromTimestamp(entryTimestamp);
     const expiryDate = TimezoneUtil.fromTimestamp(expiryTimestamp);
 
-    const remainingSeconds = TimezoneUtil.getRemainingSecondsInMinute(entryTimestamp);
-    const isEndOfCandle = remainingSeconds <= 20;
+    // For display: check if entry is near end of candle
+    const secondsFromStart = entryDate.getSeconds();
+    const isEndOfCandle = secondsFromStart > 20;
 
     return {
       entryTimestamp,
@@ -122,6 +137,62 @@ export class CalculationUtil {
       durationDisplay: this.formatDurationDisplay(duration),
       isEndOfCandle,
     };
+  }
+
+  /**
+   * ✅ NEW: Parse duration from display string to minutes
+   */
+  static parseDurationToMinutes(display: string): number {
+    const match = display.match(/^(\d+)(s|m|h)$/);
+    if (!match) {
+      throw new Error('Invalid duration format. Use format like: 1s, 1m, 15m, 1h');
+    }
+
+    const [, value, unit] = match;
+    const numValue = parseInt(value);
+
+    switch (unit) {
+      case 's': return numValue / 60;
+      case 'm': return numValue;
+      case 'h': return numValue * 60;
+      default: throw new Error('Invalid duration unit');
+    }
+  }
+
+  /**
+   * ✅ NEW: Get current timestamp
+   */
+  static getCurrentTimestamp(): number {
+    return TimezoneUtil.getCurrentTimestamp();
+  }
+
+  /**
+   * ✅ NEW: Get current ISO string
+   */
+  static getCurrentISOString(): string {
+    return TimezoneUtil.toISOString();
+  }
+
+  /**
+   * ✅ NEW: Format date time
+   */
+  static formatDateTime(date: Date = new Date()): string {
+    return TimezoneUtil.formatDateTime(date);
+  }
+
+  /**
+   * ✅ NEW: Check if order is expired
+   */
+  static isOrderExpired(exitTimestamp: number): boolean {
+    return TimezoneUtil.isExpired(exitTimestamp);
+  }
+
+  /**
+   * ✅ NEW: Get time until expiry in seconds
+   */
+  static getTimeUntilExpiry(exitTimestamp: number): number {
+    const now = TimezoneUtil.getCurrentTimestamp();
+    return Math.max(0, exitTimestamp - now);
   }
 }
 
