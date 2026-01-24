@@ -1109,7 +1109,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
   }, [selectedAsset?.id, isInitialized, fetchCurrentPriceImmediately])
 
-  // ✅ NEW: Real-time candle update dari Firebase OHLC subscription
   useEffect(() => {
     if (!selectedAsset?.realtimeDbPath || !isInitialized) return
     if (!candleSeriesRef.current || !lineSeriesRef.current) return
@@ -1119,7 +1118,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     const unsubscribe = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
       if (!newBar) return
 
-      // ✅ FIX: Simpan reference ke series untuk menghindari null check error
       const candleSeries = candleSeriesRef.current
       const lineSeries = lineSeriesRef.current
       
@@ -1168,7 +1166,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         close: currentBarRef.current.close,
       }
 
-      // ✅ FIX: Gunakan local variable yang sudah di-check
       if (candleAnimatorRef.current) {
         candleAnimatorRef.current.updateCandle(currentBarRef.current)
       } else {
@@ -1226,30 +1223,30 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       })
 
       const candleSeries = chart.addCandlestickSeries({
-  upColor: '#10b981',
-  downColor: '#ef4444',
-  borderUpColor: '#10b981',
-  borderDownColor: '#ef4444',
-  wickUpColor: '#10b981',
-  wickDownColor: '#ef4444',
-  visible: chartType === 'candle',
-  priceFormat: {
-    type: 'price',
-    precision: 8,        // 8 desimal untuk crypto
-    minMove: 0.00000001, // Step terkecil
-  },
-})
+        upColor: '#10b981',
+        downColor: '#ef4444',
+        borderUpColor: '#10b981',
+        borderDownColor: '#ef4444',
+        wickUpColor: '#10b981',
+        wickDownColor: '#ef4444',
+        visible: chartType === 'candle',
+        priceFormat: {
+          type: 'price',
+          precision: 8,
+          minMove: 0.00000001,
+        },
+      })
 
-const lineSeries = chart.addLineSeries({
-  color: '#3b82f6',
-  lineWidth: 2,
-  visible: chartType === 'line',
-  priceFormat: {
-    type: 'price',
-    precision: 8,
-    minMove: 0.00000001,
-  },
-})
+      const lineSeries = chart.addLineSeries({
+        color: '#3b82f6',
+        lineWidth: 2,
+        visible: chartType === 'line',
+        priceFormat: {
+          type: 'price',
+          precision: 8,
+          minMove: 0.00000001,
+        },
+      })
 
       chart.subscribeCrosshairMove((param) => {
         if (!param || !param.point || !param.time) {
@@ -1341,8 +1338,11 @@ const lineSeries = chart.addLineSeries({
     }
   }, [chartType, addCleanup, cleanupAll])
 
+  // ✅ FIX: Handle chart type changes properly
   useEffect(() => {
-    if (!candleSeriesRef.current || !lineSeriesRef.current) return
+    if (!candleSeriesRef.current || !lineSeriesRef.current || !chartRef.current) return
+
+    console.log('Updating chart type visibility:', chartType)
 
     if (chartType === 'candle') {
       candleSeriesRef.current.applyOptions({ visible: true })
@@ -1351,7 +1351,47 @@ const lineSeries = chart.addLineSeries({
       candleSeriesRef.current.applyOptions({ visible: false })
       lineSeriesRef.current.applyOptions({ visible: true })
     }
+    
+    // Fit content after visibility change
+    requestAnimationFrame(() => {
+      if (chartRef.current) {
+        chartRef.current.timeScale().fitContent()
+      }
+    })
   }, [chartType])
+
+  // ✅ FIX: Restore chart visibility when indicators panel closes
+  useEffect(() => {
+    if (!showIndicators && candleSeriesRef.current && lineSeriesRef.current && chartRef.current) {
+      console.log('Indicators closed, restoring chart visibility...')
+      
+      const timer = setTimeout(() => {
+        if (!candleSeriesRef.current || !lineSeriesRef.current) return
+        
+        console.log('Restoring chart type:', chartType)
+        
+        try {
+          if (chartType === 'candle') {
+            candleSeriesRef.current.applyOptions({ visible: true })
+            lineSeriesRef.current.applyOptions({ visible: false })
+          } else {
+            candleSeriesRef.current.applyOptions({ visible: false })
+            lineSeriesRef.current.applyOptions({ visible: true })
+          }
+          
+          if (chartRef.current) {
+            chartRef.current.timeScale().fitContent()
+          }
+          
+          console.log('Chart visibility restored successfully')
+        } catch (error) {
+          console.error('Error restoring chart visibility:', error)
+        }
+      }, 150)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [showIndicators, chartType])
 
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
@@ -1512,9 +1552,70 @@ const lineSeries = chart.addLineSeries({
     setTimeframe(tf)
   }, [])
 
+  // ✅ FIX: Improved chart type change handler
   const handleChartTypeChange = useCallback((type: ChartType) => {
+    console.log('Changing chart type to:', type)
     setChartType(type)
+    
+    if (candleSeriesRef.current && lineSeriesRef.current) {
+      try {
+        if (type === 'candle') {
+          candleSeriesRef.current.applyOptions({ visible: true })
+          lineSeriesRef.current.applyOptions({ visible: false })
+        } else {
+          candleSeriesRef.current.applyOptions({ visible: false })
+          lineSeriesRef.current.applyOptions({ visible: true })
+        }
+        
+        // Fit content after visibility change
+        if (chartRef.current) {
+          requestAnimationFrame(() => {
+            if (chartRef.current) {
+              chartRef.current.timeScale().fitContent()
+            }
+          })
+        }
+      } catch (error) {
+        console.error('Chart type change error:', error)
+      }
+    }
   }, [])
+
+  const handleOpenIndicators = useCallback(() => {
+    setShowIndicators(true)
+  }, [])
+
+  // ✅ FIX: Improved indicators close handler
+  const handleCloseIndicators = useCallback(() => {
+    console.log('Closing indicators, restoring chart visibility...')
+    setShowIndicators(false)
+    
+    setTimeout(() => {
+      if (candleSeriesRef.current && lineSeriesRef.current) {
+        console.log('Restoring chart type:', chartType)
+        
+        try {
+          if (chartType === 'candle') {
+            candleSeriesRef.current.applyOptions({ visible: true })
+            lineSeriesRef.current.applyOptions({ visible: false })
+          } else {
+            candleSeriesRef.current.applyOptions({ visible: false })
+            lineSeriesRef.current.applyOptions({ visible: true })
+          }
+          
+          if (chartRef.current) {
+            chartRef.current.timeScale().fitContent()
+          }
+          
+          console.log('Chart visibility restored successfully')
+        } catch (error) {
+          console.error('Error restoring chart visibility:', error)
+        }
+      } else {
+        console.warn('Chart series not available')
+      }
+    }, 100)
+  }, [chartType])
 
   const calculatePriceChange = useCallback(() => {
     if (!lastPrice || !openingPrice || openingPrice === 0) return 0
@@ -1565,7 +1666,7 @@ const lineSeries = chart.addLineSeries({
         onFitContent={handleFitContent} 
         onRefresh={handleRefresh} 
         onToggleFullscreen={toggleFullscreen} 
-        onOpenIndicators={() => setShowIndicators(true)} 
+        onOpenIndicators={handleOpenIndicators}
         isFullscreen={isFullscreen} 
       />
 
@@ -1577,7 +1678,7 @@ const lineSeries = chart.addLineSeries({
         onChartTypeChange={handleChartTypeChange} 
         onFitContent={handleFitContent} 
         onRefresh={handleRefresh} 
-        onOpenIndicators={() => setShowIndicators(true)} 
+        onOpenIndicators={handleOpenIndicators}
       />
 
       <SimulatorStatus status={simulatorStatus} onRetry={checkSimulator} />
@@ -1605,7 +1706,7 @@ const lineSeries = chart.addLineSeries({
 
       <IndicatorControls 
         isOpen={showIndicators} 
-        onClose={() => setShowIndicators(false)} 
+        onClose={handleCloseIndicators}
         config={indicatorConfig} 
         onChange={setIndicatorConfig} 
       />
