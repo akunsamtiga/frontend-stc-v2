@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, CreditCard, Wallet, AlertCircle, CheckCircle, Clock, XCircle, Loader2, Shield, Zap } from 'lucide-react';
+import { ArrowLeft, CreditCard, Wallet, AlertCircle, CheckCircle, Clock, XCircle, Loader2, Shield, Zap, TestTube } from 'lucide-react';
 
 // ============================================
 // TYPE DEFINITIONS
@@ -101,11 +101,18 @@ class MidtransSnap {
 
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = 'https://app.midtrans.com/snap/snap.js';
+      
+      // ✅ SANDBOX/PRODUCTION MODE
+      const isSandbox = process.env.NEXT_PUBLIC_MIDTRANS_MODE === 'sandbox';
+      script.src = isSandbox 
+        ? 'https://app.sandbox.midtrans.com/snap/snap.js'  // Sandbox
+        : 'https://app.midtrans.com/snap/snap.js';         // Production
+      
       script.setAttribute('data-client-key', process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '');
       
       script.onload = () => {
         this.isLoaded = true;
+        console.log(`✅ Midtrans Snap loaded (${isSandbox ? 'SANDBOX' : 'PRODUCTION'} mode)`);
         resolve();
       };
       
@@ -194,6 +201,75 @@ const DepositStatusBadge: React.FC<{ status: string }> = ({ status }) => {
 };
 
 // ============================================
+// SANDBOX TEST CARDS INFO
+// ============================================
+
+const SandboxTestCards: React.FC = () => {
+  const [showCards, setShowCards] = useState(false);
+
+  const testCards = [
+    { 
+      type: 'Success', 
+      number: '4811 1111 1111 1114', 
+      color: 'bg-green-50 border-green-200 text-green-800',
+      icon: '✅'
+    },
+    { 
+      type: 'Failed', 
+      number: '4911 1111 1111 1113', 
+      color: 'bg-red-50 border-red-200 text-red-800',
+      icon: '❌'
+    },
+    { 
+      type: 'Pending', 
+      number: '4611 1111 1111 1112', 
+      color: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+      icon: '⏳'
+    },
+  ];
+
+  return (
+    <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+      <button
+        onClick={() => setShowCards(!showCards)}
+        className="w-full flex items-center justify-between text-left"
+      >
+        <div className="flex items-center gap-2">
+          <TestTube className="w-5 h-5 text-orange-600" />
+          <span className="font-bold text-orange-900">Test Cards for Sandbox</span>
+        </div>
+        <span className="text-orange-600 text-sm">
+          {showCards ? '▼' : '▶'}
+        </span>
+      </button>
+
+      {showCards && (
+        <div className="mt-3 space-y-2">
+          {testCards.map((card) => (
+            <div key={card.number} className={`p-3 rounded-lg border ${card.color}`}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm">{card.icon}</span>
+                <span className="text-xs font-bold">{card.type} Payment</span>
+              </div>
+              <div className="text-xs font-mono font-semibold">{card.number}</div>
+              <div className="text-xs mt-1 opacity-70">CVV: 123 | Exp: 01/25</div>
+            </div>
+          ))}
+          
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-sm">🏦</span>
+              <span className="text-xs font-bold">BCA Virtual Account</span>
+            </div>
+            <div className="text-xs">VA Number will be auto-generated</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================
 // MAIN DEPOSIT COMPONENT
 // ============================================
 
@@ -207,6 +283,9 @@ const MidtransDepositPage: React.FC = () => {
 
   const quickAmounts = [50000, 100000, 250000, 500000, 1000000, 2000000];
   const MIN_DEPOSIT = 10000;
+  
+  // ✅ CHECK IF SANDBOX MODE
+  const isSandbox = process.env.NEXT_PUBLIC_MIDTRANS_MODE === 'sandbox';
 
   useEffect(() => {
     loadDepositHistory();
@@ -234,7 +313,7 @@ const MidtransDepositPage: React.FC = () => {
 
     try {
       // Step 1: Create deposit transaction
-      console.log('📝 Creating deposit transaction...');
+      console.log('🔐 Creating deposit transaction...');
       const response = await DepositAPI.createDeposit(depositAmount, 'Deposit via Midtrans');
       
       const deposit = response.data.deposit;
@@ -313,8 +392,26 @@ const MidtransDepositPage: React.FC = () => {
                   <p className="text-sm text-gray-600">Add money to your Real Account</p>
                 </div>
               </div>
+              
+              {/* ✅ SANDBOX MODE INDICATOR */}
+              {isSandbox && (
+                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <TestTube className="w-4 h-4 text-yellow-700" />
+                    <span className="text-xs font-bold text-yellow-800">🧪 SANDBOX MODE</span>
+                    <span className="text-xs text-yellow-700">Testing environment - No real money</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
+
+          {/* Sandbox Test Cards Info */}
+          {isSandbox && (
+            <div className="mb-4">
+              <SandboxTestCards />
+            </div>
+          )}
 
           {/* Amount Input */}
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-100 mb-4">
@@ -377,11 +474,16 @@ const MidtransDepositPage: React.FC = () => {
           <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-6 shadow-lg mb-4 text-white">
             <div className="flex items-center gap-3 mb-4">
               <Shield className="w-6 h-6" />
-              <h3 className="font-bold text-lg">Secure Payment</h3>
+              <h3 className="font-bold text-lg">
+                {isSandbox ? 'Test Payment (Sandbox)' : 'Secure Payment'}
+              </h3>
             </div>
             
             <p className="text-sm text-blue-100 mb-4">
-              We accept various payment methods via Midtrans:
+              {isSandbox 
+                ? 'Use test cards above to simulate payments'
+                : 'We accept various payment methods via Midtrans:'
+              }
             </p>
             
             <div className="grid grid-cols-2 gap-2 text-xs">
@@ -418,7 +520,7 @@ const MidtransDepositPage: React.FC = () => {
             ) : (
               <>
                 <CreditCard className="w-5 h-5" />
-                Continue to Payment
+                {isSandbox ? 'Test Payment' : 'Continue to Payment'}
               </>
             )}
           </button>
@@ -449,7 +551,10 @@ const MidtransDepositPage: React.FC = () => {
           
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Processing Payment</h2>
           <p className="text-gray-600 mb-6">
-            Please complete your payment in the Midtrans window
+            {isSandbox 
+              ? 'Complete test payment in the Midtrans sandbox window'
+              : 'Please complete your payment in the Midtrans window'
+            }
           </p>
 
           {currentDeposit && (
@@ -463,6 +568,15 @@ const MidtransDepositPage: React.FC = () => {
                 <span className="text-lg font-bold text-blue-600">
                   {formatCurrency(currentDeposit.amount)}
                 </span>
+              </div>
+            </div>
+          )}
+
+          {isSandbox && (
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center gap-2 justify-center">
+                <TestTube className="w-4 h-4 text-yellow-700" />
+                <span className="text-xs font-semibold text-yellow-800">Sandbox Mode</span>
               </div>
             </div>
           )}
@@ -487,9 +601,14 @@ const MidtransDepositPage: React.FC = () => {
             <CheckCircle className="w-12 h-12 text-white" />
           </div>
           
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Deposit Submitted!</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            {isSandbox ? 'Test Payment Complete!' : 'Deposit Submitted!'}
+          </h2>
           <p className="text-gray-600 mb-6">
-            Your deposit is being processed. Balance will be updated once payment is confirmed.
+            {isSandbox 
+              ? 'Your test deposit was successful'
+              : 'Your deposit is being processed. Balance will be updated once payment is confirmed.'
+            }
           </p>
 
           {currentDeposit && (
@@ -500,6 +619,17 @@ const MidtransDepositPage: React.FC = () => {
               </div>
               <div className="text-xs text-gray-500">
                 Order ID: {currentDeposit.order_id}
+              </div>
+            </div>
+          )}
+
+          {isSandbox && (
+            <div className="mb-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center gap-2 justify-center">
+                <TestTube className="w-4 h-4 text-yellow-700" />
+                <span className="text-xs font-semibold text-yellow-800">
+                  This was a test transaction in Sandbox mode
+                </span>
               </div>
             </div>
           )}
@@ -520,7 +650,7 @@ const MidtransDepositPage: React.FC = () => {
               }}
               className="w-full text-green-600 py-3 rounded-xl font-semibold hover:bg-green-50 transition-all"
             >
-              Make Another Deposit
+              {isSandbox ? 'Test Another Payment' : 'Make Another Deposit'}
             </button>
           </div>
         </div>
@@ -547,7 +677,10 @@ const MidtransDepositPage: React.FC = () => {
             
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-100">
               <h1 className="text-2xl font-bold text-gray-900">Deposit History</h1>
-              <p className="text-sm text-gray-600">Your recent deposit transactions</p>
+              <p className="text-sm text-gray-600">
+                Your recent deposit transactions
+                {isSandbox && ' (including test transactions)'}
+              </p>
             </div>
           </div>
 

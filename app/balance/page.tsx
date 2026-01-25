@@ -72,7 +72,7 @@ export default function BalancePage() {
     }
   }
 
-  const handleDeposit = async () => {
+  const handleDemoDeposit = async () => {
     const amt = parseFloat(amount)
     if (isNaN(amt) || amt <= 0) {
       toast.error('Invalid amount')
@@ -82,17 +82,17 @@ export default function BalancePage() {
     setLoading(true)
     try {
       await api.createBalanceEntry({
-        accountType: transactionAccount,
+        accountType: 'demo',
         type: 'deposit',
         amount: amt,
-        description: `Deposit to ${transactionAccount} account`,
+        description: `Deposit to demo account`,
       })
-      toast.success(`Deposit successful!`)
+      toast.success(`Demo deposit successful!`)
       setShowDeposit(false)
       setAmount('')
       loadData()
     } catch (error) {
-      toast.error('Deposit failed')
+      toast.error('Demo deposit failed')
     } finally {
       setLoading(false)
     }
@@ -113,6 +113,7 @@ export default function BalancePage() {
       <Navbar />
 
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">
+        {/* Header */}
         <div className="mb-4 sm:mb-6">
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-500 mb-2 sm:mb-3">
             <span>Dashboard</span>
@@ -130,6 +131,7 @@ export default function BalancePage() {
               </div>
             </div>
             
+            {/* Desktop Status Badge */}
             {statusInfo && (
               <div className={`hidden lg:flex items-center gap-3 px-4 py-2 rounded-xl text-white shadow-2xl border-2 border-white/30 ${
                 statusInfo.current === 'standard' ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
@@ -146,6 +148,7 @@ export default function BalancePage() {
           </div>
         </div>
 
+        {/* Mobile Status Badge */}
         {statusInfo && (
           <div className="lg:hidden mb-4 sm:mb-6">
             <div className={`p-3 sm:p-4 rounded-xl text-white shadow-lg ${
@@ -172,10 +175,12 @@ export default function BalancePage() {
           </div>
         )}
 
+        {/* ============================================ */}
         {/* MOBILE VERSION - Simplified & Clean */}
+        {/* ============================================ */}
         <div className="lg:hidden mb-4 sm:mb-6">
           <div className="space-y-4">
-            {/* Real Account */}
+            {/* Real Account Card */}
             <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -199,20 +204,18 @@ export default function BalancePage() {
                 </div>
               </div>
               
+              {/* ✅ FIXED: Real Account Buttons - Redirect to /deposit */}
               <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setTransactionAccount('real')
-                    setShowDeposit(true)
-                  }}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm font-semibold"
+                <Link
+                  href="/deposit"
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm font-semibold hover:bg-green-600 transition-colors"
                 >
                   <ArrowDownToLine className="w-4 h-4" />
                   Deposit
-                </button>
+                </Link>
                 <Link
                   href="/withdrawal"
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-semibold"
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-semibold hover:bg-red-600 transition-colors"
                 >
                   <ArrowUpFromLine className="w-4 h-4" />
                   Withdraw
@@ -220,7 +223,7 @@ export default function BalancePage() {
               </div>
             </div>
 
-            {/* Demo Account */}
+            {/* Demo Account Card */}
             <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -242,12 +245,13 @@ export default function BalancePage() {
                 </div>
               </div>
               
+              {/* ✅ Demo Account Button - Open Modal */}
               <button
                 onClick={() => {
                   setTransactionAccount('demo')
                   setShowDeposit(true)
                 }}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg text-sm font-semibold"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors"
               >
                 <ArrowDownToLine className="w-4 h-4" />
                 Add Funds
@@ -256,9 +260,12 @@ export default function BalancePage() {
           </div>
         </div>
 
+        {/* ============================================ */}
         {/* DESKTOP VERSION - Original Cards */}
+        {/* ============================================ */}
         <div className="hidden lg:block mb-4 sm:mb-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {/* Real Account Desktop Card */}
             <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50 rounded-2xl sm:rounded-3xl border-2 border-emerald-200 p-4 sm:p-6 shadow-xl">
               <div className="flex items-center justify-between mb-4 sm:mb-6">
                 <h2 className="text-sm sm:text-base lg:text-lg font-bold text-gray-900 flex items-center gap-1.5 sm:gap-2">
@@ -272,16 +279,17 @@ export default function BalancePage() {
                   )}
                 </h2>
                 <div className="flex items-center gap-1.5 sm:gap-2">
+                  {/* ✅ Desktop Real Account - Redirect to /deposit */}
                   <Link
                     href="/deposit"
-                    className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md touch-manipulation"
+                    className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md touch-manipulation transition-colors"
                   >
                     <ArrowDownToLine className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span className="hidden sm:inline">Deposit</span>
                   </Link>
                   <Link
                     href="/withdrawal"
-                    className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md touch-manipulation"
+                    className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md touch-manipulation transition-colors"
                   >
                     <ArrowUpFromLine className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span className="hidden sm:inline">Withdraw</span>
@@ -289,6 +297,7 @@ export default function BalancePage() {
                 </div>
               </div>
 
+              {/* Real Account Card Visual */}
               <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-teal-600 to-green-700 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-2xl min-h-[200px] sm:min-h-[280px]">
                 <div className="absolute inset-0 opacity-10">
                   <div className="absolute top-0 right-0 w-40 h-40 sm:w-64 sm:h-64 bg-white rounded-full blur-3xl -translate-y-20 sm:-translate-y-32 translate-x-20 sm:translate-x-32"></div>
@@ -339,6 +348,7 @@ export default function BalancePage() {
               </div>
             </div>
 
+            {/* Demo Account Desktop Card */}
             <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl sm:rounded-3xl border-2 border-blue-200 p-4 sm:p-6 shadow-xl">
               <div className="flex items-center justify-between mb-4 sm:mb-6">
                 <h2 className="text-sm sm:text-base lg:text-lg font-bold text-gray-900 flex items-center gap-1.5 sm:gap-2">
@@ -349,9 +359,10 @@ export default function BalancePage() {
                   </span>
                 </h2>
                 <div className="flex items-center gap-1.5 sm:gap-2">
+                  {/* ✅ Desktop Demo Account - Open Modal */}
                   <button
                     onClick={() => { setTransactionAccount('demo'); setShowDeposit(true) }}
-                    className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md touch-manipulation"
+                    className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md touch-manipulation transition-colors"
                   >
                     <ArrowDownToLine className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span className="hidden sm:inline">Add</span>
@@ -359,6 +370,7 @@ export default function BalancePage() {
                 </div>
               </div>
 
+              {/* Demo Account Card Visual */}
               <div className="relative overflow-hidden bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-700 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-2xl min-h-[200px] sm:min-h-[280px]">
                 <div className="absolute inset-0 opacity-10">
                   <div className="absolute top-0 right-0 w-40 h-40 sm:w-64 sm:h-64 bg-white rounded-full blur-3xl -translate-y-20 sm:-translate-y-32 translate-x-20 sm:translate-x-32"></div>
@@ -411,6 +423,9 @@ export default function BalancePage() {
           </div>
         </div>
 
+        {/* ============================================ */}
+        {/* Transaction History */}
+        {/* ============================================ */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
           <div className="p-4 sm:p-5 lg:p-6 border-b border-gray-200">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -495,7 +510,10 @@ export default function BalancePage() {
         </div>
       </div>
 
-      {showDeposit && (
+      {/* ============================================ */}
+      {/* DEMO DEPOSIT MODAL (Only for Demo Account) */}
+      {/* ============================================ */}
+      {showDeposit && transactionAccount === 'demo' && (
         <>
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => setShowDeposit(false)} />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
@@ -503,17 +521,13 @@ export default function BalancePage() {
               <div className="p-5 sm:p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      transactionAccount === 'real' ? 'bg-green-50' : 'bg-blue-50'
-                    }`}>
-                      <ArrowDownToLine className={`w-5 h-5 sm:w-6 sm:h-6 ${
-                        transactionAccount === 'real' ? 'text-green-600' : 'text-blue-600'
-                      }`} />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <ArrowDownToLine className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h2 className="text-lg sm:text-xl font-bold text-gray-900">Add Funds</h2>
+                      <h2 className="text-lg sm:text-xl font-bold text-gray-900">Add Demo Funds</h2>
                       <p className="text-xs sm:text-sm text-gray-500 truncate">
-                        Deposit to <span className="font-semibold uppercase">{transactionAccount}</span> account
+                        Practice trading with virtual money
                       </p>
                     </div>
                   </div>
@@ -527,30 +541,6 @@ export default function BalancePage() {
               </div>
 
               <div className="p-5 sm:p-6 space-y-5 sm:space-y-6">
-                {transactionAccount === 'real' && statusInfo?.nextStatus && (
-                  <div className="p-3 sm:p-4 bg-purple-50 border border-purple-200 rounded-xl">
-                    <div className="flex items-center gap-2 mb-2">
-                      <TrendingUp className="w-4 h-4 text-purple-600" />
-                      <span className="text-xs sm:text-sm font-semibold text-purple-900">Status Upgrade Available</span>
-                    </div>
-                    <p className="text-xs sm:text-sm text-purple-700">
-                      Deposit {formatCurrency(statusInfo.depositNeeded || 0)} more to reach <span className="font-bold">{statusInfo.nextStatus.toUpperCase()}</span> status and +{(() => {
-                        try {
-                          const nextStatus = (statusInfo.nextStatus as string).toLowerCase() as 'gold' | 'vip';
-                          if (nextStatus === 'gold') {
-                            return getStatusProfitBonus('gold');
-                          } else if (nextStatus === 'vip') {
-                            return getStatusProfitBonus('vip');
-                          }
-                          return 0;
-                        } catch {
-                          return 0;
-                        }
-                      })()}% bonus!
-                    </p>
-                  </div>
-                )}
-
                 <div>
                   <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">Enter Amount (IDR)</label>
                   <input
@@ -572,7 +562,7 @@ export default function BalancePage() {
                         onClick={() => setAmount(preset.toString())}
                         className={`py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold transition-all touch-manipulation ${
                           amount === preset.toString()
-                            ? `${transactionAccount === 'real' ? 'bg-green-500' : 'bg-blue-500'} text-white shadow-sm`
+                            ? 'bg-blue-500 text-white shadow-sm'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
                         }`}
                       >
@@ -583,13 +573,9 @@ export default function BalancePage() {
                 </div>
 
                 <button
-                  onClick={handleDeposit}
+                  onClick={handleDemoDeposit}
                   disabled={loading}
-                  className={`w-full text-white py-3.5 sm:py-4 rounded-xl font-semibold shadow-sm transition-all disabled:opacity-50 text-sm sm:text-base flex items-center justify-center gap-2 touch-manipulation ${
-                    transactionAccount === 'real'
-                      ? 'bg-green-500 hover:bg-green-600 active:bg-green-700'
-                      : 'bg-blue-500 hover:bg-blue-600 active:bg-blue-700'
-                  }`}
+                  className="w-full bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white py-3.5 sm:py-4 rounded-xl font-semibold shadow-sm transition-all disabled:opacity-50 text-sm sm:text-base flex items-center justify-center gap-2 touch-manipulation"
                 >
                   {loading ? (
                     <>
