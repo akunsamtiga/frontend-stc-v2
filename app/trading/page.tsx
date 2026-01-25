@@ -15,6 +15,7 @@ import { formatCurrency, getDurationDisplay } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 import TradingTutorial from '@/components/TradingTutorial'
 import AssetIcon from '@/components/common/AssetIcon'
+import BalanceDisplay from '@/components/BalanceDisplay'
 import { 
   ArrowUp,
   ArrowDown,
@@ -569,20 +570,13 @@ export default function TradingPage() {
           <div className="flex-1"></div>
 
           <div className="relative">
-            <button
+            <BalanceDisplay
+              amount={currentBalance}
+              label={`Akun ${selectedAccountType === 'real' ? 'Real' : 'Demo'}`}
+              isActive={showAccountMenu}
               onClick={() => setShowAccountMenu(!showAccountMenu)}
-              className="flex flex-col items-start gap-0.5 hover:bg-[#232936] px-3 py-2 rounded-lg transition-colors"
-            >
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-gray-400">
-                  Akun {selectedAccountType === 'real' ? 'Real' : 'Demo'}
-                </span>
-                <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-              </div>
-              <div className="text-base font-bold text-white">
-                {formatCurrency(currentBalance)}
-              </div>
-            </button>
+              isMobile={false}
+            />
 
             {showAccountMenu && (
               <>
@@ -717,20 +711,13 @@ export default function TradingPage() {
 
           <div className="flex items-center gap-3">
             <div className="relative">
-              <button
+              <BalanceDisplay
+                amount={currentBalance}
+                label={selectedAccountType === 'real' ? 'Real' : 'Demo'}
+                isActive={showAccountMenu}
                 onClick={() => setShowAccountMenu(!showAccountMenu)}
-                className="flex flex-col items-end py-1 px-2.5 bg-[#1a1f2e] rounded-lg border border-gray-800/50"
-              >
-                <div className="flex items-center gap-1">
-                  <span className="text-[12px] text-gray-400">
-                    {selectedAccountType === 'real' ? 'Real' : 'Demo'}
-                  </span>
-                  <ChevronDown className="w-4 h-4 font-bold text-gray-400" />
-                </div>
-                <span className="text-sm font-bold text-white leading-tight">
-                  {formatCurrency(currentBalance)}
-                </span>
-              </button>
+                isMobile={true}
+              />
 
               {showAccountMenu && (
                 <>
@@ -1372,6 +1359,11 @@ export default function TradingPage() {
           }
         }
 
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-3px); }
+        }
+
         .animate-slide-left {
           animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -1386,6 +1378,10 @@ export default function TradingPage() {
 
         .animate-fade-in {
           animation: fade-in 0.2s ease-out;
+        }
+
+        .animate-bounce {
+          animation: bounce 0.6s infinite;
         }
 
         button {
