@@ -1022,6 +1022,44 @@ class ApiClient {
     }
   }
 
+async createMidtransDeposit(data: {
+  amount: number
+  description?: string
+}): Promise<ApiResponse> {
+  try {
+    const result = await this.client.post('/payment/deposit', data, {
+      headers: {
+        'X-Idempotent': 'true'
+      }
+    })
+    
+    this.invalidateCache('/balance')
+    this.invalidateCache('/user/profile')
+    
+    return result
+  } catch (error) {
+    console.error('Midtrans deposit failed:', error)
+    throw error
+  }
+}
+
+async getDepositHistory(): Promise<ApiResponse> {
+  const cacheKey = this.getCacheKey('/payment/deposits')
+  const cached = this.getFromCache(cacheKey)
+  
+  if (cached) return cached
+  
+  return this.withDeduplication(cacheKey, async () => {
+    const data = await this.client.get('/payment/deposits')
+    this.setCache(cacheKey, data, 5000)
+    return data
+  })
+}
+
+async checkMidtransDepositStatus(orderId: string): Promise<ApiResponse> {
+  return this.client.get(`/payment/deposit/${orderId}/status`)
+}
+
   clearCache(pattern?: string) {
     this.invalidateCache(pattern)
   }
