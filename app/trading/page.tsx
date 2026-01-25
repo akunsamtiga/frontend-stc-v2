@@ -1,3 +1,4 @@
+// app/(main)/trading/page.tsx - COMPLETE VERSION with Instant Response
 'use client'
 
 import { useEffect, useState, useCallback, memo, useRef } from 'react'
@@ -39,6 +40,7 @@ import OrderNotification from '@/components/OrderNotification'
 import { useWebSocket, usePriceSubscription, useOrderSubscription } from '@/components/providers/WebSocketProvider'
 import { CalculationUtil } from '@/lib/calculation'
 import { TimezoneUtil } from '@/lib/timezone'
+import { useOptimisticOrders, useAggressiveResultPolling } from '@/hooks/useInstantOrders'
 
 const TradingChart = dynamic(() => import('@/components/TradingChart'), {
   ssr: false,
@@ -55,99 +57,6 @@ const TradingChart = dynamic(() => import('@/components/TradingChart'), {
 const HistorySidebar = dynamic(() => import('@/components/HistorySidebar'), {
   ssr: false
 })
-
-class AggressivePollingManager {
-  private intervalId: NodeJS.Timeout | null = null
-  private isPolling = false
-  private pollCallback: (() => Promise<void>) | null = null
-  private activeOrders: BinaryOrder[] = []
-  private consecutiveEmptyPolls = 0
-  
-  start(callback: () => Promise<void>) {
-    this.pollCallback = callback
-    this.isPolling = true
-    this.consecutiveEmptyPolls = 0
-    this.scheduleNext()
-  }
-
-  stop() {
-    this.isPolling = false
-    if (this.intervalId) {
-      clearTimeout(this.intervalId)
-      this.intervalId = null
-    }
-  }
-
-  updateActiveOrders(orders: BinaryOrder[]) {
-    const hadOrders = this.activeOrders.length > 0
-    this.activeOrders = orders
-    
-    if (hadOrders !== (orders.length > 0)) {
-      this.consecutiveEmptyPolls = 0
-    }
-  }
-
-  private getInterval(): number {
-    if (this.activeOrders.length === 0) {
-      this.consecutiveEmptyPolls++
-      
-      if (this.consecutiveEmptyPolls < 6) {
-        return 500
-      } else if (this.consecutiveEmptyPolls < 20) {
-        return 1000
-      } else {
-        return 3000
-      }
-    }
-
-    this.consecutiveEmptyPolls = 0
-    
-    const now = Date.now()
-    
-    const hasVeryNearExpiry = this.activeOrders.some(order => {
-      const exitTime = new Date(order.exit_time!).getTime()
-      const timeLeft = exitTime - now
-      return timeLeft > 0 && timeLeft < 3000
-    })
-    
-    if (hasVeryNearExpiry) {
-      return 200
-    }
-    
-    const hasNearExpiry = this.activeOrders.some(order => {
-      const exitTime = new Date(order.exit_time!).getTime()
-      const timeLeft = exitTime - now
-      return timeLeft > 0 && timeLeft < 10000
-    })
-
-    if (hasNearExpiry) {
-      return 500
-    }
-
-    return 1000
-  }
-
-  private async scheduleNext() {
-    if (!this.isPolling || !this.pollCallback) return
-
-    const startTime = Date.now()
-    
-    try {
-      await this.pollCallback()
-    } catch (error) {
-      console.error('Polling error:', error)
-    }
-
-    if (this.isPolling) {
-      const executionTime = Date.now() - startTime
-      const interval = this.getInterval()
-      
-      const adjustedInterval = Math.max(100, interval - executionTime)
-      
-      this.intervalId = setTimeout(() => this.scheduleNext(), adjustedInterval)
-    }
-  }
-}
 
 const EXTENDED_DURATIONS = [
   { value: 0.0167, label: '1 second', shortLabel: '⚡ 1s', isUltraFast: true },
@@ -167,7 +76,6 @@ const formatExpiryTime = (durationMinutes: number): string => {
   const asset = useTradingStore.getState().selectedAsset
   if (!asset) return getDurationDisplay(durationMinutes)
   
-  // Use current timestamp for real-time calculation
   const now = TimezoneUtil.getCurrentTimestamp()
   const timing = CalculationUtil.formatOrderTiming(asset, durationMinutes, now)
   
@@ -185,20 +93,28 @@ export default function TradingPage() {
   const selectedAccountType = useSelectedAccountType()
   const { setSelectedAsset, setCurrentPrice, addPriceToHistory, setSelectedAccountType } = useTradingActions()
 
+  // ✅ NEW: Optimistic orders hook
+  const {
+    orders: allOrders,
+    confirmedOrders,
+    optimisticOrders,
+    addOptimisticOrder,
+    confirmOrder,
+    rollbackOrder,
+    updateOrder,
+    setAllOrders,
+  } = useOptimisticOrders()
+
   const [assets, setAssets] = useState<Asset[]>([])
   const [realBalance, setRealBalance] = useState(0)
   const [demoBalance, setDemoBalance] = useState(0)
   const [amount, setAmount] = useState(10000)
   const [duration, setDuration] = useState(1)
   const [loading, setLoading] = useState(false)
-  const [activeOrders, setActiveOrders] = useState<BinaryOrder[]>([])
-  const [completedOrders, setCompletedOrders] = useState<BinaryOrder[]>([])
   const [notificationOrder, setNotificationOrder] = useState<BinaryOrder | null>(null)
   
   const notifiedOrdersRef = useRef<Set<string>>(new Set())
-  const previousOrdersRef = useRef<Map<string, BinaryOrder>>(new Map())
   const balanceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const pollingManagerRef = useRef(new AggressivePollingManager())
   
   const [showAssetMenu, setShowAssetMenu] = useState(false)
   const [showAccountMenu, setShowAccountMenu] = useState(false)
@@ -210,9 +126,12 @@ export default function TradingPage() {
   const [showLeftSidebar, setShowLeftSidebar] = useState(false)
 
   const currentBalance = selectedAccountType === 'real' ? realBalance : demoBalance
-
   const isUltraFastMode = duration === 0.0167
   const durationDisplay = getDurationDisplay(duration)
+
+  // ✅ Separate active and completed orders
+  const activeOrders = allOrders.filter(o => o.status === 'ACTIVE' || o.status === 'PENDING')
+  const completedOrders = allOrders.filter(o => o.status === 'WON' || o.status === 'LOST')
 
   const { isConnected, isConnecting } = useWebSocket()
   
@@ -226,6 +145,7 @@ export default function TradingPage() {
     true
   )
 
+  // ✅ WebSocket price updates
   useEffect(() => {
     if (wsPrice && selectedAsset?.id === wsPrice.assetId) {
       setCurrentPrice({
@@ -237,69 +157,67 @@ export default function TradingPage() {
     }
   }, [wsPrice, priceLastUpdate, selectedAsset?.id, setCurrentPrice])
 
+  // ✅ WebSocket order updates
   useEffect(() => {
     if (wsOrder) {
       if (wsOrder.event === 'order:created') {
-        loadActiveOrders()
+        loadOrders()
       } else if (wsOrder.event === 'order:settled') {
-        setActiveOrders(prev => prev.filter((o: BinaryOrder) => o.id !== wsOrder.id))
-        loadData()
+        updateOrder(wsOrder.id, {
+          status: wsOrder.status,
+          exit_price: wsOrder.exit_price,
+          profit: wsOrder.profit,
+        } as any)
+        loadBalances()
       }
     }
-  }, [wsOrder, orderLastUpdate])
+  }, [wsOrder, orderLastUpdate, updateOrder])
 
-  const detectOrderCompletion = useCallback((active: BinaryOrder[], completed: BinaryOrder[]) => {
-    active.forEach((order: BinaryOrder) => {
-      previousOrdersRef.current.set(order.id, order)
-    })
-
-    completed.forEach((order: BinaryOrder) => {
-      if (notifiedOrdersRef.current.has(order.id)) {
-        return
-      }
-
-      const previousOrder = previousOrdersRef.current.get(order.id)
+  // ✅ NEW: Aggressive polling for results
+  useAggressiveResultPolling(activeOrders, useCallback((resultOrder: BinaryOrder) => {
+    console.log('🎯 Result detected via polling:', resultOrder.id, resultOrder.status)
+    
+    // Update order
+    updateOrder(resultOrder.id, resultOrder)
+    
+    // Show notification only once
+    if (!notifiedOrdersRef.current.has(resultOrder.id)) {
+      notifiedOrdersRef.current.add(resultOrder.id)
+      setNotificationOrder(resultOrder)
       
-      if (previousOrder && 
-          previousOrder.status === 'ACTIVE' && 
-          (order.status === 'WON' || order.status === 'LOST')) {
-        
-        notifiedOrdersRef.current.add(order.id)
-        
-        setNotificationOrder(order)
-        
-        if (typeof window !== 'undefined') {
-          const audio = new Audio(order.status === 'WON' ? '/sounds/win.mp3' : '/sounds/lose.mp3')
-          audio.volume = 0.3
-          audio.play().catch(e => console.log('Audio play failed:', e))
-        }
-        
-        previousOrdersRef.current.delete(order.id)
-        
-        if (balanceUpdateTimeoutRef.current) {
-          clearTimeout(balanceUpdateTimeoutRef.current)
-        }
-        
-        balanceUpdateTimeoutRef.current = setTimeout(() => {
-          api.getBothBalances().then(res => {
-            const balances = res?.data || res
-            unstable_batchedUpdates(() => {
-              setRealBalance(balances?.realBalance || 0)
-              setDemoBalance(balances?.demoBalance || 0)
-            })
-          }).catch(console.error)
-        }, 100)
+      // Update balance
+      if (balanceUpdateTimeoutRef.current) {
+        clearTimeout(balanceUpdateTimeoutRef.current)
       }
-    })
+      
+      balanceUpdateTimeoutRef.current = setTimeout(() => {
+        loadBalances()
+      }, 100)
+    }
+  }, [updateOrder]))
 
-    const completedIds = new Set(completed.map(o => o.id))
-    const notifiedIds = Array.from(notifiedOrdersRef.current)
-    notifiedIds.forEach(id => {
-      if (!completedIds.has(id)) {
-        notifiedOrdersRef.current.delete(id)
-      }
-    })
+  const loadBalances = useCallback(async () => {
+    try {
+      const res = await api.getBothBalances()
+      const balances = res?.data || res
+      unstable_batchedUpdates(() => {
+        setRealBalance(balances?.realBalance || 0)
+        setDemoBalance(balances?.demoBalance || 0)
+      })
+    } catch (error) {
+      console.error('Failed to load balances:', error)
+    }
   }, [])
+
+  const loadOrders = useCallback(async () => {
+    try {
+      const response = await api.getOrders(undefined, 1, 100)
+      const orders = response?.data?.orders || response?.orders || []
+      setAllOrders(orders)
+    } catch (error) {
+      console.error('Failed to load orders:', error)
+    }
+  }, [setAllOrders])
 
   const loadData = useCallback(async () => {
     try {
@@ -311,52 +229,22 @@ export default function TradingPage() {
 
       const assetsList = assetsRes?.data?.assets || assetsRes?.assets || []
       const balances = balancesRes?.data || balancesRes
-      const currentRealBalance = balances?.realBalance || 0
-      const currentDemoBalance = balances?.demoBalance || 0
       const allOrders = ordersRes?.data?.orders || ordersRes?.orders || []
-
-      const active = allOrders.filter((o: BinaryOrder) => o.status === 'ACTIVE')
-      const completed = allOrders.filter((o: BinaryOrder) => 
-        o.status === 'WON' || o.status === 'LOST'
-      )
-
-      detectOrderCompletion(active, completed)
 
       unstable_batchedUpdates(() => {
         setAssets(assetsList)
-        setRealBalance(currentRealBalance)
-        setDemoBalance(currentDemoBalance)
-        setActiveOrders(active)
-        setCompletedOrders(completed.slice(0, 10))
+        setRealBalance(balances?.realBalance || 0)
+        setDemoBalance(balances?.demoBalance || 0)
+        setAllOrders(allOrders)
       })
-
-      pollingManagerRef.current.updateActiveOrders(active)
 
       if (assetsList.length > 0 && !selectedAsset) {
         setSelectedAsset(assetsList[0])
       }
     } catch (error) {
       console.error('Failed to load data:', error)
-      unstable_batchedUpdates(() => {
-        setAssets([])
-        setRealBalance(0)
-        setDemoBalance(0)
-        setActiveOrders([])
-        setCompletedOrders([])
-      })
     }
-  }, [selectedAsset, detectOrderCompletion, setSelectedAsset])
-
-  const loadActiveOrders = useCallback(async () => {
-    try {
-      const response = await api.getOrders('ACTIVE', 1, 100)
-      const orders = response?.data?.orders || response?.orders || []
-      setActiveOrders(orders)
-      pollingManagerRef.current.updateActiveOrders(orders)
-    } catch (error) {
-      console.error('Failed to load active orders:', error)
-    }
-  }, [])
+  }, [selectedAsset, setSelectedAsset, setAllOrders])
 
   const handleCompleteTutorial = useCallback(async () => {
     try {
@@ -369,7 +257,6 @@ export default function TradingPage() {
       }
       
       useAuthStore.setState({ user: updatedUser })
-      
       setShowTutorial(false)
       toast.success('Tutorial selesai! Selamat trading!')
     } catch (error) {
@@ -389,7 +276,6 @@ export default function TradingPage() {
       }
       
       useAuthStore.setState({ user: updatedUser })
-      
       setShowTutorial(false)
       toast.info('Tutorial dilewati. Akses lagi dari Settings > Show Tutorial')
     } catch (error) {
@@ -398,15 +284,10 @@ export default function TradingPage() {
     }
   }, [user])
 
-  const handleShowTutorialManually = useCallback(() => {
-    setShowTutorial(true)
-  }, [])
-
   const handleLogout = useCallback(async () => {
     try {
       api.removeToken()
       api.clearCache()
-      
       logout()
       
       if (typeof window !== 'undefined') {
@@ -415,7 +296,6 @@ export default function TradingPage() {
       }
       
       await new Promise(resolve => setTimeout(resolve, 100))
-      
       router.replace('/')
     } catch (error) {
       console.error('Logout error:', error)
@@ -423,6 +303,7 @@ export default function TradingPage() {
     }
   }, [logout, router])
 
+  // ✅ Initial load
   useEffect(() => {
     if (!user) {
       router.push('/')
@@ -434,11 +315,9 @@ export default function TradingPage() {
       
       if (selectedAsset && selectedAsset.realtimeDbPath) {
         let basePath = selectedAsset.realtimeDbPath
-        
         if (basePath.endsWith('/current_price')) {
           basePath = basePath.replace('/current_price', '')
         }
-        
         prefetchDefaultAsset(basePath).catch(console.error)
       }
     }
@@ -448,8 +327,9 @@ export default function TradingPage() {
     }
     
     initializeData()
-  }, [user, router, assets]) 
+  }, [user, router, assets])
 
+  // ✅ Show tutorial
   useEffect(() => {
     if (!user) return
 
@@ -469,16 +349,7 @@ export default function TradingPage() {
     }
   }, [user])
 
-  useEffect(() => {
-    if (!user) return
-
-    pollingManagerRef.current.start(loadData)
-
-    return () => {
-      pollingManagerRef.current.stop()
-    }
-  }, [user, loadData])
-
+  // ✅ Firebase price subscription
   useEffect(() => {
     if (!selectedAsset) return
 
@@ -511,16 +382,17 @@ export default function TradingPage() {
     setNotificationOrder(null)
   }, [])
 
+  // ✅ Cleanup
   useEffect(() => {
     return () => {
       if (balanceUpdateTimeoutRef.current) {
         clearTimeout(balanceUpdateTimeoutRef.current)
       }
       notifiedOrdersRef.current.clear()
-      previousOrdersRef.current.clear()
     }
   }, [])
 
+  // ✅ NEW: INSTANT ORDER PLACEMENT with optimistic updates
   const handlePlaceOrder = useCallback(async (direction: 'CALL' | 'PUT') => {
     if (!selectedAsset) {
       toast.error('Please select an asset')
@@ -539,12 +411,37 @@ export default function TradingPage() {
     }
 
     setLoading(true)
-    try {
+
     const now = TimezoneUtil.getCurrentTimestamp()
     const timing = CalculationUtil.formatOrderTiming(selectedAsset, duration, now)
-    
-      
-      await api.createOrder({
+
+    // ✅ STEP 1: Add optimistic order to UI INSTANTLY (0ms perceived latency)
+    const optimisticId = addOptimisticOrder({
+      accountType: selectedAccountType,
+      asset_id: selectedAsset.id,
+      asset_name: selectedAsset.name,
+      direction,
+      amount,
+      duration,
+      entry_price: 0, // Will be updated by backend
+      entry_time: timing.entryDateTime,
+      exit_time: timing.expiryDateTime,
+      profitRate: selectedAsset.profitRate,
+      status: 'PENDING',
+    })
+
+    // ✅ STEP 2: Update balance optimistically INSTANTLY
+    if (selectedAccountType === 'real') {
+      setRealBalance(prev => prev - amount)
+    } else {
+      setDemoBalance(prev => prev - amount)
+    }
+
+    console.log('⚡ Optimistic order added:', optimisticId)
+
+    try {
+      // ✅ STEP 3: Send to API in background
+      const response = await api.createOrder({
         accountType: selectedAccountType,
         asset_id: selectedAsset.id,
         direction,
@@ -552,24 +449,46 @@ export default function TradingPage() {
         duration,
       })
 
-      toast.success(`${direction} order placed! Expires at ${timing.expiryDateTime}`)
+      const confirmedOrderData = response?.data || response
       
-      unstable_batchedUpdates(() => {
-        if (selectedAccountType === 'real') {
-          setRealBalance((prev) => prev - amount)
-        } else {
-          setDemoBalance((prev) => prev - amount)
-        }
+      // ✅ STEP 4: Confirm and replace optimistic order with real one
+      confirmOrder(optimisticId, confirmedOrderData)
+
+      console.log('✅ Order confirmed:', confirmedOrderData.id)
+
+      toast.success(`${direction} order placed! Expires at ${timing.expiryDateTime}`, {
+        duration: 2000,
       })
-      
-      setTimeout(loadData, 200)
+
     } catch (error: any) {
+      // ✅ STEP 5: Rollback on error
+      console.error('❌ Order failed, rolling back:', error)
+      
+      rollbackOrder(optimisticId)
+      
+      // Restore balance
+      if (selectedAccountType === 'real') {
+        setRealBalance(prev => prev + amount)
+      } else {
+        setDemoBalance(prev => prev + amount)
+      }
+
       const errorMsg = error?.response?.data?.error || 'Failed to place order'
       toast.error(errorMsg)
     } finally {
       setLoading(false)
     }
-  }, [selectedAsset, amount, selectedAccountType, realBalance, demoBalance, duration, loadData])
+  }, [
+    selectedAsset, 
+    amount, 
+    duration, 
+    selectedAccountType, 
+    realBalance, 
+    demoBalance,
+    addOptimisticOrder,
+    confirmOrder,
+    rollbackOrder,
+  ])
 
   const potentialProfit = selectedAsset ? (amount * selectedAsset.profitRate) / 100 : 0
   const potentialPayout = amount + potentialProfit
@@ -578,6 +497,7 @@ export default function TradingPage() {
 
   return (
     <div className="h-screen flex flex-col bg-[#0a0e17] text-white overflow-hidden">
+      {/* Header */}
       <div className="h-14 lg:h-16 bg-[#1a1f2e] border-b border-gray-800/50 flex items-center justify-between px-2 flex-shrink-0">
         <div className="hidden lg:flex items-center gap-4 w-full">
           <div className="flex items-center gap-3">
@@ -776,6 +696,7 @@ export default function TradingPage() {
           </div>
         </div>
 
+        {/* Mobile Header */}
         <div className="flex lg:hidden items-center justify-between w-full px-1">
           <div className="flex items-center gap-3">
             <button
@@ -865,16 +786,17 @@ export default function TradingPage() {
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="flex-1 flex overflow-hidden min-h-0">
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           <div className="flex-1 bg-[#0a0e17] relative overflow-hidden">
             {selectedAsset ? (
-            <TradingChart 
-              activeOrders={activeOrders}
-              currentPrice={currentPrice?.price}
-              assets={assets}
-              onAssetSelect={setSelectedAsset}
-            />
+              <TradingChart 
+                activeOrders={activeOrders}
+                currentPrice={currentPrice?.price}
+                assets={assets}
+                onAssetSelect={setSelectedAsset}
+              />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center text-gray-500">
@@ -885,6 +807,7 @@ export default function TradingPage() {
           </div>
         </div>
 
+        {/* Desktop Sidebar */}
         <div className="hidden lg:block w-64 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
           <div className="h-full flex flex-col p-4 space-y-4 overflow-hidden">
             <div className="bg-[#1a1f2e] rounded-xl px-3 py-2">
@@ -982,18 +905,12 @@ export default function TradingPage() {
                   <ArrowDown className="w-6 h-6" />
                 </button>
               </div>
-
-              {loading && (
-                <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-2 mt-3">
-                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-400"></div>
-                  Processing...
-                </div>
-              )}
             </div>
           </div>
         </div>
       </div>
 
+      {/* Mobile Bottom Controls */}
       <div className="lg:hidden bg-[#0f1419] border-t border-gray-800/50 p-4">
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -1120,16 +1037,10 @@ export default function TradingPage() {
               <span>SELL</span>
             </button>
           </div>
-
-          {loading && (
-            <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-2 pt-1">
-              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-400"></div>
-              Processing order...
-            </div>
-          )}
         </div>
       </div>
 
+      {/* Mobile Wallet Modal */}
       {showWalletModal && (
         <>
           <div 
@@ -1214,6 +1125,7 @@ export default function TradingPage() {
         </>
       )}
 
+      {/* Mobile Menu */}
       {showMobileMenu && (
         <>
           <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setShowMobileMenu(false)} />
@@ -1324,13 +1236,7 @@ export default function TradingPage() {
         </>
       )}
 
-      {showHistorySidebar && (
-        <HistorySidebar 
-          isOpen={showHistorySidebar} 
-          onClose={() => setShowHistorySidebar(false)} 
-        />
-      )}
-
+      {/* Left Sidebar */}
       {showLeftSidebar && (
         <>
           <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setShowLeftSidebar(false)} />
@@ -1401,6 +1307,15 @@ export default function TradingPage() {
         </>
       )}
 
+      {/* History Sidebar */}
+      {showHistorySidebar && (
+        <HistorySidebar 
+          isOpen={showHistorySidebar} 
+          onClose={() => setShowHistorySidebar(false)} 
+        />
+      )}
+
+      {/* Tutorial */}
       {showTutorial && (
         <TradingTutorial
           onComplete={handleCompleteTutorial}
@@ -1408,6 +1323,7 @@ export default function TradingPage() {
         />
       )}
 
+      {/* ✅ Instant Notification */}
       <OrderNotification 
         order={notificationOrder}
         onClose={handleCloseNotification}

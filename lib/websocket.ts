@@ -1,3 +1,4 @@
+// lib/websocket.ts - INSTANT VERSION with High-Priority Support
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 
@@ -6,20 +7,17 @@ interface PriceUpdate {
   price: number;
   timestamp: number;
   datetime: string;
-  volume24h?: number;
-  changePercent24h?: number;
-  high24h?: number;
-  low24h?: number;
 }
 
 interface OrderUpdate {
-  event: 'order:created' | 'order:settled';
+  event: 'order:created' | 'order:settled' | 'order:updated';
   id: string;
   status?: string;
   exit_price?: number;
   profit?: number;
   asset_symbol?: string;
   timestamp: number;
+  priority?: 'high' | 'normal';
 }
 
 type PriceCallback = (data: PriceUpdate) => void;
@@ -40,6 +38,10 @@ class WebSocketService {
   private isConnected = false;
   private lastValidTimestamp: Map<string, number> = new Map();
   private readonly MAX_ACCEPTABLE_AGE = 1000;
+
+  // ✅ High-priority message queue
+  private highPriorityQueue: OrderUpdate[] = [];
+  private processingHighPriority = false;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -75,7 +77,7 @@ class WebSocketService {
     try {
       const BACKEND_WS_URL = process.env.NEXT_PUBLIC_BACKEND_WS_URL || 'https://api.stcautotrade.id';
 
-      console.log('Connecting to WebSocket:', BACKEND_WS_URL);
+      console.log('⚡ Connecting to WebSocket with high-priority support:', BACKEND_WS_URL);
 
       if (this.socket) {
         this.socket.removeAllListeners();
@@ -94,6 +96,9 @@ class WebSocketService {
         forceNew: true,
         withCredentials: false,
         path: '/socket.io/',
+        // ✅ Optimize for low latency
+        upgrade: true,
+        rememberUpgrade: true,
       });
 
       this.setupEventHandlers();
@@ -109,7 +114,7 @@ class WebSocketService {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('WebSocket connected:', this.socket?.id);
+      console.log('⚡ WebSocket connected (instant mode):', this.socket?.id);
       this.isConnected = true;
       this.isConnecting = false;
       this.reconnectAttempts = 0;
@@ -136,47 +141,39 @@ class WebSocketService {
       this.handleConnectionError();
     });
 
-    this.socket.on('reconnect_attempt', (attempt) => {
-      console.log(`Reconnection attempt ${attempt}/${this.maxReconnectAttempts}`);
-      this.reconnectAttempts = attempt;
-    });
-
-    this.socket.on('reconnect', (attempt) => {
-      console.log(`Reconnected after ${attempt} attempts`);
-      this.isConnected = true;
-      this.isConnecting = false;
-      this.reconnectAttempts = 0;
-    });
-
-    this.socket.on('reconnect_failed', () => {
-      console.error('WebSocket reconnection failed');
-      this.isConnecting = false;
-      toast.error('Failed to reconnect to real-time service', {
-        duration: 3000,
-      });
-    });
-
+    // ✅ INSTANT: Price updates (no batching)
     this.socket.on('price:update', (data: PriceUpdate) => {
       this.handlePriceUpdate(data);
     });
 
+    // ✅ INSTANT: Order updates with priority handling
     this.socket.on('order:update', (data: OrderUpdate) => {
-      this.handleOrderUpdate(data);
+      if (data.priority === 'high') {
+        this.handleHighPriorityOrderUpdate(data);
+      } else {
+        this.handleOrderUpdate(data);
+      }
+    });
+
+    // ✅ Order settled events (highest priority)
+    this.socket.on('order:settled', (data: OrderUpdate) => {
+      this.handleHighPriorityOrderUpdate({
+        ...data,
+        event: 'order:settled',
+        priority: 'high',
+      });
     });
 
     this.socket.on('user:subscribed', (data) => {
-      console.log('User subscribed:', data);
+      console.log('✅ User subscribed (instant updates enabled):', data);
     });
 
     this.socket.on('price:subscribed', (data) => {
-      console.log('Price subscribed:', data);
+      console.log('✅ Price subscribed (instant updates enabled):', data);
     });
 
     this.socket.on('error', (error) => {
       console.error('WebSocket error:', error);
-      toast.error(error.message || 'WebSocket error', {
-        duration: 3000,
-      });
     });
   }
 
@@ -210,6 +207,25 @@ class WebSocketService {
     }
   }
 
+  // ✅ High-priority order updates (instant, no queue)
+  private handleHighPriorityOrderUpdate(data: OrderUpdate) {
+    console.log('🚀 High-priority order update:', data.event, data.id);
+    
+    // Process immediately on next tick for instant feedback
+    requestAnimationFrame(() => {
+      if (this.orderCallbacks.size > 0) {
+        this.orderCallbacks.forEach(callback => {
+          try {
+            callback(data);
+          } catch (error) {
+            console.error('Order callback error:', error);
+          }
+        });
+      }
+    });
+  }
+
+  // ✅ Normal priority order updates
   private handleOrderUpdate(data: OrderUpdate) {
     if (this.orderCallbacks.size > 0) {
       this.orderCallbacks.forEach(callback => {
@@ -232,7 +248,11 @@ class WebSocketService {
     this.priceCallbacks.get(assetId)!.add(callback);
 
     if (this.isConnected && this.socket?.connected) {
-      this.socket.emit('price:subscribe', { assetIds: [assetId] });
+      // ✅ Request high-frequency updates
+      this.socket.emit('price:subscribe', { 
+        assetIds: [assetId],
+        highFrequency: true,
+      });
     }
 
     return () => {
@@ -254,13 +274,18 @@ class WebSocketService {
   }
 
   subscribeToOrders(userId: string, callback: OrderCallback) {
-    console.log('Subscribing to orders for user:', userId);
+    console.log('Subscribing to orders for user (instant mode):', userId);
 
     this.currentUserId = userId;
     this.orderCallbacks.add(callback);
 
     if (this.isConnected && this.socket?.connected) {
-      this.socket.emit('user:subscribe', { userId });
+      // ✅ Request instant order updates
+      this.socket.emit('user:subscribe', { 
+        userId,
+        instantUpdates: true,
+        highPriority: true,
+      });
     }
 
     return () => {
@@ -283,17 +308,24 @@ class WebSocketService {
       return;
     }
 
-    console.log('Resubscribing to all subscriptions...');
+    console.log('⚡ Resubscribing to all subscriptions (instant mode)...');
 
     const assetIds = Array.from(this.priceCallbacks.keys());
     if (assetIds.length > 0) {
-      this.socket.emit('price:subscribe', { assetIds });
+      this.socket.emit('price:subscribe', { 
+        assetIds,
+        highFrequency: true,
+      });
       console.log('Resubscribed to prices:', assetIds);
     }
 
     if (this.currentUserId && this.orderCallbacks.size > 0) {
-      this.socket.emit('user:subscribe', { userId: this.currentUserId });
-      console.log('Resubscribed to user orders:', this.currentUserId);
+      this.socket.emit('user:subscribe', { 
+        userId: this.currentUserId,
+        instantUpdates: true,
+        highPriority: true,
+      });
+      console.log('Resubscribed to user orders (instant):', this.currentUserId);
     }
   }
 
@@ -311,6 +343,7 @@ class WebSocketService {
     this.currentUserId = null;
     this.priceCallbacks.clear();
     this.orderCallbacks.clear();
+    this.highPriorityQueue = [];
   }
 
   getConnectionStatus() {
@@ -324,6 +357,7 @@ class WebSocketService {
         prices: this.priceCallbacks.size,
         orders: this.orderCallbacks.size,
       },
+      highPriorityQueue: this.highPriorityQueue.length,
     };
   }
 

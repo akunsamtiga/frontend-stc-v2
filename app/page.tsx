@@ -1387,7 +1387,7 @@ export default function LandingPage() {
 </section>
 
 
-      {/* Affiliate Program */}
+            {/* Affiliate Program */}
 <section className="py-16 sm:py-20 relative border-t border-emerald-800/30">
   <div className="container mx-auto px-4 sm:px-6">
     {/* Header */}
@@ -1403,59 +1403,58 @@ export default function LandingPage() {
       </p>
     </div>
 
-    {/* Reward Cards */}
-    <div className="grid sm:grid-cols-2 gap-6 max-w-4xl mx-auto mb-16">
+    {/* Reward Cards - Compact Grid for Mobile */}
+    <div className="grid grid-cols-2 gap-3 sm:gap-6 max-w-4xl mx-auto mb-16">
       {/* VIP Card */}
-      <div className="group relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-emerald-500/30 rounded-3xl p-8 hover:border-emerald-500/50 transition-all duration-300 overflow-hidden">
+      <div className="group relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-emerald-500/30 rounded-2xl sm:rounded-3xl p-4 sm:p-8 hover:border-emerald-500/50 transition-all duration-300 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
         
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full mb-4">
-            <Award className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs font-semibold text-emerald-400">Pengguna VIP</span>
+          <div className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full mb-2 sm:mb-4">
+            <Award className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" />
+            <span className="text-[10px] sm:text-xs font-semibold text-emerald-400">VIP</span>
           </div>
           
-          <div className="flex items-baseline gap-2 mb-4">
-            <span className="text-4xl font-bold text-emerald-400">Rp 400.000</span>
-            <span className="text-gray-500">/trader</span>
+          <div className="flex flex-col sm:flex-row sm:items-baseline gap-0 sm:gap-2 mb-2 sm:mb-4">
+            <span className="text-xl sm:text-4xl font-bold text-emerald-400">Rp 400rb</span>
+            <span className="text-xs sm:text-gray-500">/trader</span>
           </div>
           
-          <p className="text-gray-400 text-sm leading-relaxed">
-            Untuk setiap trader baru yang Anda undang sebagai member VIP atau Platinum
+          <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">
+            Untuk member VIP/Platinum
           </p>
         </div>
       </div>
 
       {/* Standard & Gold Card */}
-      <div className="group relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-sky-500/30 rounded-3xl p-8 hover:border-sky-500/50 transition-all duration-300 overflow-hidden">
+      <div className="group relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-sky-500/30 rounded-2xl sm:rounded-3xl p-4 sm:p-8 hover:border-sky-500/50 transition-all duration-300 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-sky-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
         
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-sky-500/10 border border-sky-500/30 rounded-full mb-4">
-            <Star className="w-4 h-4 text-sky-400" />
-            <span className="text-xs font-semibold text-sky-400">Pengguna Standard & Gold</span>
+          <div className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-sky-500/10 border border-sky-500/30 rounded-full mb-2 sm:mb-4">
+            <Star className="w-3 h-3 sm:w-4 sm:h-4 text-sky-400" />
+            <span className="text-[10px] sm:text-xs font-semibold text-sky-400">Std & Gold</span>
           </div>
           
-          <div className="flex items-baseline gap-2 mb-4">
-            <span className="text-4xl font-bold text-sky-400">Rp 100.000</span>
-            <span className="text-gray-500">/trader</span>
+          <div className="flex flex-col sm:flex-row sm:items-baseline gap-0 sm:gap-2 mb-2 sm:mb-4">
+            <span className="text-xl sm:text-4xl font-bold text-sky-400">Rp 100rb</span>
+            <span className="text-xs sm:text-gray-500">/trader</span>
           </div>
           
-          <p className="text-gray-400 text-sm leading-relaxed">
-            Untuk setiap trader baru yang Anda undang sebagai member Standard atau Gold
+          <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">
+            Untuk member Standard/Gold
           </p>
-
         </div>
       </div>
     </div>
 
-    {/* How It Works */}
+    {/* How It Works - Compact Grid for Mobile */}
     <div className="max-w-4xl mx-auto mb-16">
-      <h3 className="text-2xl sm:text-3xl font-bold text-center mb-12">
-        Maksimalkan Keuntungan Anda dengan Program Affiliate
+      <h3 className="text-xl sm:text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">
+        Maksimalkan Keuntungan Anda
       </h3>
 
-      {/* Desktop Timeline */}
+      {/* Desktop Timeline - Hidden on Mobile */}
       <div className="hidden md:grid md:grid-cols-4 gap-6">
         {[
           {
@@ -1510,31 +1509,26 @@ export default function LandingPage() {
         ))}
       </div>
 
-      {/* Mobile Steps */}
-      <div className="md:hidden space-y-4">
+      {/* Mobile Steps - Compact Grid Layout */}
+      <div className="md:hidden grid grid-cols-2 gap-3">
         {[
-          { num: '1', icon: Users, title: 'Temukan Teman', desc: 'Yang sudah trading di STC', color: 'emerald' },
-          { num: '2', icon: UserPlus, title: 'Daftar dengan Link', desc: 'Gunakan tautan rujukan mereka', color: 'emerald' },
-          { num: '3', icon: DollarSign, title: 'Deposit & Bonus', desc: 'Dapatkan Rp 25.000 untuk deposit pertama', color: 'emerald' },
-          { num: '4', icon: TrendingUp, title: 'Undang & Raih', desc: 'Dapatkan hingga Rp 400.000 lebih', color: 'emerald' }
+          { num: '1', icon: Users, title: 'Temukan Teman', desc: 'Cari teman trader', color: 'emerald' },
+          { num: '2', icon: UserPlus, title: 'Daftar dengan Link', desc: 'Gunakan link referral', color: 'emerald' },
+          { num: '3', icon: DollarSign, title: 'Deposit & Bonus', desc: 'Rp 25.000 bonus', color: 'emerald' },
+          { num: '4', icon: TrendingUp, title: 'Undang & Raih', desc: 'Hingga Rp 400.000', color: 'emerald' }
         ].map((step, i) => (
-          <div key={i} className="flex gap-4 relative">
-            {i < 3 && <div className="absolute left-7 top-16 w-px h-8 bg-gray-800"></div>}
-            
-            <div className="flex-shrink-0">
-              <div className={`w-14 h-14 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-full flex items-center justify-center`}>
-                <span className={`text-lg font-bold text-white`}>{step.num}</span>
+          <div key={i} className="relative bg-[#0a0e17] border border-gray-800/50 rounded-xl p-3 hover:border-gray-700 transition-all group">
+            <div className="flex items-start gap-2">
+              <div className={`flex-shrink-0 w-6 h-6 bg-${step.color}-500/20 border border-${step.color}-500/50 rounded-full flex items-center justify-center`}>
+                <span className={`text-xs font-bold text-${step.color}-400`}>{step.num}</span>
               </div>
-            </div>
-            
-            <div className="flex-1 bg-[#0a0e17] border border-gray-800/50 rounded-xl p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className={`w-10 h-10 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-lg flex items-center justify-center`}>
-                  <step.icon className={`w-5 h-5 text-${step.color}-400`} />
+              <div className="flex-1 min-w-0">
+                <div className={`w-8 h-8 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-lg flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform`}>
+                  <step.icon className={`w-4 h-4 text-${step.color}-400`} />
                 </div>
-                <h4 className="font-bold">{step.title}</h4>
+                <h4 className="font-bold text-sm mb-0.5 truncate">{step.title}</h4>
+                <p className="text-xs text-gray-400 leading-tight">{step.desc}</p>
               </div>
-              <p className="text-sm text-gray-400 leading-relaxed">{step.desc}</p>
             </div>
           </div>
         ))}
@@ -1558,54 +1552,53 @@ export default function LandingPage() {
         </div>
       </div>
 
-      <div className="relative z-10 p-8 sm:p-12 text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6">
-          <Award className="w-4 h-4 text-emerald-400" />
-          <span className="text-sm font-medium text-emerald-400">Program Partner</span>
+      <div className="relative z-10 p-6 sm:p-8 sm:p-12 text-center">
+        <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-4 sm:mb-6">
+          <Award className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" />
+          <span className="text-xs sm:text-sm font-medium text-emerald-400">Program Partner</span>
         </div>
 
-        <h3 className="text-3xl sm:text-4xl font-bold mb-4">
+        <h3 className="text-xl sm:text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">
           Jadilah Mitra Resmi STC
         </h3>
         
-        <p className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
+        <p className="text-sm sm:text-lg text-gray-400 mb-6 sm:mb-8 max-w-2xl mx-auto">
           Ajak trader baru ke platform dan dapatkan <span className="text-emerald-400 font-semibold">penghasilan tambahan</span>
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
           <button
             onClick={() => {
               setIsLogin(false)
               setShowAuthModal(true)
             }}
-            className="group px-8 py-4 bg-gradient-to-r from-emerald-600 to-emerald-600 hover:from-emerald-500 hover:to-emerald-500 rounded-xl font-semibold text-white transition-all shadow-lg hover:shadow-emerald-500/25"
+            className="group px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-emerald-600 to-emerald-600 hover:from-emerald-500 hover:to-emerald-500 rounded-xl font-semibold text-white transition-all shadow-lg hover:shadow-emerald-500/25"
           >
             <span className="flex items-center justify-center gap-2">
               Daftar Sekarang
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
             </span>
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-6 mt-12 pt-8 border-t border-gray-800/50">
+        <div className="grid grid-cols-3 gap-3 sm:gap-6 mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-gray-800/50">
           <div className="text-center">
-            <div className="text-2xl font-bold text-emerald-400 mb-1">Free</div>
-            <div className="text-xs text-gray-500">No Admin Fees</div>
+            <div className="text-lg sm:text-2xl font-bold text-emerald-400 mb-1">Free</div>
+            <div className="text-[10px] sm:text-xs text-gray-500">No Admin Fees</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-emerald-400 mb-1">∞</div>
-            <div className="text-xs text-gray-500">Unlimited Earning</div>
+            <div className="text-lg sm:text-2xl font-bold text-emerald-400 mb-1">∞</div>
+            <div className="text-[10px] sm:text-xs text-gray-500">Unlimited Earning</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-emerald-400 mb-1">24/7</div>
-            <div className="text-xs text-gray-500">Support</div>
+            <div className="text-lg sm:text-2xl font-bold text-emerald-400 mb-1">24/7</div>
+            <div className="text-[10px] sm:text-xs text-gray-500">Support</div>
           </div>
         </div>
       </div>
     </div>
   </div>
 </section>
-
 
       {/* Footer */}
       <EnhancedFooter />
