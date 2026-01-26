@@ -1,5 +1,7 @@
+// components/MidtransDepositPage.tsx - ✅ FIXED VERSION with Voucher Support
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, CreditCard, Wallet, AlertCircle, CheckCircle, Clock, XCircle, Loader2, Shield, Zap, TestTube } from 'lucide-react';
+import { ArrowLeft, CreditCard, Wallet, AlertCircle, CheckCircle, Clock, XCircle, Loader2, Shield, Zap, TestTube, Tag } from 'lucide-react';
+import VoucherInput from '@/components/VoucherInput'; // ✅ ADDED
 
 interface DepositResponse {
   success: boolean;
@@ -23,6 +25,8 @@ interface TransactionHistory {
   status: 'pending' | 'success' | 'failed' | 'expired';
   payment_type?: string;
   description?: string;
+  voucherCode?: string; // ✅ ADDED
+  voucherBonusAmount?: number; // ✅ ADDED
   createdAt: string;
   completedAt?: string;
 }
@@ -248,6 +252,12 @@ const MidtransPaymentPage: React.FC = () => {
   const [error, setError] = useState('');
   const [transactionHistory, setTransactionHistory] = useState<TransactionHistory[]>([]);
   const [currentTransaction, setCurrentTransaction] = useState<any>(null);
+  
+  // ✅ ADDED: Voucher state
+  const [voucherCode, setVoucherCode] = useState<string>('');
+  const [voucherBonus, setVoucherBonus] = useState<number>(0);
+  const [voucherType, setVoucherType] = useState<'percentage' | 'fixed' | null>(null);
+  const [voucherValue, setVoucherValue] = useState<number>(0);
 
   const quickAmounts = [50000, 100000, 250000, 500000, 1000000, 2000000];
   const MIN_AMOUNT = 10000;
@@ -266,6 +276,26 @@ const MidtransPaymentPage: React.FC = () => {
     }
   };
 
+  // ✅ ADDED: Voucher handler
+  const handleVoucherApplied = (voucher: {
+    code: string
+    bonusAmount: number
+    type: 'percentage' | 'fixed'
+    value: number
+  } | null) => {
+    if (voucher) {
+      setVoucherCode(voucher.code);
+      setVoucherBonus(voucher.bonusAmount);
+      setVoucherType(voucher.type);
+      setVoucherValue(voucher.value);
+    } else {
+      setVoucherCode('');
+      setVoucherBonus(0);
+      setVoucherType(null);
+      setVoucherValue(0);
+    }
+  };
+
   const handlePayment = async () => {
     const paymentAmount = parseFloat(amount);
     
@@ -278,7 +308,12 @@ const MidtransPaymentPage: React.FC = () => {
     setError('');
 
     try {
-      const response = await PaymentAPI.createTransaction(paymentAmount, 'Top up balance');
+      // ✅ FIXED: Pass voucherCode to API
+      const response = await PaymentAPI.createTransaction(
+        paymentAmount, 
+        'Top up balance',
+        voucherCode || undefined
+      );
       
       const transaction = response.data.deposit;
       setCurrentTransaction(transaction);
@@ -419,6 +454,54 @@ const MidtransPaymentPage: React.FC = () => {
             </div>
           </div>
 
+          {/* ✅ ADDED: Voucher Input Section */}
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-100 mb-4">
+            <VoucherInput
+              depositAmount={parseFloat(amount) || 0}
+              onVoucherApplied={handleVoucherApplied}
+              disabled={loading || !amount || parseFloat(amount) < MIN_AMOUNT}
+            />
+          </div>
+
+          {/* ✅ ADDED: Voucher Bonus Display */}
+          {voucherBonus > 0 && (
+            <div className="bg-green-50 border-2 border-green-300 rounded-2xl p-6 shadow-lg mb-4">
+              <div className="flex items-center gap-2 text-green-800 mb-4">
+                <Tag className="w-5 h-5" />
+                <span className="font-bold text-lg">Voucher Applied!</span>
+              </div>
+              
+              <div className="space-y-2 text-sm text-green-700">
+                <div className="flex justify-between items-center pb-2">
+                  <span>Voucher Code:</span>
+                  <span className="font-mono font-bold">{voucherCode}</span>
+                </div>
+                
+                <div className="flex justify-between items-center pb-2">
+                  <span>Deposit Amount:</span>
+                  <span className="font-semibold">{formatCurrency(parseFloat(amount))}</span>
+                </div>
+                
+                <div className="flex justify-between items-center pb-2 border-b border-green-300">
+                  <span>Bonus from Voucher:</span>
+                  <span className="font-semibold text-green-600">
+                    +{formatCurrency(voucherBonus)}
+                    {voucherType === 'percentage' && (
+                      <span className="text-xs ml-1">({voucherValue}%)</span>
+                    )}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center pt-2">
+                  <span className="font-bold text-base">Total Balance Received:</span>
+                  <span className="font-bold text-xl text-green-700">
+                    {formatCurrency(parseFloat(amount) + voucherBonus)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-6 shadow-lg mb-4 text-white">
             <div className="flex items-center gap-3 mb-4">
               <Shield className="w-6 h-6" />
@@ -511,6 +594,20 @@ const MidtransPaymentPage: React.FC = () => {
                   {formatCurrency(currentTransaction.amount)}
                 </span>
               </div>
+              
+              {/* ✅ ADDED: Show voucher info if applied */}
+              {voucherCode && (
+                <>
+                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
+                    <span className="text-sm text-gray-600">Voucher</span>
+                    <span className="text-sm font-mono font-semibold text-green-600">{voucherCode}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Bonus</span>
+                    <span className="text-sm font-bold text-green-600">+{formatCurrency(voucherBonus)}</span>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -555,6 +652,27 @@ const MidtransPaymentPage: React.FC = () => {
               <div className="text-2xl font-bold text-green-600 mb-3">
                 {formatCurrency(currentTransaction.amount)}
               </div>
+              
+              {/* ✅ ADDED: Show voucher bonus if applied */}
+              {voucherCode && voucherBonus > 0 && (
+                <div className="bg-green-100 border border-green-300 rounded-lg p-3 mb-3">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Tag className="w-4 h-4 text-green-700" />
+                    <span className="text-xs font-bold text-green-800">Voucher Applied</span>
+                  </div>
+                  <div className="text-sm text-green-700">
+                    <div>Code: <strong>{voucherCode}</strong></div>
+                    <div>Bonus: <strong>+{formatCurrency(voucherBonus)}</strong></div>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-green-300">
+                    <div className="text-xs text-green-600">Total Balance Received</div>
+                    <div className="text-lg font-bold text-green-700">
+                      {formatCurrency(currentTransaction.amount + voucherBonus)}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <div className="text-xs text-gray-500">
                 Order ID: {currentTransaction.order_id}
               </div>
@@ -585,6 +703,11 @@ const MidtransPaymentPage: React.FC = () => {
                 setStep('amount');
                 setAmount('');
                 setCurrentTransaction(null);
+                // ✅ ADDED: Reset voucher state
+                setVoucherCode('');
+                setVoucherBonus(0);
+                setVoucherType(null);
+                setVoucherValue(0);
               }}
               className="w-full text-green-600 py-3 rounded-xl font-semibold hover:bg-green-50 transition-all"
             >
@@ -648,8 +771,18 @@ const MidtransPaymentPage: React.FC = () => {
                       <TransactionStatusBadge status={transaction.status} />
                     </div>
                     
+                    {/* ✅ ADDED: Show voucher info in history */}
+                    {transaction.voucherCode && transaction.voucherBonusAmount && (
+                      <div className="ml-13 mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 rounded px-2 py-1 w-fit">
+                        <Tag className="w-3 h-3" />
+                        <span>
+                          Voucher: <strong>{transaction.voucherCode}</strong> (+{formatCurrency(transaction.voucherBonusAmount)})
+                        </span>
+                      </div>
+                    )}
+                    
                     {transaction.payment_type && (
-                      <div className="text-xs text-gray-500 ml-13">
+                      <div className="text-xs text-gray-500 ml-13 mt-1">
                         via {transaction.payment_type}
                       </div>
                     )}
