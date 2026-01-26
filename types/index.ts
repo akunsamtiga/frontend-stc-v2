@@ -1266,3 +1266,79 @@ export interface ChangePasswordRequest {
   newPassword: string
   confirmPassword: string
 }
+
+export interface Voucher {
+  id: string
+  code: string
+  type: 'percentage' | 'fixed'
+  value: number
+  minDeposit: number
+  eligibleStatuses: string[]
+  maxUses?: number
+  usedCount: number
+  maxUsesPerUser: number
+  maxBonusAmount?: number
+  isActive: boolean
+  validFrom: string
+  validUntil: string
+  description?: string
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface VoucherUsage {
+  id: string
+  voucherId: string
+  voucherCode: string
+  userId: string
+  userEmail: string
+  depositId: string
+  depositAmount: number
+  bonusAmount: number
+  usedAt: string
+}
+
+export interface CreateVoucherRequest {
+  code: string
+  type: 'percentage' | 'fixed'
+  value: number
+  minDeposit: number
+  eligibleStatuses: string[]
+  maxUses?: number
+  maxUsesPerUser?: number
+  maxBonusAmount?: number
+  isActive?: boolean
+  validFrom: string
+  validUntil: string
+  description?: string
+}
+
+export interface ValidateVoucherRequest {
+  code: string
+  depositAmount: number
+}
+
+export interface ValidateVoucherResponse {
+  valid: boolean
+  bonusAmount?: number
+  message?: string
+  voucher?: Voucher
+}
+
+export interface VoucherStatistics {
+  voucher: {
+    id: string
+    code: string
+    type: string
+    value: number
+  }
+  statistics: {
+    totalUsed: number
+    totalBonusGiven: number
+    totalDepositAmount: number
+    averageBonus: number
+    remainingUses: number | null
+  }
+  recentUsages: VoucherUsage[]
+}

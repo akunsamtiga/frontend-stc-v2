@@ -1,4 +1,3 @@
-// lib/api.ts - Complete API Client with Optimizations
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
 import type { 
@@ -20,7 +19,12 @@ import type {
   WithdrawalRequest,
   WithdrawalSummary,
   PendingVerifications,
-  VerifyDocumentRequest
+  VerifyDocumentRequest,
+  CreateVoucherRequest,
+  Voucher,
+  VoucherStatistics,
+  ValidateVoucherResponse,
+  VoucherUsage
 } from '@/types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
@@ -375,10 +379,8 @@ class ApiClient {
   async googleSignIn(idToken: string, referralCode?: string): Promise<ApiResponse> {
     try {
       const response = await this.client.post('/auth/google', { idToken, referralCode })
-      console.log('Google Sign-In API response:', response)
       return response
     } catch (error: any) {
-      console.error('Google Sign-In API error:', error)
       throw error
     }
   }
@@ -393,7 +395,6 @@ class ApiClient {
       this.invalidateCache('/user/profile')
       return result
     } catch (error) {
-      console.error('Tutorial completion failed:', error)
       throw error
     }
   }
@@ -412,7 +413,6 @@ class ApiClient {
         return data
       })
     } catch (error) {
-      console.error('Profile fetch failed:', error)
       throw error
     }
   }
@@ -433,7 +433,6 @@ class ApiClient {
       
       return result
     } catch (error) {
-      console.error('Withdrawal request failed:', error)
       throw error
     }
   }
@@ -463,7 +462,6 @@ class ApiClient {
       
       return result
     } catch (error) {
-      console.error('Cancel withdrawal failed:', error)
       throw error
     }
   }
@@ -521,7 +519,6 @@ class ApiClient {
       
       return result
     } catch (error) {
-      console.error('Approve withdrawal failed:', error)
       throw error
     }
   }
@@ -542,7 +539,6 @@ class ApiClient {
       
       return result
     } catch (error) {
-      console.error('Profile update failed:', error)
       throw error
     }
   }
@@ -568,7 +564,6 @@ class ApiClient {
       
       return result
     } catch (error) {
-      console.error('Avatar upload failed:', error)
       throw error
     }
   }
@@ -578,12 +573,6 @@ class ApiClient {
     photoBack?: { url: string; fileSize?: number; mimeType?: string }
   }): Promise<ApiResponse> {
     try {
-      console.log('API uploadKTP called:', {
-        hasFront: !!data.photoFront,
-        hasBack: !!data.photoBack,
-        frontSize: data.photoFront?.fileSize,
-      })
-
       if (!data?.photoFront?.url) {
         throw new Error('Front photo is required')
       }
@@ -603,13 +592,10 @@ class ApiClient {
         }
       })
       
-      console.log('API uploadKTP response:', result)
       this.invalidateCache('/user/profile')
       
       return result
     } catch (error: any) {
-      console.error('API uploadKTP error:', error)
-      console.error('Error response:', error?.response?.data)
       throw error
     }
   }
@@ -635,7 +621,6 @@ class ApiClient {
       
       return result
     } catch (error) {
-      console.error('Selfie upload failed:', error)
       throw error
     }
   }
@@ -666,7 +651,6 @@ class ApiClient {
       
       return result
     } catch (error) {
-      console.error('Password change failed:', error)
       throw error
     }
   }
@@ -690,7 +674,6 @@ class ApiClient {
       
       return result
     } catch (error) {
-      console.error('Phone verification failed:', error)
       throw error
     }
   }
@@ -701,7 +684,6 @@ class ApiClient {
       this.invalidateCache('/assets')
       return result
     } catch (error) {
-      console.error('Asset icon upload failed:', error)
       throw error
     }
   }
@@ -1003,7 +985,6 @@ class ApiClient {
       
       return result
     } catch (error) {
-      console.error('Verify KTP failed:', error)
       throw error
     }
   }
@@ -1017,48 +998,141 @@ class ApiClient {
       
       return result
     } catch (error) {
-      console.error('Verify Selfie failed:', error)
       throw error
     }
   }
 
-async createMidtransDeposit(data: {
-  amount: number
-  description?: string
-}): Promise<ApiResponse> {
-  try {
-    const result = await this.client.post('/payment/deposit', data, {
-      headers: {
-        'X-Idempotent': 'true'
-      }
-    })
-    
-    this.invalidateCache('/balance')
-    this.invalidateCache('/user/profile')
-    
-    return result
-  } catch (error) {
-    console.error('Midtrans deposit failed:', error)
-    throw error
+  async createMidtransDeposit(data: {
+    amount: number
+    description?: string
+    voucherCode?: string
+  }): Promise<ApiResponse> {
+    try {
+      const result = await this.client.post('/payment/deposit', {
+        amount: data.amount,
+        description: data.description || 'Top up balance',
+        voucherCode: data.voucherCode
+      }, {
+        headers: {
+          'X-Idempotent': 'true'
+        }
+      })
+      
+      this.invalidateCache('/balance')
+      this.invalidateCache('/user/profile')
+      this.invalidateCache('/vouchers/my/history')
+      
+      return result
+    } catch (error) {
+      throw error
+    }
   }
-}
 
-async getDepositHistory(): Promise<ApiResponse> {
-  const cacheKey = this.getCacheKey('/payment/deposits')
-  const cached = this.getFromCache(cacheKey)
-  
-  if (cached) return cached
-  
-  return this.withDeduplication(cacheKey, async () => {
-    const data = await this.client.get('/payment/deposits')
-    this.setCache(cacheKey, data, 5000)
-    return data
-  })
-}
+  async getDepositHistory(): Promise<ApiResponse> {
+    const cacheKey = this.getCacheKey('/payment/deposits')
+    const cached = this.getFromCache(cacheKey)
+    
+    if (cached) return cached
+    
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get('/payment/deposits')
+      this.setCache(cacheKey, data, 5000)
+      return data
+    })
+  }
 
-async checkMidtransDepositStatus(orderId: string): Promise<ApiResponse> {
-  return this.client.get(`/payment/deposit/${orderId}/status`)
-}
+  async checkMidtransDepositStatus(orderId: string): Promise<ApiResponse> {
+    return this.client.get(`/payment/deposit/${orderId}/status`)
+  }
+
+  async createVoucher(data: CreateVoucherRequest): Promise<ApiResponse> {
+    try {
+      const result = await this.client.post('/vouchers', data)
+      this.invalidateCache('/vouchers')
+      toast.success('Voucher created successfully')
+      return result
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async getAllVouchers(options?: { 
+    isActive?: boolean
+    page?: number
+    limit?: number 
+  }): Promise<ApiResponse<{ vouchers: Voucher[]; pagination: any }>> {
+    const params = new URLSearchParams()
+    if (options?.isActive !== undefined) params.append('isActive', String(options.isActive))
+    if (options?.page) params.append('page', String(options.page))
+    if (options?.limit) params.append('limit', String(options.limit))
+    
+    const cacheKey = this.getCacheKey('/vouchers', options)
+    const cached = this.getFromCache(cacheKey)
+    
+    if (cached) return cached
+    
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get(`/vouchers?${params}`)
+      this.setCache(cacheKey, data, 30000)
+      return data
+    })
+  }
+
+  async getVoucherById(voucherId: string): Promise<ApiResponse<Voucher>> {
+    return this.client.get(`/vouchers/${voucherId}`)
+  }
+
+  async getVoucherStatistics(voucherId: string): Promise<ApiResponse<VoucherStatistics>> {
+    return this.client.get(`/vouchers/${voucherId}/statistics`)
+  }
+
+  async updateVoucher(voucherId: string, data: Partial<CreateVoucherRequest>): Promise<ApiResponse> {
+    try {
+      const result = await this.client.put(`/vouchers/${voucherId}`, data)
+      this.invalidateCache('/vouchers')
+      toast.success('Voucher updated successfully')
+      return result
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async deleteVoucher(voucherId: string): Promise<ApiResponse> {
+    try {
+      const result = await this.client.delete(`/vouchers/${voucherId}`)
+      this.invalidateCache('/vouchers')
+      toast.success('Voucher deleted successfully')
+      return result
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async validateVoucher(code: string, depositAmount: number): Promise<ApiResponse<ValidateVoucherResponse>> {
+    return this.client.post('/vouchers/validate', {
+      code,
+      depositAmount
+    })
+  }
+
+  async getMyVoucherHistory(): Promise<ApiResponse<{
+    usages: VoucherUsage[]
+    summary: {
+      totalUsed: number
+      totalBonusReceived: number
+    }
+  }>> {
+    const cacheKey = this.getCacheKey('/vouchers/my/history')
+    const cached = this.getFromCache(cacheKey)
+    
+    if (cached) return cached
+    
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get('/vouchers/my/history')
+      this.setCache(cacheKey, data, 60000)
+      return data
+    })
+  }
 
   clearCache(pattern?: string) {
     this.invalidateCache(pattern)

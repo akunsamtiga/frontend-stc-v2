@@ -1,10 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, CreditCard, Wallet, AlertCircle, CheckCircle, Clock, XCircle, Loader2, Shield, Zap, TestTube } from 'lucide-react';
 
-// ============================================
-// TYPE DEFINITIONS
-// ============================================
-
 interface DepositResponse {
   success: boolean;
   data: {
@@ -20,7 +16,7 @@ interface DepositResponse {
   };
 }
 
-interface DepositHistory {
+interface TransactionHistory {
   id: string;
   order_id: string;
   amount: number;
@@ -31,11 +27,7 @@ interface DepositHistory {
   completedAt?: string;
 }
 
-// ============================================
-// API HELPER
-// ============================================
-
-class DepositAPI {
+class PaymentAPI {
   private static baseURL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
   
   private static getHeaders(): HeadersInit {
@@ -46,52 +38,48 @@ class DepositAPI {
     };
   }
 
-  static async createDeposit(amount: number, description?: string): Promise<DepositResponse> {
+  static async createTransaction(amount: number, description?: string, voucherCode?: string): Promise<DepositResponse> {
     const response = await fetch(`${this.baseURL}/payment/deposit`, {
       method: 'POST',
       headers: this.getHeaders(),
-      body: JSON.stringify({ amount, description })
+      body: JSON.stringify({ amount, description, voucherCode })
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to create deposit');
+      throw new Error(error.message || 'Failed to create transaction');
     }
 
     return response.json();
   }
 
-  static async getDepositHistory(): Promise<DepositHistory[]> {
+  static async getTransactionHistory(): Promise<TransactionHistory[]> {
     const response = await fetch(`${this.baseURL}/payment/deposits`, {
       method: 'GET',
       headers: this.getHeaders()
     });
 
     if (!response.ok) {
-      throw new Error('Failed to fetch deposit history');
+      throw new Error('Failed to fetch transaction history');
     }
 
     const data = await response.json();
     return data.data?.deposits || data.deposits || [];
   }
 
-  static async checkDepositStatus(orderId: string): Promise<any> {
+  static async checkTransactionStatus(orderId: string): Promise<any> {
     const response = await fetch(`${this.baseURL}/payment/deposit/${orderId}/status`, {
       method: 'GET',
       headers: this.getHeaders()
     });
 
     if (!response.ok) {
-      throw new Error('Failed to check deposit status');
+      throw new Error('Failed to check transaction status');
     }
 
     return response.json();
   }
 }
-
-// ============================================
-// MIDTRANS SNAP INTEGRATION
-// ============================================
 
 class MidtransSnap {
   private static isLoaded = false;
@@ -101,18 +89,15 @@ class MidtransSnap {
 
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      
-      // ✅ SANDBOX/PRODUCTION MODE
       const isSandbox = process.env.NEXT_PUBLIC_MIDTRANS_MODE === 'sandbox';
       script.src = isSandbox 
-        ? 'https://app.sandbox.midtrans.com/snap/snap.js'  // Sandbox
-        : 'https://app.midtrans.com/snap/snap.js';         // Production
+        ? 'https://app.sandbox.midtrans.com/snap/snap.js'
+        : 'https://app.midtrans.com/snap/snap.js';
       
       script.setAttribute('data-client-key', process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '');
       
       script.onload = () => {
         this.isLoaded = true;
-        console.log(`✅ Midtrans Snap loaded (${isSandbox ? 'SANDBOX' : 'PRODUCTION'} mode)`);
         resolve();
       };
       
@@ -133,19 +118,15 @@ class MidtransSnap {
 
       window.snap.pay(snapToken, {
         onSuccess: (result: any) => {
-          console.log('✅ Payment Success:', result);
           resolve({ status: 'success', result });
         },
         onPending: (result: any) => {
-          console.log('⏳ Payment Pending:', result);
           resolve({ status: 'pending', result });
         },
         onError: (result: any) => {
-          console.error('❌ Payment Error:', result);
           reject(new Error('Payment failed'));
         },
         onClose: () => {
-          console.log('🚪 Payment popup closed');
           resolve({ status: 'closed' });
         }
       });
@@ -153,7 +134,6 @@ class MidtransSnap {
   }
 }
 
-// Extend Window interface for TypeScript
 declare global {
   interface Window {
     snap?: {
@@ -162,11 +142,7 @@ declare global {
   }
 }
 
-// ============================================
-// DEPOSIT STATUS BADGE
-// ============================================
-
-const DepositStatusBadge: React.FC<{ status: string }> = ({ status }) => {
+const TransactionStatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const configs: Record<string, { label: string; bg: string; icon: React.ReactNode }> = {
     pending: {
       label: 'Pending',
@@ -199,10 +175,6 @@ const DepositStatusBadge: React.FC<{ status: string }> = ({ status }) => {
     </span>
   );
 };
-
-// ============================================
-// SANDBOX TEST CARDS INFO
-// ============================================
 
 const SandboxTestCards: React.FC = () => {
   const [showCards, setShowCards] = useState(false);
@@ -269,42 +241,36 @@ const SandboxTestCards: React.FC = () => {
   );
 };
 
-// ============================================
-// MAIN DEPOSIT COMPONENT
-// ============================================
-
-const MidtransDepositPage: React.FC = () => {
+const MidtransPaymentPage: React.FC = () => {
   const [step, setStep] = useState<'amount' | 'processing' | 'success' | 'history'>('amount');
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [depositHistory, setDepositHistory] = useState<DepositHistory[]>([]);
-  const [currentDeposit, setCurrentDeposit] = useState<any>(null);
+  const [transactionHistory, setTransactionHistory] = useState<TransactionHistory[]>([]);
+  const [currentTransaction, setCurrentTransaction] = useState<any>(null);
 
   const quickAmounts = [50000, 100000, 250000, 500000, 1000000, 2000000];
-  const MIN_DEPOSIT = 10000;
-  
-  // ✅ CHECK IF SANDBOX MODE
+  const MIN_AMOUNT = 10000;
   const isSandbox = process.env.NEXT_PUBLIC_MIDTRANS_MODE === 'sandbox';
 
   useEffect(() => {
-    loadDepositHistory();
+    loadTransactionHistory();
   }, []);
 
-  const loadDepositHistory = async () => {
+  const loadTransactionHistory = async () => {
     try {
-      const history = await DepositAPI.getDepositHistory();
-      setDepositHistory(history);
+      const history = await PaymentAPI.getTransactionHistory();
+      setTransactionHistory(history);
     } catch (err) {
       console.error('Failed to load history:', err);
     }
   };
 
-  const handleDeposit = async () => {
-    const depositAmount = parseFloat(amount);
+  const handlePayment = async () => {
+    const paymentAmount = parseFloat(amount);
     
-    if (isNaN(depositAmount) || depositAmount < MIN_DEPOSIT) {
-      setError(`Minimum deposit is Rp ${MIN_DEPOSIT.toLocaleString()}`);
+    if (isNaN(paymentAmount) || paymentAmount < MIN_AMOUNT) {
+      setError(`Minimum amount is Rp ${MIN_AMOUNT.toLocaleString()}`);
       return;
     }
 
@@ -312,33 +278,25 @@ const MidtransDepositPage: React.FC = () => {
     setError('');
 
     try {
-      // Step 1: Create deposit transaction
-      console.log('🔐 Creating deposit transaction...');
-      const response = await DepositAPI.createDeposit(depositAmount, 'Deposit via Midtrans');
+      const response = await PaymentAPI.createTransaction(paymentAmount, 'Top up balance');
       
-      const deposit = response.data.deposit;
-      setCurrentDeposit(deposit);
+      const transaction = response.data.deposit;
+      setCurrentTransaction(transaction);
 
-      console.log('✅ Deposit created:', deposit.order_id);
-
-      // Step 2: Open Midtrans Snap
       setStep('processing');
       
-      console.log('💳 Opening Midtrans payment...');
-      const paymentResult = await MidtransSnap.pay(deposit.snap_token);
+      const paymentResult = await MidtransSnap.pay(transaction.snap_token);
 
-      // Step 3: Handle payment result
       if (paymentResult.status === 'success' || paymentResult.status === 'pending') {
         setStep('success');
-        await loadDepositHistory();
+        await loadTransactionHistory();
       } else if (paymentResult.status === 'closed') {
         setError('Payment cancelled by user');
         setStep('amount');
       }
 
     } catch (err: any) {
-      console.error('❌ Deposit failed:', err);
-      setError(err.message || 'Deposit failed. Please try again.');
+      setError(err.message || 'Payment failed. Please try again.');
       setStep('amount');
     } finally {
       setLoading(false);
@@ -364,15 +322,10 @@ const MidtransDepositPage: React.FC = () => {
     });
   };
 
-  // ============================================
-  // RENDER: AMOUNT INPUT STEP
-  // ============================================
-
   if (step === 'amount') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
         <div className="max-w-2xl mx-auto">
-          {/* Header */}
           <div className="mb-6">
             <button
               onClick={() => window.history.back()}
@@ -388,12 +341,11 @@ const MidtransDepositPage: React.FC = () => {
                   <Wallet className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Deposit Funds</h1>
-                  <p className="text-sm text-gray-600">Add money to your Real Account</p>
+                  <h1 className="text-2xl font-bold text-gray-900">Top Up Balance</h1>
+                  <p className="text-sm text-gray-600">Add funds to your account</p>
                 </div>
               </div>
               
-              {/* ✅ SANDBOX MODE INDICATOR */}
               {isSandbox && (
                 <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <div className="flex items-center gap-2">
@@ -406,14 +358,12 @@ const MidtransDepositPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Sandbox Test Cards Info */}
           {isSandbox && (
             <div className="mb-4">
               <SandboxTestCards />
             </div>
           )}
 
-          {/* Amount Input */}
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-100 mb-4">
             <label className="block text-sm font-semibold text-gray-700 mb-3">
               Enter Amount (IDR)
@@ -440,11 +390,10 @@ const MidtransDepositPage: React.FC = () => {
             )}
 
             <div className="mt-4 text-xs text-gray-500 text-center">
-              Minimum deposit: {formatCurrency(MIN_DEPOSIT)}
+              Minimum amount: {formatCurrency(MIN_AMOUNT)}
             </div>
           </div>
 
-          {/* Quick Amounts */}
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-100 mb-4">
             <label className="block text-sm font-semibold text-gray-700 mb-3">
               Quick Select
@@ -470,7 +419,6 @@ const MidtransDepositPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Payment Methods Info */}
           <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-6 shadow-lg mb-4 text-white">
             <div className="flex items-center gap-3 mb-4">
               <Shield className="w-6 h-6" />
@@ -506,10 +454,9 @@ const MidtransDepositPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Deposit Button */}
           <button
-            onClick={handleDeposit}
-            disabled={loading || !amount || parseFloat(amount) < MIN_DEPOSIT}
+            onClick={handlePayment}
+            disabled={loading || !amount || parseFloat(amount) < MIN_AMOUNT}
             className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
@@ -525,21 +472,16 @@ const MidtransDepositPage: React.FC = () => {
             )}
           </button>
 
-          {/* History Link */}
           <button
             onClick={() => setStep('history')}
             className="w-full mt-3 text-blue-600 py-3 rounded-xl font-semibold hover:bg-blue-50 transition-all"
           >
-            View Deposit History
+            View Transaction History
           </button>
         </div>
       </div>
     );
   }
-
-  // ============================================
-  // RENDER: PROCESSING STEP
-  // ============================================
 
   if (step === 'processing') {
     return (
@@ -557,16 +499,16 @@ const MidtransDepositPage: React.FC = () => {
             }
           </p>
 
-          {currentDeposit && (
+          {currentTransaction && (
             <div className="bg-gray-50 rounded-xl p-4 text-left">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm text-gray-600">Order ID</span>
-                <span className="text-sm font-mono font-semibold">{currentDeposit.order_id}</span>
+                <span className="text-sm font-mono font-semibold">{currentTransaction.order_id}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Amount</span>
                 <span className="text-lg font-bold text-blue-600">
-                  {formatCurrency(currentDeposit.amount)}
+                  {formatCurrency(currentTransaction.amount)}
                 </span>
               </div>
             </div>
@@ -589,10 +531,6 @@ const MidtransDepositPage: React.FC = () => {
     );
   }
 
-  // ============================================
-  // RENDER: SUCCESS STEP
-  // ============================================
-
   if (step === 'success') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
@@ -602,23 +540,23 @@ const MidtransDepositPage: React.FC = () => {
           </div>
           
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            {isSandbox ? 'Test Payment Complete!' : 'Deposit Submitted!'}
+            {isSandbox ? 'Test Payment Complete!' : 'Payment Submitted!'}
           </h2>
           <p className="text-gray-600 mb-6">
             {isSandbox 
-              ? 'Your test deposit was successful'
-              : 'Your deposit is being processed. Balance will be updated once payment is confirmed.'
+              ? 'Your test payment was successful'
+              : 'Your transaction is being processed. Balance will be updated once confirmed.'
             }
           </p>
 
-          {currentDeposit && (
+          {currentTransaction && (
             <div className="bg-gray-50 rounded-xl p-4 mb-6">
               <div className="text-sm text-gray-600 mb-1">Amount</div>
               <div className="text-2xl font-bold text-green-600 mb-3">
-                {formatCurrency(currentDeposit.amount)}
+                {formatCurrency(currentTransaction.amount)}
               </div>
               <div className="text-xs text-gray-500">
-                Order ID: {currentDeposit.order_id}
+                Order ID: {currentTransaction.order_id}
               </div>
             </div>
           )}
@@ -646,21 +584,17 @@ const MidtransDepositPage: React.FC = () => {
               onClick={() => {
                 setStep('amount');
                 setAmount('');
-                setCurrentDeposit(null);
+                setCurrentTransaction(null);
               }}
               className="w-full text-green-600 py-3 rounded-xl font-semibold hover:bg-green-50 transition-all"
             >
-              {isSandbox ? 'Test Another Payment' : 'Make Another Deposit'}
+              {isSandbox ? 'Test Another Payment' : 'Make Another Payment'}
             </button>
           </div>
         </div>
       </div>
     );
   }
-
-  // ============================================
-  // RENDER: HISTORY STEP
-  // ============================================
 
   if (step === 'history') {
     return (
@@ -676,27 +610,27 @@ const MidtransDepositPage: React.FC = () => {
             </button>
             
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-100">
-              <h1 className="text-2xl font-bold text-gray-900">Deposit History</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Transaction History</h1>
               <p className="text-sm text-gray-600">
-                Your recent deposit transactions
+                Your recent top-up transactions
                 {isSandbox && ' (including test transactions)'}
               </p>
             </div>
           </div>
 
           <div className="bg-white rounded-2xl shadow-lg border border-blue-100 overflow-hidden">
-            {depositHistory.length === 0 ? (
+            {transactionHistory.length === 0 ? (
               <div className="p-12 text-center">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Wallet className="w-8 h-8 text-gray-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No deposits yet</h3>
-                <p className="text-sm text-gray-600">Your deposit history will appear here</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No transactions yet</h3>
+                <p className="text-sm text-gray-600">Your transaction history will appear here</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
-                {depositHistory.map((deposit) => (
-                  <div key={deposit.id} className="p-4 hover:bg-gray-50 transition-colors">
+                {transactionHistory.map((transaction) => (
+                  <div key={transaction.id} className="p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
@@ -704,19 +638,19 @@ const MidtransDepositPage: React.FC = () => {
                         </div>
                         <div>
                           <div className="font-semibold text-gray-900">
-                            {formatCurrency(deposit.amount)}
+                            {formatCurrency(transaction.amount)}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {formatDate(deposit.createdAt)}
+                            {formatDate(transaction.createdAt)}
                           </div>
                         </div>
                       </div>
-                      <DepositStatusBadge status={deposit.status} />
+                      <TransactionStatusBadge status={transaction.status} />
                     </div>
                     
-                    {deposit.payment_type && (
+                    {transaction.payment_type && (
                       <div className="text-xs text-gray-500 ml-13">
-                        via {deposit.payment_type}
+                        via {transaction.payment_type}
                       </div>
                     )}
                   </div>
@@ -732,4 +666,4 @@ const MidtransDepositPage: React.FC = () => {
   return null;
 };
 
-export default MidtransDepositPage;
+export default MidtransPaymentPage;

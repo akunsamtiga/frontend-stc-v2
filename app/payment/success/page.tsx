@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { CheckCircle, Loader2 } from 'lucide-react'
 
 // Separate component that uses useSearchParams
-function DepositSuccessContent() {
+function PaymentSuccessContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const orderId = searchParams.get('order_id')
@@ -30,7 +30,7 @@ function DepositSuccessContent() {
           Payment Received!
         </h1>
         <p className="text-gray-600 mb-4">
-          Your deposit is being processed
+          Your transaction is being processed
         </p>
 
         {orderId && (
@@ -52,7 +52,7 @@ function DepositSuccessContent() {
 }
 
 // Loading fallback component
-function DepositSuccessLoading() {
+function PaymentSuccessLoading() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-md w-full text-center">
@@ -66,10 +66,10 @@ function DepositSuccessLoading() {
 }
 
 // Main page component with Suspense boundary
-export default function DepositSuccessPage() {
+export default function PaymentSuccessPage() {
   return (
-    <Suspense fallback={<DepositSuccessLoading />}>
-      <DepositSuccessContent />
+    <Suspense fallback={<PaymentSuccessLoading />}>
+      <PaymentSuccessContent />
     </Suspense>
   )
 }

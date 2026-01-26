@@ -85,14 +85,14 @@ export default function BalancePage() {
         accountType: 'demo',
         type: 'deposit',
         amount: amt,
-        description: `Deposit to demo account`,
+        description: `Top up to demo account`,  // ✅ UBAH: Dari "Deposit to demo account"
       })
-      toast.success(`Demo deposit successful!`)
+      toast.success(`Demo top up successful!`)  // ✅ UBAH: Dari "Demo deposit successful"
       setShowDeposit(false)
       setAmount('')
       loadData()
     } catch (error) {
-      toast.error('Demo deposit failed')
+      toast.error('Demo top up failed')  // ✅ UBAH: Dari "Demo deposit failed"
     } finally {
       setLoading(false)
     }
@@ -211,7 +211,7 @@ export default function BalancePage() {
                   className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm font-semibold hover:bg-green-600 transition-colors"
                 >
                   <ArrowDownToLine className="w-4 h-4" />
-                  Deposit
+                  Top Up  {/* ✅ UBAH: Dari "Deposit" */}
                 </Link>
                 <Link
                   href="/withdrawal"
@@ -285,7 +285,7 @@ export default function BalancePage() {
                     className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md touch-manipulation transition-colors"
                   >
                     <ArrowDownToLine className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    <span className="hidden sm:inline">Deposit</span>
+                    <span className="hidden sm:inline">Top Up</span>  {/* ✅ UBAH: Dari "Deposit" */}
                   </Link>
                   <Link
                     href="/withdrawal"
@@ -484,7 +484,9 @@ export default function BalancePage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5 sm:mb-1 flex-wrap">
-                          <div className="font-semibold text-gray-900 capitalize text-sm sm:text-base">{tx.type}</div>
+                          <div className="font-semibold text-gray-900 capitalize text-sm sm:text-base">
+                            {tx.type === 'deposit' ? 'Top Up' : tx.type}  {/* ✅ UBAH: Dari "deposit" menjadi "Top Up" */}
+                          </div>
                           <span className={`px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold ${
                             (tx.accountType || 'demo') === 'real' 
                               ? 'bg-green-100 text-green-700' 
@@ -511,7 +513,7 @@ export default function BalancePage() {
       </div>
 
       {/* ============================================ */}
-      {/* DEMO DEPOSIT MODAL (Only for Demo Account) */}
+      {/* DEMO TOP UP MODAL (Only for Demo Account) */}
       {/* ============================================ */}
       {showDeposit && transactionAccount === 'demo' && (
         <>
@@ -583,7 +585,7 @@ export default function BalancePage() {
                       Processing...
                     </>
                   ) : (
-                    'Confirm Deposit'
+                    'Confirm'  
                   )}
                 </button>
               </div>

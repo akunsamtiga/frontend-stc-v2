@@ -1,4 +1,3 @@
-// lib/utils.ts - FIXED: Price display with all decimal places
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns'
@@ -220,39 +219,31 @@ export function formatCurrency(amount: number, compact = false): string {
   return formatted
 }
 
-// ✅ FIXED: Format number dengan trailing zeros
 export function formatNumber(value: number, decimals = 3): string {
-  // Gunakan toFixed untuk mempertahankan trailing zeros
   return value.toFixed(decimals)
 }
 
-// ✅ FIXED: Format price dengan semua decimal places (termasuk trailing zeros)
 export function formatPrice(price: number, decimals?: number): string {
-  // Jika decimals tidak ditentukan, deteksi otomatis berdasarkan magnitude
   if (decimals === undefined) {
     if (price >= 1000) {
-      decimals = 2 // Untuk harga besar seperti 50000
+      decimals = 2
     } else if (price >= 1) {
-      decimals = 6 // Untuk harga normal seperti 1.234567
+      decimals = 6
     } else {
-      decimals = 8 // Untuk harga kecil seperti 0.00001234
+      decimals = 8
     }
   }
   
-  // Gunakan toFixed untuk mempertahankan trailing zeros
   return price.toFixed(decimals)
 }
 
-// ✅ NEW: Format price dengan auto-detection untuk crypto vs forex
 export function formatPriceAuto(price: number, assetType?: string): string {
-  // Crypto biasanya butuh lebih banyak decimal places
   if (assetType === 'crypto') {
     if (price >= 1000) return price.toFixed(2)
     if (price >= 1) return price.toFixed(8)
     return price.toFixed(10)
   }
   
-  // Forex/stocks biasanya 4-6 decimal places
   if (price >= 1000) return price.toFixed(2)
   if (price >= 1) return price.toFixed(6)
   return price.toFixed(8)
@@ -541,7 +532,6 @@ export function getLocalStorage<T>(key: string, defaultValue: T): T {
     const item = window.localStorage.getItem(key)
     return item ? JSON.parse(item) : defaultValue
   } catch (error) {
-    console.error(`Error reading localStorage key "${key}":`, error)
     return defaultValue
   }
 }
@@ -646,7 +636,6 @@ export const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
 export function clearAllCaches(): void {
   currencyCache.clear()
   dateCache.clear()
-  console.log('🗑️ All utility caches cleared')
 }
 
 if (typeof window !== 'undefined') {
