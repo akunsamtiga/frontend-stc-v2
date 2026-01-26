@@ -2,24 +2,20 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import Navbar from '@/components/Navbar'
-import Link from 'next/link'
+import { Balance as BalanceType, AccountType, UserProfile } from '@/types'
+import { formatCurrency, formatDate } from '@/lib/utils'
+import { getStatusGradient, getStatusProfitBonus } from '@/lib/status-utils'
 import { 
-  Users, 
-  Package, 
-  TrendingUp, 
-  DollarSign,
-  Activity,
-  Target,
-  ArrowRight,
-  Settings,
-  BarChart3,
-  Shield,
-  RefreshCw,
-  ArrowUpFromLine
+  Wallet, ArrowDownToLine, ArrowUpFromLine, X, Receipt, Award, 
+  TrendingUp, CreditCard, Loader2, Users, Package, Settings, 
+  Shield, BarChart3, Target, DollarSign, Activity, ArrowRight,
+  RefreshCw, ArrowUpFromLine as WithdrawIcon, Tag  // ✅ Add Tag icon for Vouchers
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { SystemStatistics } from '@/types'
 
 type AccountFilter = 'combined' | 'real' | 'demo'
@@ -92,23 +88,10 @@ const LoadingSkeleton = () => (
       <div className="mb-4 md:mb-6">
         <div className="h-6 bg-gray-200 rounded w-32 mb-3 md:mb-4"></div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-          {[...Array(3)].map((_, i) => (
+          {[...Array(6)].map((_, i) => (
             <QuickActionSkeleton key={i} />
           ))}
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        {[...Array(2)].map((_, idx) => (
-          <div key={idx} className="bg-white rounded-xl p-4 md:p-6 border border-gray-100 shadow-sm animate-pulse">
-            <div className="h-6 bg-gray-200 rounded w-32 md:w-40 mb-4 md:mb-6"></div>
-            <div className="space-y-3 md:space-y-4">
-              {[...Array(4)].map((_, i) => (
-                <StatRowSkeleton key={i} />
-              ))}
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   </div>
@@ -197,45 +180,45 @@ export default function AdminDashboard() {
   }
 
   const getFilteredStats = () => {
-  // Financial stats selalu dari akun REAL
-  const realFinancial = stats.realAccount.financial;
-  
-  if (accountFilter === 'real') {
-    return {
-      trading: stats.realAccount.trading,
-      financial: realFinancial
-    }
-  } else if (accountFilter === 'demo') {
-    return {
-      trading: stats.demoAccount.trading,
-      financial: realFinancial // <-- Ubah: pakai real financial bukan demo
-    }
-  } else {
-    const realTrading = stats.realAccount.trading
-    const demoTrading = stats.demoAccount.trading
+    const realFinancial = stats.realAccount.financial;
+    
+    if (accountFilter === 'real') {
+      return {
+        trading: stats.realAccount.trading,
+        financial: realFinancial
+      }
+    } else if (accountFilter === 'demo') {
+      return {
+        trading: stats.demoAccount.trading,
+        financial: realFinancial
+      }
+    } else {
+      const realTrading = stats.realAccount.trading
+      const demoTrading = stats.demoAccount.trading
 
-    return {
-      trading: {
-        totalOrders: realTrading.totalOrders + demoTrading.totalOrders,
-        activeOrders: realTrading.activeOrders + demoTrading.activeOrders,
-        wonOrders: realTrading.wonOrders + demoTrading.wonOrders,
-        lostOrders: realTrading.lostOrders + demoTrading.lostOrders,
-        winRate: Math.round(
-          ((realTrading.wonOrders + demoTrading.wonOrders) / 
-          ((realTrading.wonOrders + demoTrading.wonOrders) + 
-           (realTrading.lostOrders + demoTrading.lostOrders)) || 1) * 100
-        ),
-        totalVolume: realTrading.totalVolume + demoTrading.totalVolume,
-        totalProfit: realTrading.totalProfit + demoTrading.totalProfit,
-      },
-      financial: realFinancial 
+      return {
+        trading: {
+          totalOrders: realTrading.totalOrders + demoTrading.totalOrders,
+          activeOrders: realTrading.activeOrders + demoTrading.activeOrders,
+          wonOrders: realTrading.wonOrders + demoTrading.wonOrders,
+          lostOrders: realTrading.lostOrders + demoTrading.lostOrders,
+          winRate: Math.round(
+            ((realTrading.wonOrders + demoTrading.wonOrders) / 
+            ((realTrading.wonOrders + demoTrading.wonOrders) + 
+             (realTrading.lostOrders + demoTrading.lostOrders)) || 1) * 100
+          ),
+          totalVolume: realTrading.totalVolume + demoTrading.totalVolume,
+          totalProfit: realTrading.totalProfit + demoTrading.totalProfit,
+        },
+        financial: realFinancial 
+      }
     }
   }
-}
 
   const filteredStats = getFilteredStats()
 
-const quickActions = [
+  // ✅ ADD VOUCHER to quick actions
+  const quickActions = [
     {
       title: 'User Management',
       description: 'Manage users and permissions',
@@ -251,6 +234,14 @@ const quickActions = [
       color: 'purple'
     },
     {
+      title: 'Voucher Management',  // ✅ NEW: Voucher menu
+      description: 'Create and manage deposit vouchers',
+      icon: Tag,
+      href: '/admin/vouchers',
+      color: 'pink',
+      badge: undefined  // You can add badge if needed, e.g., active vouchers count
+    },
+    {
       title: 'Verification Management',
       description: 'Review KTP & Selfie verifications',
       icon: Shield,
@@ -261,7 +252,7 @@ const quickActions = [
     {
       title: 'Withdrawal Requests',
       description: 'Review and approve withdrawals',
-      icon: ArrowUpFromLine,
+      icon: WithdrawIcon,
       href: '/admin/withdrawals',
       color: 'red',
       badge: stats?.withdrawal?.pending && stats.withdrawal.pending > 0 ? stats.withdrawal.pending : undefined
@@ -603,7 +594,7 @@ const quickActions = [
           <div className="mt-4 md:mt-6 bg-gradient-to-r from-red-50 to-orange-50 rounded-xl p-4 md:p-5 lg:p-6 border border-red-100">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
-                <ArrowUpFromLine className="w-5 h-5 text-red-500" />
+                <WithdrawIcon className="w-5 h-5 text-red-500" />
                 Withdrawal Overview
               </h2>
               <Link 
