@@ -1,7 +1,8 @@
-// components/MidtransDepositPage.tsx - ✅ FIXED VERSION with Voucher Support
+// components/MidtransDepositPage.tsx - ✅ WITH AVAILABLE VOUCHERS
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, CreditCard, Wallet, AlertCircle, CheckCircle, Clock, XCircle, Loader2, Shield, Zap, TestTube, Tag } from 'lucide-react';
-import VoucherInput from '@/components/VoucherInput'; // ✅ ADDED
+import VoucherInput from '@/components/VoucherInput';
+import AvailableVouchers from '@/components/AvailableVouchers'; // ✅ NEW
 
 interface DepositResponse {
   success: boolean;
@@ -25,10 +26,28 @@ interface TransactionHistory {
   status: 'pending' | 'success' | 'failed' | 'expired';
   payment_type?: string;
   description?: string;
-  voucherCode?: string; // ✅ ADDED
-  voucherBonusAmount?: number; // ✅ ADDED
+  voucherCode?: string;
+  voucherBonusAmount?: number;
   createdAt: string;
   completedAt?: string;
+}
+
+// ✅ NEW: Voucher interface
+interface Voucher {
+  id: string;
+  code: string;
+  type: 'percentage' | 'fixed';
+  value: number;
+  minDeposit: number;
+  maxBonusAmount?: number;
+  eligibleStatuses: string[];
+  maxUses?: number;
+  usedCount: number;
+  maxUsesPerUser: number;
+  isActive: boolean;
+  validFrom: string;
+  validUntil: string;
+  description: string;
 }
 
 class PaymentAPI {
@@ -82,6 +101,32 @@ class PaymentAPI {
     }
 
     return response.json();
+  }
+
+  // ✅ NEW: Get available vouchers
+  static async getAvailableVouchers(): Promise<Voucher[]> {
+    const response = await fetch(`${this.baseURL}/vouchers?isActive=true&page=1&limit=50`, {
+      method: 'GET',
+      headers: this.getHeaders()
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch vouchers');
+    }
+
+    const data = await response.json();
+    
+    // Handle nested response structure
+    let vouchers: Voucher[] = [];
+    if (data?.data?.data?.vouchers) {
+      vouchers = data.data.data.vouchers;
+    } else if (data?.data?.vouchers) {
+      vouchers = data.data.vouchers;
+    } else if (data?.vouchers) {
+      vouchers = data.vouchers;
+    }
+    
+    return vouchers;
   }
 }
 
@@ -253,11 +298,15 @@ const MidtransPaymentPage: React.FC = () => {
   const [transactionHistory, setTransactionHistory] = useState<TransactionHistory[]>([]);
   const [currentTransaction, setCurrentTransaction] = useState<any>(null);
   
-  // ✅ ADDED: Voucher state
+  // Voucher state
   const [voucherCode, setVoucherCode] = useState<string>('');
   const [voucherBonus, setVoucherBonus] = useState<number>(0);
   const [voucherType, setVoucherType] = useState<'percentage' | 'fixed' | null>(null);
   const [voucherValue, setVoucherValue] = useState<number>(0);
+
+  // ✅ NEW: Available vouchers state
+  const [availableVouchers, setAvailableVouchers] = useState<Voucher[]>([]);
+  const [loadingVouchers, setLoadingVouchers] = useState(false);
 
   const quickAmounts = [50000, 100000, 250000, 500000, 1000000, 2000000];
   const MIN_AMOUNT = 10000;
@@ -265,6 +314,7 @@ const MidtransPaymentPage: React.FC = () => {
 
   useEffect(() => {
     loadTransactionHistory();
+    loadAvailableVouchers(); // ✅ NEW
   }, []);
 
   const loadTransactionHistory = async () => {
@@ -276,7 +326,19 @@ const MidtransPaymentPage: React.FC = () => {
     }
   };
 
-  // ✅ ADDED: Voucher handler
+  // ✅ NEW: Load available vouchers
+  const loadAvailableVouchers = async () => {
+    try {
+      setLoadingVouchers(true);
+      const vouchers = await PaymentAPI.getAvailableVouchers();
+      setAvailableVouchers(vouchers);
+    } catch (err) {
+      console.error('Failed to load vouchers:', err);
+    } finally {
+      setLoadingVouchers(false);
+    }
+  };
+
   const handleVoucherApplied = (voucher: {
     code: string
     bonusAmount: number
@@ -296,6 +358,40 @@ const MidtransPaymentPage: React.FC = () => {
     }
   };
 
+  // ✅ FIXED: Handle voucher selection from available vouchers
+  const handleVoucherSelect = (code: string) => {
+    // If clicking same voucher, deselect it
+    if (voucherCode === code) {
+      setVoucherCode('');
+      setVoucherBonus(0);
+      setVoucherType(null);
+      setVoucherValue(0);
+      return;
+    }
+    
+    // Calculate bonus for selected voucher
+    const selectedVoucher = availableVouchers.find(v => v.code === code);
+    if (!selectedVoucher) return;
+    
+    const depositAmount = parseFloat(amount) || 0;
+    let bonus = 0;
+    
+    if (selectedVoucher.type === 'percentage') {
+      bonus = Math.floor(depositAmount * (selectedVoucher.value / 100));
+      if (selectedVoucher.maxBonusAmount && bonus > selectedVoucher.maxBonusAmount) {
+        bonus = selectedVoucher.maxBonusAmount;
+      }
+    } else {
+      bonus = selectedVoucher.value;
+    }
+    
+    // Set all voucher state
+    setVoucherCode(code);
+    setVoucherBonus(bonus);
+    setVoucherType(selectedVoucher.type);
+    setVoucherValue(selectedVoucher.value);
+  };
+
   const handlePayment = async () => {
     const paymentAmount = parseFloat(amount);
     
@@ -308,7 +404,6 @@ const MidtransPaymentPage: React.FC = () => {
     setError('');
 
     try {
-      // ✅ FIXED: Pass voucherCode to API
       const response = await PaymentAPI.createTransaction(
         paymentAmount, 
         'Top up balance',
@@ -454,16 +549,39 @@ const MidtransPaymentPage: React.FC = () => {
             </div>
           </div>
 
-          {/* ✅ ADDED: Voucher Input Section */}
+          {/* ✅ NEW: Available Vouchers Section */}
+          {loadingVouchers ? (
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-purple-100 mb-4">
+              <div className="flex items-center justify-center gap-2 text-purple-600">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-sm">Loading vouchers...</span>
+              </div>
+            </div>
+          ) : (
+            <AvailableVouchers
+              vouchers={availableVouchers}
+              depositAmount={parseFloat(amount) || 0}
+              onVoucherSelect={handleVoucherSelect}
+              selectedVoucherCode={voucherCode}
+            />
+          )}
+
+          {/* Manual Voucher Input */}
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-100 mb-4">
+            <div className="mb-3">
+              <label className="block text-sm font-semibold text-gray-700">
+                Or Enter Voucher Code Manually
+              </label>
+            </div>
             <VoucherInput
               depositAmount={parseFloat(amount) || 0}
               onVoucherApplied={handleVoucherApplied}
               disabled={loading || !amount || parseFloat(amount) < MIN_AMOUNT}
+              externalCode={voucherCode}
             />
           </div>
 
-          {/* ✅ ADDED: Voucher Bonus Display */}
+          {/* Voucher Bonus Display */}
           {voucherBonus > 0 && (
             <div className="bg-green-50 border-2 border-green-300 rounded-2xl p-6 shadow-lg mb-4">
               <div className="flex items-center gap-2 text-green-800 mb-4">
@@ -595,7 +713,6 @@ const MidtransPaymentPage: React.FC = () => {
                 </span>
               </div>
               
-              {/* ✅ ADDED: Show voucher info if applied */}
               {voucherCode && (
                 <>
                   <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
@@ -653,7 +770,6 @@ const MidtransPaymentPage: React.FC = () => {
                 {formatCurrency(currentTransaction.amount)}
               </div>
               
-              {/* ✅ ADDED: Show voucher bonus if applied */}
               {voucherCode && voucherBonus > 0 && (
                 <div className="bg-green-100 border border-green-300 rounded-lg p-3 mb-3">
                   <div className="flex items-center justify-center gap-2 mb-2">
@@ -703,7 +819,6 @@ const MidtransPaymentPage: React.FC = () => {
                 setStep('amount');
                 setAmount('');
                 setCurrentTransaction(null);
-                // ✅ ADDED: Reset voucher state
                 setVoucherCode('');
                 setVoucherBonus(0);
                 setVoucherType(null);
@@ -771,7 +886,6 @@ const MidtransPaymentPage: React.FC = () => {
                       <TransactionStatusBadge status={transaction.status} />
                     </div>
                     
-                    {/* ✅ ADDED: Show voucher info in history */}
                     {transaction.voucherCode && transaction.voucherBonusAmount && (
                       <div className="ml-13 mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 rounded px-2 py-1 w-fit">
                         <Tag className="w-3 h-3" />

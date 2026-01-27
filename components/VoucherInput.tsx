@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { Tag, Check, X, Loader2 } from 'lucide-react'
 import { api } from '@/lib/api'
 
@@ -13,6 +13,7 @@ interface VoucherInputProps {
     value: number
   } | null) => void
   disabled?: boolean
+  externalCode?: string  // Code from parent (AvailableVouchers)
 }
 
 interface ValidationResult {
@@ -28,11 +29,40 @@ interface ValidationResult {
 export default function VoucherInput({ 
   depositAmount, 
   onVoucherApplied,
-  disabled = false 
+  disabled = false,
+  externalCode = ''
 }: VoucherInputProps) {
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<ValidationResult | null>(null)
+  
+  // ✅ NEW: Track if code is from external source
+  const isExternalRef = useRef(false)
+
+  console.log('📝 [VoucherInput] External code changed:', externalCode)
+  console.log('📝 [VoucherInput] Current code:', code)
+
+  // ✅ FIXED: Sync with external code WITHOUT validation
+  useEffect(() => {
+    if (externalCode && externalCode !== code) {
+      console.log('✅ [VoucherInput] Syncing with external code:', externalCode)
+      setCode(externalCode)
+      isExternalRef.current = true
+      
+      // ✅ CHANGED: Don't validate! Parent already did it
+      // Just set result as valid (visual feedback only)
+      setResult({
+        valid: true,
+        message: 'Voucher selected from list',
+      })
+    } else if (!externalCode && code) {
+      // Parent cleared the voucher
+      console.log('🧹 [VoucherInput] Clearing voucher')
+      setCode('')
+      setResult(null)
+      isExternalRef.current = false
+    }
+  }, [externalCode])
 
   const validateVoucher = useCallback(
     async (voucherCode: string, amount: number) => {
@@ -42,9 +72,13 @@ export default function VoucherInput({
         return
       }
 
+      console.log('🔍 [VoucherInput] Validating:', voucherCode, 'for amount:', amount)
+
       setLoading(true)
       try {
         const res = await api.validateVoucher(voucherCode.toUpperCase(), amount)
+        console.log('✅ [VoucherInput] Validation result:', res)
+        
         const data = res.data || res
         
         const validationResult: ValidationResult = {
@@ -67,6 +101,7 @@ export default function VoucherInput({
           onVoucherApplied(null)
         }
       } catch (error) {
+        console.error('❌ [VoucherInput] Validation error:', error)
         setResult({ valid: false, message: 'Error validating voucher' })
         onVoucherApplied(null)
       } finally {
@@ -90,6 +125,7 @@ export default function VoucherInput({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toUpperCase()
     setCode(value)
+    isExternalRef.current = false // User is typing manually
     
     if (value.length >= 3) {
       debouncedValidate(value, depositAmount)
@@ -103,6 +139,7 @@ export default function VoucherInput({
     setCode('')
     setResult(null)
     onVoucherApplied(null)
+    isExternalRef.current = false
   }
 
   return (
@@ -157,9 +194,17 @@ export default function VoucherInput({
             <>
               <Check className="w-4 h-4" />
               <span>
-                Voucher valid! Bonus: <strong>Rp {result.bonusAmount?.toLocaleString()}</strong>
-                {result.voucher?.type === 'percentage' && (
-                  <span className="text-xs ml-1">({result.voucher.value}%)</span>
+                {isExternalRef.current ? (
+                  'Voucher selected from list'
+                ) : result.bonusAmount ? (
+                  <>
+                    Voucher valid! Bonus: <strong>Rp {result.bonusAmount?.toLocaleString()}</strong>
+                    {result.voucher?.type === 'percentage' && (
+                      <span className="text-xs ml-1">({result.voucher.value}%)</span>
+                    )}
+                  </>
+                ) : (
+                  'Voucher valid!'
                 )}
               </span>
             </>

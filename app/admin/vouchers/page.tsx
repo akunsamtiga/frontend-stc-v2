@@ -1,4 +1,4 @@
-// app/admin/vouchers/page.tsx - FIXED VERSION
+// app/admin/vouchers/page.tsx 
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -11,7 +11,7 @@ import { Voucher, VoucherStatistics } from '@/types'
 import { 
   Tag, Plus, Edit2, Trash2, BarChart3, Search, Filter,
   Loader2, CheckCircle, XCircle, Calendar, Users, DollarSign,
-  TrendingUp, AlertCircle, Eye
+  TrendingUp, AlertCircle
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -32,7 +32,6 @@ export default function VoucherManagementPage() {
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingVoucher, setEditingVoucher] = useState<Voucher | null>(null)
-  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null)
   const [voucherStats, setVoucherStats] = useState<VoucherStatistics | null>(null)
   const [showStatsModal, setShowStatsModal] = useState(false)
   
@@ -59,36 +58,52 @@ export default function VoucherManagementPage() {
         options.isActive = filterActive === 'active'
       }
       
-      console.log('Loading vouchers with options:', options) // Debug log
+      console.log('🔍 Loading vouchers with options:', options)
       
-      const response = await api.getAllVouchers(options)
+      const response: any = await api.getAllVouchers(options)
       
-      console.log('Vouchers response:', response) // Debug log
+      console.log('📦 Full response:', response)
       
-      // ✅ FIXED: Handle multiple possible response structures
+      // ✅ CORRECT: Based on actual backend structure
+      // Backend returns nested structure: response.data.data.vouchers
       let vouchersData: Voucher[] = []
       let paginationData: any = null
       
-      if (response) {
-        // Case 1: response.data.vouchers (most common)
-        if (response.data?.vouchers) {
+      if (response?.data) {
+        console.log('📦 response.data:', response.data)
+        console.log('📦 response.data keys:', Object.keys(response.data))
+        
+        // Check for nested data.data structure (actual backend format)
+        if (response.data.data?.vouchers && Array.isArray(response.data.data.vouchers)) {
+          console.log('✅ Found vouchers at response.data.data.vouchers (nested)')
+          vouchersData = response.data.data.vouchers
+          paginationData = response.data.data.pagination
+        }
+        // Check if response.data has vouchers property directly
+        else if (response.data.vouchers && Array.isArray(response.data.vouchers)) {
+          console.log('✅ Found vouchers at response.data.vouchers')
           vouchersData = response.data.vouchers
           paginationData = response.data.pagination
         }
-        // Case 2: response.vouchers (direct structure)
-        else if (response.vouchers) {
-          vouchersData = response.vouchers
-          paginationData = response.pagination
-        }
-        // Case 3: response is array (legacy structure)
-        else if (Array.isArray(response)) {
-          vouchersData = response
-        }
-        // Case 4: response.data is array
+        // Check if response.data itself is the vouchers/pagination object
         else if (Array.isArray(response.data)) {
+          console.log('✅ response.data is array directly')
           vouchersData = response.data
         }
+        else {
+          console.log('⚠️ Unexpected data structure:', response.data)
+        }
       }
+      // Fallback: check if response has vouchers directly
+      else if (response?.vouchers && Array.isArray(response.vouchers)) {
+        console.log('✅ Found vouchers at response.vouchers (direct)')
+        vouchersData = response.vouchers
+        paginationData = response.pagination
+      }
+      
+      console.log('📊 Loaded vouchers count:', vouchersData.length)
+      console.log('📊 First voucher:', vouchersData[0])
+      console.log('📄 Pagination:', paginationData)
       
       setVouchers(vouchersData)
       
@@ -98,19 +113,17 @@ export default function VoucherManagementPage() {
         setTotalPages(1)
       }
       
-      console.log('Loaded vouchers:', vouchersData.length) // Debug log
-      
     } catch (error: any) {
-      console.error('Load vouchers error:', error)
+      console.error('❌ Load vouchers error:', error)
+      console.error('❌ Error response:', error.response)
       
-      // ✅ Better error handling
       if (error.response?.status === 404) {
-        toast.error('Voucher endpoint not found. Please check backend configuration.')
+        toast.error('Voucher endpoint not found')
       } else if (error.response?.status === 401) {
         toast.error('Authentication failed. Please login again.')
         router.push('/')
       } else if (error.response?.status === 403) {
-        toast.error('Access denied. Admin privileges required.')
+        toast.error('Access denied')
         router.push('/dashboard')
       } else {
         toast.error(error.message || 'Failed to load vouchers')
@@ -124,14 +137,19 @@ export default function VoucherManagementPage() {
 
   const loadVoucherStatistics = async (voucherId: string) => {
     try {
-      const response = await api.getVoucherStatistics(voucherId)
+      const response: any = await api.getVoucherStatistics(voucherId)
       
-      // ✅ FIXED: Handle multiple response structures
       let statsData: VoucherStatistics | null = null
       
-      if (response?.data) {
+      // Handle nested response structure (same as vouchers)
+      if (response?.data?.data?.voucher && response?.data?.data?.statistics) {
+        console.log('✅ Found stats at response.data.data (nested)')
+        statsData = response.data.data
+      } else if (response?.data?.voucher && response?.data?.statistics) {
+        console.log('✅ Found stats at response.data')
         statsData = response.data
-      } else if (response) {
+      } else if (response?.voucher && response?.statistics) {
+        console.log('✅ Found stats at response (direct)')
         statsData = response as VoucherStatistics
       }
       
@@ -139,6 +157,7 @@ export default function VoucherManagementPage() {
         setVoucherStats(statsData)
         setShowStatsModal(true)
       } else {
+        console.log('⚠️ No statistics data in response:', response)
         toast.error('No statistics data available')
       }
     } catch (error: any) {
@@ -163,7 +182,7 @@ export default function VoucherManagementPage() {
       return
     }
 
-    if (!confirm('Are you sure you want to delete this voucher? This action cannot be undone.')) {
+    if (!confirm('Are you sure you want to delete this voucher?')) {
       return
     }
 
@@ -285,7 +304,6 @@ export default function VoucherManagementPage() {
           {/* Filters */}
           <div className="bg-white rounded-xl p-4 border border-gray-100">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
@@ -297,12 +315,14 @@ export default function VoucherManagementPage() {
                 />
               </div>
 
-              {/* Status Filter */}
               <div className="flex items-center gap-2">
                 <Filter className="w-5 h-5 text-gray-400" />
                 <select
                   value={filterActive}
-                  onChange={(e) => setFilterActive(e.target.value as any)}
+                  onChange={(e) => {
+                    setFilterActive(e.target.value as any)
+                    setCurrentPage(1)
+                  }}
                   className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="all">All Vouchers</option>
@@ -503,7 +523,6 @@ export default function VoucherManagementPage() {
             </div>
 
             <div className="p-6 space-y-6">
-              {/* Voucher Info */}
               <div className="bg-gray-50 rounded-xl p-4">
                 <div className="text-2xl font-bold font-mono mb-2">
                   {voucherStats.voucher.code}
@@ -516,7 +535,6 @@ export default function VoucherManagementPage() {
                 </div>
               </div>
 
-              {/* Statistics */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-blue-50 rounded-xl p-4">
                   <div className="text-sm text-blue-600 mb-1">Total Used</div>
@@ -552,7 +570,6 @@ export default function VoucherManagementPage() {
                 </div>
               </div>
 
-              {/* Recent Usages */}
               {voucherStats.recentUsages && voucherStats.recentUsages.length > 0 && (
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3">Recent Usages</h3>
