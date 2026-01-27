@@ -1,4 +1,4 @@
-// app/admin/vouchers/page.tsx - Voucher Management Page (TypeScript Safe)
+// app/admin/vouchers/page.tsx - FIXED VERSION
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -59,21 +59,63 @@ export default function VoucherManagementPage() {
         options.isActive = filterActive === 'active'
       }
       
+      console.log('Loading vouchers with options:', options) // Debug log
+      
       const response = await api.getAllVouchers(options)
       
-      // ✅ FIXED: Add null checks with proper TypeScript safety
-      if (response?.data) {
-        setVouchers(response.data.vouchers || [])
-        
-        if (response.data.pagination) {
-          setTotalPages(response.data.pagination.totalPages || 1)
+      console.log('Vouchers response:', response) // Debug log
+      
+      // ✅ FIXED: Handle multiple possible response structures
+      let vouchersData: Voucher[] = []
+      let paginationData: any = null
+      
+      if (response) {
+        // Case 1: response.data.vouchers (most common)
+        if (response.data?.vouchers) {
+          vouchersData = response.data.vouchers
+          paginationData = response.data.pagination
         }
-      } else {
-        setVouchers([])
+        // Case 2: response.vouchers (direct structure)
+        else if (response.vouchers) {
+          vouchersData = response.vouchers
+          paginationData = response.pagination
+        }
+        // Case 3: response is array (legacy structure)
+        else if (Array.isArray(response)) {
+          vouchersData = response
+        }
+        // Case 4: response.data is array
+        else if (Array.isArray(response.data)) {
+          vouchersData = response.data
+        }
       }
-    } catch (error) {
+      
+      setVouchers(vouchersData)
+      
+      if (paginationData) {
+        setTotalPages(paginationData.totalPages || 1)
+      } else {
+        setTotalPages(1)
+      }
+      
+      console.log('Loaded vouchers:', vouchersData.length) // Debug log
+      
+    } catch (error: any) {
       console.error('Load vouchers error:', error)
-      toast.error('Failed to load vouchers')
+      
+      // ✅ Better error handling
+      if (error.response?.status === 404) {
+        toast.error('Voucher endpoint not found. Please check backend configuration.')
+      } else if (error.response?.status === 401) {
+        toast.error('Authentication failed. Please login again.')
+        router.push('/')
+      } else if (error.response?.status === 403) {
+        toast.error('Access denied. Admin privileges required.')
+        router.push('/dashboard')
+      } else {
+        toast.error(error.message || 'Failed to load vouchers')
+      }
+      
       setVouchers([])
     } finally {
       setLoading(false)
@@ -84,16 +126,24 @@ export default function VoucherManagementPage() {
     try {
       const response = await api.getVoucherStatistics(voucherId)
       
-      // ✅ FIXED: Add proper null check with TypeScript safety
+      // ✅ FIXED: Handle multiple response structures
+      let statsData: VoucherStatistics | null = null
+      
       if (response?.data) {
-        setVoucherStats(response.data)
+        statsData = response.data
+      } else if (response) {
+        statsData = response as VoucherStatistics
+      }
+      
+      if (statsData) {
+        setVoucherStats(statsData)
         setShowStatsModal(true)
       } else {
         toast.error('No statistics data available')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Load statistics error:', error)
-      toast.error('Failed to load voucher statistics')
+      toast.error(error.message || 'Failed to load voucher statistics')
     }
   }
 
@@ -121,9 +171,9 @@ export default function VoucherManagementPage() {
       await api.deleteVoucher(voucherId)
       toast.success('Voucher deleted successfully')
       loadVouchers()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Delete voucher error:', error)
-      toast.error('Failed to delete voucher')
+      toast.error(error.message || 'Failed to delete voucher')
     }
   }
 
@@ -195,7 +245,10 @@ export default function VoucherManagementPage() {
         <Navbar />
         <div className="container mx-auto px-4 py-8 max-w-7xl">
           <div className="flex items-center justify-center h-64">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+              <p className="text-gray-600">Loading vouchers...</p>
+            </div>
           </div>
         </div>
       </div>

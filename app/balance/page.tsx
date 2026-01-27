@@ -204,10 +204,10 @@ export default function BalancePage() {
                 </div>
               </div>
               
-              {/* ✅ FIXED: Real Account Buttons - Redirect to /deposit */}
+              {/* ✅ FIXED: Real Account Buttons - Redirect to /payment */}
               <div className="flex gap-2">
                 <Link
-                  href="/deposit"
+                  href="/payment"
                   className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm font-semibold hover:bg-green-600 transition-colors"
                 >
                   <ArrowDownToLine className="w-4 h-4" />
@@ -279,9 +279,9 @@ export default function BalancePage() {
                   )}
                 </h2>
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  {/* ✅ Desktop Real Account - Redirect to /deposit */}
+                  {/* ✅ Desktop Real Account - Redirect to /payment */}
                   <Link
-                    href="/deposit"
+                    href="/payment"
                     className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-md touch-manipulation transition-colors"
                   >
                     <ArrowDownToLine className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
