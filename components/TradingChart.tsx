@@ -1,3 +1,4 @@
+// components/TradingChart.tsx - COMPLETE VERSION with OrderPriceTracker Integration
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
@@ -10,7 +11,9 @@ import { formatCurrency, formatPriceAuto } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2 } from 'lucide-react'
 import AssetIcon from '@/components/common/AssetIcon'
-import ActiveOrdersDisplay from '@/components/ActiveOrdersDisplay'
+// ✅ NEW IMPORTS for OrderPriceTracker
+import OrderPriceTracker from '@/components/OrderPriceTracker'
+import { useChartPriceScale } from '@/hooks/useChartPriceScale'
 
 const IndicatorControls = dynamic(() => import('./IndicatorControls'), { ssr: false })
 
@@ -118,7 +121,7 @@ const ChartSkeleton = memo(({ timeframe, assetSymbol }: { timeframe: Timeframe; 
             <p className="text-sm font-medium text-gray-300">
               Loading {timeframe} Chart
             </p>
-            <p className="text-xs text-gray-500 font-mono">
+            <p className="text-xs text-gray-500">
               {assetSymbol}
             </p>
             <div className="flex items-center justify-center gap-1 mt-2">
@@ -145,7 +148,10 @@ const ChartSkeleton = memo(({ timeframe, assetSymbol }: { timeframe: Timeframe; 
 
 ChartSkeleton.displayName = 'ChartSkeleton'
 
-// Indicator calculation functions
+// ============================================
+// INDICATOR CALCULATION FUNCTIONS
+// ============================================
+
 function calculateSMA(data: Array<{ time: UTCTimestamp; close: number }>, period: number): Array<{ time: UTCTimestamp; value: number }> {
   const result: Array<{ time: UTCTimestamp; value: number }> = []
   
@@ -218,6 +224,10 @@ function calculateBollingerBands(
   return { upper, middle, lower }
 }
 
+// ============================================
+// LOADING STATE MANAGER
+// ============================================
+
 class LoadingStateManager {
   private isLoading = false
   private loadingTimeouts: NodeJS.Timeout[] = []
@@ -257,6 +267,10 @@ class LoadingStateManager {
     this.updateCallback?.(false)
   }
 }
+
+// ============================================
+// SMOOTH CANDLE ANIMATOR
+// ============================================
 
 class SmoothCandleAnimator {
   private currentCandle: AnimatedCandle | null = null
@@ -391,6 +405,10 @@ class SmoothCandleAnimator {
   }
 }
 
+// ============================================
+// GLOBAL DATA CACHE
+// ============================================
+
 const GLOBAL_DATA_CACHE = new Map<string, {
   data: any[]
   timestamp: number
@@ -432,6 +450,10 @@ function setCachedData(assetId: string, timeframe: Timeframe, data: any[]) {
     toDelete.forEach(([key]) => GLOBAL_DATA_CACHE.delete(key))
   }
 }
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
 
 function cleanAssetPath(path: string): string {
   if (!path) return ''
@@ -514,7 +536,10 @@ async function checkSimulatorStatus(assetPath: string): Promise<{
   }
 }
 
-// UI Components
+// ============================================
+// UI COMPONENTS
+// ============================================
+
 const RealtimeClock = memo(() => {
   const [time, setTime] = useState(new Date())
 
@@ -570,11 +595,11 @@ const PriceDisplay = memo(({ asset, price, onClick, showMenu, assets, onSelectAs
         
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-400">{asset.name}</span>
-          <span className="text-xl font-bold font-mono">{formattedPrice}</span>
+          <span className="text-xl font-bold">{formattedPrice}</span>
         </div>
         {hasChange && (
           <div className={`flex items-center gap-1 text-sm font-semibold ${
-            price.change >= 0 ? 'text-green-400' : 'text-red-400'
+            price.change >= 0 ? 'text-emerald-400' : 'text-rose-400'
           }`}>
             {price.change >= 0 ? '▲' : '▼'}
             <span>{price.change >= 0 ? '+' : ''}{price.change.toFixed(2)}%</span>
@@ -588,11 +613,11 @@ const PriceDisplay = memo(({ asset, price, onClick, showMenu, assets, onSelectAs
       <div className="hidden lg:flex bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 items-center gap-3">
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-400">{asset.name}</span>
-          <span className="text-xl font-bold font-mono">{formattedPrice}</span>
+          <span className="text-xl font-bold">{formattedPrice}</span>
         </div>
         {hasChange && (
           <div className={`flex items-center gap-1 text-sm font-semibold ${
-            price.change >= 0 ? 'text-green-400' : 'text-red-400'
+            price.change >= 0 ? 'text-emerald-400' : 'text-rose-400'
           }`}>
             {price.change >= 0 ? '▲' : '▼'}
             <span>{price.change >= 0 ? '+' : ''}{price.change.toFixed(2)}%</span>
@@ -629,7 +654,7 @@ const PriceDisplay = memo(({ asset, price, onClick, showMenu, assets, onSelectAs
                     <div className="text-xs text-gray-400">{assetItem.name}</div>
                   </div>
                 </div>
-                <div className="text-xs font-bold text-green-400">+{assetItem.profitRate}%</div>
+                <div className="text-xs font-bold text-emerald-400">+{assetItem.profitRate}%</div>
               </button>
             ))}
           </div>
@@ -677,16 +702,24 @@ const OHLCDisplay = memo(({
         <Clock className="w-3 h-3" />
         <span>{timeStr} WIB</span>
       </div>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 font-mono">
-        <div className="text-gray-500">O:</div>
-        <div className="text-white text-right">{formatOHLCPrice(data.open)}</div>
-        <div className="text-gray-500">H:</div>
-        <div className="text-green-400 text-right">{formatOHLCPrice(data.high)}</div>
-        <div className="text-gray-500">L:</div>
-        <div className="text-red-400 text-right">{formatOHLCPrice(data.low)}</div>
-        <div className="text-gray-500">C:</div>
-        <div className="text-blue-400 text-right">{formatOHLCPrice(data.close)}</div>
-      </div>
+      <div className="flex flex-col gap-0.5">
+  <div className="flex items-center gap-1.5">
+    <span className="text-gray-500 w-3">O:</span>
+    <span className="text-white">{formatOHLCPrice(data.open)}</span>
+  </div>
+  <div className="flex items-center gap-1.5">
+    <span className="text-gray-500 w-3">H:</span>
+    <span className="text-emerald-400">{formatOHLCPrice(data.high)}</span>
+  </div>
+  <div className="flex items-center gap-1.5">
+    <span className="text-gray-500 w-3">L:</span>
+    <span className="text-rose-400">{formatOHLCPrice(data.low)}</span>
+  </div>
+  <div className="flex items-center gap-1.5">
+    <span className="text-gray-500 w-3">C:</span>
+    <span className="text-blue-400">{formatOHLCPrice(data.close)}</span>
+  </div>
+</div>
     </div>
   )
 })
@@ -705,11 +738,11 @@ const SimulatorStatus = memo(({
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-[#0a0e17]/95 z-20">
       <div className="text-center max-w-md px-6">
-        <div className="w-16 h-16 bg-red-500/10 border-2 border-red-500/30 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Server className="w-8 h-8 text-red-400" />
+        <div className="w-16 h-16 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Server className="w-8 h-8 text-rose-400" />
         </div>
         
-        <div className="text-lg font-bold text-red-400 mb-2">
+        <div className="text-lg font-bold text-rose-400 mb-2">
           Market Not Available
         </div>
         
@@ -907,7 +940,10 @@ const DesktopControls = memo(({
 
 DesktopControls.displayName = 'DesktopControls'
 
+// ============================================
 // MAIN COMPONENT
+// ============================================
+
 const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAssetSelect }: TradingChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const fullscreenContainerRef = useRef<HTMLDivElement>(null)
@@ -915,6 +951,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null)
   const lineSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   const candleAnimatorRef = useRef<SmoothCandleAnimator | null>(null)
+  
+  // ✅ NEW: Price scale hook for OrderPriceTracker
+  const { setChart, setSeries, priceToPixel } = useChartPriceScale()
   
   const smaSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   const emaSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
@@ -953,6 +992,21 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const [prefetchedAssets, setPrefetchedAssets] = useState<Set<string>>(new Set())
   const [currentChartData, setCurrentChartData] = useState<any[]>([])
 
+  // ✅ NEW: Mobile detection state
+  const [isMobile, setIsMobile] = useState(false)
+
+  // ✅ NEW: Mobile detection effect
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   useEffect(() => {
     loadingManagerRef.current.setCallback(setIsLoading)
     
@@ -979,10 +1033,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     
     currentBarRef.current = null
     lastUpdateTimeRef.current = 0
-  }, [])
-
-  const setSafeLoading = useCallback((loading: boolean, delay: number = 0) => {
-    loadingManagerRef.current.setLoading(loading, delay)
   }, [])
 
   const isLoadingDataRef = useRef(false)
@@ -1241,6 +1291,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       chartRef.current = chart
       candleSeriesRef.current = candleSeries
       lineSeriesRef.current = lineSeries
+      
+      // ✅ NEW: Set chart and series references for OrderPriceTracker
+      setChart(chart)
+      setSeries(chartType === 'candle' ? candleSeries : lineSeries)
 
       candleAnimatorRef.current = new SmoothCandleAnimator(
         (animatedCandle) => {
@@ -1301,7 +1355,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       console.error('Chart init error:', err)
       isMountedRef.current = false
     }
-  }, [chartType, addCleanup, cleanupAll])
+  }, [chartType, addCleanup, cleanupAll, setChart, setSeries])
 
   // CHART TYPE CHANGES
   useEffect(() => {
@@ -1313,6 +1367,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         lineSeriesRef.current.applyOptions({ visible: false })
         candleSeriesRef.current.setData(currentChartData as any)
         candleSeriesRef.current.applyOptions({ visible: true })
+        
+        // ✅ NEW: Update series reference
+        setSeries(candleSeriesRef.current)
       } else {
         candleSeriesRef.current.applyOptions({ visible: false })
         const lineData = currentChartData.map(bar => ({ 
@@ -1321,6 +1378,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         }))
         lineSeriesRef.current.setData(lineData as any)
         lineSeriesRef.current.applyOptions({ visible: true })
+        
+        // ✅ NEW: Update series reference
+        setSeries(lineSeriesRef.current)
       }
       
       requestAnimationFrame(() => {
@@ -1331,7 +1391,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     } catch (error) {
       console.error('Chart type switch error:', error)
     }
-  }, [chartType, currentChartData])
+  }, [chartType, currentChartData, setSeries])
 
   useEffect(() => {
     if (!showIndicators && candleSeriesRef.current && lineSeriesRef.current && chartRef.current) {
@@ -1692,8 +1752,19 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
 
       <div ref={chartContainerRef} className="absolute inset-0 bg-[#0a0e17]" />
 
-      {/* ✅ NEW: Active Orders Display - Bottom Left Corner */}
-      <ActiveOrdersDisplay orders={activeOrders} />
+      {/* ✅ NEW: Order Price Tracker - Overlay on Chart */}
+      {activeOrders && activeOrders.length > 0 && currentPriceData.price > 0 && (
+        <OrderPriceTracker
+          orders={activeOrders}
+          currentPrice={currentPriceData.price}
+          chartContainerRef={chartContainerRef}
+          priceToPixel={priceToPixel}
+          showProfitAnimation={!isMobile}
+          showPricePath={!isMobile}
+          highlightWinning={true}
+          compactMode={isMobile}
+        />
+      )}
 
       {/* SKELETON LOADING */}
       {isLoading && (

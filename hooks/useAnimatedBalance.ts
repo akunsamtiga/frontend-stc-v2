@@ -49,26 +49,17 @@ export function useAnimatedBalance(currentValue: number, duration = 600) {
   const getAnimationClasses = () => {
     switch (animationState) {
       case 'increasing':
-        return 'text-green-400 scale-105 drop-shadow-[0_0_10px_rgba(74,222,128,0.6)]'
+        return 'text-green-400'
       case 'decreasing':
-        return 'text-red-400 scale-105 drop-shadow-[0_0_10px_rgba(248,113,113,0.6)]'
+        return 'text-red-400'
       default:
-        return 'text-white scale-100'
+        return 'text-white'
     }
-  }
-
-  const getIcon = () => {
-    if (animationState === 'increasing') return '▲'
-    if (animationState === 'decreasing') return '▼'
-    return null
   }
 
   return {
     displayValue,
     formattedValue: formatCurrency(Math.round(displayValue)),
-    animationClasses: getAnimationClasses(),
-    icon: getIcon(),
-    isAnimating: animationState !== 'idle',
-    direction: animationState
+    animationClasses: getAnimationClasses()
   }
 }

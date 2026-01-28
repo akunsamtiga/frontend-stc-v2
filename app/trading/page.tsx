@@ -1,4 +1,4 @@
-// app/(main)/trading/page.tsx - COMPLETE VERSION with Instant Response
+// app/(main)/trading/page.tsx - COMPLETE VERSION with Desktop Left Sidebar
 'use client'
 
 import { useEffect, useState, useCallback, memo, useRef } from 'react'
@@ -10,7 +10,7 @@ import { useTradingStore, useSelectedAsset, useCurrentPrice, useSelectedAccountT
 import { api } from '@/lib/api'
 import { subscribeToPriceUpdates, prefetchDefaultAsset, prefetchMultipleTimeframes } from '@/lib/firebase'
 import { toast } from 'sonner'
-import { Asset, BinaryOrder, AccountType } from '@/types'
+import { Asset, BinaryOrder, AccountType, UserProfile } from '@/types'
 import { formatCurrency, getDurationDisplay } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 import TradingTutorial from '@/components/TradingTutorial'
@@ -36,6 +36,11 @@ import {
   Logs,
   Zap,
   Info,
+  Calendar,
+  Trophy,
+  Award,
+  Newspaper,
+  MessageCircle,
 } from 'lucide-react'
 import OrderNotification from '@/components/OrderNotification'
 import { useWebSocket, usePriceSubscription, useOrderSubscription } from '@/components/providers/WebSocketProvider'
@@ -60,17 +65,16 @@ const HistorySidebar = dynamic(() => import('@/components/HistorySidebar'), {
 })
 
 const EXTENDED_DURATIONS = [
-  { value: 0.0167, label: '1 second', shortLabel: '⚡ 1s', isUltraFast: true },
-  { value: 1, label: '1 minute', shortLabel: '1m' },
-  { value: 2, label: '2 minutes', shortLabel: '2m' },
-  { value: 3, label: '3 minutes', shortLabel: '3m' },
-  { value: 4, label: '4 minutes', shortLabel: '4m' },
-  { value: 5, label: '5 minutes', shortLabel: '5m' },
-  { value: 10, label: '10 minutes', shortLabel: '10m' },
-  { value: 15, label: '15 minutes', shortLabel: '15m' },
-  { value: 30, label: '30 minutes', shortLabel: '30m' },
-  { value: 45, label: '45 minutes', shortLabel: '45m' },
-  { value: 60, label: '1 hour', shortLabel: '60m' },
+  { value: 1, label: '1 menit', shortLabel: '1m' },
+  { value: 2, label: '2 menit', shortLabel: '2m' },
+  { value: 3, label: '3 menit', shortLabel: '3m' },
+  { value: 4, label: '4 menit', shortLabel: '4m' },
+  { value: 5, label: '5 menit', shortLabel: '5m' },
+  { value: 10, label: '10 menit', shortLabel: '10m' },
+  { value: 15, label: '15 menit', shortLabel: '15m' },
+  { value: 30, label: '30 menit', shortLabel: '30m' },
+  { value: 45, label: '45 menit', shortLabel: '45m' },
+  { value: 60, label: '1 jam', shortLabel: '60m' },
 ]
 
 const formatExpiryTime = (durationMinutes: number): string => {
@@ -113,6 +117,7 @@ export default function TradingPage() {
   const [duration, setDuration] = useState(1)
   const [loading, setLoading] = useState(false)
   const [notificationOrder, setNotificationOrder] = useState<BinaryOrder | null>(null)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   
   const notifiedOrdersRef = useRef<Set<string>>(new Set())
   const balanceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -124,6 +129,8 @@ export default function TradingPage() {
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showWalletModal, setShowWalletModal] = useState(false)
   const [showAmountDropdown, setShowAmountDropdown] = useState(false)
+  const [showDurationDropdown, setShowDurationDropdown] = useState(false)
+  const [showDesktopDurationDropdown, setShowDesktopDurationDropdown] = useState(false)
   const [showLeftSidebar, setShowLeftSidebar] = useState(false)
 
   const currentBalance = selectedAccountType === 'real' ? realBalance : demoBalance
@@ -210,6 +217,21 @@ export default function TradingPage() {
     }
   }, [])
 
+  const loadUserProfile = useCallback(async () => {
+    try {
+      const response = await api.getProfile()
+      // ✅ FIXED: Properly extract UserProfile from ApiResponse
+      const profile = (response as any)?.data as UserProfile || response as UserProfile
+      
+      // Type guard: Only set if we have valid profile data
+      if (profile && 'user' in profile && 'statusInfo' in profile) {
+        setUserProfile(profile)
+      }
+    } catch (error) {
+      console.error('Failed to load user profile:', error)
+    }
+  }, [])
+
   const loadOrders = useCallback(async () => {
     try {
       const response = await api.getOrders(undefined, 1, 100)
@@ -222,21 +244,28 @@ export default function TradingPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [assetsRes, balancesRes, ordersRes] = await Promise.all([
+      const [assetsRes, balancesRes, ordersRes, profileRes] = await Promise.all([
         api.getAssets(true),
         api.getBothBalances(),
         api.getOrders(undefined, 1, 100),
+        api.getProfile(),
       ])
 
       const assetsList = assetsRes?.data?.assets || assetsRes?.assets || []
       const balances = balancesRes?.data || balancesRes
       const allOrders = ordersRes?.data?.orders || ordersRes?.orders || []
+      // ✅ FIXED: Properly extract UserProfile from ApiResponse
+      const profile = (profileRes as any)?.data as UserProfile || profileRes as UserProfile
 
       unstable_batchedUpdates(() => {
         setAssets(assetsList)
         setRealBalance(balances?.realBalance || 0)
         setDemoBalance(balances?.demoBalance || 0)
         setAllOrders(allOrders)
+        // Type guard: Only set if we have valid profile data
+        if (profile && 'user' in profile && 'statusInfo' in profile) {
+          setUserProfile(profile)
+        }
       })
 
       if (assetsList.length > 0 && !selectedAsset) {
@@ -491,8 +520,35 @@ export default function TradingPage() {
     rollbackOrder,
   ])
 
-  const potentialProfit = selectedAsset ? (amount * selectedAsset.profitRate) / 100 : 0
-  const potentialPayout = amount + potentialProfit
+  // ✅ FIXED: Calculate profit rate with status bonus (with NaN protection)
+  const baseProfitRate = Number(selectedAsset?.profitRate) || 0
+  
+  // Parse profitBonus - handle both number and string format (e.g., "+5%" or "5" or 5)
+  let statusBonus = 0
+  if (userProfile?.statusInfo?.profitBonus) {
+    const bonus = userProfile.statusInfo.profitBonus
+    if (typeof bonus === 'number') {
+      statusBonus = bonus
+    } else if (typeof bonus === 'string') {
+      // Remove "+", "%", and any whitespace, then parse as number
+      const cleaned = String(bonus).replace(/[+%\s]/g, '')
+      statusBonus = parseFloat(cleaned) || 0
+    } else {
+      // Handle any other type by converting to string first
+      const bonusStr = String(bonus).replace(/[+%\s]/g, '')
+      statusBonus = parseFloat(bonusStr) || 0
+    }
+  }
+  
+  // Calculate and ensure it's a clean number
+  const effectiveProfitRate = Number((baseProfitRate + statusBonus).toFixed(2))
+  
+  // Validate all numbers to prevent NaN
+  const validAmount = Number(amount) || 0
+  const validProfitRate = Number(effectiveProfitRate) || 0
+  
+  const potentialProfit = selectedAsset ? (validAmount * validProfitRate) / 100 : 0
+  const potentialPayout = validAmount + potentialProfit
 
   if (!user) return null
 
@@ -521,8 +577,8 @@ export default function TradingPage() {
               {selectedAsset ? (
                 <>
                   <AssetIcon asset={selectedAsset} size="xs" />
-                  <span className="text-sm font-medium">{selectedAsset.symbol}</span>
-                  <span className="text-xs font-bold text-green-400">+{selectedAsset.profitRate}%</span>
+                  <span className="text-sm font-medium">{selectedAsset.name}</span>
+                  <span className="text-sm text-white ml-2">{effectiveProfitRate}%</span>
                 </>
               ) : (
                 <span className="text-sm text-gray-400">Select Asset</span>
@@ -559,7 +615,7 @@ export default function TradingPage() {
                           <div className="text-xs text-gray-400">{asset.name}</div>
                         </div>
                       </div>
-                      <div className="text-xs font-bold text-green-400">+{asset.profitRate}%</div>
+                      <div className="text-xs font-bold text-emerald-400">+{asset.profitRate}%</div>
                     </button>
                   ))}
                 </div>
@@ -572,7 +628,7 @@ export default function TradingPage() {
           <div className="relative">
             <BalanceDisplay
               amount={currentBalance}
-              label={`Akun ${selectedAccountType === 'real' ? 'Real' : 'Demo'}`}
+              label={`Akun ${selectedAccountType === 'real' ? 'Riil' : 'Demo'}`}
               isActive={showAccountMenu}
               onClick={() => setShowAccountMenu(!showAccountMenu)}
               isMobile={false}
@@ -605,7 +661,7 @@ export default function TradingPage() {
                       selectedAccountType === 'real' ? 'bg-[#2a3142]' : ''
                     }`}
                   >
-                    <span className="text-xs text-white">Akun Real</span>
+                    <span className="text-xs text-white">Akun Riil</span>
                     <span className="text-base font-bold text-white pl-4">
                       {formatCurrency(realBalance)}
                     </span>
@@ -628,15 +684,27 @@ export default function TradingPage() {
             className="flex items-center gap-2 px-4 py-2.5 bg-[#2f3648] hover:bg-[#3a4360] rounded-lg transition-colors border border-gray-800/50"
           >
             <History className="w-4 h-4" />
-            <span className="text-sm">History</span>
+            <span className="text-sm">Riwayat</span>
           </button>
 
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity"
+              className="w-10 h-10 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity overflow-hidden border-2 border-blue-500/30"
             >
-              <span className="text-sm font-bold">{user.email[0].toUpperCase()}</span>
+              {userProfile?.profileInfo?.avatar?.url ? (
+                <Image
+                  src={userProfile.profileInfo.avatar.url}
+                  alt={user.email}
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
+                  <span className="text-sm font-bold">{user.email[0].toUpperCase()}</span>
+                </div>
+              )}
             </button>
 
             {showUserMenu && (
@@ -656,7 +724,29 @@ export default function TradingPage() {
                     className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#232936] transition-colors text-left"
                   >
                     <Settings className="w-4 h-4" />
-                    <span className="text-sm">Profile</span>
+                    <span className="text-sm">Profil</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      router.push('/history')
+                      setShowUserMenu(false)
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#232936] transition-colors text-left"
+                  >
+                    <History className="w-4 h-4" />
+                    <span className="text-sm">History</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      router.push('/balance')
+                      setShowUserMenu(false)
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#232936] transition-colors text-left"
+                  >
+                    <Wallet className="w-4 h-4" />
+                    <span className="text-sm">Keuangan</span>
                   </button>
 
                   <button
@@ -669,7 +759,7 @@ export default function TradingPage() {
                     className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-blue-500/10 transition-colors text-left text-blue-400"
                   >
                     <Info className="w-4 h-4" />
-                    <span className="text-sm">Show Tutorial</span>
+                    <span className="text-sm">Tutorial</span>
                   </button>
                   
                   <div className="border-t border-gray-800/30">
@@ -678,10 +768,10 @@ export default function TradingPage() {
                         setShowUserMenu(false)
                         handleLogout()
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors text-left text-red-400"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-rose-500/10 transition-colors text-left text-rose-400"
                     >
                       <LogOut className="w-4 h-4" />
-                      <span className="text-sm">Logout</span>
+                      <span className="text-sm">Keluar</span>
                     </button>
                   </div>
                 </div>
@@ -765,9 +855,21 @@ export default function TradingPage() {
 
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="w-10 h-10 lg:w-8 lg:h-8 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity"
+              className="w-10 h-10 lg:w-8 lg:h-8 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity overflow-hidden border-2 border-blue-500/30"
             >
-              <span className="text-sm font-bold">{user.email[0].toUpperCase()}</span>
+              {userProfile?.profileInfo?.avatar?.url ? (
+                <Image
+                  src={userProfile.profileInfo.avatar.url}
+                  alt={user.email}
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
+                  <span className="text-sm font-bold">{user.email[0].toUpperCase()}</span>
+                </div>
+              )}
             </button>
           </div>
         </div>
@@ -775,6 +877,65 @@ export default function TradingPage() {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden min-h-0">
+        {/* ✅ NEW: Desktop Left Sidebar */}
+        <div className="hidden lg:block w-16 bg-[#0f1419] border-r border-gray-800/50 flex-shrink-0">
+          <div className="h-full flex flex-col items-center py-4 gap-2">
+            <button
+              onClick={() => router.push('/calendar')}
+              className="w-12 h-12 flex flex-col items-center justify-center gap-1 hover:bg-[#1a1f2e] rounded-lg transition-colors group"
+              title="Kalender"
+            >
+              <Calendar className="w-5 h-5 text-gray-400 group-hover:text-blue-400" />
+              <span className="text-[9px] text-gray-500 group-hover:text-blue-400">Kalender</span>
+            </button>
+
+            <button
+              onClick={() => router.push('/event')}
+              className="w-12 h-12 flex flex-col items-center justify-center gap-1 hover:bg-[#1a1f2e] rounded-lg transition-colors group"
+              title="Event"
+            >
+              <Activity className="w-5 h-5 text-gray-400 group-hover:text-purple-400" />
+              <span className="text-[9px] text-gray-500 group-hover:text-purple-400">Event</span>
+            </button>
+
+            <button
+              onClick={() => router.push('/tournament')}
+              className="w-12 h-12 flex flex-col items-center justify-center gap-1 hover:bg-[#1a1f2e] rounded-lg transition-colors group"
+              title="Turnamen"
+            >
+              <Trophy className="w-5 h-5 text-gray-400 group-hover:text-yellow-400" />
+              <span className="text-[9px] text-gray-500 group-hover:text-yellow-400">Turnamen</span>
+            </button>
+
+            <button
+              onClick={() => router.push('/runner-up')}
+              className="w-12 h-12 flex flex-col items-center justify-center gap-1 hover:bg-[#1a1f2e] rounded-lg transition-colors group"
+              title="Trader Terbaik"
+            >
+              <Award className="w-5 h-5 text-gray-400 group-hover:text-emerald-400" />
+              <span className="text-[9px] text-gray-500 group-hover:text-emerald-400">Terbaik</span>
+            </button>
+
+            <button
+              onClick={() => router.push('/berita')}
+              className="w-12 h-12 flex flex-col items-center justify-center gap-1 hover:bg-[#1a1f2e] rounded-lg transition-colors group"
+              title="Berita"
+            >
+              <Newspaper className="w-5 h-5 text-gray-400 group-hover:text-rose-400" />
+              <span className="text-[9px] text-gray-500 group-hover:text-rose-400">Berita</span>
+            </button>
+
+            <button
+              onClick={() => router.push('/support')}
+              className="w-12 h-12 flex flex-col items-center justify-center gap-1 hover:bg-[#1a1f2e] rounded-lg transition-colors group"
+              title="Support"
+            >
+              <MessageCircle className="w-5 h-5 text-gray-400 group-hover:text-emerald-400" />
+              <span className="text-[9px] text-gray-500 group-hover:text-emerald-400">Support</span>
+            </button>
+          </div>
+        </div>
+
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           <div className="flex-1 bg-[#0a0e17] relative overflow-hidden">
             {selectedAsset ? (
@@ -794,11 +955,11 @@ export default function TradingPage() {
           </div>
         </div>
 
-        {/* Desktop Sidebar */}
+        {/* Desktop Right Sidebar */}
         <div className="hidden lg:block w-64 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
           <div className="h-full flex flex-col p-4 space-y-4 overflow-hidden">
             <div className="bg-[#1a1f2e] rounded-xl px-3 py-2">
-              <div className="text-[10px] text-gray-500 text-center leading-none">Amount</div>
+              <div className="text-[10px] text-gray-500 text-center leading-none">Jumlah</div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setAmount(prev => Math.max(1000, prev - 10000))}
@@ -824,51 +985,64 @@ export default function TradingPage() {
               </div>
             </div>
 
-            <div className={`bg-[#1a1f2e] rounded-xl px-3 py-0 ${isUltraFastMode ? 'ring-2 ring-yellow-500/30' : ''}`}>
-              <div className="text-[10px] text-gray-500 text-center leading-none pt-2 flex items-center justify-center gap-1">
-                Duration
-                {isUltraFastMode && <Zap className="w-3 h-3 text-yellow-400" />}
+            <div className="bg-[#1a1f2e] rounded-xl px-3 py-2 relative">
+              <div className="text-[10px] text-gray-500 text-center leading-none mb-1">
+                Durasi Waktu
               </div>
-              <select
-                value={duration}
-                onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full bg-transparent border-0 text-center text-base text-white focus:outline-none focus:ring-0 appearance-none cursor-pointer my-0"
+              <div
+                onClick={() => setShowDesktopDurationDropdown(!showDesktopDurationDropdown)}
+                className="w-full bg-transparent text-center text-base text-white cursor-pointer hover:text-blue-400 transition-colors py-1"
               >
-                {EXTENDED_DURATIONS.map((d) => {
-                  const isUltraFast = d.value === 0.0167
-                  const expiryTime = isUltraFast ? null : formatExpiryTime(d.value)
-                  return (
-                    <option key={d.value} value={d.value}>
-                      {isUltraFast ? '1 second ⚡' : `${d.label} → ${expiryTime}`}
-                    </option>
-                  )
-                })}
-              </select>
+                {`${EXTENDED_DURATIONS.find(d => d.value === duration)?.label} ➜ ${formatExpiryTime(duration)}`}
+              </div>
+
+              {showDesktopDurationDropdown && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setShowDesktopDurationDropdown(false)} 
+                  />
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#232936] border border-gray-700/50 rounded-lg shadow-2xl z-50 overflow-hidden max-h-[280px] overflow-y-auto">
+                    {EXTENDED_DURATIONS.map((d) => {
+                      const isSelected = duration === d.value
+                      
+                      return (
+                        <button
+                          key={d.value}
+                          onClick={() => {
+                            setDuration(d.value)
+                            setShowDesktopDurationDropdown(false)
+                          }}
+                          className={`
+                            w-full px-3 py-2.5 text-xs font-medium transition-colors border-b border-gray-800/30 last:border-0
+                            ${isSelected 
+                              ? 'bg-blue-500/20 text-blue-400' 
+                              : 'text-white hover:bg-[#2a3142]'
+                            }
+                          `}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span>{d.label}</span>
+                            <span className={`text-[10px] flex items-center gap-1.5 ${isSelected ? 'text-blue-400/80' : 'text-gray-400'}`}>
+                              <span>➜</span>
+                              <span>{formatExpiryTime(d.value)}</span>
+                            </span>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
             </div>
 
-            {isUltraFastMode && (
-              <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-xl px-3 py-2 flex items-center gap-2">
-                <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                <span className="text-xs text-yellow-400 font-medium">
-                  ⚡ Ultra-Fast Mode
-                </span>
-              </div>
-            )}
-
             {selectedAsset && (
-              <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl px-3 py-3">
+              <div className="bg-gradient-to-r from-emerald-500/10 to-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-3">
                 <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-400">Pendapatan</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-400">Pendapatan</span>
-                    {isUltraFastMode && (
-                      <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-[10px] font-bold">
-                        ⚡ 1s
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-white">+{selectedAsset.profitRate}%</span>
-                    <span className="font-bold text-green-400">{formatCurrency(potentialPayout)}</span>
+                    <span className="text-emerald-400">+{effectiveProfitRate}%</span>
+                    <span className="font-bold text-emerald-400">{formatCurrency(potentialPayout)}</span>
                   </div>
                 </div>
               </div>
@@ -879,7 +1053,7 @@ export default function TradingPage() {
                 <button
                   onClick={() => handlePlaceOrder('CALL')}
                   disabled={loading || !selectedAsset || !isConnected}
-                  className="bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-green-500/20"
+                  className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-emerald-500/20"
                 >
                   <ArrowUp className="w-6 h-6" />
                 </button>
@@ -887,7 +1061,7 @@ export default function TradingPage() {
                 <button
                   onClick={() => handlePlaceOrder('PUT')}
                   disabled={loading || !selectedAsset || !isConnected}
-                  className="bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-red-500/20"
+                  className="bg-rose-500 hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-rose-500/20"
                 >
                   <ArrowDown className="w-6 h-6" />
                 </button>
@@ -899,14 +1073,14 @@ export default function TradingPage() {
 
       {/* Mobile Bottom Controls */}
       <div className="lg:hidden bg-[#0f1419] border-t border-gray-800/50 p-4">
-        <div className="space-y-4">
+        <div className="space-y-1">
           <div className="grid grid-cols-2 gap-4">
             <div className="relative">
-              <label className="text-xs text-gray-400 mb-2 block font-medium">Amount</label>
+              <label className="text-xs text-gray-400 text-center mb-2 block font-medium">Jumlah</label>
               <div className="relative">
                 <div
                   onClick={() => setShowAmountDropdown(!showAmountDropdown)}
-                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-3 text-center text-sm font-bold text-white hover:bg-[#232936] transition-colors flex items-center justify-between cursor-pointer"
+                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-3 py-3 text-center text-sm font-bold text-white hover:bg-[#232936] transition-colors flex items-center justify-between cursor-pointer"
                 >
                   <button
                     onClick={(e) => {
@@ -938,68 +1112,96 @@ export default function TradingPage() {
                     className="fixed inset-0 z-40" 
                     onClick={() => setShowAmountDropdown(false)} 
                   />
-                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden">
-                    {[10000, 25000, 50000, 75000, 100000, 250000, 500000, 1000000].map((preset) => (
-                      <button
-                        key={preset}
-                        onClick={() => {
-                          setAmount(preset)
-                          setShowAmountDropdown(false)
-                        }}
-                        className={`w-full px-4 py-2.5 text-left text-sm hover:bg-[#232936] transition-colors border-b border-gray-800/30 last:border-0 ${
-                          amount === preset ? 'bg-[#232936] text-blue-400' : 'text-gray-300'
-                        }`}
-                      >
-                        {formatCurrency(preset)}
-                      </button>
-                    ))}
+                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden max-h-[280px] overflow-y-auto">
+                    {[10000, 25000, 50000, 75000, 100000, 250000, 500000, 1000000].map((preset) => {
+                      const isSelected = amount === preset
+                      const isAffordable = preset <= currentBalance
+                      
+                      return (
+                        <button
+                          key={preset}
+                          onClick={() => {
+                            setAmount(preset)
+                            setShowAmountDropdown(false)
+                          }}
+                          disabled={!isAffordable}
+                          className={`
+                            w-full px-4 py-3 text-sm font-medium transition-colors border-b border-gray-800/30 last:border-0
+                            ${isSelected 
+                              ? 'bg-blue-500/20 text-blue-400' 
+                              : isAffordable 
+                                ? 'text-white hover:bg-[#232936]' 
+                                : 'text-gray-600 opacity-50 cursor-not-allowed'
+                            }
+                          `}
+                        >
+                          {formatCurrency(preset)}
+                        </button>
+                      )
+                    })}
                   </div>
                 </>
               )}
             </div>
 
             <div className="relative">
-              <label className="text-xs text-gray-400 mb-2 block font-medium flex items-center gap-1">
-                Duration
-                {isUltraFastMode && <Zap className="w-3 h-3 text-yellow-400" />}
+              <label className="text-xs text-gray-400 mb-2 text-center block font-medium">
+                Durasi Waktu
               </label>
-              <select
-                value={duration}
-                onChange={(e) => setDuration(Number(e.target.value))}
-                className={`w-full bg-[#1a1f2e] border border-gray-800/50 rounded-lg px-3 py-3 text-center text-sm font-bold text-white focus:outline-none focus:border-blue-500/50 appearance-none cursor-pointer ${
-                  isUltraFastMode ? 'ring-2 ring-yellow-500/30' : ''
-                }`}
+              <div
+                onClick={() => setShowDurationDropdown(!showDurationDropdown)}
+                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-3 py-3 text-center text-sm font-bold text-white cursor-pointer hover:bg-[#232936] transition-colors"
               >
-                {EXTENDED_DURATIONS.map((d) => {
-                  const isUltraFast = d.value === 0.0167
-                  const expiryTime = isUltraFast ? null : formatExpiryTime(d.value)
-                  return (
-                    <option key={d.value} value={d.value}>
-                      {isUltraFast ? '1s ⚡' : `${d.shortLabel} → ${expiryTime}`}
-                    </option>
-                  )
-                })}
-              </select>
+                {`${EXTENDED_DURATIONS.find(d => d.value === duration)?.shortLabel} ➜ ${formatExpiryTime(duration)}`}
+              </div>
+
+              {showDurationDropdown && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setShowDurationDropdown(false)} 
+                  />
+                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden max-h-[280px] overflow-y-auto">
+                    {EXTENDED_DURATIONS.map((d) => {
+                      const isSelected = duration === d.value
+                      
+                      return (
+                        <button
+                          key={d.value}
+                          onClick={() => {
+                            setDuration(d.value)
+                            setShowDurationDropdown(false)
+                          }}
+                          className={`
+                            w-full px-4 py-3 text-sm font-medium transition-colors border-b border-gray-800/30 last:border-0
+                            ${isSelected 
+                              ? 'bg-blue-500/20 text-blue-400' 
+                              : 'text-white hover:bg-[#232936]'
+                            }
+                          `}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <span>{d.label}</span>
+                            <span className={`text-xs flex items-center gap-2 ${isSelected ? 'text-blue-400/80' : 'text-gray-400'}`}>
+                              <span>➜</span>
+                              <span>{formatExpiryTime(d.value)}</span>
+                            </span>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
-          {isUltraFastMode && (
-            <div className="flex justify-center">
-              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-full px-4 py-1.5">
-                <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                <span className="text-xs text-yellow-400 font-bold">
-                  ⚡ Ultra-Fast: 1 Second Trading
-                </span>
-              </div>
-            </div>
-          )}
-
           {selectedAsset && (
             <div className="flex justify-center py-2">
-              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-full px-5 py-2.5">
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500/10 to-emerald-500/10 border border-emerald-500/20 rounded-xl px-5 py-2.5">
                 <span className="text-xs text-gray-400">Pendapatan</span>
-                <span className="text-xs font-semibold text-green-400">+{selectedAsset.profitRate}%</span>
-                <span className="text-sm font-bold text-green-400">
+                <span className="text-xs text-emerald-400">+{effectiveProfitRate}%</span>
+                <span className="text-sm font-bold text-emerald-400">
                   {formatCurrency(potentialPayout)}
                 </span>
               </div>
@@ -1010,7 +1212,7 @@ export default function TradingPage() {
             <button
               onClick={() => handlePlaceOrder('CALL')}
               disabled={loading || !selectedAsset || !isConnected}
-              className="bg-green-500 hover:bg-green-600 active:bg-green-700 disabled:opacity-50 py-4 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
+              className="bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 disabled:opacity-50 py-4 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
             >
               <ArrowUp className="w-5 h-5" />
               <span>BUY</span>
@@ -1018,7 +1220,7 @@ export default function TradingPage() {
             <button
               onClick={() => handlePlaceOrder('PUT')}
               disabled={loading || !selectedAsset || !isConnected}
-              className="bg-red-500 hover:bg-red-600 active:bg-red-700 disabled:opacity-50 py-4 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
+              className="bg-rose-500 hover:bg-rose-600 active:bg-rose-700 disabled:opacity-50 py-4 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
             >
               <ArrowDown className="w-5 h-5" />
               <span>SELL</span>
@@ -1048,9 +1250,9 @@ export default function TradingPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3 mb-6">
-                <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl p-4">
+                <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
                   <div className="text-xs text-gray-400 mb-1">REAL Balance</div>
-                  <div className="text-2xl font-bold text-green-400">{formatCurrency(realBalance)}</div>
+                  <div className="text-2xl font-bold text-emerald-400">{formatCurrency(realBalance)}</div>
                 </div>
                 <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-xl p-4">
                   <div className="text-xs text-gray-400 mb-1">DEMO Balance</div>
@@ -1064,13 +1266,13 @@ export default function TradingPage() {
                     setShowWalletModal(false)
                     setTimeout(() => router.push('/balance'), 300)
                   }}
-                  className="bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded-xl p-6 transition-all group"
+                  className="bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl p-6 transition-all group"
                 >
-                  <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-green-500/30 transition-colors">
-                    <ArrowDownToLine className="w-6 h-6 text-green-400" />
+                  <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-emerald-500/30 transition-colors">
+                    <ArrowDownToLine className="w-6 h-6 text-emerald-400" />
                   </div>
                   <div className="text-center">
-                    <div className="font-bold text-green-400 mb-1">Deposit</div>
+                    <div className="font-bold text-emerald-400 mb-1">Deposit</div>
                     <div className="text-xs text-gray-400">Add funds</div>
                   </div>
                 </button>
@@ -1080,13 +1282,13 @@ export default function TradingPage() {
                     setShowWalletModal(false)
                     setTimeout(() => router.push('/balance'), 300)
                   }}
-                  className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-xl p-6 transition-all group"
+                  className="bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-xl p-6 transition-all group"
                 >
-                  <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-red-500/30 transition-colors">
-                    <ArrowUpFromLine className="w-6 h-6 text-red-400" />
+                  <div className="w-12 h-12 bg-rose-500/20 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-rose-500/30 transition-colors">
+                    <ArrowUpFromLine className="w-6 h-6 text-rose-400" />
                   </div>
                   <div className="text-center">
-                    <div className="font-bold text-red-400 mb-1">Withdraw</div>
+                    <div className="font-bold text-rose-400 mb-1">Withdraw</div>
                     <div className="text-xs text-gray-400">Cash out</div>
                   </div>
                 </button>
@@ -1118,7 +1320,27 @@ export default function TradingPage() {
           <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setShowMobileMenu(false)} />
           <div className="fixed top-0 right-0 bottom-0 w-64 bg-[#0f1419] border-l border-gray-800/50 z-50 p-4 animate-slide-left">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="font-bold">Menu</h3>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-blue-500/30">
+                  {userProfile?.profileInfo?.avatar?.url ? (
+                    <Image
+                      src={userProfile.profileInfo.avatar.url}
+                      alt={user.email}
+                      width={40}
+                      height={40}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
+                      <span className="text-sm font-bold">{user.email[0].toUpperCase()}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-sm truncate">{user.email}</h3>
+                  <p className="text-xs text-gray-400">{user.role}</p>
+                </div>
+              </div>
               <button onClick={() => setShowMobileMenu(false)}>
                 <X className="w-5 h-5" />
               </button>
@@ -1154,7 +1376,7 @@ export default function TradingPage() {
                         <div className="text-sm font-medium">{asset.symbol}</div>
                         <div className="text-xs text-gray-400">{asset.name}</div>
                       </div>
-                      <div className="text-xs font-bold text-green-400">
+                      <div className="text-xs font-bold text-emerald-400">
                         +{asset.profitRate}%
                       </div>
                     </button>
@@ -1170,7 +1392,7 @@ export default function TradingPage() {
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
                 <History className="w-4 h-4" />
-                <span>History</span>
+                <span>Riwayat</span>
               </button>
 
               <button
@@ -1192,7 +1414,7 @@ export default function TradingPage() {
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
                 <Settings className="w-4 h-4" />
-                <span>Profile</span>
+                <span>Profil</span>
               </button>
 
               <button
@@ -1213,7 +1435,7 @@ export default function TradingPage() {
                   setShowMobileMenu(false)
                   handleLogout()
                 }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
+                className="w-full flex items-center gap-3 px-4 py-3 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg transition-colors text-rose-400"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Logout</span>
@@ -1253,7 +1475,7 @@ export default function TradingPage() {
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
-                <Clock className="w-4 h-4" />
+                <Calendar className="w-4 h-4" />
                 <span>Kalender</span>
               </button>
 
@@ -1288,6 +1510,28 @@ export default function TradingPage() {
               >
                 <ArrowUp className="w-4 h-4" />
                 <span>Trader Terbaik</span>
+              </button>
+
+                            <button
+                onClick={() => {
+                  router.push('/berita')
+                  setShowLeftSidebar(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <Newspaper className="w-4 h-4" />
+                <span>Berita</span>
+              </button>
+
+                            <button
+                onClick={() => {
+                  router.push('/support')
+                  setShowLeftSidebar(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Support</span>
               </button>
             </div>
           </div>

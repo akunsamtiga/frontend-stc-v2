@@ -1,10 +1,10 @@
-// components/OrderNotification.tsx - INSTANT VERSION
+// components/OrderNotification.tsx - DYNAMIC ISLAND SINGLE BAR
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
 import { BinaryOrder } from '@/types'
 import { formatCurrency, playSound } from '@/lib/utils'
-import { CheckCircle2, XCircle, TrendingUp, TrendingDown } from 'lucide-react'
+import { TrendingUp, TrendingDown } from 'lucide-react'
 
 interface OrderNotificationProps {
   order: BinaryOrder | null
@@ -13,59 +13,57 @@ interface OrderNotificationProps {
 
 export default function OrderNotification({ order, onClose }: OrderNotificationProps) {
   const [visible, setVisible] = useState(false)
+  const [expanded, setExpanded] = useState(false)
   const lastNotifiedRef = useRef<string | null>(null)
-  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const autoCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (!order) {
       setVisible(false)
+      setExpanded(false)
       return
     }
 
-    // Skip if already notified
     if (lastNotifiedRef.current === order.id) {
-      console.log('⏭️ Skipping duplicate notification:', order.id)
       return
     }
 
-    // Only notify for completed orders
     if (order.status !== 'WON' && order.status !== 'LOST') {
       return
     }
 
     lastNotifiedRef.current = order.id
-    console.log('🔔 Showing instant notification:', order.id, order.status)
 
-    // ✅ Show immediately with requestAnimationFrame for instant feedback
+    // Show compact
     requestAnimationFrame(() => {
       setVisible(true)
     })
 
-    // ✅ Play sound instantly
+    // Expand after 150ms
+    setTimeout(() => {
+      setExpanded(true)
+    }, 150)
+
+    // Play sound
     const isWin = order.status === 'WON'
     try {
       playSound(isWin ? '/sounds/win.mp3' : '/sounds/lose.mp3', 0.3)
-    } catch (e) {
-      console.log('Audio play failed:', e)
-    }
+    } catch (e) {}
 
-    // ✅ Auto-hide after 4 seconds
-    if (closeTimeoutRef.current) {
-      clearTimeout(closeTimeoutRef.current)
-    }
-
-    closeTimeoutRef.current = setTimeout(() => {
-      setVisible(false)
+    // Auto close after 3.5 seconds
+    autoCloseTimeoutRef.current = setTimeout(() => {
+      setExpanded(false)
       setTimeout(() => {
-        onClose()
-        lastNotifiedRef.current = null
-      }, 300)
-    }, 4000)
+        setVisible(false)
+        setTimeout(() => {
+          onClose()
+          lastNotifiedRef.current = null
+        }, 500)
+      }, 600)
+    }, 3500)
 
     return () => {
-      if (closeTimeoutRef.current) {
-        clearTimeout(closeTimeoutRef.current)
-      }
+      if (autoCloseTimeoutRef.current) clearTimeout(autoCloseTimeoutRef.current)
     }
   }, [order, onClose])
 
@@ -73,89 +71,146 @@ export default function OrderNotification({ order, onClose }: OrderNotificationP
 
   const isWin = order.status === 'WON'
   const profit = order.profit || 0
+  const isCall = order.direction === 'CALL'
 
   return (
-    <div 
-      className={`fixed top-4 right-4 z-[9999] transition-all duration-300 ease-out ${
-        visible 
-          ? 'translate-x-0 opacity-100 scale-100' 
-          : 'translate-x-full opacity-0 scale-95'
-      }`}
-    >
-      <div className={`
-        max-w-sm rounded-xl shadow-2xl border-2 overflow-hidden
-        ${isWin 
-          ? 'bg-gradient-to-br from-green-500/20 to-emerald-600/20 border-green-500/50' 
-          : 'bg-gradient-to-br from-red-500/20 to-rose-600/20 border-red-500/50'
-        }
-      `}>
-        <div className="bg-[#0f1419]/95 backdrop-blur-xl p-4">
-          <div className="flex items-start gap-3">
-            {/* Icon */}
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-              isWin 
-                ? 'bg-green-500/20 border-2 border-green-500 animate-bounce-once' 
-                : 'bg-red-500/20 border-2 border-red-500 animate-shake-once'
-            }`}>
-              {isWin ? (
-                <CheckCircle2 className="w-6 h-6 text-green-400" />
-              ) : (
-                <XCircle className="w-6 h-6 text-red-400" />
-              )}
-            </div>
+    <>
+      {/* Backdrop Overlay - Gradient dark from top */}
+      <div 
+        className={`
+          fixed inset-0 z-[9998] pointer-events-none
+          transition-opacity duration-500
+          ${visible ? 'opacity-100' : 'opacity-0'}
+        `}
+        style={{
+          background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.3) 30%, transparent 50%)'
+        }}
+      />
 
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h4 className={`font-bold text-sm ${isWin ? 'text-green-400' : 'text-red-400'}`}>
-                  {isWin ? 'Trade Won! 🎉' : 'Trade Lost'}
-                </h4>
-                <span className="text-xs text-gray-400">{order.asset_name}</span>
-              </div>
+      {/* Notification */}
+      <div 
+        className={`
+          fixed z-[9999]
+          transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
+          
+          /* Mobile & Desktop positioning */
+          top-3 left-1/2 -translate-x-1/2
+          
+          ${visible 
+            ? 'translate-y-0 opacity-100 scale-100' 
+            : '-translate-y-4 opacity-0 scale-95 pointer-events-none'
+          }
+        `}
+      >
+      <div 
+        className={`
+          relative overflow-hidden backdrop-blur-3xl
+          ${isWin 
+            ? 'bg-gradient-to-br from-emerald-500/12 via-slate-900/85 to-slate-950/90' 
+            : 'bg-gradient-to-br from-rose-500/12 via-slate-900/85 to-slate-950/90'
+          }
+          rounded-full
+          transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
+          
+          /* Dynamic width based on state */
+          ${expanded 
+            ? 'w-[280px] sm:w-[340px]' 
+            : 'w-[100px]'
+          }
+          
+          h-[44px]
+          
+          flex items-center
+          px-4
+        `}
+        style={{
+          boxShadow: isWin
+            ? '0 20px 40px -12px rgba(16, 185, 129, 0.22), 0 0 0 0.5px rgba(16, 185, 129, 0.18)'
+            : '0 20px 40px -12px rgba(244, 63, 94, 0.22), 0 0 0 0.5px rgba(244, 63, 94, 0.18)',
+        }}
+      >
+        {/* COMPACT STATE - Icon + Checkmark */}
+        <div 
+          className={`
+            flex items-center justify-center gap-1.5 w-full
+            transition-all duration-500
+            ${expanded ? 'opacity-0 absolute' : 'opacity-100'}
+          `}
+        >
+          {isCall ? (
+            <TrendingUp className={`w-3.5 h-3.5 ${isWin ? 'text-emerald-400' : 'text-rose-400'}`} strokeWidth={2.5} />
+          ) : (
+            <TrendingDown className={`w-3.5 h-3.5 ${isWin ? 'text-emerald-400' : 'text-rose-400'}`} strokeWidth={2.5} />
+          )}
+          <span className={`text-sm font-bold ${isWin ? 'text-emerald-300' : 'text-rose-300'}`}>
+            {isWin ? '✓' : '✗'}
+          </span>
+        </div>
 
-              <div className="flex items-center gap-2 text-xs text-gray-300 mb-2">
-                {order.direction === 'CALL' ? (
-                  <TrendingUp className="w-3 h-3 text-green-400" />
-                ) : (
-                  <TrendingDown className="w-3 h-3 text-red-400" />
-                )}
-                <span className="font-semibold">{order.direction}</span>
-                <span className="text-gray-500">•</span>
-                <span>{formatCurrency(order.amount)}</span>
-              </div>
+        {/* EXPANDED STATE - Single Line Info */}
+        <div 
+          className={`
+            flex items-center justify-between w-full gap-2
+            transition-all duration-500 delay-200
+            ${expanded ? 'opacity-100' : 'opacity-0 absolute'}
+          `}
+        >
+          {/* Left: Icon + Direction */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {isCall ? (
+              <TrendingUp className={`w-4 h-4 ${isWin ? 'text-emerald-400' : 'text-rose-400'}`} strokeWidth={2.5} />
+            ) : (
+              <TrendingDown className={`w-4 h-4 ${isWin ? 'text-emerald-400' : 'text-rose-400'}`} strokeWidth={2.5} />
+            )}
+            <span className={`text-xs font-bold ${isWin ? 'text-emerald-300' : 'text-rose-300'}`}>
+              {isCall ? 'BUY' : 'SELL'}
+            </span>
+          </div>
 
-              {/* Profit/Loss */}
-              <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-bold ${
-                isWin 
-                  ? 'bg-green-500/20 text-green-400' 
-                  : 'bg-red-500/20 text-red-400'
-              }`}>
-                {profit > 0 ? '+' : ''}{formatCurrency(profit)}
-              </div>
-            </div>
+          {/* Separator */}
+          <div className="h-4 w-[1px] bg-white/10 flex-shrink-0" />
 
-            {/* Close button */}
-            <button
-              onClick={() => {
-                setVisible(false)
-                setTimeout(() => {
-                  onClose()
-                  lastNotifiedRef.current = null
-                }, 300)
-              }}
-              className="text-gray-400 hover:text-white transition-colors text-2xl leading-none"
-            >
-              ×
-            </button>
+          {/* Center: Win/Lost */}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <span className={`text-xs font-bold ${isWin ? 'text-emerald-300' : 'text-rose-300'}`}>
+              {isWin ? 'WON' : 'LOST'}
+            </span>
+          </div>
+
+          {/* Separator */}
+          <div className="h-4 w-[1px] bg-white/10 flex-shrink-0" />
+
+          {/* Right: Payout */}
+          <div className="flex-1 text-right min-w-0">
+            <span className={`text-sm font-bold tabular-nums ${isWin ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {profit > 0 ? '+' : ''}{formatCurrency(profit)}
+            </span>
           </div>
         </div>
 
-        {/* Progress bar */}
-        <div className="h-1 bg-gray-800">
+        {/* Subtle glow overlay */}
+        <div 
+          className="absolute inset-0 rounded-[inherit] pointer-events-none"
+          style={{
+            background: isWin
+              ? 'radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.1), transparent 70%)'
+              : 'radial-gradient(circle at 50% 50%, rgba(244, 63, 94, 0.1), transparent 70%)'
+          }}
+        />
+
+        {/* Progress indicator (bottom) */}
+        <div 
+          className={`
+            absolute bottom-0 left-0 right-0 h-[2px] bg-white/5
+            transition-opacity duration-500 delay-300
+            ${expanded ? 'opacity-100' : 'opacity-0'}
+          `}
+        >
           <div 
-            className={`h-full ${isWin ? 'bg-green-500' : 'bg-red-500'}`}
+            className={`h-full ${isWin ? 'bg-emerald-500' : 'bg-rose-500'}`}
             style={{
-              animation: 'progress 4s linear forwards'
+              animation: expanded ? 'progress 3.5s linear forwards' : 'none',
+              width: expanded ? '100%' : '0%'
             }}
           />
         </div>
@@ -166,29 +221,8 @@ export default function OrderNotification({ order, onClose }: OrderNotificationP
           from { width: 100%; }
           to { width: 0%; }
         }
-
-        @keyframes bounce-once {
-          0%, 100% { transform: translateY(0); }
-          25% { transform: translateY(-10px); }
-          50% { transform: translateY(0); }
-          75% { transform: translateY(-5px); }
-        }
-
-        @keyframes shake-once {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-5px); }
-          50% { transform: translateX(5px); }
-          75% { transform: translateX(-3px); }
-        }
-
-        .animate-bounce-once {
-          animation: bounce-once 0.6s ease-out;
-        }
-
-        .animate-shake-once {
-          animation: shake-once 0.5s ease-out;
-        }
       `}</style>
     </div>
+    </>
   )
 }

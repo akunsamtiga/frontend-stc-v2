@@ -186,7 +186,13 @@ const currencyCache = new Map<number, string>()
 const MAX_CACHE_SIZE = 1000
 
 export function formatCurrency(amount: number, compact = false): string {
-  const cacheKey = compact ? `${amount}-compact` : amount
+  // ✅ FIXED: Validate amount to prevent NaN display
+  const validAmount = Number(amount)
+  if (!isFinite(validAmount) || isNaN(validAmount)) {
+    return 'Rp0'
+  }
+  
+  const cacheKey = compact ? `${validAmount}-compact` : validAmount
   
   if (currencyCache.has(cacheKey as any)) {
     return currencyCache.get(cacheKey as any)!
@@ -194,7 +200,7 @@ export function formatCurrency(amount: number, compact = false): string {
   
   let formatted: string
   
-  if (compact && Math.abs(amount) >= 1000000) {
+  if (compact && Math.abs(validAmount) >= 1000000) {
     formatted = new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
@@ -202,14 +208,14 @@ export function formatCurrency(amount: number, compact = false): string {
       maximumFractionDigits: 1,
       notation: 'compact',
       compactDisplay: 'short'
-    }).format(amount)
+    }).format(validAmount)
   } else {
     formatted = new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount)
+    }).format(validAmount)
   }
   
   if (currencyCache.size < MAX_CACHE_SIZE) {
