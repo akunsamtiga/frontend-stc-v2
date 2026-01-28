@@ -1,4 +1,4 @@
-// lib/firebase.ts - FIXED: Prevent chart gaps during network lag
+// lib/firebase.ts - FIXED: Remove 120 bar limit for 1s timeframe
 
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
 import { getDatabase, Database, ref, onValue, off, query, limitToLast, get } from 'firebase/database'
@@ -327,22 +327,28 @@ function processHistoricalData(rawData: any, limit: number): any[] {
 
   bars.sort((a, b) => a.timestamp - b.timestamp)
   
-  return bars.slice(-limit)
+  // ✅ FIXED: Apply limit (use all data if limit is large or -1)
+  if (limit > 0 && limit < bars.length) {
+    return bars.slice(-limit)
+  }
+  
+  return bars
 }
 
+// ✅ FIXED: Remove hardcoded limits - match backend retention
 const TIMEFRAME_CONFIGS: Record<Timeframe, { 
   seconds: number
   defaultLimit: number
   cacheStrategy: 'aggressive' | 'moderate' | 'normal'
 }> = {
-  '1s': { seconds: 1, defaultLimit: 120, cacheStrategy: 'aggressive' },
-  '1m': { seconds: 60, defaultLimit: 200, cacheStrategy: 'aggressive' },
-  '5m': { seconds: 300, defaultLimit: 120, cacheStrategy: 'moderate' },
-  '15m': { seconds: 900, defaultLimit: 100, cacheStrategy: 'moderate' },
-  '30m': { seconds: 1800, defaultLimit: 96, cacheStrategy: 'moderate' },
-  '1h': { seconds: 3600, defaultLimit: 96, cacheStrategy: 'normal' },
-  '4h': { seconds: 14400, defaultLimit: 60, cacheStrategy: 'normal' },
-  '1d': { seconds: 86400, defaultLimit: 60, cacheStrategy: 'normal' }
+  '1s': { seconds: 1, defaultLimit: 240, cacheStrategy: 'aggressive' }, 
+  '1m': { seconds: 60, defaultLimit: 240, cacheStrategy: 'aggressive' },
+  '5m': { seconds: 300, defaultLimit: 240, cacheStrategy: 'moderate' },
+  '15m': { seconds: 900, defaultLimit: 240, cacheStrategy: 'moderate' },
+  '30m': { seconds: 1800, defaultLimit: 240, cacheStrategy: 'moderate' },
+  '1h': { seconds: 3600, defaultLimit: 240, cacheStrategy: 'normal' },
+  '4h': { seconds: 14400, defaultLimit: 240, cacheStrategy: 'normal' },
+  '1d': { seconds: 86400, defaultLimit: 240, cacheStrategy: 'normal' }
 }
 
 // ✅ NEW: Gap detection and filling
@@ -383,7 +389,7 @@ async function detectAndFillGaps(
     if (!snapshot.exists()) return existingData
     
     const allData = snapshot.val()
-    const processed = processHistoricalData(allData, 1000) // Get more data
+    const processed = processHistoricalData(allData, 10000) // Get all data
     
     // Merge existing with new data
     const merged = [...existingData]
@@ -467,7 +473,7 @@ export async function fetchHistoricalData(
       }
       
       const duration = Date.now() - startTime
-      console.log(`Fetched ${processed.length} ${timeframe} bars in ${duration}ms`)
+      console.log(`✅ Fetched ${processed.length} ${timeframe} bars in ${duration}ms (limit: ${limit})`)
       
       return processed
     })
@@ -538,7 +544,7 @@ async function backfillMissingData(
     if (!snapshot.exists()) return []
     
     const rawData = snapshot.val()
-    const allData = processHistoricalData(rawData, 1000)
+    const allData = processHistoricalData(rawData, 10000) // Get all data
     
     // Get only data after last known timestamp
     const missingData = allData.filter(
@@ -715,7 +721,7 @@ export async function prefetchMultipleTimeframes(
   const duration = Date.now() - startTime
   const successful = Array.from(results.values()).filter(d => d.length > 0).length
   
-  console.log(`Prefetched ${successful}/${timeframes.length} timeframes in ${duration}ms`)
+  console.log(`✅ Prefetched ${successful}/${timeframes.length} timeframes in ${duration}ms`)
   
   return results
 }
@@ -806,6 +812,6 @@ if (typeof window !== 'undefined') {
   }, 60000)
 }
 
+// ✅ FIXED: Remove hardcoded limit constants
 export const SUPPORTS_1S_TRADING = true
 export const ULTRA_FAST_TIMEFRAME = '1s' as Timeframe
-export const DEFAULT_1S_LIMIT = 60
