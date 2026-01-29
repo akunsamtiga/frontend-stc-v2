@@ -1,4 +1,4 @@
-// lib/firebase.ts - FIXED: Remove 120 bar limit for 1s timeframe
+// lib/firebase.ts - UNLIMITED VERSION - No chart limits, load all history
 
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
 import { getDatabase, Database, ref, onValue, off, query, limitToLast, get } from 'firebase/database'
@@ -26,7 +26,7 @@ if (typeof window !== 'undefined') {
       app = getApps()[0]
       database = getDatabase(app)
     }
-    console.log('Firebase initialized')
+    console.log('Firebase initialized - UNLIMITED MODE')
   } catch (error) {
     console.error('Firebase init error:', error)
   }
@@ -76,8 +76,8 @@ interface CacheEntry {
 class FastMemoryCache {
   private cache = new Map<string, CacheEntry>()
   private readonly CACHE_TTL = 300000 // 5 min normal
-  private readonly STALE_TTL = 1800000 // 30 min stale (INCREASED for lag tolerance)
-  private readonly MAX_SIZE = 150
+  private readonly STALE_TTL = 1800000 // 30 min stale
+  private readonly MAX_SIZE = 200 // Increased for unlimited data
 
   get(key: string): any | null {
     const entry = this.cache.get(key)
@@ -171,7 +171,7 @@ class FastMemoryCache {
 
 const memoryCache = new FastMemoryCache()
 
-// ✅ NEW: Data buffer for network lag tolerance
+// ✅ Data buffer for network lag tolerance
 interface BufferedData {
   timestamp: number
   data: any
@@ -181,7 +181,7 @@ interface BufferedData {
 class DataBuffer {
   private buffer: Map<string, BufferedData[]> = new Map()
   private readonly MAX_BUFFER_SIZE = 100
-  private readonly BUFFER_FLUSH_INTERVAL = 1000 // 1 second
+  private readonly BUFFER_FLUSH_INTERVAL = 1000
 
   add(key: string, data: any, timestamp: number) {
     if (!this.buffer.has(key)) {
@@ -195,7 +195,6 @@ class DataBuffer {
       receivedAt: Date.now()
     })
     
-    // Keep buffer size manageable
     if (buffer.length > this.MAX_BUFFER_SIZE) {
       buffer.shift()
     }
@@ -225,7 +224,7 @@ class DataBuffer {
 
 const dataBuffer = new DataBuffer()
 
-// ✅ NEW: Connection state tracker
+// ✅ Connection state tracker
 class ConnectionTracker {
   private connected = true
   private lastDisconnect: number | null = null
@@ -278,7 +277,8 @@ function cleanAssetPath(path: string): string {
   return path
 }
 
-function processHistoricalData(rawData: any, limit: number): any[] {
+// ✅ REMOVED LIMIT - Process ALL data without restrictions
+function processHistoricalData(rawData: any): any[] {
   if (!rawData || typeof rawData !== 'object') {
     return []
   }
@@ -327,31 +327,27 @@ function processHistoricalData(rawData: any, limit: number): any[] {
 
   bars.sort((a, b) => a.timestamp - b.timestamp)
   
-  // ✅ FIXED: Apply limit (use all data if limit is large or -1)
-  if (limit > 0 && limit < bars.length) {
-    return bars.slice(-limit)
-  }
-  
+  // ✅ RETURN ALL DATA - No limit applied
+  console.log(`✅ Processing ALL ${bars.length} candles without limit`)
   return bars
 }
 
-// ✅ FIXED: Remove hardcoded limits - match backend retention
+// ✅ REMOVED LIMITS - Load all available history
 const TIMEFRAME_CONFIGS: Record<Timeframe, { 
   seconds: number
-  defaultLimit: number
   cacheStrategy: 'aggressive' | 'moderate' | 'normal'
 }> = {
-  '1s': { seconds: 1, defaultLimit: 240, cacheStrategy: 'aggressive' }, 
-  '1m': { seconds: 60, defaultLimit: 240, cacheStrategy: 'aggressive' },
-  '5m': { seconds: 300, defaultLimit: 240, cacheStrategy: 'moderate' },
-  '15m': { seconds: 900, defaultLimit: 240, cacheStrategy: 'moderate' },
-  '30m': { seconds: 1800, defaultLimit: 240, cacheStrategy: 'moderate' },
-  '1h': { seconds: 3600, defaultLimit: 240, cacheStrategy: 'normal' },
-  '4h': { seconds: 14400, defaultLimit: 240, cacheStrategy: 'normal' },
-  '1d': { seconds: 86400, defaultLimit: 240, cacheStrategy: 'normal' }
+  '1s': { seconds: 1, cacheStrategy: 'aggressive' }, 
+  '1m': { seconds: 60, cacheStrategy: 'aggressive' },
+  '5m': { seconds: 300, cacheStrategy: 'moderate' },
+  '15m': { seconds: 900, cacheStrategy: 'moderate' },
+  '30m': { seconds: 1800, cacheStrategy: 'moderate' },
+  '1h': { seconds: 3600, cacheStrategy: 'normal' },
+  '4h': { seconds: 14400, cacheStrategy: 'normal' },
+  '1d': { seconds: 86400, cacheStrategy: 'normal' }
 }
 
-// ✅ NEW: Gap detection and filling
+// ✅ Gap detection and filling (no limit)
 async function detectAndFillGaps(
   assetPath: string,
   timeframe: Timeframe,
@@ -364,7 +360,6 @@ async function detectAndFillGaps(
   
   const gaps: { start: number; end: number }[] = []
   
-  // Detect gaps
   for (let i = 1; i < existingData.length; i++) {
     const timeDiff = existingData[i].timestamp - existingData[i - 1].timestamp
     
@@ -380,7 +375,6 @@ async function detectAndFillGaps(
   
   console.log(`🔍 Detected ${gaps.length} gaps in ${timeframe} data`)
   
-  // Try to fill gaps from Firebase
   try {
     const cleanPath = cleanAssetPath(assetPath)
     const ohlcPath = `${cleanPath}/ohlc_${timeframe}`
@@ -389,9 +383,8 @@ async function detectAndFillGaps(
     if (!snapshot.exists()) return existingData
     
     const allData = snapshot.val()
-    const processed = processHistoricalData(allData, 10000) // Get all data
+    const processed = processHistoricalData(allData) // ✅ No limit
     
-    // Merge existing with new data
     const merged = [...existingData]
     
     for (const gap of gaps) {
@@ -405,7 +398,6 @@ async function detectAndFillGaps(
       }
     }
     
-    // Sort and deduplicate
     const unique = Array.from(
       new Map(merged.map(item => [item.timestamp, item])).values()
     ).sort((a, b) => a.timestamp - b.timestamp)
@@ -418,10 +410,10 @@ async function detectAndFillGaps(
   }
 }
 
+// ✅ FETCH ALL HISTORICAL DATA - No limits
 export async function fetchHistoricalData(
   assetPath: string,
-  timeframe: Timeframe = '1m',
-  customLimit?: number
+  timeframe: Timeframe = '1m'
 ): Promise<any[]> {
   if (typeof window === 'undefined' || !database) {
     return []
@@ -429,17 +421,14 @@ export async function fetchHistoricalData(
 
   try {
     const cleanPath = cleanAssetPath(assetPath)
-    const cacheKey = `${cleanPath}-${timeframe}-${customLimit || 'default'}`
+    const cacheKey = `${cleanPath}-${timeframe}-unlimited`
 
-    // ✅ IMPROVED: Use stale cache during network issues
     const cached = memoryCache.get(cacheKey)
     if (cached) {
-      // If recently reconnected, verify data freshness
       if (connectionTracker.wasDisconnectedRecently()) {
         console.log('🔄 Recently reconnected, verifying cache freshness...')
-        // Return cache but trigger background refresh
         setTimeout(() => {
-          fetchHistoricalData(assetPath, timeframe, customLimit)
+          fetchHistoricalData(assetPath, timeframe)
             .catch(err => console.log('Background refresh failed:', err))
         }, 0)
       }
@@ -447,14 +436,12 @@ export async function fetchHistoricalData(
     }
 
     return await deduplicateRequest(cacheKey, async () => {
-      console.log(`Fetching ${timeframe} from Firebase...`)
+      console.log(`🔥 Fetching ALL ${timeframe} data (NO LIMIT)...`)
       const startTime = Date.now()
       
       const ohlcPath = `${cleanPath}/ohlc_${timeframe}`
       
-      const config = TIMEFRAME_CONFIGS[timeframe]
-      const limit = customLimit || config.defaultLimit
-      
+      // ✅ NO LIMIT - Get all data from Firebase
       const snapshot = await get(ref(database, ohlcPath))
       
       if (!snapshot.exists()) {
@@ -463,9 +450,11 @@ export async function fetchHistoricalData(
       }
       
       const rawData = snapshot.val()
-      let processed = processHistoricalData(rawData, limit)
       
-      // ✅ NEW: Check for gaps and fill them
+      // ✅ Process ALL data without limit
+      let processed = processHistoricalData(rawData)
+      
+      // ✅ Fill gaps
       processed = await detectAndFillGaps(cleanPath, timeframe, processed)
       
       if (processed.length > 0) {
@@ -473,7 +462,7 @@ export async function fetchHistoricalData(
       }
       
       const duration = Date.now() - startTime
-      console.log(`✅ Fetched ${processed.length} ${timeframe} bars in ${duration}ms (limit: ${limit})`)
+      console.log(`✅ Fetched ALL ${processed.length} ${timeframe} bars in ${duration}ms (UNLIMITED)`)
       
       return processed
     })
@@ -481,8 +470,7 @@ export async function fetchHistoricalData(
   } catch (error: any) {
     console.error(`Fetch error for ${timeframe}:`, error.message)
     
-    // ✅ FALLBACK: Return stale cache if available
-    const cacheKey = `${cleanAssetPath(assetPath)}-${timeframe}-${customLimit || 'default'}`
+    const cacheKey = `${cleanAssetPath(assetPath)}-${timeframe}-unlimited`
     const stale = memoryCache.getStale(cacheKey)
     if (stale) {
       console.log('⚠️ Using stale cache due to fetch error')
@@ -503,7 +491,7 @@ export async function fetchHistoricalDataWithStale(
 
   try {
     const cleanPath = cleanAssetPath(assetPath)
-    const cacheKey = `${cleanPath}-${timeframe}`
+    const cacheKey = `${cleanPath}-${timeframe}-unlimited`
 
     const cached = memoryCache.get(cacheKey)
     if (cached) {
@@ -528,7 +516,7 @@ export async function fetchHistoricalDataWithStale(
   }
 }
 
-// ✅ NEW: Backfill missing data after reconnection
+// ✅ Backfill missing data after reconnection (no limit)
 async function backfillMissingData(
   assetPath: string,
   timeframe: Timeframe,
@@ -544,9 +532,8 @@ async function backfillMissingData(
     if (!snapshot.exists()) return []
     
     const rawData = snapshot.val()
-    const allData = processHistoricalData(rawData, 10000) // Get all data
+    const allData = processHistoricalData(rawData) // ✅ No limit
     
-    // Get only data after last known timestamp
     const missingData = allData.filter(
       item => item.timestamp > lastKnownTimestamp
     )
@@ -567,7 +554,7 @@ export function subscribeTo1sOHLC(
   assetPath: string,
   callback: (data: any) => void
 ): () => void {
-  console.log('Starting ULTRA-FAST 1s OHLC subscription...')
+  console.log('Starting ULTRA-FAST 1s OHLC subscription (UNLIMITED)...')
   return subscribeToOHLCUpdates(assetPath, '1s', callback)
 }
 
@@ -588,23 +575,20 @@ export function subscribeToOHLCUpdates(
   let lastData: any = null
   let reconnectBackfillDone = false
   
-  const isUltraFast = timeframe === '1s'
   const bufferKey = `${cleanPath}-${timeframe}`
   
   const unsubscribe = onValue(ohlcRef, async (snapshot) => {
     const data = snapshot.val()
     if (!data) return
 
-    // ✅ Track connection state
     connectionTracker.setConnected(true)
 
-    // ✅ RECONNECTION BACKFILL
+    // ✅ RECONNECTION BACKFILL (no limit)
     if (connectionTracker.wasDisconnectedRecently(10000) && !reconnectBackfillDone) {
       if (lastTimestamp) {
-        console.log('🔄 Reconnected, backfilling missing data...')
+        console.log('🔄 Reconnected, backfilling ALL missing data...')
         const missingData = await backfillMissingData(cleanPath, timeframe, lastTimestamp)
         
-        // Send missing data first
         for (const missedBar of missingData) {
           callback({
             ...missedBar,
@@ -636,7 +620,6 @@ export function subscribeToOHLCUpdates(
                       lastData.close !== latestBar.close
     
     if (isNewBar || hasChanged) {
-      // ✅ BUFFERING: Store in buffer during potential lag
       dataBuffer.add(bufferKey, {
         timestamp,
         datetime: latestBar.datetime || new Date(timestamp * 1000).toISOString(),
@@ -652,7 +635,6 @@ export function subscribeToOHLCUpdates(
       lastTimestamp = timestamp
       lastData = latestBar
       
-      // Immediate callback for real-time feel
       callback({
         timestamp,
         datetime: latestBar.datetime || new Date(timestamp * 1000).toISOString(),
@@ -666,13 +648,12 @@ export function subscribeToOHLCUpdates(
       })
       
       if (isNewBar) {
-        const cacheKey = `${cleanPath}-${timeframe}`
+        const cacheKey = `${cleanPath}-${timeframe}-unlimited`
         memoryCache.delete(cacheKey)
       }
     }
   }, (error) => {
     console.error(`OHLC subscription error (${timeframe}):`, error)
-    // ✅ Track disconnection
     connectionTracker.setConnected(false)
   })
 
@@ -682,13 +663,14 @@ export function subscribeToOHLCUpdates(
   }
 }
 
+// ✅ Prefetch ALL timeframes without limits
 export async function prefetchMultipleTimeframes(
   assetPath: string,
   timeframes: Timeframe[] = ['1s', '1m', '5m']
 ): Promise<Map<Timeframe, any[]>> {
   const results = new Map<Timeframe, any[]>()
   
-  console.log(`Prefetching ${timeframes.length} timeframes in parallel...`)
+  console.log(`🔥 Prefetching ${timeframes.length} timeframes (UNLIMITED)...`)
   const startTime = Date.now()
   
   const sorted = [...timeframes].sort((a, b) => {
@@ -712,6 +694,8 @@ export async function prefetchMultipleTimeframes(
       
       if (data.length === 0) {
         console.warn(`No data for ${tf}`)
+      } else {
+        console.log(`✅ Loaded ${data.length} ${tf} candles (UNLIMITED)`)
       }
     } else {
       console.error(`Prefetch failed:`, result.reason)
@@ -721,7 +705,7 @@ export async function prefetchMultipleTimeframes(
   const duration = Date.now() - startTime
   const successful = Array.from(results.values()).filter(d => d.length > 0).length
   
-  console.log(`✅ Prefetched ${successful}/${timeframes.length} timeframes in ${duration}ms`)
+  console.log(`✅ Prefetched ${successful}/${timeframes.length} timeframes in ${duration}ms (UNLIMITED MODE)`)
   
   return results
 }
@@ -745,7 +729,6 @@ export function subscribeToPriceUpdates(
     const data = snapshot.val()
     if (!data || !data.price) return
     
-    // ✅ Track connection
     connectionTracker.setConnected(true)
     
     const isDuplicate = lastPrice !== null && 
@@ -761,7 +744,6 @@ export function subscribeToPriceUpdates(
     
   }, (error) => {
     console.error('Price subscription error:', error)
-    // ✅ Track disconnection
     connectionTracker.setConnected(false)
   })
 
@@ -812,6 +794,6 @@ if (typeof window !== 'undefined') {
   }, 60000)
 }
 
-// ✅ FIXED: Remove hardcoded limit constants
 export const SUPPORTS_1S_TRADING = true
 export const ULTRA_FAST_TIMEFRAME = '1s' as Timeframe
+export const UNLIMITED_HISTORY = true // ✅ NEW FLAG

@@ -19,6 +19,10 @@ interface TradingState {
     isEndOfCandle: boolean
   } | null
   
+  // ✅ NEW: Unlimited history settings
+  maxHistorySize: number // 0 = unlimited
+  enableUnlimitedHistory: boolean
+  
   setSelectedAsset: (asset: Asset | null) => void
   setCurrentPrice: (price: PriceData) => void
   addPriceToHistory: (price: PriceData) => void
@@ -28,9 +32,14 @@ interface TradingState {
   setAssets: (assets: Asset[]) => void
   updateOrderTiming: (duration: number) => void
   clearOrderTiming: () => void
+  
+  // ✅ NEW: Unlimited history controls
+  setMaxHistorySize: (size: number) => void
+  setEnableUnlimitedHistory: (enabled: boolean) => void
 }
 
-const MAX_HISTORY = 100
+// ✅ REMOVED LIMIT - No max history restriction
+const MAX_HISTORY = 0 // 0 = unlimited
 const UPDATE_THROTTLE = 100
 
 export const useTradingStore = create<TradingState>()(
@@ -45,6 +54,10 @@ export const useTradingStore = create<TradingState>()(
         selectedAccountType: 'demo' as AccountType,
         assets: [],
         orderTiming: null,
+        
+        // ✅ Unlimited history by default
+        maxHistorySize: 0, // 0 = unlimited
+        enableUnlimitedHistory: true,
         
         setSelectedAsset: (asset) => {
           const current = get().selectedAsset
@@ -95,8 +108,15 @@ export const useTradingStore = create<TradingState>()(
             if (exists) return state
             
             const updated = [...state.priceHistory, price]
-            if (updated.length > MAX_HISTORY) {
-              updated.splice(0, updated.length - MAX_HISTORY)
+            
+            // ✅ UNLIMITED: Only apply limit if explicitly set
+            const maxSize = state.enableUnlimitedHistory ? 0 : state.maxHistorySize
+            
+            if (maxSize > 0 && updated.length > maxSize) {
+              updated.splice(0, updated.length - maxSize)
+              console.log(`⚠️ History limited to ${maxSize} bars`)
+            } else {
+              console.log(`✅ History: ${updated.length} bars (UNLIMITED)`)
             }
             
             return { priceHistory: updated }
@@ -141,12 +161,25 @@ export const useTradingStore = create<TradingState>()(
         
         clearOrderTiming: () => {
           set({ orderTiming: null }, false, { type: 'clearOrderTiming' })
+        },
+        
+        // ✅ NEW: Control unlimited history
+        setMaxHistorySize: (size) => {
+          set({ maxHistorySize: size }, false, { type: 'setMaxHistorySize' })
+          console.log(`History size limit: ${size === 0 ? 'UNLIMITED' : size}`)
+        },
+        
+        setEnableUnlimitedHistory: (enabled) => {
+          set({ enableUnlimitedHistory: enabled }, false, { type: 'setEnableUnlimitedHistory' })
+          console.log(`Unlimited history: ${enabled ? 'ENABLED' : 'DISABLED'}`)
         }
       })),
       {
         name: 'trading-storage',
         partialize: (state) => ({ 
-          selectedAccountType: state.selectedAccountType 
+          selectedAccountType: state.selectedAccountType,
+          maxHistorySize: state.maxHistorySize,
+          enableUnlimitedHistory: state.enableUnlimitedHistory
         })
       }
     ),
@@ -162,14 +195,38 @@ export const useSelectedAccountType = () => useTradingStore(state => state.selec
 export const useTradingAssets = () => useTradingStore(state => state.assets)
 export const useOrderTiming = () => useTradingStore(state => state.orderTiming)
 
+// ✅ NEW: Hook for unlimited history settings
+export const useUnlimitedHistorySettings = () => {
+  const maxHistorySize = useTradingStore(state => state.maxHistorySize)
+  const enableUnlimitedHistory = useTradingStore(state => state.enableUnlimitedHistory)
+  const setMaxHistorySize = useTradingStore(state => state.setMaxHistorySize)
+  const setEnableUnlimitedHistory = useTradingStore(state => state.setEnableUnlimitedHistory)
+  
+  return {
+    maxHistorySize,
+    enableUnlimitedHistory,
+    setMaxHistorySize,
+    setEnableUnlimitedHistory,
+    isUnlimited: enableUnlimitedHistory || maxHistorySize === 0
+  }
+}
+
 export const useTradingData = () => {
   const selectedAsset = useTradingStore(state => state.selectedAsset)
   const currentPrice = useTradingStore(state => state.currentPrice)
   const isChartReady = useTradingStore(state => state.isChartReady)
   const selectedAccountType = useTradingStore(state => state.selectedAccountType)
   const assets = useTradingStore(state => state.assets)
+  const enableUnlimitedHistory = useTradingStore(state => state.enableUnlimitedHistory)
   
-  return { selectedAsset, currentPrice, isChartReady, selectedAccountType, assets }
+  return { 
+    selectedAsset, 
+    currentPrice, 
+    isChartReady, 
+    selectedAccountType, 
+    assets,
+    enableUnlimitedHistory
+  }
 }
 
 export const useTradingActions = () => {
@@ -184,5 +241,7 @@ export const useTradingActions = () => {
     setAssets: store.setAssets,
     updateOrderTiming: store.updateOrderTiming,
     clearOrderTiming: store.clearOrderTiming,
+    setMaxHistorySize: store.setMaxHistorySize,
+    setEnableUnlimitedHistory: store.setEnableUnlimitedHistory,
   }
 }
