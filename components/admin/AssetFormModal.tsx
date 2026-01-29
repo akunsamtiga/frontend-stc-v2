@@ -354,98 +354,153 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!validateForm()) {
-      toast.error('Please fix the errors in the form')
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      let payload: any
-
-      if (formData.category === 'crypto') {
-        payload = {
-          name: formData.name.trim(),
-          symbol: formData.symbol.trim().toUpperCase(),
-          icon: formData.icon || undefined,
-          type: 'crypto',
-          category: 'crypto',
-          profitRate: Number(formData.profitRate),
-          isActive: Boolean(formData.isActive),
-          dataSource: 'binance',
-          description: formData.description.trim(),
-          cryptoConfig: {
-            baseCurrency: formData.cryptoBaseCurrency.trim().toUpperCase(),
-            quoteCurrency: formData.cryptoQuoteCurrency.trim().toUpperCase(),
-            ...(formData.cryptoExchange.trim() && { 
-              exchange: formData.cryptoExchange.trim() 
-            })
-          },
-          ...(formData.realtimeDbPath.trim() && {
-            realtimeDbPath: formData.realtimeDbPath.trim()
-          }),
-          tradingSettings: {
-            minOrderAmount: Number(formData.minOrderAmount),
-            maxOrderAmount: Number(formData.maxOrderAmount),
-            allowedDurations: [...formData.allowedDurations].sort((a, b) => a - b)
-          }
-        }
-      } else {
-        payload = {
-          name: formData.name.trim(),
-          symbol: formData.symbol.trim().toUpperCase(),
-          icon: formData.icon || undefined,
-          type: formData.type,
-          category: 'normal',
-          profitRate: Number(formData.profitRate),
-          isActive: Boolean(formData.isActive),
-          dataSource: formData.dataSource,
-          description: formData.description.trim(),
-          simulatorSettings: {
-            initialPrice: Number(formData.initialPrice),
-            dailyVolatilityMin: Number(formData.dailyVolatilityMin),
-            dailyVolatilityMax: Number(formData.dailyVolatilityMax),
-            secondVolatilityMin: Number(formData.secondVolatilityMin),
-            secondVolatilityMax: Number(formData.secondVolatilityMax),
-            minPrice: Number(formData.minPrice) || Number(formData.initialPrice) * 0.5,
-            maxPrice: Number(formData.maxPrice) || Number(formData.initialPrice) * 2.0
-          },
-          tradingSettings: {
-            minOrderAmount: Number(formData.minOrderAmount),
-            maxOrderAmount: Number(formData.maxOrderAmount),
-            allowedDurations: [...formData.allowedDurations].sort((a, b) => a - b)
-          }
-        }
-        
-        if (formData.dataSource === 'realtime_db') {
-          payload.realtimeDbPath = formData.realtimeDbPath.trim()
-        } else if (formData.dataSource === 'api') {
-          payload.apiEndpoint = formData.apiEndpoint.trim()
-        }
-      }
-
-      if (mode === 'create') {
-        const response = await api.createAsset(payload)
-        toast.success(response.data?.message || 'Asset created successfully')
-      } else {
-        const response = await api.updateAsset(asset!.id, payload)
-        toast.success(response.data?.message || 'Asset updated successfully')
-      }
-
-      onSuccess()
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.error || 
-                          error.response?.data?.message ||
-                          error.message ||
-                          `Failed to ${mode} asset`
-      toast.error(errorMessage)
-    } finally {
-      setLoading(false)
-    }
+  e.preventDefault()
+  
+  if (!validateForm()) {
+    toast.error('Please fix the errors in the form')
+    return
   }
+
+  setLoading(true)
+
+  try {
+    let payload: any
+
+    if (formData.category === 'crypto') {
+      payload = {
+        name: formData.name.trim(),
+        symbol: formData.symbol.trim().toUpperCase(),
+        icon: formData.icon || undefined,
+        type: 'crypto',
+        category: 'crypto',
+        profitRate: Number(formData.profitRate),
+        isActive: Boolean(formData.isActive),
+        dataSource: 'binance',
+        description: formData.description.trim(),
+        cryptoConfig: {
+          baseCurrency: formData.cryptoBaseCurrency.trim().toUpperCase(),
+          quoteCurrency: formData.cryptoQuoteCurrency.trim().toUpperCase(),
+          ...(formData.cryptoExchange.trim() && { 
+            exchange: formData.cryptoExchange.trim() 
+          })
+        },
+        ...(formData.realtimeDbPath.trim() && {
+          realtimeDbPath: formData.realtimeDbPath.trim()
+        }),
+        tradingSettings: {
+          minOrderAmount: Number(formData.minOrderAmount),
+          maxOrderAmount: Number(formData.maxOrderAmount),
+          allowedDurations: [...formData.allowedDurations].sort((a, b) => a - b)
+        }
+      }
+    } else {
+      payload = {
+        name: formData.name.trim(),
+        symbol: formData.symbol.trim().toUpperCase(),
+        icon: formData.icon || undefined,
+        type: formData.type,
+        category: 'normal',
+        profitRate: Number(formData.profitRate),
+        isActive: Boolean(formData.isActive),
+        dataSource: formData.dataSource,
+        description: formData.description.trim(),
+        simulatorSettings: {
+          initialPrice: Number(formData.initialPrice),
+          dailyVolatilityMin: Number(formData.dailyVolatilityMin),
+          dailyVolatilityMax: Number(formData.dailyVolatilityMax),
+          secondVolatilityMin: Number(formData.secondVolatilityMin),
+          secondVolatilityMax: Number(formData.secondVolatilityMax),
+          minPrice: Number(formData.minPrice) || Number(formData.initialPrice) * 0.5,
+          maxPrice: Number(formData.maxPrice) || Number(formData.initialPrice) * 2.0
+        },
+        tradingSettings: {
+          minOrderAmount: Number(formData.minOrderAmount),
+          maxOrderAmount: Number(formData.maxOrderAmount),
+          allowedDurations: [...formData.allowedDurations].sort((a, b) => a - b)
+        }
+      }
+      
+      if (formData.dataSource === 'realtime_db') {
+        payload.realtimeDbPath = formData.realtimeDbPath.trim()
+      } else if (formData.dataSource === 'api') {
+        payload.apiEndpoint = formData.apiEndpoint.trim()
+      }
+    }
+
+    // ============================================
+    // ✅ PERBAIKAN: Toast message yang lebih jelas
+    // ============================================
+    if (mode === 'create') {
+      const response = await api.createAsset(payload)
+      
+      // ✅ Toast utama
+      toast.success(`✅ ${payload.symbol} created successfully!`, {
+        description: response.data?.message || 'Asset has been added to your trading platform',
+        duration: 4000,
+      })
+      
+      // ✅ Toast info untuk candle initialization (untuk normal assets)
+      if (payload.category === 'normal' && 
+          (payload.dataSource === 'realtime_db' || payload.dataSource === 'mock')) {
+        
+        // Delay sedikit agar tidak overlap dengan toast pertama
+        setTimeout(() => {
+          toast.info('📊 Historical Data Generated', {
+            description: '240 candles initialized for all timeframes (1m, 5m, 15m, 1h, 1d)',
+            duration: 3000,
+          })
+        }, 500)
+      }
+      
+      // ✅ Toast info untuk crypto assets
+      if (payload.category === 'crypto') {
+        setTimeout(() => {
+          toast.info('💎 Real-time Data Active', {
+            description: `Connected to Binance for ${payload.cryptoConfig.baseCurrency}/${payload.cryptoConfig.quoteCurrency}`,
+            duration: 3000,
+          })
+        }, 500)
+      }
+      
+    } else {
+      const response = await api.updateAsset(asset!.id, payload)
+      toast.success(`✅ ${payload.symbol} updated successfully!`, {
+        description: response.data?.message || 'Asset changes have been saved',
+        duration: 3000,
+      })
+    }
+
+    // ✅ Refresh list dan close modal
+    onSuccess()
+    
+  } catch (error: any) {
+    // ============================================
+    // ✅ PERBAIKAN: Error handling yang lebih detail
+    // ============================================
+    const errorMessage = error.response?.data?.error || 
+                        error.response?.data?.message ||
+                        error.message ||
+                        `Failed to ${mode} asset`
+    
+    // ✅ Cek apakah error karena asset already exists
+    if (errorMessage.includes('already exists')) {
+      toast.error('Asset Already Exists', {
+        description: `Symbol "${formData.symbol}" is already in use. Please use a different symbol.`,
+        duration: 5000,
+      })
+    } else {
+      toast.error(`Failed to ${mode} asset`, {
+        description: errorMessage,
+        duration: 5000,
+      })
+    }
+    
+    console.error(`Asset ${mode} error:`, error)
+  } finally {
+    setLoading(false)
+  }
+}
+
 
   const toggleDuration = (duration: number) => {
     setFormData(prev => ({
