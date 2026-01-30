@@ -7,19 +7,15 @@ import Link from 'next/link'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import Navbar from '@/components/Navbar'
-import { Balance as BalanceType, AccountType, UserProfile } from '@/types'
-import { formatCurrency, formatDate } from '@/lib/utils'
-import { getStatusGradient, getStatusProfitBonus } from '@/lib/status-utils'
-import { 
-  Wallet, ArrowDownToLine, ArrowUpFromLine, X, Receipt, Award, 
-  TrendingUp, CreditCard, Loader2, Users, Package, Settings, 
-  Shield, BarChart3, Target, DollarSign, Activity, ArrowRight,
-  RefreshCw, ArrowUpFromLine as WithdrawIcon, Tag  // ✅ Add Tag icon for Vouchers
-} from 'lucide-react'
-import { toast } from 'sonner'
 import { SystemStatistics } from '@/types'
+import { 
+  Shield, BarChart3, Target, DollarSign, Activity, ArrowRight,
+  RefreshCw, ArrowUpFromLine as WithdrawIcon, Tag, Calendar,
+  Users, Package, Settings
+} from 'lucide-react'
 
-type AccountFilter = 'combined' | 'real' | 'demo'
+// ✅ UPDATED: Hanya real dan demo saja
+type AccountFilter = 'real' | 'demo'
 
 const StatCardSkeleton = () => (
   <div className="bg-white rounded-xl p-4 md:p-5 border border-gray-100 animate-pulse">
@@ -45,13 +41,6 @@ const QuickActionSkeleton = () => (
   </div>
 )
 
-const StatRowSkeleton = () => (
-  <div className="flex items-center justify-between py-3 border-b border-gray-100 animate-pulse">
-    <div className="h-3 bg-gray-200 rounded w-20 md:w-24"></div>
-    <div className="h-4 bg-gray-200 rounded w-24 md:w-32"></div>
-  </div>
-)
-
 const LoadingSkeleton = () => (
   <div className="min-h-screen bg-[#fafafa]">
     <Navbar />
@@ -73,9 +62,8 @@ const LoadingSkeleton = () => (
         <div className="h-6 bg-gray-200 rounded w-32 mb-3 md:mb-4"></div>
         <div className="overflow-x-auto">
           <div className="flex gap-2 w-max pb-2">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-10 bg-gray-200 rounded-lg w-28"></div>
-            ))}
+            <div className="h-10 bg-gray-200 rounded-lg w-28"></div>
+            <div className="h-10 bg-gray-200 rounded-lg w-28"></div>
           </div>
         </div>
       </div>
@@ -104,7 +92,8 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<SystemStatistics | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [accountFilter, setAccountFilter] = useState<AccountFilter>('combined')
+  // ✅ UPDATED: Default ke 'real' instead of 'combined'
+  const [accountFilter, setAccountFilter] = useState<AccountFilter>('real')
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   useEffect(() => {
@@ -180,45 +169,24 @@ export default function AdminDashboard() {
     )
   }
 
+  // ✅ UPDATED: Hapus logic combined, hanya real dan demo
   const getFilteredStats = () => {
-    const realFinancial = stats.realAccount.financial;
-    
     if (accountFilter === 'real') {
       return {
         trading: stats.realAccount.trading,
-        financial: realFinancial
-      }
-    } else if (accountFilter === 'demo') {
-      return {
-        trading: stats.demoAccount.trading,
-        financial: realFinancial
+        financial: stats.realAccount.financial
       }
     } else {
-      const realTrading = stats.realAccount.trading
-      const demoTrading = stats.demoAccount.trading
-
+      // demo
       return {
-        trading: {
-          totalOrders: realTrading.totalOrders + demoTrading.totalOrders,
-          activeOrders: realTrading.activeOrders + demoTrading.activeOrders,
-          wonOrders: realTrading.wonOrders + demoTrading.wonOrders,
-          lostOrders: realTrading.lostOrders + demoTrading.lostOrders,
-          winRate: Math.round(
-            ((realTrading.wonOrders + demoTrading.wonOrders) / 
-            ((realTrading.wonOrders + demoTrading.wonOrders) + 
-             (realTrading.lostOrders + demoTrading.lostOrders)) || 1) * 100
-          ),
-          totalVolume: realTrading.totalVolume + demoTrading.totalVolume,
-          totalProfit: realTrading.totalProfit + demoTrading.totalProfit,
-        },
-        financial: realFinancial 
+        trading: stats.demoAccount.trading,
+        financial: stats.demoAccount.financial
       }
     }
   }
 
   const filteredStats = getFilteredStats()
 
-  // ✅ ADD VOUCHER to quick actions
   const quickActions = [
     {
       title: 'User Management',
@@ -235,12 +203,18 @@ export default function AdminDashboard() {
       color: 'purple'
     },
     {
-      title: 'Voucher Management',  // ✅ NEW: Voucher menu
+      title: 'Asset Schedule',
+      description: 'Schedule asset trends and market manipulation',
+      icon: Calendar,
+      href: '/admin/asset-schedule',
+      color: 'orange'
+    },
+    {
+      title: 'Voucher Management',
       description: 'Create and manage deposit vouchers',
       icon: Tag,
       href: '/admin/vouchers',
-      color: 'pink',
-      badge: undefined  // You can add badge if needed, e.g., active vouchers count
+      color: 'pink'
     },
     {
       title: 'Verification Management',
@@ -303,16 +277,8 @@ export default function AdminDashboard() {
           )}
         </div>
 
+        {/* ✅ UPDATED: Hanya 2 tombol (Real & Demo), tidak ada Combined */}
         <div className="mb-4 md:mb-6 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          <button
-            onClick={() => setAccountFilter('combined')}
-            className={`px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap touch-manipulation flex-shrink-0 ${
-              accountFilter === 'combined'
-                ? 'bg-blue-500 text-white shadow-sm'
-                : 'bg-white text-gray-600 hover:bg-gray-50 active:bg-gray-100 border border-gray-200'
-            }`}
-          >Combined
-          </button>
           <button
             onClick={() => setAccountFilter('real')}
             className={`px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap touch-manipulation flex-shrink-0 ${
@@ -320,7 +286,8 @@ export default function AdminDashboard() {
                 ? 'bg-green-500 text-white shadow-sm'
                 : 'bg-white text-gray-600 hover:bg-gray-50 active:bg-gray-100 border border-gray-200'
             }`}
-          >Real Account
+          >
+            Real Account
           </button>
           <button
             onClick={() => setAccountFilter('demo')}
@@ -329,7 +296,8 @@ export default function AdminDashboard() {
                 ? 'bg-purple-500 text-white shadow-sm'
                 : 'bg-white text-gray-600 hover:bg-gray-50 active:bg-gray-100 border border-gray-200'
             }`}
-          >Demo Account
+          >
+            Demo Account
           </button>
         </div>
 
@@ -441,15 +409,14 @@ export default function AdminDashboard() {
             <h2 className="text-base md:text-lg font-bold text-gray-900 mb-4 md:mb-6 flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-blue-500" />
               Trading Statistics
-              {accountFilter !== 'combined' && (
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  accountFilter === 'real' 
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-purple-100 text-purple-700'
-                }`}>
-                  {accountFilter.toUpperCase()}
-                </span>
-              )}
+              {/* ✅ UPDATED: Badge filter */}
+              <span className={`text-xs px-2 py-1 rounded-full ${
+                accountFilter === 'real' 
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-purple-100 text-purple-700'
+              }`}>
+                {accountFilter.toUpperCase()}
+              </span>
             </h2>
             <div className="space-y-3 md:space-y-4">
               <div className="flex items-center justify-between py-3 border-b border-gray-100">
@@ -495,15 +462,14 @@ export default function AdminDashboard() {
             <h2 className="text-base md:text-lg font-bold text-gray-900 mb-4 md:mb-6 flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-green-500" />
               Financial Overview
-              {accountFilter !== 'combined' && (
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  accountFilter === 'real' 
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-purple-100 text-purple-700'
-                }`}>
-                  {accountFilter.toUpperCase()}
-                </span>
-              )}
+              {/* ✅ UPDATED: Badge filter */}
+              <span className={`text-xs px-2 py-1 rounded-full ${
+                accountFilter === 'real' 
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-purple-100 text-purple-700'
+              }`}>
+                {accountFilter.toUpperCase()}
+              </span>
             </h2>
             <div className="space-y-3 md:space-y-4">
               <div className="flex items-center justify-between py-3 border-b border-gray-100">
@@ -548,7 +514,7 @@ export default function AdminDashboard() {
         <div className="mt-4 md:mt-6 bg-white rounded-xl p-4 md:p-5 lg:p-6 border border-gray-100 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 md:mb-6 gap-3 sm:gap-0">
             <h2 className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-purple-500" />
+              <Activity className="w-5 h-5 text-purple-500" />
               System Health
             </h2>
             <Link 
@@ -668,76 +634,8 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {accountFilter === 'combined' && (
-          <div className="mt-4 md:mt-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 md:p-5 lg:p-6 border border-gray-100">
-            <h2 className="text-base md:text-lg font-bold text-gray-900 mb-3 md:mb-4 flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-blue-500" />
-              Account Comparison
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-              <div className="bg-white rounded-lg p-4 border border-green-200">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-7 h-7 md:w-8 md:h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                    <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
-                  </div>
-                  <h3 className="text-sm md:text-base font-bold text-gray-900">Real Account</h3>
-                </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Orders:</span>
-                    <span className="font-bold">{stats.realAccount.trading.totalOrders}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Win Rate:</span>
-                    <span className="font-bold text-green-600">{stats.realAccount.trading.winRate}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Total Profit:</span>
-                    <span className={`font-bold break-all ${stats.realAccount.trading.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {new Intl.NumberFormat('id-ID', { 
-                        style: 'currency', 
-                        currency: 'IDR',
-                        minimumFractionDigits: 0,
-                        notation: 'compact'
-                      }).format(stats.realAccount.trading.totalProfit)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg p-4 border border-purple-200">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-7 h-7 md:w-8 md:h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <Activity className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
-                  </div>
-                  <h3 className="text-sm md:text-base font-bold text-gray-900">Demo Account</h3>
-                </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Orders:</span>
-                    <span className="font-bold">{stats.demoAccount.trading.totalOrders}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Win Rate:</span>
-                    <span className="font-bold text-purple-600">{stats.demoAccount.trading.winRate}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Total Profit:</span>
-                    <span className={`font-bold break-all ${stats.demoAccount.trading.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {new Intl.NumberFormat('id-ID', { 
-                        style: 'currency', 
-                        currency: 'IDR',
-                        minimumFractionDigits: 0,
-                        notation: 'compact'
-                      }).format(stats.demoAccount.trading.totalProfit)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* ✅ REMOVED: Bagian Account Comparison yang hanya muncul saat combined */}
+        
       </div>
     </div>
   )

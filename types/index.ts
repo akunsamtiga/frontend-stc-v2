@@ -1,8 +1,4 @@
-// types/index.ts - Full 1-second trading support
-
-// ============================================
-// AUTH & USER TYPES
-// ============================================
+// types/index.ts 
 export interface User {
   id: string
   email: string
