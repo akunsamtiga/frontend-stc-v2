@@ -671,6 +671,7 @@ export interface CryptoSchedulerStatus {
 export interface CreateAssetRequest {
   name: string
   symbol: string
+  type: 'forex' | 'stock' | 'commodity' | 'crypto' | 'index'  // ✅ TAMBAHAN
   category: 'normal' | 'crypto'
   profitRate: number
   icon?: string
@@ -684,6 +685,7 @@ export interface CreateAssetRequest {
     exchange?: string
   }
   description?: string
+  decimalPlaces?: number  // ✅ TAMBAHAN
   simulatorSettings?: {
     initialPrice: number
     dailyVolatilityMin: number

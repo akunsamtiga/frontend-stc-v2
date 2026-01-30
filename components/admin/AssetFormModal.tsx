@@ -23,6 +23,7 @@ interface Asset {
   realtimeDbPath?: string
   apiEndpoint?: string
   description?: string
+  decimalPlaces?: number  // ✅ TAMBAH BARIS INI
   cryptoConfig?: {
     baseCurrency: string
     quoteCurrency: string
@@ -110,6 +111,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     secondVolatilityMax: asset?.simulatorSettings?.secondVolatilityMax || 0.00008,
     minPrice: asset?.simulatorSettings?.minPrice || 0,
     maxPrice: asset?.simulatorSettings?.maxPrice || 0,
+    decimalPlaces: asset?.decimalPlaces || 5,  
 
     minOrderAmount: asset?.tradingSettings?.minOrderAmount || 1000,
     maxOrderAmount: asset?.tradingSettings?.maxOrderAmount || 1000000,
@@ -409,6 +411,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
           isActive: Boolean(formData.isActive),
           dataSource: formData.dataSource,
           description: formData.description.trim(),
+              decimalPlaces: Number(formData.decimalPlaces),  
           simulatorSettings: {
             initialPrice: Number(formData.initialPrice),
             dailyVolatilityMin: Number(formData.dailyVolatilityMin),
@@ -1102,6 +1105,24 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                       onChange={(e) => setFormData({ ...formData, initialPrice: parseFloat(e.target.value) })}
                       className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 transition-colors"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Decimal Places *
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="1"
+                      value={formData.decimalPlaces}
+                      onChange={(e) => setFormData({ ...formData, decimalPlaces: parseInt(e.target.value) || 0 })}
+                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 transition-colors"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Forex: 5 • Stock: 2 • Crypto: 8
+                    </p>
                   </div>
 
                   <div>

@@ -18,11 +18,6 @@ import type { UserProfile, UserProfileInfo, UpdateProfileRequest, ChangePassword
 import { STATUS_CONFIG, calculateProfileCompletion } from '@/types'
 import { getStatusGradient, getStatusIcon, formatStatusInfo, getAllStatusTiers, calculateStatusProgress, formatDepositRequirement } from '@/lib/status-utils'
 
-// ===================================
-// ENHANCED COMPONENTS
-// ===================================
-
-// Animation Variants
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: { 
@@ -43,17 +38,6 @@ const staggerContainer: Variants = {
   }
 }
 
-const slideIn: Variants = {
-  hidden: { x: -20, opacity: 0 },
-  visible: { x: 0, opacity: 1, transition: { duration: 0.3 } }
-}
-
-const scaleIn: Variants = {
-  hidden: { scale: 0.9, opacity: 0 },
-  visible: { scale: 1, opacity: 1, transition: { duration: 0.2 } }
-}
-
-// Enhanced Skeleton with shimmer effect
 const SkeletonTabs = () => (
   <motion.div 
     className="space-y-1"
@@ -95,7 +79,7 @@ const SkeletonCard = () => (
 )
 
 const LoadingSkeleton = () => (
-  <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+  <div className="min-h-screen bg-gradient-to-br from-slate-50 to-sky-50">
     <Navbar />
     <div className="container mx-auto px-4 py-6 md:py-8 max-w-7xl">
       <motion.div 
@@ -128,7 +112,6 @@ const LoadingSkeleton = () => (
   </div>
 )
 
-// Validation Utilities
 const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 const validatePhone = (phone: string) => /^\+?[\d\s-()]{10,}$/.test(phone)
 const validatePassword = (password: string) => ({
@@ -139,7 +122,6 @@ const validatePassword = (password: string) => ({
   hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password)
 })
 
-// Custom Hooks
 const useDebounce = (value: string, delay: number) => {
   const [debounced, setDebounced] = useState(value)
   useEffect(() => {
@@ -149,13 +131,12 @@ const useDebounce = (value: string, delay: number) => {
   return debounced
 }
 
-// Enhanced Components
 const PasswordStrengthMeter = ({ password }: { password: string }) => {
   if (!password) return null
   
   const checks = validatePassword(password)
   const strength = Object.values(checks).filter(Boolean).length
-  const colors = ['bg-red-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500']
+  const colors = ['bg-red-500', 'bg-yellow-500', 'bg-sky-500', 'bg-emerald-500']
   const labels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong']
   
   return (
@@ -183,8 +164,8 @@ const PasswordStrengthMeter = ({ password }: { password: string }) => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 }}
           >
-            {passed ? <Check className="w-3 h-3 text-green-500" /> : <X className="w-3 h-3 text-red-400" />}
-            <span className={passed ? 'text-green-600' : 'text-gray-400'}>
+            {passed ? <Check className="w-3 h-3 text-emerald-500" /> : <X className="w-3 h-3 text-red-400" />}
+            <span className={passed ? 'text-emerald-600' : 'text-gray-400'}>
               {key.replace(/([A-Z])/g, ' $1').trim()}
             </span>
           </motion.div>
@@ -210,7 +191,7 @@ const PhoneInput = ({ value, onChange }: { value: string; onChange: (value: stri
         type="tel"
         value={value}
         onChange={handleChange}
-        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors"
+        className="w-full pl-10 pr-4 py-3 bg-gray-100 border border-gray-300 rounded-xl focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-colors text-sm"
         placeholder="+62..."
       />
     </div>
@@ -302,25 +283,18 @@ const ConfirmationModal = ({
   )
 }
 
-// ===================================
-// MAIN COMPONENT
-// ===================================
-
 export default function ProfilePage() {
   const router = useRouter()
   const { user, logout } = useAuthStore()
   
-  // Tabs
   const [activeTab, setActiveTab] = useState('overview')
   
-  // Loading states
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [savingSection, setSavingSection] = useState<string | null>(null)
   const [autoSaving, setAutoSaving] = useState<string | null>(null)
   const [updating, setUpdating] = useState(false)
 
-  // Profile data
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [profileInfo, setProfileInfo] = useState<UserProfileInfo | null>(null)
   const [ktpFrontFile, setKtpFrontFile] = useState<File | null>(null)
@@ -328,13 +302,11 @@ export default function ProfilePage() {
   const [ktpFrontPreview, setKtpFrontPreview] = useState<string | null>(null)
   const [ktpBackPreview, setKtpBackPreview] = useState<string | null>(null)
 
-  // Edit states
   const [editingPersonal, setEditingPersonal] = useState(false)
   const [editingAddress, setEditingAddress] = useState(false)
   const [editingIdentity, setEditingIdentity] = useState(false)
   const [editingBank, setEditingBank] = useState(false)
   
-  // Form data
   const [personalData, setPersonalData] = useState({
     fullName: '',
     phoneNumber: '',
@@ -364,7 +336,6 @@ export default function ProfilePage() {
     accountHolderName: ''
   })
   
-  // Security
   const [showPassword, setShowPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -375,7 +346,6 @@ export default function ProfilePage() {
   })
   const [passwordErrors, setPasswordErrors] = useState<string[]>([])
   
-  // Settings
   const [settings, setSettings] = useState({
     emailNotifications: true,
     smsNotifications: true,
@@ -385,15 +355,12 @@ export default function ProfilePage() {
     timezone: 'Asia/Jakarta'
   })
   
-  // Affiliate
   const [copied, setCopied] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   
-  // Form validation states
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({})
 
-  // FIX: Move style injection to useEffect
   useEffect(() => {
     const style = document.createElement('style')
     style.textContent = `
@@ -423,7 +390,6 @@ export default function ProfilePage() {
     loadProfile()
   }, [user, router])
 
-  // Auto-save functionality for personal info
   const debouncedPersonalData = useDebounce(JSON.stringify(personalData), 1000)
   useEffect(() => {
     if (editingPersonal && Object.values(personalData).some(v => v)) {
@@ -433,84 +399,79 @@ export default function ProfilePage() {
   }, [debouncedPersonalData, editingPersonal])
 
   const loadProfile = async () => {
-  try {
-    setInitialLoading(true)
-    const response = await api.getProfile()
-    
-    // ✅ FIX: Properly extract UserProfile from response
-    let data: UserProfile | null = null
-    
-    if (response && typeof response === 'object') {
-      // Check if it's wrapped in ApiResponse (has data property)
-      if ('data' in response && response.data) {
-        data = response.data as UserProfile
-      } 
-      // Otherwise, response itself is UserProfile (has user property)
-      else if ('user' in response && 'statusInfo' in response) {
-        data = response as UserProfile
-      }
-    }
-    
-    if (!data) {
-      throw new Error('No profile data received')
-    }
-
-    setProfile(data)
-    
-    // ✅ FIX: Safely access profileInfo
-    if (data.profileInfo) {
-      setProfileInfo(data.profileInfo)
+    try {
+      setInitialLoading(true)
+      const response = await api.getProfile()
       
-      setPersonalData({
-        fullName: data.profileInfo.personal?.fullName || '',
-        phoneNumber: data.profileInfo.personal?.phoneNumber || '',
-        dateOfBirth: data.profileInfo.personal?.dateOfBirth || '',
-        gender: data.profileInfo.personal?.gender || '',
-        nationality: data.profileInfo.personal?.nationality || ''
+      let data: UserProfile | null = null
+      
+      if (response && typeof response === 'object') {
+        if ('data' in response && response.data) {
+          data = response.data as UserProfile
+        } 
+        else if ('user' in response && 'statusInfo' in response) {
+          data = response as UserProfile
+        }
+      }
+      
+      if (!data) {
+        throw new Error('No profile data received')
+      }
+
+      setProfile(data)
+      
+      if (data.profileInfo) {
+        setProfileInfo(data.profileInfo)
+        
+        setPersonalData({
+          fullName: data.profileInfo.personal?.fullName || '',
+          phoneNumber: data.profileInfo.personal?.phoneNumber || '',
+          dateOfBirth: data.profileInfo.personal?.dateOfBirth || '',
+          gender: data.profileInfo.personal?.gender || '',
+          nationality: data.profileInfo.personal?.nationality || ''
+        })
+        
+        if (data.profileInfo.address) {
+          setAddressData({
+            street: data.profileInfo.address.street || '',
+            city: data.profileInfo.address.city || '',
+            province: data.profileInfo.address.province || '',
+            postalCode: data.profileInfo.address.postalCode || '',
+            country: data.profileInfo.address.country || 'Indonesia'
+          })
+        }
+        
+        if (data.profileInfo.identity) {
+          setIdentityData({
+            type: data.profileInfo.identity.type || 'ktp',
+            number: data.profileInfo.identity.number || '',
+            issuedDate: '',
+            expiryDate: ''
+          })
+        }
+        
+        if (data.profileInfo.bankAccount) {
+          setBankData({
+            bankName: data.profileInfo.bankAccount.bankName || '',
+            accountNumber: data.profileInfo.bankAccount.accountNumber || '',
+            accountHolderName: data.profileInfo.bankAccount.accountHolderName || ''
+          })
+        }
+        
+        if (data.profileInfo.settings) {
+          setSettings(data.profileInfo.settings)
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to load profile:', error)
+      toast.error(error?.message || 'Failed to load profile', {
+        style: { background: '#ef4444', color: '#fff' }
       })
-      
-      if (data.profileInfo.address) {
-        setAddressData({
-          street: data.profileInfo.address.street || '',
-          city: data.profileInfo.address.city || '',
-          province: data.profileInfo.address.province || '',
-          postalCode: data.profileInfo.address.postalCode || '',
-          country: data.profileInfo.address.country || 'Indonesia'
-        })
-      }
-      
-      if (data.profileInfo.identity) {
-        setIdentityData({
-          type: data.profileInfo.identity.type || 'ktp',
-          number: data.profileInfo.identity.number || '',
-          issuedDate: '',
-          expiryDate: ''
-        })
-      }
-      
-      if (data.profileInfo.bankAccount) {
-        setBankData({
-          bankName: data.profileInfo.bankAccount.bankName || '',
-          accountNumber: data.profileInfo.bankAccount.accountNumber || '',
-          accountHolderName: data.profileInfo.bankAccount.accountHolderName || ''
-        })
-      }
-      
-      if (data.profileInfo.settings) {
-        setSettings(data.profileInfo.settings)
-      }
+    } finally {
+      setInitialLoading(false)
     }
-  } catch (error: any) {
-    console.error('Failed to load profile:', error)
-    toast.error(error?.message || 'Failed to load profile', {
-      style: { background: '#ef4444', color: '#fff' }
-    })
-  } finally {
-    setInitialLoading(false)
   }
-}
 
-  // Validation functions
   const validateField = useCallback((field: string, value: string): string => {
     switch (field) {
       case 'fullName':
@@ -556,7 +517,6 @@ export default function ProfilePage() {
     return Object.keys(errors).length === 0
   }, [validateField])
 
-  // Auto-validate on blur
   const handleBlur = (field: string, value: string) => {
     setTouchedFields(prev => ({ ...prev, [field]: true }))
     const error = validateField(field, value)
@@ -564,70 +524,67 @@ export default function ProfilePage() {
   }
 
   const compressImage = async (file: File, maxSizeMB: number = 0.5): Promise<File> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    
-    reader.onload = (e) => {
-      const img = new Image()
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
       
-      img.onload = () => {
-        const canvas = document.createElement('canvas')
-        let width = img.width
-        let height = img.height
+      reader.onload = (e) => {
+        const img = new Image()
         
-        // Resize if too large
-        const maxDimension = 1920
-        if (width > maxDimension || height > maxDimension) {
-          if (width > height) {
-            height = (height / width) * maxDimension
-            width = maxDimension
-          } else {
-            width = (width / height) * maxDimension
-            height = maxDimension
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          let width = img.width
+          let height = img.height
+          
+          const maxDimension = 1920
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = (height / width) * maxDimension
+              width = maxDimension
+            } else {
+              width = (width / height) * maxDimension
+              height = maxDimension
+            }
           }
+          
+          canvas.width = width
+          canvas.height = height
+          
+          const ctx = canvas.getContext('2d')
+          ctx?.drawImage(img, 0, 0, width, height)
+          
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now()
+                })
+                
+                console.log('🗜️ Compression:', {
+                  original: `${(file.size / 1024).toFixed(2)} KB`,
+                  compressed: `${(compressedFile.size / 1024).toFixed(2)} KB`,
+                  reduction: `${(((file.size - compressedFile.size) / file.size) * 100).toFixed(1)}%`
+                })
+                
+                resolve(compressedFile)
+              } else {
+                reject(new Error('Compression failed'))
+              }
+            },
+            'image/jpeg',
+            0.7
+          )
         }
         
-        canvas.width = width
-        canvas.height = height
-        
-        const ctx = canvas.getContext('2d')
-        ctx?.drawImage(img, 0, 0, width, height)
-        
-        // Compress to JPEG with quality
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              const compressedFile = new File([blob], file.name, {
-                type: 'image/jpeg',
-                lastModified: Date.now()
-              })
-              
-              console.log('🗜️ Compression:', {
-                original: `${(file.size / 1024).toFixed(2)} KB`,
-                compressed: `${(compressedFile.size / 1024).toFixed(2)} KB`,
-                reduction: `${(((file.size - compressedFile.size) / file.size) * 100).toFixed(1)}%`
-              })
-              
-              resolve(compressedFile)
-            } else {
-              reject(new Error('Compression failed'))
-            }
-          },
-          'image/jpeg',
-          0.7 // Quality 70%
-        )
+        img.onerror = () => reject(new Error('Failed to load image'))
+        img.src = e.target?.result as string
       }
       
-      img.onerror = () => reject(new Error('Failed to load image'))
-      img.src = e.target?.result as string
-    }
-    
-    reader.onerror = () => reject(new Error('Failed to read file'))
-    reader.readAsDataURL(file)
-  })
-}
+      reader.onerror = () => reject(new Error('Failed to read file'))
+      reader.readAsDataURL(file)
+    })
+  }
 
-  // Enhanced update handlers
   const handleUpdatePersonal = async () => {
     const isValid = validateForm({
       fullName: personalData.fullName,
@@ -656,7 +613,6 @@ export default function ProfilePage() {
         style: { background: '#10b981', color: '#fff' }
       })
       
-      // Exit edit mode with animation
       setEditingPersonal(false)
       setTimeout(() => loadProfile(), 300)
     } catch (error: any) {
@@ -867,234 +823,222 @@ export default function ProfilePage() {
     }
   }
 
-  // ✅ NEW: Upload KTP photos handler
   const uploadKTP = async (photoFront: File, photoBack?: File | null): Promise<boolean> => {
-  try {
-    console.log('📸 Starting KTP upload...')
-    
-    // Validate files
-    if (!photoFront.type.startsWith('image/')) {
-      toast.error('Front photo must be an image file')
-      return false
-    }
-
-    if (photoBack && !photoBack.type.startsWith('image/')) {
-      toast.error('Back photo must be an image file')
-      return false
-    }
-
-    setUpdating(true)
-    const uploadToast = toast.loading('Compressing and uploading KTP photos...')
-
     try {
-      // ✅ COMPRESS IMAGES FIRST
-      console.log('🗜️ Compressing front photo...')
-      const compressedFront = await compressImage(photoFront, 0.5) // Max 500KB
+      console.log('📸 Starting KTP upload...')
       
-      let compressedBack: File | undefined
-      if (photoBack) {
-        console.log('🗜️ Compressing back photo...')
-        compressedBack = await compressImage(photoBack, 0.5)
+      if (!photoFront.type.startsWith('image/')) {
+        toast.error('Front photo must be an image file')
+        return false
       }
 
-      // Convert to base64
-      console.log('📄 Converting to base64...')
-      const photoFrontBase64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onloadend = () => {
-          if (reader.result) {
-            const base64 = reader.result as string
-            console.log('✅ Front photo converted:', {
-              size: `${(base64.length / 1024).toFixed(2)} KB`,
-              type: compressedFront.type
-            })
-            resolve(base64)
-          } else {
-            reject(new Error('Failed to read front photo'))
-          }
-        }
-        reader.onerror = () => reject(new Error('Failed to read front photo'))
-        reader.readAsDataURL(compressedFront)
-      })
-
-      const uploadData: any = {
-        photoFront: {
-          url: photoFrontBase64,
-          fileSize: compressedFront.size,
-          mimeType: compressedFront.type
-        }
+      if (photoBack && !photoBack.type.startsWith('image/')) {
+        toast.error('Back photo must be an image file')
+        return false
       }
 
-      if (compressedBack) {
-        const photoBackBase64 = await new Promise<string>((resolve, reject) => {
+      setUpdating(true)
+      const uploadToast = toast.loading('Compressing and uploading KTP photos...')
+
+      try {
+        console.log('🗜️ Compressing front photo...')
+        const compressedFront = await compressImage(photoFront, 0.5)
+        
+        let compressedBack: File | undefined
+        if (photoBack) {
+          console.log('🗜️ Compressing back photo...')
+          compressedBack = await compressImage(photoBack, 0.5)
+        }
+
+        console.log('📄 Converting to base64...')
+        const photoFrontBase64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader()
           reader.onloadend = () => {
             if (reader.result) {
               const base64 = reader.result as string
-              console.log('✅ Back photo converted:', {
+              console.log('✅ Front photo converted:', {
                 size: `${(base64.length / 1024).toFixed(2)} KB`,
-                type: compressedBack.type
+                type: compressedFront.type
               })
               resolve(base64)
             } else {
-              reject(new Error('Failed to read back photo'))
+              reject(new Error('Failed to read front photo'))
             }
           }
-          reader.onerror = () => reject(new Error('Failed to read back photo'))
-          reader.readAsDataURL(compressedBack)
+          reader.onerror = () => reject(new Error('Failed to read front photo'))
+          reader.readAsDataURL(compressedFront)
         })
 
-        uploadData.photoBack = {
-          url: photoBackBase64,
-          fileSize: compressedBack.size,
-          mimeType: compressedBack.type
-        }
-      }
-
-      console.log('📤 Sending to API...')
-      
-      const response = await api.uploadKTP(uploadData)
-      
-      console.log('✅ Upload successful:', response)
-      
-      toast.success('KTP photos uploaded! Waiting for admin verification.', {
-        id: uploadToast
-      })
-      
-      // Clear state
-      setKtpFrontFile(null)
-      setKtpBackFile(null)
-      setKtpFrontPreview(null)
-      setKtpBackPreview(null)
-      
-      await loadProfile()
-      return true
-      
-    } catch (uploadError: any) {
-      console.error('❌ Upload error:', uploadError)
-      
-      let errorMessage = 'Failed to upload KTP photos'
-      
-      // Better error messages
-      if (uploadError?.response?.status === 413) {
-        errorMessage = 'Image too large. Please use a smaller image.'
-      } else if (uploadError?.response?.status === 500) {
-        errorMessage = 'Server error. Please try again or use a smaller image.'
-      } else if (uploadError?.response?.status === 502) {
-        errorMessage = 'Upload timeout. Image might be too large.'
-      } else if (uploadError?.response?.data?.error) {
-        errorMessage = uploadError.response.data.error
-      } else if (uploadError?.message) {
-        errorMessage = uploadError.message
-      }
-      
-      toast.error(errorMessage, { id: uploadToast })
-      return false
-    }
-    
-  } catch (error: any) {
-    console.error('❌ KTP upload failed:', error)
-    toast.error(error?.message || 'Failed to process photos')
-    return false
-  } finally {
-    setUpdating(false)
-  }
-}
-
-  // ✅ NEW: Upload selfie handler
-  const uploadSelfie = async (file: File): Promise<boolean> => {
-  try {
-    console.log('🤳 Starting selfie upload...', {
-      size: file.size,
-      type: file.type
-    })
-    
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file', {
-        style: { background: '#ef4444', color: '#fff' }
-      })
-      return false
-    }
-
-    // Validate file size (1MB for selfie)
-    if (file.size > 1 * 1024 * 1024) {
-      toast.error('Selfie size must be less than 1MB', {
-        style: { background: '#ef4444', color: '#fff' }
-      })
-      return false
-    }
-
-    setUpdating(true)
-    const uploadToast = toast.loading('Uploading selfie...', {
-      style: { background: '#f59e0b', color: '#fff' }
-    })
-
-    try {
-      // Convert to base64
-      console.log('📄 Converting selfie to base64...')
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onloadend = () => {
-          if (reader.result) {
-            console.log('✅ Selfie converted')
-            resolve(reader.result as string)
-          } else {
-            reject(new Error('Failed to read selfie'))
+        const uploadData: any = {
+          photoFront: {
+            url: photoFrontBase64,
+            fileSize: compressedFront.size,
+            mimeType: compressedFront.type
           }
         }
-        reader.onerror = () => reject(new Error('Failed to read selfie'))
-        reader.readAsDataURL(file)
+
+        if (compressedBack) {
+          const photoBackBase64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onloadend = () => {
+              if (reader.result) {
+                const base64 = reader.result as string
+                console.log('✅ Back photo converted:', {
+                  size: `${(base64.length / 1024).toFixed(2)} KB`,
+                  type: compressedBack.type
+                })
+                resolve(base64)
+              } else {
+                reject(new Error('Failed to read back photo'))
+              }
+            }
+            reader.onerror = () => reject(new Error('Failed to read back photo'))
+            reader.readAsDataURL(compressedBack)
+          })
+
+          uploadData.photoBack = {
+            url: photoBackBase64,
+            fileSize: compressedBack.size,
+            mimeType: compressedBack.type
+          }
+        }
+
+        console.log('📤 Sending to API...')
+        
+        const response = await api.uploadKTP(uploadData)
+        
+        console.log('✅ Upload successful:', response)
+        
+        toast.success('KTP photos uploaded! Waiting for admin verification.', {
+          id: uploadToast
+        })
+        
+        setKtpFrontFile(null)
+        setKtpBackFile(null)
+        setKtpFrontPreview(null)
+        setKtpBackPreview(null)
+        
+        await loadProfile()
+        return true
+        
+      } catch (uploadError: any) {
+        console.error('❌ Upload error:', uploadError)
+        
+        let errorMessage = 'Failed to upload KTP photos'
+        
+        if (uploadError?.response?.status === 413) {
+          errorMessage = 'Image too large. Please use a smaller image.'
+        } else if (uploadError?.response?.status === 500) {
+          errorMessage = 'Server error. Please try again or use a smaller image.'
+        } else if (uploadError?.response?.status === 502) {
+          errorMessage = 'Upload timeout. Image might be too large.'
+        } else if (uploadError?.response?.data?.error) {
+          errorMessage = uploadError.response.data.error
+        } else if (uploadError?.message) {
+          errorMessage = uploadError.message
+        }
+        
+        toast.error(errorMessage, { id: uploadToast })
+        return false
+      }
+      
+    } catch (error: any) {
+      console.error('❌ KTP upload failed:', error)
+      toast.error(error?.message || 'Failed to process photos')
+      return false
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const uploadSelfie = async (file: File): Promise<boolean> => {
+    try {
+      console.log('🤳 Starting selfie upload...', {
+        size: file.size,
+        type: file.type
+      })
+      
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select an image file', {
+          style: { background: '#ef4444', color: '#fff' }
+        })
+        return false
+      }
+
+      if (file.size > 1 * 1024 * 1024) {
+        toast.error('Selfie size must be less than 1MB', {
+          style: { background: '#ef4444', color: '#fff' }
+        })
+        return false
+      }
+
+      setUpdating(true)
+      const uploadToast = toast.loading('Uploading selfie...', {
+        style: { background: '#f59e0b', color: '#fff' }
       })
 
-      console.log('📤 Sending to API...')
-      await api.uploadSelfie({
-        url: base64,
-        fileSize: file.size,
-        mimeType: file.type
-      })
+      try {
+        console.log('📄 Converting selfie to base64...')
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onloadend = () => {
+            if (reader.result) {
+              console.log('✅ Selfie converted')
+              resolve(reader.result as string)
+            } else {
+              reject(new Error('Failed to read selfie'))
+            }
+          }
+          reader.onerror = () => reject(new Error('Failed to read selfie'))
+          reader.readAsDataURL(file)
+        })
+
+        console.log('📤 Sending to API...')
+        await api.uploadSelfie({
+          url: base64,
+          fileSize: file.size,
+          mimeType: file.type
+        })
+        
+        console.log('✅ Upload successful!')
+        toast.success('Selfie uploaded! Waiting for admin verification.', {
+          id: uploadToast,
+          style: { background: '#10b981', color: '#fff' }
+        })
+        
+        await loadProfile()
+        return true
+        
+      } catch (uploadError: any) {
+        console.error('❌ Upload error:', uploadError)
+        console.error('Error details:', {
+          message: uploadError?.message,
+          response: uploadError?.response?.data,
+          status: uploadError?.response?.status
+        })
+        
+        const errorMessage = uploadError?.response?.data?.error 
+          || uploadError?.response?.data?.message
+          || uploadError?.message 
+          || 'Failed to upload selfie'
+        
+        toast.error(errorMessage, {
+          id: uploadToast,
+          style: { background: '#ef4444', color: '#fff' }
+        })
+        return false
+      }
       
-      console.log('✅ Upload successful!')
-      toast.success('Selfie uploaded! Waiting for admin verification.', {
-        id: uploadToast,
-        style: { background: '#10b981', color: '#fff' }
-      })
-      
-      await loadProfile()
-      return true
-      
-    } catch (uploadError: any) {
-      console.error('❌ Upload error:', uploadError)
-      console.error('Error details:', {
-        message: uploadError?.message,
-        response: uploadError?.response?.data,
-        status: uploadError?.response?.status
-      })
-      
-      // More specific error messages
-      const errorMessage = uploadError?.response?.data?.error 
-        || uploadError?.response?.data?.message
-        || uploadError?.message 
-        || 'Failed to upload selfie'
-      
-      toast.error(errorMessage, {
-        id: uploadToast,
+    } catch (error: any) {
+      console.error('❌ Selfie upload failed:', error)
+      toast.error(error?.message || 'Failed to process photo', {
         style: { background: '#ef4444', color: '#fff' }
       })
       return false
+    } finally {
+      setUpdating(false)
     }
-    
-  } catch (error: any) {
-    console.error('❌ Selfie upload failed:', error)
-    toast.error(error?.message || 'Failed to process photo', {
-      style: { background: '#ef4444', color: '#fff' }
-    })
-    return false
-  } finally {
-    setUpdating(false)
   }
-}
-
   
   const handleLogout = () => {
     setShowLogoutModal(true)
@@ -1130,7 +1074,6 @@ export default function ProfilePage() {
     { id: 'preferences', label: 'Preferences', icon: Settings }
   ]
 
-  // Render tab content
   const renderTabContent = () => {
     return (
       <AnimatePresence mode="wait">
@@ -1143,18 +1086,16 @@ export default function ProfilePage() {
         >
           {activeTab === 'overview' && (
             <div className="space-y-4 md:space-y-6">
-              {/* ========== MODIFIED: Profile Header - Mobile Optimized ========== */}
               <motion.div 
                 className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow overflow-hidden"
                 whileHover={{ y: -2 }}
               >
                 <div className="flex items-start sm:items-center gap-4">
-                  {/* Avatar */}
                   <motion.div 
                     className="relative flex-shrink-0"
                     whileHover={{ scale: 1.05 }}
                   >
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg overflow-hidden">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center shadow-lg overflow-hidden">
                       {profileInfo?.avatar?.url ? (
                         <img src={profileInfo.avatar.url} alt="Avatar" className="w-full h-full object-cover" />
                       ) : (
@@ -1168,7 +1109,7 @@ export default function ProfilePage() {
                         </motion.span>
                       )}
                     </div>
-                    <label className="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-all shadow-lg border-2 border-white group">
+                    <label className="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-sky-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-sky-600 transition-all shadow-lg border-2 border-white group">
                       <Camera className="w-3.5 h-3.5 text-white group-hover:scale-110 transition-transform" />
                       <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                         if (e.target.files?.[0]) handleUploadAvatar(e.target.files[0])
@@ -1176,7 +1117,6 @@ export default function ProfilePage() {
                     </label>
                   </motion.div>
 
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <motion.h2 
                       className="text-lg sm:text-xl font-bold text-gray-900 mb-1 leading-tight"
@@ -1191,7 +1131,7 @@ export default function ProfilePage() {
                         transition={{ delay: 0.3 }}
                       >
                         {profileInfo?.verification?.identityVerified && (
-                          <ShieldCheck className="inline-block w-4 h-4 sm:w-5 sm:h-5 ml-2 text-blue-500 align-middle" />
+                          <ShieldCheck className="inline-block w-4 h-4 sm:w-5 sm:h-5 ml-2 text-sky-500 align-middle" />
                         )}
                       </motion.span>
                     </motion.h2>
@@ -1221,24 +1161,23 @@ export default function ProfilePage() {
                 </div>
               </motion.div>
 
-              {/* ========== MODIFIED: Profile Completion - Mobile Optimized ========== */}
               {profileInfo && profileInfo.completion < 100 && (
                 <motion.div 
-                  className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4 overflow-hidden"
+                  className="bg-gradient-to-r from-sky-50 to-sky-100 border border-sky-200 rounded-xl p-4 overflow-hidden"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div>
-                      <h3 className="font-semibold text-blue-900 mb-1 text-sm flex items-center">
+                      <h3 className="font-semibold text-sky-900 mb-1 text-sm flex items-center">
                         <TrendingUp className="w-4 h-4 mr-2" />
                         Complete Your Profile
                       </h3>
-                      <p className="text-xs text-blue-700">Unlock all features by completing your profile</p>
+                      <p className="text-xs text-sky-700">Unlock all features by completing your profile</p>
                     </div>
                     <motion.div 
-                      className="text-xl sm:text-2xl font-bold text-blue-600"
+                      className="text-xl sm:text-2xl font-bold text-sky-600"
                       key={profileInfo.completion}
                       initial={{ scale: 1.2 }}
                       animate={{ scale: 1 }}
@@ -1247,9 +1186,9 @@ export default function ProfilePage() {
                       {profileInfo.completion}%
                     </motion.div>
                   </div>
-                  <div className="w-full bg-blue-200 rounded-full h-2 overflow-hidden">
+                  <div className="w-full bg-sky-200 rounded-full h-2 overflow-hidden">
                     <motion.div 
-                      className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600" 
+                      className="h-2 rounded-full bg-gradient-to-r from-sky-500 to-sky-600" 
                       initial={{ width: 0 }}
                       animate={{ width: `${profileInfo.completion}%` }}
                       transition={{ duration: 0.8, ease: "easeOut", delay: 0.5 }}
@@ -1258,7 +1197,6 @@ export default function ProfilePage() {
                 </motion.div>
               )}
 
-              {/* ========== MODIFIED: Quick Stats Grid - Mobile Optimized (2 cols) ========== */}
               <motion.div 
                 className="grid grid-cols-2 gap-3"
                 variants={staggerContainer}
@@ -1270,19 +1208,19 @@ export default function ProfilePage() {
                     label: 'Real Balance', 
                     value: `Rp ${(profile?.balances?.real ?? 0).toLocaleString('id-ID')}`, 
                     icon: CreditCard, 
-                    color: 'text-green-600' 
+                    color: 'text-emerald-600' 
                   },
                   { 
                     label: 'Demo Balance', 
                     value: `Rp ${(profile?.balances?.demo ?? 0).toLocaleString('id-ID')}`, 
                     icon: TrendingUp, 
-                    color: 'text-blue-600' 
+                    color: 'text-sky-600' 
                   },
                   { 
                     label: 'Total Orders', 
                     value: profile?.statistics?.combined?.totalOrders ?? 0, 
                     icon: Briefcase, 
-                    color: 'text-purple-600' 
+                    color: 'text-violet-600' 
                   }
                 ].map((stat, i) => (
                   <motion.div 
@@ -1309,7 +1247,6 @@ export default function ProfilePage() {
                 ))}
               </motion.div>
 
-              {/* ========== MODIFIED: Verification Status - Mobile Optimized ========== */}
               <motion.div 
                 className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow"
                 variants={fadeInUp}
@@ -1318,7 +1255,7 @@ export default function ProfilePage() {
                 transition={{ delay: 0.7 }}
               >
                 <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center">
-                  <Shield className="w-5 h-5 mr-2 text-blue-500" />
+                  <Shield className="w-5 h-5 mr-2 text-sky-500" />
                   Verification Status
                 </h3>
                 <motion.div 
@@ -1336,7 +1273,7 @@ export default function ProfilePage() {
                       variants={fadeInUp}
                       className={`flex items-center gap-2 p-3 rounded-lg border-2 text-sm ${
                         item.verified 
-                          ? 'border-green-200 bg-gradient-to-r from-green-50 to-emerald-50' 
+                          ? 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-emerald-50' 
                           : 'border-gray-200 bg-gray-50'
                       }`}
                       whileHover={{ scale: 1.02 }}
@@ -1345,13 +1282,13 @@ export default function ProfilePage() {
                         animate={item.verified ? { rotate: 360 } : {}}
                         transition={{ duration: 0.5 }}
                       >
-                        <item.icon className={`w-5 h-5 ${item.verified ? 'text-green-600' : 'text-gray-400'}`} />
+                        <item.icon className={`w-5 h-5 ${item.verified ? 'text-emerald-600' : 'text-gray-400'}`} />
                       </motion.div>
                       <div className="flex-1">
                         <div className="font-semibold text-gray-900 text-xs">{item.label}</div>
                         <motion.div 
                           className={`text-xs font-medium flex items-center gap-1 ${
-                            item.verified ? 'text-green-600' : 'text-gray-500'
+                            item.verified ? 'text-emerald-600' : 'text-gray-500'
                           }`}
                           whileHover={{ x: item.verified ? 5 : 0 }}
                         >
@@ -1372,7 +1309,7 @@ export default function ProfilePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-white">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-sky-50 to-white">
                 <div>
                   <h3 className="text-base font-bold text-gray-900 mb-1">Personal Information</h3>
                   <p className="text-xs text-gray-500">Your basic personal details</p>
@@ -1381,7 +1318,7 @@ export default function ProfilePage() {
                   {!editingPersonal ? (
                     <motion.button 
                       onClick={() => setEditingPersonal(true)} 
-                      className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-md text-xs font-medium"
+                      className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-lg hover:from-sky-600 hover:to-sky-700 transition-all shadow-md text-xs font-medium"
                       whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(59, 130, 246, 0.3)" }}
                       whileTap={{ scale: 0.98 }}
                     >
@@ -1409,7 +1346,7 @@ export default function ProfilePage() {
                       <motion.button 
                         onClick={handleUpdatePersonal} 
                         disabled={savingSection === 'personal'} 
-                        className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all disabled:opacity-50 shadow-md text-xs font-medium"
+                        className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-lg hover:from-sky-600 hover:to-sky-700 transition-all disabled:opacity-50 shadow-md text-xs font-medium"
                         whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(59, 130, 246, 0.3)" }}
                         whileTap={{ scale: 0.98 }}
                       >
@@ -1494,10 +1431,10 @@ export default function ProfilePage() {
                             value={(personalData as any)[field.key]}
                             onChange={(e) => setPersonalData({ ...personalData, [field.key]: e.target.value })}
                             onBlur={(e) => handleBlur(field.key, e.target.value)}
-                            className={`w-full px-3 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors text-sm ${
+                            className={`w-full px-3 py-3 bg-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-colors text-sm ${
                               formErrors[field.key] && touchedFields[field.key]
                                 ? 'border-red-300 focus:border-red-500'
-                                : 'border-gray-200 focus:border-blue-500'
+                                : 'border-gray-300 focus:border-sky-500'
                             }`}
                           >
                             {field.options?.map(opt => (
@@ -1510,10 +1447,10 @@ export default function ProfilePage() {
                             value={(personalData as any)[field.key]}
                             onChange={(e) => setPersonalData({ ...personalData, [field.key]: e.target.value })}
                             onBlur={(e) => handleBlur(field.key, e.target.value)}
-                            className={`w-full px-3 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors text-sm ${
+                            className={`w-full px-3 py-3 bg-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-colors text-sm ${
                               formErrors[field.key] && touchedFields[field.key]
                                 ? 'border-red-300 focus:border-red-500'
-                                : 'border-gray-200 focus:border-blue-500'
+                                : 'border-gray-300 focus:border-sky-500'
                             }`}
                             placeholder={`Enter your ${field.label.toLowerCase()}`}
                           />
@@ -1531,8 +1468,8 @@ export default function ProfilePage() {
                       </motion.div>
                     ) : (
                       <motion.div 
-                        className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium border-2 border-transparent text-sm"
-                        whileHover={{ backgroundColor: 'rgb(249 250 251)' }}
+                        className="px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm"
+                        whileHover={{ backgroundColor: 'rgb(243 244 246)' }}
                       >
                         {field.key === 'dateOfBirth' && (personalData as any)[field.key]
                           ? new Date((personalData as any)[field.key]).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -1541,7 +1478,7 @@ export default function ProfilePage() {
                     )}
                     {autoSaving === 'personal' && (
                       <motion.div 
-                        className="mt-1 text-xs text-blue-600 flex items-center gap-1"
+                        className="mt-1 text-xs text-sky-600 flex items-center gap-1"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -1562,7 +1499,7 @@ export default function ProfilePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-green-50 to-white">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-white">
                 <div>
                   <h3 className="text-base font-bold text-gray-900 mb-1">Address Information</h3>
                   <p className="text-xs text-gray-500">Your residential address</p>
@@ -1571,7 +1508,7 @@ export default function ProfilePage() {
                   {!editingAddress ? (
                     <motion.button 
                       onClick={() => setEditingAddress(true)} 
-                      className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all shadow-md text-xs font-medium"
+                      className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-md text-xs font-medium"
                       whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(16, 185, 129, 0.3)" }}
                       whileTap={{ scale: 0.98 }}
                     >
@@ -1599,7 +1536,7 @@ export default function ProfilePage() {
                       <motion.button 
                         onClick={handleUpdateAddress} 
                         disabled={savingSection === 'address'} 
-                        className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all disabled:opacity-50 shadow-md text-xs font-medium"
+                        className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all disabled:opacity-50 shadow-md text-xs font-medium"
                         whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(16, 185, 129, 0.3)" }}
                         whileTap={{ scale: 0.98 }}
                       >
@@ -1635,10 +1572,10 @@ export default function ProfilePage() {
                         value={addressData.street}
                         onChange={(e) => setAddressData({ ...addressData, street: e.target.value })}
                         onBlur={(e) => handleBlur('street', e.target.value)}
-                        className={`w-full px-3 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors text-sm ${
+                        className={`w-full px-3 py-3 bg-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors text-sm ${
                           formErrors.street && touchedFields.street
                             ? 'border-red-300 focus:border-red-500'
-                            : 'border-gray-200 focus:border-green-500'
+                            : 'border-gray-300 focus:border-emerald-500'
                         }`}
                         placeholder="Jl. Merdeka No. 123"
                       />
@@ -1654,7 +1591,7 @@ export default function ProfilePage() {
                       )}
                     </>
                   ) : (
-                    <div className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium text-sm">
+                    <div className="px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm">
                       {addressData.street || '-'}
                     </div>
                   )}
@@ -1672,10 +1609,10 @@ export default function ProfilePage() {
                           value={addressData.city}
                           onChange={(e) => setAddressData({ ...addressData, city: e.target.value })}
                           onBlur={(e) => handleBlur('city', e.target.value)}
-                          className={`w-full px-3 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors text-sm ${
+                          className={`w-full px-3 py-3 bg-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors text-sm ${
                             formErrors.city && touchedFields.city
                               ? 'border-red-300 focus:border-red-500'
-                              : 'border-gray-200 focus:border-green-500'
+                              : 'border-gray-300 focus:border-emerald-500'
                           }`}
                           placeholder="Jakarta"
                         />
@@ -1691,7 +1628,7 @@ export default function ProfilePage() {
                         )}
                       </>
                     ) : (
-                      <div className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium text-sm">
+                      <div className="px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm">
                         {addressData.city || '-'}
                       </div>
                     )}
@@ -1707,10 +1644,10 @@ export default function ProfilePage() {
                           value={addressData.province}
                           onChange={(e) => setAddressData({ ...addressData, province: e.target.value })}
                           onBlur={(e) => handleBlur('province', e.target.value)}
-                          className={`w-full px-3 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors text-sm ${
+                          className={`w-full px-3 py-3 bg-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors text-sm ${
                             formErrors.province && touchedFields.province
                               ? 'border-red-300 focus:border-red-500'
-                              : 'border-gray-200 focus:border-green-500'
+                              : 'border-gray-300 focus:border-emerald-500'
                           }`}
                           placeholder="DKI Jakarta"
                         />
@@ -1726,7 +1663,7 @@ export default function ProfilePage() {
                         )}
                       </>
                     ) : (
-                      <div className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium text-sm">
+                      <div className="px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm">
                         {addressData.province || '-'}
                       </div>
                     )}
@@ -1741,11 +1678,11 @@ export default function ProfilePage() {
                         type="text"
                         value={addressData.postalCode}
                         onChange={(e) => setAddressData({ ...addressData, postalCode: e.target.value })}
-                        className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors text-sm"
+                        className="w-full px-3 py-3 bg-gray-100 border border-gray-300 rounded-xl focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors text-sm"
                         placeholder="12345"
                       />
                     ) : (
-                      <div className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium text-sm">
+                      <div className="px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm">
                         {addressData.postalCode || '-'}
                       </div>
                     )}
@@ -1757,11 +1694,11 @@ export default function ProfilePage() {
                         type="text"
                         value={addressData.country}
                         onChange={(e) => setAddressData({ ...addressData, country: e.target.value })}
-                        className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors text-sm"
+                        className="w-full px-3 py-3 bg-gray-100 border border-gray-300 rounded-xl focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors text-sm"
                         placeholder="Indonesia"
                       />
                     ) : (
-                      <div className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium text-sm">
+                      <div className="px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm">
                         {addressData.country || '-'}
                       </div>
                     )}
@@ -1777,328 +1714,330 @@ export default function ProfilePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-purple-50 to-white">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-violet-50 to-white">
                 <div>
-                  <h3 className="text-base font-bold text-gray-900 mb-1">Identity Verification</h3>
-                  <p className="text-xs text-gray-500">Verify your identity for higher limits</p>
+                  <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-violet-500" />
+                    Identity Verification
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {editingIdentity ? 'Upload documents to verify your identity' : 'Your identity documents'}
+                  </p>
                 </div>
                 <AnimatePresence mode="wait">
                   {!editingIdentity ? (
                     <motion.button 
                       onClick={() => setEditingIdentity(true)} 
-                      className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all shadow-md text-xs font-medium"
-                      whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(147, 51, 234, 0.3)" }}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-white border border-violet-200 text-violet-700 rounded-lg hover:bg-violet-50 transition-all shadow-sm text-xs font-medium"
+                      whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      <Edit2 className="w-3 h-3" /> Edit
+                      <Edit2 className="w-3.5 h-3.5" />
+                      <span>Edit</span>
                     </motion.button>
                   ) : (
                     <motion.div 
                       className="flex gap-2"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
                     >
                       <motion.button 
                         onClick={() => {
                           setEditingIdentity(false)
+                          setKtpFrontFile(null)
+                          setKtpBackFile(null)
+                          setKtpFrontPreview(null)
+                          setKtpBackPreview(null)
                           loadProfile()
                         }} 
-                        disabled={savingSection === 'identity'} 
-                        className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 text-xs font-medium"
+                        disabled={updating} 
+                        className="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors text-xs font-medium"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
                         Cancel
                       </motion.button>
                       <motion.button 
-                        onClick={handleUpdateIdentity} 
-                        disabled={savingSection === 'identity'} 
-                        className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all disabled:opacity-50 shadow-md text-xs font-medium"
-                        whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(147, 51, 234, 0.3)" }}
+                        onClick={() => {
+                          if (identityData.number !== profileInfo?.identity?.number) {
+                            handleUpdateIdentity()
+                          }
+                          setEditingIdentity(false)
+                        }} 
+                        disabled={updating || (!ktpFrontFile && !profileInfo?.identity?.photoFront)} 
+                        className="flex items-center gap-1.5 px-3 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm text-xs font-medium"
+                        whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
-                        {savingSection === 'identity' ? (
-                          <>
-                            <Loader2 className="w-3 h-3 animate-spin" /> Saving...
-                          </>
+                        {updating ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         ) : (
-                          <>
-                            <Save className="w-3 h-3" /> Save
-                          </>
+                          <Save className="w-3.5 h-3.5" />
                         )}
+                        <span>Done</span>
                       </motion.button>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
-              
+
               <motion.div 
-                className="p-4 space-y-4"
+                className="p-4 space-y-6"
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
               >
-
-      {/* ========== MODIFIED: KTP Upload Section - Mobile Optimized ========== */}
-      <motion.div variants={fadeInUp} className="border-t pt-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
-          <Camera className="w-4 h-4 mr-2 text-purple-500" />
-          Upload KTP Photos
-        </h4>
-        
-        {/* Front Photo */}
-        <div className="mb-3">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Front Photo <span className="text-red-500">*</span>
-          </label>
-          {profileInfo?.identity?.photoFront ? (
-            <div className="relative">
-              <img 
-                src={profileInfo.identity.photoFront.url} 
-                alt="KTP Front"
-                className="w-full h-40 object-cover rounded-lg border-2 border-gray-200"
-              />
-              {profileInfo.identity.isVerified ? (
-                <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" />
-                  Verified
-                </div>
-              ) : (
-                <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
-                  Pending
-                </div>
-              )}
-            </div>
-          ) : ktpFrontPreview ? (
-            <div className="relative">
-              <img 
-                src={ktpFrontPreview} 
-                alt="KTP Front Preview"
-                className="w-full h-40 object-cover rounded-lg border-2 border-purple-300"
-              />
-              <button
-                onClick={() => {
-                  setKtpFrontFile(null)
-                  setKtpFrontPreview(null)
-                }}
-                className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-500 transition-colors bg-gray-50">
-              <Camera className="w-10 h-10 text-gray-400 mb-1" />
-              <span className="text-xs text-gray-600">Tap to upload</span>
-              <span className="text-[10px] text-gray-500 mt-0.5">Max 2MB (JPG, PNG)</span>
-              <input 
-                type="file" 
-                accept="image/*" 
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) {
-                    setKtpFrontFile(file)
-                    const reader = new FileReader()
-                    reader.onloadend = () => {
-                      setKtpFrontPreview(reader.result as string)
-                    }
-                    reader.readAsDataURL(file)
-                  }
-                }}
-              />
-            </label>
-          )}
-        </div>
-
-        {/* Back Photo */}
-        <div className="mb-3">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Back Photo (Optional)
-          </label>
-          {profileInfo?.identity?.photoBack ? (
-            <img 
-              src={profileInfo.identity.photoBack.url} 
-              alt="KTP Back"
-              className="w-full h-40 object-cover rounded-lg border-2 border-gray-200"
-            />
-          ) : ktpBackPreview ? (
-            <div className="relative">
-              <img 
-                src={ktpBackPreview} 
-                alt="KTP Back Preview"
-                className="w-full h-40 object-cover rounded-lg border-2 border-purple-300"
-              />
-              <button
-                onClick={() => {
-                  setKtpBackFile(null)
-                  setKtpBackPreview(null)
-                }}
-                className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-500 transition-colors bg-gray-50">
-              <Camera className="w-10 h-10 text-gray-400 mb-1" />
-              <span className="text-xs text-gray-600">Tap to upload</span>
-              <span className="text-[10px] text-gray-500 mt-0.5">Max 2MB (JPG, PNG)</span>
-              <input 
-                type="file" 
-                accept="image/*" 
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) {
-                    setKtpBackFile(file)
-                    const reader = new FileReader()
-                    reader.onloadend = () => {
-                      setKtpBackPreview(reader.result as string)
-                    }
-                    reader.readAsDataURL(file)
-                  }
-                }}
-              />
-            </label>
-          )}
-        </div>
-
-        {/* Upload Button */}
-        {ktpFrontFile && !profileInfo?.identity?.photoFront && (
-          <motion.button
-            onClick={async () => {
-              const success = await uploadKTP(ktpFrontFile, ktpBackFile)
-              if (success) {
-                console.log('✅ Upload completed successfully')
-              } else {
-                console.log('❌ Upload failed')
-              }
-            }}
-            disabled={updating}
-            className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm font-medium"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            {updating ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Uploading...
-              </>
-            ) : (
-              <>
-                <Camera className="w-4 h-4" />
-                Upload {ktpBackFile ? 'Both Photos' : 'Front Photo'}
-              </>
-            )}
-          </motion.button>
-        )}
-      </motion.div>      
-
-      {/* ========== MODIFIED: Selfie Upload Section - Mobile Optimized ========== */}
-      <motion.div variants={fadeInUp} className="border-t pt-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
-          <UserCheck className="w-4 h-4 mr-2 text-purple-500" />
-          Upload Selfie Verification
-        </h4>
-        
-        {profileInfo?.selfie ? (
-          <div className="relative">
-            <img 
-              src={profileInfo.selfie.url} 
-              alt="Selfie"
-              className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
-            />
-            {profileInfo.selfie.isVerified ? (
-              <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" />
-                Verified
-              </div>
-            ) : (
-              <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" />
-                Pending
-              </div>
-            )}
-          </div>
-        ) : (
-          <>
-            <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-500 transition-colors bg-gray-50">
-              <UserCheck className="w-10 h-10 text-gray-400 mb-1" />
-              <span className="text-xs text-gray-600">Tap to upload selfie</span>
-              <span className="text-[10px] text-gray-500 mt-0.5">Max 1MB (JPG, PNG)</span>
-              <input 
-                type="file" 
-                accept="image/*" 
-                className="hidden"
-                onChange={async (e) => {
-                  if (e.target.files?.[0]) {
-                    await uploadSelfie(e.target.files[0])
-                  }
-                }}
-                disabled={updating}
-              />
-            </label>
-          </>
-        )}
-      </motion.div>
-                
-                <motion.div variants={fadeInUp}>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Document Number <span className="text-red-500">*</span>
+                <motion.div variants={fadeInUp} className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    ID Number <span className="text-red-500">*</span>
                   </label>
                   {editingIdentity ? (
-                    <>
-                      <input
-                        type="text"
-                        value={identityData.number}
-                        onChange={(e) => setIdentityData({ ...identityData, number: e.target.value })}
-                        onBlur={(e) => handleBlur('identityNumber', e.target.value)}
-                        className={`w-full px-3 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors text-sm ${
-                          formErrors.identityNumber && touchedFields.identityNumber
-                            ? 'border-red-300 focus:border-red-500'
-                            : 'border-gray-200 focus:border-purple-500'
-                        }`}
-                        placeholder="Enter document number"
-                      />
-                      {formErrors.identityNumber && touchedFields.identityNumber && (
-                        <motion.p 
-                          className="mt-1 text-sm text-red-600 flex items-center gap-1"
-                          initial={{ opacity: 0, y: -5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                        >
-                          <AlertCircle className="w-4 h-4" />
-                          {formErrors.identityNumber}
-                        </motion.p>
-                      )}
-                    </>
+                    <input
+                      type="text"
+                      value={identityData.number}
+                      onChange={(e) => setIdentityData({ ...identityData, number: e.target.value })}
+                      className="w-full px-3 py-2.5 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all text-sm"
+                      placeholder="Enter your KTP/Passport number"
+                    />
                   ) : (
-                    <div className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium text-sm">
-                      {identityData.number || '-'}
+                    <div className="px-3 py-2.5 bg-gray-100 border border-gray-200 rounded-lg text-gray-900 font-medium text-sm flex items-center justify-between">
+                      <span>{identityData.number || '-'}</span>
+                      {profileInfo?.identity?.isVerified && (
+                        <span className="flex items-center gap-1 text-emerald-600 text-xs font-medium">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Verified
+                        </span>
+                      )}
                     </div>
                   )}
                 </motion.div>
-                
-                {profileInfo?.identity?.isVerified && (
-                  <motion.div 
-                    className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg"
-                    variants={fadeInUp}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ type: "spring" }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <motion.div
-                        animate={{ rotate: [0, 360] }}
-                        transition={{ duration: 1, ease: "easeInOut" }}
-                      >
-                        <CheckCircle2 className="w-4 h-4 text-green-600" />
-                      </motion.div>
-                      <span className="text-sm font-semibold text-green-900">Identity Verified</span>
-                      <ShieldCheck className="w-4 h-4 text-green-600 ml-auto" />
+
+                <motion.div variants={fadeInUp} className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-violet-500" />
+                      ID Document Photos
+                    </h4>
+                    {profileInfo?.identity?.isVerified && !editingIdentity && (
+                      <span className="text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-1 rounded-full">
+                        Verified
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <span className="text-xs font-medium text-gray-500">Front Side</span>
+                      <div className="relative">
+                        {profileInfo?.identity?.photoFront && !editingIdentity ? (
+                          <div className="relative aspect-[4/3] rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
+                            <img 
+                              src={profileInfo.identity.photoFront.url} 
+                              alt="KTP Front"
+                              className="w-full h-full object-cover" 
+                            />
+                          </div>
+                        ) : editingIdentity && ktpFrontPreview ? (
+                          <div className="relative aspect-[4/3] rounded-lg overflow-hidden border-2 border-violet-300 bg-gray-100">
+                            <img 
+                              src={ktpFrontPreview} 
+                              alt="KTP Front Preview"
+                              className="w-full h-full object-cover" 
+                            />
+                            <button
+                              onClick={() => {
+                                setKtpFrontFile(null)
+                                setKtpFrontPreview(null)
+                              }}
+                              className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : editingIdentity ? (
+                          <label className="flex flex-col items-center justify-center aspect-[4/3] border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-violet-400 hover:bg-gray-50 transition-colors bg-gray-100">
+                            <Camera className="w-8 h-8 text-gray-400 mb-2" />
+                            <span className="text-xs text-gray-600 font-medium">Upload Front</span>
+                            <span className="text-[10px] text-gray-400 mt-0.5">Max 2MB</span>
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0]
+                                if (file) {
+                                  setKtpFrontFile(file)
+                                  const reader = new FileReader()
+                                  reader.onloadend = () => setKtpFrontPreview(reader.result as string)
+                                  reader.readAsDataURL(file)
+                                }
+                              }}
+                            />
+                          </label>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center aspect-[4/3] border border-gray-200 rounded-lg bg-gray-100 text-gray-400">
+                            <FileText className="w-8 h-8 mb-1 opacity-50" />
+                            <span className="text-xs">Not uploaded</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
+
+                    <div className="space-y-2">
+                      <span className="text-xs font-medium text-gray-500">Back Side (Optional)</span>
+                      <div className="relative">
+                        {profileInfo?.identity?.photoBack && !editingIdentity ? (
+                          <div className="relative aspect-[4/3] rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
+                            <img 
+                              src={profileInfo.identity.photoBack.url} 
+                              alt="KTP Back"
+                              className="w-full h-full object-cover" 
+                            />
+                          </div>
+                        ) : editingIdentity && ktpBackPreview ? (
+                          <div className="relative aspect-[4/3] rounded-lg overflow-hidden border-2 border-violet-300 bg-gray-100">
+                            <img 
+                              src={ktpBackPreview} 
+                              alt="KTP Back Preview"
+                              className="w-full h-full object-cover" 
+                            />
+                            <button
+                              onClick={() => {
+                                setKtpBackFile(null)
+                                setKtpBackPreview(null)
+                              }}
+                              className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : editingIdentity ? (
+                          <label className="flex flex-col items-center justify-center aspect-[4/3] border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-violet-400 hover:bg-gray-50 transition-colors bg-gray-100">
+                            <Camera className="w-8 h-8 text-gray-400 mb-2" />
+                            <span className="text-xs text-gray-600 font-medium">Upload Back</span>
+                            <span className="text-[10px] text-gray-400 mt-0.5">Max 2MB</span>
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0]
+                                if (file) {
+                                  setKtpBackFile(file)
+                                  const reader = new FileReader()
+                                  reader.onloadend = () => setKtpBackPreview(reader.result as string)
+                                  reader.readAsDataURL(file)
+                                }
+                              }}
+                            />
+                          </label>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center aspect-[4/3] border border-gray-200 rounded-lg bg-gray-100 text-gray-400">
+                            <FileText className="w-8 h-8 mb-1 opacity-50" />
+                            <span className="text-xs">Not uploaded</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {editingIdentity && (ktpFrontFile || ktpBackFile) && (
+                    <motion.button
+                      onClick={async () => {
+                        if (ktpFrontFile) {
+                          const success = await uploadKTP(ktpFrontFile, ktpBackFile)
+                          if (success) {
+                            setEditingIdentity(false)
+                          }
+                        }
+                      }}
+                      disabled={updating || !ktpFrontFile}
+                      className="w-full py-2.5 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm font-medium shadow-sm"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                    >
+                      {updating ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Camera className="w-4 h-4" />
+                          Upload {ktpBackFile ? 'Both Photos' : 'Front Photo'}
+                        </>
+                      )}
+                    </motion.button>
+                  )}
+                </motion.div>
+
+                <motion.div variants={fadeInUp} className="space-y-3 pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                      <UserCheck className="w-4 h-4 text-violet-500" />
+                      Selfie Verification
+                    </h4>
+                    {profileInfo?.selfie?.isVerified && !editingIdentity && (
+                      <span className="text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-1 rounded-full">
+                        Verified
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="relative max-w-[200px] mx-auto sm:mx-0">
+                    {profileInfo?.selfie && !editingIdentity ? (
+                      <div className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
+                        <img 
+                          src={profileInfo.selfie.url} 
+                          alt="Selfie"
+                          className="w-full h-full object-cover" 
+                        />
+                      </div>
+                    ) : editingIdentity ? (
+                      <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-violet-400 hover:bg-gray-50 transition-colors bg-gray-100 max-w-[200px]">
+                        {profileInfo?.selfie ? (
+                          <>
+                            <CheckCircle2 className="w-10 h-10 text-emerald-500 mb-2" />
+                            <span className="text-xs text-emerald-600 font-medium text-center px-4">Selfie already uploaded</span>
+                            <span className="text-[10px] text-gray-400 mt-1">Click to change</span>
+                          </>
+                        ) : (
+                          <>
+                            <UserCheck className="w-10 h-10 text-gray-400 mb-2" />
+                            <span className="text-xs text-gray-600 font-medium">Tap to upload selfie</span>
+                            <span className="text-[10px] text-gray-400 mt-0.5">Max 1MB</span>
+                          </>
+                        )}
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden"
+                          onChange={async (e) => {
+                            if (e.target.files?.[0]) {
+                              await uploadSelfie(e.target.files[0])
+                            }
+                          }}
+                          disabled={updating}
+                        />
+                      </label>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center aspect-square border border-gray-200 rounded-lg bg-gray-100 text-gray-400 max-w-[200px]">
+                        <UserCheck className="w-10 h-10 mb-2 opacity-50" />
+                        <span className="text-xs">Not uploaded</span>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+
+                {!editingIdentity && !profileInfo?.identity?.isVerified && (
+                  <motion.div 
+                    variants={fadeInUp}
+                    className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2"
+                  >
+                    <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-800 leading-relaxed">
+                      Please complete your identity verification to unlock all features. Click Edit to upload your documents.
+                    </p>
                   </motion.div>
                 )}
               </motion.div>
@@ -2120,7 +2059,7 @@ export default function ProfilePage() {
                   {!editingBank ? (
                     <motion.button 
                       onClick={() => setEditingBank(true)} 
-                      className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all shadow-md text-xs font-medium"
+                      className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-md text-xs font-medium"
                       whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(16, 185, 129, 0.3)" }}
                       whileTap={{ scale: 0.98 }}
                     >
@@ -2148,7 +2087,7 @@ export default function ProfilePage() {
                       <motion.button 
                         onClick={handleUpdateBank} 
                         disabled={savingSection === 'bank'} 
-                        className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all disabled:opacity-50 shadow-md text-xs font-medium"
+                        className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all disabled:opacity-50 shadow-md text-xs font-medium"
                         whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(16, 185, 129, 0.3)" }}
                         whileTap={{ scale: 0.98 }}
                       >
@@ -2184,10 +2123,10 @@ export default function ProfilePage() {
                         value={bankData.bankName}
                         onChange={(e) => setBankData({ ...bankData, bankName: e.target.value })}
                         onBlur={(e) => handleBlur('bankName', e.target.value)}
-                        className={`w-full px-3 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors text-sm ${
+                        className={`w-full px-3 py-3 bg-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors text-sm ${
                           formErrors.bankName && touchedFields.bankName
                             ? 'border-red-300 focus:border-red-500'
-                            : 'border-gray-200 focus:border-emerald-500'
+                            : 'border-gray-300 focus:border-emerald-500'
                         }`}
                         placeholder="e.g., Bank Mandiri"
                       />
@@ -2203,7 +2142,7 @@ export default function ProfilePage() {
                       )}
                     </>
                   ) : (
-                    <div className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium text-sm">
+                    <div className="px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm">
                       {bankData.bankName || '-'}
                     </div>
                   )}
@@ -2220,10 +2159,10 @@ export default function ProfilePage() {
                         value={bankData.accountNumber}
                         onChange={(e) => setBankData({ ...bankData, accountNumber: e.target.value })}
                         onBlur={(e) => handleBlur('accountNumber', e.target.value)}
-                        className={`w-full px-3 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors text-sm ${
+                        className={`w-full px-3 py-3 bg-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors text-sm ${
                           formErrors.accountNumber && touchedFields.accountNumber
                             ? 'border-red-300 focus:border-red-500'
-                            : 'border-gray-200 focus:border-emerald-500'
+                            : 'border-gray-300 focus:border-emerald-500'
                         }`}
                         placeholder="1234567890"
                       />
@@ -2239,7 +2178,7 @@ export default function ProfilePage() {
                       )}
                     </>
                   ) : (
-                    <div className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium text-sm">
+                    <div className="px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm">
                       {bankData.accountNumber ? `•••••${bankData.accountNumber.slice(-4)}` : '-'}
                     </div>
                   )}
@@ -2256,10 +2195,10 @@ export default function ProfilePage() {
                         value={bankData.accountHolderName}
                         onChange={(e) => setBankData({ ...bankData, accountHolderName: e.target.value })}
                         onBlur={(e) => handleBlur('accountHolderName', e.target.value)}
-                        className={`w-full px-3 py-3 bg-gray-50 border rounded-xl focus:outline-none transition-colors text-sm ${
+                        className={`w-full px-3 py-3 bg-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors text-sm ${
                           formErrors.accountHolderName && touchedFields.accountHolderName
                             ? 'border-red-300 focus:border-red-500'
-                            : 'border-gray-200 focus:border-emerald-500'
+                            : 'border-gray-300 focus:border-emerald-500'
                         }`}
                         placeholder="John Doe"
                       />
@@ -2275,7 +2214,7 @@ export default function ProfilePage() {
                       )}
                     </>
                   ) : (
-                    <div className="px-3 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium text-sm">
+                    <div className="px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm">
                       {bankData.accountHolderName || '-'}
                     </div>
                   )}
@@ -2283,20 +2222,15 @@ export default function ProfilePage() {
                 
                 {profileInfo?.bankAccount?.isVerified && (
                   <motion.div 
-                    className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg"
+                    className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg"
                     variants={fadeInUp}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ type: "spring" }}
                   >
                     <div className="flex items-center gap-2">
-                      <motion.div
-                        animate={{ rotate: [0, 360] }}
-                        transition={{ duration: 1, ease: "easeInOut" }}
-                      >
-                        <ShieldCheck className="w-4 h-4 text-green-600" />
-                      </motion.div>
-                      <span className="text-sm font-semibold text-green-900">Bank Account Verified</span>
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                      <span className="text-sm font-semibold text-emerald-900">Bank Account Verified</span>
                     </div>
                   </motion.div>
                 )}
@@ -2311,139 +2245,119 @@ export default function ProfilePage() {
               initial="hidden"
               animate="visible"
             >
-              {/* Current Status */}
               <motion.div 
-                className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow"
+                className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6"
                 variants={fadeInUp}
-                whileHover={{ y: -2 }}
               >
-                <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center">
-                  <Award className="w-5 h-5 mr-2 text-yellow-500" />
-                  Your Status
-                </h3>
-                <motion.div 
-                  className={`flex flex-col items-center gap-3 p-4 rounded-xl text-white shadow-xl bg-gradient-to-r ${getStatusGradient(statusInfo.current)}`}
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <motion.div
-                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }}
-                  >
-                    {React.createElement(getStatusIcon(statusInfo.current), { className: "w-10 h-10" })}
-                  </motion.div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold mb-0.5">{statusInfo.current.toUpperCase()}</div>
-                    <div className="opacity-90 text-sm">{formatStatusInfo(statusInfo)}</div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-r ${getStatusGradient(statusInfo.current)} flex items-center justify-center shadow-sm`}>
+                      {React.createElement(getStatusIcon(statusInfo.current), { className: "w-7 h-7 text-white" })}
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-0.5">Current Status</p>
+                      <h3 className="text-xl font-bold text-gray-900 mb-0.5">{statusInfo.current.toUpperCase()}</h3>
+                      <p className="text-sm font-medium text-emerald-600">Bonus +{statusInfo.profitBonus}%</p>
+                    </div>
                   </div>
-                </motion.div>
+                  <div className="flex items-center justify-between sm:justify-end gap-6 pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+                    <div className="text-left sm:text-right">
+                      <p className="text-xs text-gray-500 mb-0.5">Total Deposit</p>
+                      <p className="text-base font-semibold text-gray-900">{formatDepositRequirement(statusInfo.totalDeposit)}</p>
+                    </div>
+                  </div>
+                </div>
               </motion.div>
 
-              {/* Progress to Next Status */}
               {calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current).next && (
                 <motion.div 
-                  className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow"
+                  className="bg-white rounded-xl border border-gray-200 p-4"
                   variants={fadeInUp}
-                  whileHover={{ y: -2 }}
                 >
-                  <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center">
-                    <TrendingUp className="w-5 h-5 mr-2 text-blue-500" />
-                    Progress to Next Status
-                  </h3>
-                  <div className="mb-2">
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-gray-600">Progress</span>
-                      <motion.span 
-                        className="font-semibold"
-                        key={calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current).progress}
-                        initial={{ scale: 1.2 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: "spring" }}
-                      >
-                        {calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current).progress}%
-                      </motion.span>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-sky-500" />
+                      <span className="text-sm font-semibold text-gray-900">
+                        Progress to {STATUS_CONFIG[calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current).next!].label}
+                      </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                      <motion.div 
-                        className={`h-2 rounded-full bg-gradient-to-r ${
-                          statusInfo.current === 'standard' ? 'from-gray-400 to-gray-600' :
-                          statusInfo.current === 'gold' ? 'from-yellow-400 to-orange-600' :
-                          'from-purple-400 to-pink-600'
-                        }`} 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current).progress}%` }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                      />
-                    </div>
+                    <span className="text-sm font-bold text-sky-600">
+                      {calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current).progress}%
+                    </span>
                   </div>
-                  <p className="text-xs text-gray-600">
-                    Deposit <span className="font-bold">{formatDepositRequirement(calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current).depositNeeded)}</span> more to unlock {STATUS_CONFIG[calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current).next!].label} status!
+                  <div className="w-full bg-gray-100 rounded-full h-2">
+                    <motion.div 
+                      className="h-full rounded-full bg-sky-500" 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current).progress}%` }}
+                      transition={{ duration: 0.5 }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Need {formatDepositRequirement(calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current).depositNeeded)} more to upgrade
                   </p>
                 </motion.div>
               )}
 
-              {/* All Status Tiers */}
               <motion.div 
-                className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow"
+                className="bg-white rounded-xl border border-gray-200 p-4"
                 variants={fadeInUp}
               >
-                <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center">
-                  <Crown className="w-5 h-5 mr-2 text-yellow-500" />
+                <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Crown className="w-4 h-4 text-yellow-500" />
                   All Status Tiers
                 </h3>
-                <motion.div 
-                  className="space-y-2"
-                  variants={staggerContainer}
-                >
-                  {getAllStatusTiers().map(({ status, config, icon: Icon }, i) => {
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {getAllStatusTiers().map(({ status, config, icon: Icon }) => {
                     const isCurrent = status === statusInfo.current
                     const isUnlocked = STATUS_CONFIG[status].minDeposit <= statusInfo.totalDeposit
                     
                     return (
                       <motion.div 
                         key={status}
-                        className={`p-3 border-2 rounded-lg transition-all ${
+                        className={`relative p-4 rounded-lg border transition-all ${
                           isCurrent 
-                            ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-blue-100 shadow-md' 
+                            ? 'border-sky-500 bg-sky-50/50' 
                             : isUnlocked
-                            ? 'border-green-300 bg-gradient-to-r from-green-50 to-emerald-50'
-                            : 'border-gray-200 bg-gray-50'
+                            ? 'border-emerald-200 bg-emerald-50/30'
+                            : 'border-gray-100 bg-gray-50/50'
                         }`}
-                        variants={fadeInUp}
-                        whileHover={{ 
-                          scale: isCurrent ? 1.02 : 1.01,
-                          boxShadow: isCurrent ? "0 5px 15px rgba(59, 130, 246, 0.2)" : "0 3px 10px rgba(0,0,0,0.05)"
-                        }}
-                        transition={{ delay: i * 0.05 }}
+                        whileHover={{ scale: 1.01 }}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <motion.div
-                              animate={isCurrent ? { scale: [1, 1.1, 1] } : {}}
-                              transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
-                            >
-                              <Icon className={`w-5 h-6 ${isCurrent || isUnlocked ? 'text-blue-600' : 'text-gray-400'}`} />
-                            </motion.div>
-                            <div>
-                              <div className="font-semibold text-gray-900 text-sm">{config.label}</div>
-                              <div className="text-xs text-gray-600">Bonus: {config.profitBonus}%</div>
-                            </div>
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                            isCurrent ? 'bg-sky-100 text-sky-600' : 
+                            isUnlocked ? 'bg-emerald-100 text-emerald-600' : 
+                            'bg-gray-200 text-gray-400'
+                          }`}>
+                            <Icon className="w-4 h-4" />
                           </div>
-                          <div className="text-xs font-semibold text-gray-900">
-                            {formatDepositRequirement(config.minDeposit)}
+                          <div className="flex-1">
+                            <p className={`text-sm font-semibold ${isCurrent ? 'text-sky-900' : 'text-gray-900'}`}>
+                              {config.label}
+                            </p>
+                          </div>
+                          {isCurrent && (
+                            <span className="text-[10px] font-bold text-white bg-sky-500 px-2 py-0.5 rounded-full">
+                              ACTIVE
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-2 text-xs">
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-500">Profit Bonus</span>
+                            <span className="font-semibold text-gray-900">{config.profitBonus}%</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-500">Min Deposit</span>
+                            <span className="font-semibold text-gray-900">{formatDepositRequirement(config.minDeposit)}</span>
                           </div>
                         </div>
-                        {isCurrent && (
-                          <motion.div 
-                            className="mt-1 text-xs text-blue-600 font-medium"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                          >
-                            ✨ Current Status
-                          </motion.div>
-                        )}
                       </motion.div>
                     )
                   })}
-                </motion.div>
+                </div>
               </motion.div>
             </motion.div>
           )}
@@ -2455,14 +2369,13 @@ export default function ProfilePage() {
               initial="hidden"
               animate="visible"
             >
-              {/* Affiliate Overview */}
               <motion.div 
                 className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow"
                 variants={fadeInUp}
                 whileHover={{ y: -2 }}
               >
                 <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center">
-                  <Users className="w-5 h-5 mr-2 text-purple-500" />
+                  <Users className="w-5 h-5 mr-2 text-violet-500" />
                   Affiliate Program
                 </h3>
                 <motion.div 
@@ -2470,13 +2383,13 @@ export default function ProfilePage() {
                   variants={staggerContainer}
                 >
                   {[
-                    { label: 'Total Referrals', value: affiliateInfo.totalReferrals, color: 'text-gray-900', bg: 'bg-gray-50' },
-                    { label: 'Completed', value: affiliateInfo.completedReferrals, color: 'text-green-600', bg: 'bg-green-50' },
+                    { label: 'Total Referrals', value: affiliateInfo.totalReferrals, color: 'text-gray-900', bg: 'bg-gray-100' },
+                    { label: 'Completed', value: affiliateInfo.completedReferrals, color: 'text-emerald-600', bg: 'bg-emerald-50' },
                     { label: 'Pending', value: affiliateInfo.pendingReferrals, color: 'text-yellow-600', bg: 'bg-yellow-50' }
                   ].map((stat, i) => (
                     <motion.div 
                       key={stat.label}
-                      className={`text-center p-3 ${stat.bg} rounded-lg`}
+                      className={`text-center p-3 ${stat.bg} rounded-lg border border-gray-200`}
                       variants={fadeInUp}
                       transition={{ delay: i * 0.1 }}
                       whileHover={{ scale: 1.02 }}
@@ -2495,14 +2408,13 @@ export default function ProfilePage() {
                 </motion.div>
               </motion.div>
 
-              {/* Referral Link */}
               <motion.div 
                 className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow"
                 variants={fadeInUp}
                 whileHover={{ y: -2 }}
               >
                 <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center">
-                  <Share2 className="w-5 h-5 mr-2 text-blue-500" />
+                  <Share2 className="w-5 h-5 mr-2 text-sky-500" />
                   Your Referral Link
                 </h3>
                 <motion.div 
@@ -2512,8 +2424,7 @@ export default function ProfilePage() {
                   transition={{ delay: 0.3 }}
                 >
                   <motion.div 
-                    className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-black font-mono text-xs break-all relative"
-                    whileHover={{ backgroundColor: 'rgb(249 250 251)' }}
+                    className="px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-black font-mono text-xs break-all"
                   >
                     {typeof window !== 'undefined' && `${window.location.origin}/?ref=${affiliateInfo.referralCode}`}
                   </motion.div>
@@ -2528,33 +2439,11 @@ export default function ProfilePage() {
                         setTimeout(() => setCopied(false), 2000)
                       }
                     }}
-                    className="w-full px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 text-sm font-medium"
-                    whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(59, 130, 246, 0.3)" }}
+                    className="w-full px-3 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-all flex items-center justify-center gap-2 text-sm font-medium"
+                    whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    <AnimatePresence mode="wait">
-                      {copied ? (
-                        <motion.div
-                          key="copied"
-                          initial={{ scale: 0, rotate: -180 }}
-                          animate={{ scale: 1, rotate: 0 }}
-                          exit={{ scale: 0, rotate: 180 }}
-                          transition={{ type: "spring" }}
-                        >
-                          <Check className="w-4 h-4" />
-                        </motion.div>
-                      ) : (
-                        <motion.div
-                          key="copy"
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          exit={{ scale: 0 }}
-                          transition={{ type: "spring" }}
-                        >
-                          <Copy className="w-4 h-4" />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     <span className="font-medium">{copied ? 'Copied!' : 'Copy Link'}</span>
                   </motion.button>
                 </motion.div>
@@ -2569,7 +2458,6 @@ export default function ProfilePage() {
                 </motion.p>
               </motion.div>
 
-              {/* Commission Info */}
               <motion.div 
                 className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow"
                 variants={fadeInUp}
@@ -2585,10 +2473,7 @@ export default function ProfilePage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.5 }}
                 >
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  >
+                  <motion.div>
                     <Gift className="w-8 h-8 text-yellow-500" />
                   </motion.div>
                   <div>
@@ -2614,7 +2499,7 @@ export default function ProfilePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <div className="p-4 bg-gradient-to-r from-red-50 to-white">
+              <div className="p-4 bg-red-50">
                 <h3 className="text-base font-bold text-gray-900 mb-1 flex items-center">
                   <Lock className="w-5 h-5 mr-2 text-red-500" />
                   Security Settings
@@ -2639,7 +2524,7 @@ export default function ProfilePage() {
                       type={showPassword ? 'text' : 'password'}
                       value={passwordData.currentPassword}
                       onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                      className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none transition-colors text-sm"
+                      className="w-full pl-10 pr-10 py-3 bg-gray-100 border border-gray-300 rounded-xl focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-colors text-sm"
                       required
                     />
                     <button
@@ -2669,7 +2554,7 @@ export default function ProfilePage() {
                           .map(([key]) => key.replace(/([A-Z])/g, ' $1').trim())
                         setPasswordErrors(errors)
                       }}
-                      className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none transition-colors text-sm"
+                      className="w-full pl-10 pr-10 py-3 bg-gray-100 border border-gray-300 rounded-xl focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-colors text-sm"
                       required
                     />
                     <button
@@ -2693,7 +2578,7 @@ export default function ProfilePage() {
                       type={showConfirmPassword ? 'text' : 'password'}
                       value={passwordData.confirmPassword}
                       onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                      className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-red-500 focus:outline-none transition-colors text-sm"
+                      className="w-full pl-10 pr-10 py-3 bg-gray-100 border border-gray-300 rounded-xl focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-colors text-sm"
                       required
                     />
                     <button
@@ -2719,8 +2604,8 @@ export default function ProfilePage() {
                 <motion.button 
                   type="submit" 
                   disabled={loading} 
-                  className="w-full bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white py-3 rounded-xl font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-md text-sm"
-                  whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(239, 68, 68, 0.3)" }}
+                  className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-md text-sm"
+                  whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
                   {loading ? (
@@ -2743,7 +2628,7 @@ export default function ProfilePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <div className="p-4 bg-gradient-to-r from-indigo-50 to-white">
+              <div className="p-4 bg-indigo-50">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-base font-bold text-gray-900 mb-1 flex items-center">
@@ -2755,8 +2640,8 @@ export default function ProfilePage() {
                   <motion.button 
                     onClick={handleUpdateSettings} 
                     disabled={savingSection === 'settings'} 
-                    className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all disabled:opacity-50 shadow-md text-xs font-medium"
-                    whileHover={{ scale: 1.02, boxShadow: "0 5px 15px rgba(99, 102, 241, 0.3)" }}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-md text-xs font-medium"
+                    whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
                     {savingSection === 'settings' ? (
@@ -2778,7 +2663,6 @@ export default function ProfilePage() {
                 initial="hidden"
                 animate="visible"
               >
-                {/* Notifications */}
                 <motion.div variants={fadeInUp} className="pb-3 border-b border-gray-100">
                   <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
                     <Bell className="w-4 h-4 mr-2 text-indigo-500" />
@@ -2792,27 +2676,25 @@ export default function ProfilePage() {
                       { key: 'emailNotifications', label: 'Email Notifications' },
                       { key: 'smsNotifications', label: 'SMS Notifications' },
                       { key: 'tradingAlerts', label: 'Trading Alerts' }
-                    ].map((item, i) => (
+                    ].map((item) => (
                       <motion.label 
                         key={item.key}
-                        className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                        className="flex items-center justify-between p-2.5 bg-gray-100 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors"
                         variants={fadeInUp}
                         whileHover={{ scale: 1.01 }}
                       >
                         <span className="text-sm text-gray-700 font-medium">{item.label}</span>
-                        <motion.input
+                        <input
                           type="checkbox"
                           checked={(settings as any)[item.key]}
                           onChange={(e) => setSettings({ ...settings, [item.key]: e.target.checked })}
                           className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer"
-                          whileTap={{ scale: 0.9 }}
                         />
                       </motion.label>
                     ))}
                   </motion.div>
                 </motion.div>
 
-                {/* Language & Timezone */}
                 <motion.div variants={fadeInUp}>
                   <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
                     <Globe className="w-4 h-4 mr-2 text-indigo-500" />
@@ -2827,7 +2709,7 @@ export default function ProfilePage() {
                       <select
                         value={settings.language}
                         onChange={(e) => setSettings({ ...settings, language: e.target.value })}
-                        className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none transition-colors text-sm"
+                        className="w-full px-3 py-3 bg-gray-100 border border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors text-sm"
                       >
                         <option value="id">Bahasa Indonesia</option>
                         <option value="en">English</option>
@@ -2839,7 +2721,7 @@ export default function ProfilePage() {
                         type="text"
                         value={settings.timezone}
                         onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-                        className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none transition-colors text-sm"
+                        className="w-full px-3 py-3 bg-gray-100 border border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors text-sm"
                       />
                     </motion.div>
                   </motion.div>
@@ -2853,19 +2735,18 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-sky-50">
       <Navbar />
       <Toaster position="top-right" expand={true} />
       
-      <div className="container mx-auto px-3 py-4 max-w-7xl">
-        {/* ========== MODIFIED: Header - Mobile Optimized ========== */}
+      <div className="container mx-auto px-3 py-8 max-w-7xl">
         <motion.div 
           className="mb-4"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-2">
+          <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-2">
             <motion.span 
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -2884,17 +2765,17 @@ export default function ProfilePage() {
             </motion.span>
           </div>
           <motion.div 
-            className="flex items-center gap-3"
+            className="flex mt-2 items-center gap-3"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
           >
             <motion.div 
-              className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md"
+              className="w-10 h-10 bg-sky-500 rounded-xl flex items-center justify-center shadow-md"
               whileHover={{ rotate: 90, scale: 1.05 }}
               transition={{ type: "spring" }}
             >
-              <Settings className="w-4 h-4 text-white" />
+              <Settings className="w-6 h-6 text-white" />
             </motion.div>
             <div>
               <h1 className="text-lg font-bold text-gray-900">My Profile</h1>
@@ -2911,7 +2792,6 @@ export default function ProfilePage() {
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          {/* ========== MODIFIED: Mobile Horizontal Tabs - Optimized ========== */}
           <motion.div 
             className="col-span-1 md:hidden"
             initial={{ opacity: 0, y: -10 }}
@@ -2929,7 +2809,7 @@ export default function ProfilePage() {
                         onClick={() => setActiveTab(tab.id)}
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs flex-shrink-0 ${
                           activeTab === tab.id
-                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
+                            ? 'bg-sky-500 text-white shadow-md'
                             : 'text-gray-600 hover:bg-gray-50'
                         }`}
                         whileTap={{ scale: 0.95 }}
@@ -2947,7 +2827,6 @@ export default function ProfilePage() {
             </div>
           </motion.div>
 
-          {/* ========== DESKTOP: Vertical Tabs (Unchanged) ========== */}
           <motion.div 
             className="hidden md:block md:col-span-4 lg:col-span-3"
             initial={{ opacity: 0, x: -20 }}
@@ -2969,7 +2848,7 @@ export default function ProfilePage() {
                       onClick={() => setActiveTab(tab.id)}
                       className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left ${
                         activeTab === tab.id
-                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
+                          ? 'bg-sky-500 text-white shadow-md'
                           : 'text-gray-600 hover:bg-gray-50'
                       }`}
                       whileHover={{ x: activeTab === tab.id ? 0 : 5 }}
@@ -2983,7 +2862,6 @@ export default function ProfilePage() {
                   )
                 })}
                 
-                {/* Logout Button */}
                 <motion.div 
                   className="pt-2 mt-2 border-t border-gray-200"
                   variants={fadeInUp}
@@ -2992,7 +2870,7 @@ export default function ProfilePage() {
                   <motion.button
                     onClick={handleLogout}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-all text-left"
-                    whileHover={{ x: 5, backgroundColor: 'rgb(254 242 242)' }}
+                    whileHover={{ x: 5 }}
                     whileTap={{ scale: 0.98 }}
                   >
                     <LogOut className="w-5 h-5 flex-shrink-0" />
@@ -3003,7 +2881,6 @@ export default function ProfilePage() {
             </div>
           </motion.div>
 
-          {/* Main Content */}
           <motion.div 
             className="col-span-1 md:col-span-8 lg:col-span-9"
             initial={{ opacity: 0, x: 20 }}
@@ -3015,7 +2892,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Logout Confirmation Modal */}
       <ConfirmationModal
         isOpen={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}

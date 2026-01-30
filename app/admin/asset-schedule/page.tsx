@@ -1,7 +1,7 @@
 // app/admin/asset-schedule/page.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { 
   Plus, RefreshCw, Edit2, Trash2, Ban, TrendingUp, TrendingDown, 
   MoreVertical, Eye, X, Calendar, Clock, User, CheckCircle2, 
@@ -1138,18 +1138,30 @@ function AssetScheduleModal({
 function UpcomingSchedulesWidget() {
   const { token } = useAuthStore()
   const { upcomingSchedules, fetchUpcomingSchedules } = useAssetScheduleStore()
+  
+  // ✅ FIX: Use ref to prevent infinite loop in UpcomingSchedulesWidget
+  const isFetchingRef = useRef(false)
 
   useEffect(() => {
-    if (token) {
-      fetchUpcomingSchedules(token)
+    if (token && !isFetchingRef.current) {
+      isFetchingRef.current = true
+      fetchUpcomingSchedules(token).finally(() => {
+        isFetchingRef.current = false
+      })
       
+      // Refresh every 5 minutes
       const interval = setInterval(() => {
-        fetchUpcomingSchedules(token)
+        if (!isFetchingRef.current) {
+          isFetchingRef.current = true
+          fetchUpcomingSchedules(token).finally(() => {
+            isFetchingRef.current = false
+          })
+        }
       }, 5 * 60 * 1000)
       
       return () => clearInterval(interval)
     }
-  }, [token])
+  }, [token, fetchUpcomingSchedules])
 
   const formatTimeUntil = (scheduledTime: string) => {
     const now = new Date()
@@ -1284,7 +1296,7 @@ function UpcomingSchedulesWidget() {
 }
 
 // ============================================
-// MAIN PAGE COMPONENT
+// MAIN PAGE COMPONENT - ✅ FIXED VERSION
 // ============================================
 export default function AssetSchedulePage() {
   const { token } = useAuthStore()
@@ -1313,23 +1325,57 @@ export default function AssetSchedulePage() {
 
   const [assets] = useState(['BTCUSD', 'ETHUSD', 'XAUUSD', 'EURUSD', 'GBPUSD'])
 
-  useEffect(() => {
-    if (token) {
-      loadData()
-    }
-  }, [token, filters])
+  // ✅ FIX: Use refs to track previous values and prevent infinite loop
+  const prevFiltersRef = useRef<string>('')
+  const isInitialMount = useRef(true)
 
-  const loadData = async () => {
+  // ✅ FIX 1: Memoize loadData untuk menghindari re-creation
+  const loadData = useCallback(async () => {
     if (!token) return
     
+    console.log('📊 Loading all data...')
     await Promise.all([
       fetchSchedules(token),
       fetchStatistics(token),
       fetchUpcomingSchedules(token),
     ])
-  }
+  }, [token, fetchSchedules, fetchStatistics, fetchUpcomingSchedules])
+
+  // ✅ FIX 2: Initial load - hanya dipanggil sekali saat mount
+  useEffect(() => {
+    if (token && isInitialMount.current) {
+      isInitialMount.current = false
+      console.log('🚀 Initial data load')
+      loadData()
+    }
+  }, [token, loadData])
+
+  // ✅ FIX 3: Fetch schedules ketika filters berubah - DENGAN DEEP COMPARISON DAN DEBOUNCE
+  useEffect(() => {
+    if (!token) return
+
+    // Serialize filters untuk comparison
+    const currentFiltersStr = JSON.stringify(filters)
+    
+    // Skip jika filters tidak berubah (menghindari infinite loop)
+    if (prevFiltersRef.current === currentFiltersStr) {
+      return
+    }
+
+    // Update previous filters
+    prevFiltersRef.current = currentFiltersStr
+
+    // Fetch dengan debounce untuk menghindari terlalu banyak request
+    const timeoutId = setTimeout(() => {
+      console.log('🔄 Filters changed, fetching schedules:', filters)
+      fetchSchedules(token)
+    }, 300) // 300ms debounce
+
+    return () => clearTimeout(timeoutId)
+  }, [filters, token, fetchSchedules])
 
   const handleRefresh = () => {
+    console.log('🔄 Manual refresh triggered')
     loadData()
   }
 

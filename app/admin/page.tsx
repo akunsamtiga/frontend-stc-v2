@@ -207,14 +207,14 @@ export default function AdminDashboard() {
       description: 'Schedule asset trends and market manipulation',
       icon: Calendar,
       href: '/admin/asset-schedule',
-      color: 'orange'
+      color: 'green'
     },
     {
       title: 'Voucher Management',
       description: 'Create and manage deposit vouchers',
       icon: Tag,
       href: '/admin/vouchers',
-      color: 'pink'
+      color: 'orange'
     },
     {
       title: 'Verification Management',
@@ -237,7 +237,7 @@ export default function AdminDashboard() {
       description: 'Platform configuration',
       icon: Settings,
       href: '/admin/settings',
-      color: 'green'
+      color: 'gray'
     }
   ]
 
