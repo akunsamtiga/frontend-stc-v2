@@ -24,7 +24,13 @@ import type {
   Voucher,
   VoucherStatistics,
   ValidateVoucherResponse,
-  VoucherUsage
+  VoucherUsage,
+  AssetSchedule,
+  CreateAssetScheduleRequest,
+  UpdateAssetScheduleRequest,
+  GetAssetSchedulesQuery,
+  AssetSchedulePagination,
+  AssetScheduleStatistics
 } from '@/types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
@@ -1114,6 +1120,234 @@ class ApiClient {
       depositAmount
     })
   }
+
+
+  async createAssetSchedule(data: CreateAssetScheduleRequest): Promise<ApiResponse<AssetSchedule>> {
+  try {
+    const result = await this.client.post('/asset-schedule', data)
+    this.invalidateCache('/asset-schedule')
+    return result
+  } catch (error) {
+    throw error
+  }
+}
+
+/**
+ * Get all asset schedules with pagination and filters
+ * ✅ FIXED: Filter out status='all' before sending to backend
+ */
+async getAssetSchedules(query?: GetAssetSchedulesQuery): Promise<ApiResponse<{
+  data: AssetSchedule[]
+  pagination: AssetSchedulePagination
+}>> {
+  const params = new URLSearchParams()
+  
+  if (query?.page) params.append('page', query.page.toString())
+  if (query?.limit) params.append('limit', query.limit.toString())
+  if (query?.assetSymbol) params.append('assetSymbol', query.assetSymbol)
+  if (query?.trend) params.append('trend', query.trend)
+  if (query?.timeframe) params.append('timeframe', query.timeframe)
+  
+  // ✅ FIX 1: Only append status if it's not 'all'
+  // Backend only accepts: 'pending' | 'executed' | 'failed' | 'cancelled'
+  if (query?.status && query.status !== 'all') {
+    params.append('status', query.status)
+  }
+  
+  if (query?.isActive !== undefined) params.append('isActive', query.isActive.toString())
+  if (query?.scheduledFrom) params.append('scheduledFrom', query.scheduledFrom)
+  if (query?.scheduledTo) params.append('scheduledTo', query.scheduledTo)
+  if (query?.sortBy) params.append('sortBy', query.sortBy)
+  if (query?.sortOrder) params.append('sortOrder', query.sortOrder)
+  
+  const cacheKey = this.getCacheKey('/asset-schedule', query)
+  const cached = this.getFromCache(cacheKey)
+  
+  if (cached) return cached
+  
+  return this.withDeduplication(cacheKey, async () => {
+    const data = await this.client.get(`/asset-schedule?${params}`)
+    this.setCache(cacheKey, data, 5000)
+    return data
+  })
+}
+
+/**
+ * Get asset schedule by ID
+ */
+async getAssetScheduleById(id: string): Promise<ApiResponse<AssetSchedule>> {
+  const cacheKey = this.getCacheKey(`/asset-schedule/${id}`)
+  const cached = this.getFromCache(cacheKey)
+  
+  if (cached) return cached
+  
+  return this.withDeduplication(cacheKey, async () => {
+    const data = await this.client.get(`/asset-schedule/${id}`)
+    this.setCache(cacheKey, data, 10000)
+    return data
+  })
+}
+
+/**
+ * Get upcoming schedules (next 24 hours)
+ */
+async getUpcomingAssetSchedules(): Promise<ApiResponse<AssetSchedule[]>> {
+  const cacheKey = this.getCacheKey('/asset-schedule/upcoming/next-24h')
+  const cached = this.getFromCache(cacheKey)
+  
+  if (cached) return cached
+  
+  return this.withDeduplication(cacheKey, async () => {
+    const data = await this.client.get('/asset-schedule/upcoming/next-24h')
+    this.setCache(cacheKey, data, 5000)
+    return data
+  })
+}
+
+/**
+ * Get schedules by asset symbol
+ */
+async getAssetSchedulesByAsset(assetSymbol: string): Promise<ApiResponse<AssetSchedule[]>> {
+  const cacheKey = this.getCacheKey(`/asset-schedule/by-asset/${assetSymbol}`)
+  const cached = this.getFromCache(cacheKey)
+  
+  if (cached) return cached
+  
+  return this.withDeduplication(cacheKey, async () => {
+    const data = await this.client.get(`/asset-schedule/by-asset/${assetSymbol}`)
+    this.setCache(cacheKey, data, 5000)
+    return data
+  })
+}
+
+/**
+ * Get asset schedule statistics
+ * ✅ FIXED: Use correct endpoint /stats/overview instead of /statistics
+ */
+async getAssetScheduleStatistics(): Promise<ApiResponse<AssetScheduleStatistics>> {
+  // ✅ FIX 2: Changed from '/asset-schedule/statistics' to '/asset-schedule/stats/overview'
+  const cacheKey = this.getCacheKey('/asset-schedule/stats/overview')
+  const cached = this.getFromCache(cacheKey)
+  
+  if (cached) return cached
+  
+  return this.withDeduplication(cacheKey, async () => {
+    // ✅ FIX 2: Changed from '/asset-schedule/statistics' to '/asset-schedule/stats/overview'
+    const data = await this.client.get('/asset-schedule/stats/overview')
+    this.setCache(cacheKey, data, 10000)
+    return data
+  })
+}
+
+/**
+ * Update asset schedule
+ */
+async updateAssetSchedule(
+  id: string,
+  data: UpdateAssetScheduleRequest
+): Promise<ApiResponse<AssetSchedule>> {
+  try {
+    const result = await this.client.put(`/asset-schedule/${id}`, data)
+    this.invalidateCache('/asset-schedule')
+    return result
+  } catch (error) {
+    throw error
+  }
+}
+
+/**
+ * Cancel asset schedule
+ */
+async cancelAssetSchedule(id: string): Promise<ApiResponse> {
+  try {
+    const result = await this.client.delete(`/asset-schedule/${id}/cancel`)
+    this.invalidateCache('/asset-schedule')
+    return result
+  } catch (error) {
+    throw error
+  }
+}
+
+/**
+ * Delete asset schedule (hard delete)
+ */
+async deleteAssetSchedule(id: string): Promise<ApiResponse> {
+  try {
+    const result = await this.client.delete(`/asset-schedule/${id}`)
+    this.invalidateCache('/asset-schedule')
+    return result
+  } catch (error) {
+    throw error
+  }
+}
+
+/**
+ * Execute schedule manually (now)
+ */
+async executeAssetScheduleNow(id: string): Promise<ApiResponse> {
+  try {
+    const result = await this.client.post(`/asset-schedule/${id}/execute`, {})
+    this.invalidateCache('/asset-schedule')
+    return result
+  } catch (error) {
+    throw error
+  }
+}
+
+/**
+ * Toggle schedule active status
+ */
+async toggleAssetScheduleStatus(
+  id: string,
+  isActive: boolean
+): Promise<ApiResponse<AssetSchedule>> {
+  try {
+    const result = await this.client.patch(`/asset-schedule/${id}/status`, { isActive })
+    this.invalidateCache('/asset-schedule')
+    return result
+  } catch (error) {
+    throw error
+  }
+}
+
+/**
+ * Bulk cancel schedules
+ */
+async bulkCancelAssetSchedules(ids: string[]): Promise<ApiResponse> {
+  try {
+    const result = await this.client.post('/asset-schedule/bulk/cancel', { ids })
+    this.invalidateCache('/asset-schedule')
+    return result
+  } catch (error) {
+    throw error
+  }
+}
+
+/**
+ * Bulk delete schedules
+ */
+async bulkDeleteAssetSchedules(ids: string[]): Promise<ApiResponse> {
+  try {
+    const result = await this.client.post('/asset-schedule/bulk/delete', { ids })
+    this.invalidateCache('/asset-schedule')
+    return result
+  } catch (error) {
+    throw error
+  }
+}
+
+/**
+ * Bulk update schedule status
+ */
+async bulkUpdateAssetScheduleStatus(ids: string[], isActive: boolean): Promise<ApiResponse> {
+  try {
+    const result = await this.client.post('/asset-schedule/bulk/status', { ids, isActive })
+    this.invalidateCache('/asset-schedule')
+    return result
+  } catch (error) {
+    throw error
+  }
+}
 
   async getMyVoucherHistory(): Promise<ApiResponse<{
     usages: VoucherUsage[]

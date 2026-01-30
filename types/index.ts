@@ -1340,3 +1340,220 @@ export interface VoucherStatistics {
   }
   recentUsages: VoucherUsage[]
 }
+
+export interface AssetSchedule {
+  id: string
+  assetSymbol: string
+  scheduledTime: string // ISO 8601 format
+  trend: 'buy' | 'sell'
+  timeframe: '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d'
+  notes?: string
+  isActive: boolean
+  status: 'pending' | 'executed' | 'failed' | 'cancelled'
+  createdBy: string
+  createdByEmail: string
+  createdAt: string
+  updatedAt: string
+  executedAt?: string
+  executionDetails?: {
+    startPrice?: number
+    endPrice?: number
+    priceChange?: number
+    success: boolean
+    errorMessage?: string
+  }
+}
+
+export interface CreateAssetScheduleRequest {
+  assetSymbol: string
+  scheduledTime: string // ISO 8601 format
+  trend: 'buy' | 'sell'
+  timeframe: '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d'
+  notes?: string
+  isActive?: boolean
+}
+
+export interface UpdateAssetScheduleRequest {
+  scheduledTime?: string // ISO 8601 format
+  trend?: 'buy' | 'sell'
+  timeframe?: '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d'
+  notes?: string
+  isActive?: boolean
+}
+
+export interface GetAssetSchedulesQuery {
+  page?: number
+  limit?: number
+  assetSymbol?: string
+  trend?: 'buy' | 'sell'
+  timeframe?: string
+  status?: 'pending' | 'executed' | 'failed' | 'cancelled' | 'all'
+  isActive?: boolean
+  scheduledFrom?: string
+  scheduledTo?: string
+  sortBy?: 'scheduledTime' | 'createdAt' | 'updatedAt'
+  sortOrder?: 'asc' | 'desc'
+}
+
+export interface AssetSchedulePagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
+export interface AssetScheduleStatistics {
+  total: number
+  pending: number
+  executed: number
+  failed: number
+  cancelled: number
+  activeSchedules: number
+  upcomingToday: number
+  upcomingThisWeek: number
+}
+
+export type AssetScheduleTrend = 'buy' | 'sell'
+export type AssetScheduleTimeframe = '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d'
+export type AssetScheduleStatus = 'pending' | 'executed' | 'failed' | 'cancelled'
+
+// Helper constants
+export const ASSET_SCHEDULE_TRENDS = ['buy', 'sell'] as const
+export const ASSET_SCHEDULE_TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
+export const ASSET_SCHEDULE_STATUSES = ['pending', 'executed', 'failed', 'cancelled'] as const
+
+// Trend info
+export const TREND_INFO = {
+  buy: {
+    label: 'Buy (Naik)',
+    icon: '📈',
+    color: 'green',
+    bgColor: 'bg-green-50',
+    textColor: 'text-green-700',
+    borderColor: 'border-green-200',
+  },
+  sell: {
+    label: 'Sell (Turun)',
+    icon: '📉',
+    color: 'red',
+    bgColor: 'bg-red-50',
+    textColor: 'text-red-700',
+    borderColor: 'border-red-200',
+  },
+} as const
+
+// Status info
+export const SCHEDULE_STATUS_INFO = {
+  pending: {
+    label: 'Pending',
+    icon: '⏳',
+    color: 'yellow',
+    bgColor: 'bg-yellow-50',
+    textColor: 'text-yellow-700',
+    borderColor: 'border-yellow-200',
+  },
+  executed: {
+    label: 'Executed',
+    icon: '✅',
+    color: 'green',
+    bgColor: 'bg-green-50',
+    textColor: 'text-green-700',
+    borderColor: 'border-green-200',
+  },
+  failed: {
+    label: 'Failed',
+    icon: '❌',
+    color: 'red',
+    bgColor: 'bg-red-50',
+    textColor: 'text-red-700',
+    borderColor: 'border-red-200',
+  },
+  cancelled: {
+    label: 'Cancelled',
+    icon: '🚫',
+    color: 'gray',
+    bgColor: 'bg-gray-50',
+    textColor: 'text-gray-700',
+    borderColor: 'border-gray-200',
+  },
+} as const
+
+// Timeframe info
+export const TIMEFRAME_INFO = {
+  '1m': { label: '1 Minute', duration: 60 },
+  '5m': { label: '5 Minutes', duration: 300 },
+  '15m': { label: '15 Minutes', duration: 900 },
+  '30m': { label: '30 Minutes', duration: 1800 },
+  '1h': { label: '1 Hour', duration: 3600 },
+  '4h': { label: '4 Hours', duration: 14400 },
+  '1d': { label: '1 Day', duration: 86400 },
+} as const
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+export function formatScheduleTrend(trend: AssetScheduleTrend): string {
+  return TREND_INFO[trend].label
+}
+
+export function formatScheduleStatus(status: AssetScheduleStatus): string {
+  return SCHEDULE_STATUS_INFO[status].label
+}
+
+export function formatTimeframe(timeframe: AssetScheduleTimeframe): string {
+  return TIMEFRAME_INFO[timeframe].label
+}
+
+export function isScheduleUpcoming(scheduledTime: string): boolean {
+  return new Date(scheduledTime) > new Date()
+}
+
+export function isSchedulePast(scheduledTime: string): boolean {
+  return new Date(scheduledTime) < new Date()
+}
+
+export function getScheduleTimeUntil(scheduledTime: string): string {
+  const now = new Date()
+  const scheduled = new Date(scheduledTime)
+  const diff = scheduled.getTime() - now.getTime()
+
+  if (diff < 0) return 'Past'
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+
+  if (days > 0) return `${days}d ${hours}h`
+  if (hours > 0) return `${hours}h ${minutes}m`
+  if (minutes > 0) return `${minutes}m ${seconds}s`
+  return `${seconds}s`
+}
+
+export function validateScheduleTime(scheduledTime: string): { valid: boolean; error?: string } {
+  const scheduled = new Date(scheduledTime)
+  const now = new Date()
+
+  if (isNaN(scheduled.getTime())) {
+    return { valid: false, error: 'Invalid date format' }
+  }
+
+  if (scheduled <= now) {
+    return { valid: false, error: 'Scheduled time must be in the future' }
+  }
+
+  return { valid: true }
+}
+
+export function canEditSchedule(schedule: AssetSchedule): boolean {
+  return schedule.status === 'pending' && isScheduleUpcoming(schedule.scheduledTime)
+}
+
+export function canCancelSchedule(schedule: AssetSchedule): boolean {
+  return schedule.status === 'pending' && isScheduleUpcoming(schedule.scheduledTime)
+}
+
+export function canExecuteSchedule(schedule: AssetSchedule): boolean {
+  return schedule.status === 'pending' && schedule.isActive
+}
