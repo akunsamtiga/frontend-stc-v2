@@ -1,8 +1,9 @@
-// components/MidtransDepositPage.tsx - ✅ WITH AVAILABLE VOUCHERS
+// components/MidtransDepositPage.tsx - ✅ PRODUCTION MODE
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, CreditCard, Wallet, AlertCircle, CheckCircle, Clock, XCircle, Loader2, Shield, Zap, TestTube, Tag } from 'lucide-react';
+import { ArrowLeft, CreditCard, Wallet, AlertCircle, CheckCircle, Clock, XCircle, Loader2, Shield, Tag, TrendingUp, History, Info } from 'lucide-react';
+import Image from 'next/image';
 import VoucherInput from '@/components/VoucherInput';
-import AvailableVouchers from '@/components/AvailableVouchers'; // ✅ NEW
+import AvailableVouchers from '@/components/AvailableVouchers';
 
 interface DepositResponse {
   success: boolean;
@@ -32,7 +33,6 @@ interface TransactionHistory {
   completedAt?: string;
 }
 
-// ✅ NEW: Voucher interface
 interface Voucher {
   id: string;
   code: string;
@@ -103,7 +103,6 @@ class PaymentAPI {
     return response.json();
   }
 
-  // ✅ NEW: Get available vouchers
   static async getAvailableVouchers(): Promise<Voucher[]> {
     const response = await fetch(`${this.baseURL}/vouchers?isActive=true&page=1&limit=50`, {
       method: 'GET',
@@ -116,7 +115,6 @@ class PaymentAPI {
 
     const data = await response.json();
     
-    // Handle nested response structure
     let vouchers: Voucher[] = [];
     if (data?.data?.data?.vouchers) {
       vouchers = data.data.data.vouchers;
@@ -192,129 +190,80 @@ declare global {
 }
 
 const TransactionStatusBadge: React.FC<{ status: string }> = ({ status }) => {
-  const configs: Record<string, { label: string; bg: string; icon: React.ReactNode }> = {
+  const configs: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
     pending: {
       label: 'Pending',
-      bg: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      icon: <Clock className="w-3 h-3" />
+      className: 'bg-amber-50 text-amber-700 border-amber-200',
+      icon: <Clock className="w-3.5 h-3.5" />
     },
     success: {
       label: 'Success',
-      bg: 'bg-green-100 text-green-800 border-green-200',
-      icon: <CheckCircle className="w-3 h-3" />
+      className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      icon: <CheckCircle className="w-3.5 h-3.5" />
     },
     failed: {
       label: 'Failed',
-      bg: 'bg-red-100 text-red-800 border-red-200',
-      icon: <XCircle className="w-3 h-3" />
+      className: 'bg-red-50 text-red-700 border-red-200',
+      icon: <XCircle className="w-3.5 h-3.5" />
     },
     expired: {
       label: 'Expired',
-      bg: 'bg-gray-100 text-gray-800 border-gray-200',
-      icon: <AlertCircle className="w-3 h-3" />
+      className: 'bg-slate-50 text-slate-700 border-slate-200',
+      icon: <AlertCircle className="w-3.5 h-3.5" />
     }
   };
 
   const config = configs[status] || configs.pending;
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border ${config.bg}`}>
+    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border ${config.className}`}>
       {config.icon}
-      {config.label}
-    </span>
-  );
-};
-
-const SandboxTestCards: React.FC = () => {
-  const [showCards, setShowCards] = useState(false);
-
-  const testCards = [
-    { 
-      type: 'Success', 
-      number: '4811 1111 1111 1114', 
-      color: 'bg-green-50 border-green-200 text-green-800',
-      icon: '✅'
-    },
-    { 
-      type: 'Failed', 
-      number: '4911 1111 1111 1113', 
-      color: 'bg-red-50 border-red-200 text-red-800',
-      icon: '❌'
-    },
-    { 
-      type: 'Pending', 
-      number: '4611 1111 1111 1112', 
-      color: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-      icon: '⏳'
-    },
-  ];
-
-  return (
-    <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
-      <button
-        onClick={() => setShowCards(!showCards)}
-        className="w-full flex items-center justify-between text-left"
-      >
-        <div className="flex items-center gap-2">
-          <TestTube className="w-5 h-5 text-orange-600" />
-          <span className="font-bold text-orange-900">Test Cards for Sandbox</span>
-        </div>
-        <span className="text-orange-600 text-sm">
-          {showCards ? '▼' : '▶'}
-        </span>
-      </button>
-
-      {showCards && (
-        <div className="mt-3 space-y-2">
-          {testCards.map((card) => (
-            <div key={card.number} className={`p-3 rounded-lg border ${card.color}`}>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm">{card.icon}</span>
-                <span className="text-xs font-bold">{card.type} Payment</span>
-              </div>
-              <div className="text-xs font-mono font-semibold">{card.number}</div>
-              <div className="text-xs mt-1 opacity-70">CVV: 123 | Exp: 01/25</div>
-            </div>
-          ))}
-          
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-sm">🏦</span>
-              <span className="text-xs font-bold">BCA Virtual Account</span>
-            </div>
-            <div className="text-xs">VA Number will be auto-generated</div>
-          </div>
-        </div>
-      )}
+      <span>{config.label}</span>
     </div>
   );
 };
 
 const MidtransPaymentPage: React.FC = () => {
-  const [step, setStep] = useState<'amount' | 'processing' | 'success' | 'history'>('amount');
+  const [step, setStep] = useState<'amount' | 'payment' | 'success' | 'history'>('amount');
   const [amount, setAmount] = useState('');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [transactionHistory, setTransactionHistory] = useState<TransactionHistory[]>([]);
+  const [loading, setLoading] = useState(false);
   const [currentTransaction, setCurrentTransaction] = useState<any>(null);
-  
-  // Voucher state
-  const [voucherCode, setVoucherCode] = useState<string>('');
-  const [voucherBonus, setVoucherBonus] = useState<number>(0);
+  const [transactionHistory, setTransactionHistory] = useState<TransactionHistory[]>([]);
+  const [voucherCode, setVoucherCode] = useState('');
+  const [voucherBonus, setVoucherBonus] = useState(0);
   const [voucherType, setVoucherType] = useState<'percentage' | 'fixed' | null>(null);
-  const [voucherValue, setVoucherValue] = useState<number>(0);
-
-  // ✅ NEW: Available vouchers state
+  const [voucherValue, setVoucherValue] = useState(0);
   const [availableVouchers, setAvailableVouchers] = useState<Voucher[]>([]);
-  const [loadingVouchers, setLoadingVouchers] = useState(false);
+  const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
 
-  const quickAmounts = [50000, 100000, 250000, 500000, 1000000, 2000000];
-  const MIN_AMOUNT = 10000;
-  const isSandbox = process.env.NEXT_PUBLIC_MIDTRANS_MODE === 'sandbox';
+  // Quick amount presets with better formatting
+  const quickAmounts = [
+    { value: 50000, label: '50K' },
+    { value: 100000, label: '100K' },
+    { value: 250000, label: '250K' },
+    { value: 500000, label: '500K' },
+    { value: 1000000, label: '1M' }
+  ];
+
+  // Payment method icons (PNG)
+  const paymentMethods = [
+    { name: 'BCA', icon: '/bca.webp' },
+    { name: 'BNI', icon: '/bni.webp' },
+    { name: 'BRI', icon: '/bri.webp' },
+    { name: 'Dana', icon: '/dana.webp' },
+    { name: 'GoPay', icon: '/gopay.webp' },
+    { name: 'Linkaja', icon: '/linkaja.webp' },
+    { name: 'Mandiri', icon: '/mandiri.webp' },
+    { name: 'MC', icon: '/mastercard.webp' },
+    { name: 'OVO', icon: '/ovo.webp' },
+    { name: 'QRIS', icon: '/qris.png' },
+    { name: 'Visa', icon: '/visa.webp' },
+  ];
 
   useEffect(() => {
     loadTransactionHistory();
-    loadAvailableVouchers(); // ✅ NEW
+    loadAvailableVouchers();
   }, []);
 
   const loadTransactionHistory = async () => {
@@ -322,29 +271,54 @@ const MidtransPaymentPage: React.FC = () => {
       const history = await PaymentAPI.getTransactionHistory();
       setTransactionHistory(history);
     } catch (err) {
-      console.error('Failed to load history:', err);
+      console.error('Failed to load transaction history:', err);
     }
   };
 
-  // ✅ NEW: Load available vouchers
   const loadAvailableVouchers = async () => {
+    setIsLoadingVouchers(true);
     try {
-      setLoadingVouchers(true);
       const vouchers = await PaymentAPI.getAvailableVouchers();
       setAvailableVouchers(vouchers);
     } catch (err) {
       console.error('Failed to load vouchers:', err);
     } finally {
-      setLoadingVouchers(false);
+      setIsLoadingVouchers(false);
     }
   };
 
-  const handleVoucherApplied = (voucher: {
-    code: string
-    bonusAmount: number
-    type: 'percentage' | 'fixed'
-    value: number
-  } | null) => {
+  const formatCurrency = (value: number): string => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
+
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  };
+
+  const handleAmountChange = (value: string) => {
+    const numericValue = value.replace(/\D/g, '');
+    setAmount(numericValue);
+    setError('');
+  };
+
+  const handleQuickAmount = (value: number) => {
+    setAmount(value.toString());
+    setError('');
+  };
+
+  const handleVoucherApplied = (voucher: { code: string; bonusAmount: number; type: 'percentage' | 'fixed'; value: number; } | null) => {
     if (voucher) {
       setVoucherCode(voucher.code);
       setVoucherBonus(voucher.bonusAmount);
@@ -358,45 +332,11 @@ const MidtransPaymentPage: React.FC = () => {
     }
   };
 
-  // ✅ FIXED: Handle voucher selection from available vouchers
-  const handleVoucherSelect = (code: string) => {
-    // If clicking same voucher, deselect it
-    if (voucherCode === code) {
-      setVoucherCode('');
-      setVoucherBonus(0);
-      setVoucherType(null);
-      setVoucherValue(0);
-      return;
-    }
+  const handleDeposit = async () => {
+    const numAmount = parseInt(amount);
     
-    // Calculate bonus for selected voucher
-    const selectedVoucher = availableVouchers.find(v => v.code === code);
-    if (!selectedVoucher) return;
-    
-    const depositAmount = parseFloat(amount) || 0;
-    let bonus = 0;
-    
-    if (selectedVoucher.type === 'percentage') {
-      bonus = Math.floor(depositAmount * (selectedVoucher.value / 100));
-      if (selectedVoucher.maxBonusAmount && bonus > selectedVoucher.maxBonusAmount) {
-        bonus = selectedVoucher.maxBonusAmount;
-      }
-    } else {
-      bonus = selectedVoucher.value;
-    }
-    
-    // Set all voucher state
-    setVoucherCode(code);
-    setVoucherBonus(bonus);
-    setVoucherType(selectedVoucher.type);
-    setVoucherValue(selectedVoucher.value);
-  };
-
-  const handlePayment = async () => {
-    const paymentAmount = parseFloat(amount);
-    
-    if (isNaN(paymentAmount) || paymentAmount < MIN_AMOUNT) {
-      setError(`Minimum amount is Rp ${MIN_AMOUNT.toLocaleString()}`);
+    if (!numAmount || numAmount < 10000) {
+      setError('Minimum deposit is Rp 10.000');
       return;
     }
 
@@ -405,480 +345,501 @@ const MidtransPaymentPage: React.FC = () => {
 
     try {
       const response = await PaymentAPI.createTransaction(
-        paymentAmount, 
-        'Top up balance',
+        numAmount,
+        'Top Up',
         voucherCode || undefined
       );
-      
-      const transaction = response.data.deposit;
-      setCurrentTransaction(transaction);
 
-      setStep('processing');
-      
-      const paymentResult = await MidtransSnap.pay(transaction.snap_token);
+      if (response.success && response.data?.deposit) {
+        const deposit = response.data.deposit;
+        setCurrentTransaction(deposit);
+        setStep('payment');
 
-      if (paymentResult.status === 'success' || paymentResult.status === 'pending') {
-        setStep('success');
-        await loadTransactionHistory();
-      } else if (paymentResult.status === 'closed') {
-        setError('Payment cancelled by user');
-        setStep('amount');
+        try {
+          const result = await MidtransSnap.pay(deposit.snap_token);
+          
+          if (result.status === 'success' || result.status === 'pending') {
+            setStep('success');
+            await loadTransactionHistory();
+          } else if (result.status === 'closed') {
+            setStep('amount');
+            setError('Payment was cancelled');
+          }
+        } catch (snapError) {
+          console.error('Midtrans Snap error:', snapError);
+          setError('Payment failed. Please try again.');
+          setStep('amount');
+        }
       }
-
     } catch (err: any) {
-      setError(err.message || 'Payment failed. Please try again.');
+      setError(err.message || 'Failed to create transaction');
       setStep('amount');
     } finally {
       setLoading(false);
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
+  // Main amount input screen
   if (step === 'amount') {
+    const numAmount = parseInt(amount) || 0;
+    const totalWithBonus = numAmount + voucherBonus;
+
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-        <div className="max-w-2xl mx-auto">
-          <div className="mb-6">
-            <button
-              onClick={() => window.history.back()}
-              className="flex items-center gap-2 text-gray-700 hover:text-gray-900 mb-4"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="font-medium">Back</span>
-            </button>
-            
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-100">
-              <div className="flex items-center gap-4 mb-2">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-                  <Wallet className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Top Up Balance</h1>
-                  <p className="text-sm text-gray-600">Add funds to your account</p>
-                </div>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4 py-8 sm:py-12">
+          {/* Header - Professional Payment Style */}
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
+                <Wallet className="w-7 h-7 text-white" />
               </div>
-              
-              {isSandbox && (
-                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <TestTube className="w-4 h-4 text-yellow-700" />
-                    <span className="text-xs font-bold text-yellow-800">🧪 SANDBOX MODE</span>
-                    <span className="text-xs text-yellow-700">Testing environment - No real money</span>
-                  </div>
-                </div>
-              )}
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">Payment</h1>
             </div>
-          </div>
-
-          {isSandbox && (
-            <div className="mb-4">
-              <SandboxTestCards />
-            </div>
-          )}
-
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-100 mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Enter Amount (IDR)
-            </label>
-            
-            <div className="relative">
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => {
-                  setAmount(e.target.value);
-                  setError('');
-                }}
-                placeholder="0"
-                className="w-full text-3xl font-bold text-center py-4 px-4 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:bg-white transition-all outline-none"
-              />
-            </div>
-
-            {error && (
-              <div className="mt-3 flex items-center gap-2 text-red-600 text-sm">
-                <AlertCircle className="w-4 h-4" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <div className="mt-4 text-xs text-gray-500 text-center">
-              Minimum amount: {formatCurrency(MIN_AMOUNT)}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-100 mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Quick Select
-            </label>
-            
-            <div className="grid grid-cols-3 gap-2">
-              {quickAmounts.map((preset) => (
-                <button
-                  key={preset}
-                  onClick={() => {
-                    setAmount(preset.toString());
-                    setError('');
-                  }}
-                  className={`py-3 rounded-xl text-sm font-semibold transition-all ${
-                    amount === preset.toString()
-                      ? 'bg-blue-500 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
-                  }`}
-                >
-                  {preset >= 1000000 ? `${preset / 1000000}M` : `${preset / 1000}K`}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* ✅ NEW: Available Vouchers Section */}
-          {loadingVouchers ? (
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-purple-100 mb-4">
-              <div className="flex items-center justify-center gap-2 text-purple-600">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span className="text-sm">Loading vouchers...</span>
-              </div>
-            </div>
-          ) : (
-            <AvailableVouchers
-              vouchers={availableVouchers}
-              depositAmount={parseFloat(amount) || 0}
-              onVoucherSelect={handleVoucherSelect}
-              selectedVoucherCode={voucherCode}
-            />
-          )}
-
-          {/* Manual Voucher Input */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-100 mb-4">
-            <div className="mb-3">
-              <label className="block text-sm font-semibold text-gray-700">
-                Or Enter Voucher Code Manually
-              </label>
-            </div>
-            <VoucherInput
-              depositAmount={parseFloat(amount) || 0}
-              onVoucherApplied={handleVoucherApplied}
-              disabled={loading || !amount || parseFloat(amount) < MIN_AMOUNT}
-              externalCode={voucherCode}
-            />
-          </div>
-
-          {/* Voucher Bonus Display */}
-          {voucherBonus > 0 && (
-            <div className="bg-green-50 border-2 border-green-300 rounded-2xl p-6 shadow-lg mb-4">
-              <div className="flex items-center gap-2 text-green-800 mb-4">
-                <Tag className="w-5 h-5" />
-                <span className="font-bold text-lg">Voucher Applied!</span>
-              </div>
-              
-              <div className="space-y-2 text-sm text-green-700">
-                <div className="flex justify-between items-center pb-2">
-                  <span>Voucher Code:</span>
-                  <span className="font-mono font-bold">{voucherCode}</span>
-                </div>
-                
-                <div className="flex justify-between items-center pb-2">
-                  <span>Deposit Amount:</span>
-                  <span className="font-semibold">{formatCurrency(parseFloat(amount))}</span>
-                </div>
-                
-                <div className="flex justify-between items-center pb-2 border-b border-green-300">
-                  <span>Bonus from Voucher:</span>
-                  <span className="font-semibold text-green-600">
-                    +{formatCurrency(voucherBonus)}
-                    {voucherType === 'percentage' && (
-                      <span className="text-xs ml-1">({voucherValue}%)</span>
-                    )}
-                  </span>
-                </div>
-                
-                <div className="flex justify-between items-center pt-2">
-                  <span className="font-bold text-base">Total Balance Received:</span>
-                  <span className="font-bold text-xl text-green-700">
-                    {formatCurrency(parseFloat(amount) + voucherBonus)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-6 shadow-lg mb-4 text-white">
-            <div className="flex items-center gap-3 mb-4">
-              <Shield className="w-6 h-6" />
-              <h3 className="font-bold text-lg">
-                {isSandbox ? 'Test Payment (Sandbox)' : 'Secure Payment'}
-              </h3>
-            </div>
-            
-            <p className="text-sm text-blue-100 mb-4">
-              {isSandbox 
-                ? 'Use test cards above to simulate payments'
-                : 'We accept various payment methods via Midtrans:'
-              }
+            <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
+              Add funds to your account balance safely and securely
             </p>
-            
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="bg-white/10 rounded-lg p-2 backdrop-blur">
-                <CreditCard className="w-4 h-4 mb-1" />
-                <div className="font-semibold">Credit/Debit Card</div>
-              </div>
-              <div className="bg-white/10 rounded-lg p-2 backdrop-blur">
-                <Wallet className="w-4 h-4 mb-1" />
-                <div className="font-semibold">Bank Transfer</div>
-              </div>
-              <div className="bg-white/10 rounded-lg p-2 backdrop-blur">
-                <Zap className="w-4 h-4 mb-1" />
-                <div className="font-semibold">E-Wallet</div>
-              </div>
-              <div className="bg-white/10 rounded-lg p-2 backdrop-blur">
-                <CreditCard className="w-4 h-4 mb-1" />
-                <div className="font-semibold">QRIS</div>
-              </div>
-            </div>
           </div>
 
-          <button
-            onClick={handlePayment}
-            disabled={loading || !amount || parseFloat(amount) < MIN_AMOUNT}
-            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <CreditCard className="w-5 h-5" />
-                {isSandbox ? 'Test Payment' : 'Continue to Payment'}
-              </>
-            )}
-          </button>
+          <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+            {/* Left Column - Payment Form */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                {/* Payment Details Header */}
+                <div className="border-b border-gray-200 px-6 py-4">
+                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-blue-600" />
+                    Topup Details
+                  </h2>
+                </div>
 
-          <button
-            onClick={() => setStep('history')}
-            className="w-full mt-3 text-blue-600 py-3 rounded-xl font-semibold hover:bg-blue-50 transition-all"
-          >
-            View Transaction History
-          </button>
-        </div>
-      </div>
-    );
-  }
+                {/* Amount Input */}
+                <div className="p-6 space-y-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Deposit Amount <span className="text-red-500">*</span>
+                    </label>
+                    
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-semibold text-lg">
+                        IDR
+                      </div>
+                      <input
+                        type="text"
+                        value={amount ? parseInt(amount).toLocaleString('id-ID') : ''}
+                        onChange={(e) => handleAmountChange(e.target.value)}
+                        placeholder="0"
+                        className="w-full pl-16 pr-4 py-4 text-2xl font-bold text-gray-900 bg-gray-50 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-300"
+                      />
+                    </div>
 
-  if (step === 'processing') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-md w-full text-center">
-          <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <Loader2 className="w-10 h-10 text-white animate-spin" />
-          </div>
-          
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Processing Payment</h2>
-          <p className="text-gray-600 mb-6">
-            {isSandbox 
-              ? 'Complete test payment in the Midtrans sandbox window'
-              : 'Please complete your payment in the Midtrans window'
-            }
-          </p>
-
-          {currentTransaction && (
-            <div className="bg-gray-50 rounded-xl p-4 text-left">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-gray-600">Order ID</span>
-                <span className="text-sm font-mono font-semibold">{currentTransaction.order_id}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Amount</span>
-                <span className="text-lg font-bold text-blue-600">
-                  {formatCurrency(currentTransaction.amount)}
-                </span>
-              </div>
-              
-              {voucherCode && (
-                <>
-                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
-                    <span className="text-sm text-gray-600">Voucher</span>
-                    <span className="text-sm font-mono font-semibold text-green-600">{voucherCode}</span>
+                    {error && (
+                      <div className="mt-3 flex items-start gap-2 text-red-600 text-sm bg-red-50 px-4 py-3 rounded-lg border border-red-200">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                        <span>{error}</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Bonus</span>
-                    <span className="text-sm font-bold text-green-600">+{formatCurrency(voucherBonus)}</span>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
 
-          {isSandbox && (
-            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-center gap-2 justify-center">
-                <TestTube className="w-4 h-4 text-yellow-700" />
-                <span className="text-xs font-semibold text-yellow-800">Sandbox Mode</span>
-              </div>
-            </div>
-          )}
-
-          <p className="text-xs text-gray-500 mt-6">
-            Do not close this page until payment is complete
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (step === 'success') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-md w-full text-center">
-          <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-12 h-12 text-white" />
-          </div>
-          
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            {isSandbox ? 'Test Payment Complete!' : 'Payment Submitted!'}
-          </h2>
-          <p className="text-gray-600 mb-6">
-            {isSandbox 
-              ? 'Your test payment was successful'
-              : 'Your transaction is being processed. Balance will be updated once confirmed.'
-            }
-          </p>
-
-          {currentTransaction && (
-            <div className="bg-gray-50 rounded-xl p-4 mb-6">
-              <div className="text-sm text-gray-600 mb-1">Amount</div>
-              <div className="text-2xl font-bold text-green-600 mb-3">
-                {formatCurrency(currentTransaction.amount)}
-              </div>
-              
-              {voucherCode && voucherBonus > 0 && (
-                <div className="bg-green-100 border border-green-300 rounded-lg p-3 mb-3">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Tag className="w-4 h-4 text-green-700" />
-                    <span className="text-xs font-bold text-green-800">Voucher Applied</span>
-                  </div>
-                  <div className="text-sm text-green-700">
-                    <div>Code: <strong>{voucherCode}</strong></div>
-                    <div>Bonus: <strong>+{formatCurrency(voucherBonus)}</strong></div>
-                  </div>
-                  <div className="mt-2 pt-2 border-t border-green-300">
-                    <div className="text-xs text-green-600">Total Balance Received</div>
-                    <div className="text-lg font-bold text-green-700">
-                      {formatCurrency(currentTransaction.amount + voucherBonus)}
+                  {/* Quick Amount Selection */}
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700 mb-3">Quick Select Amount</p>
+                    <div className="grid grid-cols-5 gap-2">
+                      {quickAmounts.map((preset) => (
+                        <button
+                          key={preset.value}
+                          onClick={() => handleQuickAmount(preset.value)}
+                          className={`px-4 py-3 rounded-lg font-semibold text-sm transition-all border-2 ${
+                            parseInt(amount) === preset.value
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-blue-500 hover:bg-blue-50'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
+
+                  {/* Voucher Section */}
+                  <div className="border-t border-gray-200 pt-6">
+                    <div>
+                      <VoucherInput
+                        depositAmount={numAmount}
+                        onVoucherApplied={handleVoucherApplied}
+                      />
+
+                      {voucherCode && voucherBonus > 0 && (
+                        <div className="mt-3 flex items-center justify-between px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <Tag className="w-4 h-4 text-emerald-600" />
+                            <span className="text-sm font-medium text-emerald-700">
+                              {voucherCode}
+                            </span>
+                          </div>
+                          <span className="text-base font-bold text-emerald-700">
+                            +{formatCurrency(voucherBonus)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+
+                    {/* Available Vouchers */}
+                    {!isLoadingVouchers && availableVouchers.length > 0 && (
+                      <div className="mt-4">
+                        <AvailableVouchers
+                          vouchers={availableVouchers}
+                          depositAmount={numAmount}
+                          onVoucherSelect={(code) => {
+                            const inputElement = document.querySelector('input[placeholder*="voucher"]') as HTMLInputElement;
+                            if (inputElement) {
+                              inputElement.value = code;
+                              inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+                            }
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-              
-              <div className="text-xs text-gray-500">
-                Order ID: {currentTransaction.order_id}
               </div>
             </div>
-          )}
 
-          {isSandbox && (
-            <div className="mb-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-center gap-2 justify-center">
-                <TestTube className="w-4 h-4 text-yellow-700" />
-                <span className="text-xs font-semibold text-yellow-800">
-                  This was a test transaction in Sandbox mode
-                </span>
+            {/* Right Column - Order Summary */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 sticky top-4">
+                <div className="border-b border-gray-200 px-6 py-4">
+                  <h2 className="text-lg font-bold text-gray-900">Order Summary</h2>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  {numAmount >= 10000 ? (
+                    <>
+                      <div className="space-y-3 pb-4 border-b border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">Deposit Amount</span>
+                          <span className="font-semibold text-gray-900">{formatCurrency(numAmount)}</span>
+                        </div>
+                        
+                        {voucherBonus > 0 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-green-600 flex items-center gap-1.5">
+                              <Tag className="w-4 h-4" />
+                              Bonus
+                            </span>
+                            <span className="font-semibold text-green-600">+{formatCurrency(voucherBonus)}</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-2">
+                        <span className="font-bold text-gray-900">Total Balance</span>
+                        <span className="text-2xl font-bold text-blue-600">
+                          {formatCurrency(totalWithBonus)}
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={handleDeposit}
+                        disabled={loading || !numAmount || numAmount < 10000}
+                        className="w-full bg-blue-600 text-white py-4 rounded-lg font-bold text-base shadow-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 mt-6"
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <span>Processing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CreditCard className="w-5 h-5" />
+                            <span>Proceed to Payment</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => setStep('history')}
+                        className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                      >
+                        <History className="w-5 h-5" />
+                        <span>View History</span>
+                      </button>
+                    </>
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Wallet className="w-8 h-8 text-gray-400" />
+                      </div>
+                      <p className="text-sm text-gray-500">Enter amount to see summary</p>
+                      <p className="text-xs text-gray-400 mt-1">Minimum: Rp 10.000</p>
+                    </div>
+                  )}
+
+                  {/* Security Info */}
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <div className="flex items-start gap-3">
+                      <div>
+                        <h4 className="font-semibold text-gray-900 text-sm mb-1">Secure Payment</h4>
+                        <p className="text-xs text-gray-600 leading-relaxed">
+                          Protected by bank-level security. Your payment information is encrypted and secure.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Methods - PNG Icons */}
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <p className="text-xs font-semibold text-gray-700 mb-3">Accepted Payment Methods</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {paymentMethods.slice(0, 12).map((method, index) => (
+                        <div key={index} className="bg-gray-50 border border-gray-200 rounded p-2 flex items-center justify-center hover:border-blue-300 transition-colors">
+                          <Image 
+                            src={method.icon} 
+                            alt={method.name} 
+                            width={60} 
+                            height={24} 
+                            className="object-contain"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-3 text-center">+ More payment options available</p>
+                  </div>
+                </div>
               </div>
             </div>
-          )}
-
-          <div className="space-y-2">
-            <button
-              onClick={() => window.location.href = '/balance'}
-              className="w-full bg-green-500 text-white py-3 rounded-xl font-semibold hover:bg-green-600 transition-all"
-            >
-              Go to Wallet
-            </button>
-            
-            <button
-              onClick={() => {
-                setStep('amount');
-                setAmount('');
-                setCurrentTransaction(null);
-                setVoucherCode('');
-                setVoucherBonus(0);
-                setVoucherType(null);
-                setVoucherValue(0);
-              }}
-              className="w-full text-green-600 py-3 rounded-xl font-semibold hover:bg-green-50 transition-all"
-            >
-              {isSandbox ? 'Test Another Payment' : 'Make Another Payment'}
-            </button>
           </div>
         </div>
       </div>
     );
   }
 
+  // Payment processing screen
+  if (step === 'payment') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-lg max-w-md w-full border border-gray-200">
+          <div className="p-8 sm:p-10">
+            <div className="text-center">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+              </div>
+              
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">
+                Processing Payment
+              </h2>
+              <p className="text-sm sm:text-base text-gray-600 mb-8">
+                Please complete your payment in the Midtrans window
+              </p>
+
+              {currentTransaction && (
+                <div className="bg-gray-50 rounded-lg p-5 sm:p-6 border border-gray-200">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+                      <span className="text-sm text-gray-600 font-medium">Order ID</span>
+                      <span className="text-sm font-mono font-semibold text-gray-900">{currentTransaction.order_id}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600 font-medium">Amount</span>
+                      <span className="text-lg sm:text-xl font-bold text-blue-600">
+                        {formatCurrency(currentTransaction.amount)}
+                      </span>
+                    </div>
+                    
+                    {voucherCode && voucherBonus > 0 && (
+                      <>
+                        <div className="pt-3 border-t border-gray-200">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm text-gray-600 font-medium flex items-center gap-1.5">
+                              <Tag className="w-4 h-4 text-green-600" />
+                              Voucher
+                            </span>
+                            <span className="text-sm font-mono font-semibold text-green-600">{voucherCode}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600 font-medium">Bonus</span>
+                            <span className="text-sm font-bold text-green-600">+{formatCurrency(voucherBonus)}</span>
+                          </div>
+                        </div>
+                        <div className="pt-3 border-t border-gray-200">
+                          <div className="flex justify-between items-center">
+                            <span className="font-semibold text-gray-900">Total Balance</span>
+                            <span className="text-xl font-bold text-green-600">
+                              {formatCurrency(currentTransaction.amount + voucherBonus)}
+                            </span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-500">
+                <Shield className="w-4 h-4" />
+                <span>Secure payment processing</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Success screen
+  if (step === 'success') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-lg max-w-md w-full border border-gray-200">
+          <div className="p-8 sm:p-10">
+            <div className="text-center">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="w-12 h-12 sm:w-14 sm:h-14 text-green-600" />
+              </div>
+              
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
+                Payment Successful!
+              </h2>
+              <p className="text-sm sm:text-base text-gray-600 mb-8">
+                Your transaction has been submitted and is being processed
+              </p>
+
+              {currentTransaction && (
+                <div className="bg-gray-50 rounded-lg p-6 mb-8 border border-gray-200">
+                  <div className="mb-4">
+                    <div className="text-sm text-gray-600 font-medium mb-2">Amount Deposited</div>
+                    <div className="text-3xl sm:text-4xl font-bold text-green-600 mb-1">
+                      {formatCurrency(currentTransaction.amount)}
+                    </div>
+                  </div>
+                  
+                  {voucherCode && voucherBonus > 0 && (
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-4 mb-4">
+                      <div className="flex items-center justify-center gap-2 mb-3">
+                        <Tag className="w-5 h-5 text-green-700" />
+                        <span className="text-sm font-bold text-green-900">Discount Code Applied</span>
+                      </div>
+                      <div className="space-y-2 text-sm text-green-900">
+                        <div className="flex justify-between">
+                          <span>Code:</span>
+                          <strong className="font-mono">{voucherCode}</strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Bonus Amount:</span>
+                          <strong className="text-green-700">+{formatCurrency(voucherBonus)}</strong>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-4 border-t-2 border-green-300">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-green-800 font-semibold">Total Balance Added</span>
+                          <div className="text-2xl font-bold text-green-700">
+                            {formatCurrency(currentTransaction.amount + voucherBonus)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="text-xs text-gray-500 font-mono bg-white px-3 py-2 rounded border border-gray-200">
+                    Transaction ID: {currentTransaction.order_id}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <button
+                  onClick={() => window.location.href = '/balance'}
+                  className="w-full bg-green-600 text-white py-4 rounded-lg font-bold text-base shadow-md hover:bg-green-700 transition-all flex items-center justify-center gap-2"
+                >
+                  <Wallet className="w-5 h-5" />
+                  <span>Go to Wallet</span>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    setStep('amount');
+                    setAmount('');
+                    setCurrentTransaction(null);
+                    setVoucherCode('');
+                    setVoucherBonus(0);
+                    setVoucherType(null);
+                    setVoucherValue(0);
+                  }}
+                  className="w-full bg-gray-100 text-gray-700 py-4 rounded-lg font-semibold hover:bg-gray-200 transition-all"
+                >
+                  Make Another Payment
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Transaction history screen
   if (step === 'history') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-        <div className="max-w-2xl mx-auto">
+      <div className="min-h-screen bg-gray-50 p-4">
+        <div className="max-w-4xl mx-auto py-6 sm:py-8">
+          {/* Header */}
           <div className="mb-6">
             <button
               onClick={() => setStep('amount')}
-              className="flex items-center gap-2 text-gray-700 hover:text-gray-900 mb-4"
+              className="inline-flex items-center gap-2 text-gray-700 hover:text-gray-900 mb-6 px-4 py-2 rounded-lg hover:bg-white transition-all"
             >
               <ArrowLeft className="w-5 h-5" />
-              <span className="font-medium">Back</span>
+              <span className="font-semibold">Back to Payment</span>
             </button>
             
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-blue-100">
-              <h1 className="text-2xl font-bold text-gray-900">Transaction History</h1>
-              <p className="text-sm text-gray-600">
-                Your recent top-up transactions
-                {isSandbox && ' (including test transactions)'}
-              </p>
+            <div className="bg-white rounded-lg p-6 sm:p-8 shadow-sm border border-gray-200">
+              <div className="flex items-center gap-4 mb-2">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <History className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Transaction History</h1>
+                  <p className="text-sm text-gray-600 mt-1">
+                    View all your payment transactions
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg border border-blue-100 overflow-hidden">
+          {/* Transaction List */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             {transactionHistory.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Wallet className="w-8 h-8 text-gray-400" />
+              <div className="p-12 sm:p-16 text-center">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Wallet className="w-10 h-10 text-gray-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No transactions yet</h3>
-                <p className="text-sm text-gray-600">Your transaction history will appear here</p>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">No Transactions Yet</h3>
+                <p className="text-sm text-gray-600 mb-8">Your transaction history will appear here after your first payment</p>
+                <button
+                  onClick={() => setStep('amount')}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all"
+                >
+                  <TrendingUp className="w-5 h-5" />
+                  <span>Make Your First Deposit</span>
+                </button>
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
                 {transactionHistory.map((transaction) => (
-                  <div key={transaction.id} className="p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                          <CreditCard className="w-5 h-5 text-blue-600" />
+                  <div key={transaction.id} className="p-5 sm:p-6 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-start sm:items-center justify-between gap-4 mb-3">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0 border border-blue-100">
+                          <CreditCard className="w-6 h-6 text-blue-600" />
                         </div>
                         <div>
-                          <div className="font-semibold text-gray-900">
+                          <div className="font-bold text-gray-900 text-lg">
                             {formatCurrency(transaction.amount)}
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                            <Clock className="w-3.5 h-3.5" />
                             {formatDate(transaction.createdAt)}
                           </div>
                         </div>
@@ -887,17 +848,18 @@ const MidtransPaymentPage: React.FC = () => {
                     </div>
                     
                     {transaction.voucherCode && transaction.voucherBonusAmount && (
-                      <div className="ml-13 mt-2 flex items-center gap-2 text-xs text-green-600 bg-green-50 rounded px-2 py-1 w-fit">
-                        <Tag className="w-3 h-3" />
+                      <div className="ml-16 mt-3 inline-flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                        <Tag className="w-4 h-4" />
                         <span>
-                          Voucher: <strong>{transaction.voucherCode}</strong> (+{formatCurrency(transaction.voucherBonusAmount)})
+                          <strong>{transaction.voucherCode}</strong> • Bonus: <strong>+{formatCurrency(transaction.voucherBonusAmount)}</strong>
                         </span>
                       </div>
                     )}
                     
                     {transaction.payment_type && (
-                      <div className="text-xs text-gray-500 ml-13 mt-1">
-                        via {transaction.payment_type}
+                      <div className="text-sm text-gray-500 ml-16 mt-2 flex items-center gap-1.5">
+                        <CreditCard className="w-3.5 h-3.5" />
+                        <span>Payment via <span className="font-medium text-gray-700">{transaction.payment_type}</span></span>
                       </div>
                     )}
                   </div>
@@ -905,6 +867,20 @@ const MidtransPaymentPage: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Info Footer */}
+          {transactionHistory.length > 0 && (
+            <div className="mt-6 bg-white rounded-lg p-4 sm:p-5 border border-gray-200">
+              <div className="flex items-start gap-3">
+                <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-gray-600">
+                    Showing recent transactions. Completed payments are automatically added to your wallet balance.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
