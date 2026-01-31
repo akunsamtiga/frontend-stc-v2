@@ -1,4 +1,4 @@
-// lib/firebase.ts - UNLIMITED VERSION - No chart limits, load all history
+// lib/firebase.ts - FIXED: Prevent stale candle data
 
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
 import { getDatabase, Database, ref, onValue, off, query, limitToLast, get } from 'firebase/database'
@@ -26,7 +26,7 @@ if (typeof window !== 'undefined') {
       app = getApps()[0]
       database = getDatabase(app)
     }
-    console.log('Firebase initialized - UNLIMITED MODE')
+    console.log('Firebase initialized - STALE-FREE MODE')
   } catch (error) {
     console.error('Firebase init error:', error)
   }
@@ -71,15 +71,16 @@ function deduplicateRequest<T>(key: string, fn: () => Promise<T>): Promise<T> {
 interface CacheEntry {
   data: any
   timestamp: number
+  barTimestamp?: number // ✅ Track which bar period this cache belongs to
 }
 
 class FastMemoryCache {
   private cache = new Map<string, CacheEntry>()
   private readonly CACHE_TTL = 300000 // 5 min normal
   private readonly STALE_TTL = 1800000 // 30 min stale
-  private readonly MAX_SIZE = 200 // Increased for unlimited data
+  private readonly MAX_SIZE = 200
 
-  get(key: string): any | null {
+  get(key: string, maxAge?: number): any | null {
     const entry = this.cache.get(key)
     
     if (!entry) {
@@ -87,8 +88,9 @@ class FastMemoryCache {
     }
     
     const age = Date.now() - entry.timestamp
+    const ttl = maxAge || this.CACHE_TTL
     
-    if (age <= this.CACHE_TTL) {
+    if (age <= ttl) {
       return entry.data
     }
     
@@ -113,7 +115,7 @@ class FastMemoryCache {
     return entry.data
   }
 
-  set(key: string, data: any): void {
+  set(key: string, data: any, barTimestamp?: number): void {
     if (this.cache.size >= this.MAX_SIZE) {
       this.cleanup()
     }
@@ -121,7 +123,17 @@ class FastMemoryCache {
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
+      barTimestamp
     })
+  }
+
+  // ✅ NEW: Invalidate cache for specific bar period (for live updates)
+  invalidateBarPeriod(key: string, barTimestamp: number): void {
+    const entry = this.cache.get(key)
+    if (entry && entry.barTimestamp === barTimestamp) {
+      console.log(`🗑️ Invalidated stale cache for bar ${barTimestamp}`)
+      this.cache.delete(key)
+    }
   }
 
   delete(key: string): void {
@@ -154,10 +166,6 @@ class FastMemoryCache {
       toDelete.forEach(([key]) => this.cache.delete(key))
       deletedCount += toDelete.length
     }
-    
-    if (deletedCount > 0) {
-      console.log(`Cleaned ${deletedCount} cache entries`)
-    }
   }
 
   getStats() {
@@ -171,7 +179,7 @@ class FastMemoryCache {
 
 const memoryCache = new FastMemoryCache()
 
-// ✅ Data buffer for network lag tolerance
+// Data buffer for network lag tolerance
 interface BufferedData {
   timestamp: number
   data: any
@@ -224,7 +232,6 @@ class DataBuffer {
 
 const dataBuffer = new DataBuffer()
 
-// ✅ Connection state tracker
 class ConnectionTracker {
   private connected = true
   private lastDisconnect: number | null = null
@@ -277,7 +284,6 @@ function cleanAssetPath(path: string): string {
   return path
 }
 
-// ✅ REMOVED LIMIT - Process ALL data without restrictions
 function processHistoricalData(rawData: any): any[] {
   if (!rawData || typeof rawData !== 'object') {
     return []
@@ -327,27 +333,30 @@ function processHistoricalData(rawData: any): any[] {
 
   bars.sort((a, b) => a.timestamp - b.timestamp)
   
-  // ✅ RETURN ALL DATA - No limit applied
-  console.log(`✅ Processing ALL ${bars.length} candles without limit`)
+  console.log(`✅ Processing ${bars.length} candles`)
   return bars
 }
 
-// ✅ REMOVED LIMITS - Load all available history
-const TIMEFRAME_CONFIGS: Record<Timeframe, { 
-  seconds: number
-  cacheStrategy: 'aggressive' | 'moderate' | 'normal'
-}> = {
-  '1s': { seconds: 1, cacheStrategy: 'aggressive' }, 
-  '1m': { seconds: 60, cacheStrategy: 'aggressive' },
-  '5m': { seconds: 300, cacheStrategy: 'moderate' },
-  '15m': { seconds: 900, cacheStrategy: 'moderate' },
-  '30m': { seconds: 1800, cacheStrategy: 'moderate' },
-  '1h': { seconds: 3600, cacheStrategy: 'normal' },
-  '4h': { seconds: 14400, cacheStrategy: 'normal' },
-  '1d': { seconds: 86400, cacheStrategy: 'normal' }
+// ✅ NEW: Get current bar period timestamp (must match backend exactly)
+function getBarPeriodTimestamp(timestamp: number, timeframe: Timeframe): number {
+  const seconds = getTimeframeSeconds(timeframe)
+  return Math.floor(timestamp / seconds) * seconds
 }
 
-// ✅ Gap detection and filling (no limit)
+function getTimeframeSeconds(timeframe: Timeframe): number {
+  const map: Record<Timeframe, number> = {
+    '1s': 1,
+    '1m': 60,
+    '5m': 300,
+    '15m': 900,
+    '30m': 1800,
+    '1h': 3600,
+    '4h': 14400,
+    '1d': 86400
+  }
+  return map[timeframe] || 60
+}
+
 async function detectAndFillGaps(
   assetPath: string,
   timeframe: Timeframe,
@@ -383,7 +392,7 @@ async function detectAndFillGaps(
     if (!snapshot.exists()) return existingData
     
     const allData = snapshot.val()
-    const processed = processHistoricalData(allData) // ✅ No limit
+    const processed = processHistoricalData(allData)
     
     const merged = [...existingData]
     
@@ -410,10 +419,30 @@ async function detectAndFillGaps(
   }
 }
 
-// ✅ FETCH ALL HISTORICAL DATA - No limits
+// ✅ FIXED: Shorter cache for recent bars to prevent stale data
+const TIMEFRAME_CONFIGS: Record<Timeframe, { 
+  seconds: number
+  cacheStrategy: 'aggressive' | 'moderate' | 'normal'
+  maxCacheAge?: number // ✅ NEW: Max age for cache
+}> = {
+  '1s': { seconds: 1, cacheStrategy: 'aggressive', maxCacheAge: 2000 }, // 2 seconds max
+  '1m': { seconds: 60, cacheStrategy: 'aggressive', maxCacheAge: 5000 }, // 5 seconds max
+  '5m': { seconds: 300, cacheStrategy: 'moderate', maxCacheAge: 10000 },
+  '15m': { seconds: 900, cacheStrategy: 'moderate', maxCacheAge: 15000 },
+  '30m': { seconds: 1800, cacheStrategy: 'moderate', maxCacheAge: 30000 },
+  '1h': { seconds: 3600, cacheStrategy: 'normal', maxCacheAge: 60000 },
+  '4h': { seconds: 14400, cacheStrategy: 'normal', maxCacheAge: 120000 },
+  '1d': { seconds: 86400, cacheStrategy: 'normal', maxCacheAge: 300000 }
+}
+
+// ✅ FIXED: Fetch with cache awareness for live bars
 export async function fetchHistoricalData(
   assetPath: string,
-  timeframe: Timeframe = '1m'
+  timeframe: Timeframe = '1m',
+  options?: { 
+    forceFresh?: boolean // ✅ NEW: Force bypass cache
+    currentBarTimestamp?: number // ✅ NEW: Current bar being displayed
+  }
 ): Promise<any[]> {
   if (typeof window === 'undefined' || !database) {
     return []
@@ -421,27 +450,34 @@ export async function fetchHistoricalData(
 
   try {
     const cleanPath = cleanAssetPath(assetPath)
-    const cacheKey = `${cleanPath}-${timeframe}-unlimited`
+    const cacheKey = `${cleanPath}-${timeframe}-historical`
+    const config = TIMEFRAME_CONFIGS[timeframe]
 
-    const cached = memoryCache.get(cacheKey)
-    if (cached) {
-      if (connectionTracker.wasDisconnectedRecently()) {
-        console.log('🔄 Recently reconnected, verifying cache freshness...')
-        setTimeout(() => {
-          fetchHistoricalData(assetPath, timeframe)
-            .catch(err => console.log('Background refresh failed:', err))
-        }, 0)
+    // ✅ Check cache with timeframe-specific max age
+    if (!options?.forceFresh) {
+      const cached = memoryCache.get(cacheKey, config.maxCacheAge)
+      if (cached) {
+        // ✅ If we know the current bar timestamp, invalidate if cache is for that bar
+        if (options?.currentBarTimestamp) {
+          const lastCachedBar = cached[cached.length - 1]
+          if (lastCachedBar && lastCachedBar.timestamp === options.currentBarTimestamp) {
+            console.log('🔄 Cache hit but for current live bar, fetching fresh data...')
+            memoryCache.invalidateBarPeriod(cacheKey, options.currentBarTimestamp)
+          } else {
+            return cached
+          }
+        } else {
+          return cached
+        }
       }
-      return cached
     }
 
     return await deduplicateRequest(cacheKey, async () => {
-      console.log(`🔥 Fetching ALL ${timeframe} data (NO LIMIT)...`)
+      console.log(`🔥 Fetching fresh ${timeframe} data...`)
       const startTime = Date.now()
       
       const ohlcPath = `${cleanPath}/ohlc_${timeframe}`
       
-      // ✅ NO LIMIT - Get all data from Firebase
       const snapshot = await get(ref(database, ohlcPath))
       
       if (!snapshot.exists()) {
@@ -451,18 +487,18 @@ export async function fetchHistoricalData(
       
       const rawData = snapshot.val()
       
-      // ✅ Process ALL data without limit
       let processed = processHistoricalData(rawData)
       
-      // ✅ Fill gaps
       processed = await detectAndFillGaps(cleanPath, timeframe, processed)
       
       if (processed.length > 0) {
-        memoryCache.set(cacheKey, processed)
+        // ✅ Store with last bar timestamp for invalidation tracking
+        const lastBarTimestamp = processed[processed.length - 1]?.timestamp
+        memoryCache.set(cacheKey, processed, lastBarTimestamp)
       }
       
       const duration = Date.now() - startTime
-      console.log(`✅ Fetched ALL ${processed.length} ${timeframe} bars in ${duration}ms (UNLIMITED)`)
+      console.log(`✅ Fetched ${processed.length} ${timeframe} bars in ${duration}ms (FRESH)`)
       
       return processed
     })
@@ -470,7 +506,7 @@ export async function fetchHistoricalData(
   } catch (error: any) {
     console.error(`Fetch error for ${timeframe}:`, error.message)
     
-    const cacheKey = `${cleanAssetPath(assetPath)}-${timeframe}-unlimited`
+    const cacheKey = `${cleanAssetPath(assetPath)}-${timeframe}-historical`
     const stale = memoryCache.getStale(cacheKey)
     if (stale) {
       console.log('⚠️ Using stale cache due to fetch error')
@@ -491,9 +527,10 @@ export async function fetchHistoricalDataWithStale(
 
   try {
     const cleanPath = cleanAssetPath(assetPath)
-    const cacheKey = `${cleanPath}-${timeframe}-unlimited`
+    const cacheKey = `${cleanPath}-${timeframe}-historical`
+    const config = TIMEFRAME_CONFIGS[timeframe]
 
-    const cached = memoryCache.get(cacheKey)
+    const cached = memoryCache.get(cacheKey, config.maxCacheAge)
     if (cached) {
       return { data: cached, isStale: false }
     }
@@ -516,7 +553,7 @@ export async function fetchHistoricalDataWithStale(
   }
 }
 
-// ✅ Backfill missing data after reconnection (no limit)
+// ✅ FIXED: Invalidate cache when bar completes
 async function backfillMissingData(
   assetPath: string,
   timeframe: Timeframe,
@@ -532,7 +569,7 @@ async function backfillMissingData(
     if (!snapshot.exists()) return []
     
     const rawData = snapshot.val()
-    const allData = processHistoricalData(rawData) // ✅ No limit
+    const allData = processHistoricalData(rawData)
     
     const missingData = allData.filter(
       item => item.timestamp > lastKnownTimestamp
@@ -540,6 +577,10 @@ async function backfillMissingData(
     
     if (missingData.length > 0) {
       console.log(`✅ Backfilled ${missingData.length} candles`)
+      
+      // ✅ Invalidate cache since we have new completed bars
+      const cacheKey = `${cleanPath}-${timeframe}-historical`
+      memoryCache.delete(cacheKey)
     }
     
     return missingData
@@ -554,10 +595,11 @@ export function subscribeTo1sOHLC(
   assetPath: string,
   callback: (data: any) => void
 ): () => void {
-  console.log('Starting ULTRA-FAST 1s OHLC subscription (UNLIMITED)...')
+  console.log('Starting ULTRA-FAST 1s OHLC subscription...')
   return subscribeToOHLCUpdates(assetPath, '1s', callback)
 }
 
+// ✅ FIXED: Enhanced subscription with cache invalidation on bar complete
 export function subscribeToOHLCUpdates(
   assetPath: string,
   timeframe: Timeframe,
@@ -583,10 +625,10 @@ export function subscribeToOHLCUpdates(
 
     connectionTracker.setConnected(true)
 
-    // ✅ RECONNECTION BACKFILL (no limit)
+    // RECONNECTION BACKFILL
     if (connectionTracker.wasDisconnectedRecently(10000) && !reconnectBackfillDone) {
       if (lastTimestamp) {
-        console.log('🔄 Reconnected, backfilling ALL missing data...')
+        console.log('🔄 Reconnected, backfilling missing data...')
         const missingData = await backfillMissingData(cleanPath, timeframe, lastTimestamp)
         
         for (const missedBar of missingData) {
@@ -612,14 +654,23 @@ export function subscribeToOHLCUpdates(
                      (isArray ? data.length - 1 : parseInt(Object.keys(data).pop()!))
     
     const isNewBar = timestamp !== lastTimestamp
+    const wasCompleted = lastData?.isCompleted || false
     
     const hasChanged = !lastData || 
                       lastData.open !== latestBar.open ||
                       lastData.high !== latestBar.high ||
                       lastData.low !== latestBar.low ||
-                      lastData.close !== latestBar.close
-    
+                      lastData.close !== latestBar.close ||
+                      lastData.isCompleted !== latestBar.isCompleted
+
     if (isNewBar || hasChanged) {
+      // ✅ If bar just completed, invalidate cache to ensure fresh data on next fetch
+      if (!wasCompleted && latestBar.isCompleted) {
+        const cacheKey = `${cleanPath}-${timeframe}-historical`
+        console.log(`🏁 Bar ${timestamp} completed, invalidating cache`)
+        memoryCache.delete(cacheKey)
+      }
+      
       dataBuffer.add(bufferKey, {
         timestamp,
         datetime: latestBar.datetime || new Date(timestamp * 1000).toISOString(),
@@ -645,12 +696,8 @@ export function subscribeToOHLCUpdates(
         volume: latestBar.volume || 0,
         isNewBar,
         isCompleted: latestBar.isCompleted || false,
+        previousClose: lastData?.close // ✅ Helpful for detecting changes
       })
-      
-      if (isNewBar) {
-        const cacheKey = `${cleanPath}-${timeframe}-unlimited`
-        memoryCache.delete(cacheKey)
-      }
     }
   }, (error) => {
     console.error(`OHLC subscription error (${timeframe}):`, error)
@@ -663,14 +710,13 @@ export function subscribeToOHLCUpdates(
   }
 }
 
-// ✅ Prefetch ALL timeframes without limits
 export async function prefetchMultipleTimeframes(
   assetPath: string,
-  timeframes: Timeframe[] = ['1s', '1m', '5m']
+  timeframes: Timeframe[] = ['1s', '1m']
 ): Promise<Map<Timeframe, any[]>> {
   const results = new Map<Timeframe, any[]>()
   
-  console.log(`🔥 Prefetching ${timeframes.length} timeframes (UNLIMITED)...`)
+  console.log(`🔥 Prefetching ${timeframes.length} timeframes...`)
   const startTime = Date.now()
   
   const sorted = [...timeframes].sort((a, b) => {
@@ -695,7 +741,7 @@ export async function prefetchMultipleTimeframes(
       if (data.length === 0) {
         console.warn(`No data for ${tf}`)
       } else {
-        console.log(`✅ Loaded ${data.length} ${tf} candles (UNLIMITED)`)
+        console.log(`✅ Loaded ${data.length} ${tf} candles`)
       }
     } else {
       console.error(`Prefetch failed:`, result.reason)
@@ -705,7 +751,7 @@ export async function prefetchMultipleTimeframes(
   const duration = Date.now() - startTime
   const successful = Array.from(results.values()).filter(d => d.length > 0).length
   
-  console.log(`✅ Prefetched ${successful}/${timeframes.length} timeframes in ${duration}ms (UNLIMITED MODE)`)
+  console.log(`✅ Prefetched ${successful}/${timeframes.length} timeframes in ${duration}ms`)
   
   return results
 }
@@ -796,4 +842,4 @@ if (typeof window !== 'undefined') {
 
 export const SUPPORTS_1S_TRADING = true
 export const ULTRA_FAST_TIMEFRAME = '1s' as Timeframe
-export const UNLIMITED_HISTORY = true // ✅ NEW FLAG
+export const UNLIMITED_HISTORY = true

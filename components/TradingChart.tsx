@@ -2,16 +2,15 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
-import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp, Time } from 'lightweight-charts'
+import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp } from 'lightweight-charts'
 import { useTradingStore, useTradingActions } from '@/store/trading'
 import { fetchHistoricalData, subscribeToOHLCUpdates, prefetchMultipleTimeframes } from '@/lib/firebase'
 import { BinaryOrder, TIMEFRAMES, Timeframe as TimeframeType } from '@/types'
 import { database, ref, get } from '@/lib/firebase'
-import { formatCurrency, formatPriceAuto } from '@/lib/utils'
+import { formatPriceAuto } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2 } from 'lucide-react'
 import AssetIcon from '@/components/common/AssetIcon'
-// ✅ NEW IMPORTS for OrderPriceTracker
 import OrderPriceTracker from '@/components/OrderPriceTracker'
 import { useChartPriceScale } from '@/hooks/useChartPriceScale'
 
@@ -56,6 +55,7 @@ interface CandleData {
   low: number
   close: number
   volume?: number
+  isCompleted?: boolean
 }
 
 interface AnimatedCandle extends CandleData {
@@ -64,10 +64,6 @@ interface AnimatedCandle extends CandleData {
   targetClose: number
   isAnimating: boolean
 }
-
-// ============================================
-// SKELETON LOADING COMPONENT
-// ============================================
 
 const ChartSkeleton = memo(({ timeframe, assetSymbol }: { timeframe: Timeframe; assetSymbol: string }) => {
   return (
@@ -148,10 +144,6 @@ const ChartSkeleton = memo(({ timeframe, assetSymbol }: { timeframe: Timeframe; 
 
 ChartSkeleton.displayName = 'ChartSkeleton'
 
-// ============================================
-// INDICATOR CALCULATION FUNCTIONS
-// ============================================
-
 function calculateSMA(data: Array<{ time: UTCTimestamp; close: number }>, period: number): Array<{ time: UTCTimestamp; value: number }> {
   const result: Array<{ time: UTCTimestamp; value: number }> = []
   
@@ -224,10 +216,6 @@ function calculateBollingerBands(
   return { upper, middle, lower }
 }
 
-// ============================================
-// LOADING STATE MANAGER
-// ============================================
-
 class LoadingStateManager {
   private isLoading = false
   private loadingTimeouts: NodeJS.Timeout[] = []
@@ -267,10 +255,6 @@ class LoadingStateManager {
     this.updateCallback?.(false)
   }
 }
-
-// ============================================
-// SMOOTH CANDLE ANIMATOR
-// ============================================
 
 class SmoothCandleAnimator {
   private currentCandle: AnimatedCandle | null = null
@@ -405,10 +389,6 @@ class SmoothCandleAnimator {
   }
 }
 
-// ============================================
-// GLOBAL DATA CACHE
-// ============================================
-
 const GLOBAL_DATA_CACHE = new Map<string, {
   data: any[]
   timestamp: number
@@ -451,10 +431,6 @@ function setCachedData(assetId: string, timeframe: Timeframe, data: any[]) {
   }
 }
 
-// ============================================
-// UTILITY FUNCTIONS
-// ============================================
-
 function cleanAssetPath(path: string): string {
   if (!path) return ''
   if (path.endsWith('/current_price')) {
@@ -483,6 +459,9 @@ function getTimeframeSeconds(timeframe: Timeframe): number {
 
 function getBarPeriodTimestamp(timestamp: number, timeframe: Timeframe): number {
   const seconds = getTimeframeSeconds(timeframe)
+  
+  // 🔧 FIX: Pastikan menggunakan Math.floor seperti backend
+  // Backend menggunakan: Math.floor(timestamp / seconds) * seconds
   return Math.floor(timestamp / seconds) * seconds
 }
 
@@ -536,10 +515,6 @@ async function checkSimulatorStatus(assetPath: string): Promise<{
   }
 }
 
-// ============================================
-// UI COMPONENTS
-// ============================================
-
 const RealtimeClock = memo(() => {
   const [time, setTime] = useState(new Date())
 
@@ -570,7 +545,7 @@ const RealtimeClock = memo(() => {
     <div className="absolute top-14 left-2 z-10 bg-black/20 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/10">
       <div className="flex items-center gap-2">
         <div className="text-xs font-light text-white">
-          {timeStr} <span className="text-gray-400">|</span> {dateStr}
+          {timeStr} <span className="text-gray-300">|</span> {dateStr}
         </div>
       </div>
     </div>
@@ -579,7 +554,14 @@ const RealtimeClock = memo(() => {
 
 RealtimeClock.displayName = 'RealtimeClock'
 
-const PriceDisplay = memo(({ asset, price, onClick, showMenu, assets, onSelectAsset }: any) => {
+const PriceDisplay = memo(({ 
+  asset, 
+  price, 
+  onClick, 
+  showMenu, 
+  assets, 
+  onSelectAsset 
+}: any) => {
   if (!asset || !price) return null
 
   const hasChange = price.change !== undefined && price.change !== 0
@@ -703,23 +685,23 @@ const OHLCDisplay = memo(({
         <span>{timeStr} WIB</span>
       </div>
       <div className="flex flex-col gap-0.5">
-  <div className="flex items-center gap-1.5">
-    <span className="text-gray-500 w-3">O:</span>
-    <span className="text-white">{formatOHLCPrice(data.open)}</span>
-  </div>
-  <div className="flex items-center gap-1.5">
-    <span className="text-gray-500 w-3">H:</span>
-    <span className="text-emerald-400">{formatOHLCPrice(data.high)}</span>
-  </div>
-  <div className="flex items-center gap-1.5">
-    <span className="text-gray-500 w-3">L:</span>
-    <span className="text-rose-400">{formatOHLCPrice(data.low)}</span>
-  </div>
-  <div className="flex items-center gap-1.5">
-    <span className="text-gray-500 w-3">C:</span>
-    <span className="text-blue-400">{formatOHLCPrice(data.close)}</span>
-  </div>
-</div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-gray-500 w-3">O:</span>
+          <span className="text-white">{formatOHLCPrice(data.open)}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-gray-500 w-3">H:</span>
+          <span className="text-emerald-400">{formatOHLCPrice(data.high)}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-gray-500 w-3">L:</span>
+          <span className="text-rose-400">{formatOHLCPrice(data.low)}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-gray-500 w-3">C:</span>
+          <span className="text-blue-400">{formatOHLCPrice(data.close)}</span>
+        </div>
+      </div>
     </div>
   )
 })
@@ -940,10 +922,6 @@ const DesktopControls = memo(({
 
 DesktopControls.displayName = 'DesktopControls'
 
-// ============================================
-// MAIN COMPONENT
-// ============================================
-
 const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAssetSelect }: TradingChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const fullscreenContainerRef = useRef<HTMLDivElement>(null)
@@ -951,10 +929,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null)
   const lineSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   const candleAnimatorRef = useRef<SmoothCandleAnimator | null>(null)
-  
-  // ✅ NEW: Price scale hook for OrderPriceTracker
   const { setChart, setSeries, priceToPixel } = useChartPriceScale()
-  
   const smaSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   const emaSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   const bollingerUpperRef = useRef<ISeriesApi<"Line"> | null>(null)
@@ -991,11 +966,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   
   const [prefetchedAssets, setPrefetchedAssets] = useState<Set<string>>(new Set())
   const [currentChartData, setCurrentChartData] = useState<any[]>([])
-
-  // ✅ NEW: Mobile detection state
   const [isMobile, setIsMobile] = useState(false)
 
-  // ✅ NEW: Mobile detection effect
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768)
@@ -1140,7 +1112,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
   }, [selectedAsset?.id, isInitialized, fetchCurrentPriceImmediately])
 
-  // REALTIME OHLC SUBSCRIPTION
+  // REALTIME OHLC SUBSCRIPTION with Cache Invalidation
   useEffect(() => {
     if (!selectedAsset?.realtimeDbPath || !isInitialized) return
     if (!candleSeriesRef.current || !lineSeriesRef.current) return
@@ -1149,30 +1121,47 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     
     const unsubscribe = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
       if (!newBar) return
-
-      const candleSeries = candleSeriesRef.current
-      const lineSeries = lineSeriesRef.current
       
-      if (!candleSeries || !lineSeries) return
-
+      // 🔧 FIX: Invalidate cache saat bar selesai agar refresh mendapat data fresh
+      if (newBar.isCompleted) {
+        const cacheKey = `${selectedAsset.id}-${timeframe}`
+        // Hapus dari cache agar fetch berikutnya ambil dari Firebase
+        GLOBAL_DATA_CACHE.delete(cacheKey)
+        console.log('🔄 Bar completed, cache invalidated for', cacheKey)
+      }
+      
+      // 🔧 FIX: Pastikan timestamp alignment sama persis dengan backend
       const barPeriod = getBarPeriodTimestamp(newBar.timestamp, timeframe)
-      
+
       if (!currentBarRef.current || currentBarRef.current.timestamp !== barPeriod) {
+        // Bar baru dimulai
         currentBarRef.current = {
           timestamp: barPeriod,
           open: newBar.open,
           high: newBar.high,
           low: newBar.low,
           close: newBar.close,
-          volume: newBar.volume || 0
+          volume: newBar.volume || 0,
+          isCompleted: newBar.isCompleted || false
         }
+        console.log('🆕 New bar:', barPeriod, 'Open:', newBar.open)
       } else {
+        // Update bar yang sedang berjalan
+        const prevHigh = currentBarRef.current.high
+        const prevLow = currentBarRef.current.low
+        
         currentBarRef.current = {
           ...currentBarRef.current,
           high: Math.max(currentBarRef.current.high, newBar.high),
           low: Math.min(currentBarRef.current.low, newBar.low),
           close: newBar.close,
-          volume: newBar.volume || 0
+          volume: (currentBarRef.current.volume || 0) + (newBar.volume || 0),
+          isCompleted: newBar.isCompleted || false
+        }
+        
+        // Log jika ada perubahan significant (untuk debug)
+        if (currentBarRef.current.high !== prevHigh || currentBarRef.current.low !== prevLow) {
+          console.log('📊 Bar update - High:', currentBarRef.current.high, 'Low:', currentBarRef.current.low)
         }
       }
 
@@ -1188,8 +1177,8 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         candleAnimatorRef.current.updateCandle(currentBarRef.current)
       } else {
         try {
-          candleSeries.update(chartCandle)
-          lineSeries.update({
+          candleSeriesRef.current?.update(chartCandle)
+          lineSeriesRef.current?.update({
             time: chartCandle.time,
             value: chartCandle.close
           })
@@ -1292,7 +1281,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       candleSeriesRef.current = candleSeries
       lineSeriesRef.current = lineSeries
       
-      // ✅ NEW: Set chart and series references for OrderPriceTracker
       setChart(chart)
       setSeries(chartType === 'candle' ? candleSeries : lineSeries)
 
@@ -1357,7 +1345,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
   }, [chartType, addCleanup, cleanupAll, setChart, setSeries])
 
-  // CHART TYPE CHANGES
+  // CHART TYPE CHANGES - MODIFIED FOR 60 CANDLE ZOOM
   useEffect(() => {
     if (!candleSeriesRef.current || !lineSeriesRef.current || !chartRef.current) return
     if (currentChartData.length === 0) return
@@ -1368,7 +1356,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         candleSeriesRef.current.setData(currentChartData as any)
         candleSeriesRef.current.applyOptions({ visible: true })
         
-        // ✅ NEW: Update series reference
         setSeries(candleSeriesRef.current)
       } else {
         candleSeriesRef.current.applyOptions({ visible: false })
@@ -1379,12 +1366,18 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         lineSeriesRef.current.setData(lineData as any)
         lineSeriesRef.current.applyOptions({ visible: true })
         
-        // ✅ NEW: Update series reference
         setSeries(lineSeriesRef.current)
       }
       
+      // MODIFIED: Zoom to last 60 candles instead of fitContent
       requestAnimationFrame(() => {
-        if (chartRef.current) {
+        if (chartRef.current && currentChartData.length > 60) {
+          const timeScale = chartRef.current.timeScale()
+          timeScale.setVisibleLogicalRange({
+            from: currentChartData.length - 60,
+            to: currentChartData.length - 1
+          })
+        } else if (chartRef.current) {
           chartRef.current.timeScale().fitContent()
         }
       })
@@ -1497,7 +1490,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
 
   }, [indicatorConfig, currentChartData])
 
-  // LOAD HISTORICAL DATA (WITH SKELETON)
+  // LOAD HISTORICAL DATA - with Live Bar Merging
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
       return
@@ -1511,10 +1504,25 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       previousAssetIdRef.current = selectedAsset.id
       previousTimeframeRef.current = timeframe
       
+      // 🔧 FIX: Clear cache untuk asset/timeframe ini agar data fresh
       if (isAssetChange) {
         setCurrentChartData([])
         candleSeriesRef.current.setData([])
         lineSeriesRef.current.setData([])
+        currentBarRef.current = null // Reset live bar
+        
+        // Clear semua cache untuk asset ini
+        TIMEFRAMES.forEach(tf => {
+          const cacheKey = `${selectedAsset.id}-${tf}`
+          GLOBAL_DATA_CACHE.delete(cacheKey)
+        })
+      }
+      
+      if (isTimeframeChange) {
+        // Clear cache untuk timeframe spesifik
+        const cacheKey = `${selectedAsset.id}-${timeframe}`
+        GLOBAL_DATA_CACHE.delete(cacheKey)
+        currentBarRef.current = null // Reset live bar untuk timeframe baru
       }
     }
 
@@ -1523,7 +1531,46 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
 
     const processAndDisplayData = (data: any[]) => {
       if (data.length > 0 && !isCancelled) {
-        const candleData = data.map((bar: any) => ({
+        // 🔧 FIX: Sort data untuk memastikan urutan benar
+        const sortedData = [...data].sort((a, b) => a.timestamp - b.timestamp)
+        
+        // 🔧 FIX: Merge dengan live bar jika ada dan timestamp sama
+        if (currentBarRef.current && sortedData.length > 0) {
+          const lastHistoricalTimestamp = sortedData[sortedData.length - 1].timestamp
+          const liveBarTimestamp = currentBarRef.current.timestamp
+          
+          if (lastHistoricalTimestamp === liveBarTimestamp) {
+            // Merge: gunakan high/low tertinggi, close terbaru dari live
+            const mergedBar = {
+              ...sortedData[sortedData.length - 1],
+              high: Math.max(
+                sortedData[sortedData.length - 1].high, 
+                currentBarRef.current.high
+              ),
+              low: Math.min(
+                sortedData[sortedData.length - 1].low, 
+                currentBarRef.current.low
+              ),
+              close: currentBarRef.current.close, // Prioritaskan close live
+              volume: (sortedData[sortedData.length - 1].volume || 0) + (currentBarRef.current.volume || 0)
+            }
+            
+            sortedData[sortedData.length - 1] = mergedBar
+            console.log('✅ Merged live bar with historical:', mergedBar.close)
+          } else if (liveBarTimestamp > lastHistoricalTimestamp) {
+            // 🔧 FIX: Jika live bar lebih baru, append ke historical
+            sortedData.push({
+              timestamp: currentBarRef.current.timestamp,
+              open: currentBarRef.current.open,
+              high: currentBarRef.current.high,
+              low: currentBarRef.current.low,
+              close: currentBarRef.current.close,
+              volume: currentBarRef.current.volume || 0
+            })
+          }
+        }
+        
+        const candleData = sortedData.map((bar: any) => ({
           time: bar.timestamp as UTCTimestamp,
           open: bar.open,
           high: bar.high,
@@ -1536,19 +1583,30 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         candleSeriesRef.current!.setData(candleData)
         lineSeriesRef.current!.setData(candleData.map(bar => ({ time: bar.time, value: bar.close })))
         
-        chartRef.current?.timeScale().fitContent()
+        // MODIFIED: Zoom to show only last 60 candles by default
+        const timeScale = chartRef.current?.timeScale()
+        if (timeScale && candleData.length > 60) {
+          timeScale.setVisibleLogicalRange({
+            from: candleData.length - 60,
+            to: candleData.length - 1
+          })
+        } else {
+          timeScale?.fitContent()
+        }
 
-        const lastBar = data[data.length - 1]
-        currentBarRef.current = {
-          timestamp: lastBar.timestamp,
-          open: lastBar.open,
-          high: lastBar.high,
-          low: lastBar.low,
-          close: lastBar.close,
-          volume: lastBar.volume || 0
+        const lastBar = sortedData[sortedData.length - 1]
+        if (!currentBarRef.current) {
+          currentBarRef.current = {
+            timestamp: lastBar.timestamp,
+            open: lastBar.open,
+            high: lastBar.high,
+            low: lastBar.low,
+            close: lastBar.close,
+            volume: lastBar.volume || 0
+          }
         }
         
-        setOpeningPrice(data[0].open)
+        setOpeningPrice(sortedData[0].open)
         setLastPrice(lastBar.close)
       }
     }
@@ -1633,11 +1691,15 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     return () => clearTimeout(prefetchTimer)
   }, [selectedAsset?.id, isInitialized, isLoading, prefetchedAssets, prefetchAllTimeframes])
 
-  // EVENT HANDLERS
   const handleRefresh = useCallback(() => {
     if (!selectedAsset) return
     
-    GLOBAL_DATA_CACHE.delete(`${selectedAsset.id}-${timeframe}`)
+    // 🔧 FIX: Clear cache lebih agresif
+    const cacheKey = `${selectedAsset.id}-${timeframe}`
+    GLOBAL_DATA_CACHE.delete(cacheKey)
+    
+    // Reset current bar agar tidak merge dengan data lama
+    currentBarRef.current = null
     
     setPrefetchedAssets(prev => {
       const newSet = new Set(prev)
@@ -1647,6 +1709,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     
     checkSimulator()
     
+    // Trigger reload data
     const currentAsset = selectedAsset
     useTradingStore.setState({ selectedAsset: null })
     setTimeout(() => {
@@ -1692,6 +1755,38 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     onAssetSelect?.(asset)
     setShowAssetMenu(false)
   }, [setSelectedAsset, onAssetSelect])
+
+  // 🔧 DEBUG HELPER: Log perbedaan antara live dan historical
+  useEffect(() => {
+    // Debug: Log perbedaan antara live dan historical setiap 10 detik
+    const debugInterval = setInterval(() => {
+      if (currentBarRef.current && currentChartData.length > 0) {
+        const lastHistorical = currentChartData[currentChartData.length - 1]
+        const live = currentBarRef.current
+        
+        if (lastHistorical.time === live.timestamp) {
+          if (lastHistorical.close !== live.close || 
+              lastHistorical.high !== live.high || 
+              lastHistorical.low !== live.low) {
+            console.warn('⚠️ MISMATCH DETECTED:', {
+              historical: { 
+                close: lastHistorical.close, 
+                high: lastHistorical.high, 
+                low: lastHistorical.low 
+              },
+              live: { 
+                close: live.close, 
+                high: live.high, 
+                low: live.low 
+              }
+            })
+          }
+        }
+      }
+    }, 10000)
+    
+    return () => clearInterval(debugInterval)
+  }, [currentChartData])
 
   if (!selectedAsset) {
     return (
@@ -1752,7 +1847,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
 
       <div ref={chartContainerRef} className="absolute inset-0 bg-[#0a0e17]" />
 
-      {/* ✅ NEW: Order Price Tracker - Overlay on Chart */}
       {activeOrders && activeOrders.length > 0 && currentPriceData.price > 0 && (
         <OrderPriceTracker
           orders={activeOrders}
@@ -1766,7 +1860,6 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         />
       )}
 
-      {/* SKELETON LOADING */}
       {isLoading && (
         <ChartSkeleton 
           timeframe={timeframe} 

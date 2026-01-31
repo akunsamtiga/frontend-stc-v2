@@ -152,7 +152,7 @@ export default function OrderPriceTracker({
           >
             {/* ✅ Each order has its own line (can duplicate/overlap) */}
             <div
-              className={`absolute left-0 right-0 h-[1px] ${
+              className={`absolute left-0 right-0 h-[2px] ${
                 isCall ? 'bg-green-500/40' : 'bg-red-500/40'
               }`}
               style={{

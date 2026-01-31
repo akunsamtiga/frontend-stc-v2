@@ -194,6 +194,38 @@ export class CalculationUtil {
     const now = TimezoneUtil.getCurrentTimestamp();
     return Math.max(0, exitTimestamp - now);
   }
+
+  /**
+   * ✅ NEW: Calculate bar period timestamp - CRITICAL for candle alignment
+   * MUST match backend simulator exactly (Math.floor)
+   */
+  static getBarPeriodTimestamp(timestamp: number, timeframe: string): number {
+    const seconds = this.getTimeframeSeconds(timeframe);
+    // CRITICAL: Use Math.floor to match backend (simulator uses Math.floor)
+    return Math.floor(timestamp / seconds) * seconds;
+  }
+
+  /**
+   * ✅ NEW: Get timeframe in seconds
+   */
+  static getTimeframeSeconds(timeframe: string): number {
+    const map: Record<string, number> = {
+      '1s': 1,
+      '1m': 60,
+      '5m': 300,
+      '15m': 900,
+      '30m': 1800,
+      '1h': 3600,
+      '4h': 14400,
+      '1d': 86400
+    };
+    return map[timeframe] || 60;
+  }
 }
 
+// ✅ Export instance untuk backward compatibility
 export const calculationUtil = CalculationUtil;
+
+// ✅ NEW: Standalone exports untuk convenience (bisa dipakai langsung di TradingChart)
+export const getBarPeriodTimestamp = CalculationUtil.getBarPeriodTimestamp;
+export const getTimeframeSeconds = CalculationUtil.getTimeframeSeconds;
