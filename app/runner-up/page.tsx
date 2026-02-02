@@ -1,157 +1,249 @@
-// app/(main)/runner-up/page.tsx - Top Traders Leaderboard
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Award,
   ChevronLeft,
-  TrendingUp,
-  TrendingDown,
-  Users,
-  Target,
-  Zap,
-  Crown,
+  Trophy,
   Medal,
+  TrendingUp,
+  Calendar,
+  DollarSign,
+  Users,
   Star,
-  BarChart3,
-  Calendar
+  Crown,
+  Sparkles,
+  Filter
 } from 'lucide-react'
 
-type TimeFrame = 'daily' | 'weekly' | 'monthly' | 'alltime'
+type Period = 'daily' | 'weekly' | 'monthly' | 'all-time'
 
-interface TopTrader {
+interface RunnerUp {
+  id: string
   rank: number
-  userId: string
-  username: string
-  country: string
-  totalProfit: number
-  totalTrades: number
+  name: string
+  avatar: string
+  profit: number
+  profitPercentage: number
+  trades: number
   winRate: number
-  avgProfit: number
-  bestTrade: number
-  consecutiveWins: number
-  badge?: 'legendary' | 'master' | 'expert'
+  period: Period
+  prize: number
+  badge?: string
 }
 
-const TOP_TRADERS: Record<TimeFrame, TopTrader[]> = {
-  daily: [
-    { rank: 1, userId: '1', username: 'QuickProfit', country: 'SG', totalProfit: 15420, totalTrades: 42, winRate: 92.8, avgProfit: 367, bestTrade: 2100, consecutiveWins: 12, badge: 'legendary' },
-    { rank: 2, userId: '2', username: 'SpeedTrader', country: 'US', totalProfit: 12890, totalTrades: 38, winRate: 89.5, avgProfit: 339, bestTrade: 1850, consecutiveWins: 10 },
-    { rank: 3, userId: '3', username: 'DayMaster', country: 'UK', totalProfit: 11200, totalTrades: 35, winRate: 88.6, avgProfit: 320, bestTrade: 1650, consecutiveWins: 9 },
-    { rank: 4, userId: '4', username: 'FastGains', country: 'ID', totalProfit: 9870, totalTrades: 31, winRate: 87.1, avgProfit: 318, bestTrade: 1420, consecutiveWins: 8 },
-    { rank: 5, userId: '5', username: 'LightningFX', country: 'JP', totalProfit: 8920, totalTrades: 29, winRate: 86.2, avgProfit: 307, bestTrade: 1380, consecutiveWins: 7 },
-  ],
-  weekly: [
-    { rank: 1, userId: '1', username: 'WeeklyKing', country: 'US', totalProfit: 87450, totalTrades: 234, winRate: 88.5, avgProfit: 374, bestTrade: 4200, consecutiveWins: 18, badge: 'legendary' },
-    { rank: 2, userId: '2', username: 'ConsistentWin', country: 'UK', totalProfit: 76200, totalTrades: 198, winRate: 87.4, avgProfit: 385, bestTrade: 3950, consecutiveWins: 16, badge: 'master' },
-    { rank: 3, userId: '3', username: 'WeekWarrior', country: 'SG', totalProfit: 68900, totalTrades: 187, winRate: 86.1, avgProfit: 368, bestTrade: 3600, consecutiveWins: 14, badge: 'master' },
-    { rank: 4, userId: '4', username: 'ProfitSeeker', country: 'AU', totalProfit: 62100, totalTrades: 176, winRate: 84.7, avgProfit: 353, bestTrade: 3400, consecutiveWins: 13 },
-    { rank: 5, userId: '5', username: 'TradeElite', country: 'CA', totalProfit: 58300, totalTrades: 165, winRate: 83.6, avgProfit: 353, bestTrade: 3200, consecutiveWins: 12 },
-  ],
-  monthly: [
-    { rank: 1, userId: '1', username: 'MonthlyChamp', country: 'US', totalProfit: 345600, totalTrades: 892, winRate: 86.2, avgProfit: 387, bestTrade: 8900, consecutiveWins: 24, badge: 'legendary' },
-    { rank: 2, userId: '2', username: 'ProfitMachine', country: 'UK', totalProfit: 298700, totalTrades: 765, winRate: 85.3, avgProfit: 390, bestTrade: 7800, consecutiveWins: 22, badge: 'legendary' },
-    { rank: 3, userId: '3', username: 'TradeMaster88', country: 'SG', totalProfit: 267800, totalTrades: 698, winRate: 84.1, avgProfit: 383, bestTrade: 7200, consecutiveWins: 20, badge: 'master' },
-    { rank: 4, userId: '4', username: 'GoldTrader', country: 'JP', totalProfit: 245300, totalTrades: 654, winRate: 82.9, avgProfit: 375, bestTrade: 6800, consecutiveWins: 19, badge: 'master' },
-    { rank: 5, userId: '5', username: 'ForexKing', country: 'AU', totalProfit: 228900, totalTrades: 612, winRate: 81.8, avgProfit: 374, bestTrade: 6500, consecutiveWins: 18, badge: 'expert' },
-  ],
-  alltime: [
-    { rank: 1, userId: '1', username: 'LegendTrader', country: 'US', totalProfit: 2456700, totalTrades: 5432, winRate: 84.7, avgProfit: 452, bestTrade: 25000, consecutiveWins: 38, badge: 'legendary' },
-    { rank: 2, userId: '2', username: 'ProElite99', country: 'UK', totalProfit: 2198900, totalTrades: 4876, winRate: 83.9, avgProfit: 451, bestTrade: 22000, consecutiveWins: 35, badge: 'legendary' },
-    { rank: 3, userId: '3', username: 'MasterTrader', country: 'SG', totalProfit: 1987600, totalTrades: 4321, winRate: 82.8, avgProfit: 460, bestTrade: 21000, consecutiveWins: 32, badge: 'legendary' },
-    { rank: 4, userId: '4', username: 'GlobalTrader', country: 'JP', totalProfit: 1845300, totalTrades: 3987, winRate: 81.6, avgProfit: 463, bestTrade: 19500, consecutiveWins: 30, badge: 'master' },
-    { rank: 5, userId: '5', username: 'OptionsMaster', country: 'AU', totalProfit: 1723800, totalTrades: 3765, winRate: 80.9, avgProfit: 458, bestTrade: 18500, consecutiveWins: 28, badge: 'master' },
-  ],
+const getNextMonth = () => {
+  const now = new Date()
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+  return nextMonth
+}
+
+const getMonthName = (date: Date) => {
+  const months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ]
+  return months[date.getMonth()]
 }
 
 export default function RunnerUpPage() {
   const router = useRouter()
-  const [selectedTimeFrame, setSelectedTimeFrame] = useState<TimeFrame>('monthly')
+  const [selectedPeriod, setSelectedPeriod] = useState<Period>('monthly')
 
-  const traders = TOP_TRADERS[selectedTimeFrame]
+  const eventDates = useMemo(() => {
+    const nextMonth = getNextMonth()
+    const monthName = getMonthName(nextMonth)
+    const year = nextMonth.getFullYear()
+    
+    return {
+      monthName,
+      year
+    }
+  }, [])
 
-  const getRankIcon = (rank: number) => {
+  const DUMMY_RUNNERS: RunnerUp[] = [
+    {
+      id: '1',
+      rank: 1,
+      name: 'Ahmad Trader',
+      avatar: '🥇',
+      profit: 125000,
+      profitPercentage: 125,
+      trades: 450,
+      winRate: 89,
+      period: 'monthly',
+      prize: 5000,
+      badge: 'CHAMPION'
+    },
+    {
+      id: '2',
+      rank: 2,
+      name: 'Budi Pro',
+      avatar: '🥈',
+      profit: 98000,
+      profitPercentage: 98,
+      trades: 380,
+      winRate: 85,
+      period: 'monthly',
+      prize: 3000
+    },
+    {
+      id: '3',
+      rank: 3,
+      name: 'Citra Elite',
+      avatar: '🥉',
+      profit: 87000,
+      profitPercentage: 87,
+      trades: 320,
+      winRate: 82,
+      period: 'monthly',
+      prize: 2000
+    },
+    {
+      id: '4',
+      rank: 4,
+      name: 'Denny Expert',
+      avatar: '👤',
+      profit: 75000,
+      profitPercentage: 75,
+      trades: 290,
+      winRate: 80,
+      period: 'monthly',
+      prize: 1000
+    },
+    {
+      id: '5',
+      rank: 5,
+      name: 'Eka Master',
+      avatar: '👤',
+      profit: 68000,
+      profitPercentage: 68,
+      trades: 275,
+      winRate: 78,
+      period: 'monthly',
+      prize: 800
+    },
+    {
+      id: '6',
+      rank: 6,
+      name: 'Fandi Profit',
+      avatar: '👤',
+      profit: 62000,
+      profitPercentage: 62,
+      trades: 260,
+      winRate: 76,
+      period: 'monthly',
+      prize: 600
+    },
+    {
+      id: '7',
+      rank: 7,
+      name: 'Gita Success',
+      avatar: '👤',
+      profit: 58000,
+      profitPercentage: 58,
+      trades: 245,
+      winRate: 74,
+      period: 'monthly',
+      prize: 400
+    },
+    {
+      id: '8',
+      rank: 8,
+      name: 'Hadi Winner',
+      avatar: '👤',
+      profit: 54000,
+      profitPercentage: 54,
+      trades: 230,
+      winRate: 72,
+      period: 'monthly',
+      prize: 300
+    },
+    {
+      id: '9',
+      rank: 9,
+      name: 'Indah Smart',
+      avatar: '👤',
+      profit: 51000,
+      profitPercentage: 51,
+      trades: 220,
+      winRate: 70,
+      period: 'monthly',
+      prize: 200
+    },
+    {
+      id: '10',
+      rank: 10,
+      name: 'Joko Trader',
+      avatar: '👤',
+      profit: 48000,
+      profitPercentage: 48,
+      trades: 210,
+      winRate: 68,
+      period: 'monthly',
+      prize: 100
+    }
+  ]
+
+  const filteredRunners = DUMMY_RUNNERS.filter(runner => runner.period === selectedPeriod)
+
+  const getRankColor = (rank: number) => {
     switch (rank) {
-      case 1: return <Crown className="w-6 h-6 text-yellow-400" />
-      case 2: return <Medal className="w-6 h-6 text-gray-400" />
-      case 3: return <Medal className="w-6 h-6 text-orange-400" />
-      default: return <span className="text-lg font-bold text-gray-500">#{rank}</span>
+      case 1: return 'from-yellow-50 to-yellow-100 border-yellow-300'
+      case 2: return 'from-gray-50 to-gray-100 border-gray-300'
+      case 3: return 'from-orange-50 to-orange-100 border-orange-300'
+      default: return 'from-white to-gray-50 border-gray-200'
     }
   }
 
-  const getRankBg = (rank: number) => {
+  const getRankBadge = (rank: number) => {
     switch (rank) {
-      case 1: return 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/50'
-      case 2: return 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border-gray-400/50'
-      case 3: return 'bg-gradient-to-r from-orange-500/20 to-red-500/20 border-orange-500/50'
-      default: return 'bg-[#1a1f2e] border-gray-800/50'
+      case 1: return <Crown className="w-5 h-5 text-yellow-600" />
+      case 2: return <Medal className="w-5 h-5 text-gray-600" />
+      case 3: return <Medal className="w-5 h-5 text-orange-600" />
+      default: return <Trophy className="w-4 h-4 text-gray-500" />
     }
-  }
-
-  const getBadgeConfig = (badge?: string) => {
-    switch (badge) {
-      case 'legendary':
-        return { color: 'text-yellow-400', bg: 'bg-yellow-500/20', border: 'border-yellow-500/50', label: 'LEGENDARY' }
-      case 'master':
-        return { color: 'text-purple-400', bg: 'bg-purple-500/20', border: 'border-purple-500/50', label: 'MASTER' }
-      case 'expert':
-        return { color: 'text-blue-400', bg: 'bg-blue-500/20', border: 'border-blue-500/50', label: 'EXPERT' }
-      default:
-        return null
-    }
-  }
-
-  const getCountryFlag = (country: string) => {
-    const flags: Record<string, string> = {
-      'US': '🇺🇸',
-      'UK': '🇬🇧',
-      'SG': '🇸🇬',
-      'JP': '🇯🇵',
-      'AU': '🇦🇺',
-      'CA': '🇨🇦',
-      'ID': '🇮🇩',
-    }
-    return flags[country] || '🌍'
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] text-white">
-      {/* Header */}
-      <div className="bg-[#1a1f2e] border-b border-gray-800/50 sticky top-0 z-10">
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3 mb-4">
             <button
               onClick={() => router.back()}
-              className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#232936] transition-colors"
+              className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-5 h-5 text-gray-700" />
             </button>
             <div className="flex items-center gap-2">
-              <Award className="w-6 h-6 text-emerald-400" />
-              <h1 className="text-2xl font-bold">Trader Terbaik</h1>
+              <Award className="w-6 h-6 text-yellow-600" />
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Top Traders</h1>
+                <p className="text-xs text-gray-500">Leaderboard {eventDates.monthName} {eventDates.year}</p>
+              </div>
             </div>
           </div>
 
-          {/* TimeFrame Selector */}
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             {[
-              { value: 'daily' as const, label: 'Today', icon: Zap },
-              { value: 'weekly' as const, label: 'This Week', icon: Calendar },
-              { value: 'monthly' as const, label: 'This Month', icon: TrendingUp },
-              { value: 'alltime' as const, label: 'All Time', icon: Crown },
-            ].map((tf) => (
+              { value: 'daily' as const, label: 'Daily', icon: Calendar },
+              { value: 'weekly' as const, label: 'Weekly', icon: Calendar },
+              { value: 'monthly' as const, label: 'Monthly', icon: Calendar },
+              { value: 'all-time' as const, label: 'All Time', icon: Trophy },
+            ].map((period) => (
               <button
-                key={tf.value}
-                onClick={() => setSelectedTimeFrame(tf.value)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                  selectedTimeFrame === tf.value
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
-                    : 'bg-[#2f3648] text-gray-400 hover:bg-[#3a4360] border border-gray-800/50'
+                key={period.value}
+                onClick={() => setSelectedPeriod(period.value)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                  selectedPeriod === period.value
+                    ? 'bg-yellow-600 text-white shadow-md'
+                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
                 }`}
               >
-                <tf.icon className="w-4 h-4" />
-                {tf.label}
+                <period.icon className="w-4 h-4" />
+                {period.label}
               </button>
             ))}
           </div>
@@ -159,200 +251,186 @@ export default function RunnerUpPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Top 3 Podium */}
-        <div className="grid md:grid-cols-3 gap-4 mb-8">
-          {traders.slice(0, 3).map((trader) => {
-            const badgeConfig = getBadgeConfig(trader.badge)
-            return (
-              <div
-                key={trader.userId}
-                className={`rounded-xl p-6 border-2 ${getRankBg(trader.rank)}`}
-              >
-                <div className="text-center mb-4">
-                  {getRankIcon(trader.rank)}
-                </div>
-                <div className="flex justify-center mb-3">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center text-2xl font-bold border-4 border-white/10">
-                    {trader.username[0]}
-                  </div>
-                </div>
-                <div className="text-center mb-4">
-                  <div className="flex items-center justify-center gap-2 mb-1">
-                    <span className="text-lg font-bold">{trader.username}</span>
-                    <span className="text-xl">{getCountryFlag(trader.country)}</span>
-                  </div>
-                  {badgeConfig && (
-                    <span className={`inline-block px-2 py-1 rounded-md text-xs font-bold ${badgeConfig.bg} ${badgeConfig.color} border ${badgeConfig.border}`}>
-                      <Star className="w-3 h-3 inline mr-1" />
-                      {badgeConfig.label}
-                    </span>
-                  )}
-                </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Total Profit:</span>
-                    <span className="text-emerald-400 font-bold">${trader.totalProfit.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Win Rate:</span>
-                    <span className="text-blue-400 font-semibold">{trader.winRate}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Best Trade:</span>
-                    <span className="text-yellow-400 font-semibold">${trader.bestTrade.toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+        <div className="bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50 border border-yellow-200 rounded-2xl p-6 md:p-8 mb-6">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Trophy className="w-8 h-8 text-yellow-600" />
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+              Top 10 Traders Bulan Depan
+            </h2>
+          </div>
+          <p className="text-center text-gray-600 mb-4">
+            Leaderboard akan dimulai pada <span className="font-bold text-gray-900">{eventDates.monthName} {eventDates.year}</span>
+          </p>
+          <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
+            <div className="bg-white/80 backdrop-blur rounded-lg p-4 text-center border border-yellow-200">
+              <div className="text-2xl font-bold text-yellow-600">$5,000</div>
+              <div className="text-xs text-gray-600">1st Prize</div>
+            </div>
+            <div className="bg-white/80 backdrop-blur rounded-lg p-4 text-center border border-gray-300">
+              <div className="text-2xl font-bold text-gray-600">$3,000</div>
+              <div className="text-xs text-gray-600">2nd Prize</div>
+            </div>
+            <div className="bg-white/80 backdrop-blur rounded-lg p-4 text-center border border-orange-200">
+              <div className="text-2xl font-bold text-orange-600">$2,000</div>
+              <div className="text-xs text-gray-600">3rd Prize</div>
+            </div>
+          </div>
         </div>
 
-        {/* Stats Overview */}
-        <div className="grid md:grid-cols-4 gap-4 mb-6">
-          {[
-            { label: 'Total Traders', value: '12,847', icon: Users, color: 'blue' },
-            { label: 'Avg Win Rate', value: '76.4%', icon: Target, color: 'emerald' },
-            { label: 'Total Trades', value: '2.4M', icon: BarChart3, color: 'purple' },
-            { label: 'Best Streak', value: '38 wins', icon: Zap, color: 'yellow' },
-          ].map((stat) => (
-            <div key={stat.label} className={`bg-${stat.color}-500/10 border border-${stat.color}-500/30 rounded-xl p-4`}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-400">{stat.label}</span>
-                <stat.icon className={`w-5 h-5 text-${stat.color}-400`} />
+        <div className="grid md:grid-cols-3 gap-4 mb-6">
+          {filteredRunners.slice(0, 3).map((runner, index) => (
+            <div
+              key={runner.id}
+              className={`bg-gradient-to-br ${getRankColor(runner.rank)} rounded-xl p-6 border-2 hover:shadow-xl transition-all relative overflow-hidden`}
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
+              
+              <div className="relative">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="text-4xl">{runner.avatar}</div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        {getRankBadge(runner.rank)}
+                        <span className="text-lg font-bold text-gray-900">#{runner.rank}</span>
+                      </div>
+                      <h3 className="font-bold text-gray-900">{runner.name}</h3>
+                    </div>
+                  </div>
+                  {runner.badge && (
+                    <div className="px-2 py-1 bg-red-500 text-white rounded-md text-xs font-bold">
+                      {runner.badge}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Profit</span>
+                    <span className="font-bold text-emerald-600">${runner.profit.toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">ROI</span>
+                    <span className="font-bold text-blue-600">+{runner.profitPercentage}%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Win Rate</span>
+                    <span className="font-bold text-purple-600">{runner.winRate}%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Trades</span>
+                    <span className="font-bold text-gray-900">{runner.trades}</span>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-gray-300/50">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Prize</span>
+                    <span className="text-lg font-bold text-yellow-600">${runner.prize.toLocaleString()}</span>
+                  </div>
+                </div>
               </div>
-              <div className={`text-2xl font-bold text-${stat.color}-400`}>{stat.value}</div>
             </div>
           ))}
         </div>
 
-        {/* Full Leaderboard */}
-        <div className="bg-[#1a1f2e] rounded-xl overflow-hidden border border-gray-800/50">
-          <div className="p-4 border-b border-gray-800/50">
-            <h3 className="text-lg font-bold flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-emerald-400" />
-              Complete Rankings
-            </h3>
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="p-4 bg-gray-50 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-gray-600" />
+                Full Leaderboard
+              </h3>
+              <button className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1">
+                <Filter className="w-4 h-4" />
+                Filter
+              </button>
+            </div>
           </div>
 
-          {/* Desktop Table */}
-          <div className="hidden lg:block overflow-x-auto">
+          <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-[#0f1419] text-xs text-gray-400">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="text-left p-4">Rank</th>
-                  <th className="text-left p-4">Trader</th>
-                  <th className="text-right p-4">Total Profit</th>
-                  <th className="text-right p-4">Trades</th>
-                  <th className="text-right p-4">Win Rate</th>
-                  <th className="text-right p-4">Avg Profit</th>
-                  <th className="text-right p-4">Best Trade</th>
-                  <th className="text-right p-4">Streak</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Rank</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Trader</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Profit</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">ROI</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Win Rate</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Trades</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Prize</th>
                 </tr>
               </thead>
-              <tbody>
-                {traders.map((trader) => {
-                  const badgeConfig = getBadgeConfig(trader.badge)
-                  return (
-                    <tr
-                      key={trader.userId}
-                      className={`border-b border-gray-800/30 hover:bg-[#232936] transition-colors ${
-                        trader.rank <= 3 ? getRankBg(trader.rank) : ''
-                      }`}
-                    >
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          {getRankIcon(trader.rank)}
+              <tbody className="divide-y divide-gray-200">
+                {filteredRunners.map((runner) => (
+                  <tr key={runner.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-2">
+                        {getRankBadge(runner.rank)}
+                        <span className="font-bold text-gray-900">#{runner.rank}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="text-2xl">{runner.avatar}</div>
+                        <div>
+                          <div className="font-semibold text-gray-900">{runner.name}</div>
+                          {runner.badge && (
+                            <div className="text-xs text-red-600 font-medium">{runner.badge}</div>
+                          )}
                         </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center font-bold">
-                            {trader.username[0]}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold">{trader.username}</span>
-                              <span>{getCountryFlag(trader.country)}</span>
-                            </div>
-                            {badgeConfig && (
-                              <span className={`text-xs ${badgeConfig.color}`}>{badgeConfig.label}</span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4 text-right">
-                        <span className="text-emerald-400 font-bold">${trader.totalProfit.toLocaleString()}</span>
-                      </td>
-                      <td className="p-4 text-right">
-                        <span className="text-gray-400">{trader.totalTrades}</span>
-                      </td>
-                      <td className="p-4 text-right">
-                        <span className="text-blue-400 font-semibold">{trader.winRate}%</span>
-                      </td>
-                      <td className="p-4 text-right">
-                        <span className="text-purple-400">${trader.avgProfit}</span>
-                      </td>
-                      <td className="p-4 text-right">
-                        <span className="text-yellow-400 font-semibold">${trader.bestTrade.toLocaleString()}</span>
-                      </td>
-                      <td className="p-4 text-right">
-                        <span className="text-orange-400">{trader.consecutiveWins}</span>
-                      </td>
-                    </tr>
-                  )
-                })}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <span className="font-bold text-emerald-600">${runner.profit.toLocaleString()}</span>
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <span className="font-bold text-blue-600">+{runner.profitPercentage}%</span>
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <span className="font-bold text-purple-600">{runner.winRate}%</span>
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <span className="font-medium text-gray-900">{runner.trades}</span>
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <span className="font-bold text-yellow-600">${runner.prize.toLocaleString()}</span>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
+        </div>
 
-          {/* Mobile Cards */}
-          <div className="lg:hidden space-y-3 p-4">
-            {traders.map((trader) => {
-              const badgeConfig = getBadgeConfig(trader.badge)
-              return (
-                <div
-                  key={trader.userId}
-                  className={`rounded-xl p-4 border ${getRankBg(trader.rank)}`}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      {getRankIcon(trader.rank)}
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center font-bold">
-                        {trader.username[0]}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold">{trader.username}</span>
-                          <span>{getCountryFlag(trader.country)}</span>
-                        </div>
-                        {badgeConfig && (
-                          <span className={`text-xs ${badgeConfig.color}`}>{badgeConfig.label}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <div className="text-xs text-gray-500">Profit</div>
-                      <div className="text-emerald-400 font-bold">${trader.totalProfit.toLocaleString()}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Win Rate</div>
-                      <div className="text-blue-400 font-semibold">{trader.winRate}%</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Best Trade</div>
-                      <div className="text-yellow-400 font-semibold">${trader.bestTrade.toLocaleString()}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Streak</div>
-                      <div className="text-orange-400">{trader.consecutiveWins} wins</div>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
+        <div className="mt-6 grid md:grid-cols-3 gap-4">
+          <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
+            <Users className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-gray-900">{filteredRunners.length.toLocaleString()}</div>
+            <div className="text-sm text-gray-600">Active Traders</div>
           </div>
+          <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
+            <DollarSign className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-gray-900">$15,000</div>
+            <div className="text-sm text-gray-600">Total Prize Pool</div>
+          </div>
+          <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
+            <TrendingUp className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-gray-900">125%</div>
+            <div className="text-sm text-gray-600">Highest ROI</div>
+          </div>
+        </div>
+
+        <div className="mt-6 bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-xl p-6 text-center">
+          <Sparkles className="w-12 h-12 text-cyan-600 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-gray-900 mb-2">Ingin Masuk Leaderboard?</h3>
+          <p className="text-gray-600 mb-6 max-w-xl mx-auto">
+            Mulai trading sekarang dan raih kesempatan untuk menjadi Top Trader dan menangkan hadiah fantastis setiap bulannya!
+          </p>
+          <button className="bg-cyan-600 hover:bg-cyan-700 text-white px-8 py-3 rounded-lg font-medium transition-colors inline-flex items-center gap-2 shadow-sm">
+            <TrendingUp className="w-5 h-5" />
+            Start Trading
+          </button>
         </div>
       </div>
 

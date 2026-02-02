@@ -219,8 +219,8 @@ export default function HistoryPage() {
       setAllOrders(ordersList)
       
     } catch (error) {
-      console.error('Failed to load orders:', error)
-      toast.error('Failed to load trading history', {
+      console.error('Gagal memuat pesanan:', error)
+      toast.error('Gagal memuat riwayat trading', {
         style: { background: '#ef4444', color: '#fff' }
       })
     } finally {
@@ -314,9 +314,9 @@ export default function HistoryPage() {
                 <BarChart3 className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-gray-900">Trading History</h1>
+                <h1 className="text-lg font-bold text-gray-900">Riwayat Trading</h1>
                 <p className="text-xs text-gray-500">
-                  {stats.total} trades • Page {currentPage}/{totalPages}
+                  {stats.total} transaksi • Hal {currentPage}/{totalPages}
                 </p>
               </div>
             </div>
@@ -327,7 +327,7 @@ export default function HistoryPage() {
               whileTap={{ scale: 0.95 }}
             >
               <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
+              Perbarui
             </motion.button>
           </div>
         </motion.div>
@@ -349,19 +349,19 @@ export default function HistoryPage() {
           <motion.div className="bg-white rounded-xl p-3 border border-gray-100 flex-shrink-0 w-28 snap-start flex flex-col justify-center items-center text-center" variants={fadeIn} whileTap={{ scale: 0.98 }}>
             <Activity className="w-5 h-5 text-blue-600 mb-1" />
             <div className="text-lg font-bold text-gray-900">{stats.total}</div>
-            <div className="text-[10px] text-gray-500">Trades</div>
+            <div className="text-[10px] text-gray-500">Transaksi</div>
           </motion.div>
 
           <motion.div className="bg-white rounded-xl p-3 border border-gray-100 flex-shrink-0 w-24 snap-start flex flex-col justify-center items-center text-center" variants={fadeIn} whileTap={{ scale: 0.98 }}>
             <TrendingUp className="w-5 h-5 text-green-600 mb-1" />
             <div className="text-lg font-bold text-green-600">{stats.won}</div>
-            <div className="text-[10px] text-gray-500">Won</div>
+            <div className="text-[10px] text-gray-500">Menang</div>
           </motion.div>
 
           <motion.div className="bg-white rounded-xl p-3 border border-gray-100 flex-shrink-0 w-24 snap-start flex flex-col justify-center items-center text-center" variants={fadeIn} whileTap={{ scale: 0.98 }}>
             <TrendingDown className="w-5 h-5 text-red-600 mb-1" />
             <div className="text-lg font-bold text-red-600">{stats.lost}</div>
-            <div className="text-[10px] text-gray-500">Lost</div>
+            <div className="text-[10px] text-gray-500">Kalah</div>
           </motion.div>
 
           <motion.div className="bg-white rounded-xl p-3 border border-gray-100 flex-shrink-0 w-28 snap-start flex flex-col justify-center items-center text-center mr-1" variants={fadeIn} whileTap={{ scale: 0.98 }}>
@@ -376,10 +376,10 @@ export default function HistoryPage() {
           <div>
             <div className="flex items-center gap-1.5 mb-2">
               <Filter className="w-3.5 h-3.5 text-gray-500" />
-              <span className="text-xs font-medium text-gray-600">Account:</span>
+              <span className="text-xs font-medium text-gray-600">Akun:</span>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-              {[{ id: 'all', label: 'All' }, { id: 'real', label: 'Real' }, { id: 'demo', label: 'Demo' }].map((account) => (
+              {[{ id: 'all', label: 'Semua' }, { id: 'real', label: 'Real' }, { id: 'demo', label: 'Demo' }].map((account) => (
                 <motion.button
                   key={account.id}
                   onClick={() => handleFilterChange(account.id, 'account')}
@@ -400,7 +400,7 @@ export default function HistoryPage() {
               <span className="text-xs font-medium text-gray-600">Status:</span>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-              {[{ id: 'all', label: 'All' }, { id: 'ACTIVE', label: 'Active' }, { id: 'WON', label: 'Won' }, { id: 'LOST', label: 'Lost' }].map((f) => (
+              {[{ id: 'all', label: 'Semua' }, { id: 'ACTIVE', label: 'Aktif' }, { id: 'WON', label: 'Menang' }, { id: 'LOST', label: 'Kalah' }].map((f) => (
                 <motion.button
                   key={f.id}
                   onClick={() => handleFilterChange(f.id, 'status')}
@@ -422,8 +422,8 @@ export default function HistoryPage() {
             {displayedOrders.length === 0 ? (
               <motion.div className="text-center py-8 px-4 bg-white rounded-xl border border-gray-100" variants={fadeIn}>
                 <Activity className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                <h3 className="text-sm font-semibold text-gray-900 mb-1">No trades found</h3>
-                <p className="text-xs text-gray-500">Try adjusting your filters</p>
+                <h3 className="text-sm font-semibold text-gray-900 mb-1">Tidak ada transaksi</h3>
+                <p className="text-xs text-gray-500">Coba sesuaikan filter Anda</p>
               </motion.div>
             ) : (
               displayedOrders.map((order) => (
@@ -456,12 +456,12 @@ export default function HistoryPage() {
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                       order.status === 'WON' ? 'bg-green-100 text-green-700' : order.status === 'LOST' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-                    }`}>{order.status}</span>
+                    }`}>{order.status === 'WON' ? 'MENANG' : order.status === 'LOST' ? 'KALAH' : 'AKTIF'}</span>
                     {order.profit !== null && order.profit !== undefined ? (
                       <span className={`text-xs font-bold ${order.profit > 0 ? 'text-green-600' : order.profit < 0 ? 'text-red-600' : 'text-gray-500'}`}>
                         {order.profit > 0 ? '+' : ''}{formatCurrency(order.profit)}
                       </span>
-                    ) : <span className="text-xs text-gray-400">Pending</span>}
+                    ) : <span className="text-xs text-gray-400">Tertunda</span>}
                   </div>
                 </motion.div>
               ))
@@ -486,7 +486,7 @@ export default function HistoryPage() {
             </motion.button>
 
             <div className="flex flex-col items-center justify-center bg-gray-100 rounded-lg px-4 py-2 min-w-[70px]">
-              <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">Page</span>
+              <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">Hal</span>
               <div className="flex items-baseline gap-1">
                 <span className="text-xl font-black text-gray-900">{currentPage}</span>
                 <span className="text-gray-400 text-sm font-medium">/</span>
@@ -513,9 +513,9 @@ export default function HistoryPage() {
         {/* Desktop Header */}
         <motion.div className="mb-6" variants={fadeIn} initial="hidden" animate="visible">
           <motion.div className="flex items-center gap-2 text-sm text-gray-500 mb-3" variants={staggerContainer}>
-            <motion.span variants={fadeIn}>Dashboard</motion.span>
+            <motion.span variants={fadeIn}>Dasbor</motion.span>
             <span>/</span>
-            <motion.span variants={fadeIn} className="text-gray-900 font-medium">History</motion.span>
+            <motion.span variants={fadeIn} className="text-gray-900 font-medium">Riwayat</motion.span>
           </motion.div>
           
           <div className="flex items-center justify-between">
@@ -524,16 +524,16 @@ export default function HistoryPage() {
                 <BarChart3 className="w-5 h-5 text-white" />
               </motion.div>
               <div>
-                <motion.h1 className="text-2xl font-bold text-gray-900" variants={fadeIn}>Trading History</motion.h1>
+                <motion.h1 className="text-2xl font-bold text-gray-900" variants={fadeIn}>Riwayat Trading</motion.h1>
                 <motion.p className="text-sm text-gray-500" variants={fadeIn}>
-                  Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} trades • Page {currentPage} of {totalPages}
+                  Menampilkan {startIndex + 1}-{Math.min(endIndex, totalItems)} dari {totalItems} transaksi • Halaman {currentPage} dari {totalPages}
                 </motion.p>
               </div>
             </div>
             
-            <motion.button onClick={handleRefresh} disabled={refreshing} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-sm font-medium" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <motion.button onClick={handleRefresh} disabled={refreshing} className="flex items-center gap-2 px-4 py-2 bg-white text-black border border-gray-200 rounded-lg hover:bg-gray-50 text-sm font-medium" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <RefreshCw className={`w-4 h-4 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Refreshing...' : 'Refresh'}
+              {refreshing ? 'Memperbarui...' : 'Perbarui'}
             </motion.button>
           </div>
         </motion.div>
@@ -558,7 +558,7 @@ export default function HistoryPage() {
                 <Activity className="w-5 h-5 text-blue-600" />
               </motion.div>
               <div>
-                <div className="text-xs font-medium text-gray-500 mb-1">Total Trades</div>
+                <div className="text-xs font-medium text-gray-500 mb-1">Total Transaksi</div>
                 <div className="text-lg font-bold text-gray-900">{stats.total}</div>
               </div>
             </motion.div>
@@ -568,7 +568,7 @@ export default function HistoryPage() {
                 <TrendingUp className="w-5 h-5 text-green-600" />
               </motion.div>
               <div>
-                <div className="text-xs font-medium text-gray-500 mb-1">Won</div>
+                <div className="text-xs font-medium text-gray-500 mb-1">Menang</div>
                 <div className="text-lg font-bold text-green-600">{stats.won}</div>
               </div>
             </motion.div>
@@ -578,7 +578,7 @@ export default function HistoryPage() {
                 <TrendingDown className="w-5 h-5 text-red-600" />
               </motion.div>
               <div>
-                <div className="text-xs font-medium text-gray-500 mb-1">Lost</div>
+                <div className="text-xs font-medium text-gray-500 mb-1">Kalah</div>
                 <div className="text-lg font-bold text-red-600">{stats.lost}</div>
               </div>
             </motion.div>
@@ -601,10 +601,10 @@ export default function HistoryPage() {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <Wallet className="w-4 h-4 text-gray-500" />
-                <span className="text-sm text-gray-600 font-medium">Account:</span>
+                <span className="text-sm text-gray-600 font-medium">Akun:</span>
               </div>
               <div className="flex gap-2">
-                {[{ id: 'all', label: 'All' }, { id: 'real', label: 'Real' }, { id: 'demo', label: 'Demo' }].map((account) => (
+                {[{ id: 'all', label: 'Semua' }, { id: 'real', label: 'Real' }, { id: 'demo', label: 'Demo' }].map((account) => (
                   <motion.button key={account.id} onClick={() => handleFilterChange(account.id, 'account')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${accountFilter === account.id ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     {account.label}
                   </motion.button>
@@ -618,7 +618,7 @@ export default function HistoryPage() {
                 <span className="text-sm text-gray-600 font-medium">Status:</span>
               </div>
               <div className="flex gap-2">
-                {[{ id: 'all', label: 'All' }, { id: 'ACTIVE', label: 'Active' }, { id: 'WON', label: 'Won' }, { id: 'LOST', label: 'Lost' }].map((f) => (
+                {[{ id: 'all', label: 'Semua' }, { id: 'ACTIVE', label: 'Aktif' }, { id: 'WON', label: 'Menang' }, { id: 'LOST', label: 'Kalah' }].map((f) => (
                   <motion.button key={f.id} onClick={() => handleFilterChange(f.id, 'status')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${statusFilter === f.id ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-700'}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     {f.label}
                   </motion.button>
@@ -633,8 +633,8 @@ export default function HistoryPage() {
           {displayedOrders.length === 0 ? (
             <motion.div className="text-center py-12 px-4" variants={fadeIn}>
               <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No trades found</h3>
-              <p className="text-gray-500 mb-4">Try adjusting your filters</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Tidak ada transaksi</h3>
+              <p className="text-gray-500 mb-4">Coba sesuaikan filter Anda</p>
             </motion.div>
           ) : (
             <>
@@ -642,7 +642,7 @@ export default function HistoryPage() {
                 <table className="w-full">
                   <thead>
                     <motion.tr className="bg-gray-50 border-b border-gray-200">
-                      {['Time', 'Asset', 'Account', 'Type', 'Amount', 'Entry', 'Exit', 'Duration', 'Status', 'P&L'].map((header) => (
+                      {['Waktu', 'Aset', 'Akun', 'Tipe', 'Jumlah', 'Masuk', 'Keluar', 'Durasi', 'Status', 'P&L'].map((header) => (
                         <th key={header} className="text-left text-xs font-semibold text-gray-600 py-4 px-4">{header}</th>
                       ))}
                     </motion.tr>
@@ -654,7 +654,7 @@ export default function HistoryPage() {
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-2 text-xs text-gray-600">
                               <CalendarClock className="w-4 h-4 text-gray-400" />
-                              {new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              {new Date(order.createdAt).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </div>
                           </td>
                           <td className="py-4 px-4">
@@ -678,7 +678,9 @@ export default function HistoryPage() {
                           <td className="py-4 px-4 text-center"><span className={`text-sm font-semibold ${order.exit_price ? 'text-gray-900' : 'text-gray-400'}`}>{order.exit_price ? order.exit_price.toFixed(3) : '—'}</span></td>
                           <td className="py-4 px-4 text-center"><span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 rounded text-xs text-gray-700"><Clock className="w-3 h-3" />{order.duration}m</span></td>
                           <td className="py-4 px-4 text-center">
-                            <span className={`inline-flex px-2 py-1 rounded text-xs font-bold ${order.status === 'WON' ? 'bg-green-100 text-green-700' : order.status === 'LOST' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>{order.status}</span>
+                            <span className={`inline-flex px-2 py-1 rounded text-xs font-bold ${order.status === 'WON' ? 'bg-green-100 text-green-700' : order.status === 'LOST' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                              {order.status === 'WON' ? 'MENANG' : order.status === 'LOST' ? 'KALAH' : 'AKTIF'}
+                            </span>
                           </td>
                           <td className="py-4 px-4 text-right">
                             {order.profit !== null && order.profit !== undefined ? (
@@ -699,12 +701,12 @@ export default function HistoryPage() {
                 <motion.div className="border-t border-gray-200 px-4 py-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
                   <div className="flex items-center justify-between">
                     <div className="text-sm text-gray-600">
-                      Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} trades
+                      Menampilkan {startIndex + 1} sampai {Math.min(endIndex, totalItems)} dari {totalItems} transaksi
                     </div>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 text-black">
                       <motion.button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg disabled:opacity-50 text-sm font-medium" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                        <ChevronLeft className="w-4 h-4" /> Previous
+                        <ChevronLeft className="w-4 h-4" /> Sebelumnya
                       </motion.button>
                       
                       <div className="flex items-center gap-1">
@@ -725,7 +727,7 @@ export default function HistoryPage() {
                       </div>
                       
                       <motion.button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg disabled:opacity-50 text-sm font-medium" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                        Next <ChevronRight className="w-4 h-4" />
+                        Selanjutnya <ChevronRight className="w-4 h-4" />
                       </motion.button>
                     </div>
                   </div>

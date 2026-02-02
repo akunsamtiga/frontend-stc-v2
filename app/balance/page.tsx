@@ -439,7 +439,7 @@ export default function BalancePage() {
             <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-500 mb-2 sm:mb-3">
               <span>Dashboard</span>
               <span>/</span>
-              <span className="text-gray-900 font-medium">Wallet</span>
+              <span className="text-gray-900 font-medium">Keuangan</span>
             </div>
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 sm:gap-3">
@@ -447,8 +447,8 @@ export default function BalancePage() {
                   <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">My Wallet</h1>
-                  <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Manage your Real and Demo funds</p>
+                  <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">Dompet Saya</h1>
+                  <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Kelola Dana Real Dan Demo Anda</p>
                 </div>
               </div>
               
@@ -512,7 +512,7 @@ export default function BalancePage() {
                     </div>
                     <div className="min-w-0">
                       <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                        Real Account
+                        Akun Real
                         <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700 rounded font-bold">REAL</span>
                       </div>
                       {profitBonus > 0 && (
@@ -537,7 +537,7 @@ export default function BalancePage() {
                       className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-semibold hover:bg-red-600 transition-colors whitespace-nowrap"
                     >
                       <ArrowUpFromLine className="w-3.5 h-3.5" />
-                      Withdraw
+                      Penarikan
                     </Link>
                   </div>
                 </div>
@@ -555,7 +555,7 @@ export default function BalancePage() {
                     </div>
                     <div className="min-w-0">
                       <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                        Demo Account
+                        Akun Demo
                         <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-bold">DEMO</span>
                       </div>
                       <div className="text-xs text-blue-600 font-semibold">Practice</div>
@@ -573,7 +573,7 @@ export default function BalancePage() {
                     className="flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-500 text-white rounded-lg text-xs font-semibold hover:bg-blue-600 transition-colors flex-shrink-0"
                   >
                     <ArrowDownToLine className="w-3.5 h-3.5" />
-                    Add Funds
+                    Isi Ulang
                   </button>
                 </div>
               </div>
@@ -593,7 +593,7 @@ export default function BalancePage() {
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                     <CreditCard className="w-5 h-5 text-green-600" />
-                    Real Account
+                    Akun Real
                     {profitBonus > 0 && (
                       <span className="flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-lg border border-green-500/30 text-xs font-bold text-green-700">
                         <Award className="w-3 h-3" />
@@ -614,7 +614,7 @@ export default function BalancePage() {
                       className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-semibold shadow-md transition-colors"
                     >
                       <ArrowUpFromLine className="w-4 h-4" />
-                      Withdraw
+                      Penarikan
                     </Link>
                   </div>
                 </div>
@@ -653,7 +653,7 @@ export default function BalancePage() {
                     </div>
                     
                     <div className="mb-auto">
-                      <div className="text-white/70 text-xs font-bold tracking-widest mb-2">CURRENT BALANCE</div>
+                      <div className="text-white/70 text-xs font-bold tracking-widest mb-2">SALDO SAAT INI</div>
                       <div className="text-3xl font-black text-white tracking-tight break-all mb-2" style={{ fontFamily: 'monospace' }}>
                         {formatCurrency(realBalance)}
                       </div>
@@ -673,18 +673,18 @@ export default function BalancePage() {
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <div className="text-white/60 text-[10px] font-bold tracking-widest">VALID THRU</div>
+                        <div className="text-white/60 text-[10px] font-bold tracking-widest">MASA BERLAKU</div>
                         <div className="text-sm font-black text-white tracking-wider">12/28</div>
                       </div>
                     </div>
                     
                     <div className="mt-4 flex justify-between items-center">
-                      <div className="text-white/40 text-xs font-mono tracking-widest">
+                      <div className="text-white/40 text-xs tracking-widest">
                         •••• •••• •••• {Math.floor(Math.random() * 9000 + 1000)}
                       </div>
                       <div className="flex gap-1">
                         <div className="px-2 py-1 bg-white/90 backdrop-blur-sm rounded border border-white/30 flex items-center justify-center">
-                          <span className="text-xs font-black text-blue-600">VISA</span>
+                          <span className="text-xs font-black text-blue-600">REALCARD</span>
                         </div>
                       </div>
                     </div>
@@ -700,7 +700,7 @@ export default function BalancePage() {
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                     <CreditCard className="w-5 h-5 text-blue-600" />
-                    Demo Account
+                    Akun Demo
                     <span className="flex items-center gap-1 px-2 py-1 bg-blue-500/20 rounded-lg border border-blue-500/30 text-xs font-bold text-blue-700">
                       Practice
                     </span>
@@ -710,7 +710,7 @@ export default function BalancePage() {
                     className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-semibold shadow-md transition-colors"
                   >
                     <ArrowDownToLine className="w-4 h-4" />
-                    Add
+                    Isi Ulang
                   </button>
                 </div>
 
@@ -748,7 +748,7 @@ export default function BalancePage() {
                     </div>
                     
                     <div className="mb-auto">
-                      <div className="text-white/70 text-xs font-bold tracking-widest mb-2">CURRENT BALANCE</div>
+                      <div className="text-white/70 text-xs font-bold tracking-widest mb-2">SALDO SAAT INI</div>
                       <div className="text-3xl font-black text-white tracking-tight break-all mb-2" style={{ fontFamily: 'monospace' }}>
                         {formatCurrency(demoBalance)}
                       </div>
@@ -765,18 +765,18 @@ export default function BalancePage() {
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <div className="text-white/60 text-[10px] font-bold tracking-widest">VALID THRU</div>
+                        <div className="text-white/60 text-[10px] font-bold tracking-widest">MASA BERLAKU</div>
                         <div className="text-sm font-black text-white tracking-wider">12/28</div>
                       </div>
                     </div>
                     
                     <div className="mt-4 flex justify-between items-center">
-                      <div className="text-white/40 text-xs font-mono tracking-widest">
+                      <div className="text-white/40 text-xs tracking-widest">
                         •••• •••• •••• {Math.floor(Math.random() * 9000 + 1000)}
                       </div>
                       <div className="flex gap-1">
                         <div className="px-2 py-1 bg-white/90 backdrop-blur-sm rounded border border-white/30 flex items-center justify-center">
-                          <span className="text-xs font-black text-purple-600">MASTERCARD</span>
+                          <span className="text-xs font-black text-purple-600">DEMOCARD</span>
                         </div>
                       </div>
                     </div>
@@ -797,7 +797,7 @@ export default function BalancePage() {
             <div className="p-4 sm:p-5 lg:p-6 border-b border-gray-200">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
                 <Receipt className="w-5 h-5 text-blue-600" />
-                Transaction History
+                Riwayat Transaksi
                 {allTransactions.length > 0 && (
                   <span className="text-sm font-normal text-gray-500 ml-auto">
                     ({filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''})
@@ -808,7 +808,7 @@ export default function BalancePage() {
               {/* Account Filter */}
               <div className="flex gap-2 flex-wrap">
                 {[
-                  { id: 'all' as const, label: 'All', count: allTransactions.length },
+                  { id: 'all' as const, label: 'Semua', count: allTransactions.length },
                   { id: 'real' as const, label: 'Real', count: allTransactions.filter(t => t.accountType === 'real').length },
                   { id: 'demo' as const, label: 'Demo', count: allTransactions.filter(t => t.accountType === 'demo').length },
                 ].map(filter => (

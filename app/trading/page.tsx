@@ -1,7 +1,7 @@
-// app/(main)/trading/page.tsx - COMPLETE VERSION with Desktop Left Sidebar
+// app/(main)/trading/page.tsx - FIXED: Maximum update depth exceeded
 'use client'
 
-import { useEffect, useState, useCallback, memo, useRef } from 'react'
+import { useEffect, useState, useCallback, memo, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { unstable_batchedUpdates } from 'react-dom'
@@ -47,6 +47,7 @@ import { useWebSocket, usePriceSubscription, useOrderSubscription } from '@/comp
 import { CalculationUtil } from '@/lib/calculation'
 import { TimezoneUtil } from '@/lib/timezone'
 import { useOptimisticOrders, useAggressiveResultPolling } from '@/hooks/useInstantOrders'
+import { useOrderResultNotification } from '@/hooks/useBatchNotification'
 
 const TradingChart = dynamic(() => import('@/components/TradingChart'), {
   ssr: false,
@@ -98,7 +99,7 @@ export default function TradingPage() {
   const selectedAccountType = useSelectedAccountType()
   const { setSelectedAsset, setCurrentPrice, addPriceToHistory, setSelectedAccountType } = useTradingActions()
 
-  // ✅ NEW: Optimistic orders hook
+  // ✅ Optimistic orders hook
   const {
     orders: allOrders,
     confirmedOrders,
@@ -110,16 +111,31 @@ export default function TradingPage() {
     setAllOrders,
   } = useOptimisticOrders()
 
+  // ✅ Batch notification system - WITH MEMOIZATION
+  const notification = useOrderResultNotification()
+  
+  // ✅ Extract notify function to stable reference
+  const notify = notification.notify
+
+  // ✅ NEW: Refs untuk menghindari dependency cycle
+  const notifiedOrderIdsRef = useRef<Set<string>>(new Set())
+  const updateOrderRef = useRef(updateOrder)
+  const notifyRef = useRef(notify)
+  
+  // ✅ Sync refs with latest functions
+  useEffect(() => {
+    updateOrderRef.current = updateOrder
+    notifyRef.current = notify
+  }, [updateOrder, notify])
+
   const [assets, setAssets] = useState<Asset[]>([])
   const [realBalance, setRealBalance] = useState(0)
   const [demoBalance, setDemoBalance] = useState(0)
   const [amount, setAmount] = useState(10000)
   const [duration, setDuration] = useState(1)
   const [loading, setLoading] = useState(false)
-  const [notificationOrder, setNotificationOrder] = useState<BinaryOrder | null>(null)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   
-  const notifiedOrdersRef = useRef<Set<string>>(new Set())
   const balanceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   const [showAssetMenu, setShowAssetMenu] = useState(false)
@@ -127,11 +143,14 @@ export default function TradingPage() {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showHistorySidebar, setShowHistorySidebar] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [isMobileMenuClosing, setIsMobileMenuClosing] = useState(false)
   const [showWalletModal, setShowWalletModal] = useState(false)
+  const [isWalletModalClosing, setIsWalletModalClosing] = useState(false)
   const [showAmountDropdown, setShowAmountDropdown] = useState(false)
   const [showDurationDropdown, setShowDurationDropdown] = useState(false)
   const [showDesktopDurationDropdown, setShowDesktopDurationDropdown] = useState(false)
   const [showLeftSidebar, setShowLeftSidebar] = useState(false)
+  const [isLeftSidebarClosing, setIsLeftSidebarClosing] = useState(false)
 
   const currentBalance = selectedAccountType === 'real' ? realBalance : demoBalance
   const isUltraFastMode = duration === 0.0167
@@ -153,7 +172,7 @@ export default function TradingPage() {
     true
   )
 
-  // ✅ WebSocket price updates
+  // ✅ WebSocket price updates - FIXED dependencies
   useEffect(() => {
     if (wsPrice && selectedAsset?.id === wsPrice.assetId) {
       setCurrentPrice({
@@ -163,46 +182,58 @@ export default function TradingPage() {
         change: wsPrice.changePercent24h || 0,
       })
     }
-  }, [wsPrice, priceLastUpdate, selectedAsset?.id, setCurrentPrice])
+  }, [wsPrice, selectedAsset?.id, setCurrentPrice]) // ✅ Hapus priceLastUpdate jika tidak stabil
 
-  // ✅ WebSocket order updates
+  // ✅ FIXED: WebSocket order updates - menggunakan refs untuk menghindari infinite loop
   useEffect(() => {
-    if (wsOrder) {
-      if (wsOrder.event === 'order:created') {
-        loadOrders()
-      } else if (wsOrder.event === 'order:settled') {
-        updateOrder(wsOrder.id, {
-          status: wsOrder.status,
-          exit_price: wsOrder.exit_price,
-          profit: wsOrder.profit,
-        } as any)
-        loadBalances()
+    if (!wsOrder) return
+    
+    if (wsOrder.event === 'order:created') {
+      loadOrders()
+    } else if (wsOrder.event === 'order:settled') {
+      // Gunakan ref untuk updateOrder agar tidak trigger dependency change
+      updateOrderRef.current(wsOrder.id, {
+        status: wsOrder.status,
+        exit_price: wsOrder.exit_price,
+        profit: wsOrder.profit,
+      } as any)
+      
+      if (!notifiedOrderIdsRef.current.has(wsOrder.id)) {
+        notifiedOrderIdsRef.current.add(wsOrder.id)
+        
+        api.getOrderById(wsOrder.id).then(response => {
+          const fullOrder = response?.data || response
+          // Gunakan ref untuk notify
+          notifyRef.current(fullOrder)
+        }).catch(console.error)
       }
+      
+      loadBalances()
     }
-  }, [wsOrder, orderLastUpdate, updateOrder])
+    // ✅ HANYA dependency wsOrder - jangan tambahkan yang lain
+  }, [wsOrder]) 
 
-  // ✅ NEW: Aggressive polling for results
-  useAggressiveResultPolling(activeOrders, useCallback((resultOrder: BinaryOrder) => {
-    console.log('🎯 Result detected via polling:', resultOrder.id, resultOrder.status)
+  // ✅ FIXED: Polling dengan stable callback menggunakan ref
+  const handlePollingResult = useCallback((resultOrder: BinaryOrder) => {
+    console.log('🎯 Polling detected:', resultOrder.id)
     
-    // Update order
-    updateOrder(resultOrder.id, resultOrder)
+    updateOrderRef.current(resultOrder.id, resultOrder)
     
-    // Show notification only once
-    if (!notifiedOrdersRef.current.has(resultOrder.id)) {
-      notifiedOrdersRef.current.add(resultOrder.id)
-      setNotificationOrder(resultOrder)
-      
-      // Update balance
-      if (balanceUpdateTimeoutRef.current) {
-        clearTimeout(balanceUpdateTimeoutRef.current)
-      }
-      
-      balanceUpdateTimeoutRef.current = setTimeout(() => {
-        loadBalances()
-      }, 100)
+    if (!notifiedOrderIdsRef.current.has(resultOrder.id)) {
+      notifiedOrderIdsRef.current.add(resultOrder.id)
+      notifyRef.current(resultOrder)
     }
-  }, [updateOrder]))
+    
+    if (balanceUpdateTimeoutRef.current) {
+      clearTimeout(balanceUpdateTimeoutRef.current)
+    }
+    
+    balanceUpdateTimeoutRef.current = setTimeout(() => {
+      loadBalances()
+    }, 100)
+  }, []) // ✅ Empty deps karena menggunakan refs
+
+  useAggressiveResultPolling(activeOrders, handlePollingResult)
 
   const loadBalances = useCallback(async () => {
     try {
@@ -220,10 +251,8 @@ export default function TradingPage() {
   const loadUserProfile = useCallback(async () => {
     try {
       const response = await api.getProfile()
-      // ✅ FIXED: Properly extract UserProfile from ApiResponse
       const profile = (response as any)?.data as UserProfile || response as UserProfile
       
-      // Type guard: Only set if we have valid profile data
       if (profile && 'user' in profile && 'statusInfo' in profile) {
         setUserProfile(profile)
       }
@@ -254,7 +283,6 @@ export default function TradingPage() {
       const assetsList = assetsRes?.data?.assets || assetsRes?.assets || []
       const balances = balancesRes?.data || balancesRes
       const allOrders = ordersRes?.data?.orders || ordersRes?.orders || []
-      // ✅ FIXED: Properly extract UserProfile from ApiResponse
       const profile = (profileRes as any)?.data as UserProfile || profileRes as UserProfile
 
       unstable_batchedUpdates(() => {
@@ -262,7 +290,6 @@ export default function TradingPage() {
         setRealBalance(balances?.realBalance || 0)
         setDemoBalance(balances?.demoBalance || 0)
         setAllOrders(allOrders)
-        // Type guard: Only set if we have valid profile data
         if (profile && 'user' in profile && 'statusInfo' in profile) {
           setUserProfile(profile)
         }
@@ -333,6 +360,30 @@ export default function TradingPage() {
     }
   }, [logout, router])
 
+  const handleCloseWalletModal = useCallback(() => {
+    setIsWalletModalClosing(true)
+    setTimeout(() => {
+      setShowWalletModal(false)
+      setIsWalletModalClosing(false)
+    }, 250) // Match animation duration
+  }, [])
+
+  const handleCloseMobileMenu = useCallback(() => {
+    setIsMobileMenuClosing(true)
+    setTimeout(() => {
+      setShowMobileMenu(false)
+      setIsMobileMenuClosing(false)
+    }, 250) // Match animation duration
+  }, [])
+
+  const handleCloseLeftSidebar = useCallback(() => {
+    setIsLeftSidebarClosing(true)
+    setTimeout(() => {
+      setShowLeftSidebar(false)
+      setIsLeftSidebarClosing(false)
+    }, 250) // Match animation duration
+  }, [])
+
   // ✅ Initial load
   useEffect(() => {
     if (!user) {
@@ -357,7 +408,7 @@ export default function TradingPage() {
     }
     
     initializeData()
-  }, [user, router, assets])
+  }, [user, router, assets.length]) // ✅ Gunakan assets.length bukan assets
 
   // ✅ Show tutorial
   useEffect(() => {
@@ -408,21 +459,34 @@ export default function TradingPage() {
     }
   }, [selectedAsset?.id, setCurrentPrice, addPriceToHistory])
 
-  const handleCloseNotification = useCallback(() => {
-    setNotificationOrder(null)
-  }, [])
-
-  // ✅ Cleanup
+  // ✅ FIXED: Cleanup - tanpa nested return
   useEffect(() => {
     return () => {
       if (balanceUpdateTimeoutRef.current) {
         clearTimeout(balanceUpdateTimeoutRef.current)
       }
-      notifiedOrdersRef.current.clear()
+      notifiedOrderIdsRef.current.clear()
     }
   }, [])
 
-  // ✅ NEW: INSTANT ORDER PLACEMENT with optimistic updates
+  // ✅ NEW: Periodic cleanup of old notified IDs
+  useEffect(() => {
+    const cleanupInterval = setInterval(() => {
+      if (notifiedOrderIdsRef.current.size > 50) {
+        const idsArray = Array.from(notifiedOrderIdsRef.current)
+        const idsToKeep = idsArray.slice(-50)
+        
+        notifiedOrderIdsRef.current.clear()
+        idsToKeep.forEach(id => notifiedOrderIdsRef.current.add(id))
+        
+        console.log('🧹 Trimmed notification cache to 50 most recent')
+      }
+    }, 30000)
+
+    return () => clearInterval(cleanupInterval)
+  }, [])
+
+  // ✅ INSTANT ORDER PLACEMENT with optimistic updates
   const handlePlaceOrder = useCallback(async (direction: 'CALL' | 'PUT') => {
     if (!selectedAsset) {
       toast.error('Please select an asset')
@@ -445,7 +509,7 @@ export default function TradingPage() {
     const now = TimezoneUtil.getCurrentTimestamp()
     const timing = CalculationUtil.formatOrderTiming(selectedAsset, duration, now)
 
-    // ✅ STEP 1: Add optimistic order to UI INSTANTLY (0ms perceived latency)
+    // ✅ STEP 1: Add optimistic order to UI INSTANTLY
     const optimisticId = addOptimisticOrder({
       accountType: selectedAccountType,
       asset_id: selectedAsset.id,
@@ -453,7 +517,7 @@ export default function TradingPage() {
       direction,
       amount,
       duration,
-      entry_price: 0, // Will be updated by backend
+      entry_price: 0,
       entry_time: timing.entryDateTime,
       exit_time: timing.expiryDateTime,
       profitRate: selectedAsset.profitRate,
@@ -486,10 +550,6 @@ export default function TradingPage() {
 
       console.log('✅ Order confirmed:', confirmedOrderData.id)
 
-      toast.success(`${direction} order placed! Expires at ${timing.expiryDateTime}`, {
-        duration: 2000,
-      })
-
     } catch (error: any) {
       // ✅ STEP 5: Rollback on error
       console.error('❌ Order failed, rolling back:', error)
@@ -520,30 +580,24 @@ export default function TradingPage() {
     rollbackOrder,
   ])
 
-  // ✅ FIXED: Calculate profit rate with status bonus (with NaN protection)
+  // ✅ Calculate profit rate with status bonus (with NaN protection)
   const baseProfitRate = Number(selectedAsset?.profitRate) || 0
   
-  // Parse profitBonus - handle both number and string format (e.g., "+5%" or "5" or 5)
   let statusBonus = 0
   if (userProfile?.statusInfo?.profitBonus) {
     const bonus = userProfile.statusInfo.profitBonus
     if (typeof bonus === 'number') {
       statusBonus = bonus
     } else if (typeof bonus === 'string') {
-      // Remove "+", "%", and any whitespace, then parse as number
       const cleaned = String(bonus).replace(/[+%\s]/g, '')
       statusBonus = parseFloat(cleaned) || 0
     } else {
-      // Handle any other type by converting to string first
       const bonusStr = String(bonus).replace(/[+%\s]/g, '')
       statusBonus = parseFloat(bonusStr) || 0
     }
   }
   
-  // Calculate and ensure it's a clean number
   const effectiveProfitRate = Number((baseProfitRate + statusBonus).toFixed(2))
-  
-  // Validate all numbers to prevent NaN
   const validAmount = Number(amount) || 0
   const validProfitRate = Number(effectiveProfitRate) || 0
   
@@ -676,7 +730,7 @@ export default function TradingPage() {
             className="flex items-center gap-2 px-4 py-2.5 bg-[#0C8DF8] rounded-lg"
           >
             <Wallet className="w-4 h-4 text-white" />
-            <span className="text-sm font-medium text-white">Deposit</span>
+            <span className="text-sm font-medium text-white">Top Up</span>
           </button>
 
           <button
@@ -877,7 +931,7 @@ export default function TradingPage() {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* ✅ NEW: Desktop Left Sidebar */}
+        {/* Desktop Left Sidebar */}
         <div className="hidden lg:block w-16 bg-[#0f1419] border-r border-gray-800/50 flex-shrink-0">
           <div className="h-full flex flex-col items-center py-4 gap-2">
             <button
@@ -1229,84 +1283,95 @@ export default function TradingPage() {
         </div>
       </div>
 
-      {/* Mobile Wallet Modal */}
+      {/* Mobile Wallet Modal - Clean & Modern */}
       {showWalletModal && (
         <>
           <div 
-            className="fixed inset-0 bg-black/70 z-50 backdrop-blur-sm animate-fade-in" 
-            onClick={() => setShowWalletModal(false)} 
+            className={`fixed inset-0 bg-black/70 z-50 backdrop-blur-sm ${
+              isWalletModalClosing ? 'animate-fade-out' : 'animate-fade-in'
+            }`}
+            onClick={handleCloseWalletModal} 
           />
-          <div className="fixed bottom-0 left-0 right-0 bg-[#0f1419] rounded-t-3xl z-50 animate-slide-up border-t border-gray-800/50">
+          <div className={`fixed bottom-0 left-0 right-0 bg-[#0f1419] rounded-t-3xl z-50 border-t border-gray-800/50 shadow-2xl ${
+            isWalletModalClosing ? 'animate-slide-down' : 'animate-slide-up'
+          }`}>
             <div className="p-6">
-              <div className="w-12 h-1 bg-gray-700 rounded-full mx-auto mb-6"></div>
+              {/* Handle Bar */}
+              <div className="w-12 h-1.5 bg-gray-700/50 rounded-full mx-auto mb-6"></div>
+              
+              {/* Header */}
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold">Wallet</h3>
-                <button 
-                  onClick={() => setShowWalletModal(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#1a1f2e] transition-colors"
+                <div className="flex items-center gap-2">
+                  <Wallet className="w-5 h-5 text-blue-400" />
+                  <h3 className="text-xl font-bold">Dompet</h3>
+                </div>
+                <button
+                  onClick={handleCloseWalletModal}
+                  className="w-9 h-9 flex items-center justify-center hover:bg-gray-800/50 rounded-xl transition-all active:scale-95"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-5 h-5 text-gray-400" />
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
-                  <div className="text-xs text-gray-400 mb-1">REAL Balance</div>
-                  <div className="text-2xl font-bold text-emerald-400">{formatCurrency(realBalance)}</div>
+              {/* Real Account Card */}
+              <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/20 rounded-2xl p-4 mb-3 shadow-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                      <Wallet className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-300">Real Account</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-emerald-400">{formatCurrency(realBalance)}</div>
+                  </div>
                 </div>
-                <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-xl p-4">
-                  <div className="text-xs text-gray-400 mb-1">DEMO Balance</div>
-                  <div className="text-2xl font-bold text-blue-400">{formatCurrency(demoBalance)}</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => {
+                      handleCloseWalletModal()
+                      setTimeout(() => router.push('/balance'), 300)
+                    }}
+                    className="flex items-center justify-center gap-2 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-400 py-2.5 rounded-xl font-medium transition-all active:scale-95"
+                  >
+                    <ArrowDownToLine className="w-4 h-4" />
+                    <span className="text-sm">Top Up</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleCloseWalletModal()
+                      setTimeout(() => router.push('/balance'), 300)
+                    }}
+                    className="flex items-center justify-center gap-2 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-400 py-2.5 rounded-xl font-medium transition-all active:scale-95"
+                  >
+                    <ArrowUpFromLine className="w-4 h-4" />
+                    <span className="text-sm">Penarikan</span>
+                  </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Demo Account Card */}
+              <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-2xl p-4 shadow-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                      <Zap className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-300">Demo Account</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-blue-400">{formatCurrency(demoBalance)}</div>
+                  </div>
+                </div>
                 <button
                   onClick={() => {
-                    setShowWalletModal(false)
+                    handleCloseWalletModal()
                     setTimeout(() => router.push('/balance'), 300)
                   }}
-                  className="bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl p-6 transition-all group"
+                  className="w-full flex items-center justify-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 py-2.5 rounded-xl font-medium transition-all active:scale-95"
                 >
-                  <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-emerald-500/30 transition-colors">
-                    <ArrowDownToLine className="w-6 h-6 text-emerald-400" />
-                  </div>
-                  <div className="text-center">
-                    <div className="font-bold text-emerald-400 mb-1">Deposit</div>
-                    <div className="text-xs text-gray-400">Add funds</div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowWalletModal(false)
-                    setTimeout(() => router.push('/balance'), 300)
-                  }}
-                  className="bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-xl p-6 transition-all group"
-                >
-                  <div className="w-12 h-12 bg-rose-500/20 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-rose-500/30 transition-colors">
-                    <ArrowUpFromLine className="w-6 h-6 text-rose-400" />
-                  </div>
-                  <div className="text-center">
-                    <div className="font-bold text-rose-400 mb-1">Withdraw</div>
-                    <div className="text-xs text-gray-400">Cash out</div>
-                  </div>
-                </button>
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-gray-800/50">
-                <button
-                  onClick={() => {
-                    setShowWalletModal(false)
-                    setTimeout(() => router.push('/history'), 300)
-                  }}
-                  className="w-full flex items-center justify-between px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <History className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm">Transaction History</span>
-                  </div>
-                  <ChevronDown className="w-4 h-4 text-gray-400 rotate-[-90deg]" />
+                  <Plus className="w-4 h-4" />
+                  <span className="text-sm">Top Up Demo</span>
                 </button>
               </div>
             </div>
@@ -1317,9 +1382,13 @@ export default function TradingPage() {
       {/* Mobile Menu */}
       {showMobileMenu && (
         <>
-          <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setShowMobileMenu(false)} />
-          <div className="fixed top-0 right-0 bottom-0 w-64 bg-[#0f1419] border-l border-gray-800/50 z-50 p-4 animate-slide-left">
-            <div className="flex items-center justify-between mb-6">
+          <div className={`fixed inset-0 bg-black/80 z-50 ${
+            isMobileMenuClosing ? 'animate-fade-out' : 'animate-fade-in'
+          }`} onClick={handleCloseMobileMenu} />
+          <div className={`fixed top-0 right-0 bottom-0 w-64 bg-[#0f1419] border-l border-gray-800/50 z-50 p-4 ${
+            isMobileMenuClosing ? 'animate-slide-right-out' : 'animate-slide-left'
+          }`}>
+            <div className="mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-blue-500/30">
                   {userProfile?.profileInfo?.avatar?.url ? (
@@ -1341,9 +1410,6 @@ export default function TradingPage() {
                   <p className="text-xs text-gray-400">{user.role}</p>
                 </div>
               </div>
-              <button onClick={() => setShowMobileMenu(false)}>
-                <X className="w-5 h-5" />
-              </button>
             </div>
             
             <div className="space-y-2">
@@ -1355,7 +1421,7 @@ export default function TradingPage() {
                       key={asset.id}
                       onClick={() => {
                         setSelectedAsset(asset)
-                        setShowMobileMenu(false)
+                        handleCloseMobileMenu()
                       }}
                       onTouchStart={() => {
                         if (asset.realtimeDbPath) {
@@ -1387,7 +1453,7 @@ export default function TradingPage() {
               <button
                 onClick={() => {
                   setShowHistorySidebar(true)
-                  setShowMobileMenu(false)
+                  handleCloseMobileMenu()
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
@@ -1397,8 +1463,8 @@ export default function TradingPage() {
 
               <button
                 onClick={() => {
-                  router.push('/balance')
-                  setShowMobileMenu(false)
+                  handleCloseMobileMenu()
+                  setTimeout(() => router.push('/balance'), 300)
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
@@ -1408,8 +1474,8 @@ export default function TradingPage() {
               
               <button
                 onClick={() => {
-                  router.push('/profile')
-                  setShowMobileMenu(false)
+                  handleCloseMobileMenu()
+                  setTimeout(() => router.push('/profile'), 300)
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
@@ -1419,7 +1485,7 @@ export default function TradingPage() {
 
               <button
                 onClick={() => {
-                  setShowMobileMenu(false)
+                  handleCloseMobileMenu()
                   setTimeout(() => {
                     setShowTutorial(true)
                   }, 300)
@@ -1432,7 +1498,8 @@ export default function TradingPage() {
 
               <button
                 onClick={() => {
-                  setShowMobileMenu(false)
+                  handleCloseMobileMenu()
+                  setTimeout(() => handleLogout(), 300)
                   handleLogout()
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg transition-colors text-rose-400"
@@ -1448,9 +1515,13 @@ export default function TradingPage() {
       {/* Left Sidebar */}
       {showLeftSidebar && (
         <>
-          <div className="fixed inset-0 bg-black/80 z-50" onClick={() => setShowLeftSidebar(false)} />
-          <div className="fixed top-0 left-0 bottom-0 w-64 bg-[#0f1419] border-r border-gray-800/50 z-50 p-4 animate-slide-right">
-            <div className="flex items-center justify-between mb-6">
+          <div className={`fixed inset-0 bg-black/80 z-50 ${
+            isLeftSidebarClosing ? 'animate-fade-out' : 'animate-fade-in'
+          }`} onClick={handleCloseLeftSidebar} />
+          <div className={`fixed top-0 left-0 bottom-0 w-64 bg-[#0f1419] border-r border-gray-800/50 z-50 p-4 ${
+            isLeftSidebarClosing ? 'animate-slide-left-out' : 'animate-slide-right'
+          }`}>
+            <div className="mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 relative">
                   <Image 
@@ -1462,16 +1533,13 @@ export default function TradingPage() {
                 </div>
                 <span className="font-bold">STC AutoTrade</span>
               </div>
-              <button onClick={() => setShowLeftSidebar(false)}>
-                <X className="w-5 h-5" />
-              </button>
             </div>
             
             <div className="space-y-2">
               <button
                 onClick={() => {
-                  router.push('/calendar')
-                  setShowLeftSidebar(false)
+                  handleCloseLeftSidebar()
+                  setTimeout(() => router.push('/calendar'), 300)
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
@@ -1481,8 +1549,8 @@ export default function TradingPage() {
 
               <button
                 onClick={() => {
-                  router.push('/event')
-                  setShowLeftSidebar(false)
+                  handleCloseLeftSidebar()
+                  setTimeout(() => router.push('/event'), 300)
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
@@ -1492,8 +1560,8 @@ export default function TradingPage() {
 
               <button
                 onClick={() => {
-                  router.push('/tournament')
-                  setShowLeftSidebar(false)
+                  handleCloseLeftSidebar()
+                  setTimeout(() => router.push('/tournament'), 300)
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
@@ -1503,8 +1571,8 @@ export default function TradingPage() {
               
               <button
                 onClick={() => {
-                  router.push('/runner-up')
-                  setShowLeftSidebar(false)
+                  handleCloseLeftSidebar()
+                  setTimeout(() => router.push('/runner-up'), 300)
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
@@ -1512,10 +1580,10 @@ export default function TradingPage() {
                 <span>Trader Terbaik</span>
               </button>
 
-                            <button
+              <button
                 onClick={() => {
-                  router.push('/berita')
-                  setShowLeftSidebar(false)
+                  handleCloseLeftSidebar()
+                  setTimeout(() => router.push('/berita'), 300)
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
@@ -1523,10 +1591,10 @@ export default function TradingPage() {
                 <span>Berita</span>
               </button>
 
-                            <button
+              <button
                 onClick={() => {
-                  router.push('/support')
-                  setShowLeftSidebar(false)
+                  handleCloseLeftSidebar()
+                  setTimeout(() => router.push('/support'), 300)
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
@@ -1554,99 +1622,91 @@ export default function TradingPage() {
         />
       )}
 
-      {/* ✅ Instant Notification */}
+      {/* ✅ Batch Notification */}
       <OrderNotification 
-        order={notificationOrder}
-        onClose={handleCloseNotification}
+        orders={notification.currentBatch}
+        onClose={notification.closeBatch}
       />
+
+      {/* ✅ Debug info (development only) */}
+      {process.env.NODE_ENV === 'development' && notification.pendingCount > 0 && (
+        <div className="fixed bottom-20 right-4 bg-black/80 text-white text-xs px-3 py-2 rounded z-50">
+          Pending: {notification.pendingCount}
+        </div>
+      )}
 
       <style jsx>{`
         @keyframes slide-left {
-          from { 
-            transform: translateX(100%); 
-            opacity: 0;
-          }
-          to { 
-            transform: translateX(0); 
-            opacity: 1;
-          }
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
         }
-
         @keyframes slide-right {
-          from { 
-            transform: translateX(-100%); 
-            opacity: 0;
-          }
-          to { 
-            transform: translateX(0); 
-            opacity: 1;
-          }
+          from { transform: translateX(-100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
         }
-
+        @keyframes slide-left-out {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(-100%); opacity: 0; }
+        }
         @keyframes slide-up {
-          from { 
-            transform: translateY(100%); 
-            opacity: 0;
-          }
-          to { 
-            transform: translateY(0); 
-            opacity: 1;
-          }
+          from { transform: translateY(100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
         }
-
+        @keyframes slide-down {
+          from { transform: translateY(0); opacity: 1; }
+          to { transform: translateY(100%); opacity: 0; }
+        }
+        @keyframes slide-right-out {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(100%); opacity: 0; }
+        }
         @keyframes fade-in {
-          from { 
-            opacity: 0; 
-          }
-          to { 
-            opacity: 1; 
-          }
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
-
-        @keyframes bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-3px); }
+        @keyframes fade-out {
+          from { opacity: 1; }
+          to { opacity: 0; }
         }
-
         .animate-slide-left {
-          animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          animation: slide-left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
-
         .animate-slide-right {
-          animation: slide-right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          animation: slide-right 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
-
+        .animate-slide-left-out {
+          animation: slide-left-out 0.25s cubic-bezier(0.4, 0, 1, 1);
+        }
+        .animate-slide-right-out {
+          animation: slide-right-out 0.25s cubic-bezier(0.4, 0, 1, 1);
+        }
         .animate-slide-up {
-          animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          animation: slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
-
+        .animate-slide-down {
+          animation: slide-down 0.25s cubic-bezier(0.4, 0, 1, 1);
+        }
         .animate-fade-in {
           animation: fade-in 0.2s ease-out;
         }
-
-        .animate-bounce {
-          animation: bounce 0.6s infinite;
+        .animate-fade-out {
+          animation: fade-out 0.2s ease-in;
         }
-
         button {
           transition: all 0.2s ease;
         }
-
         ::-webkit-scrollbar {
           width: 6px;
           height: 6px;
         }
-
         ::-webkit-scrollbar-track {
           background: rgba(255, 255, 255, 0.05);
           border-radius: 3px;
         }
-
         ::-webkit-scrollbar-thumb {
           background: rgba(255, 255, 255, 0.2);
           border-radius: 3px;
         }
-
         ::-webkit-scrollbar-thumb:hover {
           background: rgba(255, 255, 255, 0.3);
         }

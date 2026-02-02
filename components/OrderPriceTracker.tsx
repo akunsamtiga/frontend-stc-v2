@@ -205,23 +205,15 @@ export default function OrderPriceTracker({
                 {/* Separator */}
                 <span className="text-gray-600 text-[10px]">|</span>
 
-                {/* Amount */}
-                <span className="text-[9px] sm:text-[10px] text-white font-semibold whitespace-nowrap">
-                  {formatCurrency(order.amount)}
-                </span>
-
-                {/* Separator */}
-                <span className="text-gray-600 text-[10px]">|</span>
-
                 {/* Countdown */}
                 <div className={`
                   flex items-center gap-0.5 sm:gap-1 
-                  text-[9px] sm:text-[10px] font-mono font-bold whitespace-nowrap
+                  text-[9px] sm:text-[10px] font-bold whitespace-nowrap
                   ${isCritical 
                     ? 'text-red-400' 
                     : isUrgent 
                       ? 'text-yellow-400' 
-                      : 'text-blue-400'
+                      : 'text-white'
                   }
                 `}>
                   <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" />

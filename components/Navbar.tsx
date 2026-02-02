@@ -68,9 +68,9 @@ export default function Navbar() {
 
   const navLinks = [
     { path: '/trading', label: 'Trading', icon: BarChart3 },
-    { path: '/history', label: 'History', icon: History },
-    { path: '/balance', label: 'Balance', icon: Wallet },
-    { path: '/profile', label: 'Profile', icon: User },
+    { path: '/history', label: 'Riwayat', icon: History },
+    { path: '/balance', label: 'Keuangan', icon: Wallet },
+    { path: '/profile', label: 'Profil', icon: User },
   ]
 
   if (!user) return null
@@ -215,7 +215,7 @@ export default function Navbar() {
                     className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 transition-colors text-left text-red-600"
                   >
                     <LogOut className="w-4 h-4" />
-                    <span className="text-sm font-medium">Logout</span>
+                    <span className="text-sm font-medium">Keluar</span>
                   </button>
                 </div>
               </>
@@ -306,25 +306,14 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* Settings & Logout */}
-            <div className="p-4 border-t border-gray-200 space-y-1">
-              <button
-                onClick={() => {
-                  router.push('/profile')
-                  setShowMobileMenu(false)
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <Settings className="w-5 h-5 text-gray-700" />
-                <span className="font-medium text-gray-900">Settings</span>
-              </button>
-              
+            {/* Logout */}
+            <div className="p-4 border-t border-gray-200 space-y-1">              
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-red-50 hover:bg-red-100 rounded-lg transition-colors text-red-600"
               >
                 <LogOut className="w-5 h-5" />
-                <span className="font-medium">Logout</span>
+                <span className="font-medium">Keluar</span>
               </button>
             </div>
           </div>

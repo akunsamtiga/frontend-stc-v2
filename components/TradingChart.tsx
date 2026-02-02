@@ -2,7 +2,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo } from 'react'
-import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp } from 'lightweight-charts'
+import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp, LineStyle } from 'lightweight-charts'
 import { useTradingStore, useTradingActions } from '@/store/trading'
 import { fetchHistoricalData, subscribeToOHLCUpdates, prefetchMultipleTimeframes } from '@/lib/firebase'
 import { BinaryOrder, TIMEFRAMES, Timeframe as TimeframeType } from '@/types'
@@ -13,6 +13,14 @@ import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders
 import AssetIcon from '@/components/common/AssetIcon'
 import OrderPriceTracker from '@/components/OrderPriceTracker'
 import { useChartPriceScale } from '@/hooks/useChartPriceScale'
+import { 
+  calculateRSI, 
+  calculateMACD, 
+  calculateStochastic, 
+  calculateATR,
+  CandleData as IndicatorCandleData
+} from '@/lib/indicators'
+
 
 const IndicatorControls = dynamic(() => import('./IndicatorControls'), { ssr: false })
 
@@ -32,7 +40,6 @@ interface IndicatorConfig {
   bollinger?: { enabled: boolean; period: number; stdDev: number; colorUpper: string; colorMiddle: string; colorLower: string }
   rsi?: { enabled: boolean; period: number; overbought: number; oversold: number }
   macd?: { enabled: boolean; fastPeriod: number; slowPeriod: number; signalPeriod: number }
-  volume?: { enabled: boolean; maPeriod: number }
   stochastic?: { enabled: boolean; kPeriod: number; dPeriod: number; overbought: number; oversold: number }
   atr?: { enabled: boolean; period: number }
 }
@@ -43,7 +50,6 @@ const DEFAULT_INDICATOR_CONFIG: IndicatorConfig = {
   bollinger: { enabled: false, period: 20, stdDev: 2, colorUpper: '#ef4444', colorMiddle: '#6b7280', colorLower: '#10b981' },
   rsi: { enabled: false, period: 14, overbought: 70, oversold: 30 },
   macd: { enabled: false, fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
-  volume: { enabled: false, maPeriod: 20 },
   stochastic: { enabled: false, kPeriod: 14, dPeriod: 3, overbought: 80, oversold: 20 },
   atr: { enabled: false, period: 14 }
 }
@@ -850,7 +856,7 @@ const DesktopControls = memo(({
   const [showTimeframeMenu, setShowTimeframeMenu] = useState(false)
   const timeframeRef = useRef<HTMLDivElement>(null)
 
-  const timeframes: Timeframe[] = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d']
+  const timeframes: Timeframe[] = ['1m', '5m', '15m', '30m', '1h', '4h', '1d']
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -935,6 +941,32 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const bollingerUpperRef = useRef<ISeriesApi<"Line"> | null>(null)
   const bollingerMiddleRef = useRef<ISeriesApi<"Line"> | null>(null)
   const bollingerLowerRef = useRef<ISeriesApi<"Line"> | null>(null)
+  
+  // Oscillator charts & series
+  const rsiChartRef = useRef<IChartApi | null>(null)
+  const rsiSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
+  const rsiOverboughtRef = useRef<ISeriesApi<"Line"> | null>(null)
+  const rsiOversoldRef = useRef<ISeriesApi<"Line"> | null>(null)
+  
+  const macdChartRef = useRef<IChartApi | null>(null)
+  const macdLineRef = useRef<ISeriesApi<"Line"> | null>(null)
+  const macdSignalRef = useRef<ISeriesApi<"Line"> | null>(null)
+  const macdHistogramRef = useRef<ISeriesApi<"Histogram"> | null>(null)
+  
+  const stochasticChartRef = useRef<IChartApi | null>(null)
+  const stochasticKRef = useRef<ISeriesApi<"Line"> | null>(null)
+  const stochasticDRef = useRef<ISeriesApi<"Line"> | null>(null)
+  const stochasticOverboughtRef = useRef<ISeriesApi<"Line"> | null>(null)
+  const stochasticOversoldRef = useRef<ISeriesApi<"Line"> | null>(null)
+  
+  const atrChartRef = useRef<IChartApi | null>(null)
+  const atrSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
+  
+  const rsiContainerRef = useRef<HTMLDivElement>(null)
+  const macdContainerRef = useRef<HTMLDivElement>(null)
+  const stochasticContainerRef = useRef<HTMLDivElement>(null)
+  const atrContainerRef = useRef<HTMLDivElement>(null)
+
   
   const isMountedRef = useRef(false)
   const cleanupFunctionsRef = useRef<Array<() => void>>([])
@@ -1345,6 +1377,274 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
   }, [chartType, addCleanup, cleanupAll, setChart, setSeries])
 
+  // INITIALIZE OSCILLATOR CHARTS
+  useEffect(() => {
+    if (!isInitialized) return
+
+    const hasOscillators = 
+      indicatorConfig.rsi?.enabled ||
+      indicatorConfig.macd?.enabled ||
+      indicatorConfig.stochastic?.enabled ||
+      indicatorConfig.atr?.enabled
+
+    if (!hasOscillators) {
+      // Cleanup oscillator charts
+      if (rsiChartRef.current) {
+        rsiChartRef.current.remove()
+        rsiChartRef.current = null
+        rsiSeriesRef.current = null
+        rsiOverboughtRef.current = null
+        rsiOversoldRef.current = null
+      }
+      if (macdChartRef.current) {
+        macdChartRef.current.remove()
+        macdChartRef.current = null
+        macdLineRef.current = null
+        macdSignalRef.current = null
+        macdHistogramRef.current = null
+      }
+      if (stochasticChartRef.current) {
+        stochasticChartRef.current.remove()
+        stochasticChartRef.current = null
+        stochasticKRef.current = null
+        stochasticDRef.current = null
+        stochasticOverboughtRef.current = null
+        stochasticOversoldRef.current = null
+      }
+      if (atrChartRef.current) {
+        atrChartRef.current.remove()
+        atrChartRef.current = null
+        atrSeriesRef.current = null
+      }
+      return
+    }
+
+    const chartOptions = {
+      layout: { background: { type: ColorType.Solid, color: '#0a0e17' }, textColor: '#9ca3af' },
+      grid: {
+        vertLines: { color: 'rgba(255, 255, 255, 0.05)', style: 0, visible: true },
+        horzLines: { color: 'rgba(255, 255, 255, 0.05)', style: 0, visible: true }
+      },
+      crosshair: { mode: CrosshairMode.Normal },
+      rightPriceScale: { borderColor: 'rgba(255, 255, 255, 0.1)' },
+      timeScale: {
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        timeVisible: true,
+        secondsVisible: false,
+        visible: false
+      },
+      localization: {
+        locale: 'id-ID',
+        dateFormat: 'dd/MM/yyyy'
+      }
+    }
+
+    // RSI Chart
+    if (indicatorConfig.rsi?.enabled && rsiContainerRef.current && !rsiChartRef.current) {
+      const { width } = rsiContainerRef.current.getBoundingClientRect()
+      const rsiChart = createChart(rsiContainerRef.current, {
+        ...chartOptions,
+        width,
+        height: 120
+      })
+
+      const rsiSeries = rsiChart.addLineSeries({
+        color: '#8b5cf6',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: true
+      })
+
+      const overboughtLine = rsiChart.addLineSeries({
+        color: '#ef4444',
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        priceLineVisible: false,
+        lastValueVisible: false
+      })
+
+      const oversoldLine = rsiChart.addLineSeries({
+        color: '#10b981',
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        priceLineVisible: false,
+        lastValueVisible: false
+      })
+
+      rsiChart.timeScale().fitContent()
+      if (chartRef.current) {
+        rsiChart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+          const range = rsiChart.timeScale().getVisibleLogicalRange()
+          if (range && chartRef.current) {
+            chartRef.current.timeScale().setVisibleLogicalRange(range)
+          }
+        })
+      }
+
+      rsiChartRef.current = rsiChart
+      rsiSeriesRef.current = rsiSeries
+      rsiOverboughtRef.current = overboughtLine
+      rsiOversoldRef.current = oversoldLine
+    }
+
+    // MACD Chart
+    if (indicatorConfig.macd?.enabled && macdContainerRef.current && !macdChartRef.current) {
+      const { width } = macdContainerRef.current.getBoundingClientRect()
+      const macdChart = createChart(macdContainerRef.current, {
+        ...chartOptions,
+        width,
+        height: 120
+      })
+
+      const macdLine = macdChart.addLineSeries({
+        color: '#3b82f6',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: true
+      })
+
+      const signalLine = macdChart.addLineSeries({
+        color: '#f59e0b',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: true
+      })
+
+      const histogram = macdChart.addHistogramSeries({
+        color: '#60a5fa',
+        priceLineVisible: false,
+        lastValueVisible: false
+      })
+
+      macdChart.timeScale().fitContent()
+      if (chartRef.current) {
+        macdChart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+          const range = macdChart.timeScale().getVisibleLogicalRange()
+          if (range && chartRef.current) {
+            chartRef.current.timeScale().setVisibleLogicalRange(range)
+          }
+        })
+      }
+
+      macdChartRef.current = macdChart
+      macdLineRef.current = macdLine
+      macdSignalRef.current = signalLine
+      macdHistogramRef.current = histogram
+    }
+
+    // Stochastic Chart
+    if (indicatorConfig.stochastic?.enabled && stochasticContainerRef.current && !stochasticChartRef.current) {
+      const { width } = stochasticContainerRef.current.getBoundingClientRect()
+      const stochChart = createChart(stochasticContainerRef.current, {
+        ...chartOptions,
+        width,
+        height: 120
+      })
+
+      const kLine = stochChart.addLineSeries({
+        color: '#3b82f6',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: true
+      })
+
+      const dLine = stochChart.addLineSeries({
+        color: '#f59e0b',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: true
+      })
+
+      const overboughtLine = stochChart.addLineSeries({
+        color: '#ef4444',
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        priceLineVisible: false,
+        lastValueVisible: false
+      })
+
+      const oversoldLine = stochChart.addLineSeries({
+        color: '#10b981',
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        priceLineVisible: false,
+        lastValueVisible: false
+      })
+
+      stochChart.timeScale().fitContent()
+      if (chartRef.current) {
+        stochChart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+          const range = stochChart.timeScale().getVisibleLogicalRange()
+          if (range && chartRef.current) {
+            chartRef.current.timeScale().setVisibleLogicalRange(range)
+          }
+        })
+      }
+
+      stochasticChartRef.current = stochChart
+      stochasticKRef.current = kLine
+      stochasticDRef.current = dLine
+      stochasticOverboughtRef.current = overboughtLine
+      stochasticOversoldRef.current = oversoldLine
+    }
+
+    // ATR Chart
+    if (indicatorConfig.atr?.enabled && atrContainerRef.current && !atrChartRef.current) {
+      const { width } = atrContainerRef.current.getBoundingClientRect()
+      const atrChart = createChart(atrContainerRef.current, {
+        ...chartOptions,
+        width,
+        height: 120
+      })
+
+      const atrSeries = atrChart.addLineSeries({
+        color: '#ec4899',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: true
+      })
+
+      atrChart.timeScale().fitContent()
+      if (chartRef.current) {
+        atrChart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+          const range = atrChart.timeScale().getVisibleLogicalRange()
+          if (range && chartRef.current) {
+            chartRef.current.timeScale().setVisibleLogicalRange(range)
+          }
+        })
+      }
+
+      atrChartRef.current = atrChart
+      atrSeriesRef.current = atrSeries
+    }
+
+    // Resize handler for oscillator charts
+    const handleResize = () => {
+      if (rsiChartRef.current && rsiContainerRef.current) {
+        const { width } = rsiContainerRef.current.getBoundingClientRect()
+        rsiChartRef.current.applyOptions({ width, height: 120 })
+      }
+      if (macdChartRef.current && macdContainerRef.current) {
+        const { width } = macdContainerRef.current.getBoundingClientRect()
+        macdChartRef.current.applyOptions({ width, height: 120 })
+      }
+      if (stochasticChartRef.current && stochasticContainerRef.current) {
+        const { width } = stochasticContainerRef.current.getBoundingClientRect()
+        stochasticChartRef.current.applyOptions({ width, height: 120 })
+      }
+      if (atrChartRef.current && atrContainerRef.current) {
+        const { width } = atrContainerRef.current.getBoundingClientRect()
+        atrChartRef.current.applyOptions({ width, height: 120 })
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [isInitialized, indicatorConfig.rsi?.enabled, indicatorConfig.macd?.enabled, indicatorConfig.stochastic?.enabled, indicatorConfig.atr?.enabled])
+
   // CHART TYPE CHANGES - MODIFIED FOR 60 CANDLE ZOOM
   useEffect(() => {
     if (!candleSeriesRef.current || !lineSeriesRef.current || !chartRef.current) return
@@ -1486,6 +1786,134 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       if (bollingerUpperRef.current) bollingerUpperRef.current.applyOptions({ visible: false })
       if (bollingerMiddleRef.current) bollingerMiddleRef.current.applyOptions({ visible: false })
       if (bollingerLowerRef.current) bollingerLowerRef.current.applyOptions({ visible: false })
+    }
+
+
+
+  }, [indicatorConfig, currentChartData])
+
+  // APPLY OSCILLATOR INDICATORS
+  useEffect(() => {
+    if (currentChartData.length === 0) return
+
+    const indicatorData: IndicatorCandleData[] = currentChartData.map(d => ({
+      time: d.time,
+      open: d.open,
+      high: d.high,
+      low: d.low,
+      close: d.close,
+      volume: d.volume
+    }))
+
+    // RSI
+    if (indicatorConfig.rsi?.enabled && rsiSeriesRef.current) {
+      const rsiData = calculateRSI(indicatorData, indicatorConfig.rsi.period)
+      const rsiChartData = rsiData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.value
+      }))
+
+      rsiSeriesRef.current.setData(rsiChartData)
+
+      // Overbought/Oversold lines
+      if (rsiChartData.length > 0 && rsiOverboughtRef.current && rsiOversoldRef.current) {
+        const overboughtData = rsiChartData.map(d => ({
+          time: d.time,
+          value: indicatorConfig.rsi!.overbought
+        }))
+        const oversoldData = rsiChartData.map(d => ({
+          time: d.time,
+          value: indicatorConfig.rsi!.oversold
+        }))
+
+        rsiOverboughtRef.current.setData(overboughtData)
+        rsiOversoldRef.current.setData(oversoldData)
+      }
+
+      rsiChartRef.current?.timeScale().fitContent()
+    }
+
+    // MACD
+    if (indicatorConfig.macd?.enabled && macdLineRef.current && macdSignalRef.current && macdHistogramRef.current) {
+      const macdData = calculateMACD(
+        indicatorData,
+        indicatorConfig.macd.fastPeriod,
+        indicatorConfig.macd.slowPeriod,
+        indicatorConfig.macd.signalPeriod
+      )
+
+      const macdLineData = macdData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.macd
+      }))
+
+      const macdSignalData = macdData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.signal
+      }))
+
+      const macdHistogramData = macdData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.histogram,
+        color: d.histogram >= 0 ? '#26a69a' : '#ef5350'
+      }))
+
+      macdLineRef.current.setData(macdLineData)
+      macdSignalRef.current.setData(macdSignalData)
+      macdHistogramRef.current.setData(macdHistogramData as any)
+
+      macdChartRef.current?.timeScale().fitContent()
+    }
+
+    // Stochastic
+    if (indicatorConfig.stochastic?.enabled && stochasticKRef.current && stochasticDRef.current) {
+      const stochData = calculateStochastic(
+        indicatorData,
+        indicatorConfig.stochastic.kPeriod,
+        indicatorConfig.stochastic.dPeriod
+      )
+
+      const kData = stochData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.k
+      }))
+
+      const dData = stochData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.d
+      }))
+
+      stochasticKRef.current.setData(kData)
+      stochasticDRef.current.setData(dData)
+
+      // Overbought/Oversold lines
+      if (kData.length > 0 && stochasticOverboughtRef.current && stochasticOversoldRef.current) {
+        const overboughtData = kData.map(d => ({
+          time: d.time,
+          value: indicatorConfig.stochastic!.overbought
+        }))
+        const oversoldData = kData.map(d => ({
+          time: d.time,
+          value: indicatorConfig.stochastic!.oversold
+        }))
+
+        stochasticOverboughtRef.current.setData(overboughtData)
+        stochasticOversoldRef.current.setData(oversoldData)
+      }
+
+      stochasticChartRef.current?.timeScale().fitContent()
+    }
+
+    // ATR
+    if (indicatorConfig.atr?.enabled && atrSeriesRef.current) {
+      const atrData = calculateATR(indicatorData, indicatorConfig.atr.period)
+      const atrChartData = atrData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.value
+      }))
+
+      atrSeriesRef.current.setData(atrChartData)
+      atrChartRef.current?.timeScale().fitContent()
     }
 
   }, [indicatorConfig, currentChartData])
@@ -1805,9 +2233,27 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     datetime: new Date().toISOString()
   }
 
+  const hasOscillators = 
+    indicatorConfig.rsi?.enabled ||
+    indicatorConfig.macd?.enabled ||
+    indicatorConfig.stochastic?.enabled ||
+    indicatorConfig.atr?.enabled
+
+  const oscillatorCount = [
+    indicatorConfig.rsi?.enabled,
+    indicatorConfig.macd?.enabled,
+    indicatorConfig.stochastic?.enabled,
+    indicatorConfig.atr?.enabled
+  ].filter(Boolean).length
+
+  const mainChartHeight = hasOscillators 
+    ? `calc(100% - ${oscillatorCount * 140}px)` 
+    : '100%'
+
   return (
-    <div ref={fullscreenContainerRef} className={`relative h-full ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : ''}`}>
-      <PriceDisplay 
+    <div ref={fullscreenContainerRef} className={`relative h-full flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : ''}`}>
+      <div className="relative" style={{ height: mainChartHeight }}>
+        <PriceDisplay 
         asset={selectedAsset} 
         price={currentPriceData} 
         onClick={() => setShowAssetMenu(!showAssetMenu)}
@@ -1866,8 +2312,38 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
           assetSymbol={selectedAsset?.symbol || ''} 
         />
       )}
+    </div>
 
-      <IndicatorControls 
+    {/* Oscillator Charts */}
+    {indicatorConfig.rsi?.enabled && (
+      <div className="border-t border-gray-800/30">
+        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">RSI ({indicatorConfig.rsi.period})</div>
+        <div ref={rsiContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      </div>
+    )}
+
+    {indicatorConfig.macd?.enabled && (
+      <div className="border-t border-gray-800/30">
+        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">MACD ({indicatorConfig.macd.fastPeriod},{indicatorConfig.macd.slowPeriod},{indicatorConfig.macd.signalPeriod})</div>
+        <div ref={macdContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      </div>
+    )}
+
+    {indicatorConfig.stochastic?.enabled && (
+      <div className="border-t border-gray-800/30">
+        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">Stochastic ({indicatorConfig.stochastic.kPeriod},{indicatorConfig.stochastic.dPeriod})</div>
+        <div ref={stochasticContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      </div>
+    )}
+
+    {indicatorConfig.atr?.enabled && (
+      <div className="border-t border-gray-800/30">
+        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">ATR ({indicatorConfig.atr.period})</div>
+        <div ref={atrContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      </div>
+    )}
+
+    <IndicatorControls 
         isOpen={showIndicators} 
         onClose={handleCloseIndicators}
         config={indicatorConfig} 

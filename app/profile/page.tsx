@@ -1071,7 +1071,6 @@ export default function ProfilePage() {
     { id: 'status', label: 'Status', icon: Award },
     { id: 'affiliate', label: 'Affiliate', icon: Users },
     { id: 'security', label: 'Security', icon: Lock },
-    { id: 'preferences', label: 'Preferences', icon: Settings }
   ]
 
   const renderTabContent = () => {
@@ -2473,9 +2472,6 @@ export default function ProfilePage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.5 }}
                 >
-                  <motion.div>
-                    <Gift className="w-8 h-8 text-yellow-500" />
-                  </motion.div>
                   <div>
                     <motion.div 
                       className="text-xl font-bold text-gray-900"
@@ -2619,114 +2615,6 @@ export default function ProfilePage() {
                   )}
                 </motion.button>
               </motion.form>
-            </motion.div>
-          )}
-
-          {activeTab === 'preferences' && (
-            <motion.div 
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <div className="p-4 bg-indigo-50">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-base font-bold text-gray-900 mb-1 flex items-center">
-                      <Settings className="w-5 h-5 mr-2 text-indigo-500" />
-                      Preferences
-                    </h3>
-                    <p className="text-xs text-gray-500">Customize your experience</p>
-                  </div>
-                  <motion.button 
-                    onClick={handleUpdateSettings} 
-                    disabled={savingSection === 'settings'} 
-                    className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-md text-xs font-medium"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    {savingSection === 'settings' ? (
-                      <>
-                        <Loader2 className="w-3 h-3 animate-spin" /> Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-3 h-3" /> Save
-                      </>
-                    )}
-                  </motion.button>
-                </div>
-              </div>
-
-              <motion.div 
-                className="p-4 space-y-4"
-                variants={staggerContainer}
-                initial="hidden"
-                animate="visible"
-              >
-                <motion.div variants={fadeInUp} className="pb-3 border-b border-gray-100">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
-                    <Bell className="w-4 h-4 mr-2 text-indigo-500" />
-                    Notifications
-                  </h4>
-                  <motion.div 
-                    className="space-y-2"
-                    variants={staggerContainer}
-                  >
-                    {[
-                      { key: 'emailNotifications', label: 'Email Notifications' },
-                      { key: 'smsNotifications', label: 'SMS Notifications' },
-                      { key: 'tradingAlerts', label: 'Trading Alerts' }
-                    ].map((item) => (
-                      <motion.label 
-                        key={item.key}
-                        className="flex items-center justify-between p-2.5 bg-gray-100 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors"
-                        variants={fadeInUp}
-                        whileHover={{ scale: 1.01 }}
-                      >
-                        <span className="text-sm text-gray-700 font-medium">{item.label}</span>
-                        <input
-                          type="checkbox"
-                          checked={(settings as any)[item.key]}
-                          onChange={(e) => setSettings({ ...settings, [item.key]: e.target.checked })}
-                          className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer"
-                        />
-                      </motion.label>
-                    ))}
-                  </motion.div>
-                </motion.div>
-
-                <motion.div variants={fadeInUp}>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
-                    <Globe className="w-4 h-4 mr-2 text-indigo-500" />
-                    Regional Settings
-                  </h4>
-                  <motion.div 
-                    className="space-y-3"
-                    variants={staggerContainer}
-                  >
-                    <motion.div variants={fadeInUp}>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Language</label>
-                      <select
-                        value={settings.language}
-                        onChange={(e) => setSettings({ ...settings, language: e.target.value })}
-                        className="w-full px-3 py-3 bg-gray-100 border border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors text-sm"
-                      >
-                        <option value="id">Bahasa Indonesia</option>
-                        <option value="en">English</option>
-                      </select>
-                    </motion.div>
-                    <motion.div variants={fadeInUp}>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Timezone</label>
-                      <input
-                        type="text"
-                        value={settings.timezone}
-                        onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-                        className="w-full px-3 py-3 bg-gray-100 border border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors text-sm"
-                      />
-                    </motion.div>
-                  </motion.div>
-                </motion.div>
-              </motion.div>
             </motion.div>
           )}
         </motion.div>

@@ -242,27 +242,6 @@ export function calculateMACD(
   return result
 }
 
-// ===================================
-// VOLUME PROFILE
-// ===================================
-
-export function calculateVolumeMA(data: CandleData[], period: number = 20): Array<{ time: number; value: number }> {
-  const result: Array<{ time: number; value: number }> = []
-  
-  for (let i = period - 1; i < data.length; i++) {
-    let sum = 0
-    for (let j = 0; j < period; j++) {
-      sum += data[i - j].volume || 0
-    }
-    const average = sum / period
-    result.push({
-      time: data[i].time,
-      value: average
-    })
-  }
-  
-  return result
-}
 
 // ===================================
 // STOCHASTIC OSCILLATOR

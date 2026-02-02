@@ -298,26 +298,6 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                   </div>
                 </div>
               </IndicatorRow>
-
-              {/* Volume */}
-              <IndicatorRow
-                icon={BarChart3}
-                name="Volume"
-                indicator="volume"
-                description="Trading volume with MA"
-              >
-                <div>
-                  <label className="text-xs text-gray-400 mb-1 block">MA Period</label>
-                  <input
-                    type="number"
-                    value={config.volume?.maPeriod || 20}
-                    onChange={(e) => updateConfig('volume', { maPeriod: parseInt(e.target.value) })}
-                    className="w-full bg-[#0f1419] border border-gray-800/50 rounded px-3 py-2 text-sm"
-                    min="2"
-                    max="200"
-                  />
-                </div>
-              </IndicatorRow>
             </div>
           ) : (
             <div>
