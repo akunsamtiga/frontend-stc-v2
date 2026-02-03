@@ -735,7 +735,7 @@ export default function LandingPage() {
           <div className="flex items-center justify-between h-20">
             
             {/* Logo with animation */}
-            <div className="relative h-12 w-52 overflow-visible">
+            <div className="relative h-10 w-52 overflow-visible">
               {/* STC AutoTrade */}
               {logoPhase.startsWith('stc-') && (
                 <div className="flex items-center gap-3 absolute left-0 top-0">
@@ -745,7 +745,7 @@ export default function LandingPage() {
                     'opacity-100'
                   }`}>
                     <Image
-                      src="/stc-logo.png"
+                      src="/stc-logo1.png"
                       alt="Stouch"
                       fill
                       className="object-contain rounded-md"
@@ -852,9 +852,9 @@ export default function LandingPage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div className="space-y-8">
-              <h1 className="text-5xl sm:text-6xl md:text-7xl font-black leading-tight">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold leading-tight">
                 Raih Bonus
-                <span className="block mt-2 font-black bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-emerald-400 to-cyan-400 animate-gradient bg-[length:200%_auto]">
+                <span className="block mt-2 font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-emerald-400 to-cyan-400 animate-gradient bg-[length:200%_auto]">
                   Deposit 100%
                 </span>
               </h1>
@@ -1622,7 +1622,7 @@ export default function LandingPage() {
                 <div className="flex items-center gap-3">
                   <div className="relative w-10 h-10">
                     <Image
-                      src="/stc-logo.png"
+                      src="/stc-logo1.png"
                       alt="Stouch"
                       fill
                       className="object-contain rounded-md"

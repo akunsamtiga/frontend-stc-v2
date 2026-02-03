@@ -58,7 +58,7 @@ function PaymentSuccessContent() {
         {orderId && (
           <div className="bg-gray-50 rounded-xl p-4 mb-6">
             <div className="text-xs text-gray-500 mb-1">Order ID</div>
-            <div className="text-sm font-mono font-semibold text-gray-900 break-all">
+            <div className="text-sm font-semibold text-gray-900 break-all">
               {orderId}
             </div>
             

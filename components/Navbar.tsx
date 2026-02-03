@@ -104,20 +104,20 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo dengan animasi sequence */}
           <div 
-            className="relative h-8 w-48 overflow-visible cursor-pointer"
+            className="relative h-10 w-48 overflow-visible cursor-pointer"
             onClick={() => router.push('/trading')}
           >
             {/* Stouch - hanya visible di fase STC */}
             {logoPhase.startsWith('stc-') && (
               <div className="flex items-center gap-3 absolute left-0 top-0">
                 {/* Logo STC */}
-                <div className={`relative w-8 h-8 flex-shrink-0 overflow-visible ${
+                <div className={`relative w-10 h-10 flex-shrink-0 overflow-visible ${
                   logoPhase === 'stc-logo-in' ? 'animate-logo-bounce-in' :
                   logoPhase === 'stc-logo-out' ? 'animate-logo-bounce-out' : 
                   'opacity-100'
                 }`}>
                   <Image
-                    src="/stc-logo.png"
+                    src="/stc-logo1.png"
                     alt="Stouch"
                     fill
                     className="object-contain rounded-md"
@@ -142,7 +142,7 @@ export default function Navbar() {
 
             {/* By Stockity - hanya visible di fase Stockity */}
             {logoPhase.startsWith('stockity-') && (
-              <div className="flex items-center gap-3 absolute left-0 top-0">
+              <div className="flex items-center gap-3 absolute left-0 top-1">
                 {/* Logo Stockity */}
                 <div className={`relative w-8 h-8 flex-shrink-0 overflow-visible ${
                   logoPhase === 'stockity-logo-in' ? 'animate-logo-bounce-in' :

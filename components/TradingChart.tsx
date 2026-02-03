@@ -600,7 +600,7 @@ const PriceDisplay = memo(({
 
       <div className="hidden lg:flex bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 items-center gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-400">{asset.name}</span>
+          <span className="text-sm text-gray-400">{asset.symbol}</span>
           <span className="text-xl font-bold">{formattedPrice}</span>
         </div>
         {hasChange && (

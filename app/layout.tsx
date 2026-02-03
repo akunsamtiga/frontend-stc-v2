@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
-import { IBM_Plex_Sans, JetBrains_Mono } from 'next/font/google'
+import { GeistSans } from 'geist/font/sans'
+import { GeistMono } from 'geist/font/mono'
 import { Toaster } from 'sonner'
 import GoogleAuthHandler from '@/components/GoogleAuthHandler'
 import ChartPreloader from '@/components/ChartPreloader'
@@ -7,21 +8,10 @@ import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar'
 import { WebSocketProvider } from '@/components/providers/WebSocketProvider'
 import './globals.css'
 
-const ibmPlexSans = IBM_Plex_Sans({ 
-  weight: ['300', '400', '500', '600', '700'],
-  subsets: ['latin'],
-  variable: '--font-ibm',
-})
-
-const jetbrainsMono = JetBrains_Mono({ 
-  subsets: ['latin'],
-  variable: '--font-mono',
-})
-
 export const metadata: Metadata = {
-  title: 'STC AutoTrade',
+  title: 'Stouch',
   description: 'Platform dengan penarikan kilat, profit hingga 100%, dan keamanan maksimal.',
-  keywords: ['binary option', 'trading', 'IDX_STC', 'forex', 'crypto', 'STC AutoTrade'],
+  keywords: ['binary option', 'trading', 'IDX_STC', 'forex', 'crypto', 'Stouch' ,'STC AutoTrade'],
   icons: {
     icon: '/stc.ico',
     shortcut: '/stc.ico',
@@ -30,7 +20,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'STC AutoTrade',
+    title: 'Stouch',
   },
 }
 
@@ -47,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="id" className={`${ibmPlexSans.variable} ${jetbrainsMono.variable}`}>
+    <html lang="id" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <head>
         <link rel="icon" href="/stc.ico" sizes="any" />
 

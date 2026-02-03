@@ -359,7 +359,7 @@ export default function AdminUserDetailPage() {
                       </div>
                       
                       <div className="flex items-center gap-3">
-                        <div className={`text-xl font-bold font-mono ${
+                        <div className={`text-xl font-bold ${
                           tx.type === 'deposit' ? 'text-green-400' : 'text-red-400'
                         }`}>
                           {tx.type === 'deposit' ? '+' : '-'}
@@ -441,7 +441,7 @@ export default function AdminUserDetailPage() {
                         </div>
                         
                         <div className="text-right">
-                          <div className={`text-lg font-bold font-mono ${
+                          <div className={`text-lg font-bold ${
                             order.status === 'WON' ? 'text-green-400' :
                             order.status === 'LOST' ? 'text-red-400' :
                             'text-slate-400'

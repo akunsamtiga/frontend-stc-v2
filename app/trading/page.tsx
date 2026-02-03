@@ -614,7 +614,7 @@ export default function TradingPage() {
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 relative">
               <Image 
-                src="/stc-logo.png" 
+                src="/stc-logo1.png" 
                 alt="Stouch" 
                 fill
                 className="object-contain rounded-md"
@@ -631,7 +631,7 @@ export default function TradingPage() {
               {selectedAsset ? (
                 <>
                   <AssetIcon asset={selectedAsset} size="xs" />
-                  <span className="text-sm font-medium">{selectedAsset.name}</span>
+                  <span className="text-sm font-medium">{selectedAsset.symbol}</span>
                   <span className="text-sm text-white ml-2">{effectiveProfitRate}%</span>
                 </>
               ) : (
@@ -845,7 +845,7 @@ export default function TradingPage() {
             </button>
             <div className="w-8 h-8 relative">
               <Image 
-                src="/stc-logo.png" 
+                src="/stc-logo1.png" 
                 alt="Stouch" 
                 fill
                 className="object-contain rounded-md"
@@ -1526,7 +1526,7 @@ export default function TradingPage() {
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 relative">
                   <Image 
-                    src="/stc-logo.png" 
+                    src="/stc-logo1.png" 
                     alt="Stouch" 
                     fill
                     className="object-contain rounded-md"

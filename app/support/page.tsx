@@ -6,7 +6,6 @@ import {
   ChevronLeft,
   Mail,
   Phone,
-  MessageSquare,
   Clock,
   Headphones,
   Send
@@ -14,34 +13,24 @@ import {
 
 const CONTACT_METHODS = [
   {
-    icon: MessageSquare,
-    title: 'Live Chat',
-    description: 'Chat langsung dengan tim support kami',
-    contact: 'Klik tombol di bawah untuk memulai',
-    availability: '24/7 Online',
-    action: 'Start Chat',
-    color: 'emerald',
-    href: '#',
-  },
-  {
     icon: Mail,
     title: 'Email Support',
     description: 'Kirim pertanyaan via email',
-    contact: 'support@stcautotrade.com',
+    contact: 'sanzystoreid@gmail.com',
     availability: 'Response dalam 2 jam',
     action: 'Send Email',
     color: 'blue',
-    href: 'mailto:support@stcautotrade.com',
+    href: 'mailto:sanzystoreid@gmail.com',
   },
   {
     icon: Phone,
     title: 'WhatsApp',
     description: 'Hubungi kami via WhatsApp',
-    contact: '+62 812-3456-7890',
+    contact: '+62 813-3990-8765',
     availability: '24/7 Available',
     action: 'Chat on WhatsApp',
     color: 'green',
-    href: 'https://wa.me/6281234567890',
+    href: 'https://wa.me/6281339908765',
   },
 ]
 
@@ -80,7 +69,7 @@ export default function SupportPage() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
+        <div className="grid md:grid-cols-2 gap-6 mb-12">
           {CONTACT_METHODS.map((method) => (
             <div
               key={method.title}
@@ -94,7 +83,7 @@ export default function SupportPage() {
               <p className="text-sm text-gray-600 mb-3">{method.description}</p>
               
               <div className="bg-gray-50 rounded-lg p-3 mb-4 border border-gray-100">
-                <p className="text-sm font-mono text-gray-700">{method.contact}</p>
+                <p className="text-sm text-gray-700">{method.contact}</p>
               </div>
 
               <div className="flex items-center gap-2 text-xs text-gray-500 mb-5">
@@ -116,16 +105,19 @@ export default function SupportPage() {
           <MessageCircle className="w-12 h-12 text-cyan-600 mx-auto mb-4" />
           <h3 className="text-xl font-bold text-gray-900 mb-3">Butuh Bantuan Cepat?</h3>
           <p className="text-gray-600 mb-6 max-w-xl mx-auto">
-            Untuk respons tercepat, gunakan Live Chat kami yang tersedia 24/7. 
+            Untuk respons tercepat, hubungi kami via WhatsApp atau email. 
             Tim support kami siap membantu Anda dengan segala pertanyaan seputar trading, deposit, withdrawal, dan lainnya.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button className="bg-cyan-600 hover:bg-cyan-700 text-white px-8 py-3 rounded-lg font-medium transition-colors inline-flex items-center justify-center gap-2 shadow-sm">
-              <MessageSquare className="w-5 h-5" />
-              Start Live Chat
-            </button>
             <a
-              href="mailto:support@stcautotrade.com"
+              href="https://wa.me/6281339908765"
+              className="bg-cyan-600 hover:bg-cyan-700 text-white px-8 py-3 rounded-lg font-medium transition-colors inline-flex items-center justify-center gap-2 shadow-sm"
+            >
+              <Phone className="w-5 h-5" />
+              Chat on WhatsApp
+            </a>
+            <a
+              href="mailto:sanzystoreid@gmail.com"
               className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 px-8 py-3 rounded-lg font-medium transition-colors inline-flex items-center justify-center gap-2"
             >
               <Send className="w-5 h-5" />
@@ -134,11 +126,7 @@ export default function SupportPage() {
           </div>
         </div>
 
-        <div className="mt-8 grid md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
-            <div className="text-2xl font-bold text-emerald-600 mb-1">24/7</div>
-            <div className="text-sm text-gray-600">Live Chat Support</div>
-          </div>
+        <div className="mt-8 grid md:grid-cols-2 gap-4">
           <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
             <div className="text-2xl font-bold text-blue-600 mb-1">&lt; 2 Hours</div>
             <div className="text-sm text-gray-600">Email Response</div>

@@ -433,7 +433,7 @@ export default function VoucherManagementPage() {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <span className="text-2xl font-bold font-mono text-white">
+                      <span className="text-2xl font-bold text-white">
                         {voucher.code}
                       </span>
                       {getStatusBadge(voucher)}
@@ -595,7 +595,7 @@ export default function VoucherManagementPage() {
 
               <div className="p-6 space-y-6">
                 <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                  <div className="text-2xl font-bold font-mono text-white mb-2">
+                  <div className="text-2xl font-bold text-white mb-2">
                     {voucherStats.voucher.code}
                   </div>
                   <div className="text-sm text-slate-400">

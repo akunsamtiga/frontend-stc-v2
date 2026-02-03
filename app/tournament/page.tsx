@@ -31,7 +31,6 @@ export default function TournamentPage() {
               <ChevronLeft className="w-5 h-5 text-gray-700" />
             </button>
             <div className="flex items-center gap-2">
-              <Trophy className="w-6 h-6 text-yellow-600" />
               <h1 className="text-2xl font-bold text-gray-900">Trading Tournament</h1>
             </div>
           </div>
@@ -144,25 +143,6 @@ export default function TournamentPage() {
                 </p>
               </div>
             </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-xl p-6 md:p-8 text-center mb-8">
-          <Bell className="w-12 h-12 text-cyan-600 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Dapatkan Notifikasi</h3>
-          <p className="text-gray-600 mb-6">
-            Jadilah yang pertama tahu saat turnamen baru dimulai!
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-            <button className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-sm">
-              <Bell className="w-5 h-5" />
-              Aktifkan Notifikasi
-            </button>
-            <button className="flex-1 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
-              <Mail className="w-5 h-5" />
-              Email Saya
-            </button>
           </div>
         </div>
 

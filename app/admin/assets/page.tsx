@@ -451,7 +451,7 @@ export default function AdminAssetsPage() {
                           {asset.cryptoConfig && (
                             <>
                               <span>•</span>
-                              <span className="font-mono font-semibold">
+                              <span className="font-semibold">
                                 {asset.cryptoConfig.baseCurrency}/{asset.cryptoConfig.quoteCurrency}
                               </span>
                             </>

@@ -2423,7 +2423,7 @@ export default function ProfilePage() {
                   transition={{ delay: 0.3 }}
                 >
                   <motion.div 
-                    className="px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-black font-mono text-xs break-all"
+                    className="px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-black text-xs break-all"
                   >
                     {typeof window !== 'undefined' && `${window.location.origin}/?ref=${affiliateInfo.referralCode}`}
                   </motion.div>
