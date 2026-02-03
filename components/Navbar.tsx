@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
+import { api } from '@/lib/api'
+import { UserProfile } from '@/types'
 import Image from 'next/image'
 import { 
   History,
@@ -23,7 +25,28 @@ export default function Navbar() {
   const { user, logout } = useAuthStore()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [logoPhase, setLogoPhase] = useState<'stc-logo-in' | 'stc-text-in' | 'stc-hold' | 'stc-text-out' | 'stc-logo-out' | 'stockity-logo-in' | 'stockity-text-in' | 'stockity-hold' | 'stockity-text-out' | 'stockity-logo-out'>('stc-logo-in')
+
+  // Fetch user profile
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (!user?.id) return
+      
+      try {
+        const response = await api.getProfile()
+        const profile = (response as any)?.data as UserProfile || response as UserProfile
+        
+        if (profile && 'user' in profile && 'statusInfo' in profile) {
+          setUserProfile(profile)
+        }
+      } catch (error) {
+        console.error('Failed to load user profile:', error)
+      }
+    }
+
+    loadUserProfile()
+  }, [user?.id])
 
   useEffect(() => {
     const phaseTimings = {
@@ -81,10 +104,10 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo dengan animasi sequence */}
           <div 
-            className="relative h-10 w-52 overflow-visible cursor-pointer"
+            className="relative h-8 w-48 overflow-visible cursor-pointer"
             onClick={() => router.push('/trading')}
           >
-            {/* STC AutoTrade - hanya visible di fase STC */}
+            {/* Stouch - hanya visible di fase STC */}
             {logoPhase.startsWith('stc-') && (
               <div className="flex items-center gap-3 absolute left-0 top-0">
                 {/* Logo STC */}
@@ -95,7 +118,7 @@ export default function Navbar() {
                 }`}>
                   <Image
                     src="/stc-logo.png"
-                    alt="STC AutoTrade"
+                    alt="Stouch"
                     fill
                     className="object-contain rounded-md"
                     priority
@@ -110,7 +133,7 @@ export default function Navbar() {
                       logoPhase === 'stc-text-out' ? 'animate-text-slide-out' : 
                       'opacity-100 translate-x-0'
                     }`}>
-                      STC AutoTrade
+                      Stouch
                     </span>
                   </div>
                 )}
@@ -194,9 +217,21 @@ export default function Navbar() {
               className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <div className="text-sm font-medium text-gray-900">{user.email.split('@')[0]}</div>
-              <div className="flat-avatar">
-                {user.email[0].toUpperCase()}
-              </div>
+              {userProfile?.profileInfo?.avatar?.url ? (
+                <div className="relative w-8 h-8 rounded-full overflow-hidden ring-2 ring-gray-200">
+                  <Image
+                    src={userProfile.profileInfo.avatar.url}
+                    alt={user.email}
+                    width={32}
+                    height={32}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="flat-avatar">
+                  {user.email[0].toUpperCase()}
+                </div>
+              )}
               <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
             </button>
 
@@ -254,9 +289,21 @@ export default function Navbar() {
             {/* User Info */}
             <div className="p-4 bg-gray-50 border-b border-gray-200">
               <div className="flex items-center gap-3">
-                <div className="flat-avatar">
-                  {user.email[0].toUpperCase()}
-                </div>
+                {userProfile?.profileInfo?.avatar?.url ? (
+                  <div className="relative w-10 h-10 rounded-full overflow-hidden ring-2 ring-gray-200">
+                    <Image
+                      src={userProfile.profileInfo.avatar.url}
+                      alt={user.email}
+                      width={40}
+                      height={40}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="flat-avatar">
+                    {user.email[0].toUpperCase()}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-gray-900 truncate">{user.email}</div>
                   <div className="text-xs text-gray-500 capitalize">{user.role.replace('_', ' ')}</div>

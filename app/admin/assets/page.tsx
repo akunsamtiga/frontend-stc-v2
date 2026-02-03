@@ -1,3 +1,4 @@
+// app/admin/assets/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -18,60 +19,53 @@ import {
   TrendingUp,
   Activity,
   Eye,
-  Settings as SettingsIcon,
-  Loader2,
   Filter,
   Zap,
-  DollarSign
+  DollarSign,
+  RefreshCw
 } from 'lucide-react'
 import { toast } from 'sonner'
-// ✅ FIX: Import Asset type from @/types instead of defining locally
 import type { Asset } from '@/types'
 
 const StatCardSkeleton = () => (
-  <div className="bg-white rounded-xl p-4 md:p-5 border border-gray-100 animate-pulse">
-    <div className="flex items-center gap-2 md:gap-3 mb-2">
-      <div className="w-8 h-8 md:w-10 md:h-10 bg-gray-200 rounded-lg"></div>
-      <div className="h-3 bg-gray-200 rounded w-20 md:w-24"></div>
+  <div className="bg-white/5 rounded-lg p-4 border border-white/10 animate-pulse backdrop-blur-sm">
+    <div className="flex items-center gap-3 mb-3">
+      <div className="w-8 h-8 bg-white/10 rounded"></div>
+      <div className="h-4 bg-white/10 rounded w-20"></div>
     </div>
-    <div className="h-8 md:h-10 bg-gray-200 rounded w-16 md:w-20 mb-1"></div>
-    <div className="h-3 bg-gray-200 rounded w-12 md:w-16"></div>
+    <div className="h-6 bg-white/10 rounded w-24"></div>
   </div>
 )
 
 const AssetCardSkeleton = () => (
-  <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 sm:p-4 animate-pulse">
+  <div className="bg-white/5 border border-white/10 rounded-lg p-4 animate-pulse">
     <div className="flex items-start justify-between mb-3">
-      <div className="flex items-center gap-2 sm:gap-3">
-        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-xl"></div>
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 bg-white/10 rounded-xl"></div>
         <div>
-          <div className="h-4 bg-gray-200 rounded w-32 sm:w-40 mb-2"></div>
-          <div className="h-3 bg-gray-200 rounded w-24"></div>
+          <div className="h-4 bg-white/10 rounded w-40 mb-2"></div>
+          <div className="h-3 bg-white/10 rounded w-24"></div>
         </div>
       </div>
-      <div className="w-5 h-5 bg-gray-200 rounded-full"></div>
+      <div className="w-5 h-5 bg-white/10 rounded-full"></div>
     </div>
-    <div className="bg-white rounded-lg p-3 mb-3 space-y-2">
-      <div className="h-3 bg-gray-200 rounded w-24 mb-2"></div>
-      <div className="h-4 bg-gray-200 rounded w-20"></div>
-    </div>
-    <div className="flex gap-2">
-      <div className="h-10 bg-gray-200 rounded-lg flex-1"></div>
-      <div className="h-10 bg-gray-200 rounded-lg flex-1"></div>
+    <div className="bg-white/5 rounded-lg p-3 mb-3 space-y-2">
+      <div className="h-3 bg-white/10 rounded w-24"></div>
+      <div className="h-4 bg-white/10 rounded w-20"></div>
     </div>
   </div>
 )
 
 const LoadingSkeleton = () => (
-  <div className="min-h-screen bg-[#fafafa]">
+  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
     <Navbar />
-    <div className="container mx-auto px-3 md:px-4 py-4 md:py-6 max-w-7xl">
-      <div className="mb-4 md:mb-6 animate-pulse">
-        <div className="h-6 bg-gray-200 rounded w-48 mb-3"></div>
-        <div className="h-4 bg-gray-200 rounded w-64"></div>
+    <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="mb-6 animate-pulse">
+        <div className="h-7 bg-white/10 rounded w-48 mb-2"></div>
+        <div className="h-4 bg-white/10 rounded w-64"></div>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 md:gap-6 mb-4 md:mb-8">
+      <div className="grid grid-cols-4 gap-3 mb-6">
         {[...Array(4)].map((_, i) => (
           <StatCardSkeleton key={i} />
         ))}
@@ -91,6 +85,8 @@ export default function AdminAssetsPage() {
   const user = useAuthStore((state) => state.user)
   const [assets, setAssets] = useState<Asset[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   
   // Filter states
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'normal' | 'crypto'>('all')
@@ -118,18 +114,25 @@ export default function AdminAssetsPage() {
     loadAssets()
   }, [user, router])
 
-  const loadAssets = async () => {
+  const loadAssets = async (showRefreshing = false) => {
     try {
+      if (showRefreshing) setRefreshing(true)
       setLoading(true)
       const response = await api.getAssets(false)
       const assetData = response?.data || response
       setAssets(assetData.assets || [])
+      setLastUpdated(new Date())
     } catch (error) {
-      console.error('Failed to load assets:', error)
-      toast.error('Failed to load assets')
+      console.error('Gagal memuat aset:', error)
+      toast.error('Gagal memuat aset')
     } finally {
       setLoading(false)
+      if (showRefreshing) setRefreshing(false)
     }
+  }
+
+  const handleRefresh = () => {
+    loadAssets(true)
   }
 
   const handleCreate = () => {
@@ -155,13 +158,13 @@ export default function AdminAssetsPage() {
   const handleCreateSuccess = () => {
     setShowCreateModal(false)
     loadAssets()
-    toast.success('Asset created successfully')
+    toast.success('Aset berhasil dibuat')
   }
 
   const handleEditSuccess = () => {
     setShowEditModal(false)
     loadAssets()
-    toast.success('Asset updated successfully')
+    toast.success('Aset berhasil diperbarui')
   }
 
   const handleDeleteConfirm = async () => {
@@ -172,26 +175,23 @@ export default function AdminAssetsPage() {
       setShowDeleteModal(false)
       setSelectedAsset(null)
       loadAssets()
-      toast.success('Asset deleted successfully')
+      toast.success('Aset berhasil dihapus')
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to delete asset')
+      toast.error(error.response?.data?.error || 'Gagal menghapus aset')
     }
   }
 
-  // ✅ FIX: Properly handle category with default value
   const getAssetCategory = (asset: Asset): 'normal' | 'crypto' => {
     return asset.category || 'normal'
   }
 
   // Filter assets
   const filteredAssets = assets.filter((asset) => {
-    // Category filter
     if (categoryFilter !== 'all') {
       const assetCategory = getAssetCategory(asset)
       if (assetCategory !== categoryFilter) return false
     }
     
-    // Status filter
     if (statusFilter !== 'all') {
       if (statusFilter === 'active' && !asset.isActive) return false
       if (statusFilter === 'inactive' && asset.isActive) return false
@@ -216,498 +216,301 @@ export default function AdminAssetsPage() {
 
   if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) return null
 
-  if (loading) {
+  if (loading && !refreshing) {
     return <LoadingSkeleton />
   }
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <Navbar />
 
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Header */}
-        <div className="mb-4 sm:mb-6 md:mb-8">
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 mb-2">
-            <span>Admin</span>
-            <span>/</span>
-            <span className="text-gray-900 font-medium">Asset Management</span>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white mb-1">Manajemen Aset</h1>
+            <p className="text-sm text-slate-400">Konfigurasi aset trading dan pengaturan</p>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-50 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
-                <Package className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-purple-500" />
-              </div>
-              <div>
-                <h1 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-gray-900">Asset Management</h1>
-                <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Configure trading assets and settings</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {/* Filter Button */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg transition-colors disabled:opacity-50"
+              title="Refresh"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+            {user.role === 'super_admin' && (
               <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-medium transition-all text-xs sm:text-sm border ${
-                  showFilters || categoryFilter !== 'all' || statusFilter !== 'all'
-                    ? 'bg-blue-50 border-blue-200 text-blue-700'
-                    : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
-                }`}
+                onClick={handleCreate}
+                className="flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-medium transition-colors"
               >
-                <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">Filters</span>
-                {(categoryFilter !== 'all' || statusFilter !== 'all') && (
-                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                )}
+                <Plus className="w-4 h-4" />
+                Tambah Aset
               </button>
-
-              {user.role === 'super_admin' && (
-                <button
-                  onClick={handleCreate}
-                  className="flex items-center justify-center gap-2 px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-lg sm:rounded-xl font-bold shadow-lg hover:shadow-xl transition-all text-xs sm:text-sm md:text-base"
-                >
-                  <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-                  <span className="hidden sm:inline">Add Asset</span>
-                  <span className="sm:hidden">Add</span>
-                </button>
-              )}
-            </div>
+            )}
           </div>
         </div>
 
-        {/* Filters Panel */}
-        {showFilters && (
-          <div className="mb-4 sm:mb-6 bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200 animate-slide-down">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2">
-                  Category
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setCategoryFilter('all')}
-                    className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
-                      categoryFilter === 'all'
-                        ? 'bg-purple-500 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    All ({assets.length})
-                  </button>
-                  <button
-                    onClick={() => setCategoryFilter('normal')}
-                    className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
-                      categoryFilter === 'normal'
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    📊 Normal ({stats.normal})
-                  </button>
-                  <button
-                    onClick={() => setCategoryFilter('crypto')}
-                    className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
-                      categoryFilter === 'crypto'
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    ₿ Crypto ({stats.crypto})
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2">
-                  Status
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setStatusFilter('all')}
-                    className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
-                      statusFilter === 'all'
-                        ? 'bg-purple-500 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    All ({assets.length})
-                  </button>
-                  <button
-                    onClick={() => setStatusFilter('active')}
-                    className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
-                      statusFilter === 'active'
-                        ? 'bg-green-500 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Active ({stats.active})
-                  </button>
-                  <button
-                    onClick={() => setStatusFilter('inactive')}
-                    className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-all ${
-                      statusFilter === 'inactive'
-                        ? 'bg-gray-500 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Inactive ({assets.length - stats.active})
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {(categoryFilter !== 'all' || statusFilter !== 'all') && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <button
-                  onClick={() => {
-                    setCategoryFilter('all')
-                    setStatusFilter('all')
-                  }}
-                  className="text-xs sm:text-sm text-purple-600 hover:text-purple-700 font-medium"
-                >
-                  Clear all filters
-                </button>
-              </div>
-            )}
+        {/* Filters */}
+        <div className="flex items-center justify-between">
+          <div className="inline-flex bg-white/5 rounded-lg p-1 backdrop-blur-sm border border-white/10">
+            <button
+              onClick={() => setCategoryFilter('all')}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                categoryFilter === 'all'
+                  ? 'bg-sky-600 text-white shadow-lg'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Semua
+            </button>
+            <button
+              onClick={() => setCategoryFilter('normal')}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                categoryFilter === 'normal'
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Normal
+            </button>
+            <button
+              onClick={() => setCategoryFilter('crypto')}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                categoryFilter === 'crypto'
+                  ? 'bg-orange-600 text-white shadow-lg'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Crypto
+            </button>
           </div>
-        )}
+
+          <div className="inline-flex bg-white/5 rounded-lg p-1 backdrop-blur-sm border border-white/10">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                statusFilter === 'all'
+                  ? 'bg-indigo-600 text-white shadow-lg'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Semua
+            </button>
+            <button
+              onClick={() => setStatusFilter('active')}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                statusFilter === 'active'
+                  ? 'bg-green-600 text-white shadow-lg'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Aktif
+            </button>
+            <button
+              onClick={() => setStatusFilter('inactive')}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                statusFilter === 'inactive'
+                  ? 'bg-slate-600 text-white shadow-lg'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Nonaktif
+            </button>
+          </div>
+        </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">
-          <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border border-gray-100 hover:shadow-lg transition-shadow">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Package className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+              <div className="w-8 h-8 rounded bg-blue-500/20 flex items-center justify-center">
+                <Package className="w-4 h-4 text-blue-400" />
               </div>
-              <span className="text-xs sm:text-sm text-gray-500 font-medium">Total</span>
+              <span className="text-xs text-slate-400">Total</span>
             </div>
-            <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900">{stats.total}</div>
+            <div className="text-2xl font-bold text-white">{stats.total}</div>
           </div>
 
-          <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border border-gray-100 hover:shadow-lg transition-shadow">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+              <div className="w-8 h-8 rounded bg-green-500/20 flex items-center justify-center">
+                <CheckCircle className="w-4 h-4 text-green-400" />
               </div>
-              <span className="text-xs sm:text-sm text-gray-500 font-medium">Active</span>
+              <span className="text-xs text-slate-400">Aktif</span>
             </div>
-            <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-green-400">
               {stats.active}
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border border-orange-100 hover:shadow-lg transition-shadow">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+              <div className="w-8 h-8 rounded bg-orange-500/20 flex items-center justify-center">
+                <DollarSign className="w-4 h-4 text-orange-400" />
               </div>
-              <span className="text-xs sm:text-sm text-orange-700 font-medium">Crypto</span>
+              <span className="text-xs text-slate-400">Crypto</span>
             </div>
-            <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-orange-600">
+            <div className="text-2xl font-bold text-orange-400">
               {stats.crypto}
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border border-yellow-200 hover:shadow-lg transition-shadow">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
+              <div className="w-8 h-8 rounded bg-yellow-500/20 flex items-center justify-center">
+                <Zap className="w-4 h-4 text-yellow-400" />
               </div>
-              <span className="text-xs sm:text-sm text-yellow-700 font-medium">Ultra-Fast</span>
+              <span className="text-xs text-slate-400">Ultra-Fast</span>
             </div>
-            <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-yellow-600">
+            <div className="text-2xl font-bold text-yellow-400">
               {stats.ultraFast}
             </div>
           </div>
         </div>
 
         {/* Assets List */}
-        <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+        <div className="bg-white/5 rounded-lg border border-white/10 backdrop-blur-sm overflow-hidden">
           {filteredAssets.length === 0 ? (
-            <div className="text-center py-8 sm:py-12">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Package className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300" />
+            <div className="text-center py-12">
+              <div className="w-20 h-20 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Package className="w-10 h-10 text-slate-500" />
               </div>
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
-                {assets.length === 0 ? 'No assets configured' : 'No assets match filters'}
+              <h3 className="text-lg font-semibold text-white mb-2">
+                {assets.length === 0 ? 'Tidak ada aset' : 'Tidak ada aset yang cocok'}
               </h3>
-              <p className="text-sm text-gray-500 mb-6">
+              <p className="text-sm text-slate-400 mb-6">
                 {assets.length === 0 
-                  ? 'Add your first trading asset to get started'
-                  : 'Try adjusting your filters to see more assets'}
+                  ? 'Tambahkan aset trading pertama Anda'
+                  : 'Coba ubah filter untuk melihat lebih banyak aset'}
               </p>
               {assets.length === 0 && user.role === 'super_admin' && (
                 <button
                   onClick={handleCreate}
-                  className="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-600 transition-colors text-sm sm:text-base"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-sky-600 text-white rounded-xl font-medium hover:bg-sky-700 transition-colors"
                 >
-                  <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-                  Add First Asset
-                </button>
-              )}
-              {assets.length > 0 && (
-                <button
-                  onClick={() => {
-                    setCategoryFilter('all')
-                    setStatusFilter('all')
-                  }}
-                  className="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors text-sm sm:text-base"
-                >
-                  Clear Filters
+                  <Plus className="w-5 h-5" />
+                  Tambah Aset Pertama
                 </button>
               )}
             </div>
           ) : (
-            <>
-              {/* Desktop View */}
-              <div className="hidden sm:block divide-y divide-gray-100">
-                {filteredAssets.map((asset) => {
-                  const hasUltraFast = asset.tradingSettings?.allowedDurations.includes(0.0167)
-                  const assetCategory = getAssetCategory(asset)
-                  
-                  return (
-                    <div
-                      key={asset.id}
-                      className="flex items-center justify-between p-4 sm:p-6 hover:bg-gray-50 transition-colors group"
-                    >
-                      <div className="flex items-center gap-3 sm:gap-4 flex-1">
-                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center ${
-                          asset.isActive ? 'bg-green-50' : 'bg-gray-100'
-                        }`}>
-                          <Package className={`w-5 h-5 sm:w-6 sm:h-6 ${
-                            asset.isActive ? 'text-green-600' : 'text-gray-400'
-                          }`} />
-                        </div>
-                        
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-bold text-base sm:text-lg text-gray-900">{asset.name}</span>
-                            
-                            {/* Category Badge */}
-                            {assetCategory === 'crypto' ? (
-                              <span className="px-2 py-0.5 bg-gradient-to-r from-orange-100 to-yellow-100 border border-orange-300 text-orange-700 rounded text-xs font-bold">
-                                ₿ Crypto
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 bg-blue-100 border border-blue-300 text-blue-700 rounded text-xs font-bold">
-                                📊 Normal
-                              </span>
-                            )}
-                            
-                            {/* Ultra-Fast Badge */}
-                            {hasUltraFast && (
-                              <span className="px-2 py-0.5 bg-gradient-to-r from-yellow-100 to-orange-100 border border-yellow-300 text-yellow-700 rounded text-xs font-bold flex items-center gap-1">
-                                <Zap className="w-3 h-3" />
-                                1s
-                              </span>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-500">
-                            <span className="font-medium">Symbol: {asset.symbol}</span>
-                            <span>•</span>
-                            <span className="flex items-center gap-1">
-                              <Activity className="w-3 h-3 sm:w-4 sm:h-4" />
-                              Profit: {asset.profitRate}%
-                            </span>
-                            <span>•</span>
-                            <span className="capitalize">{asset.dataSource}</span>
-                            {/* Crypto Pair Display */}
-                            {asset.cryptoConfig && (
-                              <>
-                                <span>•</span>
-                                <span className="font-mono font-semibold">
-                                  {asset.cryptoConfig.baseCurrency}/{asset.cryptoConfig.quoteCurrency}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        </div>
+            <div className="divide-y divide-white/10">
+              {filteredAssets.map((asset) => {
+                const hasUltraFast = asset.tradingSettings?.allowedDurations.includes(0.0167)
+                const assetCategory = getAssetCategory(asset)
+                
+                return (
+                  <div
+                    key={asset.id}
+                    className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors group"
+                  >
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                        asset.isActive ? 'bg-green-500/10' : 'bg-white/5'
+                      }`}>
+                        <Package className={`w-6 h-6 ${
+                          asset.isActive ? 'text-green-400' : 'text-slate-500'
+                        }`} />
                       </div>
-
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <span className={`px-3 py-1.5 rounded-xl text-xs font-bold border ${
-                          asset.isActive 
-                            ? 'bg-green-50 text-green-700 border-green-200' 
-                            : 'bg-gray-100 text-gray-500 border-gray-200'
-                        }`}>
-                          {asset.isActive ? (
-                            <span className="flex items-center gap-1">
-                              <CheckCircle className="w-3 h-3" />
-                              Active
+                      
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-bold text-lg text-white">{asset.name}</span>
+                          
+                          {/* Category Badge */}
+                          {assetCategory === 'crypto' ? (
+                            <span className="px-2 py-0.5 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded text-xs font-bold">
+                              ₿ Crypto
                             </span>
                           ) : (
-                            <span className="flex items-center gap-1">
-                              <XCircle className="w-3 h-3" />
-                              Inactive
+                            <span className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded text-xs font-bold">
+                              📊 Normal
                             </span>
                           )}
-                        </span>
-
-                        <button
-                          onClick={() => handleViewDetail(asset)}
-                          className="p-2 hover:bg-purple-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                          title="View Details"
-                        >
-                          <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
-                        </button>
-
-                        {user.role === 'super_admin' && (
-                          <>
-                            <button
-                              onClick={() => handleEdit(asset)}
-                              className="p-2 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                              title="Edit Asset"
-                            >
-                              <Edit className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                            </button>
-
-                            <button
-                              onClick={() => handleDelete(asset)}
-                              className="p-2 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                              title="Delete Asset"
-                            >
-                              <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              {/* Mobile View */}
-              <div className="sm:hidden space-y-3 p-3">
-                {filteredAssets.map((asset) => {
-                  const hasUltraFast = asset.tradingSettings?.allowedDurations.includes(0.0167)
-                  const assetCategory = getAssetCategory(asset)
-                  
-                  return (
-                    <div
-                      key={asset.id}
-                      className="bg-gray-50 border border-gray-100 rounded-xl p-3 hover:shadow-lg transition-all"
-                    >
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                          asset.isActive ? 'bg-green-50' : 'bg-gray-100'
-                        }`}>
-                          <Package className={`w-6 h-6 ${
-                            asset.isActive ? 'text-green-600' : 'text-gray-400'
-                          }`} />
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="font-bold text-base text-gray-900 mb-1">{asset.name}</div>
-                          <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold ${
-                              asset.isActive 
-                                ? 'bg-green-100 text-green-700' 
-                                : 'bg-gray-200 text-gray-600'
-                            }`}>
-                              {asset.isActive ? (
-                                <>
-                                  <CheckCircle className="w-3 h-3" />
-                                  Active
-                                </>
-                              ) : (
-                                <>
-                                  <XCircle className="w-3 h-3" />
-                                  Inactive
-                                </>
-                              )}
-                            </span>
-                            
-                            {/* Category Badge */}
-                            {assetCategory === 'crypto' ? (
-                              <span className="px-2 py-0.5 bg-gradient-to-r from-orange-100 to-yellow-100 border border-orange-300 text-orange-700 rounded-lg text-xs font-bold">
-                                ₿
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 bg-blue-100 border border-blue-300 text-blue-700 rounded-lg text-xs font-bold">
-                                📊
-                              </span>
-                            )}
-                            
-                            {/* Ultra-Fast Badge */}
-                            {hasUltraFast && (
-                              <span className="px-2 py-0.5 bg-gradient-to-r from-yellow-100 to-orange-100 border border-yellow-300 text-yellow-700 rounded-lg text-xs font-bold flex items-center gap-1">
-                                <Zap className="w-3 h-3" />
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="bg-white rounded-lg p-3 mb-3 space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-500">Symbol</span>
-                          <span className="font-semibold text-gray-900">{asset.symbol}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-500">Category</span>
-                          <span className="font-medium text-gray-900">
-                            {assetCategory === 'crypto' ? '₿ Crypto' : '📊 Normal'}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-500">Profit Rate</span>
-                          <span className="font-bold text-purple-600">{asset.profitRate}%</span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-500">Data Source</span>
-                          <span className="font-medium text-gray-900 capitalize">{asset.dataSource}</span>
-                        </div>
-                        {asset.cryptoConfig && (
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-500">Pair</span>
-                            <span className="font-mono font-bold text-orange-600">
-                              {asset.cryptoConfig.baseCurrency}/{asset.cryptoConfig.quoteCurrency}
-                            </span>
-                          </div>
-                        )}
-                        {hasUltraFast && (
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-500">Ultra-Fast</span>
-                            <span className="font-bold text-yellow-600 flex items-center gap-1">
+                          
+                          {/* Ultra-Fast Badge */}
+                          {hasUltraFast && (
+                            <span className="px-2 py-0.5 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 rounded text-xs font-bold flex items-center gap-1">
                               <Zap className="w-3 h-3" />
-                              1 second
+                              1s
                             </span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleViewDetail(asset)}
-                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg text-sm font-semibold text-purple-700 transition-all"
-                        >
-                          <Eye className="w-4 h-4" />
-                          Details
-                        </button>
+                          )}
+                        </div>
                         
-                        {user.role === 'super_admin' && (
-                          <>
-                            <button
-                              onClick={() => handleEdit(asset)}
-                              className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-sm font-semibold text-blue-700 transition-all"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            
-                            <button
-                              onClick={() => handleDelete(asset)}
-                              className="flex items-center justify-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-sm font-semibold text-red-700 transition-all"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
+                        <div className="flex items-center gap-3 text-sm text-slate-400">
+                          <span className="font-medium">Simbol: {asset.symbol}</span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <Activity className="w-4 h-4" />
+                            Profit: {asset.profitRate}%
+                          </span>
+                          <span>•</span>
+                          <span className="capitalize">{asset.dataSource}</span>
+                          {asset.cryptoConfig && (
+                            <>
+                              <span>•</span>
+                              <span className="font-mono font-semibold">
+                                {asset.cryptoConfig.baseCurrency}/{asset.cryptoConfig.quoteCurrency}
+                              </span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  )
-                })}
-              </div>
-            </>
+
+                    <div className="flex items-center gap-2">
+                      <span className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${
+                        asset.isActive 
+                          ? 'bg-green-500/10 text-green-400 border-green-500/20' 
+                          : 'bg-white/5 text-slate-400 border-white/10'
+                      }`}>
+                        {asset.isActive ? (
+                          <span className="flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" />
+                            Aktif
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1">
+                            <XCircle className="w-3 h-3" />
+                            Nonaktif
+                          </span>
+                        )}
+                      </span>
+
+                      <button
+                        onClick={() => handleViewDetail(asset)}
+                        className="p-2 hover:bg-sky-500/10 text-sky-400 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        title="Lihat Detail"
+                      >
+                        <Eye className="w-5 h-5" />
+                      </button>
+
+                      {user.role === 'super_admin' && (
+                        <>
+                          <button
+                            onClick={() => handleEdit(asset)}
+                            className="p-2 hover:bg-blue-500/10 text-blue-400 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                            title="Edit Aset"
+                          >
+                            <Edit className="w-5 h-5" />
+                          </button>
+
+                          <button
+                            onClick={() => handleDelete(asset)}
+                            className="p-2 hover:bg-red-500/10 text-red-400 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                            title="Hapus Aset"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           )}
         </div>
       </div>
@@ -743,8 +546,8 @@ export default function AdminAssetsPage() {
 
       {showDeleteModal && selectedAsset && (
         <DeleteConfirmModal
-          title="Delete Asset"
-          message={`Are you sure you want to delete "${selectedAsset.name}"? This action cannot be undone.`}
+          title="Hapus Aset"
+          message={`Apakah Anda yakin ingin menghapus "${selectedAsset.name}"? Tindakan ini tidak dapat dibatalkan.`}
           onConfirm={handleDeleteConfirm}
           onCancel={() => {
             setShowDeleteModal(false)
@@ -752,23 +555,6 @@ export default function AdminAssetsPage() {
           }}
         />
       )}
-
-      <style jsx>{`
-        @keyframes slide-down {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .animate-slide-down {
-          animation: slide-down 0.3s ease-out;
-        }
-      `}</style>
     </div>
   )
 }

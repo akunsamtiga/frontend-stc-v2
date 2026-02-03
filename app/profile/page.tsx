@@ -137,7 +137,7 @@ const PasswordStrengthMeter = ({ password }: { password: string }) => {
   const checks = validatePassword(password)
   const strength = Object.values(checks).filter(Boolean).length
   const colors = ['bg-red-500', 'bg-yellow-500', 'bg-sky-500', 'bg-emerald-500']
-  const labels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong']
+  const labels = ['Sangat Lemah', 'Lemah', 'Cukup', 'Baik', 'Kuat']
   
   return (
     <motion.div 
@@ -154,7 +154,7 @@ const PasswordStrengthMeter = ({ password }: { password: string }) => {
           transition={{ duration: 0.3 }}
         />
       </div>
-      <p className="text-xs text-gray-600 mt-1">{labels[strength - 1] || 'Very Weak'}</p>
+      <p className="text-xs text-gray-600 mt-1">{labels[strength - 1] || 'Sangat Lemah'}</p>
       <div className="grid grid-cols-2 gap-1 mt-2 text-xs">
         {Object.entries(checks).map(([key, passed]) => (
           <motion.div 
@@ -476,7 +476,7 @@ export default function ProfilePage() {
     switch (field) {
       case 'fullName':
         if (!value.trim()) return 'Full name is required'
-        if (value.trim().length < 3) return 'Must be at least 3 characters'
+        if (value.trim().length < 3) return 'Harus minimal 3 karakter'
         return ''
       case 'phoneNumber':
         if (!value) return 'Phone number is required'
@@ -485,7 +485,7 @@ export default function ProfilePage() {
       case 'dateOfBirth':
         if (!value) return 'Date of birth is required'
         const age = new Date().getFullYear() - new Date(value).getFullYear()
-        if (age < 18) return 'Must be at least 18 years old'
+        if (age < 18) return 'Harus minimal 18 years old'
         return ''
       case 'street':
       case 'city':
@@ -493,11 +493,11 @@ export default function ProfilePage() {
         if (!value.trim()) return 'This field is required'
         return ''
       case 'accountNumber':
-        if (!value.trim()) return 'Account number is required'
-        if (!/^\d+$/.test(value)) return 'Must contain only numbers'
+        if (!value.trim()) return 'Nomor rekening is required'
+        if (!/^\d+$/.test(value)) return 'Must contain only angka'
         return ''
       case 'accountHolderName':
-        if (!value.trim()) return 'Account holder name is required'
+        if (!value.trim()) return 'Nama pemegang name is required'
         return ''
       case 'identityNumber':
         if (!value.trim()) return 'Document number is required'
@@ -616,7 +616,7 @@ export default function ProfilePage() {
       setEditingPersonal(false)
       setTimeout(() => loadProfile(), 300)
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to update', {
+      toast.error(error.response?.data?.error || 'Gagal memperbarui', {
         style: { background: '#ef4444', color: '#fff' }
       })
     } finally {
@@ -647,7 +647,7 @@ export default function ProfilePage() {
       setEditingAddress(false)
       setTimeout(() => loadProfile(), 300)
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to update', {
+      toast.error(error.response?.data?.error || 'Gagal memperbarui', {
         style: { background: '#ef4444', color: '#fff' }
       })
     } finally {
@@ -676,7 +676,7 @@ export default function ProfilePage() {
       setEditingIdentity(false)
       setTimeout(() => loadProfile(), 300)
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to update', {
+      toast.error(error.response?.data?.error || 'Gagal memperbarui', {
         style: { background: '#ef4444', color: '#fff' }
       })
     } finally {
@@ -701,13 +701,13 @@ export default function ProfilePage() {
     setSavingSection('bank')
     try {
       await api.updateProfile({ bankAccount: bankData })
-      toast.success('Bank account updated!', {
+      toast.success('Rekening bank updated!', {
         style: { background: '#10b981', color: '#fff' }
       })
       setEditingBank(false)
       setTimeout(() => loadProfile(), 300)
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to update', {
+      toast.error(error.response?.data?.error || 'Gagal memperbarui', {
         style: { background: '#ef4444', color: '#fff' }
       })
     } finally {
@@ -723,7 +723,7 @@ export default function ProfilePage() {
         style: { background: '#10b981', color: '#fff' }
       })
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to update', {
+      toast.error(error.response?.data?.error || 'Gagal memperbarui', {
         style: { background: '#ef4444', color: '#fff' }
       })
     } finally {
@@ -929,7 +929,7 @@ export default function ProfilePage() {
         if (uploadError?.response?.status === 413) {
           errorMessage = 'Image too large. Please use a smaller image.'
         } else if (uploadError?.response?.status === 500) {
-          errorMessage = 'Server error. Please try again or use a smaller image.'
+          errorMessage = 'Server error. Silakan coba lagi or use a smaller image.'
         } else if (uploadError?.response?.status === 502) {
           errorMessage = 'Upload timeout. Image might be too large.'
         } else if (uploadError?.response?.data?.error) {
@@ -1063,14 +1063,14 @@ export default function ProfilePage() {
   const affiliateInfo = profile?.affiliate
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: User },
-    { id: 'personal', label: 'Personal Info', icon: User },
-    { id: 'address', label: 'Address', icon: MapPin },
-    { id: 'identity', label: 'Identity', icon: FileText },
+    { id: 'overview', label: 'Ringkasan', icon: User },
+    { id: 'personal', label: 'Info Pribadi', icon: User },
+    { id: 'address', label: 'Alamat', icon: MapPin },
+    { id: 'identity', label: 'Identitas', icon: FileText },
     { id: 'bank', label: 'Bank', icon: CreditCard },
     { id: 'status', label: 'Status', icon: Award },
-    { id: 'affiliate', label: 'Affiliate', icon: Users },
-    { id: 'security', label: 'Security', icon: Lock },
+    { id: 'affiliate', label: 'Afiliasi', icon: Users },
+    { id: 'security', label: 'Keamanan', icon: Lock },
   ]
 
   const renderTabContent = () => {
@@ -1173,7 +1173,7 @@ export default function ProfilePage() {
                         <TrendingUp className="w-4 h-4 mr-2" />
                         Complete Your Profile
                       </h3>
-                      <p className="text-xs text-sky-700">Unlock all features by completing your profile</p>
+                      <p className="text-xs text-sky-700">Unlock all features by completing Anda profile</p>
                     </div>
                     <motion.div 
                       className="text-xl sm:text-2xl font-bold text-sky-600"
@@ -1376,7 +1376,7 @@ export default function ProfilePage() {
                     key: 'fullName', 
                     type: 'text',
                     required: true,
-                    info: 'Enter your legal name as per ID'
+                    info: 'Masukkan legal name as per ID'
                   },
                   { 
                     label: 'Phone Number', 
@@ -1451,7 +1451,7 @@ export default function ProfilePage() {
                                 ? 'border-red-300 focus:border-red-500'
                                 : 'border-gray-300 focus:border-sky-500'
                             }`}
-                            placeholder={`Enter your ${field.label.toLowerCase()}`}
+                            placeholder={`Masukkan ${field.label.toLowerCase()}`}
                           />
                         )}
                         {formErrors[field.key] && touchedFields[field.key] && (
@@ -1720,7 +1720,7 @@ export default function ProfilePage() {
                     Identity Verification
                   </h3>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {editingIdentity ? 'Upload documents to verify your identity' : 'Your identity documents'}
+                    {editingIdentity ? 'Unggah dokumens to verify Anda identity' : 'Your identity documents'}
                   </p>
                 </div>
                 <AnimatePresence mode="wait">
@@ -1796,7 +1796,7 @@ export default function ProfilePage() {
                       value={identityData.number}
                       onChange={(e) => setIdentityData({ ...identityData, number: e.target.value })}
                       className="w-full px-3 py-2.5 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all text-sm"
-                      placeholder="Enter your KTP/Passport number"
+                      placeholder="Masukkan KTP/Paspor number"
                     />
                   ) : (
                     <div className="px-3 py-2.5 bg-gray-100 border border-gray-200 rounded-lg text-gray-900 font-medium text-sm flex items-center justify-between">
@@ -1883,7 +1883,7 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="space-y-2">
-                      <span className="text-xs font-medium text-gray-500">Back Side (Optional)</span>
+                      <span className="text-xs font-medium text-gray-500">Back Side (Opsional)</span>
                       <div className="relative">
                         {profileInfo?.identity?.photoBack && !editingIdentity ? (
                           <div className="relative aspect-[4/3] rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
@@ -2035,7 +2035,7 @@ export default function ProfilePage() {
                   >
                     <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                     <p className="text-xs text-amber-800 leading-relaxed">
-                      Please complete your identity verification to unlock all features. Click Edit to upload your documents.
+                      Please complete Anda identity verification to unlock all features. Click Edit to upload Anda documents.
                     </p>
                   </motion.div>
                 )}
@@ -2052,7 +2052,7 @@ export default function ProfilePage() {
               <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-white">
                 <div>
                   <h3 className="text-base font-bold text-gray-900 mb-1">Bank Account</h3>
-                  <p className="text-xs text-gray-500">Add your bank account for withdrawals</p>
+                  <p className="text-xs text-gray-500">Add Anda bank account for withdrawals</p>
                 </div>
                 <AnimatePresence mode="wait">
                   {!editingBank ? (
@@ -2254,7 +2254,7 @@ export default function ProfilePage() {
                       {React.createElement(getStatusIcon(statusInfo.current), { className: "w-7 h-7 text-white" })}
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-0.5">Current Status</p>
+                      <p className="text-xs font-medium text-gray-500 huruf besar tracking-wider mb-0.5">Current Status</p>
                       <h3 className="text-xl font-bold text-gray-900 mb-0.5">{statusInfo.current.toUpperCase()}</h3>
                       <p className="text-sm font-medium text-emerald-600">Bonus +{statusInfo.profitBonus}%</p>
                     </div>
@@ -2500,7 +2500,7 @@ export default function ProfilePage() {
                   <Lock className="w-5 h-5 mr-2 text-red-500" />
                   Security Settings
                 </h3>
-                <p className="text-xs text-gray-500">Change your password & security preferences</p>
+                <p className="text-xs text-gray-500">Change Anda password & security preferences</p>
               </div>
 
               <motion.form 
@@ -2640,7 +2640,7 @@ export default function ProfilePage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
             >
-              Dashboard
+              Dasbor
             </motion.span>
             <span>/</span>
             <motion.span 
@@ -2649,7 +2649,7 @@ export default function ProfilePage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
             >
-              Profile
+              Profil
             </motion.span>
           </div>
           <motion.div 
@@ -2666,14 +2666,14 @@ export default function ProfilePage() {
               <Settings className="w-6 h-6 text-white" />
             </motion.div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900">My Profile</h1>
+              <h1 className="text-lg font-bold text-gray-900">Profil Saya</h1>
               <motion.p 
                 className="text-xs text-gray-500"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
               >
-                Profile completion: <span className="font-semibold">{profileInfo?.completion ?? 0}%</span>
+                Kelengkapan profil: <span className="font-semibold">{profileInfo?.completion ?? 0}%</span>
               </motion.p>
             </div>
           </motion.div>
@@ -2762,7 +2762,7 @@ export default function ProfilePage() {
                     whileTap={{ scale: 0.98 }}
                   >
                     <LogOut className="w-5 h-5 flex-shrink-0" />
-                    <span className="font-medium text-sm">Logout</span>
+                    <span className="font-medium text-sm">Keluar</span>
                   </motion.button>
                 </motion.div>
               </motion.div>
@@ -2784,8 +2784,8 @@ export default function ProfilePage() {
         isOpen={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
         onConfirm={confirmLogout}
-        title="Confirm Logout"
-        message="Are you sure you want to logout? You will be redirected to the homepage."
+        title="Konfirmasi Keluar"
+        message="Apakah Anda yakin ingin keluar? Anda akan diarahkan ke beranda."
       />
     </div>
   )

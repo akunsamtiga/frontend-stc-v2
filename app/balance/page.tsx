@@ -644,7 +644,7 @@ export default function BalancePage() {
                         </div>
                       </div>
                       
-                      <div className="flex flex-col items-end gap-2">
+                      <div className="flex flex-row items-end gap-2">
                         <Wifi className="w-6 h-6 text-white/60 rotate-90" />
                         <div className="px-3 py-1.5 bg-white/20 backdrop-blur-xl rounded-lg border border-white/30">
                           <span className="text-xs font-black text-white tracking-widest">REAL</span>
@@ -739,7 +739,7 @@ export default function BalancePage() {
                         </div>
                       </div>
                       
-                      <div className="flex flex-col items-end gap-2">
+                      <div className="flex flex-row items-end gap-2">
                         <Wifi className="w-6 h-6 text-white/60 rotate-90" />
                         <div className="px-3 py-1.5 bg-white/20 backdrop-blur-xl rounded-lg border border-white/30">
                           <span className="text-xs font-black text-white tracking-widest">DEMO</span>

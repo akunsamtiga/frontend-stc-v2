@@ -1,6 +1,7 @@
+// app/admin/verifications/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
@@ -9,9 +10,38 @@ import { toast } from 'sonner'
 import { 
   Shield, CheckCircle, XCircle, Clock, User, 
   CreditCard, Camera, RefreshCw, Search,
-  Eye, Calendar
+  Eye, Calendar, Loader2
 } from 'lucide-react'
 import type { PendingVerifications, VerifyDocumentRequest } from '@/types'
+
+type VerificationTab = 'ktp' | 'selfie'
+
+const StatCardSkeleton = () => (
+  <div className="bg-white/5 rounded-lg p-4 border border-white/10 animate-pulse backdrop-blur-sm">
+    <div className="flex items-center gap-3 mb-3">
+      <div className="w-8 h-8 bg-white/10 rounded"></div>
+      <div className="h-4 bg-white/10 rounded w-20"></div>
+    </div>
+    <div className="h-6 bg-white/10 rounded w-24"></div>
+  </div>
+)
+
+const LoadingSkeleton = () => (
+  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <Navbar />
+    <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="mb-6 animate-pulse">
+        <div className="h-7 bg-white/10 rounded w-48 mb-2"></div>
+        <div className="h-4 bg-white/10 rounded w-64"></div>
+      </div>
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        {[...Array(3)].map((_, i) => (
+          <StatCardSkeleton key={i} />
+        ))}
+      </div>
+    </div>
+  </div>
+)
 
 export default function AdminVerificationsPage() {
   const router = useRouter()
@@ -20,8 +50,9 @@ export default function AdminVerificationsPage() {
   const [verifications, setVerifications] = useState<PendingVerifications | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [selectedTab, setSelectedTab] = useState<'ktp' | 'selfie'>('ktp')
+  const [selectedTab, setSelectedTab] = useState<VerificationTab>('ktp')
   const [searchQuery, setSearchQuery] = useState('')
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   
   // Modal states
   const [reviewingKTP, setReviewingKTP] = useState<any>(null)
@@ -51,19 +82,24 @@ export default function AdminVerificationsPage() {
       
       if (response && response.data) {
         setVerifications(response.data)
+        setLastUpdated(new Date())
       }
     } catch (error: any) {
-      console.error('Failed to load verifications:', error)
-      toast.error(error?.message || 'Failed to load verifications')
+      console.error('Gagal memuat verifikasi:', error)
+      toast.error(error?.message || 'Gagal memuat verifikasi')
     } finally {
       setLoading(false)
       if (showRefreshing) setRefreshing(false)
     }
   }
 
+  const handleRefresh = () => {
+    loadVerifications(true)
+  }
+
   const handleVerifyKTP = async (userId: string, approve: boolean) => {
     if (!approve && !rejectionReason.trim()) {
-      toast.error('Please provide a rejection reason')
+      toast.error('Alasan penolakan wajib diisi')
       return
     }
 
@@ -79,8 +115,8 @@ export default function AdminVerificationsPage() {
       await api.verifyKTP(userId, data)
       
       toast.success(approve 
-        ? 'KTP verified successfully!' 
-        : 'KTP verification rejected'
+        ? 'KTP berhasil diverifikasi!' 
+        : 'Verifikasi KTP ditolak'
       )
       
       setReviewingKTP(null)
@@ -90,8 +126,8 @@ export default function AdminVerificationsPage() {
       await loadVerifications()
       
     } catch (error: any) {
-      console.error('Verify KTP error:', error)
-      toast.error(error?.message || 'Failed to process verification')
+      console.error('Gagal verifikasi KTP:', error)
+      toast.error(error?.message || 'Gagal memproses verifikasi')
     } finally {
       setProcessing(false)
     }
@@ -99,7 +135,7 @@ export default function AdminVerificationsPage() {
 
   const handleVerifySelfie = async (userId: string, approve: boolean) => {
     if (!approve && !rejectionReason.trim()) {
-      toast.error('Please provide a rejection reason')
+      toast.error('Alasan penolakan wajib diisi')
       return
     }
 
@@ -115,8 +151,8 @@ export default function AdminVerificationsPage() {
       await api.verifySelfie(userId, data)
       
       toast.success(approve 
-        ? 'Selfie verified successfully!' 
-        : 'Selfie verification rejected'
+        ? 'Selfie berhasil diverifikasi!' 
+        : 'Verifikasi selfie ditolak'
       )
       
       setReviewingSelfie(null)
@@ -126,8 +162,8 @@ export default function AdminVerificationsPage() {
       await loadVerifications()
       
     } catch (error: any) {
-      console.error('Verify Selfie error:', error)
-      toast.error(error?.message || 'Failed to process verification')
+      console.error('Gagal verifikasi selfie:', error)
+      toast.error(error?.message || 'Gagal memproses verifikasi')
     } finally {
       setProcessing(false)
     }
@@ -136,19 +172,7 @@ export default function AdminVerificationsPage() {
   if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) return null
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#fafafa]">
-        <Navbar />
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <RefreshCw className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-2" />
-              <p className="text-gray-600">Loading verifications...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+    return <LoadingSkeleton />
   }
 
   const ktpList = verifications?.ktpVerifications || []
@@ -165,146 +189,139 @@ export default function AdminVerificationsPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center">
-                <Shield className="w-6 h-6 text-purple-500" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Verification Management</h1>
-                <p className="text-sm text-gray-500">Review and approve user verifications</p>
-              </div>
-            </div>
-            
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white mb-1">Manajemen Verifikasi</h1>
+            <p className="text-sm text-slate-400">Tinjau dan setujui verifikasi pengguna</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {lastUpdated && (
+              <span className="text-xs text-slate-500">
+                {lastUpdated.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
             <button
-              onClick={() => loadVerifications(true)}
+              onClick={handleRefresh}
               disabled={refreshing}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50"
+              className="p-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg transition-colors disabled:opacity-50"
+              title="Refresh"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-              <span className="font-medium">
-                {refreshing ? 'Refreshing...' : 'Refresh'}
-              </span>
             </button>
-          </div>
-
-          {/* Summary Cards */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="bg-white rounded-xl p-4 border border-gray-100">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 bg-yellow-50 rounded-lg flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-yellow-600" />
-                </div>
-                <span className="text-sm text-gray-500">Total Pending</span>
-              </div>
-              <div className="text-3xl font-bold text-gray-900">
-                {verifications?.summary.total || 0}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-4 border border-gray-100">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-                  <CreditCard className="w-5 h-5 text-blue-600" />
-                </div>
-                <span className="text-sm text-gray-500">KTP Pending</span>
-              </div>
-              <div className="text-3xl font-bold text-gray-900">
-                {verifications?.summary.totalPendingKTP || 0}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-4 border border-gray-100">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
-                  <Camera className="w-5 h-5 text-purple-600" />
-                </div>
-                <span className="text-sm text-gray-500">Selfie Pending</span>
-              </div>
-              <div className="text-3xl font-bold text-gray-900">
-                {verifications?.summary.totalPendingSelfie || 0}
-              </div>
-            </div>
-          </div>
-
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by email or name..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
           </div>
         </div>
 
+        {/* Summary Cards */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded bg-yellow-500/20 flex items-center justify-center">
+                <Clock className="w-4 h-4 text-yellow-400" />
+              </div>
+              <span className="text-xs text-slate-400">Total Menunggu</span>
+            </div>
+            <div className="text-2xl font-bold text-white">
+              {verifications?.summary.total || 0}
+            </div>
+          </div>
+
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded bg-blue-500/20 flex items-center justify-center">
+                <CreditCard className="w-4 h-4 text-blue-400" />
+              </div>
+              <span className="text-xs text-slate-400">KTP Menunggu</span>
+            </div>
+            <div className="text-2xl font-bold text-blue-400">
+              {verifications?.summary.totalPendingKTP || 0}
+            </div>
+          </div>
+
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded bg-sky-500/20 flex items-center justify-center">
+                <Camera className="w-4 h-4 text-sky-400" />
+              </div>
+              <span className="text-xs text-slate-400">Selfie Menunggu</span>
+            </div>
+            <div className="text-2xl font-bold text-sky-400">
+              {verifications?.summary.totalPendingSelfie || 0}
+            </div>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Cari berdasarkan email atau nama..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:border-indigo-500 focus:bg-white/10 transition-all text-white placeholder-slate-500 text-sm"
+          />
+        </div>
+
         {/* Tabs */}
-        <div className="flex gap-2 mb-4">
+        <div className="inline-flex bg-white/5 rounded-lg p-1 backdrop-blur-sm border border-white/10">
           <button
             onClick={() => setSelectedTab('ktp')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
               selectedTab === 'ktp'
-                ? 'bg-blue-500 text-white'
-                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                ? 'bg-indigo-600 text-white shadow-lg'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
-            <div className="flex items-center gap-2">
-              <CreditCard className="w-4 h-4" />
-              KTP Verification ({filteredKTP.length})
-            </div>
+            <CreditCard className="w-4 h-4" />
+            KTP ({filteredKTP.length})
           </button>
           
           <button
             onClick={() => setSelectedTab('selfie')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
               selectedTab === 'selfie'
-                ? 'bg-purple-500 text-white'
-                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                ? 'bg-sky-600 text-white shadow-lg'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
-            <div className="flex items-center gap-2">
-              <Camera className="w-4 h-4" />
-              Selfie Verification ({filteredSelfie.length})
-            </div>
+            <Camera className="w-4 h-4" />
+            Selfie ({filteredSelfie.length})
           </button>
         </div>
 
         {/* Content */}
         {selectedTab === 'ktp' ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {filteredKTP.length === 0 ? (
-              <div className="bg-white rounded-xl p-12 text-center border border-gray-100">
-                <CreditCard className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No pending KTP verifications</p>
+              <div className="bg-white/5 rounded-lg p-12 text-center border border-white/10 backdrop-blur-sm">
+                <CreditCard className="w-12 h-12 text-slate-500 mx-auto mb-3" />
+                <p className="text-slate-400">Tidak ada verifikasi KTP yang menunggu</p>
               </div>
             ) : (
               filteredKTP.map((verification) => (
-                <div key={verification.userId} className="bg-white rounded-xl p-6 border border-gray-100">
+                <div key={verification.userId} className="bg-white/5 rounded-lg p-5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
-                        <User className="w-6 h-6 text-blue-600" />
+                      <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center flex-shrink-0 border border-blue-500/20">
+                        <User className="w-6 h-6 text-blue-400" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-gray-900">{verification.fullName || 'No Name'}</h3>
-                        <p className="text-sm text-gray-500">{verification.email}</p>
+                        <h3 className="font-bold text-white">{verification.fullName || 'Tanpa Nama'}</h3>
+                        <p className="text-sm text-slate-400">{verification.email}</p>
                         {verification.documentNumber && (
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-xs text-slate-500 mt-1">
                             {verification.documentType?.toUpperCase()}: {verification.documentNumber}
                           </p>
                         )}
                         <div className="flex items-center gap-2 mt-2">
-                          <Calendar className="w-4 h-4 text-gray-400" />
-                          <span className="text-xs text-gray-500">
-                            Uploaded: {new Date(verification.uploadedAt).toLocaleDateString('id-ID')}
+                          <Calendar className="w-4 h-4 text-slate-500" />
+                          <span className="text-xs text-slate-500">
+                            Diunggah: {new Date(verification.uploadedAt).toLocaleDateString('id-ID')}
                           </span>
                         </div>
                       </div>
@@ -312,10 +329,10 @@ export default function AdminVerificationsPage() {
                     
                     <button
                       onClick={() => setReviewingKTP(verification)}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 rounded-lg transition-colors"
                     >
                       <Eye className="w-4 h-4" />
-                      Review
+                      Tinjau
                     </button>
                   </div>
 
@@ -323,21 +340,21 @@ export default function AdminVerificationsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     {verification.photoFront && (
                       <div>
-                        <p className="text-xs text-gray-500 mb-2">Front Photo</p>
+                        <p className="text-xs text-slate-400 mb-2">Foto Depan</p>
                         <img
                           src={verification.photoFront.url}
-                          alt="KTP Front"
-                          className="w-full h-40 object-cover rounded-lg border border-gray-200"
+                          alt="KTP Depan"
+                          className="w-full h-40 object-cover rounded-lg border border-white/10"
                         />
                       </div>
                     )}
                     {verification.photoBack && (
                       <div>
-                        <p className="text-xs text-gray-500 mb-2">Back Photo</p>
+                        <p className="text-xs text-slate-400 mb-2">Foto Belakang</p>
                         <img
                           src={verification.photoBack.url}
-                          alt="KTP Back"
-                          className="w-full h-40 object-cover rounded-lg border border-gray-200"
+                          alt="KTP Belakang"
+                          className="w-full h-40 object-cover rounded-lg border border-white/10"
                         />
                       </div>
                     )}
@@ -347,27 +364,27 @@ export default function AdminVerificationsPage() {
             )}
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {filteredSelfie.length === 0 ? (
-              <div className="bg-white rounded-xl p-12 text-center border border-gray-100">
-                <Camera className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No pending selfie verifications</p>
+              <div className="bg-white/5 rounded-lg p-12 text-center border border-white/10 backdrop-blur-sm">
+                <Camera className="w-12 h-12 text-slate-500 mx-auto mb-3" />
+                <p className="text-slate-400">Tidak ada verifikasi selfie yang menunggu</p>
               </div>
             ) : (
               filteredSelfie.map((verification) => (
-                <div key={verification.userId} className="bg-white rounded-xl p-6 border border-gray-100">
+                <div key={verification.userId} className="bg-white/5 rounded-lg p-5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-purple-50 rounded-full flex items-center justify-center flex-shrink-0">
-                        <User className="w-6 h-6 text-purple-600" />
+                      <div className="w-12 h-12 bg-sky-500/10 rounded-full flex items-center justify-center flex-shrink-0 border border-sky-500/20">
+                        <User className="w-6 h-6 text-sky-400" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-gray-900">{verification.fullName || 'No Name'}</h3>
-                        <p className="text-sm text-gray-500">{verification.email}</p>
+                        <h3 className="font-bold text-white">{verification.fullName || 'Tanpa Nama'}</h3>
+                        <p className="text-sm text-slate-400">{verification.email}</p>
                         <div className="flex items-center gap-2 mt-2">
-                          <Calendar className="w-4 h-4 text-gray-400" />
-                          <span className="text-xs text-gray-500">
-                            Uploaded: {new Date(verification.uploadedAt).toLocaleDateString('id-ID')}
+                          <Calendar className="w-4 h-4 text-slate-500" />
+                          <span className="text-xs text-slate-500">
+                            Diunggah: {new Date(verification.uploadedAt).toLocaleDateString('id-ID')}
                           </span>
                         </div>
                       </div>
@@ -375,20 +392,20 @@ export default function AdminVerificationsPage() {
                     
                     <button
                       onClick={() => setReviewingSelfie(verification)}
-                      className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 border border-sky-500/30 rounded-lg transition-colors"
                     >
                       <Eye className="w-4 h-4" />
-                      Review
+                      Tinjau
                     </button>
                   </div>
 
                   {/* Selfie Preview */}
                   <div>
-                    <p className="text-xs text-gray-500 mb-2">Selfie Photo</p>
+                    <p className="text-xs text-slate-400 mb-2">Foto Selfie</p>
                     <img
                       src={verification.photoUrl}
                       alt="Selfie"
-                      className="w-full max-w-md h-64 object-cover rounded-lg border border-gray-200"
+                      className="w-full max-w-md h-64 object-cover rounded-lg border border-white/10"
                     />
                   </div>
                 </div>
@@ -400,227 +417,233 @@ export default function AdminVerificationsPage() {
 
       {/* KTP Review Modal */}
       {reviewingKTP && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-100">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Review KTP Verification</h2>
-                <button
-                  onClick={() => setReviewingKTP(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <XCircle className="w-6 h-6" />
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {/* User Info */}
-              <div className="bg-gray-50 rounded-xl p-4">
-                <h3 className="font-bold text-gray-900 mb-2">User Information</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-500">Name</p>
-                    <p className="font-medium">{reviewingKTP.fullName || 'No Name'}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Email</p>
-                    <p className="font-medium">{reviewingKTP.email}</p>
-                  </div>
-                  {reviewingKTP.documentNumber && (
-                    <div>
-                      <p className="text-gray-500">Document Number</p>
-                      <p className="font-medium">{reviewingKTP.documentNumber}</p>
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-gray-500">Uploaded</p>
-                    <p className="font-medium">
-                      {new Date(reviewingKTP.uploadedAt).toLocaleString('id-ID')}
-                    </p>
-                  </div>
+        <>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={() => setReviewingKTP(null)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-4xl bg-slate-900 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto border border-white/10">
+              <div className="p-6 border-b border-white/10">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-white">Tinjau Verifikasi KTP</h2>
+                  <button
+                    onClick={() => setReviewingKTP(null)}
+                    className="p-2 hover:bg-white/5 text-slate-400 rounded-lg transition-colors"
+                  >
+                    <XCircle className="w-6 h-6" />
+                  </button>
                 </div>
               </div>
 
-              {/* Photos */}
-              <div>
-                <h3 className="font-bold text-gray-900 mb-4">Document Photos</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {reviewingKTP.photoFront && (
+              <div className="p-6 space-y-6">
+                {/* User Info */}
+                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                  <h3 className="font-bold text-white mb-3">Informasi Pengguna</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-sm text-gray-500 mb-2">Front Photo</p>
-                      <img
-                        src={reviewingKTP.photoFront.url}
-                        alt="KTP Front"
-                        className="w-full h-64 object-contain bg-gray-100 rounded-lg border border-gray-200"
-                      />
+                      <p className="text-slate-400">Nama</p>
+                      <p className="font-medium text-white">{reviewingKTP.fullName || 'Tanpa Nama'}</p>
                     </div>
-                  )}
-                  {reviewingKTP.photoBack && (
                     <div>
-                      <p className="text-sm text-gray-500 mb-2">Back Photo</p>
-                      <img
-                        src={reviewingKTP.photoBack.url}
-                        alt="KTP Back"
-                        className="w-full h-64 object-contain bg-gray-100 rounded-lg border border-gray-200"
-                      />
+                      <p className="text-slate-400">Email</p>
+                      <p className="font-medium text-white">{reviewingKTP.email}</p>
                     </div>
-                  )}
+                    {reviewingKTP.documentNumber && (
+                      <div>
+                        <p className="text-slate-400">Nomor Dokumen</p>
+                        <p className="font-medium text-white">{reviewingKTP.documentNumber}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-slate-400">Diunggah</p>
+                      <p className="font-medium text-white">
+                        {new Date(reviewingKTP.uploadedAt).toLocaleString('id-ID')}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {/* Admin Notes */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Admin Notes (Optional)
-                </label>
-                <textarea
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  placeholder="Add any notes about this verification..."
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows={3}
-                />
-              </div>
+                {/* Photos */}
+                <div>
+                  <h3 className="font-bold text-white mb-4">Foto Dokumen</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {reviewingKTP.photoFront && (
+                      <div>
+                        <p className="text-sm text-slate-400 mb-2">Foto Depan</p>
+                        <img
+                          src={reviewingKTP.photoFront.url}
+                          alt="KTP Depan"
+                          className="w-full h-64 object-contain bg-white/5 rounded-lg border border-white/10"
+                        />
+                      </div>
+                    )}
+                    {reviewingKTP.photoBack && (
+                      <div>
+                        <p className="text-sm text-slate-400 mb-2">Foto Belakang</p>
+                        <img
+                          src={reviewingKTP.photoBack.url}
+                          alt="KTP Belakang"
+                          className="w-full h-64 object-contain bg-white/5 rounded-lg border border-white/10"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-              {/* Rejection Reason */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Rejection Reason (Required if rejecting)
-                </label>
-                <textarea
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="e.g., Photo is unclear, document expired, etc."
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                  rows={3}
-                />
-              </div>
+                {/* Admin Notes */}
+                <div>
+                  <label className="block text-sm font-semibold text-white mb-2">
+                    Catatan Admin (Opsional)
+                  </label>
+                  <textarea
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    placeholder="Tambahkan catatan tentang verifikasi ini..."
+                    className="w-full bg-white/5 border border-white/10 rounded-lg p-3 focus:border-blue-500 focus:bg-white/10 transition-all text-white placeholder-slate-500 resize-none"
+                    rows={3}
+                  />
+                </div>
 
-              {/* Actions */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => handleVerifyKTP(reviewingKTP.userId, true)}
-                  disabled={processing}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
-                >
-                  <CheckCircle className="w-5 h-5" />
-                  {processing ? 'Processing...' : 'Approve'}
-                </button>
-                
-                <button
-                  onClick={() => handleVerifyKTP(reviewingKTP.userId, false)}
-                  disabled={processing || !rejectionReason.trim()}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
-                >
-                  <XCircle className="w-5 h-5" />
-                  {processing ? 'Processing...' : 'Reject'}
-                </button>
+                {/* Rejection Reason */}
+                <div>
+                  <label className="block text-sm font-semibold text-white mb-2">
+                    Alasan Penolakan (Wajib jika menolak)
+                  </label>
+                  <textarea
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    placeholder="Contoh: Foto buram, dokumen kadaluarsa, dll."
+                    className="w-full bg-white/5 border border-white/10 rounded-lg p-3 focus:border-red-500 focus:bg-white/10 transition-all text-white placeholder-slate-500 resize-none"
+                    rows={3}
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleVerifyKTP(reviewingKTP.userId, true)}
+                    disabled={processing}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 rounded-lg font-semibold transition-colors disabled:opacity-50"
+                  >
+                    <CheckCircle className="w-5 h-5" />
+                    {processing ? 'Memproses...' : 'Setujui'}
+                  </button>
+                  
+                  <button
+                    onClick={() => handleVerifyKTP(reviewingKTP.userId, false)}
+                    disabled={processing || !rejectionReason.trim()}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-lg font-semibold transition-colors disabled:opacity-50"
+                  >
+                    <XCircle className="w-5 h-5" />
+                    {processing ? 'Memproses...' : 'Tolak'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Selfie Review Modal */}
       {reviewingSelfie && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-100">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Review Selfie Verification</h2>
-                <button
-                  onClick={() => setReviewingSelfie(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <XCircle className="w-6 h-6" />
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {/* User Info */}
-              <div className="bg-gray-50 rounded-xl p-4">
-                <h3 className="font-bold text-gray-900 mb-2">User Information</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-500">Name</p>
-                    <p className="font-medium">{reviewingSelfie.fullName || 'No Name'}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Email</p>
-                    <p className="font-medium">{reviewingSelfie.email}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-gray-500">Uploaded</p>
-                    <p className="font-medium">
-                      {new Date(reviewingSelfie.uploadedAt).toLocaleString('id-ID')}
-                    </p>
-                  </div>
+        <>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={() => setReviewingSelfie(null)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-2xl bg-slate-900 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto border border-white/10">
+              <div className="p-6 border-b border-white/10">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-white">Tinjau Verifikasi Selfie</h2>
+                  <button
+                    onClick={() => setReviewingSelfie(null)}
+                    className="p-2 hover:bg-white/5 text-slate-400 rounded-lg transition-colors"
+                  >
+                    <XCircle className="w-6 h-6" />
+                  </button>
                 </div>
               </div>
 
-              {/* Selfie Photo */}
-              <div>
-                <h3 className="font-bold text-gray-900 mb-4">Selfie Photo</h3>
-                <img
-                  src={reviewingSelfie.photoUrl}
-                  alt="Selfie"
-                  className="w-full max-h-96 object-contain bg-gray-100 rounded-lg border border-gray-200"
-                />
-              </div>
+              <div className="p-6 space-y-6">
+                {/* User Info */}
+                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                  <h3 className="font-bold text-white mb-3">Informasi Pengguna</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-slate-400">Nama</p>
+                      <p className="font-medium text-white">{reviewingSelfie.fullName || 'Tanpa Nama'}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400">Email</p>
+                      <p className="font-medium text-white">{reviewingSelfie.email}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-slate-400">Diunggah</p>
+                      <p className="font-medium text-white">
+                        {new Date(reviewingSelfie.uploadedAt).toLocaleString('id-ID')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-              {/* Admin Notes */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Admin Notes (Optional)
-                </label>
-                <textarea
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  placeholder="Add any notes about this verification..."
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  rows={3}
-                />
-              </div>
+                {/* Selfie Photo */}
+                <div>
+                  <h3 className="font-bold text-white mb-4">Foto Selfie</h3>
+                  <img
+                    src={reviewingSelfie.photoUrl}
+                    alt="Selfie"
+                    className="w-full max-h-96 object-contain bg-white/5 rounded-lg border border-white/10"
+                  />
+                </div>
 
-              {/* Rejection Reason */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Rejection Reason (Required if rejecting)
-                </label>
-                <textarea
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="e.g., Face not clear, not matching ID, etc."
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                  rows={3}
-                />
-              </div>
+                {/* Admin Notes */}
+                <div>
+                  <label className="block text-sm font-semibold text-white mb-2">
+                    Catatan Admin (Opsional)
+                  </label>
+                  <textarea
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    placeholder="Tambahkan catatan tentang verifikasi ini..."
+                    className="w-full bg-white/5 border border-white/10 rounded-lg p-3 focus:border-sky-500 focus:bg-white/10 transition-all text-white placeholder-slate-500 resize-none"
+                    rows={3}
+                  />
+                </div>
 
-              {/* Actions */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => handleVerifySelfie(reviewingSelfie.userId, true)}
-                  disabled={processing}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
-                >
-                  <CheckCircle className="w-5 h-5" />
-                  {processing ? 'Processing...' : 'Approve'}
-                </button>
-                
-                <button
-                  onClick={() => handleVerifySelfie(reviewingSelfie.userId, false)}
-                  disabled={processing || !rejectionReason.trim()}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
-                >
-                  <XCircle className="w-5 h-5" />
-                  {processing ? 'Processing...' : 'Reject'}
-                </button>
+                {/* Rejection Reason */}
+                <div>
+                  <label className="block text-sm font-semibold text-white mb-2">
+                    Alasan Penolakan (Wajib jika menolak)
+                  </label>
+                  <textarea
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    placeholder="Contoh: Wajah tidak jelas, tidak cocok dengan KTP, dll."
+                    className="w-full bg-white/5 border border-white/10 rounded-lg p-3 focus:border-red-500 focus:bg-white/10 transition-all text-white placeholder-slate-500 resize-none"
+                    rows={3}
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleVerifySelfie(reviewingSelfie.userId, true)}
+                    disabled={processing}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 rounded-lg font-semibold transition-colors disabled:opacity-50"
+                  >
+                    <CheckCircle className="w-5 h-5" />
+                    {processing ? 'Memproses...' : 'Setujui'}
+                  </button>
+                  
+                  <button
+                    onClick={() => handleVerifySelfie(reviewingSelfie.userId, false)}
+                    disabled={processing || !rejectionReason.trim()}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-lg font-semibold transition-colors disabled:opacity-50"
+                  >
+                    <XCircle className="w-5 h-5" />
+                    {processing ? 'Memproses...' : 'Tolak'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   )

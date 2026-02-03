@@ -199,7 +199,7 @@ export default function EventPage() {
               <ChevronLeft className="w-5 h-5 text-gray-700" />
             </button>
             <div className="flex items-center gap-2">
-              <Activity className="w-6 h-6 text-purple-600" />
+              <Activity className="w-6 h-6 text-sky-600" />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Trading Events</h1>
                 <p className="text-xs text-gray-500">Event {eventDates.monthName} {eventDates.year}</p>
@@ -229,7 +229,7 @@ export default function EventPage() {
                 onClick={() => setSelectedCategory(cat.value)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                   selectedCategory === cat.value
-                    ? 'bg-purple-600 text-white shadow-md'
+                    ? 'bg-sky-600 text-white shadow-md'
                     : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
                 }`}
               >
@@ -269,11 +269,11 @@ export default function EventPage() {
               key={event.id}
               className={`bg-white rounded-xl overflow-hidden hover:shadow-lg transition-all border ${
                 event.featured
-                  ? 'border-purple-300 ring-2 ring-purple-100'
+                  ? 'border-sky-300 ring-2 ring-sky-100'
                   : 'border-gray-200'
               }`}
             >
-              <div className="relative bg-gradient-to-br from-purple-50 to-blue-50 p-6 aspect-square flex items-center justify-center">
+              <div className="relative bg-gradient-to-br from-sky-50 to-blue-50 p-6 aspect-square flex items-center justify-center">
                 <div className="relative w-full h-full z-0">
                   <Image
                     src={event.image}
@@ -289,7 +289,7 @@ export default function EventPage() {
                   </div>
                 )}
                 {event.featured && (
-                  <div className="absolute top-3 left-3 px-2 py-1 bg-purple-600 text-white rounded-md text-xs font-bold flex items-center gap-1 shadow-lg z-20">
+                  <div className="absolute top-3 left-3 px-2 py-1 bg-sky-600 text-white rounded-md text-xs font-bold flex items-center gap-1 shadow-lg z-20">
                     <Star className="w-3 h-3" />
                     FEATURED
                   </div>
@@ -330,7 +330,7 @@ export default function EventPage() {
                   )}
                 </div>
 
-                <button className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-sm">
+                <button className="w-full bg-sky-600 hover:bg-sky-700 text-white py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-sm">
                   <span>View Details</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>

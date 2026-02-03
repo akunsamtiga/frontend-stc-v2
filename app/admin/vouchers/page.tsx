@@ -11,7 +11,7 @@ import { Voucher, VoucherStatistics } from '@/types'
 import { 
   Tag, Plus, Edit2, Trash2, BarChart3, Search, Filter,
   Loader2, CheckCircle, XCircle, Calendar, Users, DollarSign,
-  TrendingUp, AlertCircle
+  TrendingUp, AlertCircle, RefreshCw, ChevronRight
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -24,21 +24,51 @@ interface VoucherWithStats extends Voucher {
   }
 }
 
+const StatCardSkeleton = () => (
+  <div className="bg-white/5 rounded-lg p-4 border border-white/10 animate-pulse backdrop-blur-sm">
+    <div className="flex items-center gap-3 mb-3">
+      <div className="w-8 h-8 bg-white/10 rounded"></div>
+      <div className="h-4 bg-white/10 rounded w-20"></div>
+    </div>
+    <div className="h-6 bg-white/10 rounded w-24"></div>
+  </div>
+)
+
+const LoadingSkeleton = () => (
+  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <Navbar />
+    <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="mb-6 animate-pulse">
+        <div className="h-7 bg-white/10 rounded w-48 mb-2"></div>
+        <div className="h-4 bg-white/10 rounded w-64"></div>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        {[...Array(4)].map((_, i) => (
+          <StatCardSkeleton key={i} />
+        ))}
+      </div>
+    </div>
+  </div>
+)
+
 export default function VoucherManagementPage() {
   const router = useRouter()
   const user = useAuthStore((state) => state.user)
   
   const [vouchers, setVouchers] = useState<VoucherWithStats[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingVoucher, setEditingVoucher] = useState<Voucher | null>(null)
   const [voucherStats, setVoucherStats] = useState<VoucherStatistics | null>(null)
   const [showStatsModal, setShowStatsModal] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   
   // Filters
   const [searchQuery, setSearchQuery] = useState('')
   const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all')
   const [currentPage, setCurrentPage] = useState(1)
+  const [limit] = useState(20)
   const [totalPages, setTotalPages] = useState(1)
 
   useEffect(() => {
@@ -49,63 +79,42 @@ export default function VoucherManagementPage() {
     loadVouchers()
   }, [user, router, filterActive, currentPage])
 
-  const loadVouchers = async () => {
+  const loadVouchers = async (showRefreshing = false) => {
     try {
+      if (showRefreshing) setRefreshing(true)
       setLoading(true)
+      
       const options: any = { page: currentPage, limit: 20 }
       
       if (filterActive !== 'all') {
         options.isActive = filterActive === 'active'
       }
       
-      console.log('🔍 Loading vouchers with options:', options)
-      
       const response: any = await api.getAllVouchers(options)
       
-      console.log('📦 Full response:', response)
-      
-      // ✅ CORRECT: Based on actual backend structure
-      // Backend returns nested structure: response.data.data.vouchers
       let vouchersData: Voucher[] = []
       let paginationData: any = null
       
       if (response?.data) {
-        console.log('📦 response.data:', response.data)
-        console.log('📦 response.data keys:', Object.keys(response.data))
-        
-        // Check for nested data.data structure (actual backend format)
         if (response.data.data?.vouchers && Array.isArray(response.data.data.vouchers)) {
-          console.log('✅ Found vouchers at response.data.data.vouchers (nested)')
           vouchersData = response.data.data.vouchers
           paginationData = response.data.data.pagination
         }
-        // Check if response.data has vouchers property directly
         else if (response.data.vouchers && Array.isArray(response.data.vouchers)) {
-          console.log('✅ Found vouchers at response.data.vouchers')
           vouchersData = response.data.vouchers
           paginationData = response.data.pagination
         }
-        // Check if response.data itself is the vouchers/pagination object
         else if (Array.isArray(response.data)) {
-          console.log('✅ response.data is array directly')
           vouchersData = response.data
         }
-        else {
-          console.log('⚠️ Unexpected data structure:', response.data)
-        }
       }
-      // Fallback: check if response has vouchers directly
       else if (response?.vouchers && Array.isArray(response.vouchers)) {
-        console.log('✅ Found vouchers at response.vouchers (direct)')
         vouchersData = response.vouchers
         paginationData = response.pagination
       }
       
-      console.log('📊 Loaded vouchers count:', vouchersData.length)
-      console.log('📊 First voucher:', vouchersData[0])
-      console.log('📄 Pagination:', paginationData)
-      
       setVouchers(vouchersData)
+      setLastUpdated(new Date())
       
       if (paginationData) {
         setTotalPages(paginationData.totalPages || 1)
@@ -114,25 +123,29 @@ export default function VoucherManagementPage() {
       }
       
     } catch (error: any) {
-      console.error('❌ Load vouchers error:', error)
-      console.error('❌ Error response:', error.response)
+      console.error('Gagal memuat voucher:', error)
       
       if (error.response?.status === 404) {
-        toast.error('Voucher endpoint not found')
+        toast.error('Endpoint voucher tidak ditemukan')
       } else if (error.response?.status === 401) {
-        toast.error('Authentication failed. Please login again.')
+        toast.error('Autentikasi gagal. Silakan login kembali.')
         router.push('/')
       } else if (error.response?.status === 403) {
-        toast.error('Access denied')
+        toast.error('Akses ditolak')
         router.push('/dashboard')
       } else {
-        toast.error(error.message || 'Failed to load vouchers')
+        toast.error(error.message || 'Gagal memuat voucher')
       }
       
       setVouchers([])
     } finally {
       setLoading(false)
+      if (showRefreshing) setRefreshing(false)
     }
+  }
+
+  const handleRefresh = () => {
+    loadVouchers(true)
   }
 
   const loadVoucherStatistics = async (voucherId: string) => {
@@ -141,15 +154,11 @@ export default function VoucherManagementPage() {
       
       let statsData: VoucherStatistics | null = null
       
-      // Handle nested response structure (same as vouchers)
       if (response?.data?.data?.voucher && response?.data?.data?.statistics) {
-        console.log('✅ Found stats at response.data.data (nested)')
         statsData = response.data.data
       } else if (response?.data?.voucher && response?.data?.statistics) {
-        console.log('✅ Found stats at response.data')
         statsData = response.data
       } else if (response?.voucher && response?.statistics) {
-        console.log('✅ Found stats at response (direct)')
         statsData = response as VoucherStatistics
       }
       
@@ -157,12 +166,11 @@ export default function VoucherManagementPage() {
         setVoucherStats(statsData)
         setShowStatsModal(true)
       } else {
-        console.log('⚠️ No statistics data in response:', response)
-        toast.error('No statistics data available')
+        toast.error('Data statistik tidak tersedia')
       }
     } catch (error: any) {
-      console.error('Load statistics error:', error)
-      toast.error(error.message || 'Failed to load voucher statistics')
+      console.error('Gagal memuat statistik:', error)
+      toast.error(error.message || 'Gagal memuat statistik voucher')
     }
   }
 
@@ -178,21 +186,21 @@ export default function VoucherManagementPage() {
 
   const handleDeleteVoucher = async (voucherId: string) => {
     if (user?.role !== 'super_admin') {
-      toast.error('Only Super Admin can delete vouchers')
+      toast.error('Hanya Super Admin yang dapat menghapus voucher')
       return
     }
 
-    if (!confirm('Are you sure you want to delete this voucher?')) {
+    if (!confirm('Apakah Anda yakin ingin menghapus voucher ini?')) {
       return
     }
 
     try {
       await api.deleteVoucher(voucherId)
-      toast.success('Voucher deleted successfully')
+      toast.success('Voucher berhasil dihapus')
       loadVouchers()
     } catch (error: any) {
-      console.error('Delete voucher error:', error)
-      toast.error(error.message || 'Failed to delete voucher')
+      console.error('Gagal menghapus voucher:', error)
+      toast.error(error.message || 'Gagal menghapus voucher')
     }
   }
 
@@ -207,44 +215,44 @@ export default function VoucherManagementPage() {
     
     if (!voucher.isActive) {
       return (
-        <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 flex items-center gap-1">
+        <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-white/5 text-slate-400 border border-white/10 flex items-center gap-1">
           <XCircle className="w-3 h-3" />
-          Inactive
+          Nonaktif
         </span>
       )
     }
     
     if (now < validFrom) {
       return (
-        <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700 flex items-center gap-1">
+        <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center gap-1">
           <Calendar className="w-3 h-3" />
-          Scheduled
+          Terjadwal
         </span>
       )
     }
     
     if (now > validUntil) {
       return (
-        <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-red-100 text-red-700 flex items-center gap-1">
+        <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20 flex items-center gap-1">
           <AlertCircle className="w-3 h-3" />
-          Expired
+          Kadaluarsa
         </span>
       )
     }
     
     if (voucher.maxUses && voucher.usedCount >= voucher.maxUses) {
       return (
-        <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-orange-100 text-orange-700 flex items-center gap-1">
+        <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20 flex items-center gap-1">
           <AlertCircle className="w-3 h-3" />
-          Limit Reached
+          Batas Tercapai
         </span>
       )
     }
     
     return (
-      <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-green-100 text-green-700 flex items-center gap-1">
+      <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-green-500/10 text-green-400 border border-green-500/20 flex items-center gap-1">
         <CheckCircle className="w-3 h-3" />
-        Active
+        Aktif
       </span>
     )
   }
@@ -259,151 +267,212 @@ export default function VoucherManagementPage() {
   })
 
   if (loading && vouchers.length === 0) {
-    return (
-      <div className="min-h-screen bg-[#fafafa]">
-        <Navbar />
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
-              <p className="text-gray-600">Loading vouchers...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+    return <LoadingSkeleton />
+  }
+
+  const colorClasses: Record<string, { bg: string, icon: string, hover: string }> = {
+    purple: { bg: 'bg-sky-500/10', icon: 'text-sky-400', hover: 'hover:bg-sky-500/20' },
+    blue: { bg: 'bg-blue-500/10', icon: 'text-blue-400', hover: 'hover:bg-blue-500/20' },
+    green: { bg: 'bg-green-500/10', icon: 'text-green-400', hover: 'hover:bg-green-500/20' },
+    yellow: { bg: 'bg-yellow-500/10', icon: 'text-yellow-400', hover: 'hover:bg-yellow-500/20' },
   }
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <Navbar />
       
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
-                <Tag className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Voucher Management</h1>
-                <p className="text-sm text-gray-600">Create and manage deposit vouchers</p>
-              </div>
-            </div>
-            
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white mb-1">Manajemen Voucher</h1>
+            <p className="text-sm text-slate-400">Buat dan kelola voucher deposit</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg transition-colors disabled:opacity-50"
+              title="Refresh"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
             <button
               onClick={handleCreateVoucher}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-semibold"
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
             >
-              <Plus className="w-5 h-5" />
-              Create Voucher
+              <Plus className="w-4 h-4" />
+              Buat Voucher
             </button>
           </div>
+        </div>
 
-          {/* Filters */}
-          <div className="bg-white rounded-xl p-4 border border-gray-100">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search by code or description..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded bg-sky-500/20 flex items-center justify-center">
+                <Tag className="w-4 h-4 text-sky-400" />
               </div>
-
-              <div className="flex items-center gap-2">
-                <Filter className="w-5 h-5 text-gray-400" />
-                <select
-                  value={filterActive}
-                  onChange={(e) => {
-                    setFilterActive(e.target.value as any)
-                    setCurrentPage(1)
-                  }}
-                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="all">All Vouchers</option>
-                  <option value="active">Active Only</option>
-                  <option value="inactive">Inactive Only</option>
-                </select>
-              </div>
+              <span className="text-xs text-slate-400">Total Voucher</span>
             </div>
+            <div className="text-2xl font-bold text-white">{vouchers.length}</div>
+          </div>
+
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded bg-green-500/20 flex items-center justify-center">
+                <CheckCircle className="w-4 h-4 text-green-400" />
+              </div>
+              <span className="text-xs text-slate-400">Aktif</span>
+            </div>
+            <div className="text-2xl font-bold text-green-400">
+              {vouchers.filter(v => v.isActive).length}
+            </div>
+          </div>
+
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded bg-blue-500/20 flex items-center justify-center">
+                <Users className="w-4 h-4 text-blue-400" />
+              </div>
+              <span className="text-xs text-slate-400">Total Penggunaan</span>
+            </div>
+            <div className="text-2xl font-bold text-blue-400">
+              {vouchers.reduce((sum, v) => sum + v.usedCount, 0)}
+            </div>
+          </div>
+
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded bg-yellow-500/20 flex items-center justify-center">
+                <DollarSign className="w-4 h-4 text-yellow-400" />
+              </div>
+              <span className="text-xs text-slate-400">Total Bonus</span>
+            </div>
+            <div className="text-2xl font-bold text-yellow-400">
+              {formatCurrency(vouchers.reduce((sum, v) => sum + (v.value * v.usedCount), 0))}
+            </div>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari berdasarkan kode atau deskripsi..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:border-indigo-500 focus:bg-white/10 transition-all text-white placeholder-slate-500 text-sm"
+            />
+          </div>
+
+          <div className="inline-flex bg-white/5 rounded-lg p-1 backdrop-blur-sm border border-white/10">
+            <button
+              onClick={() => { setFilterActive('all'); setCurrentPage(1); }}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                filterActive === 'all'
+                  ? 'bg-indigo-600 text-white shadow-lg'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Semua
+            </button>
+            <button
+              onClick={() => { setFilterActive('active'); setCurrentPage(1); }}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                filterActive === 'active'
+                  ? 'bg-indigo-600 text-white shadow-lg'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Aktif
+            </button>
+            <button
+              onClick={() => { setFilterActive('inactive'); setCurrentPage(1); }}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                filterActive === 'inactive'
+                  ? 'bg-indigo-600 text-white shadow-lg'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Nonaktif
+            </button>
           </div>
         </div>
 
         {/* Vouchers List */}
         {filteredVouchers.length === 0 ? (
-          <div className="bg-white rounded-xl p-12 text-center border border-gray-100">
-            <Tag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No vouchers found</h3>
-            <p className="text-gray-600 mb-6">
+          <div className="bg-white/5 rounded-lg p-12 text-center border border-white/10 backdrop-blur-sm">
+            <Tag className="w-16 h-16 text-slate-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-white mb-2">Tidak ada voucher</h3>
+            <p className="text-slate-400 mb-6">
               {searchQuery 
-                ? 'Try adjusting your search query'
-                : 'Get started by creating your first voucher'
+                ? 'Coba ubah kata kunci pencarian'
+                : 'Mulai dengan membuat voucher pertama Anda'
               }
             </p>
             {!searchQuery && (
               <button
                 onClick={handleCreateVoucher}
-                className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-semibold"
+                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
               >
-                Create First Voucher
+                Buat Voucher Pertama
               </button>
             )}
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid gap-3">
             {filteredVouchers.map((voucher) => (
               <div
                 key={voucher.id}
-                className="bg-white rounded-xl p-6 border border-gray-100 hover:shadow-lg transition-all"
+                className="bg-white/5 rounded-lg p-5 border border-white/10 backdrop-blur-sm hover:bg-white/10 hover:border-indigo-500/30 transition-all"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <span className="text-2xl font-bold font-mono text-gray-900">
+                      <span className="text-2xl font-bold font-mono text-white">
                         {voucher.code}
                       </span>
                       {getStatusBadge(voucher)}
                     </div>
                     
                     {voucher.description && (
-                      <p className="text-sm text-gray-600 mb-3">{voucher.description}</p>
+                      <p className="text-sm text-slate-400 mb-3">{voucher.description}</p>
                     )}
                     
                     <div className="flex flex-wrap gap-4 text-sm">
                       <div className="flex items-center gap-2">
-                        <DollarSign className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-600">
+                        <DollarSign className="w-4 h-4 text-slate-400" />
+                        <span className="text-slate-300">
                           {voucher.type === 'percentage' 
                             ? `${voucher.value}% Bonus`
-                            : `Rp ${voucher.value.toLocaleString()} Fixed`
+                            : `${formatCurrency(voucher.value)} Tetap`
                           }
                         </span>
                       </div>
                       
                       <div className="flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-600">
-                          Min: Rp {voucher.minDeposit.toLocaleString()}
+                        <TrendingUp className="w-4 h-4 text-slate-400" />
+                        <span className="text-slate-300">
+                          Min: {formatCurrency(voucher.minDeposit)}
                         </span>
                       </div>
                       
                       {voucher.type === 'percentage' && voucher.maxBonusAmount && (
                         <div className="flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-600">
-                            Max: Rp {voucher.maxBonusAmount.toLocaleString()}
+                          <AlertCircle className="w-4 h-4 text-slate-400" />
+                          <span className="text-slate-300">
+                            Max: {formatCurrency(voucher.maxBonusAmount)}
                           </span>
                         </div>
                       )}
                       
                       <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-600">
+                        <Users className="w-4 h-4 text-slate-400" />
+                        <span className="text-slate-300">
                           {voucher.eligibleStatuses.join(', ')}
                         </span>
                       </div>
@@ -413,53 +482,53 @@ export default function VoucherManagementPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => loadVoucherStatistics(voucher.id)}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                      title="View Statistics"
+                      className="p-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg transition-colors"
+                      title="Lihat Statistik"
                     >
-                      <BarChart3 className="w-5 h-5 text-gray-600" />
+                      <BarChart3 className="w-5 h-5" />
                     </button>
                     
                     <button
                       onClick={() => handleEditVoucher(voucher)}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      className="p-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg transition-colors"
                       title="Edit"
                     >
-                      <Edit2 className="w-5 h-5 text-blue-600" />
+                      <Edit2 className="w-5 h-5" />
                     </button>
                     
                     {user?.role === 'super_admin' && (
                       <button
                         onClick={() => handleDeleteVoucher(voucher.id)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Delete"
+                        className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors"
+                        title="Hapus"
                       >
-                        <Trash2 className="w-5 h-5 text-red-600" />
+                        <Trash2 className="w-5 h-5" />
                       </button>
                     )}
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                <div className="flex items-center justify-between pt-4 border-t border-white/10">
                   <div className="flex items-center gap-6 text-sm">
                     <div>
-                      <span className="text-gray-500">Used:</span>
-                      <span className="ml-2 font-semibold text-gray-900">
+                      <span className="text-slate-500">Digunakan:</span>
+                      <span className="ml-2 font-semibold text-white">
                         {voucher.usedCount}
                         {voucher.maxUses && ` / ${voucher.maxUses}`}
                       </span>
                     </div>
                     
                     <div>
-                      <span className="text-gray-500">Per User:</span>
-                      <span className="ml-2 font-semibold text-gray-900">
+                      <span className="text-slate-500">Per Pengguna:</span>
+                      <span className="ml-2 font-semibold text-white">
                         {voucher.maxUsesPerUser}
                       </span>
                     </div>
                   </div>
                   
-                  <div className="text-sm text-gray-500">
-                    <div>Valid: {formatDate(voucher.validFrom)}</div>
-                    <div>Until: {formatDate(voucher.validUntil)}</div>
+                  <div className="text-sm text-slate-500">
+                    <div>Mulai: {formatDate(voucher.validFrom)}</div>
+                    <div>Sampai: {formatDate(voucher.validUntil)}</div>
                   </div>
                 </div>
               </div>
@@ -473,21 +542,21 @@ export default function VoucherManagementPage() {
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-slate-300 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              Previous
+              Sebelumnya
             </button>
             
-            <span className="px-4 py-2 text-sm text-gray-600">
-              Page {currentPage} of {totalPages}
+            <span className="px-4 py-2 text-sm text-slate-400">
+              Halaman {currentPage} dari {totalPages}
             </span>
             
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-slate-300 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              Next
+              Selanjutnya
             </button>
           </div>
         )}
@@ -507,102 +576,105 @@ export default function VoucherManagementPage() {
 
       {/* Statistics Modal */}
       {showStatsModal && voucherStats && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b flex items-center justify-between sticky top-0 bg-white z-10">
-              <h2 className="text-xl font-bold">Voucher Statistics</h2>
-              <button
-                onClick={() => {
-                  setShowStatsModal(false)
-                  setVoucherStats(null)
-                }}
-                className="p-2 hover:bg-gray-100 rounded-full"
-              >
-                <XCircle className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              <div className="bg-gray-50 rounded-xl p-4">
-                <div className="text-2xl font-bold font-mono mb-2">
-                  {voucherStats.voucher.code}
-                </div>
-                <div className="text-sm text-gray-600">
-                  {voucherStats.voucher.type === 'percentage' 
-                    ? `${voucherStats.voucher.value}% Bonus`
-                    : `Rp ${voucherStats.voucher.value.toLocaleString()} Fixed Bonus`
-                  }
-                </div>
+        <>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={() => setShowStatsModal(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-2xl bg-slate-900 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto border border-white/10">
+              <div className="p-6 border-b border-white/10 flex items-center justify-between sticky top-0 bg-slate-900 z-10">
+                <h2 className="text-xl font-bold text-white">Statistik Voucher</h2>
+                <button
+                  onClick={() => {
+                    setShowStatsModal(false)
+                    setVoucherStats(null)
+                  }}
+                  className="p-2 hover:bg-white/5 text-slate-400 rounded-lg transition-colors"
+                >
+                  <XCircle className="w-5 h-5" />
+                </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-50 rounded-xl p-4">
-                  <div className="text-sm text-blue-600 mb-1">Total Used</div>
-                  <div className="text-2xl font-bold text-blue-900">
-                    {voucherStats.statistics.totalUsed}
+              <div className="p-6 space-y-6">
+                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                  <div className="text-2xl font-bold font-mono text-white mb-2">
+                    {voucherStats.voucher.code}
                   </div>
-                  {voucherStats.statistics.remainingUses !== null && (
-                    <div className="text-xs text-blue-600 mt-1">
-                      {voucherStats.statistics.remainingUses} remaining
+                  <div className="text-sm text-slate-400">
+                    {voucherStats.voucher.type === 'percentage' 
+                      ? `${voucherStats.voucher.value}% Bonus`
+                      : `${formatCurrency(voucherStats.voucher.value)} Bonus Tetap`
+                    }
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-blue-500/10 rounded-xl p-4 border border-blue-500/20">
+                    <div className="text-sm text-blue-400 mb-1">Total Digunakan</div>
+                    <div className="text-2xl font-bold text-white">
+                      {voucherStats.statistics.totalUsed}
                     </div>
-                  )}
-                </div>
-
-                <div className="bg-green-50 rounded-xl p-4">
-                  <div className="text-sm text-green-600 mb-1">Total Bonus Given</div>
-                  <div className="text-2xl font-bold text-green-900">
-                    Rp {voucherStats.statistics.totalBonusGiven.toLocaleString()}
-                  </div>
-                </div>
-
-                <div className="bg-purple-50 rounded-xl p-4">
-                  <div className="text-sm text-purple-600 mb-1">Total Deposits</div>
-                  <div className="text-2xl font-bold text-purple-900">
-                    Rp {voucherStats.statistics.totalDepositAmount.toLocaleString()}
-                  </div>
-                </div>
-
-                <div className="bg-orange-50 rounded-xl p-4">
-                  <div className="text-sm text-orange-600 mb-1">Average Bonus</div>
-                  <div className="text-2xl font-bold text-orange-900">
-                    Rp {voucherStats.statistics.averageBonus.toLocaleString()}
-                  </div>
-                </div>
-              </div>
-
-              {voucherStats.recentUsages && voucherStats.recentUsages.length > 0 && (
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">Recent Usages</h3>
-                  <div className="space-y-2">
-                    {voucherStats.recentUsages.map((usage) => (
-                      <div
-                        key={usage.id}
-                        className="bg-gray-50 rounded-lg p-3 text-sm"
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-semibold text-gray-900">
-                            {usage.userEmail}
-                          </span>
-                          <span className="text-gray-600">
-                            {formatDate(usage.usedAt)}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs text-gray-600">
-                          <span>
-                            Deposit: Rp {usage.depositAmount.toLocaleString()}
-                          </span>
-                          <span className="text-green-600 font-semibold">
-                            Bonus: +Rp {usage.bonusAmount.toLocaleString()}
-                          </span>
-                        </div>
+                    {voucherStats.statistics.remainingUses !== null && (
+                      <div className="text-xs text-blue-400 mt-1">
+                        {voucherStats.statistics.remainingUses} tersisa
                       </div>
-                    ))}
+                    )}
+                  </div>
+
+                  <div className="bg-green-500/10 rounded-xl p-4 border border-green-500/20">
+                    <div className="text-sm text-green-400 mb-1">Total Bonus Diberikan</div>
+                    <div className="text-2xl font-bold text-white">
+                      {formatCurrency(voucherStats.statistics.totalBonusGiven)}
+                    </div>
+                  </div>
+
+                  <div className="bg-sky-500/10 rounded-xl p-4 border border-sky-500/20">
+                    <div className="text-sm text-sky-400 mb-1">Total Deposit</div>
+                    <div className="text-2xl font-bold text-white">
+                      {formatCurrency(voucherStats.statistics.totalDepositAmount)}
+                    </div>
+                  </div>
+
+                  <div className="bg-orange-500/10 rounded-xl p-4 border border-orange-500/20">
+                    <div className="text-sm text-orange-400 mb-1">Rata-rata Bonus</div>
+                    <div className="text-2xl font-bold text-white">
+                      {formatCurrency(voucherStats.statistics.averageBonus)}
+                    </div>
                   </div>
                 </div>
-              )}
+
+                {voucherStats.recentUsages && voucherStats.recentUsages.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-white mb-3">Penggunaan Terbaru</h3>
+                    <div className="space-y-2">
+                      {voucherStats.recentUsages.map((usage) => (
+                        <div
+                          key={usage.id}
+                          className="bg-white/5 rounded-lg p-3 text-sm border border-white/10"
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-semibold text-white">
+                              {usage.userEmail}
+                            </span>
+                            <span className="text-slate-400">
+                              {formatDate(usage.usedAt)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-slate-400">
+                            <span>
+                              Deposit: {formatCurrency(usage.depositAmount)}
+                            </span>
+                            <span className="text-green-400 font-semibold">
+                              Bonus: +{formatCurrency(usage.bonusAmount)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   )

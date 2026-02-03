@@ -1,3 +1,4 @@
+// app/admin/users/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -20,10 +21,10 @@ import {
   XCircle,
   Calendar,
   UserCog,
-  Loader2
+  Loader2,
+  RefreshCw
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { formatCurrency } from '@/lib/utils'
 
 interface UserData {
   id: string
@@ -37,57 +38,42 @@ interface UserData {
 type UserRole = 'user' | 'admin' | 'super_admin'
 
 const StatCardSkeleton = () => (
-  <div className="bg-white rounded-xl p-4 md:p-5 border border-gray-100 animate-pulse">
-    <div className="flex items-center gap-2 md:gap-3 mb-2">
-      <div className="w-8 h-8 md:w-10 md:h-10 bg-gray-200 rounded-lg"></div>
-      <div className="h-3 bg-gray-200 rounded w-20 md:w-24"></div>
+  <div className="bg-white/5 rounded-lg p-4 border border-white/10 animate-pulse backdrop-blur-sm">
+    <div className="flex items-center gap-3 mb-3">
+      <div className="w-8 h-8 bg-white/10 rounded"></div>
+      <div className="h-4 bg-white/10 rounded w-20"></div>
     </div>
-    <div className="h-8 md:h-10 bg-gray-200 rounded w-16 md:w-20 mb-1"></div>
-    <div className="h-3 bg-gray-200 rounded w-12 md:w-16"></div>
+    <div className="h-6 bg-white/10 rounded w-24"></div>
   </div>
 )
 
 const UserCardSkeleton = () => (
-  <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 sm:p-4 animate-pulse">
+  <div className="bg-white/5 border border-white/10 rounded-lg p-4 animate-pulse">
     <div className="flex items-start justify-between mb-3">
-      <div className="flex items-center gap-2 sm:gap-3">
-        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-xl"></div>
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 bg-white/10 rounded-xl"></div>
         <div>
-          <div className="h-4 bg-gray-200 rounded w-32 sm:w-40 mb-2"></div>
-          <div className="h-3 bg-gray-200 rounded w-24"></div>
+          <div className="h-4 bg-white/10 rounded w-32 mb-2"></div>
+          <div className="h-3 bg-white/10 rounded w-24"></div>
         </div>
       </div>
-      <div className="w-5 h-5 bg-gray-200 rounded-full"></div>
-    </div>
-    <div className="bg-white rounded-xl p-3 mb-3">
-      <div className="h-3 bg-gray-200 rounded w-24 mb-2"></div>
-      <div className="h-4 bg-gray-200 rounded w-20"></div>
-    </div>
-    <div className="flex gap-2">
-      <div className="h-10 bg-gray-200 rounded-lg flex-1"></div>
-      <div className="h-10 bg-gray-200 rounded-lg flex-1"></div>
     </div>
   </div>
 )
 
 const LoadingSkeleton = () => (
-  <div className="min-h-screen bg-[#fafafa]">
+  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
     <Navbar />
-    <div className="container mx-auto px-3 md:px-4 py-4 md:py-6 max-w-7xl">
-      <div className="mb-4 md:mb-6 animate-pulse">
-        <div className="h-6 bg-gray-200 rounded w-48 mb-3"></div>
-        <div className="h-4 bg-gray-200 rounded w-64"></div>
+    <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="mb-6 animate-pulse">
+        <div className="h-7 bg-white/10 rounded w-48 mb-2"></div>
+        <div className="h-4 bg-white/10 rounded w-64"></div>
       </div>
       
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-4 md:mb-8">
+      <div className="grid grid-cols-4 gap-3 mb-6">
         {[...Array(4)].map((_, i) => (
           <StatCardSkeleton key={i} />
         ))}
-      </div>
-      
-      <div className="mb-4 md:mb-6">
-        <div className="h-10 bg-gray-200 rounded-xl w-full mb-3"></div>
-        <div className="h-10 bg-gray-200 rounded-xl w-32"></div>
       </div>
       
       <div className="space-y-3">
@@ -104,6 +90,8 @@ export default function AdminUsersPage() {
   const user = useAuthStore((state) => state.user)
   const [users, setUsers] = useState<UserData[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterRole, setFilterRole] = useState<string>('all')
   
@@ -120,8 +108,8 @@ export default function AdminUsersPage() {
   const [balanceType, setBalanceType] = useState<'deposit' | 'withdrawal'>('deposit')
   const [balanceAmount, setBalanceAmount] = useState('')
   const [balanceDescription, setBalanceDescription] = useState('')
+  const [accountType, setAccountType] = useState<'real' | 'demo'>('real') // ✅ TAMBAHAN: State untuk tipe akun
   const [processing, setProcessing] = useState(false)
-  const [accountType, setAccountType] = useState<'real' | 'demo'>('demo')
 
   useEffect(() => {
     if (!user) {
@@ -136,8 +124,9 @@ export default function AdminUsersPage() {
     loadUsers()
   }, [user, router])
 
-  const loadUsers = async () => {
+  const loadUsers = async (showRefreshing = false) => {
     try {
+      if (showRefreshing) setRefreshing(true)
       setLoading(true)
       const response = await api.getAllUsersWithBalance()
       const rawUsers = response?.data?.users || response?.users || []
@@ -152,30 +141,36 @@ export default function AdminUsersPage() {
       }))
       
       setUsers(sanitizedUsers)
+      setLastUpdated(new Date())
     } catch (error) {
-      console.error('Failed to load users:', error)
-      toast.error('Failed to load users')
+      console.error('Gagal memuat pengguna:', error)
+      toast.error('Gagal memuat pengguna')
       setUsers([])
     } finally {
       setLoading(false)
+      if (showRefreshing) setRefreshing(false)
     }
   }
 
+  const handleRefresh = () => {
+    loadUsers(true)
+  }
+
   const formatRole = (role: string | null | undefined): string => {
-    if (!role) return 'User'
+    if (!role) return 'Pengguna'
     return role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
   }
 
   const getRoleColor = (role: string | null | undefined): string => {
-    if (!role) return 'bg-gray-100 text-gray-700 border-gray-200'
+    if (!role) return 'bg-white/5 text-slate-400 border-white/10'
     
     switch (role.toLowerCase()) {
       case 'super_admin':
-        return 'bg-red-50 text-red-700 border-red-200'
+        return 'bg-red-500/10 text-red-400 border-red-500/20'
       case 'admin':
-        return 'bg-purple-50 text-purple-700 border-purple-200'
+        return 'bg-purple-500/10 text-purple-400 border-purple-500/20'
       default:
-        return 'bg-blue-50 text-blue-700 border-blue-200'
+        return 'bg-blue-500/10 text-blue-400 border-blue-500/20'
     }
   }
 
@@ -190,26 +185,27 @@ export default function AdminUsersPage() {
 
     try {
       await api.createUser({ email, password, role })
-      toast.success('User created successfully!')
+      toast.success('Pengguna berhasil dibuat!')
       setShowCreateModal(false)
       setEmail('')
       setPassword('')
       setRole('user')
       loadUsers()
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to create user')
+      toast.error(error.response?.data?.error || 'Gagal membuat pengguna')
     } finally {
       setProcessing(false)
     }
   }
 
+  // ✅ PERBAIKAN: Tambahkan accountType ke parameter API
   const handleManageBalance = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedUser) return
 
     const amount = parseFloat(balanceAmount)
     if (isNaN(amount) || amount <= 0) {
-      toast.error('Invalid amount')
+      toast.error('Jumlah tidak valid')
       return
     }
 
@@ -217,19 +213,20 @@ export default function AdminUsersPage() {
 
     try {
       await api.manageUserBalance(selectedUser.id, {
-        accountType,  
+        accountType, // ✅ Sekarang sudah ada
         type: balanceType,
         amount,
         description: balanceDescription
       })
       
-      toast.success(`${balanceType === 'deposit' ? 'Deposit' : 'Withdrawal'} successful!`)
+      toast.success(`${balanceType === 'deposit' ? 'Deposit' : 'Penarikan'} berhasil!`)
       setShowBalanceModal(false)
       setBalanceAmount('')
       setBalanceDescription('')
+      setAccountType('real') // Reset ke default
       loadUsers()
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to manage balance')
+      toast.error(error.response?.data?.error || 'Gagal mengelola saldo')
     } finally {
       setProcessing(false)
     }
@@ -242,12 +239,12 @@ export default function AdminUsersPage() {
 
     try {
       await api.deleteUser(selectedUser.id)
-      toast.success('User deleted successfully!')
+      toast.success('Pengguna berhasil dihapus!')
       setShowDeleteModal(false)
       setSelectedUser(null)
       loadUsers()
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to delete user')
+      toast.error(error.response?.data?.error || 'Gagal menghapus pengguna')
     } finally {
       setProcessing(false)
     }
@@ -256,10 +253,10 @@ export default function AdminUsersPage() {
   const handleToggleActive = async (userId: string, currentStatus: boolean) => {
     try {
       await api.updateUser(userId, { isActive: !currentStatus })
-      toast.success('User status updated!')
+      toast.success('Status pengguna diperbarui!')
       loadUsers()
     } catch (error: any) {
-      toast.error('Failed to update user status')
+      toast.error('Gagal memperbarui status pengguna')
     }
   }
 
@@ -289,79 +286,80 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <Navbar />
 
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Header */}
-        <div className="mb-4 sm:mb-6 md:mb-8">
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 mb-2">
-            <span>Admin</span>
-            <span>/</span>
-            <span className="text-gray-900 font-medium">User Management</span>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white mb-1">Manajemen Pengguna</h1>
+            <p className="text-sm text-slate-400">Kelola pengguna dan izin</p>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-50 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
-                <UserCog className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-500" />
-              </div>
-              <div>
-                <h1 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-gray-900">User Management</h1>
-                <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Manage users and permissions</p>
-              </div>
-            </div>
-            
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg transition-colors disabled:opacity-50"
+              title="Refresh"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+            {lastUpdated && (
+              <span className="text-xs text-slate-500">
+                {lastUpdated.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
             <button
               onClick={() => setShowCreateModal(true)}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
             >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="hidden sm:inline">Add User</span>
-              <span className="sm:hidden">Add</span>
+              <Plus className="w-4 h-4" />
+              Tambah Pengguna
             </button>
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">
-          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-100 hover:shadow-lg transition-shadow">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded bg-blue-500/20 flex items-center justify-center">
+                <Users className="w-4 h-4 text-blue-400" />
               </div>
-              <span className="text-xs sm:text-sm text-gray-500 font-medium">Total Users</span>
+              <span className="text-xs text-slate-400">Total Pengguna</span>
             </div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">{stats.total}</div>
+            <div className="text-2xl font-bold text-white">{stats.total}</div>
           </div>
 
-          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-100 hover:shadow-lg transition-shadow">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded bg-green-500/20 flex items-center justify-center">
+                <CheckCircle className="w-4 h-4 text-green-400" />
               </div>
-              <span className="text-xs sm:text-sm text-gray-500 font-medium">Active</span>
+              <span className="text-xs text-slate-400">Aktif</span>
             </div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-green-600">{stats.active}</div>
+            <div className="text-2xl font-bold text-green-400">{stats.active}</div>
           </div>
 
-          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-100 hover:shadow-lg transition-shadow">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded bg-purple-500/20 flex items-center justify-center">
+                <Shield className="w-4 h-4 text-purple-400" />
               </div>
-              <span className="text-xs sm:text-sm text-gray-500 font-medium">Admins</span>
+              <span className="text-xs text-slate-400">Admin</span>
             </div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-purple-600">{stats.admins}</div>
+            <div className="text-2xl font-bold text-purple-400">{stats.admins}</div>
           </div>
 
-          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-100 hover:shadow-lg transition-shadow">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-yellow-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded bg-yellow-500/20 flex items-center justify-center">
+                <DollarSign className="w-4 h-4 text-yellow-400" />
               </div>
-              <span className="text-xs sm:text-sm text-gray-500 font-medium">Total Balance</span>
+              <span className="text-xs text-slate-400">Total Saldo</span>
             </div>
-            <div className="text-base sm:text-xl font-bold text-yellow-600 font-mono">
+            <div className="text-base font-bold text-yellow-400 font-mono">
               {new Intl.NumberFormat('id-ID', { 
                 style: 'currency', 
                 currency: 'IDR',
@@ -373,234 +371,112 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search users by email..."
-              className="w-full bg-white border-2 border-gray-200 rounded-xl pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 focus:border-blue-500 focus:bg-white transition-all shadow-sm text-sm sm:text-base"
+              placeholder="Cari pengguna berdasarkan email..."
+              className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:border-blue-500 focus:bg-white/10 transition-all text-white placeholder-slate-500 text-sm"
             />
           </div>
           
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+          <div className="inline-flex bg-white/5 rounded-lg p-1 backdrop-blur-sm border border-white/10">
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
-              className="bg-white border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 font-medium focus:border-blue-500 transition-all shadow-sm text-sm sm:text-base"
+              className="bg-transparent px-3 py-1.5 text-sm text-slate-300 focus:outline-none"
             >
-              <option value="all">All Roles</option>
-              <option value="super_admin">Super Admin</option>
-              <option value="admin">Admin</option>
-              <option value="user">User</option>
+              <option value="all" className="bg-slate-900">Semua Peran</option>
+              <option value="super_admin" className="bg-slate-900">Super Admin</option>
+              <option value="admin" className="bg-slate-900">Admin</option>
+              <option value="user" className="bg-slate-900">Pengguna</option>
             </select>
           </div>
         </div>
 
-        {/* Users Table */}
-        <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+        {/* Users List */}
+        <div className="bg-white/5 rounded-lg border border-white/10 backdrop-blur-sm overflow-hidden">
           {filteredUsers.length === 0 ? (
-            <div className="text-center py-8 sm:py-12">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300" />
+            <div className="text-center py-12">
+              <div className="w-20 h-20 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Users className="w-10 h-10 text-slate-500" />
               </div>
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No users found</h3>
-              <p className="text-sm text-gray-500 mb-6">
-                {searchQuery ? 'Try a different search query' : 'Add your first user to get started'}
+              <h3 className="text-lg font-semibold text-white mb-2">Tidak ada pengguna</h3>
+              <p className="text-sm text-slate-400 mb-6">
+                {searchQuery ? 'Coba kata kunci pencarian lain' : 'Tambahkan pengguna pertama Anda'}
               </p>
               {!searchQuery && (
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors text-sm sm:text-base"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
                 >
-                  <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-                  Add First User
+                  <Plus className="w-5 h-5" />
+                  Tambah Pengguna Pertama
                 </button>
               )}
             </div>
           ) : (
-            <>
-              {/* Desktop Table */}
-              <div className="hidden lg:block overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-left text-xs font-semibold text-gray-600 border-b border-gray-100 bg-gray-50">
-                      <th className="py-4 px-6">User</th>
-                      <th className="py-4 px-6">Role</th>
-                      <th className="py-4 px-6 text-right">Balance</th>
-                      <th className="py-4 px-6 text-center">Status</th>
-                      <th className="py-4 px-6 text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {filteredUsers.map((u) => (
-                      <tr key={u.id} className="hover:bg-gray-50 transition-colors group">
-                        <td className="py-4 px-6">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center text-white font-bold">
-                              {u.email[0].toUpperCase()}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-gray-900">{u.email}</div>
-                              <div className="text-xs text-gray-500 flex items-center gap-1.5 mt-0.5">
-                                <Calendar className="w-3 h-3" />
-                                {new Date(u.createdAt).toLocaleDateString('id-ID', {
-                                  year: 'numeric',
-                                  month: 'short',
-                                  day: 'numeric'
-                                })}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border ${getRoleColor(u.role)}`}>
-                            <Shield className="w-3 h-3" />
-                            {formatRole(u.role)}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6 text-right">
-                          <div className="font-mono font-bold text-gray-900">
-                            {new Intl.NumberFormat('id-ID', { 
-                              style: 'currency', 
-                              currency: 'IDR',
-                              minimumFractionDigits: 0 
-                            }).format(u.currentBalance || 0)}
-                          </div>
-                        </td>
-                        <td className="py-4 px-6">
-                          <div className="flex justify-center">
-                            <button
-                              onClick={() => handleToggleActive(u.id, u.isActive)}
-                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                                u.isActive 
-                                  ? 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200' 
-                                  : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
-                              }`}
-                            >
-                              {u.isActive ? (
-                                <>
-                                  <CheckCircle className="w-3 h-3" />
-                                  Active
-                                </>
-                              ) : (
-                                <>
-                                  <XCircle className="w-3 h-3" />
-                                  Inactive
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6">
-                          <div className="flex items-center justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => router.push(`/admin/users/${u.id}`)}
-                              className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="View Details"
-                            >
-                              <Eye className="w-4 h-4 text-blue-600" />
-                            </button>
-                            
-                            {user.role === 'super_admin' && (
-                              <button
-                                onClick={() => {
-                                  setSelectedUser(u)
-                                  setShowBalanceModal(true)
-                                }}
-                                className="p-2 hover:bg-green-50 rounded-lg transition-colors"
-                                title="Manage Balance"
-                              >
-                                <DollarSign className="w-4 h-4 text-green-600" />
-                              </button>
-                            )}
-                            
-                            {user.role === 'super_admin' && getUserRole(u.role) !== 'super_admin' && (
-                              <button
-                                onClick={() => {
-                                  setSelectedUser(u)
-                                  setShowDeleteModal(true)
-                                }}
-                                className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Delete User"
-                              >
-                                <Trash2 className="w-4 h-4 text-red-600" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile Cards */}
-              <div className="lg:hidden space-y-3 p-3 sm:p-4">
-                {filteredUsers.map((u) => (
-                  <div
-                    key={u.id}
-                    className="bg-gray-50 border border-gray-100 rounded-xl sm:rounded-2xl p-3 sm:p-4 hover:shadow-lg transition-all"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0">
-                          {u.email[0].toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-sm sm:text-base text-gray-900 truncate mb-1">{u.email}</div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold border ${getRoleColor(u.role)}`}>
-                              <Shield className="w-3 h-3" />
-                              {formatRole(u.role)}
-                            </span>
-                            
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold ${
-                              u.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                            }`}>
-                              {u.isActive ? (
-                                <>
-                                  <CheckCircle className="w-3 h-3" />
-                                  Active
-                                </>
-                              ) : (
-                                <>
-                                  <XCircle className="w-3 h-3" />
-                                  Inactive
-                                </>
-                              )}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0 ml-2" />
+            <div className="divide-y divide-white/10">
+              {filteredUsers.map((u) => (
+                <div key={u.id} className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors group">
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400 font-bold border border-blue-500/20">
+                      {u.email[0].toUpperCase()}
                     </div>
-
-                    <div className="bg-white rounded-xl p-3 mb-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs sm:text-sm text-gray-500">Balance</span>
-                        <span className="font-mono font-bold text-base sm:text-lg text-gray-900">
-                          {new Intl.NumberFormat('id-ID', { 
-                            style: 'currency', 
-                            currency: 'IDR',
-                            minimumFractionDigits: 0,
-                            notation: 'compact'
-                          }).format(u.currentBalance || 0)}
+                    <div className="flex-1">
+                      <div className="font-semibold text-white mb-1">{u.email}</div>
+                      <div className="flex items-center gap-2 text-xs text-slate-400">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold border ${getRoleColor(u.role)}`}>
+                          <Shield className="w-3 h-3" />
+                          {formatRole(u.role)}
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(u.createdAt).toLocaleDateString('id-ID', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
                         </span>
                       </div>
                     </div>
+                  </div>
 
-                    <div className="flex gap-2">
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <div className="font-mono font-bold text-white">
+                        {new Intl.NumberFormat('id-ID', { 
+                          style: 'currency', 
+                          currency: 'IDR',
+                          minimumFractionDigits: 0 
+                        }).format(u.currentBalance || 0)}
+                      </div>
+                      <div className="text-xs text-slate-400">Saldo</div>
+                    </div>
+
+                    <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => handleToggleActive(u.id, u.isActive)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          u.isActive 
+                            ? 'text-green-400 hover:bg-green-500/10' 
+                            : 'text-red-400 hover:bg-red-500/10'
+                        }`}
+                        title={u.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                      >
+                        {u.isActive ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
+                      </button>
+
                       <button
                         onClick={() => router.push(`/admin/users/${u.id}`)}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-xs sm:text-sm font-semibold text-blue-700 transition-all"
+                        className="p-2 hover:bg-blue-500/10 text-blue-400 rounded-lg transition-colors"
+                        title="Lihat Detail"
                       >
-                        <Eye className="w-4 h-4" />
-                        View
+                        <Eye className="w-5 h-5" />
                       </button>
                       
                       {user.role === 'super_admin' && (
@@ -609,80 +485,89 @@ export default function AdminUsersPage() {
                             setSelectedUser(u)
                             setShowBalanceModal(true)
                           }}
-                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-50 hover:bg-green-100 border border-green-200 rounded-xl text-xs sm:text-sm font-semibold text-green-700 transition-all"
+                          className="p-2 hover:bg-green-500/10 text-green-400 rounded-lg transition-colors"
+                          title="Kelola Saldo"
                         >
-                          <DollarSign className="w-4 h-4" />
-                          Balance
+                          <DollarSign className="w-5 h-5" />
+                        </button>
+                      )}
+                      
+                      {user.role === 'super_admin' && getUserRole(u.role) !== 'super_admin' && (
+                        <button
+                          onClick={() => {
+                            setSelectedUser(u)
+                            setShowDeleteModal(true)
+                          }}
+                          className="p-2 hover:bg-red-500/10 text-red-400 rounded-lg transition-colors"
+                          title="Hapus Pengguna"
+                        >
+                          <Trash2 className="w-5 h-5" />
                         </button>
                       )}
                     </div>
                   </div>
-                ))}
-              </div>
-            </>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
 
-      {/* Modals remain unchanged but with better mobile responsiveness */}
       {/* Create User Modal */}
       {showCreateModal && (
         <>
-          <div 
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" 
-            onClick={() => setShowCreateModal(false)}
-          />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl">
-              <div className="p-4 sm:p-6 border-b border-gray-100">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={() => setShowCreateModal(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-slate-900 rounded-2xl shadow-2xl border border-white/10">
+              <div className="p-6 border-b border-white/10">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg sm:text-xl font-bold text-gray-900">Create New User</h2>
+                  <h2 className="text-xl font-bold text-white">Buat Pengguna Baru</h2>
                   <button
                     onClick={() => setShowCreateModal(false)}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="p-2 hover:bg-white/5 text-slate-400 rounded-lg transition-colors"
                   >
-                    <X className="w-5 h-5 text-gray-500" />
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
               </div>
 
-              <form onSubmit={handleCreateUser} className="p-4 sm:p-6 space-y-4">
+              <form onSubmit={handleCreateUser} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Email</label>
+                  <label className="block text-sm font-semibold text-white mb-2">Email</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-blue-500 focus:bg-white transition-all"
-                    placeholder="user@example.com"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:border-blue-500 focus:bg-white/10 transition-all text-white placeholder-slate-500"
+                    placeholder="pengguna@contoh.com"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Password</label>
+                  <label className="block text-sm font-semibold text-white mb-2">Kata Sandi</label>
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={8}
-                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-blue-500 focus:bg-white transition-all"
-                    placeholder="Minimum 8 characters"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:border-blue-500 focus:bg-white/10 transition-all text-white placeholder-slate-500"
+                    placeholder="Minimal 8 karakter"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Role</label>
+                  <label className="block text-sm font-semibold text-white mb-2">Peran</label>
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value as UserRole)}
-                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 font-medium focus:border-blue-500 focus:bg-white transition-all"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:border-blue-500 focus:bg-white/10 transition-all text-white"
                   >
-                    <option value="user">User</option>
-                    <option value="admin">Admin</option>
+                    <option value="user" className="bg-slate-900">Pengguna</option>
+                    <option value="admin" className="bg-slate-900">Admin</option>
                     {user.role === 'super_admin' && (
-                      <option value="super_admin">Super Admin</option>
+                      <option value="super_admin" className="bg-slate-900">Super Admin</option>
                     )}
                   </select>
                 </div>
@@ -690,15 +575,15 @@ export default function AdminUsersPage() {
                 <button
                   type="submit"
                   disabled={processing}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-bold transition-all disabled:opacity-50"
                 >
                   {processing ? (
                     <span className="flex items-center justify-center gap-2">
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Creating...
+                      Membuat...
                     </span>
                   ) : (
-                    'Create User'
+                    'Buat Pengguna'
                   )}
                 </button>
               </form>
@@ -710,28 +595,25 @@ export default function AdminUsersPage() {
       {/* Balance Management Modal */}
       {showBalanceModal && selectedUser && (
         <>
-          <div 
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" 
-            onClick={() => setShowBalanceModal(false)}
-          />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl">
-              <div className="p-4 sm:p-6 border-b border-gray-100">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={() => setShowBalanceModal(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-slate-900 rounded-2xl shadow-2xl border border-white/10">
+              <div className="p-6 border-b border-white/10">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg sm:text-xl font-bold text-gray-900">Manage Balance</h2>
+                  <h2 className="text-xl font-bold text-white">Kelola Saldo</h2>
                   <button
                     onClick={() => setShowBalanceModal(false)}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="p-2 hover:bg-white/5 text-slate-400 rounded-lg transition-colors"
                   >
-                    <X className="w-5 h-5 text-gray-500" />
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
               </div>
 
-              <form onSubmit={handleManageBalance} className="p-4 sm:p-6 space-y-4">
-                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
-                  <div className="text-sm text-gray-500 mb-1">Current Balance</div>
-                  <div className="text-3xl font-bold font-mono text-gray-900">
+              <form onSubmit={handleManageBalance} className="p-6 space-y-4">
+                <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                  <div className="text-sm text-slate-400 mb-1">Saldo Saat Ini</div>
+                  <div className="text-3xl font-bold font-mono text-white">
                     {new Intl.NumberFormat('id-ID', { 
                       style: 'currency', 
                       currency: 'IDR',
@@ -740,16 +622,45 @@ export default function AdminUsersPage() {
                   </div>
                 </div>
 
+                {/* ✅ TAMBAHAN: Pilihan Tipe Akun */}
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Type</label>
+                  <label className="block text-sm font-semibold text-white mb-2">Tipe Akun</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setAccountType('real')}
+                      className={`py-3 rounded-xl font-bold transition-all ${
+                        accountType === 'real'
+                          ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                          : 'bg-white/5 text-slate-400 border border-white/10'
+                      }`}
+                    >
+                      Real
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAccountType('demo')}
+                      className={`py-3 rounded-xl font-bold transition-all ${
+                        accountType === 'demo'
+                          ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                          : 'bg-white/5 text-slate-400 border border-white/10'
+                      }`}
+                    >
+                      Demo
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-white mb-2">Tipe Transaksi</label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={() => setBalanceType('deposit')}
                       className={`py-3 rounded-xl font-bold transition-all ${
                         balanceType === 'deposit'
-                          ? 'bg-green-500 text-white shadow-lg scale-105'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-2 border-gray-200'
+                          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                          : 'bg-white/5 text-slate-400 border border-white/10'
                       }`}
                     >
                       Deposit
@@ -759,17 +670,17 @@ export default function AdminUsersPage() {
                       onClick={() => setBalanceType('withdrawal')}
                       className={`py-3 rounded-xl font-bold transition-all ${
                         balanceType === 'withdrawal'
-                          ? 'bg-red-500 text-white shadow-lg scale-105'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-2 border-gray-200'
+                          ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                          : 'bg-white/5 text-slate-400 border border-white/10'
                       }`}
                     >
-                      Withdrawal
+                      Penarikan
                     </button>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Amount (IDR)</label>
+                  <label className="block text-sm font-semibold text-white mb-2">Jumlah (IDR)</label>
                   <input
                     type="number"
                     value={balanceAmount}
@@ -777,39 +688,39 @@ export default function AdminUsersPage() {
                     required
                     min="0"
                     step="1000"
-                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 text-xl font-mono focus:border-green-500 focus:bg-white transition-all"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-xl font-mono focus:border-green-500 focus:bg-white/10 transition-all text-white placeholder-slate-500"
                     placeholder="10000"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Description</label>
+                  <label className="block text-sm font-semibold text-white mb-2">Keterangan</label>
                   <input
                     type="text"
                     value={balanceDescription}
                     onChange={(e) => setBalanceDescription(e.target.value)}
                     required
-                    className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-green-500 focus:bg-white transition-all"
-                    placeholder="Admin adjustment"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:border-green-500 focus:bg-white/10 transition-all text-white placeholder-slate-500"
+                    placeholder="Penyesuaian admin"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={processing}
-                  className={`w-full py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl disabled:opacity-50 ${
+                  className={`w-full py-3 rounded-xl font-bold transition-all disabled:opacity-50 ${
                     balanceType === 'deposit'
-                      ? 'bg-green-500 hover:bg-green-600 text-white'
-                      : 'bg-red-500 hover:bg-red-600 text-white'
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
+                      : 'bg-red-600 hover:bg-red-700 text-white'
                   }`}
                 >
                   {processing ? (
                     <span className="flex items-center justify-center gap-2">
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Processing...
+                      Memproses...
                     </span>
                   ) : (
-                    `Confirm ${balanceType === 'deposit' ? 'Deposit' : 'Withdrawal'}`
+                    `Konfirmasi ${balanceType === 'deposit' ? 'Deposit' : 'Penarikan'}`
                   )}
                 </button>
               </form>
@@ -821,47 +732,44 @@ export default function AdminUsersPage() {
       {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedUser && (
         <>
-          <div 
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" 
-            onClick={() => setShowDeleteModal(false)}
-          />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border-2 border-red-200">
-              <div className="p-4 sm:p-6 border-b border-gray-100">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Delete User</h2>
-                <p className="text-sm text-red-600">This action cannot be undone</p>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={() => setShowDeleteModal(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-slate-900 rounded-2xl shadow-2xl border border-red-500/20">
+              <div className="p-6 border-b border-white/10">
+                <h2 className="text-xl font-bold text-white">Hapus Pengguna</h2>
+                <p className="text-sm text-red-400">Tindakan ini tidak dapat dibatalkan</p>
               </div>
 
-              <div className="p-4 sm:p-6">
-                <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6">
-                  <p className="text-base text-gray-700">
-                    Are you sure you want to delete{' '}
-                    <span className="font-bold text-gray-900">{selectedUser.email}</span>?
+              <div className="p-6">
+                <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 mb-6">
+                  <p className="text-base text-slate-300">
+                    Apakah Anda yakin ingin menghapus{' '}
+                    <span className="font-bold text-white">{selectedUser.email}</span>?
                   </p>
-                  <p className="text-sm text-gray-600 mt-2">
-                    All user data including balance and trading history will be permanently deleted.
+                  <p className="text-sm text-slate-400 mt-2">
+                    Semua data pengguna termasuk saldo dan riwayat trading akan dihapus permanen.
                   </p>
                 </div>
 
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowDeleteModal(false)}
-                    className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 border-2 border-gray-200 rounded-xl font-bold transition-all"
+                    className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 rounded-xl font-bold transition-all"
                   >
-                    Cancel
+                    Batal
                   </button>
                   <button
                     onClick={handleDeleteUser}
                     disabled={processing}
-                    className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                    className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all disabled:opacity-50"
                   >
                     {processing ? (
                       <span className="flex items-center justify-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin" />
-                        Deleting...
+                        Menghapus...
                       </span>
                     ) : (
-                      'Delete User'
+                      'Hapus Pengguna'
                     )}
                   </button>
                 </div>

@@ -609,24 +609,24 @@ export default function TradingPage() {
   return (
     <div className="h-screen flex flex-col bg-[#0a0e17] text-white overflow-hidden">
       {/* Header */}
-      <div className="h-14 lg:h-16 bg-[#1a1f2e] border-b border-gray-800/50 flex items-center justify-between px-2 flex-shrink-0">
+      <div className="h-14 lg:h-16 bg-[#1a1f2e] px-2 lg:px-5 border-b border-gray-800/50 flex items-center justify-between px-2 flex-shrink-0">
         <div className="hidden lg:flex items-center gap-4 w-full">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 relative">
               <Image 
                 src="/stc-logo.png" 
-                alt="STC Logo" 
+                alt="Stouch" 
                 fill
                 className="object-contain rounded-md"
               />
             </div>
-            <span className="font-bold text-xl">STC AutoTrade</span>
+            <span className="font-bold text-xl">Stouch</span>
           </div>
 
           <div className="relative">
             <button
               onClick={() => setShowAssetMenu(!showAssetMenu)}
-              className="flex items-center gap-2 bg-[#2f3648] hover:bg-[#3a4360] px-4 py-2.5 rounded-lg transition-colors border border-gray-800/50"
+              className="flex items-center gap-2 bg-[#2f3648] hover:bg-[#3a4360] px-2 py-2 rounded-lg transition-colors border border-gray-800/50"
             >
               {selectedAsset ? (
                 <>
@@ -846,7 +846,7 @@ export default function TradingPage() {
             <div className="w-8 h-8 relative">
               <Image 
                 src="/stc-logo.png" 
-                alt="STC Logo" 
+                alt="Stouch" 
                 fill
                 className="object-contain rounded-md"
               />
@@ -1414,7 +1414,7 @@ export default function TradingPage() {
             
             <div className="space-y-2">
               <div className="mb-4">
-                <label className="text-xs text-gray-400 mb-2 block">Select Asset</label>
+                <label className="text-xs text-gray-400 mb-2 block">Pilih Aset</label>
                 <div className="space-y-1 max-h-64 overflow-y-auto">
                   {assets.map((asset) => (
                     <button
@@ -1452,28 +1452,6 @@ export default function TradingPage() {
 
               <button
                 onClick={() => {
-                  setShowHistorySidebar(true)
-                  handleCloseMobileMenu()
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-              >
-                <History className="w-4 h-4" />
-                <span>Riwayat</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  handleCloseMobileMenu()
-                  setTimeout(() => router.push('/balance'), 300)
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-              >
-                <Wallet className="w-4 h-4" />
-                <span>Balance</span>
-              </button>
-              
-              <button
-                onClick={() => {
                   handleCloseMobileMenu()
                   setTimeout(() => router.push('/profile'), 300)
                 }}
@@ -1486,6 +1464,29 @@ export default function TradingPage() {
               <button
                 onClick={() => {
                   handleCloseMobileMenu()
+                  setTimeout(() => router.push('/balance'), 300)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <Wallet className="w-4 h-4" />
+                <span>Keuangan</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  setShowHistorySidebar(true)
+                  handleCloseMobileMenu()
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+              >
+                <History className="w-4 h-4" />
+                <span>Riwayat</span>
+              </button>
+
+
+              <button
+                onClick={() => {
+                  handleCloseMobileMenu()
                   setTimeout(() => {
                     setShowTutorial(true)
                   }, 300)
@@ -1493,7 +1494,7 @@ export default function TradingPage() {
                 className="w-full flex items-center gap-3 px-4 py-3 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg transition-colors text-blue-400"
               >
                 <Info className="w-4 h-4" />
-                <span>Show Tutorial</span>
+                <span>Lihat Tutorial</span>
               </button>
 
               <button
@@ -1505,7 +1506,7 @@ export default function TradingPage() {
                 className="w-full flex items-center gap-3 px-4 py-3 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg transition-colors text-rose-400"
               >
                 <LogOut className="w-4 h-4" />
-                <span>Logout</span>
+                <span>Keluar</span>
               </button>
             </div>
           </div>
@@ -1526,12 +1527,12 @@ export default function TradingPage() {
                 <div className="w-8 h-8 relative">
                   <Image 
                     src="/stc-logo.png" 
-                    alt="STC Logo" 
+                    alt="Stouch" 
                     fill
                     className="object-contain rounded-md"
                   />
                 </div>
-                <span className="font-bold">STC AutoTrade</span>
+                <span className="font-bold">Stouch</span>
               </div>
             </div>
             

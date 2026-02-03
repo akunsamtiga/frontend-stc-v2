@@ -746,7 +746,7 @@ export default function LandingPage() {
                   }`}>
                     <Image
                       src="/stc-logo.png"
-                      alt="STC AutoTrade"
+                      alt="Stouch"
                       fill
                       className="object-contain rounded-md"
                       priority
@@ -760,7 +760,7 @@ export default function LandingPage() {
                         logoPhase === 'stc-text-out' ? 'animate-text-slide-out' : 
                         'opacity-100 translate-x-0'
                       }`}>
-                        STC AutoTrade
+                        Stouch
                       </span>
                     </div>
                   )}
@@ -1461,7 +1461,7 @@ export default function LandingPage() {
             num: '1',
             icon: Users,
             title: 'Temukan Teman',
-            desc: 'Yang sudah trading di STC',
+            desc: 'Yang sudah trading di Stouch',
             color: 'emerald'
           },
           {
@@ -1559,7 +1559,7 @@ export default function LandingPage() {
         </div>
 
         <h3 className="text-xl sm:text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">
-          Jadilah Mitra Resmi STC
+          Jadilah Mitra Resmi Stouch
         </h3>
         
         <p className="text-sm sm:text-lg text-gray-400 mb-6 sm:mb-8 max-w-2xl mx-auto">
@@ -1623,13 +1623,13 @@ export default function LandingPage() {
                   <div className="relative w-10 h-10">
                     <Image
                       src="/stc-logo.png"
-                      alt="STC AutoTrade"
+                      alt="Stouch"
                       fill
                       className="object-contain rounded-md"
                     />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold">STC AutoTrade</h2>
+                    <h2 className="text-xl font-bold">Stouch</h2>
                     <p className="text-xs text-gray-400">Platform Trading Profesional</p>
                   </div>
                 </div>

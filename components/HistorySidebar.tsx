@@ -19,12 +19,25 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [accountFilter, setAccountFilter] = useState<'all' | 'real' | 'demo'>('all')
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
+  // State untuk mengontrol animasi keluar
+  const [isClosing, setIsClosing] = useState(false)
+  const [shouldRender, setShouldRender] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
+      setIsClosing(false)
+      setShouldRender(true)
       loadOrders()
+    } else if (shouldRender) {
+      // Mulai animasi keluar
+      setIsClosing(true)
+      // Tunggu animasi selesai baru unmount
+      const timer = setTimeout(() => {
+        setShouldRender(false)
+      }, 300)
+      return () => clearTimeout(timer)
     }
-  }, [isOpen, statusFilter, accountFilter])
+  }, [isOpen])
 
   const loadOrders = async () => {
     setLoading(true)
@@ -51,7 +64,15 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
     setExpandedOrder(expandedOrder === orderId ? null : orderId)
   }
 
-  if (!isOpen) return null
+  // Handler untuk close dengan animasi
+  const handleClose = () => {
+    setIsClosing(true)
+    setTimeout(() => {
+      onClose()
+    }, 250)
+  }
+
+  if (!shouldRender) return null
 
   const stats = {
     won: orders.filter(o => o.status === 'WON').length,
@@ -65,14 +86,18 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop dengan animasi keluar */}
       <div 
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 animate-fade-in" 
-        onClick={onClose}
+        className={`fixed inset-0 bg-black/70 backdrop-blur-sm z-40 transition-opacity duration-300 ${
+          isClosing ? 'opacity-0' : 'opacity-100 animate-fade-in'
+        }`} 
+        onClick={handleClose}
       />
 
-      {/* Sidebar */}
-      <div className="fixed top-0 right-0 bottom-0 w-[90vw] max-w-[380px] bg-[#0a0e17] border-l border-gray-800/30 z-50 flex flex-col animate-slide-left shadow-2xl">
+      {/* Sidebar dengan animasi slide keluar */}
+      <div className={`fixed top-0 right-0 bottom-0 w-[90vw] max-w-[380px] bg-[#0a0e17] border-l border-gray-800/30 z-50 flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
+        isClosing ? 'translate-x-full' : 'translate-x-0 animate-slide-left'
+      }`}>
         
         {/* Header - Ultra Minimal */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-800/30">
@@ -95,7 +120,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
               <RefreshCw className={`w-4 h-4 text-gray-400 ${loading ? 'animate-spin' : ''}`} />
             </button>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="w-9 h-9 rounded-lg hover:bg-white/5 flex items-center justify-center transition-all"
             >
               <X className="w-4 h-4 text-gray-400" />

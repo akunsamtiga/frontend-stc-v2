@@ -1,4 +1,4 @@
-// app/admin/asset-schedule/page.tsx - SIMPLE FIXED VERSION
+// app/admin/asset-schedule/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -29,7 +29,7 @@ import {
   downloadSchedulesCSV
 } from '@/lib/asset-schedule'
 
-// ✅ Helper functions for datetime-local conversion
+// Helper functions for datetime-local conversion
 function isoToDatetimeLocal(isoString: string): string {
   if (!isoString) return ''
   
@@ -46,10 +46,36 @@ function isoToDatetimeLocal(isoString: string): string {
 function datetimeLocalToISO(datetimeLocal: string): string {
   if (!datetimeLocal) return ''
   
-  // Create date in LOCAL timezone (not UTC)
   const date = new Date(datetimeLocal)
   return date.toISOString()
 }
+
+const StatCardSkeleton = () => (
+  <div className="bg-white/5 rounded-lg p-4 border border-white/10 animate-pulse backdrop-blur-sm">
+    <div className="flex items-center gap-3 mb-3">
+      <div className="w-8 h-8 bg-white/10 rounded"></div>
+      <div className="h-4 bg-white/10 rounded w-20"></div>
+    </div>
+    <div className="h-6 bg-white/10 rounded w-24"></div>
+  </div>
+)
+
+const LoadingSkeleton = () => (
+  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <Navbar />
+    <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="mb-6 animate-pulse">
+        <div className="h-7 bg-white/10 rounded w-48 mb-2"></div>
+        <div className="h-4 bg-white/10 rounded w-64"></div>
+      </div>
+      <div className="grid grid-cols-4 gap-3 mb-6">
+        {[...Array(4)].map((_, i) => (
+          <StatCardSkeleton key={i} />
+        ))}
+      </div>
+    </div>
+  </div>
+)
 
 export default function AssetSchedulePage() {
   const router = useRouter()
@@ -60,6 +86,7 @@ export default function AssetSchedulePage() {
   const [assets, setAssets] = useState<Asset[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   
   const [page, setPage] = useState(1)
   const [limit] = useState(10)
@@ -108,8 +135,6 @@ export default function AssetSchedulePage() {
     try {
       if (showRefreshing) setRefreshing(true)
       
-      console.log('📡 Loading schedules...', filters)
-      
       const [schedulesRes, statsRes] = await Promise.all([
         assetScheduleApi.getSchedules(filters).catch((err: any) => {
           console.error('Schedules API error:', err)
@@ -120,9 +145,6 @@ export default function AssetSchedulePage() {
           return { total: 0, pending: 0, executed: 0, failed: 0, cancelled: 0, activeSchedules: 0, upcomingToday: 0, upcomingThisWeek: 0 }
         })
       ])
-
-      console.log('📦 Schedules response:', schedulesRes)
-      console.log('📊 Stats response:', statsRes)
 
       if (schedulesRes?.data) {
         setSchedules(schedulesRes.data.data || [])
@@ -136,9 +158,11 @@ export default function AssetSchedulePage() {
       if (statsRes) {
         setStatistics(statsRes as AssetScheduleStatistics)
       }
+      
+      setLastUpdated(new Date())
     } catch (error) {
-      console.error('Failed to load data:', error)
-      toast.error('Failed to load schedules')
+      console.error('Gagal memuat data:', error)
+      toast.error('Gagal memuat jadwal')
     } finally {
       setLoading(false)
       if (showRefreshing) setRefreshing(false)
@@ -147,13 +171,9 @@ export default function AssetSchedulePage() {
 
   const loadAssets = async () => {
     try {
-      console.log('🔄 Loading assets...')
       const response = await assetsApi.getAll()
       
-      console.log('📦 Assets response:', response)
-      
       if (!response || !response.data) {
-        console.warn('⚠️ No assets data received')
         setAssets([])
         return
       }
@@ -166,17 +186,13 @@ export default function AssetSchedulePage() {
         assetsData = response.data.assets
       } else if ((response.data as any).data && Array.isArray((response.data as any).data)) {
         assetsData = (response.data as any).data
-      } else {
-        console.warn('⚠️ Unknown assets response format:', response.data)
-        assetsData = []
       }
 
-      console.log(`✅ Loaded ${assetsData.length} assets`)
       setAssets(assetsData)
       
     } catch (error) {
-      console.error('❌ Failed to load assets:', error)
-      toast.error('Failed to load assets list')
+      console.error('Gagal memuat aset:', error)
+      toast.error('Gagal memuat daftar aset')
       setAssets([])
     }
   }
@@ -198,7 +214,7 @@ export default function AssetSchedulePage() {
 
       await assetScheduleApi.create(formData)
       
-      toast.success('Schedule created successfully')
+      toast.success('Jadwal berhasil dibuat')
       setShowCreateModal(false)
       setFormData({
         assetSymbol: '',
@@ -211,167 +227,195 @@ export default function AssetSchedulePage() {
       
       loadData()
     } catch (error: any) {
-      console.error('Failed to create schedule:', error)
-      toast.error(error.response?.data?.message || 'Failed to create schedule')
+      console.error('Gagal membuat jadwal:', error)
+      toast.error(error.response?.data?.message || 'Gagal membuat jadwal')
     } finally {
       setSubmitting(false)
     }
   }
 
   const handleDeleteSchedule = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this schedule?')) return
+    if (!confirm('Apakah Anda yakin ingin menghapus jadwal ini?')) return
 
     try {
       await assetScheduleApi.delete(id)
-      toast.success('Schedule deleted successfully')
+      toast.success('Jadwal berhasil dihapus')
       loadData()
     } catch (error: any) {
-      console.error('Failed to delete schedule:', error)
-      toast.error(error.response?.data?.message || 'Failed to delete schedule')
+      console.error('Gagal menghapus jadwal:', error)
+      toast.error(error.response?.data?.message || 'Gagal menghapus jadwal')
     }
   }
 
   const handleExportCSV = () => {
-    downloadSchedulesCSV(schedules, `asset-schedules-${new Date().toISOString().split('T')[0]}.csv`)
-    toast.success('Schedules exported successfully')
+    downloadSchedulesCSV(schedules, `jadwal-aset-${new Date().toISOString().split('T')[0]}.csv`)
+    toast.success('Jadwal berhasil diekspor')
   }
 
   if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
     return null
   }
 
+  if (loading) {
+    return <LoadingSkeleton />
+  }
+
+  const getTrendLabel = (trend: string) => {
+    return trend === 'buy' ? 'Beli' : 'Jual'
+  }
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      'pending': 'Menunggu',
+      'executed': 'Dijalankan',
+      'failed': 'Gagal',
+      'cancelled': 'Dibatalkan'
+    }
+    return labels[status] || status
+  }
+
+  const getTimeframeLabel = (tf: string) => {
+    const labels: Record<string, string> = {
+      '1m': '1 Menit',
+      '5m': '5 Menit',
+      '15m': '15 Menit',
+      '30m': '30 Menit',
+      '1h': '1 Jam',
+      '4h': '4 Jam',
+      '1d': '1 Hari'
+    }
+    return labels[tf] || tf
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <Navbar />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                <Calendar className="w-8 h-8 text-blue-600" />
-                Asset Schedule Management
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Manage automated trading schedules for assets
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 disabled:opacity-50"
-              >
-                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
-              <button
-                onClick={handleExportCSV}
-                disabled={schedules.length === 0}
-                className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 disabled:opacity-50"
-              >
-                <Download className="w-4 h-4" />
-                Export
-              </button>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Create
-              </button>
-            </div>
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white mb-1">Manajemen Jadwal Aset</h1>
+            <p className="text-sm text-slate-400">Kelola jadwal trading otomatis untuk aset</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg transition-colors disabled:opacity-50"
+              title="Refresh"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              onClick={handleExportCSV}
+              disabled={schedules.length === 0}
+              className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 rounded-lg transition-colors disabled:opacity-50 text-sm"
+            >
+              <Download className="w-4 h-4 inline mr-2" />
+              Ekspor
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Buat
+            </button>
           </div>
         </div>
 
         {/* Statistics */}
         {statistics && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-white rounded-xl p-5 border border-gray-100">
-              <div className="text-sm text-gray-600 mb-1">Total</div>
-              <div className="text-2xl font-bold text-gray-900">{statistics.total}</div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+              <div className="text-sm text-slate-400 mb-1">Total</div>
+              <div className="text-2xl font-bold text-white">{statistics.total}</div>
             </div>
-            <div className="bg-white rounded-xl p-5 border border-gray-100">
-              <div className="text-sm text-gray-600 mb-1">Pending</div>
-              <div className="text-2xl font-bold text-yellow-600">{statistics.pending}</div>
+            <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+              <div className="text-sm text-slate-400 mb-1">Menunggu</div>
+              <div className="text-2xl font-bold text-yellow-400">{statistics.pending}</div>
             </div>
-            <div className="bg-white rounded-xl p-5 border border-gray-100">
-              <div className="text-sm text-gray-600 mb-1">Executed</div>
-              <div className="text-2xl font-bold text-green-600">{statistics.executed}</div>
+            <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+              <div className="text-sm text-slate-400 mb-1">Dijalankan</div>
+              <div className="text-2xl font-bold text-green-400">{statistics.executed}</div>
             </div>
-            <div className="bg-white rounded-xl p-5 border border-gray-100">
-              <div className="text-sm text-gray-600 mb-1">Failed</div>
-              <div className="text-2xl font-bold text-red-600">{statistics.failed}</div>
+            <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+              <div className="text-sm text-slate-400 mb-1">Gagal</div>
+              <div className="text-2xl font-bold text-red-400">{statistics.failed}</div>
             </div>
           </div>
         )}
 
         {/* Schedules Table */}
-        {loading ? (
-          <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
-            <div className="text-gray-500">Loading...</div>
-          </div>
-        ) : schedules.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
-            <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No schedules found</h3>
-            <p className="text-gray-600 mb-6">Create your first schedule to get started</p>
+        {schedules.length === 0 ? (
+          <div className="bg-white/5 rounded-lg p-12 text-center border border-white/10 backdrop-blur-sm">
+            <Calendar className="w-16 h-16 text-slate-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-white mb-2">Tidak ada jadwal</h3>
+            <p className="text-slate-400 mb-6">Buat jadwal pertama Anda untuk memulai</p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+              className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors inline-flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              Create Schedule
+              Buat Jadwal
             </button>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+          <div className="bg-white/5 rounded-lg border border-white/10 backdrop-blur-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-white/5 border-b border-white/10">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Asset</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Time</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Countdown</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Trend</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Aset</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Waktu</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Hitung Mundur</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Tren</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Status</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-white/10">
                   {schedules.map((schedule) => {
-                    const statusInfo = getStatusBadgeInfo(schedule.status)
-                    const trendInfo = getTrendBadgeInfo(schedule.trend)
                     const timeUntil = getTimeUntilExecution(schedule.scheduledTime)
 
                     return (
-                      <tr key={schedule.id} className="hover:bg-gray-50">
+                      <tr key={schedule.id} className="hover:bg-white/5 transition-colors">
                         <td className="px-4 py-3">
-                          <div className="font-semibold text-gray-900">{schedule.assetSymbol}</div>
+                          <div className="font-semibold text-white">{schedule.assetSymbol}</div>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="text-sm text-gray-900">{formatScheduledTime(schedule.scheduledTime)}</div>
+                          <div className="text-sm text-slate-300">{formatScheduledTime(schedule.scheduledTime)}</div>
                         </td>
                         <td className="px-4 py-3">
-                          <div className={`text-sm font-medium ${timeUntil.isPast ? 'text-gray-400' : 'text-blue-600'}`}>
+                          <div className={`text-sm font-medium ${timeUntil.isPast ? 'text-slate-500' : 'text-indigo-400'}`}>
                             {timeUntil.formatted}
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${trendInfo.className}`}>
-                            {trendInfo.icon} {trendInfo.label}
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border ${
+                            schedule.trend === 'buy' 
+                              ? 'bg-green-500/10 text-green-400 border-green-500/20' 
+                              : 'bg-red-500/10 text-red-400 border-red-500/20'
+                          }`}>
+                            {schedule.trend === 'buy' ? '📈' : '📉'} {getTrendLabel(schedule.trend)}
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${statusInfo.className}`}>
-                            {statusInfo.icon} {statusInfo.label}
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border ${
+                            schedule.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                            schedule.status === 'executed' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                            schedule.status === 'failed' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                            'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                          }`}>
+                            {getStatusLabel(schedule.status)}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right">
                           <button
                             onClick={() => handleDeleteSchedule(schedule.id)}
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="Delete"
+                            className="p-1.5 text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                            title="Hapus"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -388,148 +432,151 @@ export default function AssetSchedulePage() {
 
       {/* Create Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Create New Schedule</h2>
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="p-1 hover:bg-gray-100 rounded transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+        <>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={() => setShowCreateModal(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-900 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-white/10 shadow-2xl">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-white">Buat Jadwal Baru</h2>
+                  <button
+                    onClick={() => setShowCreateModal(false)}
+                    className="p-1 hover:bg-white/5 text-slate-400 rounded transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
 
-              {formErrors.length > 0 && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-red-900 mb-1">Please fix the following errors:</p>
-                      <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
-                        {formErrors.map((error, idx) => (
-                          <li key={idx}>{error}</li>
-                        ))}
-                      </ul>
+                {formErrors.length > 0 && (
+                  <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-red-400 mb-1">Perbaiki kesalahan berikut:</p>
+                        <ul className="text-sm text-red-300 list-disc list-inside space-y-1">
+                          {formErrors.map((error, idx) => (
+                            <li key={idx}>{error}</li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Asset Symbol *</label>
-                  <select
-                    value={formData.assetSymbol}
-                    onChange={(e) => setFormData({ ...formData, assetSymbol: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">Select Asset</option>
-                    {Array.isArray(assets) && assets.length > 0 ? (
-                      assets.map((asset) => (
-                        <option key={asset.id} value={asset.symbol}>
-                          {asset.symbol} - {asset.name}
-                        </option>
-                      ))
-                    ) : (
-                      <option value="" disabled>No assets available</option>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Simbol Aset *</label>
+                    <select
+                      value={formData.assetSymbol}
+                      onChange={(e) => setFormData({ ...formData, assetSymbol: e.target.value })}
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:border-indigo-500 focus:bg-white/10 transition-all text-white text-sm"
+                    >
+                      <option value="" className="bg-slate-900">Pilih Aset</option>
+                      {Array.isArray(assets) && assets.length > 0 ? (
+                        assets.map((asset) => (
+                          <option key={asset.id} value={asset.symbol} className="bg-slate-900">
+                            {asset.symbol} - {asset.name}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="" disabled className="bg-slate-900">Tidak ada aset tersedia</option>
+                      )}
+                    </select>
+                    {assets.length === 0 && (
+                      <p className="text-xs text-yellow-400 mt-1">⚠️ Tidak ada aset yang dimuat. Silakan refresh.</p>
                     )}
-                  </select>
-                  {assets.length === 0 && (
-                    <p className="text-xs text-amber-600 mt-1">⚠️ No assets loaded. Please refresh.</p>
-                  )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Waktu Jadwal *</label>
+                    <input
+                      type="datetime-local"
+                      value={isoToDatetimeLocal(formData.scheduledTime)}
+                      min={isoToDatetimeLocal(new Date().toISOString())}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        scheduledTime: datetimeLocalToISO(e.target.value) 
+                      })}
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:border-indigo-500 focus:bg-white/10 transition-all text-white text-sm"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      🕐 Zona waktu Anda: {Intl.DateTimeFormat().resolvedOptions().timeZone}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Tren *</label>
+                    <select
+                      value={formData.trend}
+                      onChange={(e) => setFormData({ ...formData, trend: e.target.value as any })}
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:border-indigo-500 focus:bg-white/10 transition-all text-white text-sm"
+                    >
+                      <option value="buy" className="bg-slate-900">📈 Beli</option>
+                      <option value="sell" className="bg-slate-900">📉 Jual</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Kerangka Waktu *</label>
+                    <select
+                      value={formData.timeframe}
+                      onChange={(e) => setFormData({ ...formData, timeframe: e.target.value as any })}
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:border-indigo-500 focus:bg-white/10 transition-all text-white text-sm"
+                    >
+                      <option value="1m" className="bg-slate-900">1 Menit</option>
+                      <option value="5m" className="bg-slate-900">5 Menit</option>
+                      <option value="15m" className="bg-slate-900">15 Menit</option>
+                      <option value="30m" className="bg-slate-900">30 Menit</option>
+                      <option value="1h" className="bg-slate-900">1 Jam</option>
+                      <option value="4h" className="bg-slate-900">4 Jam</option>
+                      <option value="1d" className="bg-slate-900">1 Hari</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Catatan</label>
+                    <textarea
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      rows={3}
+                      placeholder="Tambahkan catatan..."
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:border-indigo-500 focus:bg-white/10 transition-all text-white placeholder-slate-500 text-sm resize-none"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="isActive"
+                      checked={formData.isActive}
+                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 border-white/10 rounded focus:ring-indigo-500 bg-white/5"
+                    />
+                    <label htmlFor="isActive" className="text-sm text-slate-300">
+                      Aktif (jadwal akan berjalan otomatis)
+                    </label>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Scheduled Time *</label>
-                  <input
-                    type="datetime-local"
-                    value={isoToDatetimeLocal(formData.scheduledTime)}
-                    min={isoToDatetimeLocal(new Date().toISOString())}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      scheduledTime: datetimeLocalToISO(e.target.value) 
-                    })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    🕐 Your timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Trend *</label>
-                  <select
-                    value={formData.trend}
-                    onChange={(e) => setFormData({ ...formData, trend: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => setShowCreateModal(false)}
+                    className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 rounded-lg transition-colors"
                   >
-                    <option value="buy">📈 Buy</option>
-                    <option value="sell">📉 Sell</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Timeframe *</label>
-                  <select
-                    value={formData.timeframe}
-                    onChange={(e) => setFormData({ ...formData, timeframe: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    Batal
+                  </button>
+                  <button
+                    onClick={handleCreateSchedule}
+                    disabled={submitting}
+                    className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors disabled:opacity-50"
                   >
-                    <option value="1m">1 Minute</option>
-                    <option value="5m">5 Minutes</option>
-                    <option value="15m">15 Minutes</option>
-                    <option value="30m">30 Minutes</option>
-                    <option value="1h">1 Hour</option>
-                    <option value="4h">4 Hours</option>
-                    <option value="1d">1 Day</option>
-                  </select>
+                    {submitting ? 'Membuat...' : 'Buat'}
+                  </button>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                  <textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    rows={3}
-                    placeholder="Add notes..."
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="isActive"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <label htmlFor="isActive" className="text-sm text-gray-700">
-                    Active (schedule will run automatically)
-                  </label>
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCreateSchedule}
-                  disabled={submitting}
-                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
-                >
-                  {submitting ? 'Creating...' : 'Create'}
-                </button>
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   )
