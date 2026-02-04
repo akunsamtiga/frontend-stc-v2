@@ -245,7 +245,7 @@ const MidtransPaymentPage: React.FC = () => {
   
   const paymentMethods = [
     { name: 'BCA', icon: '/bca.webp' },
-    { name: 'Mandiri', icon: '/mandiri.png' },
+    { name: 'Mandiri', icon: '/mandiri.webp' },
     { name: 'BNI', icon: '/bni.png' },
     { name: 'BRI', icon: '/bri.webp' },
     { name: 'Permata', icon: '/permata.png' },
@@ -332,54 +332,82 @@ const MidtransPaymentPage: React.FC = () => {
 
   // ✅ FIXED: Handler deposit yang redirect ke payment-success
   const handleDeposit = async () => {
-    const numAmount = parseInt(amount);
-    
-    if (!numAmount || numAmount < 10000) {
-      setError('Minimum deposit is Rp 10.000');
-      return;
-    }
+  const numAmount = parseInt(amount);
+  
+  if (!numAmount || numAmount < 10000) {
+    setError('Minimum deposit is Rp 10.000');
+    return;
+  }
 
-    setLoading(true);
-    setError('');
+  setLoading(true);
+  setError('');
 
-    try {
-      const response = await PaymentAPI.createTransaction(
-        numAmount,
-        'Top Up',
-        voucherCode || undefined
-      );
+  try {
+    const response = await PaymentAPI.createTransaction(
+      numAmount,
+      'Top Up',
+      voucherCode || undefined
+    );
 
-      if (response.success && response.data?.deposit) {
-        const deposit = response.data.deposit;
-        setCurrentTransaction(deposit);
-        setStep('payment');
+    if (response.success && response.data?.deposit) {
+      const deposit = response.data.deposit;
+      setCurrentTransaction(deposit);
+      setStep('payment');
 
-        try {
-          const result = await MidtransSnap.pay(deposit.snap_token);
-          
+      // ============================================================
+      // ✅ BAGIAN INI YANG DIPERBAIKI
+      // ============================================================
+      try {
+        const result = await MidtransSnap.pay(deposit.snap_token);
+        
+        if (result.status === 'success' || result.status === 'pending') {
           // ✅ FIXED: Redirect ke payment-success untuk verifikasi realtime
-          if (result.status === 'success' || result.status === 'pending') {
-            console.log('✅ Payment callback received, redirecting to payment-success for verification');
-            
-            // Redirect ke halaman payment-success dengan order_id
-            router.push(`/payment-success?order_id=${deposit.order_id}&transaction_status=${result.result?.transaction_status || 'pending'}&status_code=${result.result?.status_code || ''}`);
-          } else if (result.status === 'closed') {
-            setStep('amount');
-            setError('Payment was cancelled');
-          }
-        } catch (snapError) {
-          console.error('Midtrans Snap error:', snapError);
-          setError('Payment failed. Please try again.');
-          setStep('amount');
+          console.log('✅ Payment callback received, redirecting for verification');
+          console.log('Order ID:', deposit.order_id);
+          console.log('Status:', result.result?.transaction_status);
+          
+          // Gunakan window.location.href untuk hard redirect
+          window.location.href = `/payment-success?order_id=${deposit.order_id}&transaction_status=${result.result?.transaction_status || 'pending'}&status_code=${result.result?.status_code || ''}`;
+          
+        } else if (result.status === 'closed') {
+          // ✅ FIXED: User cancel payment - reset state dengan benar
+          console.log('⚠️ Payment cancelled by user');
+          
+          // Reset semua state
+          setLoading(false);              // Stop loading spinner
+          setStep('amount');               // Kembali ke form
+          setCurrentTransaction(null);    // Clear transaction
+          setError('Payment was cancelled. You can try again.'); // Show message
+          
         }
+      } catch (snapError) {
+        // ✅ FIXED: Handle error dengan benar
+        console.error('❌ Midtrans Snap error:', snapError);
+        
+        // Reset semua state
+        setLoading(false);
+        setStep('amount');
+        setCurrentTransaction(null);
+        setError('Payment failed. Please try again.');
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to create transaction');
-      setStep('amount');
-    } finally {
+      // ============================================================
+      // ✅ AKHIR BAGIAN YANG DIPERBAIKI
+      // ============================================================
+    }
+  } catch (err: any) {
+    console.error('❌ Transaction creation error:', err);
+    setError(err.message || 'Failed to create transaction');
+    setStep('amount');
+  } finally {
+    // Only set loading false if we're still on the page
+    // (not redirecting to payment-success)
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+    if (currentPath === '/payment' || step === 'amount') {
       setLoading(false);
     }
-  };
+  }
+};
+
 
   // Main amount input screen
   if (step === 'amount') {
