@@ -405,42 +405,49 @@ const MidtransPaymentPage: React.FC = () => {
           const result = await MidtransSnap.pay(deposit.snap_token);
           
           if (result.status === 'success' || result.status === 'pending') {
-            // ✅ SUCCESS/PENDING: Redirect to success page for monitoring
+            // ✅ SUCCESS/PENDING: Redirect to success page
             console.log('✅ Payment callback received:', result.status);
-            console.log('🔄 Redirecting to verification page...');
+            console.log('🔄 Redirecting to success page...');
             
-            // Hard redirect to ensure page refresh
-            window.location.href = `/payment-success?orderId=${deposit.order_id}`;
+            // Build success URL with proper parameters
+            const params = new URLSearchParams({
+              order_id: deposit.order_id,
+              transaction_status: result.status === 'success' ? 'settlement' : 'pending',
+              status_code: '200'
+            });
+            
+            // Hard redirect to success page
+            window.location.href = `/payment-success?${params.toString()}`;
             
             // Keep loading state true because we're redirecting
             // User will see loading until new page loads
             
           } else if (result.status === 'closed') {
-            // ⚠️ CANCELLED: User closed popup
+            // ⚠️ CANCELLED: User closed popup without completing payment
             console.log('⚠️ Payment cancelled by user');
             
-            // Clear payment info because it was cancelled
-            localStorage.removeItem(`payment_${deposit.order_id}`);
+            // Redirect to success page with cancel status
+            const params = new URLSearchParams({
+              order_id: deposit.order_id,
+              transaction_status: 'cancel',
+              status_code: '202'
+            });
             
-            // Reset state
-            setLoading(false);
-            setStep('amount');
-            setCurrentTransaction(null);
-            setError('Payment was cancelled. You can try again.');
+            window.location.href = `/payment-success?${params.toString()}`;
           }
           
         } catch (snapError) {
           // ❌ ERROR: Midtrans Snap failed
           console.error('❌ Midtrans Snap error:', snapError);
           
-          // Clear payment info
-          localStorage.removeItem(`payment_${deposit.order_id}`);
+          // Redirect to success page with error status
+          const params = new URLSearchParams({
+            order_id: deposit.order_id,
+            transaction_status: 'deny',
+            status_code: '500'
+          });
           
-          // Reset state
-          setLoading(false);
-          setStep('amount');
-          setCurrentTransaction(null);
-          setError('Payment failed. Please try again.');
+          window.location.href = `/payment-success?${params.toString()}`;
         }
       }
       
