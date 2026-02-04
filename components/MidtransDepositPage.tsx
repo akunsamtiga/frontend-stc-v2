@@ -1,4 +1,5 @@
-// components/MidtransDepositPage.tsx - ✅ FIXED: Redirect to payment-success for verification
+// components/MidtransDepositPage.tsx
+// ✅ UPDATED: Balance monitoring integration - no backend changes needed
 'use client'
 
 import React, { useState, useEffect } from 'react';
@@ -7,6 +8,7 @@ import Image from 'next/image';
 import VoucherInput from '@/components/VoucherInput';
 import AvailableVouchers from '@/components/AvailableVouchers';
 import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api'; 
 
 interface DepositResponse {
   success: boolean;
@@ -19,6 +21,11 @@ interface DepositResponse {
       status: 'pending' | 'success' | 'failed' | 'expired';
       snap_token: string;
       snap_redirect_url: string;
+      voucherBonus?: {
+        code: string;
+        amount: number;
+        totalAmount: number;
+      } | null;
     };
   };
 }
@@ -285,38 +292,12 @@ const MidtransPaymentPage: React.FC = () => {
     }
   };
 
-  const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  };
-
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
-  };
-
-  const handleAmountChange = (value: string) => {
-    const numericValue = value.replace(/\D/g, '');
-    setAmount(numericValue);
-    setError('');
-  };
-
-  const handleQuickAmount = (value: number) => {
-    setAmount(value.toString());
-    setError('');
-  };
-
-  const handleVoucherApplied = (voucher: { code: string; bonusAmount: number; type: 'percentage' | 'fixed'; value: number; } | null) => {
+  const handleVoucherApplied = (voucher: {
+    code: string
+    bonusAmount: number
+    type: 'percentage' | 'fixed'
+    value: number
+  } | null) => {
     if (voucher) {
       setVoucherCode(voucher.code);
       setVoucherBonus(voucher.bonusAmount);
@@ -330,84 +311,146 @@ const MidtransPaymentPage: React.FC = () => {
     }
   };
 
-  // ✅ FIXED: Handler deposit yang redirect ke payment-success
-  const handleDeposit = async () => {
-  const numAmount = parseInt(amount);
-  
-  if (!numAmount || numAmount < 10000) {
-    setError('Minimum deposit is Rp 10.000');
-    return;
-  }
+  const handleVoucherSelect = (code: string) => {
+    setVoucherCode(code);
+  };
 
-  setLoading(true);
-  setError('');
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
 
-  try {
-    const response = await PaymentAPI.createTransaction(
-      numAmount,
-      'Top Up',
-      voucherCode || undefined
-    );
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
-    if (response.success && response.data?.deposit) {
-      const deposit = response.data.deposit;
-      setCurrentTransaction(deposit);
-      setStep('payment');
+  // ============================================================
+  // ✅ UPDATED HANDLE PAYMENT WITH BALANCE MONITORING
+  // ============================================================
+  const handlePayment = async () => {
+    const numAmount = parseInt(amount);
 
-      // ============================================================
-      // ✅ BAGIAN INI YANG DIPERBAIKI
-      // ============================================================
-      try {
-        const result = await MidtransSnap.pay(deposit.snap_token);
-        
-        if (result.status === 'success' || result.status === 'pending') {
-          // ✅ FIXED: Redirect ke payment-success untuk verifikasi realtime
-          console.log('✅ Payment callback received, redirecting for verification');
-          console.log('Order ID:', deposit.order_id);
-          console.log('Status:', result.result?.transaction_status);
-          
-          // Gunakan window.location.href untuk hard redirect
-          window.location.href = `/payment-success?order_id=${deposit.order_id}&transaction_status=${result.result?.transaction_status || 'pending'}&status_code=${result.result?.status_code || ''}`;
-          
-        } else if (result.status === 'closed') {
-          // ✅ FIXED: User cancel payment - reset state dengan benar
-          console.log('⚠️ Payment cancelled by user');
-          
-          // Reset semua state
-          setLoading(false);              // Stop loading spinner
-          setStep('amount');               // Kembali ke form
-          setCurrentTransaction(null);    // Clear transaction
-          setError('Payment was cancelled. You can try again.'); // Show message
-          
-        }
-      } catch (snapError) {
-        // ✅ FIXED: Handle error dengan benar
-        console.error('❌ Midtrans Snap error:', snapError);
-        
-        // Reset semua state
-        setLoading(false);
-        setStep('amount');
-        setCurrentTransaction(null);
-        setError('Payment failed. Please try again.');
-      }
-      // ============================================================
-      // ✅ AKHIR BAGIAN YANG DIPERBAIKI
-      // ============================================================
+    if (!numAmount || numAmount < 10000) {
+      setError('Minimum deposit amount is Rp 10,000');
+      return;
     }
-  } catch (err: any) {
-    console.error('❌ Transaction creation error:', err);
-    setError(err.message || 'Failed to create transaction');
-    setStep('amount');
-  } finally {
-    // Only set loading false if we're still on the page
-    // (not redirecting to payment-success)
-    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-    if (currentPath === '/payment' || step === 'amount') {
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // ✅ STEP 1: Get current real balance BEFORE payment
+      console.log('📊 Getting current balance before payment...');
+      let initialBalance = 0;
+      try {
+        const balanceResponse = await api.getAccountBalance('real');
+        initialBalance = balanceResponse?.data?.balance || 0;
+        console.log('💰 Initial balance:', initialBalance);
+      } catch (balanceError) {
+        console.warn('⚠️ Could not get initial balance, continuing anyway');
+      }
+
+      // ✅ STEP 2: Create transaction
+      console.log('🔄 Creating deposit transaction...');
+      const response = await PaymentAPI.createTransaction(
+        numAmount,
+        'Top Up',
+        voucherCode || undefined
+      );
+
+      if (response.success && response.data?.deposit) {
+        const deposit = response.data.deposit;
+        setCurrentTransaction(deposit);
+        setStep('payment');
+
+        // ✅ STEP 3: Calculate expected amounts
+        const depositAmount = deposit.amount;
+        const bonusAmount = deposit.voucherBonus?.amount || 0;
+        const expectedBalance = initialBalance + depositAmount + bonusAmount;
+
+        console.log('💵 Payment Info:', {
+          depositAmount,
+          bonusAmount,
+          initialBalance,
+          expectedBalance
+        });
+
+        // ✅ STEP 4: Save payment info to localStorage
+        const paymentInfo = {
+          orderId: deposit.order_id,
+          depositAmount: depositAmount,
+          voucherBonus: bonusAmount,
+          voucherCode: deposit.voucherBonus?.code || voucherCode,
+          initialBalance: initialBalance,
+          expectedBalance: expectedBalance,
+          timestamp: Date.now()
+        };
+
+        localStorage.setItem(`payment_${deposit.order_id}`, JSON.stringify(paymentInfo));
+        console.log('💾 Payment info saved to localStorage');
+
+        // ✅ STEP 5: Open Midtrans Snap
+        try {
+          console.log('🚀 Opening Midtrans Snap...');
+          const result = await MidtransSnap.pay(deposit.snap_token);
+          
+          if (result.status === 'success' || result.status === 'pending') {
+            // ✅ SUCCESS/PENDING: Redirect to success page for monitoring
+            console.log('✅ Payment callback received:', result.status);
+            console.log('🔄 Redirecting to verification page...');
+            
+            // Hard redirect to ensure page refresh
+            window.location.href = `/payment-success?orderId=${deposit.order_id}`;
+            
+            // Keep loading state true because we're redirecting
+            // User will see loading until new page loads
+            
+          } else if (result.status === 'closed') {
+            // ⚠️ CANCELLED: User closed popup
+            console.log('⚠️ Payment cancelled by user');
+            
+            // Clear payment info because it was cancelled
+            localStorage.removeItem(`payment_${deposit.order_id}`);
+            
+            // Reset state
+            setLoading(false);
+            setStep('amount');
+            setCurrentTransaction(null);
+            setError('Payment was cancelled. You can try again.');
+          }
+          
+        } catch (snapError) {
+          // ❌ ERROR: Midtrans Snap failed
+          console.error('❌ Midtrans Snap error:', snapError);
+          
+          // Clear payment info
+          localStorage.removeItem(`payment_${deposit.order_id}`);
+          
+          // Reset state
+          setLoading(false);
+          setStep('amount');
+          setCurrentTransaction(null);
+          setError('Payment failed. Please try again.');
+        }
+      }
+      
+    } catch (err: any) {
+      console.error('❌ Transaction creation error:', err);
+      setError(err.message || 'Failed to create transaction');
+      setStep('amount');
       setLoading(false);
     }
-  }
-};
-
+  };
 
   // Main amount input screen
   if (step === 'amount') {
@@ -448,44 +491,46 @@ const MidtransPaymentPage: React.FC = () => {
                     <label className="block text-sm font-semibold text-gray-700 mb-3">
                       Deposit Amount <span className="text-red-500">*</span>
                     </label>
-                    
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-semibold text-lg">
                         Rp
                       </span>
                       <input
                         type="text"
-                        inputMode="numeric"
-                        value={amount ? parseInt(amount).toLocaleString('id-ID') : ''}
-                        onChange={(e) => handleAmountChange(e.target.value)}
+                        value={amount}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          setAmount(value);
+                          if (voucherCode) {
+                            handleVoucherApplied(null);
+                          }
+                        }}
                         placeholder="0"
-                        className="w-full pl-12 pr-4 py-4 text-2xl font-bold border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-gray-900"
+                        className="w-full pl-12 pr-4 py-4 text-2xl font-bold border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
                       />
                     </div>
-                    
-                    {error && (
-                      <div className="mt-2 flex items-center gap-2 text-red-600 text-sm">
-                        <AlertCircle className="w-4 h-4" />
-                        <span>{error}</span>
-                      </div>
-                    )}
+                    <p className="text-xs text-gray-500 mt-2">Minimum deposit: Rp 10,000</p>
                   </div>
 
                   {/* Quick Amount Buttons */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-3">
-                      Quick Amount
+                      Quick Select
                     </label>
                     <div className="grid grid-cols-4 gap-2">
                       {quickAmounts.map((quickAmount) => (
                         <button
                           key={quickAmount}
-                          type="button"
-                          onClick={() => handleQuickAmount(quickAmount)}
-                          className={`px-3 py-3 rounded-lg text-sm font-semibold transition-all border-2 ${
+                          onClick={() => {
+                            setAmount(quickAmount.toString());
+                            if (voucherCode) {
+                              handleVoucherApplied(null);
+                            }
+                          }}
+                          className={`px-3 py-2.5 text-sm font-semibold rounded-lg border-2 transition-all ${
                             parseInt(amount) === quickAmount
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                              : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                              ? 'bg-blue-600 text-white border-blue-600'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
                           }`}
                         >
                           {formatCurrency(quickAmount).replace('Rp', '').trim()}
@@ -494,136 +539,164 @@ const MidtransPaymentPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Voucher Input */}
+                  {/* Voucher Section */}
                   <div>
-                    <VoucherInput 
-                      onVoucherApplied={handleVoucherApplied}
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Voucher Code (Optional)
+                    </label>
+                    <VoucherInput
                       depositAmount={numAmount}
+                      onVoucherApplied={handleVoucherApplied}
+                      externalCode={voucherCode}
                     />
                   </div>
 
                   {/* Available Vouchers */}
-                  {!isLoadingVouchers && availableVouchers.length > 0 && (
-                    <div>
-                      <AvailableVouchers 
-                        vouchers={availableVouchers}
-                        depositAmount={numAmount}
-                        onVoucherSelect={(code: string) => {
-                          // Trigger input event untuk VoucherInput component
-                          const inputElement = document.querySelector('input[placeholder*="voucher"]') as HTMLInputElement;
-                          if (inputElement) {
-                            inputElement.value = code;
-                            inputElement.dispatchEvent(new Event('input', { bubbles: true }));
-                          }
-                        }}
-                      />
+                  {availableVouchers.length > 0 && (
+                    <AvailableVouchers
+                      vouchers={availableVouchers}
+                      depositAmount={numAmount}
+                      onVoucherSelect={handleVoucherSelect}
+                      selectedVoucherCode={voucherCode}
+                    />
+                  )}
+
+                  {/* Error Message */}
+                  {error && (
+                    <div className="flex items-start gap-3 p-4 bg-red-50 border-2 border-red-200 rounded-xl">
+                      <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-semibold text-red-900 mb-1">Payment Error</p>
+                        <p className="text-sm text-red-700">{error}</p>
+                      </div>
                     </div>
                   )}
+
+                  {/* Pay Button */}
+                  <button
+                    onClick={handlePayment}
+                    disabled={loading || !numAmount || numAmount < 10000}
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-3"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Processing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Shield className="w-5 h-5" />
+                        <span>Pay Now - {formatCurrency(totalWithBonus)}</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Transaction History Link */}
+                  <button
+                    onClick={() => setStep('history')}
+                    className="w-full text-blue-600 hover:text-blue-700 font-semibold py-3 flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <History className="w-5 h-5" />
+                    <span>View Transaction History</span>
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Right Column - Summary */}
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 sticky top-6">
-                <div className="border-b border-gray-200 px-6 py-4">
-                  <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-green-600" />
-                    Payment Summary
-                  </h3>
-                </div>
-
-                <div className="p-6">
-                  {numAmount >= 10000 ? (
-                    <>
-                      <div className="space-y-4 mb-6">
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="text-gray-600">Deposit Amount</span>
-                          <span className="font-bold text-gray-900">{formatCurrency(numAmount)}</span>
-                        </div>
-
-                        {voucherCode && voucherBonus > 0 && (
-                          <div className="flex justify-between items-center text-sm pt-4 border-t border-gray-200">
-                            <div className="flex items-center gap-2">
-                              <Tag className="w-4 h-4 text-green-600" />
-                              <span className="text-gray-600">Voucher Bonus</span>
-                            </div>
-                            <span className="font-bold text-green-600">+{formatCurrency(voucherBonus)}</span>
-                          </div>
-                        )}
-
-                        <div className="flex justify-between items-center pt-4 border-t-2 border-gray-300">
-                          <span className="text-base font-bold text-gray-900">Total Balance Added</span>
-                          <span className="text-2xl font-bold text-blue-600">{formatCurrency(totalWithBonus)}</span>
-                        </div>
+            {/* Right Column - Summary & Info */}
+            <div className="space-y-6">
+              {/* Payment Summary */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <Wallet className="w-5 h-5 text-blue-600" />
+                  Payment Summary
+                </h3>
+                
+                <div className="space-y-3 mb-4">
+                  <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+                    <span className="text-sm text-gray-600">Deposit Amount</span>
+                    <span className="text-base font-bold text-gray-900">
+                      {formatCurrency(numAmount)}
+                    </span>
+                  </div>
+                  
+                  {voucherBonus > 0 && (
+                    <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+                      <div className="flex items-center gap-2">
+                        <Tag className="w-4 h-4 text-green-600" />
+                        <span className="text-sm text-green-700 font-semibold">Voucher Bonus</span>
                       </div>
-
-                      <button
-                        onClick={handleDeposit}
-                        disabled={loading || !numAmount || numAmount < 10000}
-                        className="w-full bg-blue-600 text-white py-4 rounded-lg font-bold text-base shadow-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all mb-3 flex items-center justify-center gap-2"
-                      >
-                        {loading ? (
-                          <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            <span>Processing...</span>
-                          </>
-                        ) : (
-                          <>
-                            <CreditCard className="w-5 h-5" />
-                            <span>Proceed to Payment</span>
-                          </>
-                        )}
-                      </button>
-
-                      <button
-                        onClick={() => setStep('history')}
-                        className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
-                      >
-                        <History className="w-5 h-5" />
-                        <span>View History</span>
-                      </button>
-                    </>
-                  ) : (
-                    <div className="text-center py-8">
-                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Wallet className="w-8 h-8 text-gray-400" />
-                      </div>
-                      <p className="text-sm text-gray-500">Enter amount to see summary</p>
-                      <p className="text-xs text-gray-400 mt-1">Minimum: Rp 10.000</p>
+                      <span className="text-base font-bold text-green-600">
+                        +{formatCurrency(voucherBonus)}
+                      </span>
                     </div>
                   )}
+                  
+                  <div className="flex justify-between items-center pt-2">
+                    <span className="text-base font-bold text-gray-900">Total</span>
+                    <span className="text-2xl font-bold text-blue-600">
+                      {formatCurrency(totalWithBonus)}
+                    </span>
+                  </div>
+                </div>
 
-                  {/* Security Info */}
-                  <div className="mt-6 pt-6 border-t border-gray-200">
+                {voucherBonus > 0 && (
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg p-4">
                     <div className="flex items-start gap-3">
-                      <div>
-                        <h4 className="font-semibold text-gray-900 text-sm mb-1">Secure Payment</h4>
-                        <p className="text-xs text-gray-600 leading-relaxed">
-                          Protected by bank-level security. Your payment information is encrypted and secure.
+                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Tag className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-green-900 mb-1">
+                          Voucher Applied!
                         </p>
+                        <p className="text-xs text-green-700">
+                          {voucherType === 'percentage' 
+                            ? `Get ${voucherValue}% bonus` 
+                            : `Get ${formatCurrency(voucherValue)} bonus`}
+                        </p>
+                        {voucherCode && (
+                          <p className="text-xs text-green-600 font-mono mt-1 font-bold">
+                            {voucherCode}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
+                )}
+              </div>
 
-                  {/* Payment Methods */}
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <p className="text-xs font-semibold text-gray-700 mb-3">Accepted Payment Methods</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {paymentMethods.slice(0, 12).map((method, index) => (
-                        <div key={index} className="bg-gray-50 border border-gray-200 rounded p-2 flex items-center justify-center hover:border-blue-300 transition-colors">
-                          <Image 
-                            src={method.icon} 
-                            alt={method.name} 
-                            width={60} 
-                            height={24} 
-                            className="object-contain"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-3 text-center">+ More payment options available</p>
+              {/* Security Info */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-200 p-6">
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Shield className="w-5 h-5 text-blue-600" />
                   </div>
+                  <div>
+                    <h3 className="font-bold text-blue-900 mb-2">Secure Payment</h3>
+                    <p className="text-sm text-blue-700 leading-relaxed">
+                      Your payment is protected with industry-standard encryption and secured by Midtrans.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Payment Methods */}
+                <div className="mt-4 pt-4 border-t border-blue-200">
+                  <p className="text-xs font-semibold text-blue-700 mb-3">Accepted Payment Methods</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {paymentMethods.slice(0, 12).map((method, index) => (
+                      <div key={index} className="bg-white border border-blue-200 rounded p-2 flex items-center justify-center hover:border-blue-400 transition-colors">
+                        <Image 
+                          src={method.icon} 
+                          alt={method.name} 
+                          width={60} 
+                          height={24} 
+                          className="object-contain"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-blue-600 mt-3 text-center">+ More payment options available</p>
                 </div>
               </div>
             </div>
