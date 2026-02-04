@@ -1,6 +1,4 @@
-// app/balance/page.tsx
 'use client'
-
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -10,8 +8,8 @@ import Navbar from '@/components/Navbar'
 import { Balance as BalanceType, AccountType, UserProfile } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { getStatusProfitBonus } from '@/lib/status-utils'
-import { 
-  Wallet, ArrowDownToLine, ArrowUpFromLine, X, Receipt, Award, 
+import {
+  Wallet, ArrowDownToLine, ArrowUpFromLine, X, Receipt, Award,
   CreditCard, Loader2, ChevronLeft, ChevronRight, Wifi, Clock
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -67,7 +65,6 @@ const StaggerStyles = () => (
       animation: fadeInUp 0.5s ease-out forwards;
       opacity: 0;
     }
-    
     @keyframes skeleton-pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.4; }
@@ -77,7 +74,6 @@ const StaggerStyles = () => (
       opacity: 0;
       animation-fill-mode: forwards;
     }
-    
     @keyframes shimmer {
       0% { background-position: -1000px 0; }
       100% { background-position: 1000px 0; }
@@ -87,15 +83,41 @@ const StaggerStyles = () => (
       background-size: 1000px 100%;
       animation: shimmer 3s infinite;
     }
+    /* Grid Pattern - Background putih, pattern kotak-kotak gelap 8% opacity, jarak lebar */
+    .bg-pattern-grid {
+      background-color: #ffffff;
+      background-image:
+        linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+      background-size: 40px 40px;
+      background-position: center center;
+    }
+    /* Alternative: Grid dengan jarak 48px */
+    .bg-pattern-grid-48 {
+      background-color: #ffffff;
+      background-image:
+        linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+      background-size: 48px 48px;
+      background-position: center center;
+    }
+    /* Alternative: Grid dengan jarak 56px */
+    .bg-pattern-grid-56 {
+      background-color: #ffffff;
+      background-image:
+        linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+      background-size: 56px 56px;
+      background-position: center center;
+    }
   `}</style>
 )
 
 // ============================================
 // SKELETON COMPONENTS (untuk loading state)
 // ============================================
-
 const SkeletonCard = ({ index = 0 }: { index?: number }) => (
-  <div 
+  <div
     className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm skeleton-item"
     style={{ animationDelay: `${index * 200}ms` }}
   >
@@ -117,7 +139,7 @@ const SkeletonCard = ({ index = 0 }: { index?: number }) => (
 )
 
 const SkeletonDesktopCard = ({ index = 0 }: { index?: number }) => (
-  <div 
+  <div
     className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-3xl border-2 border-gray-200 p-6 shadow-xl skeleton-item"
     style={{ animationDelay: `${index * 250}ms` }}
   >
@@ -145,7 +167,7 @@ const SkeletonDesktopCard = ({ index = 0 }: { index?: number }) => (
 )
 
 const SkeletonTransactionRow = ({ index = 0 }: { index?: number }) => (
-  <div 
+  <div
     className="flex items-center justify-between p-4 rounded-xl border border-gray-100 skeleton-item"
     style={{ animationDelay: `${(index + 3) * 150}ms` }}
   >
@@ -162,9 +184,46 @@ const SkeletonTransactionRow = ({ index = 0 }: { index?: number }) => (
 
 const LoadingSkeleton = () => (
   <>
-    <div className="min-h-screen bg-[#fafafa]">
-      <Navbar />
+    {/* INJECT STYLE GLOBAL KHUSUS UNTUK SKELETON */}
+    <style jsx global>{`
+      /* Grid Pattern - Background putih dengan pola halus */
+      .bg-pattern-grid {
+        background-color: #ffffff !important;
+        background-image: 
+          linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+        background-size: 40px 40px;
+        background-position: center center;
+      }
       
+      /* Scrollbar hide utility */
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      
+      /* Pastikan body tidak hitam saat loading */
+      body {
+        background-color: #ffffff !important;
+      }
+      
+      /* Skeleton animations */
+      @keyframes skeleton-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+      }
+      .skeleton-item {
+        animation: skeleton-pulse 2s ease-in-out infinite;
+        opacity: 0;
+        animation-fill-mode: forwards;
+      }
+    `}</style>
+    
+    <div className="min-h-screen bg-pattern-grid">
+      <Navbar />
       {/* Mobile Skeleton */}
       <div className="lg:hidden container mx-auto px-3 py-4">
         <div className="mb-4 skeleton-item" style={{ animationDelay: '0ms' }}>
@@ -174,23 +233,18 @@ const LoadingSkeleton = () => (
             <div className="h-5 bg-gray-200 rounded w-28"></div>
           </div>
         </div>
-        
         <div className="h-20 bg-gray-200 rounded-xl mb-4 skeleton-item" style={{ animationDelay: '100ms' }}></div>
-        
         <div className="space-y-3 mb-6">
           <SkeletonCard index={1} />
           <SkeletonCard index={2} />
         </div>
-        
         <div className="h-12 bg-gray-200 rounded-xl mb-3 skeleton-item" style={{ animationDelay: '600ms' }}></div>
-        
         <div className="space-y-2">
           {[...Array(5)].map((_, i) => (
             <SkeletonTransactionRow key={i} index={i} />
           ))}
         </div>
       </div>
-
       {/* Desktop Skeleton */}
       <div className="hidden lg:block container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-6 skeleton-item" style={{ animationDelay: '0ms' }}>
@@ -203,12 +257,10 @@ const LoadingSkeleton = () => (
             <div className="h-12 bg-gray-200 rounded-xl w-40"></div>
           </div>
         </div>
-
         <div className="grid grid-cols-2 gap-6 mb-6">
           <SkeletonDesktopCard index={1} />
           <SkeletonDesktopCard index={2} />
         </div>
-
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden skeleton-item" style={{ animationDelay: '800ms' }}>
           <div className="p-6 border-b border-gray-200">
             <div className="h-6 bg-gray-200 rounded w-48 mb-4"></div>
@@ -232,7 +284,6 @@ const LoadingSkeleton = () => (
 export default function BalancePage() {
   const router = useRouter()
   const user = useAuthStore((state) => state.user)
-  
   const [realBalance, setRealBalance] = useState(0)
   const [demoBalance, setDemoBalance] = useState(0)
   const [allTransactions, setAllTransactions] = useState<CombinedTransaction[]>([])
@@ -243,7 +294,6 @@ export default function BalancePage() {
   const [amount, setAmount] = useState('')
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
-  
   const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
@@ -261,7 +311,6 @@ export default function BalancePage() {
   const loadData = async () => {
     try {
       setInitialLoading(true)
-      
       // ✅ PERBAIKAN: Load balance, balance history, deposit history, dan profile secara parallel
       const [balancesRes, historyRes, depositHistoryRes, profileRes] = await Promise.all([
         api.getBothBalances(),
@@ -272,16 +321,15 @@ export default function BalancePage() {
         }),
         api.getProfile()
       ])
-      
+
       // Set balances
       const balances = balancesRes?.data || balancesRes
       setRealBalance(balances?.realBalance || 0)
       setDemoBalance(balances?.demoBalance || 0)
-      
+
       // ============================================
       // ✅ GABUNGKAN TRANSAKSI DARI BALANCE DAN MIDTRANS
       // ============================================
-      
       // 1. Ambil transaksi dari balance (filter hanya deposit dan withdrawal)
       const balanceTransactions: CombinedTransaction[] = (historyRes?.data?.transactions || historyRes?.transactions || [])
         .filter((tx: any) => {
@@ -297,14 +345,14 @@ export default function BalancePage() {
           createdAt: tx.createdAt,
           source: 'balance' as const
         }))
-      
+
       // 2. Ambil deposit dari Midtrans
       let midtransDeposits: MidtransDeposit[] = []
       if (depositHistoryRes) {
-        midtransDeposits = (depositHistoryRes as any)?.data?.deposits || 
-                          (depositHistoryRes as any)?.deposits || []
+        midtransDeposits = (depositHistoryRes as any)?.data?.deposits ||
+          (depositHistoryRes as any)?.deposits || []
       }
-      
+
       // 3. Convert Midtrans deposits ke format CombinedTransaction (hanya yang sukses)
       const midtransTransactions: CombinedTransaction[] = midtransDeposits
         .filter((deposit: MidtransDeposit) => deposit.status === 'success')
@@ -319,10 +367,10 @@ export default function BalancePage() {
           payment_type: deposit.payment_type,
           source: 'midtrans' as const
         }))
-      
+
       // 4. Gabungkan kedua array
       const combinedTransactions = [...balanceTransactions, ...midtransTransactions]
-      
+
       // 5. Remove potential duplicates
       const uniqueTransactions = combinedTransactions.filter((tx, index, self) => {
         const isDuplicate = self.findIndex(t => {
@@ -330,33 +378,30 @@ export default function BalancePage() {
           if (t.type !== tx.type) return false
           if (t.amount !== tx.amount) return false
           if (t.accountType !== tx.accountType) return false
-          
           // Check if created within 1 minute of each other
           const timeDiff = Math.abs(
             new Date(t.createdAt).getTime() - new Date(tx.createdAt).getTime()
           )
           return timeDiff < 60000 // Within 1 minute
         })
-        
         return isDuplicate === index
       })
-      
+
       // 6. Sort by date (newest first)
       uniqueTransactions.sort((a, b) => {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       })
-      
+
       // ✅ Log untuk debugging
       console.log('📊 Transaction Summary:')
       console.log('  - Balance transactions:', balanceTransactions.length)
       console.log('  - Midtrans deposits:', midtransTransactions.length)
       console.log('  - Combined (after dedup):', uniqueTransactions.length)
-      
+
       setAllTransactions(uniqueTransactions)
-      
+
       // Set profile
       let profileData: UserProfile | null = null
-      
       if (profileRes && typeof profileRes === 'object') {
         if ('data' in profileRes && profileRes.data) {
           profileData = profileRes.data as UserProfile
@@ -364,7 +409,6 @@ export default function BalancePage() {
           profileData = profileRes as UserProfile
         }
       }
-      
       if (profileData) {
         setProfile(profileData)
       }
@@ -382,7 +426,6 @@ export default function BalancePage() {
       toast.error('Invalid amount')
       return
     }
-
     setLoading(true)
     try {
       await api.createBalanceEntry({
@@ -403,10 +446,10 @@ export default function BalancePage() {
   }
 
   const quickAmounts = [10000, 50000, 100000, 250000, 500000, 1000000]
-  
+
   // Filter berdasarkan account type yang dipilih
-  const filteredTransactions = selectedAccount === 'all' 
-    ? allTransactions 
+  const filteredTransactions = selectedAccount === 'all'
+    ? allTransactions
     : allTransactions.filter(t => t.accountType === selectedAccount)
 
   const totalItems = filteredTransactions.length
@@ -430,9 +473,8 @@ export default function BalancePage() {
   return (
     <>
       <StaggerStyles />
-      <div className="min-h-screen bg-[#fafafa]">
+      <div className="min-h-screen bg-pattern-grid">
         <Navbar />
-
         <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">
           {/* Header */}
           <div className="mb-4 sm:mb-6 stagger-item" style={{ animationDelay: '0ms' }}>
@@ -451,12 +493,11 @@ export default function BalancePage() {
                   <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Kelola Dana Real Dan Demo Anda</p>
                 </div>
               </div>
-              
               {statusInfo && (
                 <div className={`hidden lg:flex items-center gap-3 px-4 py-2 rounded-xl text-white shadow-2xl border-2 border-white/30 stagger-item ${
                   statusInfo.current === 'standard' ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
-                  statusInfo.current === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-orange-600' :
-                  'bg-gradient-to-r from-purple-400 to-pink-600'
+                    statusInfo.current === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-orange-600' :
+                      'bg-gradient-to-r from-purple-400 to-pink-600'
                 }`} style={{ animationDelay: '50ms' }}>
                   <Award className="w-5 h-5" />
                   <div className="text-sm">
@@ -473,8 +514,8 @@ export default function BalancePage() {
             <div className="lg:hidden mb-4 sm:mb-6 stagger-item" style={{ animationDelay: '50ms' }}>
               <div className={`p-3 sm:p-4 rounded-xl text-white shadow-lg ${
                 statusInfo.current === 'standard' ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
-                statusInfo.current === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-orange-600' :
-                'bg-gradient-to-r from-purple-400 to-pink-600'
+                  statusInfo.current === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-orange-600' :
+                    'bg-gradient-to-r from-purple-400 to-pink-600'
               }`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 sm:gap-3">
@@ -501,7 +542,7 @@ export default function BalancePage() {
           <div className="lg:hidden mb-4 sm:mb-6">
             <div className="space-y-3">
               {/* Real Account Card - Side by Side */}
-              <div 
+              <div
                 className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm stagger-item"
                 style={{ animationDelay: '100ms' }}
               >
@@ -523,7 +564,6 @@ export default function BalancePage() {
                       </div>
                     </div>
                   </div>
-                  
                   <div className="flex flex-col gap-2 flex-shrink-0">
                     <Link
                       href="/payment"
@@ -544,7 +584,7 @@ export default function BalancePage() {
               </div>
 
               {/* Demo Account Card - Side by Side */}
-              <div 
+              <div
                 className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm stagger-item"
                 style={{ animationDelay: '200ms' }}
               >
@@ -564,7 +604,6 @@ export default function BalancePage() {
                       </div>
                     </div>
                   </div>
-                  
                   <button
                     onClick={() => {
                       setTransactionAccount('demo')
@@ -586,7 +625,7 @@ export default function BalancePage() {
           <div className="hidden lg:block mb-6">
             <div className="grid grid-cols-2 gap-6">
               {/* Real Account Desktop Card */}
-              <div 
+              <div
                 className="bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50 rounded-3xl border-2 border-emerald-200 p-6 shadow-xl stagger-item"
                 style={{ animationDelay: '100ms' }}
               >
@@ -618,20 +657,16 @@ export default function BalancePage() {
                     </Link>
                   </div>
                 </div>
-
                 <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-teal-600 to-green-700 rounded-2xl p-6 shadow-2xl min-h-[280px]">
                   <div className="absolute inset-0 opacity-10">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl -translate-y-32 translate-x-32"></div>
                     <div className="absolute bottom-0 left-0 w-48 h-48 bg-white rounded-full blur-2xl translate-y-24 -translate-x-24"></div>
                   </div>
-                  
                   <div className="absolute inset-0 opacity-5" style={{
                     backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
                     backgroundSize: '20px 20px'
                   }}></div>
-                  
                   <div className="absolute inset-0 card-shimmer"></div>
-                  
                   <div className="relative z-10 h-full flex flex-col">
                     <div className="flex justify-between items-start mb-6">
                       <div className="relative w-14 h-11">
@@ -643,7 +678,6 @@ export default function BalancePage() {
                           ))}
                         </div>
                       </div>
-                      
                       <div className="flex flex-row items-end gap-2">
                         <Wifi className="w-6 h-6 text-white/60 rotate-90" />
                         <div className="px-3 py-1.5 bg-white/20 backdrop-blur-xl rounded-lg border border-white/30">
@@ -651,7 +685,6 @@ export default function BalancePage() {
                         </div>
                       </div>
                     </div>
-                    
                     <div className="mb-auto">
                       <div className="text-white/70 text-xs font-bold tracking-widest mb-2">SALDO SAAT INI</div>
                       <div className="text-3xl font-black text-white tracking-tight break-all mb-2" style={{ fontFamily: 'monospace' }}>
@@ -664,7 +697,6 @@ export default function BalancePage() {
                         </div>
                       )}
                     </div>
-                    
                     <div className="mt-6 flex items-end justify-between">
                       <div className="flex-1">
                         <div className="text-white/60 text-[10px] font-bold tracking-widest mb-1">CARD HOLDER</div>
@@ -677,7 +709,6 @@ export default function BalancePage() {
                         <div className="text-sm font-black text-white tracking-wider">12/28</div>
                       </div>
                     </div>
-                    
                     <div className="mt-4 flex justify-between items-center">
                       <div className="text-white/40 text-xs tracking-widest">
                         •••• •••• •••• {Math.floor(Math.random() * 9000 + 1000)}
@@ -693,7 +724,7 @@ export default function BalancePage() {
               </div>
 
               {/* Demo Account Desktop Card */}
-              <div 
+              <div
                 className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-3xl border-2 border-blue-200 p-6 shadow-xl stagger-item"
                 style={{ animationDelay: '200ms' }}
               >
@@ -713,20 +744,16 @@ export default function BalancePage() {
                     Isi Ulang
                   </button>
                 </div>
-
                 <div className="relative overflow-hidden bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-700 rounded-2xl p-6 shadow-2xl min-h-[280px]">
                   <div className="absolute inset-0 opacity-10">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl -translate-y-32 translate-x-32"></div>
                     <div className="absolute bottom-0 left-0 w-48 h-48 bg-white rounded-full blur-2xl translate-y-24 -translate-x-24"></div>
                   </div>
-                  
                   <div className="absolute inset-0 opacity-5" style={{
                     backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
                     backgroundSize: '20px 20px'
                   }}></div>
-                  
                   <div className="absolute inset-0 card-shimmer"></div>
-                  
                   <div className="relative z-10 h-full flex flex-col">
                     <div className="flex justify-between items-start mb-6">
                       <div className="relative w-14 h-11">
@@ -738,7 +765,6 @@ export default function BalancePage() {
                           ))}
                         </div>
                       </div>
-                      
                       <div className="flex flex-row items-end gap-2">
                         <Wifi className="w-6 h-6 text-white/60 rotate-90" />
                         <div className="px-3 py-1.5 bg-white/20 backdrop-blur-xl rounded-lg border border-white/30">
@@ -746,7 +772,6 @@ export default function BalancePage() {
                         </div>
                       </div>
                     </div>
-                    
                     <div className="mb-auto">
                       <div className="text-white/70 text-xs font-bold tracking-widest mb-2">SALDO SAAT INI</div>
                       <div className="text-3xl font-black text-white tracking-tight break-all mb-2" style={{ fontFamily: 'monospace' }}>
@@ -756,7 +781,6 @@ export default function BalancePage() {
                         <span className="text-xs font-bold text-white">Practice Trading Account</span>
                       </div>
                     </div>
-                    
                     <div className="mt-6 flex items-end justify-between">
                       <div className="flex-1">
                         <div className="text-white/60 text-[10px] font-bold tracking-widest mb-1">CARD HOLDER</div>
@@ -769,7 +793,6 @@ export default function BalancePage() {
                         <div className="text-sm font-black text-white tracking-wider">12/28</div>
                       </div>
                     </div>
-                    
                     <div className="mt-4 flex justify-between items-center">
                       <div className="text-white/40 text-xs tracking-widest">
                         •••• •••• •••• {Math.floor(Math.random() * 9000 + 1000)}
@@ -789,14 +812,13 @@ export default function BalancePage() {
           {/* ============================================ */}
           {/* Transaction History - UPDATED */}
           {/* ============================================ */}
-          <div 
+          <div
             id="transaction-list"
-            className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm stagger-item" 
+            className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm stagger-item"
             style={{ animationDelay: '300ms' }}
           >
             <div className="p-4 sm:p-5 lg:p-6 border-b border-gray-200">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-blue-600" />
                 Riwayat Transaksi
                 {allTransactions.length > 0 && (
                   <span className="text-sm font-normal text-gray-500 ml-auto">
@@ -804,7 +826,6 @@ export default function BalancePage() {
                   </span>
                 )}
               </h2>
-              
               {/* Account Filter */}
               <div className="flex gap-2 flex-wrap">
                 {[
@@ -824,7 +845,6 @@ export default function BalancePage() {
                 ))}
               </div>
             </div>
-
             <div className="p-4 sm:p-5 lg:p-6">
               {displayedTransactions.length === 0 ? (
                 <div className="text-center py-12 px-4 stagger-item" style={{ animationDelay: '400ms' }}>
@@ -833,7 +853,7 @@ export default function BalancePage() {
                   </div>
                   <h3 className="text-base font-semibold text-gray-900 mb-1">No transactions yet</h3>
                   <p className="text-sm text-gray-500">
-                    {selectedAccount === 'all' 
+                    {selectedAccount === 'all'
                       ? 'Your wallet activity will appear here'
                       : `No ${selectedAccount} account transactions yet`
                     }
@@ -843,7 +863,7 @@ export default function BalancePage() {
                 <>
                   <div className="space-y-2 sm:space-y-3">
                     {displayedTransactions.map((tx, index) => (
-                      <div 
+                      <div
                         key={`${tx.source}-${tx.id}`}
                         className="flex items-center justify-between p-3 sm:p-4 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100 gap-3 stagger-item"
                         style={{ animationDelay: `${(index + 4) * 50}ms` }}
@@ -871,8 +891,8 @@ export default function BalancePage() {
                               {tx.status && tx.status !== 'success' && (
                                 <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
                                   tx.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                                  tx.status === 'failed' ? 'bg-red-100 text-red-700' :
-                                  'bg-gray-100 text-gray-700'
+                                    tx.status === 'failed' ? 'bg-red-100 text-red-700' :
+                                      'bg-gray-100 text-gray-700'
                                 }`}>
                                   {tx.status.toUpperCase()}
                                 </span>
@@ -907,9 +927,9 @@ export default function BalancePage() {
                   {totalPages > 1 && (
                     <div className="mt-6 pt-6 border-t border-gray-200 stagger-item" style={{ animationDelay: `${(displayedTransactions.length + 4) * 50}ms` }}>
                       <div className="flex items-center justify-between gap-4 md:hidden">
-                        <button 
-                          onClick={() => handlePageChange(currentPage - 1)} 
-                          disabled={currentPage === 1} 
+                        <button
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
                           className={`flex items-center justify-center gap-1 px-4 py-3 rounded-xl text-sm font-bold flex-1 ${
                             currentPage === 1 ? 'bg-gray-100 text-gray-400' : 'bg-blue-600 text-white'
                           }`}
@@ -919,9 +939,9 @@ export default function BalancePage() {
                         <div className="flex flex-col items-center bg-gray-100 rounded-lg px-4 py-2">
                           <span className="text-xs text-gray-500 font-bold">{currentPage} / {totalPages}</span>
                         </div>
-                        <button 
-                          onClick={() => handlePageChange(currentPage + 1)} 
-                          disabled={currentPage === totalPages} 
+                        <button
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages}
                           className={`flex items-center justify-center gap-1 px-4 py-3 rounded-xl text-sm font-bold flex-1 ${
                             currentPage === totalPages ? 'bg-gray-100 text-gray-400' : 'bg-blue-600 text-white'
                           }`}
@@ -929,15 +949,14 @@ export default function BalancePage() {
                           Next <ChevronRight className="w-4 h-4" />
                         </button>
                       </div>
-
                       <div className="hidden md:flex items-center justify-between">
                         <div className="text-sm text-gray-600">
                           Showing {startIndex + 1}-{Math.min(startIndex + ITEMS_PER_PAGE, totalItems)} of {totalItems}
                         </div>
                         <div className="flex items-center gap-2">
-                          <button 
-                            onClick={() => handlePageChange(currentPage - 1)} 
-                            disabled={currentPage === 1} 
+                          <button
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
                             className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 text-gray-700"
                           >
                             <ChevronLeft className="w-5 h-5" />
@@ -953,11 +972,10 @@ export default function BalancePage() {
                             } else {
                               pageNum = currentPage - 2 + i
                             }
-                            
                             return (
-                              <button 
+                              <button
                                 key={pageNum}
-                                onClick={() => handlePageChange(pageNum)} 
+                                onClick={() => handlePageChange(pageNum)}
                                 className={`w-10 h-10 rounded-lg text-sm font-medium ${
                                   currentPage === pageNum ? 'bg-blue-500 text-white' : 'border border-gray-200 hover:bg-gray-50 text-gray-700'
                                 }`}
@@ -966,9 +984,9 @@ export default function BalancePage() {
                               </button>
                             )
                           })}
-                          <button 
-                            onClick={() => handlePageChange(currentPage + 1)} 
-                            disabled={currentPage === totalPages} 
+                          <button
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
                             className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 text-gray-700"
                           >
                             <ChevronRight className="w-5 h-5" />
@@ -1014,7 +1032,7 @@ export default function BalancePage() {
                             amount === preset.toString() ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'
                           }`}
                         >
-                          {preset >= 1000000 ? `${preset/1000000}M` : `${preset/1000}K`}
+                          {preset >= 1000000 ? `${preset / 1000000}M` : `${preset / 1000}K`}
                         </button>
                       ))}
                     </div>

@@ -9,28 +9,28 @@ import { api } from '@/lib/api'
 import { toast } from 'sonner'
 import DemoTradingTutorial from '@/components/DemoTradingTutorial'
 import { 
-  TrendingUp, 
-  Zap, 
-  Shield, 
-  Clock, 
-  BarChart3,
-  Award,
+  TrendUp,
+  TrendDown,
+  Lightning,
+  Shield,
+  Clock,
+  ChartBar,
+  Medal,
   Users,
   ArrowRight,
   Star,
   Globe,
-  TrendingDown,
   Target,
   X,
-  Sparkles,
+  Sparkle,
   Activity,
   UserPlus,
-  DollarSign,
-  ChevronLeft,
-  ChevronRight,
-  ShieldCheck,
-  EyeIcon
-} from 'lucide-react'
+  CurrencyDollar,
+  CaretLeft,
+  CaretRight,
+  ShieldCheckered,
+  Eye,
+} from "phosphor-react";
 import {
   subscribeToCryptoPrices,
   generateLiveTrade,
@@ -47,14 +47,14 @@ import EnhancedFooter from '@/components/EnhancedFooter'
 // ===================================
 const stats = [
   { label: 'Pengguna', value: '1 jt+', icon: Users },
-  { label: 'Volume Harian', value: '$10 B', icon: DollarSign },
+  { label: 'Volume Harian', value: '$10 B', icon: CurrencyDollar },
   { label: 'Win Rate', value: '100%', icon: Target },
   { label: 'Negara', value: '15+', icon: Globe },
 ]
 
 const features = [
   {
-    icon: Zap,
+    icon: Lightning,
     title: 'Eksekusi Kilat',
     description: 'Eksekusi order dalam milidetik',
     gradient: 'from-yellow-500/20 to-orange-500/20',
@@ -72,7 +72,7 @@ const features = [
     borderColor: 'border-sky-500/30'
   },
   {
-    icon: BarChart3,
+    icon: ChartBar,
     title: 'Analisis Real-Time',
     description: 'Chart disediakan langsung dari Tradingview',
     gradient: 'from-violet-500/20 to-pink-500/20',
@@ -81,7 +81,7 @@ const features = [
     borderColor: 'border-violet-500/30'
   },
   {
-    icon: Award,
+    icon: Medal,
     title: 'Profit Hingga 100%',
     description: 'Keuntungan maksimal dibanding platform lain',
     gradient: 'from-emerald-500/20 to-emerald-500/20',
@@ -241,7 +241,7 @@ const FloatingCryptoPriceCard = ({ symbol, delay, style }: FloatingCryptoPriceCa
       <div className={`text-xs font-semibold flex items-center gap-1 ${
         isPositive ? 'text-emerald-400' : 'text-red-400'
       }`}>
-        {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+        {isPositive ? <TrendUp className="w-3 h-3" weight="bold" /> : <TrendDown className="w-3 h-3" weight="bold" />}
         {formatChangePercent(priceData.changePercent24h)}
       </div>
     </div>
@@ -319,7 +319,7 @@ const LiveCryptoChart = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-sky-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30">
-            <TrendingUp className="w-6 h-6 text-emerald-400" />
+            <TrendUp className="w-6 h-6 text-emerald-400" weight="bold" />
           </div>
           <div>
             <div className="text-sm text-gray-400">{priceData?.symbol || `${selectedCrypto}/USD`}</div>
@@ -334,9 +334,9 @@ const LiveCryptoChart = () => {
               priceData.changePercent24h >= 0 ? 'text-emerald-400' : 'text-red-400'
             }`}>
               {priceData.changePercent24h >= 0 ? (
-                <TrendingUp className="w-5 h-5" />
+                <TrendUp className="w-5 h-5" weight="bold" />
               ) : (
-                <TrendingDown className="w-5 h-5" />
+                <TrendDown className="w-5 h-5" weight="bold" />
               )}
               {formatChangePercent(priceData.changePercent24h)}
             </div>
@@ -374,13 +374,13 @@ const LiveCryptoChart = () => {
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <button className="group relative bg-gradient-to-br from-emerald-500/20 to-emerald-500/20 hover:from-emerald-500/30 hover:to-emerald-500/30 border border-emerald-500/30 rounded-xl p-4 sm:p-6 transition-colors overflow-hidden">
-          <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-400 mx-auto mb-1 sm:mb-2 group-hover:scale-110 transition-transform" />
+          <TrendUp className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-400 mx-auto mb-1 sm:mb-2 group-hover:scale-110 transition-transform" weight="bold" />
           <div className="font-bold text-base sm:text-lg text-emerald-400">BELI</div>
           <div className="text-[10px] sm:text-xs text-gray-400">Profit +95%</div>
         </button>
 
         <button className="group relative bg-gradient-to-br from-red-500/20 to-pink-500/20 hover:from-red-500/30 hover:to-pink-500/30 border border-red-500/30 rounded-xl p-4 sm:p-6 transition-colors overflow-hidden">
-          <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8 text-red-400 mx-auto mb-1 sm:mb-2 group-hover:scale-110 transition-transform" />
+          <TrendDown className="w-6 h-6 sm:w-8 sm:h-8 text-red-400 mx-auto mb-1 sm:mb-2 group-hover:scale-110 transition-transform" weight="bold" />
           <div className="font-bold text-base sm:text-lg text-red-400">JUAL</div>
           <div className="text-[10px] sm:text-xs text-gray-400">Profit +95%</div>
         </button>
@@ -820,7 +820,7 @@ export default function LandingPage() {
                 }}
                 className="flex items-center gap-2 px-6 py-2.5 bg-[#2d3748] hover:bg-[#3d4758] rounded-lg text-sm font-semibold text-white shadow-lg transition-colors border border-gray-600"
               >
-                <UserPlus className="w-4 h-4" />
+                <UserPlus className="w-4 h-4" weight="bold" />
                 Daftar
               </button>
             </div>
@@ -876,13 +876,13 @@ export default function LandingPage() {
                   <span className="flex items-center justify-center gap-2">
                     <span className="hidden sm:inline">Masuk untuk Trading</span>
                     <span className="sm:hidden">Login Sekarang</span>
-                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" weight="bold" />
                   </span>
                 </button>
 
                 <button className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-white/5 hover:bg-white/10 border border-gray-700 hover:border-gray-600 rounded-xl text-sm sm:text-lg font-semibold transition-colors backdrop-blur-sm"   onClick={() => setShowDemoTutorial(true)}>
                   <span className="flex items-center justify-center gap-2">
-                    <EyeIcon className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
+                    <Eye className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" weight="bold" />
                     <span className="hidden sm:inline">Lihat Demo</span>
                     <span className="sm:hidden">Demo</span>
                   </span>
@@ -896,7 +896,7 @@ export default function LandingPage() {
                     key={index} 
                     className="text-center transform hover:scale-105 transition-transform cursor-default bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-gray-800/50"
                   >
-                    <stat.icon className="w-6 h-6 text-sky-400 mx-auto mb-2" />
+                    <stat.icon className="w-6 h-6 text-sky-400 mx-auto mb-2" weight="bold" />
                     <div className="text-xl font-bold">{stat.value}</div>
                     <div className="text-xs text-gray-500">{stat.label}</div>
                   </div>
@@ -968,7 +968,7 @@ export default function LandingPage() {
                     <div className="bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-8 hover:border-violet-500/30 transition-all">
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 bg-violet-500/10 border border-violet-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                          <Users className="w-6 h-6 text-violet-400" />
+                          <Users className="w-6 h-6 text-violet-400" weight="bold" />
                         </div>
                         <div className="flex-1">
                           <h3 className="text-xl font-bold mb-2">Daftar & Verifikasi</h3>
@@ -1000,7 +1000,7 @@ export default function LandingPage() {
                     <div className="bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-8 hover:border-pink-500/30 transition-all">
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 bg-pink-500/10 border border-pink-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                          <DollarSign className="w-6 h-6 text-pink-400" />
+                          <CurrencyDollar className="w-6 h-6 text-pink-400" weight="bold" />
                         </div>
                         <div className="flex-1">
                           <h3 className="text-xl font-bold mb-2">Deposit & Pilih Strategi</h3>
@@ -1032,7 +1032,7 @@ export default function LandingPage() {
                     <div className="bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-8 hover:border-sky-500/30 transition-all">
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 bg-sky-500/10 border border-sky-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                          <TrendingUp className="w-6 h-6 text-sky-400" />
+                          <TrendUp className="w-6 h-6 text-sky-400" weight="bold" />
                         </div>
                         <div className="flex-1">
                           <h3 className="text-xl font-bold mb-2">Trading & Hasilkan Profit</h3>
@@ -1065,8 +1065,8 @@ export default function LandingPage() {
           <div className="lg:hidden space-y-6">
             {[
               { icon: Users, title: 'Daftar & Verifikasi', desc: 'Buat akun dalam 2 menit dengan verifikasi aman', color: 'violet', num: 1 },
-              { icon: DollarSign, title: 'Deposit & Pilih Strategi', desc: 'Deposit minimal Rp 100K dan pilih strategi auto trading', color: 'pink', num: 2 },
-              { icon: TrendingUp, title: 'Trading & Profit', desc: 'Sistem trading otomatis 24/7 dengan profit hingga 95%', color: 'sky', num: 3 }
+              { icon: CurrencyDollar, title: 'Deposit & Pilih Strategi', desc: 'Deposit minimal Rp 100K dan pilih strategi auto trading', color: 'pink', num: 2 },
+              { icon: TrendUp, title: 'Trading & Profit', desc: 'Sistem trading otomatis 24/7 dengan profit hingga 95%', color: 'sky', num: 3 }
             ].map((step, i) => (
               <div key={i} className="flex gap-4 relative">
                 {i < 2 && <div className="absolute left-7 top-16 w-px h-6 bg-gray-800"></div>}
@@ -1080,7 +1080,7 @@ export default function LandingPage() {
                 <div className="flex-1 bg-[#0a0e17] border border-gray-800/50 rounded-xl p-4">
                   <div className="flex items-center gap-3 mb-2">
                     <div className={`w-10 h-10 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-lg flex items-center justify-center`}>
-                      <step.icon className={`w-5 h-5 text-${step.color}-400`} />
+                      <step.icon className={`w-5 h-5 text-${step.color}-400`} weight="bold" />
                     </div>
                     <h3 className="font-bold">{step.title}</h3>
                   </div>
@@ -1257,7 +1257,7 @@ export default function LandingPage() {
     {/* Security Badge */}
     <div className="mt-12 text-center relative z-10">
       <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-        <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />              
+        <ShieldCheckered className="w-3.5 h-3.5 text-emerald-400" weight="bold" />              
         <span className="text-xs text-white font-medium">
           Semua transaksi telah dilindungi enkripsi SSL 256-bit
         </span>
@@ -1321,7 +1321,7 @@ export default function LandingPage() {
           <a href="https://stockity.id/id/ad/ecostockity?utm_source=ecostockity_new&utm_medium=marprod&utm_campaign=main_page_banner&a=&ac=main_page_banner" target="_blank" rel="noopener noreferrer">
             <button className="group inline-flex items-center mt-6 gap-1 sm:gap-2 lg:gap-3 px-3 py-1.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 bg-gradient-to-r from-emerald-600 to-emerald-600 hover:from-emerald-500 hover:to-emerald-500 rounded-lg sm:rounded-xl text-[10px] sm:text-base lg:text-lg font-semibold text-white transition-all shadow-lg hover:shadow-green-500/25">
               <span>Selengkapnya</span>
-              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 group-hover:translate-x-1 transition-transform" weight="bold" />
             </button>
           </a>   
         </div>
@@ -1411,7 +1411,7 @@ export default function LandingPage() {
         
         <div className="relative z-10">
           <div className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full mb-2 sm:mb-4">
-            <Award className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" />
+            <Medal className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" weight="bold" />
             <span className="text-[10px] sm:text-xs font-semibold text-emerald-400">VIP</span>
           </div>
           
@@ -1432,7 +1432,7 @@ export default function LandingPage() {
         
         <div className="relative z-10">
           <div className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-sky-500/10 border border-sky-500/30 rounded-full mb-2 sm:mb-4">
-            <Star className="w-3 h-3 sm:w-4 sm:h-4 text-sky-400" />
+            <Star className="w-3 h-3 sm:w-4 sm:h-4 text-sky-400" weight="bold" />
             <span className="text-[10px] sm:text-xs font-semibold text-sky-400">Std & Gold</span>
           </div>
           
@@ -1473,14 +1473,14 @@ export default function LandingPage() {
           },
           {
             num: '3',
-            icon: DollarSign,
+            icon: CurrencyDollar,
             title: 'Deposit & Bonus',
             desc: 'Dapatkan Rp 25.000 untuk deposit pertama',
             color: 'emerald'
           },
           {
             num: '4',
-            icon: TrendingUp,
+            icon: TrendUp,
             title: 'Undang & Raih',
             desc: 'Dapatkan hingga Rp 400.000 lebih',
             color: 'emerald'
@@ -1499,7 +1499,7 @@ export default function LandingPage() {
               </div>
 
               <div className={`w-12 h-12 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-xl flex items-center justify-center mb-4 mt-2 group-hover:scale-110 transition-transform`}>
-                <step.icon className={`w-6 h-6 text-${step.color}-400`} />
+                <step.icon className={`w-6 h-6 text-${step.color}-400`} weight="bold" />
               </div>
 
               <h4 className="font-bold mb-2">{step.title}</h4>
@@ -1514,8 +1514,8 @@ export default function LandingPage() {
         {[
           { num: '1', icon: Users, title: 'Temukan Teman', desc: 'Cari teman trader', color: 'emerald' },
           { num: '2', icon: UserPlus, title: 'Daftar dengan Link', desc: 'Gunakan link referral', color: 'emerald' },
-          { num: '3', icon: DollarSign, title: 'Deposit & Bonus', desc: 'Rp 25.000 bonus', color: 'emerald' },
-          { num: '4', icon: TrendingUp, title: 'Undang & Raih', desc: 'Hingga Rp 400.000', color: 'emerald' }
+          { num: '3', icon: CurrencyDollar, title: 'Deposit & Bonus', desc: 'Rp 25.000 bonus', color: 'emerald' },
+          { num: '4', icon: TrendUp, title: 'Undang & Raih', desc: 'Hingga Rp 400.000', color: 'emerald' }
         ].map((step, i) => (
           <div key={i} className="relative bg-[#0a0e17] border border-gray-800/50 rounded-xl p-3 hover:border-gray-700 transition-all group">
             <div className="flex items-start gap-2">
@@ -1524,7 +1524,7 @@ export default function LandingPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className={`w-8 h-8 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-lg flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform`}>
-                  <step.icon className={`w-4 h-4 text-${step.color}-400`} />
+                  <step.icon className={`w-4 h-4 text-${step.color}-400`} weight="bold" />
                 </div>
                 <h4 className="font-bold text-sm mb-0.5 truncate">{step.title}</h4>
                 <p className="text-xs text-gray-400 leading-tight">{step.desc}</p>
@@ -1554,7 +1554,7 @@ export default function LandingPage() {
 
       <div className="relative z-10 p-6 sm:p-8 sm:p-12 text-center">
         <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-4 sm:mb-6">
-          <Award className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" />
+          <Medal className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" weight="bold" />
           <span className="text-xs sm:text-sm font-medium text-emerald-400">Program Partner</span>
         </div>
 
@@ -1576,7 +1576,7 @@ export default function LandingPage() {
           >
             <span className="flex items-center justify-center gap-2">
               Daftar Sekarang
-              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" weight="bold" />
             </span>
           </button>
         </div>
@@ -1637,7 +1637,7 @@ export default function LandingPage() {
                   onClick={() => setShowAuthModal(false)}
                   className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/5 transition-colors"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-5 h-5" weight="bold" />
                 </button>
               </div>
             </div>
@@ -1672,9 +1672,7 @@ export default function LandingPage() {
                 <div className="mb-6 p-4 bg-gradient-to-r from-emerald-500/10 to-emerald-500/10 border border-emerald-500/30 rounded-xl animate-fade-in-up">
                   <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-                      <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+                      <CurrencyDollar className="w-5 h-5 text-emerald-400" weight="bold" />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
@@ -1820,9 +1818,7 @@ export default function LandingPage() {
                   {hasReferralCode && (
                     <div className="flex items-center gap-3 text-sm">
                       <div className="w-6 h-6 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-                        <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                        <CurrencyDollar className="w-4 h-4 text-emerald-400" weight="bold" />
                       </div>
                       <span className="text-emerald-400 font-medium">Bonus referral aktif!</span>
                     </div>

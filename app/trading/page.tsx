@@ -99,7 +99,6 @@ export default function TradingPage() {
   const selectedAccountType = useSelectedAccountType()
   const { setSelectedAsset, setCurrentPrice, addPriceToHistory, setSelectedAccountType } = useTradingActions()
 
-  // ✅ Optimistic orders hook
   const {
     orders: allOrders,
     confirmedOrders,
@@ -111,18 +110,14 @@ export default function TradingPage() {
     setAllOrders,
   } = useOptimisticOrders()
 
-  // ✅ Batch notification system - WITH MEMOIZATION
   const notification = useOrderResultNotification()
   
-  // ✅ Extract notify function to stable reference
   const notify = notification.notify
 
-  // ✅ NEW: Refs untuk menghindari dependency cycle
   const notifiedOrderIdsRef = useRef<Set<string>>(new Set())
   const updateOrderRef = useRef(updateOrder)
   const notifyRef = useRef(notify)
   
-  // ✅ Sync refs with latest functions
   useEffect(() => {
     updateOrderRef.current = updateOrder
     notifyRef.current = notify
@@ -156,7 +151,6 @@ export default function TradingPage() {
   const isUltraFastMode = duration === 0.0167
   const durationDisplay = getDurationDisplay(duration)
 
-  // ✅ Separate active and completed orders
   const activeOrders = allOrders.filter(o => o.status === 'ACTIVE' || o.status === 'PENDING')
   const completedOrders = allOrders.filter(o => o.status === 'WON' || o.status === 'LOST')
 
@@ -172,7 +166,6 @@ export default function TradingPage() {
     true
   )
 
-  // ✅ WebSocket price updates - FIXED dependencies
   useEffect(() => {
     if (wsPrice && selectedAsset?.id === wsPrice.assetId) {
       setCurrentPrice({
@@ -182,16 +175,14 @@ export default function TradingPage() {
         change: wsPrice.changePercent24h || 0,
       })
     }
-  }, [wsPrice, selectedAsset?.id, setCurrentPrice]) // ✅ Hapus priceLastUpdate jika tidak stabil
+  }, [wsPrice, selectedAsset?.id, setCurrentPrice])
 
-  // ✅ FIXED: WebSocket order updates - menggunakan refs untuk menghindari infinite loop
   useEffect(() => {
     if (!wsOrder) return
     
     if (wsOrder.event === 'order:created') {
       loadOrders()
     } else if (wsOrder.event === 'order:settled') {
-      // Gunakan ref untuk updateOrder agar tidak trigger dependency change
       updateOrderRef.current(wsOrder.id, {
         status: wsOrder.status,
         exit_price: wsOrder.exit_price,
@@ -203,20 +194,15 @@ export default function TradingPage() {
         
         api.getOrderById(wsOrder.id).then(response => {
           const fullOrder = response?.data || response
-          // Gunakan ref untuk notify
           notifyRef.current(fullOrder)
-        }).catch(console.error)
+        })
       }
       
       loadBalances()
     }
-    // ✅ HANYA dependency wsOrder - jangan tambahkan yang lain
   }, [wsOrder]) 
 
-  // ✅ FIXED: Polling dengan stable callback menggunakan ref
   const handlePollingResult = useCallback((resultOrder: BinaryOrder) => {
-    console.log('🎯 Polling detected:', resultOrder.id)
-    
     updateOrderRef.current(resultOrder.id, resultOrder)
     
     if (!notifiedOrderIdsRef.current.has(resultOrder.id)) {
@@ -231,7 +217,7 @@ export default function TradingPage() {
     balanceUpdateTimeoutRef.current = setTimeout(() => {
       loadBalances()
     }, 100)
-  }, []) // ✅ Empty deps karena menggunakan refs
+  }, [])
 
   useAggressiveResultPolling(activeOrders, handlePollingResult)
 
@@ -244,7 +230,6 @@ export default function TradingPage() {
         setDemoBalance(balances?.demoBalance || 0)
       })
     } catch (error) {
-      console.error('Failed to load balances:', error)
     }
   }, [])
 
@@ -257,7 +242,6 @@ export default function TradingPage() {
         setUserProfile(profile)
       }
     } catch (error) {
-      console.error('Failed to load user profile:', error)
     }
   }, [])
 
@@ -267,7 +251,6 @@ export default function TradingPage() {
       const orders = response?.data?.orders || response?.orders || []
       setAllOrders(orders)
     } catch (error) {
-      console.error('Failed to load orders:', error)
     }
   }, [setAllOrders])
 
@@ -299,7 +282,6 @@ export default function TradingPage() {
         setSelectedAsset(assetsList[0])
       }
     } catch (error) {
-      console.error('Failed to load data:', error)
     }
   }, [selectedAsset, setSelectedAsset, setAllOrders])
 
@@ -317,7 +299,6 @@ export default function TradingPage() {
       setShowTutorial(false)
       toast.success('Tutorial selesai! Selamat trading!')
     } catch (error) {
-      console.error('Tutorial completion failed:', error)
       setShowTutorial(false)
     }
   }, [user])
@@ -336,7 +317,6 @@ export default function TradingPage() {
       setShowTutorial(false)
       toast.info('Tutorial dilewati. Akses lagi dari Settings > Show Tutorial')
     } catch (error) {
-      console.error('Tutorial skip failed:', error)
       setShowTutorial(false)
     }
   }, [user])
@@ -355,7 +335,6 @@ export default function TradingPage() {
       await new Promise(resolve => setTimeout(resolve, 100))
       router.replace('/')
     } catch (error) {
-      console.error('Logout error:', error)
       router.replace('/')
     }
   }, [logout, router])
@@ -365,7 +344,7 @@ export default function TradingPage() {
     setTimeout(() => {
       setShowWalletModal(false)
       setIsWalletModalClosing(false)
-    }, 250) // Match animation duration
+    }, 250)
   }, [])
 
   const handleCloseMobileMenu = useCallback(() => {
@@ -373,7 +352,7 @@ export default function TradingPage() {
     setTimeout(() => {
       setShowMobileMenu(false)
       setIsMobileMenuClosing(false)
-    }, 250) // Match animation duration
+    }, 250)
   }, [])
 
   const handleCloseLeftSidebar = useCallback(() => {
@@ -381,10 +360,9 @@ export default function TradingPage() {
     setTimeout(() => {
       setShowLeftSidebar(false)
       setIsLeftSidebarClosing(false)
-    }, 250) // Match animation duration
+    }, 250)
   }, [])
 
-  // ✅ Initial load
   useEffect(() => {
     if (!user) {
       router.push('/')
@@ -399,7 +377,7 @@ export default function TradingPage() {
         if (basePath.endsWith('/current_price')) {
           basePath = basePath.replace('/current_price', '')
         }
-        prefetchDefaultAsset(basePath).catch(console.error)
+        prefetchDefaultAsset(basePath)
       }
     }
     
@@ -408,9 +386,8 @@ export default function TradingPage() {
     }
     
     initializeData()
-  }, [user, router, assets.length]) // ✅ Gunakan assets.length bukan assets
+  }, [user, router, assets.length])
 
-  // ✅ Show tutorial
   useEffect(() => {
     if (!user) return
 
@@ -430,7 +407,6 @@ export default function TradingPage() {
     }
   }, [user])
 
-  // ✅ Firebase price subscription
   useEffect(() => {
     if (!selectedAsset) return
 
@@ -459,7 +435,6 @@ export default function TradingPage() {
     }
   }, [selectedAsset?.id, setCurrentPrice, addPriceToHistory])
 
-  // ✅ FIXED: Cleanup - tanpa nested return
   useEffect(() => {
     return () => {
       if (balanceUpdateTimeoutRef.current) {
@@ -469,7 +444,6 @@ export default function TradingPage() {
     }
   }, [])
 
-  // ✅ NEW: Periodic cleanup of old notified IDs
   useEffect(() => {
     const cleanupInterval = setInterval(() => {
       if (notifiedOrderIdsRef.current.size > 50) {
@@ -478,15 +452,12 @@ export default function TradingPage() {
         
         notifiedOrderIdsRef.current.clear()
         idsToKeep.forEach(id => notifiedOrderIdsRef.current.add(id))
-        
-        console.log('🧹 Trimmed notification cache to 50 most recent')
       }
     }, 30000)
 
     return () => clearInterval(cleanupInterval)
   }, [])
 
-  // ✅ INSTANT ORDER PLACEMENT with optimistic updates
   const handlePlaceOrder = useCallback(async (direction: 'CALL' | 'PUT') => {
     if (!selectedAsset) {
       toast.error('Please select an asset')
@@ -509,7 +480,6 @@ export default function TradingPage() {
     const now = TimezoneUtil.getCurrentTimestamp()
     const timing = CalculationUtil.formatOrderTiming(selectedAsset, duration, now)
 
-    // ✅ STEP 1: Add optimistic order to UI INSTANTLY
     const optimisticId = addOptimisticOrder({
       accountType: selectedAccountType,
       asset_id: selectedAsset.id,
@@ -524,17 +494,13 @@ export default function TradingPage() {
       status: 'PENDING',
     })
 
-    // ✅ STEP 2: Update balance optimistically INSTANTLY
     if (selectedAccountType === 'real') {
       setRealBalance(prev => prev - amount)
     } else {
       setDemoBalance(prev => prev - amount)
     }
 
-    console.log('⚡ Optimistic order added:', optimisticId)
-
     try {
-      // ✅ STEP 3: Send to API in background
       const response = await api.createOrder({
         accountType: selectedAccountType,
         asset_id: selectedAsset.id,
@@ -545,18 +511,11 @@ export default function TradingPage() {
 
       const confirmedOrderData = response?.data || response
       
-      // ✅ STEP 4: Confirm and replace optimistic order with real one
       confirmOrder(optimisticId, confirmedOrderData)
 
-      console.log('✅ Order confirmed:', confirmedOrderData.id)
-
     } catch (error: any) {
-      // ✅ STEP 5: Rollback on error
-      console.error('❌ Order failed, rolling back:', error)
-      
       rollbackOrder(optimisticId)
       
-      // Restore balance
       if (selectedAccountType === 'real') {
         setRealBalance(prev => prev + amount)
       } else {
@@ -580,7 +539,6 @@ export default function TradingPage() {
     rollbackOrder,
   ])
 
-  // ✅ Calculate profit rate with status bonus (with NaN protection)
   const baseProfitRate = Number(selectedAsset?.profitRate) || 0
   
   let statusBonus = 0
@@ -655,7 +613,7 @@ export default function TradingPage() {
                           prefetchMultipleTimeframes(
                             asset.realtimeDbPath,
                             ['1m', '5m']
-                          ).catch(err => console.log('Prefetch failed:', err))
+                          )
                         }
                       }}
                       className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 last:border-0 ${
@@ -941,15 +899,6 @@ export default function TradingPage() {
             >
               <Calendar className="w-5 h-5 text-gray-400 group-hover:text-blue-400" />
               <span className="text-[9px] text-gray-500 group-hover:text-blue-400">Kalender</span>
-            </button>
-
-            <button
-              onClick={() => router.push('/event')}
-              className="w-12 h-12 flex flex-col items-center justify-center gap-1 hover:bg-[#1a1f2e] rounded-lg transition-colors group"
-              title="Event"
-            >
-              <Activity className="w-5 h-5 text-gray-400 group-hover:text-purple-400" />
-              <span className="text-[9px] text-gray-500 group-hover:text-purple-400">Event</span>
             </button>
 
             <button
@@ -1428,7 +1377,7 @@ export default function TradingPage() {
                           prefetchMultipleTimeframes(
                             asset.realtimeDbPath,
                             ['1m', '5m']
-                          ).catch(err => console.log('Prefetch failed:', err))
+                          )
                         }
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
@@ -1551,17 +1500,6 @@ export default function TradingPage() {
               <button
                 onClick={() => {
                   handleCloseLeftSidebar()
-                  setTimeout(() => router.push('/event'), 300)
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-              >
-                <Activity className="w-4 h-4" />
-                <span>Event</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  handleCloseLeftSidebar()
                   setTimeout(() => router.push('/tournament'), 300)
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
@@ -1623,18 +1561,11 @@ export default function TradingPage() {
         />
       )}
 
-      {/* ✅ Batch Notification */}
+      {/* Batch Notification */}
       <OrderNotification 
         orders={notification.currentBatch}
         onClose={notification.closeBatch}
       />
-
-      {/* ✅ Debug info (development only) */}
-      {process.env.NODE_ENV === 'development' && notification.pendingCount > 0 && (
-        <div className="fixed bottom-20 right-4 bg-black/80 text-white text-xs px-3 py-2 rounded z-50">
-          Pending: {notification.pendingCount}
-        </div>
-      )}
 
       <style jsx>{`
         @keyframes slide-left {

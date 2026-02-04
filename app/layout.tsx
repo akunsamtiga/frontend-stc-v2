@@ -49,7 +49,7 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#0f1419" />
         <meta name="msapplication-navbutton-color" content="#0f1419" />
       </head>
-      <body className="bg-[#0a0e17] text-white">
+      <body className="text-white">
         <GoogleAuthHandler />
         
         <WebSocketProvider>
