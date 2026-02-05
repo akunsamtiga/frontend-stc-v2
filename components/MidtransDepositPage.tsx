@@ -580,6 +580,14 @@ const MidtransPaymentPage: React.FC = () => {
   const numericAmount = parseInt(amount) || 0;
   const totalAmount = numericAmount + voucherBonus;
 
+  // Debug log
+  console.log('💰 Amount calculation:', {
+    numericAmount,
+    voucherBonus,
+    totalAmount,
+    voucherCode
+  });
+
   // Transaction History View
   if (step === 'history') {
     return (
