@@ -1,5 +1,5 @@
 // components/MidtransDepositPage.tsx
-// ✅ FIXED VERSION - Proper balance loading before verification
+// ✅ CORRECT VERSION - Verifying using Transaction History
 
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, CreditCard, Wallet, AlertCircle, CheckCircle, Clock, XCircle, Loader2, Shield, Tag, TrendingUp, History, Info, RefreshCw } from 'lucide-react';
@@ -242,15 +242,15 @@ const MidtransPaymentPage: React.FC = () => {
   
   // Payment verification states
   const [paymentStatus, setPaymentStatus] = useState<'verifying' | 'success' | 'expired'>('verifying');
-  // ✅ FIX: Use null initially to indicate balance not loaded yet
   const [initialBalance, setInitialBalance] = useState<number | null>(null);
   const [currentBalance, setCurrentBalance] = useState<number | null>(null);
   const [verificationStartTime, setVerificationStartTime] = useState<number>(0);
   
-  // ✅ NEW: Real-time monitoring states
-  const [isMonitoringBalance, setIsMonitoringBalance] = useState(false);
-  const [lastBalanceCheck, setLastBalanceCheck] = useState<number>(0);
-  // ✅ NEW: Loading state for initial balance
+  // ✅ NEW: Transaction verification states
+  const [verifiedTransaction, setVerifiedTransaction] = useState<TransactionHistory | null>(null);
+  const [isMonitoringTransaction, setIsMonitoringTransaction] = useState(false);
+  const [lastHistoryCheck, setLastHistoryCheck] = useState<number>(0);
+  const [checkCount, setCheckCount] = useState(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(true);
 
   // Quick amount presets
@@ -277,12 +277,11 @@ const MidtransPaymentPage: React.FC = () => {
     { name: 'Visa', icon: '/visa.webp' },
   ];
 
-  // ✅ Load initial data on mount
+  // Load initial data on mount
   useEffect(() => {
     const initializeData = async () => {
       setIsLoadingBalance(true);
       try {
-        // Load all data in parallel
         await Promise.all([
           loadTransactionHistory(),
           loadAvailableVouchers(),
@@ -298,7 +297,6 @@ const MidtransPaymentPage: React.FC = () => {
     initializeData();
   }, []);
 
-  // ✅ Load initial balance on mount
   const loadInitialBalance = async () => {
     try {
       const balance = await PaymentAPI.getRealBalance();
@@ -307,75 +305,88 @@ const MidtransPaymentPage: React.FC = () => {
       console.log('💰 Initial balance loaded:', balance);
     } catch (error) {
       console.error('Failed to load initial balance:', error);
-      // Set to 0 as fallback
       setInitialBalance(0);
       setCurrentBalance(0);
     }
   };
 
-  // ✅ ENHANCED: Real-time Balance Monitoring - Only start when balance is loaded
+  // ✅ CORRECT: Transaction History Monitoring (like balance/page)
   useEffect(() => {
-    // Don't monitor if balance hasn't loaded yet
-    if (initialBalance === null) return;
-    
-    // Monitor when: (1) in success screen verifying OR (2) monitoring flag enabled
-    const shouldMonitor = (step === 'success' && paymentStatus === 'verifying') || isMonitoringBalance;
-    
-    if (!shouldMonitor || !currentTransaction) return;
+    // Only monitor when in success screen and verifying
+    if (step !== 'success' || paymentStatus !== 'verifying' || !currentTransaction) return;
 
     let intervalId: NodeJS.Timeout;
     let timeoutId: NodeJS.Timeout;
-    let checkCount = 0;
+    let count = 0;
 
-    const checkBalance = async () => {
+    const checkTransactionHistory = async () => {
       try {
-        checkCount++;
+        count++;
+        setCheckCount(count);
+        
+        console.log(`🔍 Transaction Check #${count} - Looking for order_id: ${currentTransaction.order_id}`);
+        
+        // Fetch latest transaction history
+        const history = await PaymentAPI.getTransactionHistory();
+        setTransactionHistory(history);
+        setLastHistoryCheck(Date.now());
+        
+        // Also update current balance
         const balance = await PaymentAPI.getRealBalance();
         setCurrentBalance(balance);
-        setLastBalanceCheck(Date.now());
-
-        const depositAmount = currentTransaction?.amount || 0;
-        const balanceIncrease = balance - initialBalance;
-
-        console.log(`🔍 Balance Check #${checkCount}:`, {
-          depositAmount,
-          voucherBonus,
-          expectedTotal: depositAmount + voucherBonus,
-          initialBalance,
-          currentBalance: balance,
-          balanceIncrease,
-          status: balanceIncrease >= depositAmount ? '✅ PAID' : '⏳ PENDING'
-        });
-
-        // ✅ Payment confirmed when balance increased by at least deposit amount
-        if (balanceIncrease >= depositAmount) {
-          console.log('✅ Payment verified - Balance increased!');
-          console.log(`   Expected: ${depositAmount}, Actual: ${balanceIncrease}`);
-          setPaymentStatus('success');
-          setIsMonitoringBalance(false);
-          clearInterval(intervalId);
-          clearTimeout(timeoutId);
+        
+        // Find the specific transaction by order_id
+        const transaction = history.find(t => t.order_id === currentTransaction.order_id);
+        
+        if (transaction) {
+          console.log(`📋 Transaction found:`, {
+            order_id: transaction.order_id,
+            status: transaction.status,
+            amount: transaction.amount,
+            voucherBonus: transaction.voucherBonusAmount
+          });
           
-          // Reload transaction history
-          await loadTransactionHistory();
+          // ✅ Payment confirmed when transaction status is 'success'
+          if (transaction.status === 'success') {
+            console.log('✅ Payment verified - Transaction status is SUCCESS!');
+            console.log(`   Expected: ${currentTransaction.amount}, Actual: ${transaction.amount}`);
+            
+            setVerifiedTransaction(transaction);
+            setPaymentStatus('success');
+            setIsMonitoringTransaction(false);
+            clearInterval(intervalId);
+            clearTimeout(timeoutId);
+          } else if (transaction.status === 'failed') {
+            console.log('❌ Payment FAILED - Transaction status is FAILED');
+            setPaymentStatus('expired');
+            setIsMonitoringTransaction(false);
+            clearInterval(intervalId);
+            clearTimeout(timeoutId);
+          } else {
+            console.log(`⏳ Transaction status: ${transaction.status} - Continuing to monitor...`);
+          }
+        } else {
+          console.log('⏳ Transaction not found in history yet - Continuing to monitor...');
         }
       } catch (error) {
-        console.error('❌ Failed to check balance:', error);
+        console.error('❌ Failed to check transaction history:', error);
       }
     };
 
+    // Start monitoring
+    setIsMonitoringTransaction(true);
+    
     // Check immediately
-    checkBalance();
+    checkTransactionHistory();
 
     // Poll every 2 seconds for responsiveness
-    intervalId = setInterval(checkBalance, 2000);
+    intervalId = setInterval(checkTransactionHistory, 2000);
 
-    // Timeout after 10 minutes (allow delayed payment)
+    // Timeout after 10 minutes
     timeoutId = setTimeout(() => {
       console.log('⏰ Verification timeout - 10 minutes elapsed');
-      console.log(`   Final balance increase: ${(currentBalance || 0) - initialBalance}`);
       setPaymentStatus('expired');
-      setIsMonitoringBalance(false);
+      setIsMonitoringTransaction(false);
       clearInterval(intervalId);
     }, 10 * 60 * 1000);
 
@@ -383,7 +394,7 @@ const MidtransPaymentPage: React.FC = () => {
       clearInterval(intervalId);
       clearTimeout(timeoutId);
     };
-  }, [step, paymentStatus, initialBalance, currentTransaction, voucherBonus, isMonitoringBalance]);
+  }, [step, paymentStatus, currentTransaction]);
 
   const loadTransactionHistory = async () => {
     try {
@@ -455,7 +466,6 @@ const MidtransPaymentPage: React.FC = () => {
     setError('');
   };
 
-  // ✅ FIXED: Refresh balance manually
   const handleRefreshBalance = async () => {
     if (loading) return;
     
@@ -463,10 +473,36 @@ const MidtransPaymentPage: React.FC = () => {
     try {
       const balance = await PaymentAPI.getRealBalance();
       setCurrentBalance(balance);
-      setLastBalanceCheck(Date.now());
       console.log('🔄 Balance refreshed:', balance);
     } catch (error) {
       console.error('Failed to refresh balance:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Manual refresh transaction history
+  const handleRefreshHistory = async () => {
+    if (loading || !currentTransaction) return;
+    
+    setLoading(true);
+    try {
+      const history = await PaymentAPI.getTransactionHistory();
+      setTransactionHistory(history);
+      setLastHistoryCheck(Date.now());
+      
+      const balance = await PaymentAPI.getRealBalance();
+      setCurrentBalance(balance);
+      
+      const transaction = history.find(t => t.order_id === currentTransaction.order_id);
+      if (transaction?.status === 'success') {
+        setVerifiedTransaction(transaction);
+        setPaymentStatus('success');
+      }
+      
+      console.log('🔄 Transaction history refreshed');
+    } catch (error) {
+      console.error('Failed to refresh history:', error);
     } finally {
       setLoading(false);
     }
@@ -495,7 +531,7 @@ const MidtransPaymentPage: React.FC = () => {
         voucherBonus
       });
 
-      // ✅ Capture initial balance right before payment
+      // Capture initial balance before payment
       const freshBalance = await PaymentAPI.getRealBalance();
       setInitialBalance(freshBalance);
       setCurrentBalance(freshBalance);
@@ -525,7 +561,7 @@ const MidtransPaymentPage: React.FC = () => {
         setStep('success');
         setPaymentStatus('verifying');
         setVerificationStartTime(Date.now());
-        setIsMonitoringBalance(true);
+        setCheckCount(0);
       } else if (paymentResult.status === 'closed') {
         setError('Payment cancelled');
         setStep('amount');
@@ -548,11 +584,14 @@ const MidtransPaymentPage: React.FC = () => {
     setVoucherValue(0);
     setExternalVoucherCode('');
     setCurrentTransaction(null);
+    setVerifiedTransaction(null);
     setPaymentStatus('verifying');
     setError('');
+    setCheckCount(0);
     
-    // Refresh balance
+    // Refresh data
     loadInitialBalance();
+    loadTransactionHistory();
   };
 
   const handleViewHistory = () => {
@@ -563,7 +602,7 @@ const MidtransPaymentPage: React.FC = () => {
   const numericAmount = parseInt(amount) || 0;
   const totalAmount = numericAmount + voucherBonus;
 
-  // ✅ Show loading screen while initial balance is being fetched
+  // Show loading screen while initial balance is being fetched
   if (isLoadingBalance) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -933,13 +972,15 @@ const MidtransPaymentPage: React.FC = () => {
     );
   }
 
-  // Success screen with real-time verification
+  // ✅ SUCCESS SCREEN - Using Transaction History Verification
   if (step === 'success') {
     const expectedAmount = currentTransaction?.amount || 0;
     const totalWithBonus = expectedAmount + voucherBonus;
-    const balanceIncrease = (currentBalance || 0) - (initialBalance || 0);
     const verificationElapsed = verificationStartTime ? (Date.now() - verificationStartTime) / 1000 : 0;
     const remainingTime = Math.max(0, 600 - verificationElapsed);
+    
+    // Get transaction from history if found
+    const foundTransaction = transactionHistory.find(t => t.order_id === currentTransaction?.order_id);
 
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -961,7 +1002,7 @@ const MidtransPaymentPage: React.FC = () => {
                     Complete your payment and we'll automatically detect it
                   </p>
 
-                  {/* ✅ Real-time Balance Display - Fixed to show actual balance */}
+                  {/* ✅ Current Balance Display */}
                   <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 mb-6">
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-sm font-semibold text-blue-900">Current Balance</span>
@@ -978,20 +1019,6 @@ const MidtransPaymentPage: React.FC = () => {
                     <div className="text-3xl font-bold text-blue-700 mb-4">
                       {formatCurrency(currentBalance || 0)}
                     </div>
-                    
-                    {balanceIncrease > 0 && (
-                      <div className="bg-white/60 rounded-lg p-3 mb-3">
-                        <div className="text-sm text-blue-800 flex items-center justify-between">
-                          <span>Detected increase:</span>
-                          <strong className="text-green-700">+{formatCurrency(balanceIncrease)}</strong>
-                        </div>
-                        {balanceIncrease < expectedAmount && (
-                          <div className="text-xs text-amber-700 mt-2">
-                            ⏳ Partial payment • Waiting for full amount...
-                          </div>
-                        )}
-                      </div>
-                    )}
 
                     <div className="space-y-2 text-sm text-blue-900">
                       <div className="flex justify-between">
@@ -1010,36 +1037,69 @@ const MidtransPaymentPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* ✅ Payment Instructions */}
+                  {/* ✅ Transaction Status from History */}
                   <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-5 mb-6">
-                    <div className="flex items-start gap-3 text-left">
+                    <div className="flex items-start gap-3 text-left mb-3">
                       <Info className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" />
                       <div className="text-sm text-amber-900">
-                        <p className="font-semibold mb-2">Haven't paid yet?</p>
-                        <ul className="space-y-1 text-xs">
-                          <li>• Complete payment via your banking app</li>
-                          <li>• We're monitoring your balance in real-time</li>
-                          <li>• Status will update automatically when payment received</li>
-                        </ul>
+                        <p className="font-semibold mb-2">Transaction Status:</p>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex items-center gap-2">
+                            <code className="bg-amber-100 px-2 py-0.5 rounded font-mono">
+                              {currentTransaction?.order_id}
+                            </code>
+                          </div>
+                          {foundTransaction ? (
+                            <div className="flex items-center gap-2 mt-2">
+                              <TransactionStatusBadge status={foundTransaction.status} />
+                              {foundTransaction.status === 'pending' && (
+                                <span className="text-xs">• Monitoring...</span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-amber-700 mt-2">
+                              ⏳ Waiting for transaction to appear in history...
+                            </div>
+                          )}
+                        </div>
                       </div>
+                    </div>
+                    
+                    <div className="border-t border-amber-300 pt-3 mt-3">
+                      <p className="text-xs text-amber-800 font-medium mb-2">Haven't paid yet?</p>
+                      <ul className="space-y-1 text-xs text-amber-800">
+                        <li>• Complete payment via your banking app</li>
+                        <li>• We're checking transaction history every 2 seconds</li>
+                        <li>• Status will update automatically when confirmed</li>
+                      </ul>
                     </div>
                   </div>
 
-                  {/* Timer & Last Check */}
+                  {/* Timer & Status */}
                   <div className="space-y-2 mb-6">
                     <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
                       <Clock className="w-4 h-4" />
-                      <span>Auto-checking every 2 seconds</span>
+                      <span>Check #{checkCount} • Every 2 seconds</span>
                     </div>
                     <div className="text-xs text-gray-500">
                       Timeout in {Math.floor(remainingTime / 60)}:{String(Math.floor(remainingTime % 60)).padStart(2, '0')}
                     </div>
-                    {lastBalanceCheck > 0 && (
+                    {lastHistoryCheck > 0 && (
                       <div className="text-xs text-gray-400">
-                        Last checked: {new Date(lastBalanceCheck).toLocaleTimeString('id-ID')}
+                        Last checked: {new Date(lastHistoryCheck).toLocaleTimeString('id-ID')}
                       </div>
                     )}
                   </div>
+
+                  {/* Manual Refresh Button */}
+                  <button
+                    onClick={handleRefreshHistory}
+                    disabled={loading}
+                    className="w-full bg-white border-2 border-gray-300 text-gray-700 py-3 px-6 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                    {loading ? 'Checking...' : 'Check Now'}
+                  </button>
                 </>
               )}
 
@@ -1079,6 +1139,33 @@ const MidtransPaymentPage: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Transaction Details */}
+                  {verifiedTransaction && (
+                    <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
+                      <div className="text-xs font-semibold text-gray-700 mb-2">Transaction Details</div>
+                      <div className="space-y-1 text-xs text-gray-600">
+                        <div className="flex justify-between">
+                          <span>Order ID:</span>
+                          <code className="bg-gray-200 px-2 py-0.5 rounded font-mono">
+                            {verifiedTransaction.order_id}
+                          </code>
+                        </div>
+                        {verifiedTransaction.payment_type && (
+                          <div className="flex justify-between">
+                            <span>Payment Method:</span>
+                            <span className="capitalize">{verifiedTransaction.payment_type.replace('_', ' ')}</span>
+                          </div>
+                        )}
+                        {verifiedTransaction.completedAt && (
+                          <div className="flex justify-between">
+                            <span>Completed:</span>
+                            <span>{formatDate(verifiedTransaction.completedAt)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <button
                     onClick={handleBackToHome}
                     className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 px-6 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
@@ -1099,7 +1186,7 @@ const MidtransPaymentPage: React.FC = () => {
                     Verification Timeout
                   </h2>
                   <p className="text-gray-600 mb-8">
-                    We couldn't detect your payment. Please check your transaction history or try again.
+                    We couldn't verify your payment. Please check your transaction history or contact support.
                   </p>
 
                   <div className="space-y-3">
