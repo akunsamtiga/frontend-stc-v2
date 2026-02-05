@@ -106,8 +106,8 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
               <Clock className="w-4 h-4 text-blue-400" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-white">History</h2>
-              <p className="text-xs text-gray-500">{orders.length} trades</p>
+              <h2 className="text-base font-semibold text-white">Riwayat</h2>
+              <p className="text-xs text-gray-500">{orders.length} transaksi</p>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -115,7 +115,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
               onClick={loadOrders}
               disabled={loading}
               className="w-9 h-9 rounded-lg hover:bg-white/5 flex items-center justify-center transition-all"
-              title="Refresh"
+              title="Segarkan"
             >
               <RefreshCw className={`w-4 h-4 text-gray-400 ${loading ? 'animate-spin' : ''}`} />
             </button>
@@ -133,19 +133,19 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
           <div className="grid grid-cols-4 gap-3">
             <div className="text-center">
               <div className="text-xl font-bold text-white mb-0.5">{winRate}%</div>
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Win Rate</div>
+              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Tingkat Kemenangan</div>
             </div>
             <div className="text-center">
               <div className="text-xl font-bold text-green-400 mb-0.5">{stats.won}</div>
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Won</div>
+              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Menang</div>
             </div>
             <div className="text-center">
               <div className="text-xl font-bold text-red-400 mb-0.5">{stats.lost}</div>
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Lost</div>
+              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Kalah</div>
             </div>
             <div className="text-center">
               <div className="text-xl font-bold text-blue-400 mb-0.5">{stats.active}</div>
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Active</div>
+              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Aktif</div>
             </div>
           </div>
         </div>
@@ -175,9 +175,9 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
           {/* Status Filter */}
           <div className="flex gap-2">
             {[
-              { id: 'WON', label: 'Won' },
-              { id: 'LOST', label: 'Lost' },
-              { id: 'ACTIVE', label: 'Active' }
+              { id: 'WON', label: 'Menang' },
+              { id: 'LOST', label: 'Kalah' },
+              { id: 'ACTIVE', label: 'Aktif' }
             ].map((f) => (
               <button
                 key={f.id}
@@ -200,7 +200,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-10 w-10 border-2 border-gray-800 border-t-blue-500 mx-auto mb-3"></div>
-                <div className="text-sm text-gray-500">Loading...</div>
+                <div className="text-sm text-gray-500">Memuat...</div>
               </div>
             </div>
           ) : orders.length === 0 ? (
@@ -209,7 +209,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                 <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-3">
                   <Clock className="w-8 h-8 text-gray-600" />
                 </div>
-                <p className="text-sm text-gray-500">No trades found</p>
+                <p className="text-sm text-gray-500">Tidak ada transaksi ditemukan</p>
               </div>
             </div>
           ) : (
@@ -307,19 +307,19 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                         {/* Details Grid */}
                         <div className="space-y-2 text-xs">
                           <div className="flex items-center justify-between py-1">
-                            <span className="text-gray-500">Entry Price</span>
+                            <span className="text-gray-500">Harga Masuk</span>
                             <span className="font-medium text-white">{order.entry_price.toFixed(3)}</span>
                           </div>
                           
                           {order.exit_price && (
                             <div className="flex items-center justify-between py-1">
-                              <span className="text-gray-500">Exit Price</span>
+                              <span className="text-gray-500">Harga Keluar</span>
                               <span className="font-medium text-white">{order.exit_price.toFixed(3)}</span>
                             </div>
                           )}
 
                           <div className="flex items-center justify-between py-1">
-                            <span className="text-gray-500">Profit Rate</span>
+                            <span className="text-gray-500">Tingkat Keuntungan</span>
                             <span className="font-medium text-green-400">+{order.profitRate}%</span>
                           </div>
 

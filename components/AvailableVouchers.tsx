@@ -50,18 +50,18 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
     const validUntil = new Date(voucher.validUntil);
     
     if (!voucher.isActive) {
-      return { eligible: false, reason: 'Voucher inactive' };
+      return { eligible: false, reason: 'Voucher tidak aktif' };
     }
     
     if (now < validFrom) {
-      return { eligible: false, reason: 'Not started yet' };
+      return { eligible: false, reason: 'Belum dimulai' };
     }
     if (now > validUntil) {
-      return { eligible: false, reason: 'Expired' };
+      return { eligible: false, reason: 'Kedaluwarsa' };
     }
     
     if (voucher.maxUses && voucher.usedCount >= voucher.maxUses) {
-      return { eligible: false, reason: 'Limit reached' };
+      return { eligible: false, reason: 'Batas tercapai' };
     }
     
     if (depositAmount > 0 && depositAmount < voucher.minDeposit) {
@@ -69,10 +69,10 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
     }
     
     if (depositAmount === 0) {
-      return { eligible: true, reason: 'Enter amount to activate', needsAmount: true };
+      return { eligible: true, reason: 'Masukkan jumlah untuk mengaktifkan', needsAmount: true };
     }
     
-    return { eligible: true, reason: 'Available' };
+    return { eligible: true, reason: 'Tersedia' };
   };
 
   const calculateBonus = (voucher: Voucher) => {
@@ -114,11 +114,11 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
               <Gift className="w-5 h-5 text-white" />
             </div>
             <div className="text-left">
-              <h3 className="font-bold text-base text-gray-900">Available Vouchers</h3>
+              <h3 className="font-bold text-base text-gray-900">Voucher Tersedia</h3>
               <p className="text-xs text-gray-500 mt-0.5">
                 {eligibleCount > 0 
-                  ? `${eligibleCount} voucher${eligibleCount > 1 ? 's' : ''} available for you` 
-                  : 'Enter amount to see available vouchers'
+                  ? `${eligibleCount} voucher${eligibleCount > 1 ? '' : ''} tersedia untuk Anda` 
+                  : 'Masukkan jumlah untuk melihat voucher yang tersedia'
                 }
               </p>
             </div>
@@ -146,7 +146,7 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
               <div className="flex items-start gap-2">
                 <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-blue-700">
-                  Enter a deposit amount to see which vouchers you can use
+                  Masukkan jumlah deposit untuk melihat voucher mana yang dapat Anda gunakan
                 </p>
               </div>
             </div>
@@ -257,7 +257,7 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
                             <Percent className={`w-3.5 h-3.5 ${
                               isClickable ? 'text-sky-500' : 'text-gray-400'
                             }`} />
-                            <span className="font-medium">Max: {formatCurrency(voucher.maxBonusAmount)}</span>
+                            <span className="font-medium">Maks: {formatCurrency(voucher.maxBonusAmount)}</span>
                           </div>
                         )}
                         
@@ -268,7 +268,7 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
                             isClickable ? 'text-sky-500' : 'text-gray-400'
                           }`} />
                           <span className="font-medium">
-                            Until {new Date(voucher.validUntil).toLocaleDateString('id-ID', { 
+                            Hingga {new Date(voucher.validUntil).toLocaleDateString('id-ID', { 
                               day: '2-digit', 
                               month: 'short' 
                             })}
@@ -282,7 +282,7 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
                             <Users className={`w-3.5 h-3.5 ${
                               isClickable ? 'text-sky-500' : 'text-gray-400'
                             }`} />
-                            <span className="font-medium">{voucher.maxUses - voucher.usedCount} left</span>
+                            <span className="font-medium">{voucher.maxUses - voucher.usedCount} tersisa</span>
                           </div>
                         )}
                       </div>
@@ -312,7 +312,7 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5">
                               <Sparkles className="w-3.5 h-3.5 text-sky-500" />
-                              <span className="text-xs font-semibold text-gray-600">Your bonus:</span>
+                              <span className="text-xs font-semibold text-gray-600">Bonus Anda:</span>
                             </div>
                             <span className="text-base font-black text-sky-600">
                               +{formatCurrency(bonus)}
@@ -333,7 +333,7 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
               onClick={() => setShowAll(!showAll)}
               className="w-full text-sky-600 text-sm font-semibold py-2.5 rounded-lg hover:bg-sky-50 transition-all border border-sky-200"
             >
-              {showAll ? 'Show Less' : `Show All (${vouchers.length - 3} more)`}
+              {showAll ? 'Tampilkan Lebih Sedikit' : `Tampilkan Semua (${vouchers.length - 3} lainnya)`}
             </button>
           )}
         </div>

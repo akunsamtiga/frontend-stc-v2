@@ -128,7 +128,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
         <div className="h-14 bg-[#1a1f2e] border-b border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">
           <div className="flex items-center gap-2">
             <Activity className="w-5 h-5 text-blue-400" />
-            <h3 className="font-bold text-lg">Indicators</h3>
+            <h3 className="font-bold text-lg">Indikator</h3>
           </div>
           <button
             onClick={onClose}
@@ -161,7 +161,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 : 'text-gray-400 hover:text-white'
             }`}
           >
-            Oscillator
+            Osilator
             {activeTab === 'oscillator' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400" />
             )}
@@ -177,11 +177,11 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 icon={TrendingUp}
                 name="Simple Moving Average"
                 indicator="sma"
-                description="Smoothed price average"
+                description="Rata-rata harga yang dihaluskan"
               >
                 <div className="space-y-2">
                   <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Period</label>
+                    <label className="text-xs text-gray-400 mb-1 block">Periode</label>
                     <input
                       type="number"
                       value={config.sma?.period || 20}
@@ -192,7 +192,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Color</label>
+                    <label className="text-xs text-gray-400 mb-1 block">Warna</label>
                     <input
                       type="color"
                       value={config.sma?.color || '#3b82f6'}
@@ -208,11 +208,11 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 icon={TrendingUp}
                 name="Exponential Moving Average"
                 indicator="ema"
-                description="Weighted recent prices"
+                description="Harga terkini yang diberi bobot"
               >
                 <div className="space-y-2">
                   <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Period</label>
+                    <label className="text-xs text-gray-400 mb-1 block">Periode</label>
                     <input
                       type="number"
                       value={config.ema?.period || 20}
@@ -223,7 +223,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Color</label>
+                    <label className="text-xs text-gray-400 mb-1 block">Warna</label>
                     <input
                       type="color"
                       value={config.ema?.color || '#f59e0b'}
@@ -239,12 +239,12 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 icon={Waves}
                 name="Bollinger Bands"
                 indicator="bollinger"
-                description="Volatility bands"
+                description="Pita volatilitas"
               >
                 <div className="space-y-2">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs text-gray-400 mb-1 block">Period</label>
+                      <label className="text-xs text-gray-400 mb-1 block">Periode</label>
                       <input
                         type="number"
                         value={config.bollinger?.period || 20}
@@ -269,7 +269,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
-                      <label className="text-xs text-gray-400 mb-1 block">Upper</label>
+                      <label className="text-xs text-gray-400 mb-1 block">Atas</label>
                       <input
                         type="color"
                         value={config.bollinger?.colorUpper || '#ef4444'}
@@ -278,7 +278,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-400 mb-1 block">Middle</label>
+                      <label className="text-xs text-gray-400 mb-1 block">Tengah</label>
                       <input
                         type="color"
                         value={config.bollinger?.colorMiddle || '#6b7280'}
@@ -287,7 +287,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-400 mb-1 block">Lower</label>
+                      <label className="text-xs text-gray-400 mb-1 block">Bawah</label>
                       <input
                         type="color"
                         value={config.bollinger?.colorLower || '#10b981'}
@@ -310,7 +310,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
               >
                 <div className="space-y-2">
                   <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Period</label>
+                    <label className="text-xs text-gray-400 mb-1 block">Periode</label>
                     <input
                       type="number"
                       value={config.rsi?.period || 14}
@@ -357,7 +357,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 <div className="space-y-2">
                   <div className="grid grid-cols-3 gap-2">
                     <div>
-                      <label className="text-xs text-gray-400 mb-1 block">Fast</label>
+                      <label className="text-xs text-gray-400 mb-1 block">Cepat</label>
                       <input
                         type="number"
                         value={config.macd?.fastPeriod || 12}
@@ -368,7 +368,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-400 mb-1 block">Slow</label>
+                      <label className="text-xs text-gray-400 mb-1 block">Lambat</label>
                       <input
                         type="number"
                         value={config.macd?.slowPeriod || 26}
@@ -379,7 +379,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-400 mb-1 block">Signal</label>
+                      <label className="text-xs text-gray-400 mb-1 block">Sinyal</label>
                       <input
                         type="number"
                         value={config.macd?.signalPeriod || 9}
@@ -398,12 +398,12 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 icon={Waves}
                 name="Stochastic"
                 indicator="stochastic"
-                description="Momentum indicator"
+                description="Indikator momentum"
               >
                 <div className="space-y-2">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs text-gray-400 mb-1 block">%K Period</label>
+                      <label className="text-xs text-gray-400 mb-1 block">%K Periode</label>
                       <input
                         type="number"
                         value={config.stochastic?.kPeriod || 14}
@@ -414,7 +414,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-400 mb-1 block">%D Period</label>
+                      <label className="text-xs text-gray-400 mb-1 block">%D Periode</label>
                       <input
                         type="number"
                         value={config.stochastic?.dPeriod || 3}
@@ -460,7 +460,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 description="Average True Range"
               >
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Period</label>
+                  <label className="text-xs text-gray-400 mb-1 block">Periode</label>
                   <input
                     type="number"
                     value={config.atr?.period || 14}
@@ -492,13 +492,13 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
             }}
             className="text-sm text-gray-400 hover:text-white transition-colors"
           >
-            Reset All
+            Reset Semua
           </button>
           <button
             onClick={onClose}
             className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-sm font-medium transition-colors"
           >
-            Apply
+            Terapkan
           </button>
         </div>
       </div>

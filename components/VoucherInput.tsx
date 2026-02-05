@@ -44,7 +44,7 @@ export default function VoucherInput({
       isExternalRef.current = true
       setResult({
         valid: true,
-        message: 'Voucher selected',
+        message: 'Voucher dipilih',
       })
     } else if (!externalCode && code) {
       setCode('')
@@ -87,7 +87,7 @@ export default function VoucherInput({
         }
       } catch (error) {
         console.error('Validation error:', error)
-        setResult({ valid: false, message: 'Invalid voucher code' })
+        setResult({ valid: false, message: 'Kode voucher tidak valid' })
         onVoucherApplied(null)
       } finally {
         setLoading(false)
@@ -140,7 +140,7 @@ export default function VoucherInput({
     <div className="space-y-2">
       <div className="flex items-center gap-3">
         <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">
-          Voucher Code
+          Kode Voucher
         </label>
         
         <div className="relative flex-1">
@@ -149,7 +149,7 @@ export default function VoucherInput({
             value={code}
             onChange={handleChange}
             disabled={disabled || loading}
-            placeholder="Optional"
+            placeholder="Opsional"
             className={`w-full pl-9 pr-9 py-2.5 rounded-lg border-2 font-medium uppercase tracking-wide transition-all text-sm ${
               result?.valid 
                 ? 'border-emerald-500 bg-emerald-50 text-emerald-700' 
@@ -211,7 +211,7 @@ export default function VoucherInput({
           <div className="flex items-center gap-2">
             <Check className="w-3.5 h-3.5 text-emerald-600" />
             <span className="text-xs font-medium text-emerald-700">
-              Voucher applied
+              Voucher diterapkan
             </span>
           </div>
           <span className="text-sm font-bold text-emerald-700">
@@ -224,7 +224,7 @@ export default function VoucherInput({
         <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg ml-[110px]">
           <X className="w-3.5 h-3.5 text-red-600" />
           <span className="text-xs font-medium text-red-700">
-            {result.message || 'Invalid code'}
+            {result.message || 'Kode tidak valid'}
           </span>
         </div>
       )}
