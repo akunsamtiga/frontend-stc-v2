@@ -1,5 +1,5 @@
 // components/MidtransDepositPage.tsx
-// ✅ UPDATED VERSION - Improvements Applied
+// ✅ FIXED VERSION - Balance includes voucher bonus correctly
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CreditCard, Wallet, AlertCircle, CheckCircle, Clock, XCircle, Loader2, Shield, Tag, TrendingUp, History, Info, RefreshCw } from 'lucide-react';
@@ -229,7 +229,7 @@ const TransactionStatusBadge: React.FC<{ status: string }> = ({ status }) => {
 };
 
 const MidtransPaymentPage: React.FC = () => {
-  const router = useRouter(); // ✅ NEW: For navigation to home page
+  const router = useRouter(); // ✅ For navigation to home page
   const [step, setStep] = useState<'amount' | 'payment' | 'success' | 'history'>('amount');
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
@@ -288,7 +288,6 @@ const MidtransPaymentPage: React.FC = () => {
   // Load initial balance on mount
   const loadInitialBalance = async () => {
     try {
-      // ✅ Use same method as balance/page
       const balancesRes = await api.getBothBalances();
       const balances = balancesRes?.data || balancesRes;
       const balance = balances?.realBalance || 0;
@@ -300,9 +299,8 @@ const MidtransPaymentPage: React.FC = () => {
     }
   };
 
-  // ✅ FIXED: Transaction History Monitoring (backend logic changed, UI stays the same)
+  // ✅ FIXED: Transaction monitoring with voucher bonus included in balance
   useEffect(() => {
-    // Monitor when: (1) in success screen verifying OR (2) monitoring flag enabled
     const shouldMonitor = (step === 'success' && paymentStatus === 'verifying') || isMonitoringBalance;
     if (!shouldMonitor || !currentTransaction) return;
 
@@ -314,62 +312,52 @@ const MidtransPaymentPage: React.FC = () => {
       try {
         checkCount++;
 
-        // ✅ NEW LOGIC: Fetch transaction history instead of just balance
+        // ✅ Get transaction history to check status
         const history = await PaymentAPI.getTransactionHistory();
         setTransactionHistory(history);
 
-        // ✅ Update balance using same method as balance/page
-        const balancesRes = await api.getBothBalances();
-        const balances = balancesRes?.data || balancesRes;
-        const balance = balances?.realBalance || 0;
-        setCurrentBalance(balance);
-        setLastBalanceCheck(Date.now());
-
-        const depositAmount = currentTransaction?.amount || 0;
-
-        // ✅ NEW LOGIC: Find specific transaction by order_id
+        // ✅ Find the specific transaction
         const transaction = history.find(t => t.order_id === currentTransaction.order_id);
+        const depositAmount = currentTransaction?.amount || 0;
 
         console.log(`🔍 Check #${checkCount}:`, {
           order_id: currentTransaction.order_id,
           found: !!transaction,
           status: transaction?.status,
           depositAmount,
-          currentBalance: balance,
-          initialBalance
+          voucherBonus,
+          transactionVoucherBonus: transaction?.voucherBonusAmount
         });
 
-        // ✅ NEW LOGIC: Verify by transaction status, not balance comparison
+        // ✅ If transaction is success, get REAL balance from backend (includes voucher bonus)
         if (transaction && transaction.status === 'success') {
           console.log('✅ Payment verified - Transaction status is SUCCESS!');
-          console.log(`   Expected: ${depositAmount}, Transaction amount: ${transaction.amount}`);
 
-          // ✅ FIX: Update voucher bonus from transaction if available
+          // ✅ FIX: Get REAL balance from backend (this includes voucher bonus)
+          const balancesRes = await api.getBothBalances();
+          const balances = balancesRes?.data || balancesRes;
+          const realBalance = balances?.realBalance || 0;
+          
+          setCurrentBalance(realBalance);
+          setLastBalanceCheck(Date.now());
+
+          // ✅ Update voucher bonus from transaction if different
           if (transaction.voucherBonusAmount && transaction.voucherBonusAmount > 0) {
-            setVoucherBonus(transaction.voucherBonusAmount);
-            console.log(`   ✅ Voucher bonus updated from transaction: ${transaction.voucherBonusAmount}`);
+            if (transaction.voucherBonusAmount !== voucherBonus) {
+              setVoucherBonus(transaction.voucherBonusAmount);
+              console.log(`   ✅ Voucher bonus updated from transaction: ${transaction.voucherBonusAmount}`);
+            }
           }
+
+          console.log(`   💰 Real balance (includes voucher): ${realBalance}`);
+          console.log(`   💎 Voucher bonus: ${transaction.voucherBonusAmount || 0}`);
 
           setPaymentStatus('success');
           setIsMonitoringBalance(false);
           clearInterval(intervalId);
           clearTimeout(timeoutId);
 
-          // ✅ FIX: Force balance refresh after 1 second to ensure sync
-          setTimeout(async () => {
-            try {
-              // ✅ Use same method as balance/page
-              const balancesRes = await api.getBothBalances();
-              const balances = balancesRes?.data || balancesRes;
-              const freshBalance = balances?.realBalance || 0;
-              setCurrentBalance(freshBalance);
-              console.log('🔄 Final balance refresh:', freshBalance);
-            } catch (error) {
-              console.error('Failed to refresh balance:', error);
-            }
-          }, 1000);
-
-          // Reload transaction history
+          // ✅ Reload transaction history
           await loadTransactionHistory();
         } else if (transaction && transaction.status === 'failed') {
           console.log('❌ Payment FAILED - Transaction status is FAILED');
@@ -388,10 +376,10 @@ const MidtransPaymentPage: React.FC = () => {
     // Check immediately
     checkPaymentStatus();
 
-    // Poll every 2 seconds for responsiveness
+    // Poll every 2 seconds
     intervalId = setInterval(checkPaymentStatus, 2000);
 
-    // Timeout after 10 minutes (allow delayed payment)
+    // Timeout after 10 minutes
     timeoutId = setTimeout(() => {
       console.log('⏰ Verification timeout - 10 minutes elapsed');
       setPaymentStatus('expired');
@@ -403,7 +391,7 @@ const MidtransPaymentPage: React.FC = () => {
       clearInterval(intervalId);
       clearTimeout(timeoutId);
     };
-  }, [step, paymentStatus, initialBalance, currentTransaction, voucherBonus, isMonitoringBalance]);
+  }, [step, paymentStatus, currentTransaction, voucherBonus, isMonitoringBalance]);
 
   const loadTransactionHistory = async () => {
     try {
@@ -479,12 +467,12 @@ const MidtransPaymentPage: React.FC = () => {
     if (loading) return;
     setLoading(true);
     try {
-      // ✅ Use same method as balance/page
+      // ✅ Get REAL balance from backend (includes all bonuses)
       const balancesRes = await api.getBothBalances();
       const balances = balancesRes?.data || balancesRes;
-      const balance = balances?.realBalance || 0;
-      setCurrentBalance(balance);
-      console.log('🔄 Balance refreshed:', balance);
+      const realBalance = balances?.realBalance || 0;
+      setCurrentBalance(realBalance);
+      console.log('🔄 Balance refreshed (includes voucher bonus):', realBalance);
     } catch (error) {
       console.error('Failed to refresh balance:', error);
     } finally {
@@ -515,7 +503,7 @@ const MidtransPaymentPage: React.FC = () => {
         voucherBonus
       });
 
-      // ✅ Capture initial balance right before payment
+      // ✅ Capture initial balance before payment
       const balancesRes = await api.getBothBalances();
       const balances = balancesRes?.data || balancesRes;
       const freshBalance = balances?.realBalance || 0;
@@ -535,7 +523,7 @@ const MidtransPaymentPage: React.FC = () => {
         throw new Error('No snap token received');
       }
 
-      // ✅ FIX: Store voucher info from backend response
+      // ✅ Store voucher bonus from backend response
       if (response.data.deposit.voucherBonusAmount && response.data.deposit.voucherBonusAmount > 0) {
         setVoucherBonus(response.data.deposit.voucherBonusAmount);
         console.log('💎 Voucher bonus confirmed from backend:', response.data.deposit.voucherBonusAmount);
@@ -567,7 +555,7 @@ const MidtransPaymentPage: React.FC = () => {
     }
   };
 
-  // ✅ UPDATED: Redirect to home page on success
+  // ✅ UPDATED: Redirect to home page
   const handleBackToHome = () => {
     router.push('/'); // ✅ Redirect to home page
   };
@@ -952,7 +940,6 @@ const MidtransPaymentPage: React.FC = () => {
   if (step === 'success') {
     const expectedAmount = currentTransaction?.amount || 0;
     const totalWithBonus = expectedAmount + voucherBonus;
-    const balanceIncrease = currentBalance - initialBalance;
     const verificationElapsed = verificationStartTime ? (Date.now() - verificationStartTime) / 1000 : 0;
     const remainingTime = Math.max(0, 600 - verificationElapsed);
 
@@ -974,7 +961,7 @@ const MidtransPaymentPage: React.FC = () => {
                     Complete your payment and we'll automatically detect it
                   </p>
 
-                  {/* Real-time Balance Display */}
+                  {/* Real-time Balance Display - Includes Voucher Bonus */}
                   <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-6 mb-6">
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-sm font-semibold text-blue-900">Current Balance</span>
@@ -990,33 +977,26 @@ const MidtransPaymentPage: React.FC = () => {
                     <div className="text-4xl font-bold text-blue-700 mb-4">
                       {formatCurrency(currentBalance)}
                     </div>
-                    {balanceIncrease > 0 && (
-                      <div className="bg-white/70 rounded-xl p-4 mb-3">
-                        <div className="text-sm text-blue-800 flex items-center justify-between">
-                          <span>Detected increase:</span>
-                          <strong className="text-green-700">+{formatCurrency(balanceIncrease)}</strong>
+                    <div className="bg-white/70 rounded-xl p-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm text-blue-800">
+                          <span>Deposit amount:</span>
+                          <strong>{formatCurrency(expectedAmount)}</strong>
                         </div>
-                        {balanceIncrease < expectedAmount && (
-                          <div className="text-xs text-amber-700 mt-2">
-                            ⏳ Partial payment • Waiting for full amount...
+                        {voucherBonus > 0 && (
+                          <div className="flex justify-between text-sm text-green-700 font-medium">
+                            <span className="flex items-center gap-1.5">
+                              <Tag className="w-4 h-4" />
+                              Voucher bonus:
+                            </span>
+                            <strong>+{formatCurrency(voucherBonus)}</strong>
                           </div>
                         )}
-                      </div>
-                    )}
-                    <div className="space-y-2 text-sm text-blue-900">
-                      <div className="flex justify-between">
-                        <span>Expecting:</span>
-                        <strong>{formatCurrency(expectedAmount)}</strong>
-                      </div>
-                      {voucherBonus > 0 && (
-                        <div className="flex justify-between text-green-700">
-                          <span className="flex items-center gap-1.5">
-                            <Tag className="w-4 h-4" />
-                            Bonus:
-                          </span>
-                          <strong>+{formatCurrency(voucherBonus)}</strong>
+                        <div className="flex justify-between text-sm font-bold text-gray-900 pt-2 border-t border-gray-200">
+                          <span>Total to receive:</span>
+                          <span className="text-green-700">{formatCurrency(totalWithBonus)}</span>
                         </div>
-                      )}
+                      </div>
                     </div>
                   </div>
 
@@ -1028,8 +1008,8 @@ const MidtransPaymentPage: React.FC = () => {
                         <p className="font-semibold mb-2">Haven't paid yet?</p>
                         <ul className="space-y-1 text-xs">
                           <li>• Complete payment via your banking app</li>
-                          <li>• We're monitoring your balance in real-time</li>
-                          <li>• Status will update automatically when payment received</li>
+                          <li>• Balance will update automatically with voucher bonus</li>
+                          <li>• Status updates when payment is received</li>
                         </ul>
                       </div>
                     </div>
@@ -1053,7 +1033,7 @@ const MidtransPaymentPage: React.FC = () => {
                 </>
               )}
 
-              {/* SUCCESS STATE */}
+              {/* SUCCESS STATE - Balance includes voucher bonus */}
               {paymentStatus === 'success' && (
                 <>
                   <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-fade-in">
@@ -1063,7 +1043,7 @@ const MidtransPaymentPage: React.FC = () => {
                     Payment Successful!
                   </h2>
                   <p className="text-gray-600 mb-8">
-                    Your balance has been updated successfully
+                    Your balance has been updated successfully with voucher bonus
                   </p>
                   
                   <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-6 mb-6">
@@ -1085,6 +1065,10 @@ const MidtransPaymentPage: React.FC = () => {
                           <strong>+{formatCurrency(voucherBonus)}</strong>
                         </div>
                       )}
+                      <div className="flex justify-between text-sm font-bold text-gray-900 pt-2 border-t border-green-200 mt-2">
+                        <span>Total received:</span>
+                        <span className="text-green-700">{formatCurrency(totalWithBonus)}</span>
+                      </div>
                     </div>
                   </div>
 
