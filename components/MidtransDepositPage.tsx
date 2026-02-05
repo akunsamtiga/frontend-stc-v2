@@ -356,20 +356,21 @@ const MidtransPaymentPage: React.FC = () => {
         setStep('payment');
 
         try {
-          const result = await MidtransSnap.pay(deposit.snap_token);
-          
-          if (result.status === 'success' || result.status === 'pending') {
-            setStep('success');
-            await loadTransactionHistory();
-          } else if (result.status === 'closed') {
-            setStep('amount');
-            setError('Payment was cancelled');
-          }
-        } catch (snapError) {
-          console.error('Midtrans Snap error:', snapError);
-          setError('Payment failed. Please try again.');
-          setStep('amount');
-        }
+  const result = await MidtransSnap.pay(deposit.snap_token)
+  
+  if (result.status === 'success' || result.status === 'pending') {
+    // Redirect ke success page dengan order_id untuk verifikasi
+    // URL akan seperti: /payment-success?order_id=ORDER_ID&transaction_status=success
+    window.location.href = `/payment-success?order_id=${deposit.order_id}&transaction_status=${result.status}`
+  } else if (result.status === 'closed') {
+    setStep('amount')
+    setError('Payment was cancelled')
+  }
+} catch (snapError) {
+  console.error('Midtrans Snap error:', snapError)
+  setError('Payment failed. Please try again.')
+  setStep('amount')
+}
       }
     } catch (err: any) {
       setError(err.message || 'Failed to create transaction');

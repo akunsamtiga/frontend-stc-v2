@@ -707,6 +707,7 @@ class ApiClient {
     })
   }
 
+  
   async getAccountBalance(accountType: 'real' | 'demo'): Promise<ApiResponse> {
     const cacheKey = this.getCacheKey(`/balance/${accountType}`)
     const cached = this.getFromCache(cacheKey)
@@ -1047,9 +1048,26 @@ class ApiClient {
     })
   }
 
-  async checkMidtransDepositStatus(orderId: string): Promise<ApiResponse> {
-    return this.client.get(`/payment/deposit/${orderId}/status`)
+async checkMidtransDepositStatus(orderId: string): Promise<ApiResponse<{
+  deposit: {
+    orderId: string
+    status: 'pending' | 'success' | 'failed' | 'expired'
+    amount: number
+    voucherCode?: string
+    voucherBonus?: number
+    paymentType?: string
+    transactionTime?: string
+    settlementTime?: string
   }
+}>> {
+  const cacheKey = this.getCacheKey(`/payment/deposit/${orderId}/status`)
+  
+  // Don't cache this - always fresh check
+  return this.withDeduplication(cacheKey, async () => {
+    const data = await this.client.get(`/payment/deposit/${orderId}/status`)
+    return data
+  })
+}
 
   async createVoucher(data: CreateVoucherRequest): Promise<ApiResponse> {
     try {
