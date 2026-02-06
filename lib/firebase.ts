@@ -1,4 +1,4 @@
-// lib/firebase.ts - FIXED: Prevent stale candle data
+// lib/firebase.ts - FIXED: Real-time data synchronization
 
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
 import { getDatabase, Database, ref, onValue, off, query, limitToLast, get } from 'firebase/database'
@@ -26,7 +26,7 @@ if (typeof window !== 'undefined') {
       app = getApps()[0]
       database = getDatabase(app)
     }
-    console.log('Firebase initialized - STALE-FREE MODE')
+    console.log('Firebase initialized - REAL-TIME SYNC MODE')
   } catch (error) {
     console.error('Firebase init error:', error)
   }
@@ -71,13 +71,13 @@ function deduplicateRequest<T>(key: string, fn: () => Promise<T>): Promise<T> {
 interface CacheEntry {
   data: any
   timestamp: number
-  barTimestamp?: number // ✅ Track which bar period this cache belongs to
+  barTimestamp?: number
 }
 
 class FastMemoryCache {
   private cache = new Map<string, CacheEntry>()
-  private readonly CACHE_TTL = 300000 // 5 min normal
-  private readonly STALE_TTL = 1800000 // 30 min stale
+  private readonly CACHE_TTL = 60000 // 1 minute - shorter for more freshness
+  private readonly STALE_TTL = 300000 // 5 minutes
   private readonly MAX_SIZE = 200
 
   get(key: string, maxAge?: number): any | null {
@@ -125,15 +125,6 @@ class FastMemoryCache {
       timestamp: Date.now(),
       barTimestamp
     })
-  }
-
-  // ✅ NEW: Invalidate cache for specific bar period (for live updates)
-  invalidateBarPeriod(key: string, barTimestamp: number): void {
-    const entry = this.cache.get(key)
-    if (entry && entry.barTimestamp === barTimestamp) {
-      console.log(`🗑️ Invalidated stale cache for bar ${barTimestamp}`)
-      this.cache.delete(key)
-    }
   }
 
   delete(key: string): void {
@@ -337,7 +328,7 @@ function processHistoricalData(rawData: any): any[] {
   return bars
 }
 
-// ✅ NEW: Get current bar period timestamp (must match backend exactly)
+// Get current bar period timestamp (must match backend exactly)
 function getBarPeriodTimestamp(timestamp: number, timeframe: Timeframe): number {
   const seconds = getTimeframeSeconds(timeframe)
   return Math.floor(timestamp / seconds) * seconds
@@ -419,29 +410,29 @@ async function detectAndFillGaps(
   }
 }
 
-// ✅ FIXED: Shorter cache for recent bars to prevent stale data
+// FIXED: Shorter cache for recent bars to prevent stale data
 const TIMEFRAME_CONFIGS: Record<Timeframe, { 
   seconds: number
   cacheStrategy: 'aggressive' | 'moderate' | 'normal'
-  maxCacheAge?: number // ✅ NEW: Max age for cache
+  maxCacheAge?: number
 }> = {
-  '1s': { seconds: 1, cacheStrategy: 'aggressive', maxCacheAge: 2000 }, // 2 seconds max
-  '1m': { seconds: 60, cacheStrategy: 'aggressive', maxCacheAge: 5000 }, // 5 seconds max
-  '5m': { seconds: 300, cacheStrategy: 'moderate', maxCacheAge: 10000 },
-  '15m': { seconds: 900, cacheStrategy: 'moderate', maxCacheAge: 15000 },
-  '30m': { seconds: 1800, cacheStrategy: 'moderate', maxCacheAge: 30000 },
-  '1h': { seconds: 3600, cacheStrategy: 'normal', maxCacheAge: 60000 },
-  '4h': { seconds: 14400, cacheStrategy: 'normal', maxCacheAge: 120000 },
-  '1d': { seconds: 86400, cacheStrategy: 'normal', maxCacheAge: 300000 }
+  '1s': { seconds: 1, cacheStrategy: 'aggressive', maxCacheAge: 3000 }, // 3 seconds
+  '1m': { seconds: 60, cacheStrategy: 'aggressive', maxCacheAge: 10000 }, // 10 seconds
+  '5m': { seconds: 300, cacheStrategy: 'moderate', maxCacheAge: 20000 },
+  '15m': { seconds: 900, cacheStrategy: 'moderate', maxCacheAge: 30000 },
+  '30m': { seconds: 1800, cacheStrategy: 'moderate', maxCacheAge: 60000 },
+  '1h': { seconds: 3600, cacheStrategy: 'normal', maxCacheAge: 120000 },
+  '4h': { seconds: 14400, cacheStrategy: 'normal', maxCacheAge: 300000 },
+  '1d': { seconds: 86400, cacheStrategy: 'normal', maxCacheAge: 600000 }
 }
 
-// ✅ FIXED: Fetch with cache awareness for live bars
+// FIXED: Fetch with cache awareness for live bars
 export async function fetchHistoricalData(
   assetPath: string,
   timeframe: Timeframe = '1m',
   options?: { 
-    forceFresh?: boolean // ✅ NEW: Force bypass cache
-    currentBarTimestamp?: number // ✅ NEW: Current bar being displayed
+    forceFresh?: boolean
+    currentBarTimestamp?: number
   }
 ): Promise<any[]> {
   if (typeof window === 'undefined' || !database) {
@@ -453,16 +444,16 @@ export async function fetchHistoricalData(
     const cacheKey = `${cleanPath}-${timeframe}-historical`
     const config = TIMEFRAME_CONFIGS[timeframe]
 
-    // ✅ Check cache with timeframe-specific max age
+    // Check cache with timeframe-specific max age
     if (!options?.forceFresh) {
       const cached = memoryCache.get(cacheKey, config.maxCacheAge)
       if (cached) {
-        // ✅ If we know the current bar timestamp, invalidate if cache is for that bar
+        // If we know the current bar timestamp, invalidate if cache is for that bar
         if (options?.currentBarTimestamp) {
           const lastCachedBar = cached[cached.length - 1]
           if (lastCachedBar && lastCachedBar.timestamp === options.currentBarTimestamp) {
             console.log('🔄 Cache hit but for current live bar, fetching fresh data...')
-            memoryCache.invalidateBarPeriod(cacheKey, options.currentBarTimestamp)
+            memoryCache.delete(cacheKey)
           } else {
             return cached
           }
@@ -492,7 +483,7 @@ export async function fetchHistoricalData(
       processed = await detectAndFillGaps(cleanPath, timeframe, processed)
       
       if (processed.length > 0) {
-        // ✅ Store with last bar timestamp for invalidation tracking
+        // Store with last bar timestamp for invalidation tracking
         const lastBarTimestamp = processed[processed.length - 1]?.timestamp
         memoryCache.set(cacheKey, processed, lastBarTimestamp)
       }
@@ -553,7 +544,7 @@ export async function fetchHistoricalDataWithStale(
   }
 }
 
-// ✅ FIXED: Invalidate cache when bar completes
+// FIXED: Invalidate cache when bar completes
 async function backfillMissingData(
   assetPath: string,
   timeframe: Timeframe,
@@ -578,7 +569,7 @@ async function backfillMissingData(
     if (missingData.length > 0) {
       console.log(`✅ Backfilled ${missingData.length} candles`)
       
-      // ✅ Invalidate cache since we have new completed bars
+      // Invalidate cache since we have new completed bars
       const cacheKey = `${cleanPath}-${timeframe}-historical`
       memoryCache.delete(cacheKey)
     }
@@ -599,7 +590,7 @@ export function subscribeTo1sOHLC(
   return subscribeToOHLCUpdates(assetPath, '1s', callback)
 }
 
-// ✅ FIXED: Enhanced subscription with cache invalidation on bar complete
+// FIXED: Enhanced subscription with proper real-time sync
 export function subscribeToOHLCUpdates(
   assetPath: string,
   timeframe: Timeframe,
@@ -615,6 +606,7 @@ export function subscribeToOHLCUpdates(
   
   let lastTimestamp: number | null = null
   let lastData: any = null
+  let lastCompletedBarTimestamp: number | null = null
   let reconnectBackfillDone = false
   
   const bufferKey = `${cleanPath}-${timeframe}`
@@ -656,6 +648,17 @@ export function subscribeToOHLCUpdates(
     const isNewBar = timestamp !== lastTimestamp
     const wasCompleted = lastData?.isCompleted || false
     
+    // FIXED: Detect bar completion and invalidate cache immediately
+    if (!wasCompleted && latestBar.isCompleted && timestamp !== lastCompletedBarTimestamp) {
+      lastCompletedBarTimestamp = timestamp
+      const cacheKey = `${cleanPath}-${timeframe}-historical`
+      console.log(`🏁 Bar ${timestamp} completed, invalidating cache`)
+      memoryCache.delete(cacheKey)
+      
+      // Also invalidate any related caches
+      dataBuffer.clear(bufferKey)
+    }
+    
     const hasChanged = !lastData || 
                       lastData.open !== latestBar.open ||
                       lastData.high !== latestBar.high ||
@@ -664,14 +667,7 @@ export function subscribeToOHLCUpdates(
                       lastData.isCompleted !== latestBar.isCompleted
 
     if (isNewBar || hasChanged) {
-      // ✅ If bar just completed, invalidate cache to ensure fresh data on next fetch
-      if (!wasCompleted && latestBar.isCompleted) {
-        const cacheKey = `${cleanPath}-${timeframe}-historical`
-        console.log(`🏁 Bar ${timestamp} completed, invalidating cache`)
-        memoryCache.delete(cacheKey)
-      }
-      
-      dataBuffer.add(bufferKey, {
+      const barData = {
         timestamp,
         datetime: latestBar.datetime || new Date(timestamp * 1000).toISOString(),
         open: latestBar.open || latestBar.close,
@@ -681,23 +677,15 @@ export function subscribeToOHLCUpdates(
         volume: latestBar.volume || 0,
         isNewBar,
         isCompleted: latestBar.isCompleted || false,
-      }, timestamp)
+        previousClose: lastData?.close
+      }
+      
+      dataBuffer.add(bufferKey, barData, timestamp)
       
       lastTimestamp = timestamp
       lastData = latestBar
       
-      callback({
-        timestamp,
-        datetime: latestBar.datetime || new Date(timestamp * 1000).toISOString(),
-        open: latestBar.open || latestBar.close,
-        high: latestBar.high || latestBar.close,
-        low: latestBar.low || latestBar.close,
-        close: latestBar.close,
-        volume: latestBar.volume || 0,
-        isNewBar,
-        isCompleted: latestBar.isCompleted || false,
-        previousClose: lastData?.close // ✅ Helpful for detecting changes
-      })
+      callback(barData)
     }
   }, (error) => {
     console.error(`OHLC subscription error (${timeframe}):`, error)
@@ -707,6 +695,48 @@ export function subscribeToOHLCUpdates(
   return () => {
     off(ohlcRef)
     dataBuffer.clear(bufferKey)
+  }
+}
+
+export function subscribeToPriceUpdates(
+  assetPath: string,
+  callback: (data: any) => void
+): () => void {
+  if (typeof window === 'undefined' || !database) {
+    return () => {}
+  }
+
+  const cleanPath = cleanAssetPath(assetPath)
+  const pricePath = `${cleanPath}/current_price`
+  const priceRef = ref(database, pricePath)
+  
+  let lastPrice: number | null = null
+  let lastTimestamp: number | null = null
+  
+  const unsubscribe = onValue(priceRef, (snapshot) => {
+    const data = snapshot.val()
+    if (!data || !data.price) return
+    
+    connectionTracker.setConnected(true)
+    
+    const isDuplicate = lastPrice !== null && 
+                       lastTimestamp === data.timestamp &&
+                       Math.abs(data.price - lastPrice) < 0.000001
+    
+    if (isDuplicate) return
+    
+    lastPrice = data.price
+    lastTimestamp = data.timestamp
+    
+    callback(data)
+    
+  }, (error) => {
+    console.error('Price subscription error:', error)
+    connectionTracker.setConnected(false)
+  })
+
+  return () => {
+    off(priceRef)
   }
 }
 
@@ -754,48 +784,6 @@ export async function prefetchMultipleTimeframes(
   console.log(`✅ Prefetched ${successful}/${timeframes.length} timeframes in ${duration}ms`)
   
   return results
-}
-
-export function subscribeToPriceUpdates(
-  assetPath: string,
-  callback: (data: any) => void
-): () => void {
-  if (typeof window === 'undefined' || !database) {
-    return () => {}
-  }
-
-  const cleanPath = cleanAssetPath(assetPath)
-  const pricePath = `${cleanPath}/current_price`
-  const priceRef = ref(database, pricePath)
-  
-  let lastPrice: number | null = null
-  let lastTimestamp: number | null = null
-  
-  const unsubscribe = onValue(priceRef, (snapshot) => {
-    const data = snapshot.val()
-    if (!data || !data.price) return
-    
-    connectionTracker.setConnected(true)
-    
-    const isDuplicate = lastPrice !== null && 
-                       lastTimestamp === data.timestamp &&
-                       Math.abs(data.price - lastPrice) < 0.000001
-    
-    if (isDuplicate) return
-    
-    lastPrice = data.price
-    lastTimestamp = data.timestamp
-    
-    callback(data)
-    
-  }, (error) => {
-    console.error('Price subscription error:', error)
-    connectionTracker.setConnected(false)
-  })
-
-  return () => {
-    off(priceRef)
-  }
 }
 
 export async function prefetchDefaultAsset(assetPath: string): Promise<void> {

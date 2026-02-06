@@ -100,9 +100,13 @@ export function useOptimisticOrders() {
     setOrders(prev => prev.filter(order => order.id !== orderId))
   }, [])
 
-  // Set all orders (from API)
-  const setAllOrders = useCallback((newOrders: BinaryOrder[]) => {
-    setOrders(newOrders)
+  // Set all orders (from API or callback)
+  const setAllOrders = useCallback((newOrders: BinaryOrder[] | ((prev: BinaryOrder[]) => BinaryOrder[])) => {
+    if (typeof newOrders === 'function') {
+      setOrders(prev => newOrders(prev))
+    } else {
+      setOrders(newOrders)
+    }
   }, [])
 
   // Combine optimistic and confirmed orders

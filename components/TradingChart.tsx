@@ -1144,29 +1144,47 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     }
   }, [selectedAsset?.id, isInitialized, fetchCurrentPriceImmediately])
 
-  // REALTIME OHLC SUBSCRIPTION with Cache Invalidation
+  // REALTIME OHLC SUBSCRIPTION with Enhanced Cache Invalidation
   useEffect(() => {
     if (!selectedAsset?.realtimeDbPath || !isInitialized) return
     if (!candleSeriesRef.current || !lineSeriesRef.current) return
 
     const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath)
-    
+    let lastCompletedTimestamp: number | null = null
+    let updateCount = 0
+
     const unsubscribe = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
       if (!newBar) return
-      
-      // 🔧 FIX: Invalidate cache saat bar selesai agar refresh mendapat data fresh
-      if (newBar.isCompleted) {
+
+      // FIXED: More aggressive cache invalidation on bar completion
+      if (newBar.isCompleted && newBar.timestamp !== lastCompletedTimestamp) {
+        lastCompletedTimestamp = newBar.timestamp
         const cacheKey = `${selectedAsset.id}-${timeframe}`
-        // Hapus dari cache agar fetch berikutnya ambil dari Firebase
         GLOBAL_DATA_CACHE.delete(cacheKey)
-        console.log('🔄 Bar completed, cache invalidated for', cacheKey)
+
+        // Also clear from firebase cache
+        if (typeof window !== 'undefined' && (window as any).firebaseDebug) {
+          const fbCacheKey = `${assetPath}-${timeframe}-historical`
+          ;(window as any).firebaseDebug.memoryCache.delete(fbCacheKey)
+        }
+
+        console.log('Bar completed, cache invalidated for', cacheKey, 'timestamp:', newBar.timestamp)
+
+        // Force refresh historical data when bar completes to ensure consistency
+        setTimeout(() => {
+          refreshHistoricalData()
+        }, 100)
       }
-      
-      // 🔧 FIX: Pastikan timestamp alignment sama persis dengan backend
+
+      // Get bar period timestamp
       const barPeriod = getBarPeriodTimestamp(newBar.timestamp, timeframe)
 
       if (!currentBarRef.current || currentBarRef.current.timestamp !== barPeriod) {
-        // Bar baru dimulai
+        // New bar started - if we had a previous live bar, it should now be in historical data
+        if (currentBarRef.current && !currentBarRef.current.isCompleted) {
+          console.log('Previous bar was live, will be replaced by historical data')
+        }
+
         currentBarRef.current = {
           timestamp: barPeriod,
           open: newBar.open,
@@ -1176,12 +1194,12 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
           volume: newBar.volume || 0,
           isCompleted: newBar.isCompleted || false
         }
-        console.log('🆕 New bar:', barPeriod, 'Open:', newBar.open)
+        console.log('New bar:', barPeriod, 'Open:', newBar.open)
       } else {
-        // Update bar yang sedang berjalan
+        // Update current bar
         const prevHigh = currentBarRef.current.high
         const prevLow = currentBarRef.current.low
-        
+
         currentBarRef.current = {
           ...currentBarRef.current,
           high: Math.max(currentBarRef.current.high, newBar.high),
@@ -1190,10 +1208,9 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
           volume: (currentBarRef.current.volume || 0) + (newBar.volume || 0),
           isCompleted: newBar.isCompleted || false
         }
-        
-        // Log jika ada perubahan significant (untuk debug)
+
         if (currentBarRef.current.high !== prevHigh || currentBarRef.current.low !== prevLow) {
-          console.log('📊 Bar update - High:', currentBarRef.current.high, 'Low:', currentBarRef.current.low)
+          console.log('Bar update - High:', currentBarRef.current.high, 'Low:', currentBarRef.current.low)
         }
       }
 
@@ -1205,23 +1222,51 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         close: currentBarRef.current.close,
       }
 
-      if (candleAnimatorRef.current) {
-        candleAnimatorRef.current.updateCandle(currentBarRef.current)
-      } else {
-        try {
-          candleSeriesRef.current?.update(chartCandle)
-          lineSeriesRef.current?.update({
-            time: chartCandle.time,
-            value: chartCandle.close
-          })
-        } catch (error) {
-          console.warn('Chart update error:', error)
+      // Update chart with throttling for performance
+      updateCount++
+      if (updateCount % 3 === 0 || newBar.isCompleted || newBar.isNewBar) {
+        if (candleAnimatorRef.current) {
+          candleAnimatorRef.current.updateCandle(currentBarRef.current)
+        } else {
+          try {
+            candleSeriesRef.current?.update(chartCandle)
+            lineSeriesRef.current?.update({
+              time: chartCandle.time,
+              value: chartCandle.close
+            })
+          } catch (error) {
+            console.warn('Chart update error:', error)
+          }
         }
       }
 
       setLastPrice(newBar.close)
       lastUpdateTimeRef.current = Date.now()
     })
+
+    // Helper function to refresh historical data
+    const refreshHistoricalData = async () => {
+      try {
+        const freshData = await fetchHistoricalData(assetPath, timeframe, { forceFresh: true })
+        if (freshData.length > 0) {
+          const candleData = freshData.map((bar: any) => ({
+            time: bar.timestamp as UTCTimestamp,
+            open: bar.open,
+            high: bar.high,
+            low: bar.low,
+            close: bar.close
+          }))
+
+          setCurrentChartData(candleData)
+          candleSeriesRef.current?.setData(candleData)
+          lineSeriesRef.current?.setData(candleData.map((bar: any) => ({ time: bar.time, value: bar.close })))
+
+          console.log('Historical data refreshed after bar completion:', freshData.length, 'bars')
+        }
+      } catch (error) {
+        console.warn('Failed to refresh historical data:', error)
+      }
+    }
 
     return () => {
       unsubscribe()

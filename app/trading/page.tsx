@@ -117,6 +117,7 @@ export default function TradingPage() {
   const notifiedOrderIdsRef = useRef<Set<string>>(new Set())
   const updateOrderRef = useRef(updateOrder)
   const notifyRef = useRef(notify)
+  const loadOrdersRef = useRef<() => Promise<void>>(async () => {})
   
   useEffect(() => {
     updateOrderRef.current = updateOrder
@@ -179,28 +180,58 @@ export default function TradingPage() {
 
   useEffect(() => {
     if (!wsOrder) return
-    
+
     if (wsOrder.event === 'order:created') {
-      loadOrders()
+      // FIXED: Immediately add the order to the list instead of just reloading
+      if (wsOrder.orderData) {
+        // Add order directly for instant UI update
+        setAllOrders((prevOrders: BinaryOrder[]) => {
+          // Check if order already exists
+          if (prevOrders.some((o: BinaryOrder) => o.id === wsOrder.id)) {
+            return prevOrders
+          }
+          return [wsOrder.orderData, ...prevOrders]
+        })
+        console.log('Order added via WebSocket:', wsOrder.id)
+      }
+      // Also reload to ensure consistency
+      loadOrdersRef.current()
     } else if (wsOrder.event === 'order:settled') {
       updateOrderRef.current(wsOrder.id, {
         status: wsOrder.status,
         exit_price: wsOrder.exit_price,
         profit: wsOrder.profit,
       } as any)
-      
+
       if (!notifiedOrderIdsRef.current.has(wsOrder.id)) {
         notifiedOrderIdsRef.current.add(wsOrder.id)
-        
+
         api.getOrderById(wsOrder.id).then(response => {
           const fullOrder = response?.data || response
           notifyRef.current(fullOrder)
         })
       }
-      
+
       loadBalances()
+    } else if (wsOrder.event === 'order:updated') {
+      // FIXED: Handle order updates (including status changes to ACTIVE)
+      if (wsOrder.orderData) {
+        setAllOrders((prevOrders: BinaryOrder[]) => {
+          const existingIndex = prevOrders.findIndex((o: BinaryOrder) => o.id === wsOrder.id)
+          if (existingIndex >= 0) {
+            // Update existing order
+            const updated = [...prevOrders]
+            updated[existingIndex] = { ...updated[existingIndex], ...wsOrder.orderData }
+            return updated
+          } else {
+            // Add new order
+            return [wsOrder.orderData, ...prevOrders]
+          }
+        })
+        console.log('Order updated via WebSocket:', wsOrder.id)
+      }
     }
-  }, [wsOrder]) 
+  }, [wsOrder])
 
   const handlePollingResult = useCallback((resultOrder: BinaryOrder) => {
     updateOrderRef.current(resultOrder.id, resultOrder)
@@ -253,6 +284,11 @@ export default function TradingPage() {
     } catch (error) {
     }
   }, [setAllOrders])
+
+  // Update ref for use in other effects
+  useEffect(() => {
+    loadOrdersRef.current = loadOrders
+  }, [loadOrders])
 
   const loadData = useCallback(async () => {
     try {

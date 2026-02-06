@@ -155,6 +155,16 @@ class WebSocketService {
       }
     });
 
+    // ✅ Order created events (highest priority for new orders)
+    this.socket.on('order:created', (data: OrderUpdate) => {
+      console.log('🆕 Order created via WebSocket:', data.id);
+      this.handleHighPriorityOrderUpdate({
+        ...data,
+        event: 'order:created',
+        priority: 'high',
+      });
+    });
+
     // ✅ Order settled events (highest priority)
     this.socket.on('order:settled', (data: OrderUpdate) => {
       this.handleHighPriorityOrderUpdate({
