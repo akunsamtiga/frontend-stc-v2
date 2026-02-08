@@ -77,8 +77,8 @@ export default function WithdrawalPage() {
       setRealBalance(balanceData?.balance || 0)
       
     } catch (error) {
-      console.error('Failed to load withdrawal data:', error)
-      toast.error('Failed to load withdrawal data')
+      console.error('Gagal memuat data penarikan:', error)
+      toast.error('Gagal memuat data penarikan')
     } finally {
       setLoading(false)
     }
@@ -86,33 +86,33 @@ export default function WithdrawalPage() {
 
   const canRequestWithdrawal = (): { can: boolean; reason?: string } => {
     if (!profile) {
-      return { can: false, reason: 'Profile not loaded' }
+      return { can: false, reason: 'Profil belum dimuat' }
     }
 
     const profileInfo = profile.profileInfo
     
     if (!profileInfo?.identity?.isVerified) {
-      return { can: false, reason: 'KTP verification required' }
+      return { can: false, reason: 'Verifikasi KTP diperlukan' }
     }
     
     if (!profileInfo?.selfie?.isVerified) {
-      return { can: false, reason: 'Selfie verification required' }
+      return { can: false, reason: 'Verifikasi selfie diperlukan' }
     }
     
     if (!profileInfo?.bankAccount?.accountNumber) {
-      return { can: false, reason: 'Bank account required' }
+      return { can: false, reason: 'Rekening bank diperlukan' }
     }
     
     if (realBalance < WITHDRAWAL_CONFIG.MIN_AMOUNT) {
       return { 
         can: false, 
-        reason: `Minimum balance: ${formatCurrency(WITHDRAWAL_CONFIG.MIN_AMOUNT)}` 
+        reason: `Saldo minimum: ${formatCurrency(WITHDRAWAL_CONFIG.MIN_AMOUNT)}` 
       }
     }
     
     const hasPending = requests.some(r => r.status === 'pending')
     if (hasPending) {
-      return { can: false, reason: 'You have a pending withdrawal request' }
+      return { can: false, reason: 'Anda memiliki permintaan penarikan yang sedang diproses' }
     }
     
     return { can: true }
@@ -122,17 +122,17 @@ export default function WithdrawalPage() {
     const amt = parseFloat(amount)
     
     if (isNaN(amt) || amt <= 0) {
-      toast.error('Invalid amount')
+      toast.error('Jumlah tidak valid')
       return
     }
     
     if (amt < WITHDRAWAL_CONFIG.MIN_AMOUNT) {
-      toast.error(`Minimum withdrawal: ${formatCurrency(WITHDRAWAL_CONFIG.MIN_AMOUNT)}`)
+      toast.error(`Minimum penarikan: ${formatCurrency(WITHDRAWAL_CONFIG.MIN_AMOUNT)}`)
       return
     }
     
     if (amt > realBalance) {
-      toast.error('Insufficient balance')
+      toast.error('Saldo tidak mencukupi')
       return
     }
 
@@ -140,34 +140,34 @@ export default function WithdrawalPage() {
     try {
       await api.requestWithdrawal({
         amount: amt,
-        description: description || 'Withdrawal request'
+        description: description || 'Permintaan penarikan'
       })
       
-      toast.success('Withdrawal request submitted successfully!')
+      toast.success('Permintaan penarikan berhasil diajukan!')
       setShowRequestModal(false)
       setAmount('')
       setDescription('')
       loadData()
       
     } catch (error: any) {
-      toast.error(error?.response?.data?.error || 'Failed to submit withdrawal request')
+      toast.error(error?.response?.data?.error || 'Gagal mengajukan penarikan')
     } finally {
       setSubmitting(false)
     }
   }
 
   const handleCancelRequest = async (requestId: string) => {
-    if (!confirm('Are you sure you want to cancel this withdrawal request?')) {
+    if (!confirm('Apakah Anda yakin ingin membatalkan permintaan penarikan ini?')) {
       return
     }
 
     setCancelling(requestId)
     try {
       await api.cancelWithdrawalRequest(requestId)
-      toast.success('Withdrawal request cancelled')
+      toast.success('Permintaan penarikan dibatalkan')
       loadData()
     } catch (error: any) {
-      toast.error(error?.response?.data?.error || 'Failed to cancel request')
+      toast.error(error?.response?.data?.error || 'Gagal membatalkan permintaan')
     } finally {
       setCancelling(null)
     }
@@ -190,7 +190,7 @@ export default function WithdrawalPage() {
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-500 mb-2 sm:mb-3">
             <span>Dashboard</span>
             <span>/</span>
-            <span className="text-gray-900 font-medium">Withdrawal</span>
+            <span className="text-gray-900 font-medium">Penarikan</span>
           </div>
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-3">
@@ -198,8 +198,8 @@ export default function WithdrawalPage() {
                 <ArrowUpFromLine className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">Withdrawal</h1>
-                <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Request withdrawal from your Real account</p>
+                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">Penarikan</h1>
+                <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Ajukan penarikan dari akun Real Anda</p>
               </div>
             </div>
             
@@ -208,7 +208,7 @@ export default function WithdrawalPage() {
               className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
-              <span className="hidden sm:inline">Refresh</span>
+              <span className="hidden sm:inline">Segarkan</span>
             </button>
           </div>
         </div>
@@ -218,7 +218,7 @@ export default function WithdrawalPage() {
           <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <div className="text-xs sm:text-sm text-gray-500 mb-1">Available Balance</div>
+                <div className="text-xs sm:text-sm text-gray-500 mb-1">Saldo Tersedia</div>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-900">
                   {formatCurrency(realBalance)}
                 </div>
@@ -230,7 +230,7 @@ export default function WithdrawalPage() {
                 className="flex items-center gap-2 px-4 py-3 bg-red-500 hover:bg-red-600 disabled:bg-gray-300 text-white rounded-xl font-semibold transition-colors shadow-sm disabled:cursor-not-allowed"
               >
                 <ArrowUpFromLine className="w-5 h-5" />
-                <span>Request Withdrawal</span>
+                <span>Ajukan Penarikan</span>
               </button>
             </div>
 
@@ -243,21 +243,21 @@ export default function WithdrawalPage() {
 
             {/* Requirements Checklist */}
             <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="text-sm font-semibold text-gray-900 mb-3">Withdrawal Requirements:</div>
+              <div className="text-sm font-semibold text-gray-900 mb-3">Persyaratan Penarikan:</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   { 
-                    label: 'KTP Verified', 
+                    label: 'KTP Terverifikasi', 
                     met: profile?.profileInfo?.identity?.isVerified || false,
                     icon: Shield
                   },
                   { 
-                    label: 'Selfie Verified', 
+                    label: 'Selfie Terverifikasi', 
                     met: profile?.profileInfo?.selfie?.isVerified || false,
                     icon: Camera
                   },
                   { 
-                    label: 'Bank Account Added', 
+                    label: 'Rekening Bank Ditambahkan', 
                     met: !!profile?.profileInfo?.bankAccount?.accountNumber,
                     icon: CreditCard
                   },
@@ -283,31 +283,12 @@ export default function WithdrawalPage() {
           </div>
         </div>
 
-        {/* Summary Cards */}
-        {summary && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
-            {[
-              { label: 'Pending', value: summary.pending, color: 'yellow' },
-              { label: 'Approved', value: summary.approved, color: 'blue' },
-              { label: 'Completed', value: summary.completed, color: 'green' },
-              { label: 'Rejected', value: summary.rejected, color: 'red' },
-            ].map((stat, idx) => (
-              <div key={idx} className="bg-white rounded-xl p-4 border border-gray-200">
-                <div className={`text-2xl sm:text-3xl font-bold text-${stat.color}-600 mb-1`}>
-                  {stat.value}
-                </div>
-                <div className="text-xs sm:text-sm text-gray-500">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Requests List */}
+        {/* Requests List - Now appears directly after Balance section */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
           <div className="p-4 sm:p-5 lg:p-6 border-b border-gray-200">
             <div className="flex items-center gap-2 sm:gap-3">
               <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
-              <h2 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900">My Requests</h2>
+              <h2 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900">Riwayat Penarikan</h2>
             </div>
           </div>
 
@@ -315,15 +296,15 @@ export default function WithdrawalPage() {
             {loading ? (
               <div className="text-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-gray-400 mx-auto mb-3" />
-                <p className="text-sm text-gray-500">Loading requests...</p>
+                <p className="text-sm text-gray-500">Memuat riwayat penarikan...</p>
               </div>
             ) : requests.length === 0 ? (
               <div className="text-center py-12 sm:py-16">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
                   <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300" />
                 </div>
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1 sm:mb-2">No withdrawal requests</h3>
-                <p className="text-sm sm:text-base text-gray-500">You haven't made any withdrawal requests yet</p>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1 sm:mb-2">Belum ada penarikan</h3>
+                <p className="text-sm sm:text-base text-gray-500">Anda belum pernah mengajukan penarikan</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -356,7 +337,7 @@ export default function WithdrawalPage() {
                             disabled={cancelling === request.id}
                             className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
                           >
-                            {cancelling === request.id ? 'Cancelling...' : 'Cancel'}
+                            {cancelling === request.id ? 'Membatalkan...' : 'Batalkan'}
                           </button>
                         )}
                       </div>
@@ -369,7 +350,7 @@ export default function WithdrawalPage() {
 
                       {request.bankAccount && (
                         <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                          <div className="text-xs text-gray-500 mb-1">Bank Account</div>
+                          <div className="text-xs text-gray-500 mb-1">Rekening Bank</div>
                           <div className="text-sm font-semibold text-gray-900">
                             {request.bankAccount.bankName} - {request.bankAccount.accountNumber}
                           </div>
@@ -383,7 +364,7 @@ export default function WithdrawalPage() {
                         <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
                           <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
                           <div>
-                            <div className="text-xs font-semibold text-red-900 mb-1">Rejection Reason:</div>
+                            <div className="text-xs font-semibold text-red-900 mb-1">Alasan Penolakan:</div>
                             <div className="text-sm text-red-800">{request.rejectionReason}</div>
                           </div>
                         </div>
@@ -393,9 +374,9 @@ export default function WithdrawalPage() {
                         <div className="flex items-start gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
                           <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
                           <div>
-                            <div className="text-xs font-semibold text-green-900 mb-1">Completed</div>
+                            <div className="text-xs font-semibold text-green-900 mb-1">Selesai</div>
                             <div className="text-xs text-green-800">
-                              Processed on {formatDate(request.reviewedAt)}
+                              Diproses pada {formatDate(request.reviewedAt)}
                             </div>
                           </div>
                         </div>
@@ -422,9 +403,9 @@ export default function WithdrawalPage() {
                       <ArrowUpFromLine className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
                     </div>
                     <div>
-                      <h2 className="text-lg sm:text-xl font-bold text-gray-900">Request Withdrawal</h2>
+                      <h2 className="text-lg sm:text-xl font-bold text-gray-900">Ajukan Penarikan</h2>
                       <p className="text-xs sm:text-sm text-gray-500">
-                        Max: {formatCurrency(realBalance)}
+                        Maks: {formatCurrency(realBalance)}
                       </p>
                     </div>
                   </div>
@@ -439,7 +420,7 @@ export default function WithdrawalPage() {
 
               <div className="p-5 sm:p-6 space-y-5">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Amount (IDR)</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Jumlah (IDR)</label>
                   <input
                     type="number"
                     value={amount}
@@ -457,7 +438,7 @@ export default function WithdrawalPage() {
 
                 {quickAmounts.length > 0 && (
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">Quick Select</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">Pilih Cepat</label>
                     <div className="grid grid-cols-3 gap-2">
                       {quickAmounts.map((preset) => (
                         <button
@@ -469,7 +450,7 @@ export default function WithdrawalPage() {
                               : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
                           }`}
                         >
-                          {preset >= 1000000 ? `${preset/1000000}M` : `${preset/1000}K`}
+                          {preset >= 1000000 ? `${preset/1000000}jt` : `${preset/1000}rb`}
                         </button>
                       ))}
                     </div>
@@ -477,11 +458,11 @@ export default function WithdrawalPage() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Description (Optional)</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Keterangan (Opsional)</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Enter withdrawal reason..."
+                    placeholder="Masukkan alasan penarikan..."
                     className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 focus:border-red-500 focus:bg-white transition-all focus:outline-none resize-none"
                     rows={3}
                   />
@@ -491,9 +472,9 @@ export default function WithdrawalPage() {
                   <div className="flex items-start gap-2">
                     <Clock className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-sm font-semibold text-blue-900 mb-1">Processing Time</div>
+                      <div className="text-sm font-semibold text-blue-900 mb-1">Waktu Pemrosesan</div>
                       <div className="text-xs text-blue-800">
-                        Withdrawal requests are processed within 1-2 business days after admin approval.
+                        Penarikan diproses dalam 1-2 hari kerja setelah disetujui admin.
                       </div>
                     </div>
                   </div>
@@ -507,10 +488,10 @@ export default function WithdrawalPage() {
                   {submitting ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Submitting...
+                      Mengajukan...
                     </>
                   ) : (
-                    'Submit Request'
+                    'Ajukan Penarikan'
                   )}
                 </button>
               </div>

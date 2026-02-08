@@ -1677,7 +1677,7 @@ export default function LandingPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-sm font-semibold text-emerald-400">Kode Referral</span>
-                        <span className="px-2 py-0.5 bg-emerald-500/20 rounded text-xs font-mono text-emerald-300">
+                        <span className="px-2 py-0.5 bg-emerald-500/20 rounded text-xs text-emerald-300">
                           {referralCode}
                         </span>
                       </div>
@@ -1772,7 +1772,7 @@ export default function LandingPage() {
                       onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                       placeholder="Contoh: WUTJ8JGX"
                       disabled={loading}
-                      className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all font-mono"
+                      className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                       maxLength={8}
                     />
                     <p className="mt-1 text-xs text-gray-500">

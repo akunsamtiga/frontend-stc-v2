@@ -199,7 +199,7 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
                       <div className="flex items-start justify-between gap-3 mb-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className={`text-lg font-black font-mono ${
+                            <span className={`text-lg font-black ${
                               isClickable ? 'text-gray-900' : 'text-gray-500'
                             }`}>
                               {voucher.code}

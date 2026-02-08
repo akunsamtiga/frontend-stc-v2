@@ -629,7 +629,7 @@ export default function TradingPage() {
                   <span className="text-sm text-white ml-2">{effectiveProfitRate}%</span>
                 </>
               ) : (
-                <span className="text-sm text-gray-400">Select Asset</span>
+                <span className="text-sm text-gray-400">Pilih Asset</span>
               )}
             </button>
 

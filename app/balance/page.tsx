@@ -687,7 +687,7 @@ export default function BalancePage() {
                     </div>
                     <div className="mb-auto">
                       <div className="text-white/70 text-xs font-bold tracking-widest mb-2">SALDO SAAT INI</div>
-                      <div className="text-3xl font-black text-white tracking-tight break-all mb-2" style={{ fontFamily: 'monospace' }}>
+                      <div className="text-3xl font-black text-white tracking-tight break-all mb-2">
                         {formatCurrency(realBalance)}
                       </div>
                       {profitBonus > 0 && (
@@ -774,7 +774,7 @@ export default function BalancePage() {
                     </div>
                     <div className="mb-auto">
                       <div className="text-white/70 text-xs font-bold tracking-widest mb-2">SALDO SAAT INI</div>
-                      <div className="text-3xl font-black text-white tracking-tight break-all mb-2" style={{ fontFamily: 'monospace' }}>
+                      <div className="text-3xl font-black text-white tracking-tight break-all mb-2">
                         {formatCurrency(demoBalance)}
                       </div>
                       <div className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 backdrop-blur-sm rounded-md border border-white/20">

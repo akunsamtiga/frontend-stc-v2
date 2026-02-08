@@ -248,27 +248,24 @@ const MidtransPaymentPage: React.FC = () => {
 
   // Preset jumlah cepat - 6 opsi untuk tampilan yang rapi
   const quickAmounts = [
-    { value: 50000, label: '50K' },
     { value: 100000, label: '100K' },
     { value: 200000, label: '200K' },
     { value: 500000, label: '500K' },
-    { value: 1000000, label: '1M' },
-    { value: 2000000, label: '2M' }
+    { value: 1000000, label: '1000K' },
+    { value: 4000000, label: '4000K' },
+    { value: 8000000, label: '8000K' }
   ];
 
   // Ikon metode pembayaran
   const paymentMethods = [
-    { name: 'BCA', icon: '/bca.webp', category: 'bank' },
-    { name: 'BNI', icon: '/bni.webp', category: 'bank' },
+    { name: 'Permata', icon: '/permata.webp', category: 'bank' },
     { name: 'BRI', icon: '/bri.webp', category: 'bank' },
     { name: 'Mandiri', icon: '/mandiri.webp', category: 'bank' },
-    { name: 'Dana', icon: '/dana.webp', category: 'ewallet' },
-    { name: 'OVO', icon: '/ovo.webp', category: 'ewallet' },
     { name: 'GoPay', icon: '/gopay.webp', category: 'ewallet' },
-    { name: 'Linkaja', icon: '/linkaja.webp', category: 'ewallet' },
-    { name: 'Visa', icon: '/visa.webp', category: 'card' },
-    { name: 'Mastercard', icon: '/mastercard.webp', category: 'card' },
-    { name: 'QRIS', icon: '/qris.png', category: 'qris' },
+    { name: 'cimb', icon: '/cimb.webp', category: 'bank' },
+    { name: 'BNI', icon: '/bni.webp', category: 'bank' },
+    { name: 'BSI', icon: '/bsi.webp', category: 'bank' },
+    { name: 'QRIS', icon: '/qris1.png', category: 'qris' },
   ];
 
   // ✅ PINDAHKAN KE ATAS - Sebelum useEffect
@@ -508,13 +505,13 @@ const MidtransPaymentPage: React.FC = () => {
 
   const handleSubmit = async () => {
     const depositAmount = parseInt(amount);
-    if (isNaN(depositAmount) || depositAmount < 10000) {
-      setError('Minimal deposit adalah Rp 10.000');
+    if (isNaN(depositAmount) || depositAmount < 100000) {
+      setError('Minimal deposit adalah Rp 100.000');
       return;
     }
 
-    if (depositAmount > 100000000) {
-      setError('Maksimal deposit adalah Rp 100.000.000');
+    if (depositAmount > 10000000) {
+      setError('Maksimal deposit adalah Rp 10.000.000');
       return;
     }
 
@@ -758,7 +755,7 @@ const MidtransPaymentPage: React.FC = () => {
                   ))}
                 </div>
                 <p className="text-xs text-gray-500 text-center">
-                  Minimal: Rp 10.000 • Maksimal: Rp 100.000.000
+                  Minimal: Rp 100.000 • Maksimal: Rp 10.000.000
                 </p>
                 {error && (
                   <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
@@ -817,9 +814,8 @@ const MidtransPaymentPage: React.FC = () => {
             {/* KOLOM KANAN - Ringkasan */}
             <div className="lg:sticky lg:top-8 h-fit">
               <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                <div className="bg-gradient-to-r from-sky-600 to-indigo-600 p-5 sm:p-6">
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <TrendUp size={20} weight="bold" />
+                <div className="bg-gradient-to-l from-gray-300 to-gray-600 p-4 sm:p-5">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                     Ringkasan Pembayaran
                   </h3>
                 </div>
@@ -886,24 +882,31 @@ const MidtransPaymentPage: React.FC = () => {
                         <Wallet size={32} weight="light" className="text-gray-400" />
                       </div>
                       <p className="text-sm text-gray-500">Masukkan jumlah untuk melihat ringkasan</p>
-                      <p className="text-xs text-gray-400 mt-1">Minimal: Rp 10.000</p>
+                      <p className="text-xs text-gray-400 mt-1">Minimal: Rp 100.000</p>
                     </div>
                   )}
 
-                  {/* Keamanan Pembayaran */}
-                  <div className="mt-6 pt-6 border-t border-gray-200">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0">
-                        <Shield size={24} weight="fill" className="text-sky-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-gray-900 text-sm mb-1">Pembayaran Aman</h4>
-                        <p className="text-xs text-gray-600 leading-relaxed">
-                          Level keamanan tambahan untuk pembayaran. Informasi pembayaran Anda dienkripsi dan aman. Proteksi SSL 2048 bit robust
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+{/* Keamanan Pembayaran */}
+<div className="mt-6 pt-6 border-t border-gray-200">
+  <div className="flex items-center gap-3 bg-gradient-to-l from-emerald-500/20 to-transparent rounded-xl p-4">
+    <div className="flex-shrink-0">
+      <Image
+        src="/pci.png"
+        alt="Payment Secure"
+        width={80}
+        height={80}
+        className="object-contain p-2 rounded-xl"
+      />
+    </div>
+    <div className="flex-1 min-w-0">
+      <h4 className="font-semibold text-gray-900 text-sm mb-1">Pembayaran Aman</h4>
+      <p className="text-xs text-gray-600 leading-relaxed">
+        Level keamanan tambahan untuk pembayaran. Informasi pembayaran Anda 
+        dienkripsi dan aman. Proteksi SSL 2048 bit robust
+      </p>
+    </div>
+  </div>
+</div>
 
                   {/* Metode Pembayaran */}
                   <div className="mt-4 pt-4 border-t border-gray-200">
