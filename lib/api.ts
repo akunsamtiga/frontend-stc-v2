@@ -1596,7 +1596,7 @@ async trackInformationClick(id: string): Promise<void> {
         type: file.type
       });
 
-      // ✅ FIX: Handle response flexibly - backend might return wrapped or unwrapped
+      // ✅ IMPROVED: Handle response flexibly - backend might return wrapped or unwrapped
       const response = await this.client.post(
         '/admin/information/upload-image',
         formData,
@@ -1608,11 +1608,11 @@ async trackInformationClick(id: string): Promise<void> {
         }
       )
 
-      console.log('📥 Upload response (raw):', response);
+      console.log('📥 Upload response (raw):', JSON.stringify(response, null, 2));
       console.log('📥 Response type:', typeof response);
       console.log('📥 Response keys:', response ? Object.keys(response) : 'null');
 
-      // ✅ FIX: Handle multiple possible response formats
+      // ✅ IMPROVED: Extract result from ANY possible response format
       interface UploadImageResponse {
         url: string;
         path: string;
@@ -1621,36 +1621,80 @@ async trackInformationClick(id: string): Promise<void> {
       
       let result: UploadImageResponse | null = null;
 
+      // Helper function to check if object has required fields
+      const hasRequiredFields = (obj: any): obj is UploadImageResponse => {
+        return obj && 
+               typeof obj === 'object' && 
+               typeof obj.url === 'string' && 
+               typeof obj.path === 'string' &&
+               obj.url.length > 0 &&
+               obj.path.length > 0;
+      };
+
       if (response && typeof response === 'object') {
-        // Case 1: Response has success wrapper (from ResponseInterceptor)
-        if ('success' in response && response.success === true && 'data' in response) {
-          result = (response.data as unknown) as UploadImageResponse;
-          console.log('✅ Response format: wrapped with success/data');
-        }
-        // Case 2: Response is the data directly (url, path, size)
-        else if ('url' in response && 'path' in response) {
-          result = (response as unknown) as UploadImageResponse;
+        // Case 1: Response is the data directly (url, path, size)
+        if (hasRequiredFields(response)) {
+          result = response;
           console.log('✅ Response format: direct data object');
         }
-        // Case 3: Response might be nested differently
-        else if ('data' in response) {
-          const nestedData = response.data;
-          if (nestedData && typeof nestedData === 'object' && 'url' in nestedData) {
-            result = (nestedData as unknown) as UploadImageResponse;
-            console.log('✅ Response format: nested data');
+        // Case 2: Response has success wrapper -> response.data
+        else if ('success' in response && 'data' in response && hasRequiredFields(response.data)) {
+          result = response.data;
+          console.log('✅ Response format: wrapped with success/data');
+        }
+        // Case 3: Response has data wrapper only -> response.data
+        else if ('data' in response && hasRequiredFields(response.data)) {
+          result = response.data;
+          console.log('✅ Response format: data wrapper');
+        }
+        // Case 4: Response might be double-nested -> response.data.data
+        else if ('data' in response && response.data && typeof response.data === 'object' && 'data' in response.data) {
+          if (hasRequiredFields(response.data.data)) {
+            result = response.data.data;
+            console.log('✅ Response format: double-nested data');
+          }
+        }
+        // Case 5: Try to find url and path anywhere in the response tree
+        else {
+          console.warn('⚠️ Searching for url/path in response tree...');
+          const searchForFields = (obj: any, depth = 0): UploadImageResponse | null => {
+            if (depth > 3) return null; // Prevent infinite recursion
+            
+            if (hasRequiredFields(obj)) {
+              return obj;
+            }
+            
+            // Search in all object properties
+            for (const key in obj) {
+              if (obj[key] && typeof obj[key] === 'object') {
+                const found = searchForFields(obj[key], depth + 1);
+                if (found) return found;
+              }
+            }
+            
+            return null;
+          };
+          
+          result = searchForFields(response);
+          if (result) {
+            console.log('✅ Response format: found via deep search');
           }
         }
       }
 
-      if (!result || !result.url || !result.path) {
-        console.error('❌ Invalid response structure:', response);
-        throw new Error('Invalid response from server: missing url or path. Response: ' + JSON.stringify(response));
+      if (!result) {
+        console.error('❌ Could not extract url/path from response:', JSON.stringify(response, null, 2));
+        throw new Error('Invalid response from server: missing url or path. Full response logged to console.');
       }
 
       console.log('✅ Extracted result:', result);
       toast.success('Gambar berhasil diupload')
 
-      return result;
+      return {
+        url: result.url,
+        path: result.path,
+        size: result.size || file.size
+      };
     } catch (error: any) {
       console.error('❌ Upload error details:', {
         message: error.message,

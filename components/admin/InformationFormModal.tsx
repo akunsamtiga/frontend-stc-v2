@@ -114,7 +114,7 @@ export default function InformationFormModal({ information, onClose, onSuccess }
     })
   }
 
-  // ✅ NO LIMITS VERSION - Accept ALL images!
+  // ✅ IMPROVED: Better error handling and logging
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -125,7 +125,6 @@ export default function InformationFormModal({ information, onClose, onSuccess }
       type: file.type
     })
 
-    // ✅ NO VALIDATION - Accept everything!
     try {
       setUploadingImage(true)
       setUploadProgress(0)
@@ -174,22 +173,35 @@ export default function InformationFormModal({ information, onClose, onSuccess }
 
       // Upload
       console.log('📤 Uploading...')
+      console.log('📤 File to upload:', {
+        name: fileToUpload.name,
+        size: fileToUpload.size,
+        type: fileToUpload.type
+      })
+      
       const result = await api.uploadInformationImage(fileToUpload)
-      console.log('✅ Upload success:', result)
+      
+      console.log('✅ Upload success!')
+      console.log('✅ Upload result:', result)
 
       clearInterval(progressInterval)
       setUploadProgress(100)
 
+      // ✅ IMPROVED: Validate result before updating state
+      if (!result || !result.url || !result.path) {
+        throw new Error('Invalid upload result: missing url or path')
+      }
+
       // Update form data
       setFormData(prev => ({
         ...prev,
-        imageUrl: result.url || '',
-        imagePath: result.path || '',
+        imageUrl: result.url,
+        imagePath: result.path,
         imageSize: result.size || fileToUpload.size,
       }))
 
       // Set preview
-      setImagePreview(result.url || URL.createObjectURL(fileToUpload))
+      setImagePreview(result.url)
 
       setTimeout(() => {
         setUploadProgress(0)
@@ -198,9 +210,25 @@ export default function InformationFormModal({ information, onClose, onSuccess }
       toast.success('Gambar berhasil diupload!')
     } catch (error: any) {
       console.error('❌ Upload error:', error)
+      console.error('❌ Error details:', {
+        message: error.message,
+        response: error.response,
+        stack: error.stack
+      })
+      
       setUploadProgress(0)
       
-      const errorMessage = error.response?.data?.message || error.message || 'Gagal mengupload gambar'
+      // ✅ IMPROVED: Better error message
+      let errorMessage = 'Gagal mengupload gambar'
+      
+      if (error.response?.data) {
+        const errorData = error.response.data
+        errorMessage = errorData.error || errorData.message || errorData.detail || JSON.stringify(errorData)
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
+      console.error('❌ Final error message:', errorMessage)
       toast.error(errorMessage)
       
       // Reset file input
