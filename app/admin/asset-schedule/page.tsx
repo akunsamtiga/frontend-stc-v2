@@ -7,10 +7,11 @@ import { useAuthStore } from '@/store/auth'
 import { assetScheduleApi, assetsApi } from '@/lib/api-wrapper'
 import Navbar from '@/components/Navbar'
 import { 
-  Calendar, Clock, AlertCircle, CheckCircle, XCircle, Ban, Plus, 
-  RefreshCw, Edit, Trash2, Play, X, Download
-} from 'lucide-react'
+  Calendar, Clock, Warning, CheckCircle, XCircle, Prohibit, Plus, 
+  ArrowsClockwise, PencilSimple, Trash, Play, X, DownloadSimple
+} from 'phosphor-react'
 import { toast } from 'sonner'
+import { TimezoneUtil } from '@/lib/utils'
 import type { 
   AssetSchedule, 
   CreateAssetScheduleRequest,
@@ -61,14 +62,19 @@ const StatCardSkeleton = () => (
 )
 
 const LoadingSkeleton = () => (
-  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
+    {/* Pattern Overlay */}
+    <div 
+      className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"
+    ></div>
+    
     <Navbar />
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="mb-6 animate-pulse">
         <div className="h-7 bg-white/10 rounded w-48 mb-2"></div>
         <div className="h-4 bg-white/10 rounded w-64"></div>
       </div>
-      <div className="grid grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[...Array(4)].map((_, i) => (
           <StatCardSkeleton key={i} />
         ))}
@@ -256,7 +262,7 @@ export default function AssetSchedulePage() {
     return null
   }
 
-  if (loading) {
+  if (loading && !refreshing) {
     return <LoadingSkeleton />
   }
 
@@ -274,160 +280,201 @@ export default function AssetSchedulePage() {
     return labels[status] || status
   }
 
-  const getTimeframeLabel = (tf: string) => {
-    const labels: Record<string, string> = {
-      '1m': '1 Menit',
-      '5m': '5 Menit',
-      '15m': '15 Menit',
-      '30m': '30 Menit',
-      '1h': '1 Jam',
-      '4h': '4 Jam',
-      '1d': '1 Hari'
-    }
-    return labels[tf] || tf
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
+      {/* Pattern Overlay */}
+      <div 
+        className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"
+      ></div>
+
       <Navbar />
       
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-6xl mx-auto px-4 py-6 relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-1">Manajemen Jadwal Aset</h1>
-            <p className="text-sm text-slate-400">Kelola jadwal trading otomatis untuk aset</p>
+            <h1 className="text-2xl font-bold text-white">Manajemen Jadwal Aset</h1>
+            <p className="text-sm text-slate-400 mt-1">Kelola jadwal trading otomatis untuk aset</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="p-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg transition-colors disabled:opacity-50"
-              title="Refresh"
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors text-sm disabled:opacity-50"
             >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <ArrowsClockwise 
+                className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} 
+                weight="bold"
+              />
+              <span className="hidden sm:inline">Refresh</span>
             </button>
             <button
               onClick={handleExportCSV}
               disabled={schedules.length === 0}
-              className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 rounded-lg transition-colors disabled:opacity-50 text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors text-sm disabled:opacity-50"
             >
-              <Download className="w-4 h-4 inline mr-2" />
-              Ekspor
+              <DownloadSimple className="w-4 h-4" weight="bold" />
+              <span className="hidden sm:inline">Ekspor</span>
             </button>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors text-sm"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4" weight="bold" />
               Buat
             </button>
           </div>
         </div>
 
+        {/* Last Updated */}
+        {lastUpdated && (
+          <div className="text-xs text-slate-500 mb-4">
+            Terakhir diperbarui: {TimezoneUtil.formatDateTime(lastUpdated)}
+          </div>
+        )}
+
         {/* Statistics */}
         {statistics && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
-              <div className="text-sm text-slate-400 mb-1">Total</div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded bg-blue-500/10 flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-blue-400" weight="duotone" />
+                </div>
+                <span className="text-xs text-slate-400">Total</span>
+              </div>
               <div className="text-2xl font-bold text-white">{statistics.total}</div>
             </div>
-            <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
-              <div className="text-sm text-slate-400 mb-1">Menunggu</div>
+            
+            <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded bg-yellow-500/10 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-yellow-400" weight="duotone" />
+                </div>
+                <span className="text-xs text-slate-400">Menunggu</span>
+              </div>
               <div className="text-2xl font-bold text-yellow-400">{statistics.pending}</div>
             </div>
-            <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
-              <div className="text-sm text-slate-400 mb-1">Dijalankan</div>
+            
+            <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded bg-green-500/10 flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-green-400" weight="duotone" />
+                </div>
+                <span className="text-xs text-slate-400">Dijalankan</span>
+              </div>
               <div className="text-2xl font-bold text-green-400">{statistics.executed}</div>
             </div>
-            <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
-              <div className="text-sm text-slate-400 mb-1">Gagal</div>
+            
+            <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded bg-red-500/10 flex items-center justify-center">
+                  <XCircle className="w-5 h-5 text-red-400" weight="duotone" />
+                </div>
+                <span className="text-xs text-slate-400">Gagal</span>
+              </div>
               <div className="text-2xl font-bold text-red-400">{statistics.failed}</div>
             </div>
           </div>
         )}
 
         {/* Schedules Table */}
-        {schedules.length === 0 ? (
-          <div className="bg-white/5 rounded-lg p-12 text-center border border-white/10 backdrop-blur-sm">
-            <Calendar className="w-16 h-16 text-slate-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-white mb-2">Tidak ada jadwal</h3>
-            <p className="text-slate-400 mb-6">Buat jadwal pertama Anda untuk memulai</p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors inline-flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Buat Jadwal
-            </button>
-          </div>
-        ) : (
-          <div className="bg-white/5 rounded-lg border border-white/10 backdrop-blur-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-white/5 border-b border-white/10">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Aset</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Waktu</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Hitung Mundur</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Tren</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Status</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/10">
-                  {schedules.map((schedule) => {
-                    const timeUntil = getTimeUntilExecution(schedule.scheduledTime)
-
-                    return (
-                      <tr key={schedule.id} className="hover:bg-white/5 transition-colors">
-                        <td className="px-4 py-3">
-                          <div className="font-semibold text-white">{schedule.assetSymbol}</div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="text-sm text-slate-300">{formatScheduledTime(schedule.scheduledTime)}</div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className={`text-sm font-medium ${timeUntil.isPast ? 'text-slate-500' : 'text-indigo-400'}`}>
-                            {timeUntil.formatted}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border ${
-                            schedule.trend === 'buy' 
-                              ? 'bg-green-500/10 text-green-400 border-green-500/20' 
-                              : 'bg-red-500/10 text-red-400 border-red-500/20'
-                          }`}>
-                            {schedule.trend === 'buy' ? '📈' : '📉'} {getTrendLabel(schedule.trend)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border ${
-                            schedule.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                            schedule.status === 'executed' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                            schedule.status === 'failed' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                            'bg-slate-500/10 text-slate-400 border-slate-500/20'
-                          }`}>
-                            {getStatusLabel(schedule.status)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <button
-                            onClick={() => handleDeleteSchedule(schedule.id)}
-                            className="p-1.5 text-red-400 hover:bg-red-500/10 rounded transition-colors"
-                            title="Hapus"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+        <div className="bg-white/5 rounded-lg border border-white/10 backdrop-blur-sm overflow-hidden">
+          <div className="p-4 border-b border-white/10">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-slate-400" weight="duotone" />
+              <h2 className="text-base font-semibold text-white">Daftar Jadwal</h2>
             </div>
           </div>
-        )}
+
+          <div className="p-4">
+            {loading ? (
+              <div className="text-center py-12">
+                <ArrowsClockwise className="w-8 h-8 animate-spin text-slate-400 mx-auto mb-3" weight="bold" />
+                <p className="text-sm text-slate-400">Memuat jadwal...</p>
+              </div>
+            ) : schedules.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="w-16 h-16 bg-white/5 rounded-xl flex items-center justify-center mx-auto mb-4 border border-white/10">
+                  <Calendar className="w-8 h-8 text-slate-500" weight="duotone" />
+                </div>
+                <h3 className="text-base font-semibold text-white mb-2">Tidak ada jadwal</h3>
+                <p className="text-sm text-slate-400 mb-6">Buat jadwal pertama Anda untuk memulai</p>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors text-sm"
+                >
+                  <Plus className="w-5 h-5" weight="bold" />
+                  Buat Jadwal
+                </button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-white/5 border-b border-white/10">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Aset</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Waktu</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Hitung Mundur</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Tren</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Status</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/10">
+                    {schedules.map((schedule) => {
+                      const timeUntil = getTimeUntilExecution(schedule.scheduledTime)
+
+                      return (
+                        <tr key={schedule.id} className="hover:bg-white/5 transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="font-semibold text-white">{schedule.assetSymbol}</div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="text-sm text-slate-300">{formatScheduledTime(schedule.scheduledTime)}</div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className={`text-sm font-medium ${timeUntil.isPast ? 'text-slate-500' : 'text-indigo-400'}`}>
+                              {timeUntil.formatted}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold border ${
+                              schedule.trend === 'buy' 
+                                ? 'bg-green-500/10 text-green-400 border-green-500/20' 
+                                : 'bg-red-500/10 text-red-400 border-red-500/20'
+                            }`}>
+                              {schedule.trend === 'buy' ? '📈' : '📉'} {getTrendLabel(schedule.trend)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold border ${
+                              schedule.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                              schedule.status === 'executed' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                              schedule.status === 'failed' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                              'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                            }`}>
+                              {getStatusLabel(schedule.status)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              onClick={() => handleDeleteSchedule(schedule.id)}
+                              className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg transition-colors"
+                              title="Hapus"
+                            >
+                              <Trash className="w-4 h-4" weight="duotone" />
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Create Modal */}
@@ -443,14 +490,14 @@ export default function AssetSchedulePage() {
                     onClick={() => setShowCreateModal(false)}
                     className="p-1 hover:bg-white/5 text-slate-400 rounded transition-colors"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-5 h-5" weight="bold" />
                   </button>
                 </div>
 
                 {formErrors.length > 0 && (
                   <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                     <div className="flex items-start gap-2">
-                      <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                      <Warning className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" weight="duotone" />
                       <div className="flex-1">
                         <p className="text-sm font-medium text-red-400 mb-1">Perbaiki kesalahan berikut:</p>
                         <ul className="text-sm text-red-300 list-disc list-inside space-y-1">

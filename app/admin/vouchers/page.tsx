@@ -9,10 +9,10 @@ import Navbar from '@/components/Navbar'
 import CreateVoucherModal from '@/components/CreateVoucherModal'
 import { Voucher, VoucherStatistics } from '@/types'
 import { 
-  Tag, Plus, Edit2, Trash2, BarChart3, Search, Filter,
-  Loader2, CheckCircle, XCircle, Calendar, Users, DollarSign,
-  TrendingUp, AlertCircle, RefreshCw, ChevronRight
-} from 'lucide-react'
+  Tag, Plus, PencilSimple, Trash, ChartBar, MagnifyingGlass,
+  ArrowsClockwise, CheckCircle, XCircle, Calendar, Users, CurrencyDollar,
+  TrendUp, Warning, Info
+} from 'phosphor-react'
 import { toast } from 'sonner'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
@@ -35,7 +35,12 @@ const StatCardSkeleton = () => (
 )
 
 const LoadingSkeleton = () => (
-  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
+    {/* Pattern Overlay */}
+    <div 
+      className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"
+    ></div>
+    
     <Navbar />
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="mb-6 animate-pulse">
@@ -216,7 +221,7 @@ export default function VoucherManagementPage() {
     if (!voucher.isActive) {
       return (
         <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-white/5 text-slate-400 border border-white/10 flex items-center gap-1">
-          <XCircle className="w-3 h-3" />
+          <XCircle className="w-3 h-3" weight="duotone" />
           Nonaktif
         </span>
       )
@@ -225,7 +230,7 @@ export default function VoucherManagementPage() {
     if (now < validFrom) {
       return (
         <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center gap-1">
-          <Calendar className="w-3 h-3" />
+          <Calendar className="w-3 h-3" weight="duotone" />
           Terjadwal
         </span>
       )
@@ -234,7 +239,7 @@ export default function VoucherManagementPage() {
     if (now > validUntil) {
       return (
         <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20 flex items-center gap-1">
-          <AlertCircle className="w-3 h-3" />
+          <Warning className="w-3 h-3" weight="duotone" />
           Kadaluarsa
         </span>
       )
@@ -243,7 +248,7 @@ export default function VoucherManagementPage() {
     if (voucher.maxUses && voucher.usedCount >= voucher.maxUses) {
       return (
         <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20 flex items-center gap-1">
-          <AlertCircle className="w-3 h-3" />
+          <Warning className="w-3 h-3" weight="duotone" />
           Batas Tercapai
         </span>
       )
@@ -251,7 +256,7 @@ export default function VoucherManagementPage() {
     
     return (
       <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-green-500/10 text-green-400 border border-green-500/20 flex items-center gap-1">
-        <CheckCircle className="w-3 h-3" />
+        <CheckCircle className="w-3 h-3" weight="duotone" />
         Aktif
       </span>
     )
@@ -278,51 +283,66 @@ export default function VoucherManagementPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
+      {/* Pattern Overlay */}
+      <div 
+        className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"
+      ></div>
+      
       <Navbar />
       
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-6xl mx-auto px-4 py-6 relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-1">Manajemen Voucher</h1>
-            <p className="text-sm text-slate-400">Buat dan kelola voucher deposit</p>
+            <h1 className="text-2xl font-bold text-white">Manajemen Voucher</h1>
+            <p className="text-sm text-slate-400 mt-1">Buat dan kelola voucher deposit</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="p-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg transition-colors disabled:opacity-50"
-              title="Refresh"
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors text-sm disabled:opacity-50"
             >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <ArrowsClockwise 
+                className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} 
+                weight="bold"
+              />
+              <span className="hidden sm:inline">Refresh</span>
             </button>
             <button
               onClick={handleCreateVoucher}
               className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4" weight="bold" />
               Buat Voucher
             </button>
           </div>
         </div>
 
+        {/* Last Updated */}
+        {lastUpdated && (
+          <div className="text-xs text-slate-500 mb-4">
+            Terakhir diperbarui: {lastUpdated.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </div>
+        )}
+
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded bg-sky-500/20 flex items-center justify-center">
-                <Tag className="w-4 h-4 text-sky-400" />
+              <div className="w-8 h-8 rounded bg-sky-500/10 flex items-center justify-center">
+                <Tag className="w-5 h-5 text-sky-400" weight="duotone" />
               </div>
               <span className="text-xs text-slate-400">Total Voucher</span>
             </div>
             <div className="text-2xl font-bold text-white">{vouchers.length}</div>
           </div>
 
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded bg-green-500/20 flex items-center justify-center">
-                <CheckCircle className="w-4 h-4 text-green-400" />
+              <div className="w-8 h-8 rounded bg-green-500/10 flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-green-400" weight="duotone" />
               </div>
               <span className="text-xs text-slate-400">Aktif</span>
             </div>
@@ -331,10 +351,10 @@ export default function VoucherManagementPage() {
             </div>
           </div>
 
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded bg-blue-500/20 flex items-center justify-center">
-                <Users className="w-4 h-4 text-blue-400" />
+              <div className="w-8 h-8 rounded bg-blue-500/10 flex items-center justify-center">
+                <Users className="w-5 h-5 text-blue-400" weight="duotone" />
               </div>
               <span className="text-xs text-slate-400">Total Penggunaan</span>
             </div>
@@ -343,38 +363,38 @@ export default function VoucherManagementPage() {
             </div>
           </div>
 
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded bg-yellow-500/20 flex items-center justify-center">
-                <DollarSign className="w-4 h-4 text-yellow-400" />
+              <div className="w-8 h-8 rounded bg-yellow-500/10 flex items-center justify-center">
+                <CurrencyDollar className="w-5 h-5 text-yellow-400" weight="duotone" />
               </div>
               <span className="text-xs text-slate-400">Total Bonus</span>
             </div>
-            <div className="text-2xl font-bold text-yellow-400">
+            <div className="text-lg font-bold text-yellow-400">
               {formatCurrency(vouchers.reduce((sum, v) => sum + (v.value * v.usedCount), 0))}
             </div>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" weight="bold" />
             <input
               type="text"
               placeholder="Cari berdasarkan kode atau deskripsi..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:border-indigo-500 focus:bg-white/10 transition-all text-white placeholder-slate-500 text-sm"
+              className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:border-indigo-500 focus:bg-white/10 transition-all text-white placeholder-slate-500 text-sm focus:outline-none"
             />
           </div>
 
-          <div className="inline-flex bg-white/5 rounded-lg p-1 backdrop-blur-sm border border-white/10">
+          <div className="inline-flex bg-white/5 rounded-lg p-1 border border-white/10">
             <button
               onClick={() => { setFilterActive('all'); setCurrentPage(1); }}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+              className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
                 filterActive === 'all'
-                  ? 'bg-indigo-600 text-white shadow-lg'
+                  ? 'bg-indigo-600 text-white'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -382,9 +402,9 @@ export default function VoucherManagementPage() {
             </button>
             <button
               onClick={() => { setFilterActive('active'); setCurrentPage(1); }}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+              className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
                 filterActive === 'active'
-                  ? 'bg-indigo-600 text-white shadow-lg'
+                  ? 'bg-indigo-600 text-white'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -392,9 +412,9 @@ export default function VoucherManagementPage() {
             </button>
             <button
               onClick={() => { setFilterActive('inactive'); setCurrentPage(1); }}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+              className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
                 filterActive === 'inactive'
-                  ? 'bg-indigo-600 text-white shadow-lg'
+                  ? 'bg-indigo-600 text-white'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -406,7 +426,9 @@ export default function VoucherManagementPage() {
         {/* Vouchers List */}
         {filteredVouchers.length === 0 ? (
           <div className="bg-white/5 rounded-lg p-12 text-center border border-white/10 backdrop-blur-sm">
-            <Tag className="w-16 h-16 text-slate-500 mx-auto mb-4" />
+            <div className="w-16 h-16 bg-white/5 rounded-xl flex items-center justify-center mx-auto mb-4 border border-white/10">
+              <Tag className="w-8 h-8 text-slate-500" weight="duotone" />
+            </div>
             <h3 className="text-lg font-semibold text-white mb-2">Tidak ada voucher</h3>
             <p className="text-slate-400 mb-6">
               {searchQuery 
@@ -424,11 +446,11 @@ export default function VoucherManagementPage() {
             )}
           </div>
         ) : (
-          <div className="grid gap-3">
+          <div className="space-y-3">
             {filteredVouchers.map((voucher) => (
               <div
                 key={voucher.id}
-                className="bg-white/5 rounded-lg p-5 border border-white/10 backdrop-blur-sm hover:bg-white/10 hover:border-indigo-500/30 transition-all"
+                className="bg-white/5 rounded-lg p-5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
@@ -445,7 +467,7 @@ export default function VoucherManagementPage() {
                     
                     <div className="flex flex-wrap gap-4 text-sm">
                       <div className="flex items-center gap-2">
-                        <DollarSign className="w-4 h-4 text-slate-400" />
+                        <CurrencyDollar className="w-4 h-4 text-slate-400" weight="duotone" />
                         <span className="text-slate-300">
                           {voucher.type === 'percentage' 
                             ? `${voucher.value}% Bonus`
@@ -455,7 +477,7 @@ export default function VoucherManagementPage() {
                       </div>
                       
                       <div className="flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-slate-400" />
+                        <TrendUp className="w-4 h-4 text-slate-400" weight="duotone" />
                         <span className="text-slate-300">
                           Min: {formatCurrency(voucher.minDeposit)}
                         </span>
@@ -463,7 +485,7 @@ export default function VoucherManagementPage() {
                       
                       {voucher.type === 'percentage' && voucher.maxBonusAmount && (
                         <div className="flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4 text-slate-400" />
+                          <Info className="w-4 h-4 text-slate-400" weight="duotone" />
                           <span className="text-slate-300">
                             Max: {formatCurrency(voucher.maxBonusAmount)}
                           </span>
@@ -471,7 +493,7 @@ export default function VoucherManagementPage() {
                       )}
                       
                       <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-slate-400" />
+                        <Users className="w-4 h-4 text-slate-400" weight="duotone" />
                         <span className="text-slate-300">
                           {voucher.eligibleStatuses.join(', ')}
                         </span>
@@ -485,24 +507,24 @@ export default function VoucherManagementPage() {
                       className="p-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg transition-colors"
                       title="Lihat Statistik"
                     >
-                      <BarChart3 className="w-5 h-5" />
+                      <ChartBar className="w-5 h-5" weight="duotone" />
                     </button>
                     
                     <button
                       onClick={() => handleEditVoucher(voucher)}
-                      className="p-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg transition-colors"
+                      className="p-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg transition-colors border border-indigo-500/20"
                       title="Edit"
                     >
-                      <Edit2 className="w-5 h-5" />
+                      <PencilSimple className="w-5 h-5" weight="duotone" />
                     </button>
                     
                     {user?.role === 'super_admin' && (
                       <button
                         onClick={() => handleDeleteVoucher(voucher.id)}
-                        className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors"
+                        className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors border border-red-500/20"
                         title="Hapus"
                       >
-                        <Trash2 className="w-5 h-5" />
+                        <Trash className="w-5 h-5" weight="duotone" />
                       </button>
                     )}
                   </div>
@@ -589,7 +611,7 @@ export default function VoucherManagementPage() {
                   }}
                   className="p-2 hover:bg-white/5 text-slate-400 rounded-lg transition-colors"
                 >
-                  <XCircle className="w-5 h-5" />
+                  <XCircle className="w-5 h-5" weight="duotone" />
                 </button>
               </div>
 

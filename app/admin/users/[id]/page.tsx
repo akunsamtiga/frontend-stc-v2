@@ -9,19 +9,17 @@ import Navbar from '@/components/Navbar'
 import { 
   ArrowLeft,
   User,
-  Mail,
+  Envelope,
   Shield,
-  Calendar,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
+  CalendarBlank,
+  CurrencyDollar,
+  TrendUp,
+  TrendDown,
   Activity,
   Target,
-  ChevronRight,
   CheckCircle,
-  XCircle,
-  Loader2
-} from 'lucide-react'
+  XCircle
+} from 'phosphor-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
 interface UserDetail {
@@ -79,7 +77,12 @@ const TransactionSkeleton = () => (
 )
 
 const LoadingSkeleton = () => (
-  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
+    {/* Pattern Overlay */}
+    <div 
+      className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"
+    ></div>
+    
     <Navbar />
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="mb-6 animate-pulse">
@@ -168,9 +171,14 @@ export default function AdminUserDetailPage() {
 
   if (!userDetail) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
+        {/* Pattern Overlay */}
+        <div 
+          className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"
+        ></div>
+        
         <Navbar />
-        <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
           <div className="text-center py-16">
             <p className="text-slate-400 mb-6">Pengguna tidak ditemukan</p>
             <button
@@ -186,24 +194,29 @@ export default function AdminUserDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
+      {/* Pattern Overlay */}
+      <div 
+        className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"
+      ></div>
+
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-6xl mx-auto px-4 py-6 relative z-10">
         {/* Back Button */}
         <button
           onClick={() => router.push('/admin/users')}
-          className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+          className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-6"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-5 h-5" weight="bold" />
           <span>Kembali ke Pengguna</span>
         </button>
 
         {/* User Info Card */}
-        <div className="bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-emerald-500/20 border border-indigo-500/30 rounded-2xl p-6">
+        <div className="bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-emerald-500/20 border border-indigo-500/30 rounded-2xl p-6 mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center gap-6">
             <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
-              <User className="w-10 h-10 text-white" />
+              <User className="w-10 h-10 text-white" weight="duotone" />
             </div>
             
             <div className="flex-1">
@@ -211,7 +224,7 @@ export default function AdminUserDetailPage() {
               
               <div className="flex flex-wrap gap-3">
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-500/20 border border-indigo-500/30 rounded-full">
-                  <Shield className="w-4 h-4 text-indigo-400" />
+                  <Shield className="w-4 h-4 text-indigo-400" weight="duotone" />
                   <span className="text-sm font-medium text-indigo-400 capitalize">
                     {userDetail.user.role.replace('_', ' ')}
                   </span>
@@ -223,9 +236,9 @@ export default function AdminUserDetailPage() {
                     : 'bg-red-500/20 border border-red-500/30'
                 }`}>
                   {userDetail.user.isActive ? (
-                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    <CheckCircle className="w-4 h-4 text-green-400" weight="duotone" />
                   ) : (
-                    <XCircle className="w-4 h-4 text-red-400" />
+                    <XCircle className="w-4 h-4 text-red-400" weight="duotone" />
                   )}
                   <span className={`text-sm font-medium ${
                     userDetail.user.isActive ? 'text-green-400' : 'text-red-400'
@@ -235,7 +248,7 @@ export default function AdminUserDetailPage() {
                 </div>
                 
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full">
-                  <Calendar className="w-4 h-4 text-slate-400" />
+                  <CalendarBlank className="w-4 h-4 text-slate-400" weight="duotone" />
                   <span className="text-sm text-slate-400">
                     Anggota sejak {new Date(userDetail.user.createdAt).toLocaleDateString('id-ID', { 
                       year: 'numeric', 
@@ -250,11 +263,11 @@ export default function AdminUserDetailPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-green-400" />
+                <CurrencyDollar className="w-5 h-5 text-green-400" weight="duotone" />
               </div>
               <span className="text-sm text-slate-400">Total Deposit</span>
             </div>
@@ -263,10 +276,10 @@ export default function AdminUserDetailPage() {
             </div>
           </div>
 
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center">
-                <TrendingDown className="w-5 h-5 text-red-400" />
+                <TrendDown className="w-5 h-5 text-red-400" weight="duotone" />
               </div>
               <span className="text-sm text-slate-400">Total Penarikan</span>
             </div>
@@ -275,10 +288,10 @@ export default function AdminUserDetailPage() {
             </div>
           </div>
 
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center">
-                <Activity className="w-5 h-5 text-purple-400" />
+                <Activity className="w-5 h-5 text-purple-400" weight="duotone" />
               </div>
               <span className="text-sm text-slate-400">Total Order</span>
             </div>
@@ -287,10 +300,10 @@ export default function AdminUserDetailPage() {
             </div>
           </div>
 
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
-                <Target className="w-5 h-5 text-emerald-400" />
+                <Target className="w-5 h-5 text-emerald-400" weight="duotone" />
               </div>
               <span className="text-sm text-slate-400">Win Rate</span>
             </div>
@@ -330,7 +343,7 @@ export default function AdminUserDetailPage() {
               <div className="space-y-3">
                 {userDetail.balanceHistory.transactions.length === 0 ? (
                   <div className="text-center py-12">
-                    <DollarSign className="w-16 h-16 mx-auto mb-4 text-slate-500 opacity-20" />
+                    <CurrencyDollar className="w-16 h-16 mx-auto mb-4 text-slate-500 opacity-20" weight="duotone" />
                     <p className="text-slate-400">Tidak ada transaksi saldo</p>
                   </div>
                 ) : (
@@ -344,9 +357,9 @@ export default function AdminUserDetailPage() {
                           tx.type === 'deposit' ? 'bg-green-500/10' : 'bg-red-500/10'
                         }`}>
                           {tx.type === 'deposit' ? (
-                            <TrendingUp className="w-5 h-5 text-green-400" />
+                            <TrendUp className="w-5 h-5 text-green-400" weight="duotone" />
                           ) : (
-                            <TrendingDown className="w-5 h-5 text-red-400" />
+                            <TrendDown className="w-5 h-5 text-red-400" weight="duotone" />
                           )}
                         </div>
                         <div>
@@ -427,9 +440,9 @@ export default function AdminUserDetailPage() {
                             order.direction === 'CALL' ? 'bg-green-500/10' : 'bg-red-500/10'
                           }`}>
                             {order.direction === 'CALL' ? (
-                              <TrendingUp className="w-5 h-5 text-green-400" />
+                              <TrendUp className="w-5 h-5 text-green-400" weight="duotone" />
                             ) : (
-                              <TrendingDown className="w-5 h-5 text-red-400" />
+                              <TrendDown className="w-5 h-5 text-red-400" weight="duotone" />
                             )}
                           </div>
                           <div>

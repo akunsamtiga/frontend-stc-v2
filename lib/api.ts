@@ -30,7 +30,12 @@ import type {
   UpdateAssetScheduleRequest,
   GetAssetSchedulesQuery,
   AssetSchedulePagination,
-  AssetScheduleStatistics
+  AssetScheduleStatistics,
+  Information,
+  CreateInformationRequest,
+  UpdateInformationRequest,
+  GetInformationQuery,
+  InformationPagination
 } from '@/types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1'
@@ -1353,6 +1358,347 @@ async bulkDeleteAssetSchedules(ids: string[]): Promise<ApiResponse> {
     throw error
   }
 }
+
+async getAllInformation(query?: GetInformationQuery): Promise<InformationPagination> {
+  try {
+    const params = new URLSearchParams()
+    
+    if (query?.page) params.append('page', query.page.toString())
+    if (query?.limit) params.append('limit', query.limit.toString())
+    if (query?.isActive !== undefined) params.append('isActive', query.isActive.toString())
+    if (query?.isPinned !== undefined) params.append('isPinned', query.isPinned.toString())
+    if (query?.type) params.append('type', query.type)
+    if (query?.priority) params.append('priority', query.priority)
+    if (query?.search) params.append('search', query.search)
+    if (query?.sortBy) params.append('sortBy', query.sortBy)
+    if (query?.sortOrder) params.append('sortOrder', query.sortOrder)
+    
+    const queryString = params.toString()
+    const url = queryString ? `/admin/information?${queryString}` : '/admin/information'
+    
+    const response: ApiResponse<Information[]> = await this.client.get(url)
+    
+    console.log('📊 API getAllInformation raw response:', response)
+    
+    // ✅ FIX: Handle berbagai format response dari backend
+    let items: Information[] = []
+    let total = 0
+    let page = 1
+    let limit = 20
+    let totalPages = 0
+
+    // Jika response.data adalah array
+    if (Array.isArray(response.data)) {
+      items = response.data
+      total = items.length
+      totalPages = 1
+    } 
+    // Jika response.data adalah object dengan property items/data
+    else if (response.data && typeof response.data === 'object') {
+      const data = response.data as any
+      
+      // Cek berbagai kemungkinan struktur
+      if (Array.isArray(data.items)) {
+        items = data.items
+        total = data.total || items.length
+        page = data.page || 1
+        limit = data.limit || 20
+        totalPages = data.totalPages || Math.ceil(total / limit)
+      } else if (Array.isArray(data.data)) {
+        items = data.data
+        total = data.total || items.length
+        page = data.page || 1
+        limit = data.limit || 20
+        totalPages = data.totalPages || Math.ceil(total / limit)
+      } else if (Array.isArray(data.information)) {
+        items = data.information
+        total = data.total || items.length
+        page = data.page || 1
+        limit = data.limit || 20
+        totalPages = data.totalPages || Math.ceil(total / limit)
+      }
+      // Jika data adalah single object, wrap ke array
+      else if (data.id) {
+        items = [data]
+        total = 1
+        totalPages = 1
+      }
+    }
+    
+    console.log('📊 Parsed information:', { items: items.length, total, page, totalPages })
+    
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages,
+    }
+  } catch (error) {
+    console.error('❌ getAllInformation API error:', error)
+    return {
+      items: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+      totalPages: 0,
+    }
+  }
+}
+
+
+/**
+ * Get information by ID (Admin)
+ */
+async getInformationById(id: string): Promise<Information> {
+  try {
+    const response: ApiResponse<Information> = await this.client.get(`/admin/information/${id}`)
+    return response.data!
+  } catch (error) {
+    throw error
+  }
+}
+
+/**
+ * Create new information (Admin)
+ */
+async createInformation(data: CreateInformationRequest): Promise<Information> {
+  try {
+    const response: ApiResponse<Information> = await this.client.post('/admin/information', data)
+    
+    if (response.success) {
+      toast.success('Informasi berhasil dibuat')
+    }
+    
+    return response.data!
+  } catch (error) {
+    throw error
+  }
+}
+
+/**
+ * Update information (Admin)
+ */
+async updateInformation(id: string, data: UpdateInformationRequest): Promise<Information> {
+  try {
+    const response: ApiResponse<Information> = await this.client.put(`/admin/information/${id}`, data)
+    
+    if (response.success) {
+      toast.success('Informasi berhasil diperbarui')
+    }
+    
+    return response.data!
+  } catch (error) {
+    throw error
+  }
+}
+
+/**
+ * Delete information (Admin)
+ */
+async deleteInformation(id: string): Promise<void> {
+  try {
+    const response: ApiResponse<void> = await this.client.delete(`/admin/information/${id}`)
+    
+    if (response.success) {
+      toast.success('Informasi berhasil dihapus')
+    }
+  } catch (error) {
+    throw error
+  }
+}
+
+/**
+ * Toggle information active status (Admin)
+ */
+async toggleInformationStatus(id: string): Promise<Information> {
+  try {
+    const response: ApiResponse<Information> = await this.client.patch(`/admin/information/${id}/toggle-active`)
+    
+    if (response.success) {
+      const status = response.data?.isActive ? 'diaktifkan' : 'dinonaktifkan'
+      toast.success(`Informasi berhasil ${status}`)
+    }
+    
+    return response.data!
+  } catch (error) {
+    throw error
+  }
+}
+
+/**
+ * Get active information for users
+ */
+async getActiveInformation(page: number = 1, limit: number = 20): Promise<InformationPagination> {
+  try {
+    const response: ApiResponse<Information[]> = await this.client.get(`/information?page=${page}&limit=${limit}`)
+    
+    console.log('📊 API getActiveInformation response:', {
+      hasData: !!response.data,
+      dataType: Array.isArray(response.data) ? 'array' : typeof response.data,
+      dataLength: Array.isArray(response.data) ? response.data.length : 'N/A',
+    })
+    
+    // ✅ Defensive: Ensure data is always an array
+    const items = Array.isArray(response.data) ? response.data : []
+    
+    return {
+      items,
+      total: response.pagination?.total || 0,
+      page: response.pagination?.page || 1,
+      limit: response.pagination?.limit || 20,
+      totalPages: response.pagination?.totalPages || 0,
+    }
+  } catch (error) {
+    console.error('❌ getActiveInformation API error:', error)
+    // Return safe empty result instead of throwing
+    return {
+      items: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+      totalPages: 0,
+    }
+  }
+}
+
+/**
+ * Get information detail by ID (User)
+ */
+async getInformationDetail(id: string): Promise<Information> {
+  try {
+    const response: ApiResponse<Information> = await this.client.get(`/information/${id}`)
+    return response.data!
+  } catch (error) {
+    throw error
+  }
+}
+
+/**
+ * Track information click (User)
+ */
+async trackInformationClick(id: string): Promise<void> {
+  try {
+    await this.client.post(`/information/${id}/click`)
+  } catch (error) {
+    throw error
+  }
+}
+
+    async uploadInformationImage(file: File): Promise<{ url: string; path: string; size: number }> {
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+
+      console.log('📤 Uploading image:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
+
+      // ✅ FIX: Handle response flexibly - backend might return wrapped or unwrapped
+      const response = await this.client.post(
+        '/admin/information/upload-image',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          timeout: 60000,
+        }
+      )
+
+      console.log('📥 Upload response (raw):', response);
+      console.log('📥 Response type:', typeof response);
+      console.log('📥 Response keys:', response ? Object.keys(response) : 'null');
+
+      // ✅ FIX: Handle multiple possible response formats
+      interface UploadImageResponse {
+        url: string;
+        path: string;
+        size: number;
+      }
+      
+      let result: UploadImageResponse | null = null;
+
+      if (response && typeof response === 'object') {
+        // Case 1: Response has success wrapper (from ResponseInterceptor)
+        if ('success' in response && response.success === true && 'data' in response) {
+          result = (response.data as unknown) as UploadImageResponse;
+          console.log('✅ Response format: wrapped with success/data');
+        }
+        // Case 2: Response is the data directly (url, path, size)
+        else if ('url' in response && 'path' in response) {
+          result = (response as unknown) as UploadImageResponse;
+          console.log('✅ Response format: direct data object');
+        }
+        // Case 3: Response might be nested differently
+        else if ('data' in response) {
+          const nestedData = response.data;
+          if (nestedData && typeof nestedData === 'object' && 'url' in nestedData) {
+            result = (nestedData as unknown) as UploadImageResponse;
+            console.log('✅ Response format: nested data');
+          }
+        }
+      }
+
+      if (!result || !result.url || !result.path) {
+        console.error('❌ Invalid response structure:', response);
+        throw new Error('Invalid response from server: missing url or path. Response: ' + JSON.stringify(response));
+      }
+
+      console.log('✅ Extracted result:', result);
+      toast.success('Gambar berhasil diupload')
+
+      return result;
+    } catch (error: any) {
+      console.error('❌ Upload error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        stack: error.stack
+      });
+
+      // ✅ FIX: Better error message extraction
+      let errorMessage = 'Gagal upload gambar';
+
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        errorMessage = errorData.error || errorData.message || errorData.detail || JSON.stringify(errorData);
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      toast.error(errorMessage)
+      throw error
+    }
+  }
+
+
+  /**
+   * Delete image from storage (Admin)
+   */
+  async deleteInformationImage(imagePath: string): Promise<void> {
+    try {
+      console.log('🗑️ Deleting image:', imagePath);
+      
+      const response: ApiResponse<void> = await this.client.delete('/admin/information/delete-image', {
+        data: { imagePath }
+      })
+      
+      console.log('🗑️ Delete response:', response);
+      
+      if (response.success) {
+        toast.success('Gambar berhasil dihapus')
+      }
+    } catch (error: any) {
+      console.error('❌ Delete error:', error);
+      const message = error.response?.data?.message || error.message || 'Gagal menghapus gambar'
+      toast.error(message)
+      throw error
+    }
+  }
+
 
 /**
  * Bulk update schedule status

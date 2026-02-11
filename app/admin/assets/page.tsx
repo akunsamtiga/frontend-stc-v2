@@ -12,19 +12,18 @@ import DeleteConfirmModal from '@/components/admin/DeleteConfirmModal'
 import { 
   Package, 
   Plus, 
-  Edit, 
-  Trash2,
+  PencilSimple, 
+  Trash,
   CheckCircle,
   XCircle,
-  TrendingUp,
   Activity,
   Eye,
-  Filter,
-  Zap,
-  DollarSign,
-  RefreshCw
-} from 'lucide-react'
+  Lightning,
+  CurrencyCircleDollar,
+  ArrowsClockwise
+} from 'phosphor-react'
 import { toast } from 'sonner'
+import { TimezoneUtil } from '@/lib/utils'
 import type { Asset } from '@/types'
 
 const StatCardSkeleton = () => (
@@ -57,7 +56,12 @@ const AssetCardSkeleton = () => (
 )
 
 const LoadingSkeleton = () => (
-  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
+    {/* Pattern Overlay */}
+    <div 
+      className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"
+    ></div>
+    
     <Navbar />
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="mb-6 animate-pulse">
@@ -65,7 +69,7 @@ const LoadingSkeleton = () => (
         <div className="h-4 bg-white/10 rounded w-64"></div>
       </div>
       
-      <div className="grid grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[...Array(4)].map((_, i) => (
           <StatCardSkeleton key={i} />
         ))}
@@ -91,7 +95,6 @@ export default function AdminAssetsPage() {
   // Filter states
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'normal' | 'crypto'>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
-  const [showFilters, setShowFilters] = useState(false)
   
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -221,122 +224,68 @@ export default function AdminAssetsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
+      {/* Pattern Overlay */}
+      <div 
+        className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"
+      ></div>
+
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-6xl mx-auto px-4 py-6 relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-1">Manajemen Aset</h1>
-            <p className="text-sm text-slate-400">Konfigurasi aset trading dan pengaturan</p>
+            <h1 className="text-2xl font-bold text-white">Manajemen Aset</h1>
+            <p className="text-sm text-slate-400 mt-1">Konfigurasi aset trading dan pengaturan</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="p-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg transition-colors disabled:opacity-50"
-              title="Refresh"
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors text-sm disabled:opacity-50"
             >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <ArrowsClockwise 
+                className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} 
+                weight="bold"
+              />
+              <span className="hidden sm:inline">Refresh</span>
             </button>
             {user.role === 'super_admin' && (
               <button
                 onClick={handleCreate}
-                className="flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg font-medium transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors text-sm"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4" weight="bold" />
                 Tambah Aset
               </button>
             )}
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex items-center justify-between">
-          <div className="inline-flex bg-white/5 rounded-lg p-1 backdrop-blur-sm border border-white/10">
-            <button
-              onClick={() => setCategoryFilter('all')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                categoryFilter === 'all'
-                  ? 'bg-sky-600 text-white shadow-lg'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Semua
-            </button>
-            <button
-              onClick={() => setCategoryFilter('normal')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                categoryFilter === 'normal'
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Normal
-            </button>
-            <button
-              onClick={() => setCategoryFilter('crypto')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                categoryFilter === 'crypto'
-                  ? 'bg-orange-600 text-white shadow-lg'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Crypto
-            </button>
+        {/* Last Updated */}
+        {lastUpdated && (
+          <div className="text-xs text-slate-500 mb-4">
+            Terakhir diperbarui: {TimezoneUtil.formatDateTime(lastUpdated)}
           </div>
-
-          <div className="inline-flex bg-white/5 rounded-lg p-1 backdrop-blur-sm border border-white/10">
-            <button
-              onClick={() => setStatusFilter('all')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                statusFilter === 'all'
-                  ? 'bg-indigo-600 text-white shadow-lg'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Semua
-            </button>
-            <button
-              onClick={() => setStatusFilter('active')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                statusFilter === 'active'
-                  ? 'bg-green-600 text-white shadow-lg'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Aktif
-            </button>
-            <button
-              onClick={() => setStatusFilter('inactive')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                statusFilter === 'inactive'
-                  ? 'bg-slate-600 text-white shadow-lg'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Nonaktif
-            </button>
-          </div>
-        </div>
+        )}
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded bg-blue-500/20 flex items-center justify-center">
-                <Package className="w-4 h-4 text-blue-400" />
+              <div className="w-8 h-8 rounded bg-blue-500/10 flex items-center justify-center">
+                <Package className="w-5 h-5 text-blue-400" weight="duotone" />
               </div>
-              <span className="text-xs text-slate-400">Total</span>
+              <span className="text-xs text-slate-400">Total Aset</span>
             </div>
             <div className="text-2xl font-bold text-white">{stats.total}</div>
           </div>
 
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded bg-green-500/20 flex items-center justify-center">
-                <CheckCircle className="w-4 h-4 text-green-400" />
+              <div className="w-8 h-8 rounded bg-green-500/10 flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-green-400" weight="duotone" />
               </div>
               <span className="text-xs text-slate-400">Aktif</span>
             </div>
@@ -345,10 +294,10 @@ export default function AdminAssetsPage() {
             </div>
           </div>
 
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded bg-orange-500/20 flex items-center justify-center">
-                <DollarSign className="w-4 h-4 text-orange-400" />
+              <div className="w-8 h-8 rounded bg-orange-500/10 flex items-center justify-center">
+                <CurrencyCircleDollar className="w-5 h-5 text-orange-400" weight="duotone" />
               </div>
               <span className="text-xs text-slate-400">Crypto</span>
             </div>
@@ -357,10 +306,10 @@ export default function AdminAssetsPage() {
             </div>
           </div>
 
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded bg-yellow-500/20 flex items-center justify-center">
-                <Zap className="w-4 h-4 text-yellow-400" />
+              <div className="w-8 h-8 rounded bg-yellow-500/10 flex items-center justify-center">
+                <Lightning className="w-5 h-5 text-yellow-400" weight="duotone" />
               </div>
               <span className="text-xs text-slate-400">Ultra-Fast</span>
             </div>
@@ -370,148 +319,272 @@ export default function AdminAssetsPage() {
           </div>
         </div>
 
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+          <div className="inline-flex bg-white/5 rounded-lg p-1 border border-white/10">
+            <button
+              onClick={() => setCategoryFilter('all')}
+              className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                categoryFilter === 'all'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Semua
+            </button>
+            <button
+              onClick={() => setCategoryFilter('normal')}
+              className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                categoryFilter === 'normal'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Normal
+            </button>
+            <button
+              onClick={() => setCategoryFilter('crypto')}
+              className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                categoryFilter === 'crypto'
+                  ? 'bg-orange-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Crypto
+            </button>
+          </div>
+
+          <div className="inline-flex bg-white/5 rounded-lg p-1 border border-white/10">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                statusFilter === 'all'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Semua
+            </button>
+            <button
+              onClick={() => setStatusFilter('active')}
+              className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                statusFilter === 'active'
+                  ? 'bg-green-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Aktif
+            </button>
+            <button
+              onClick={() => setStatusFilter('inactive')}
+              className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                statusFilter === 'inactive'
+                  ? 'bg-slate-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Nonaktif
+            </button>
+          </div>
+
+          <div className="text-xs text-slate-500">
+            {filteredAssets.length} aset ditampilkan
+          </div>
+        </div>
+
         {/* Assets List */}
         <div className="bg-white/5 rounded-lg border border-white/10 backdrop-blur-sm overflow-hidden">
-          {filteredAssets.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-20 h-20 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Package className="w-10 h-10 text-slate-500" />
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">
-                {assets.length === 0 ? 'Tidak ada aset' : 'Tidak ada aset yang cocok'}
-              </h3>
-              <p className="text-sm text-slate-400 mb-6">
-                {assets.length === 0 
-                  ? 'Tambahkan aset trading pertama Anda'
-                  : 'Coba ubah filter untuk melihat lebih banyak aset'}
-              </p>
-              {assets.length === 0 && user.role === 'super_admin' && (
-                <button
-                  onClick={handleCreate}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-sky-600 text-white rounded-xl font-medium hover:bg-sky-700 transition-colors"
-                >
-                  <Plus className="w-5 h-5" />
-                  Tambah Aset Pertama
-                </button>
-              )}
+          <div className="p-4 border-b border-white/10">
+            <div className="flex items-center gap-2">
+              <Package className="w-5 h-5 text-slate-400" weight="duotone" />
+              <h2 className="text-base font-semibold text-white">
+                Daftar Aset
+              </h2>
             </div>
-          ) : (
-            <div className="divide-y divide-white/10">
-              {filteredAssets.map((asset) => {
-                const hasUltraFast = asset.tradingSettings?.allowedDurations.includes(0.0167)
-                const assetCategory = getAssetCategory(asset)
-                
-                return (
-                  <div
-                    key={asset.id}
-                    className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors group"
+          </div>
+
+          <div className="p-4">
+            {loading ? (
+              <div className="text-center py-12">
+                <ArrowsClockwise className="w-8 h-8 animate-spin text-slate-400 mx-auto mb-3" weight="bold" />
+                <p className="text-sm text-slate-400">Memuat aset...</p>
+              </div>
+            ) : filteredAssets.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="w-16 h-16 bg-white/5 rounded-xl flex items-center justify-center mx-auto mb-4 border border-white/10">
+                  <Package className="w-8 h-8 text-slate-500" weight="duotone" />
+                </div>
+                <h3 className="text-base font-semibold text-white mb-2">
+                  {assets.length === 0 ? 'Tidak ada aset' : 'Tidak ada aset yang cocok'}
+                </h3>
+                <p className="text-sm text-slate-400 mb-6">
+                  {assets.length === 0 
+                    ? 'Tambahkan aset trading pertama Anda'
+                    : 'Coba ubah filter untuk melihat lebih banyak aset'}
+                </p>
+                {assets.length === 0 && user.role === 'super_admin' && (
+                  <button
+                    onClick={handleCreate}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors text-sm"
                   >
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                        asset.isActive ? 'bg-green-500/10' : 'bg-white/5'
-                      }`}>
-                        <Package className={`w-6 h-6 ${
-                          asset.isActive ? 'text-green-400' : 'text-slate-500'
-                        }`} />
-                      </div>
-                      
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-bold text-lg text-white">{asset.name}</span>
+                    <Plus className="w-5 h-5" weight="bold" />
+                    Tambah Aset Pertama
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredAssets.map((asset) => {
+                  const hasUltraFast = asset.tradingSettings?.allowedDurations.includes(0.0167)
+                  const assetCategory = getAssetCategory(asset)
+                  
+                  return (
+                    <div
+                      key={asset.id}
+                      className="p-4 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-all group"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                            asset.isActive ? 'bg-green-500/10' : 'bg-white/5'
+                          }`}>
+                            <Package className={`w-6 h-6 ${
+                              asset.isActive ? 'text-green-400' : 'text-slate-500'
+                            }`} weight="duotone" />
+                          </div>
                           
-                          {/* Category Badge */}
-                          {assetCategory === 'crypto' ? (
-                            <span className="px-2 py-0.5 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded text-xs font-bold">
-                              ₿ Crypto
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded text-xs font-bold">
-                              📊 Normal
-                            </span>
-                          )}
-                          
-                          {/* Ultra-Fast Badge */}
-                          {hasUltraFast && (
-                            <span className="px-2 py-0.5 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 rounded text-xs font-bold flex items-center gap-1">
-                              <Zap className="w-3 h-3" />
-                              1s
-                            </span>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center gap-3 text-sm text-slate-400">
-                          <span className="font-medium">Simbol: {asset.symbol}</span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <Activity className="w-4 h-4" />
-                            Profit: {asset.profitRate}%
-                          </span>
-                          <span>•</span>
-                          <span className="capitalize">{asset.dataSource}</span>
-                          {asset.cryptoConfig && (
-                            <>
-                              <span>•</span>
-                              <span className="font-semibold">
-                                {asset.cryptoConfig.baseCurrency}/{asset.cryptoConfig.quoteCurrency}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <span className="font-bold text-lg text-white">{asset.name}</span>
+                              
+                              {/* Category Badge */}
+                              {assetCategory === 'crypto' ? (
+                                <span className="px-2 py-0.5 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded text-xs font-bold">
+                                  ₿ Crypto
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded text-xs font-bold">
+                                  📊 Normal
+                                </span>
+                              )}
+                              
+                              {/* Ultra-Fast Badge */}
+                              {hasUltraFast && (
+                                <span className="px-2 py-0.5 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 rounded text-xs font-bold flex items-center gap-1">
+                                  <Lightning className="w-3 h-3" weight="fill" />
+                                  1s
+                                </span>
+                              )}
+
+                              {/* Status Badge */}
+                              <span className={`px-2 py-0.5 rounded text-xs font-bold border ${
+                                asset.isActive 
+                                  ? 'bg-green-500/10 text-green-400 border-green-500/20' 
+                                  : 'bg-red-500/10 text-red-400 border-red-500/20'
+                              }`}>
+                                {asset.isActive ? (
+                                  <span className="flex items-center gap-1">
+                                    <CheckCircle className="w-3 h-3" weight="fill" />
+                                    Aktif
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center gap-1">
+                                    <XCircle className="w-3 h-3" weight="fill" />
+                                    Nonaktif
+                                  </span>
+                                )}
                               </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-3 text-sm text-slate-400 flex-wrap">
+                              <span className="font-medium">Simbol: {asset.symbol}</span>
+                              <span>•</span>
+                              <span className="flex items-center gap-1">
+                                <Activity className="w-4 h-4" weight="duotone" />
+                                Profit: {asset.profitRate}%
+                              </span>
+                              <span>•</span>
+                              <span className="capitalize">{asset.dataSource}</span>
+                              {asset.cryptoConfig && (
+                                <>
+                                  <span>•</span>
+                                  <span className="font-semibold">
+                                    {asset.cryptoConfig.baseCurrency}/{asset.cryptoConfig.quoteCurrency}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => handleViewDetail(asset)}
+                            className="p-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 rounded-lg transition-colors border border-sky-500/20"
+                            title="Lihat Detail"
+                          >
+                            <Eye className="w-5 h-5" weight="duotone" />
+                          </button>
+
+                          {user.role === 'super_admin' && (
+                            <>
+                              <button
+                                onClick={() => handleEdit(asset)}
+                                className="p-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg transition-colors border border-blue-500/20"
+                                title="Edit Aset"
+                              >
+                                <PencilSimple className="w-5 h-5" weight="duotone" />
+                              </button>
+
+                              <button
+                                onClick={() => handleDelete(asset)}
+                                className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors border border-red-500/20"
+                                title="Hapus Aset"
+                              >
+                                <Trash className="w-5 h-5" weight="duotone" />
+                              </button>
                             </>
                           )}
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-2">
-                      <span className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${
-                        asset.isActive 
-                          ? 'bg-green-500/10 text-green-400 border-green-500/20' 
-                          : 'bg-white/5 text-slate-400 border-white/10'
-                      }`}>
-                        {asset.isActive ? (
-                          <span className="flex items-center gap-1">
-                            <CheckCircle className="w-3 h-3" />
-                            Aktif
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1">
-                            <XCircle className="w-3 h-3" />
-                            Nonaktif
-                          </span>
-                        )}
-                      </span>
-
-                      <button
-                        onClick={() => handleViewDetail(asset)}
-                        className="p-2 hover:bg-sky-500/10 text-sky-400 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                        title="Lihat Detail"
-                      >
-                        <Eye className="w-5 h-5" />
-                      </button>
-
-                      {user.role === 'super_admin' && (
-                        <>
-                          <button
-                            onClick={() => handleEdit(asset)}
-                            className="p-2 hover:bg-blue-500/10 text-blue-400 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                            title="Edit Aset"
-                          >
-                            <Edit className="w-5 h-5" />
-                          </button>
-
-                          <button
-                            onClick={() => handleDelete(asset)}
-                            className="p-2 hover:bg-red-500/10 text-red-400 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                            title="Hapus Aset"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        </>
+                      {/* Additional Info */}
+                      {asset.tradingSettings && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pt-3 border-t border-white/10">
+                          <div className="text-xs">
+                            <span className="text-slate-500">Min Order:</span>
+                            <span className="ml-1 text-slate-300 font-semibold">
+                              {new Intl.NumberFormat('id-ID', { 
+                                style: 'currency', 
+                                currency: 'IDR',
+                                minimumFractionDigits: 0
+                              }).format(asset.tradingSettings.minOrderAmount)}
+                            </span>
+                          </div>
+                          <div className="text-xs">
+                            <span className="text-slate-500">Max Order:</span>
+                            <span className="ml-1 text-slate-300 font-semibold">
+                              {new Intl.NumberFormat('id-ID', { 
+                                style: 'currency', 
+                                currency: 'IDR',
+                                minimumFractionDigits: 0
+                              }).format(asset.tradingSettings.maxOrderAmount)}
+                            </span>
+                          </div>
+                          <div className="text-xs">
+                            <span className="text-slate-500">Durasi:</span>
+                            <span className="ml-1 text-slate-300 font-semibold">
+                              {asset.tradingSettings.allowedDurations.length} opsi
+                            </span>
+                          </div>
+                        </div>
                       )}
                     </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

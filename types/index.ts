@@ -1557,3 +1557,180 @@ export function canCancelSchedule(schedule: AssetSchedule): boolean {
 export function canExecuteSchedule(schedule: AssetSchedule): boolean {
   return schedule.status === 'pending' && schedule.isActive
 }
+
+
+
+export enum InformationType {
+  ANNOUNCEMENT = 'announcement',
+  PROMOTION = 'promotion',
+  NEWS = 'news',
+  MAINTENANCE = 'maintenance',
+  UPDATE = 'update',
+  WARNING = 'warning',
+}
+
+export enum InformationPriority {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  URGENT = 'urgent',
+}
+
+export interface Information {
+  id: string
+  title: string
+  subtitle?: string
+  description: string
+  type: InformationType
+  priority: InformationPriority
+  
+  // Display settings
+  imageUrl?: string
+  imagePath?: string      // ✅ TAMBAHKAN INI
+  imageSize?: number      // ✅ TAMBAHKAN INI
+  
+  linkUrl?: string
+  linkText?: string
+  
+  // Scheduling
+  startDate?: string
+  endDate?: string
+  publishDate?: string
+  
+  // Status
+  isActive: boolean
+  isPinned: boolean
+  
+  // Targeting
+  targetUserStatus?: ('standard' | 'gold' | 'vip')[]
+  targetUserRoles?: ('user' | 'admin' | 'super_admin')[]
+  
+  // Metadata
+  createdBy: string
+  createdByEmail?: string
+  updatedBy?: string
+  updatedByEmail?: string
+  createdAt: string
+  updatedAt?: string
+  
+  // Analytics
+  viewCount?: number
+  clickCount?: number
+}
+
+export interface CreateInformationRequest {
+  title: string
+  subtitle?: string
+  description: string
+  type: InformationType
+  priority?: InformationPriority
+  imageUrl?: string
+  imagePath?: string      // ✅ TAMBAHKAN INI
+  imageSize?: number      // ✅ TAMBAHKAN INI
+  linkUrl?: string
+  linkText?: string
+  startDate?: string
+  endDate?: string
+  publishDate?: string
+  isActive?: boolean
+  isPinned?: boolean
+  targetUserStatus?: ('standard' | 'gold' | 'vip')[]
+  targetUserRoles?: ('user' | 'admin' | 'super_admin')[]
+}
+
+export interface UpdateInformationRequest {
+  title?: string
+  subtitle?: string
+  description?: string
+  type?: InformationType
+  priority?: InformationPriority
+  imageUrl?: string
+  linkUrl?: string
+  imagePath?: string      // ✅ TAMBAHKAN INI
+  imageSize?: number      // ✅ TAMBAHKAN INI
+  linkText?: string
+  startDate?: string
+  endDate?: string
+  publishDate?: string
+  isActive?: boolean
+  isPinned?: boolean
+  targetUserStatus?: ('standard' | 'gold' | 'vip')[]
+  targetUserRoles?: ('user' | 'admin' | 'super_admin')[]
+}
+
+export interface GetInformationQuery {
+  page?: number
+  limit?: number
+  isActive?: boolean
+  isPinned?: boolean
+  type?: InformationType
+  priority?: InformationPriority
+  search?: string
+  sortBy?: 'createdAt' | 'updatedAt' | 'publishDate' | 'title' | 'priority'
+  sortOrder?: 'asc' | 'desc'
+}
+
+export interface InformationPagination {
+  items: Information[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+
+// Utility functions for Information
+export function getInformationTypeLabel(type: InformationType): string {
+  const labels: Record<InformationType, string> = {
+    [InformationType.ANNOUNCEMENT]: 'Pengumuman',
+    [InformationType.PROMOTION]: 'Promosi',
+    [InformationType.NEWS]: 'Berita',
+    [InformationType.MAINTENANCE]: 'Maintenance',
+    [InformationType.UPDATE]: 'Update',
+    [InformationType.WARNING]: 'Peringatan',
+  }
+  return labels[type] || type
+}
+
+export function getInformationTypeIcon(type: InformationType): string {
+  const icons: Record<InformationType, string> = {
+    [InformationType.ANNOUNCEMENT]: '📢',
+    [InformationType.PROMOTION]: '🎁',
+    [InformationType.NEWS]: '📰',
+    [InformationType.MAINTENANCE]: '🔧',
+    [InformationType.UPDATE]: '🔄',
+    [InformationType.WARNING]: '⚠️',
+  }
+  return icons[type] || '📋'
+}
+
+export function getInformationTypeColor(type: InformationType): string {
+  const colors: Record<InformationType, string> = {
+    [InformationType.ANNOUNCEMENT]: 'bg-blue-100 text-blue-800 border-blue-200',
+    [InformationType.PROMOTION]: 'bg-purple-100 text-purple-800 border-purple-200',
+    [InformationType.NEWS]: 'bg-green-100 text-green-800 border-green-200',
+    [InformationType.MAINTENANCE]: 'bg-orange-100 text-orange-800 border-orange-200',
+    [InformationType.UPDATE]: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+    [InformationType.WARNING]: 'bg-red-100 text-red-800 border-red-200',
+  }
+  return colors[type] || 'bg-gray-100 text-gray-800 border-gray-200'
+}
+
+export function getInformationPriorityLabel(priority: InformationPriority): string {
+  const labels: Record<InformationPriority, string> = {
+    [InformationPriority.LOW]: 'Rendah',
+    [InformationPriority.MEDIUM]: 'Sedang',
+    [InformationPriority.HIGH]: 'Tinggi',
+    [InformationPriority.URGENT]: 'Mendesak',
+  }
+  return labels[priority] || priority
+}
+
+export function getInformationPriorityColor(priority: InformationPriority): string {
+  const colors: Record<InformationPriority, string> = {
+    [InformationPriority.LOW]: 'bg-gray-100 text-gray-800 border-gray-200',
+    [InformationPriority.MEDIUM]: 'bg-blue-100 text-blue-800 border-blue-200',
+    [InformationPriority.HIGH]: 'bg-orange-100 text-orange-800 border-orange-200',
+    [InformationPriority.URGENT]: 'bg-red-100 text-red-800 border-red-200',
+  }
+  return colors[priority] || 'bg-gray-100 text-gray-800 border-gray-200'
+}

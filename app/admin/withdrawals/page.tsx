@@ -14,11 +14,11 @@ import {
 } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { 
-  ArrowUpFromLine, CheckCircle, XCircle, Clock, 
-  FileText, Loader2, AlertCircle, User, CreditCard,
-  Shield, Camera, Eye, RefreshCw, Filter, ChevronRight,
-  Wallet, TrendingDown
-} from 'lucide-react'
+  ArrowLineUp, CheckCircle, XCircle, Clock, 
+  FileText, Shield, Camera, Eye, 
+  ArrowsClockwise, User, CreditCard,
+  Wallet, Info, Warning
+} from 'phosphor-react'
 import { toast } from 'sonner'
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected' | 'completed'
@@ -34,7 +34,12 @@ const StatCardSkeleton = () => (
 )
 
 const LoadingSkeleton = () => (
-  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
+    {/* Pattern Overlay */}
+    <div 
+      className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"
+    ></div>
+    
     <Navbar />
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="mb-6 animate-pulse">
@@ -211,47 +216,55 @@ export default function AdminWithdrawalsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
+      {/* Pattern Overlay */}
+      <div 
+        className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"
+      ></div>
+
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-        {/* Header - Compact */}
-        <div className="flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-4 py-6 relative z-10">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-1">Manajemen Penarikan</h1>
-            <p className="text-sm text-slate-400">Tinjau dan setujui penarikan pengguna</p>
+            <h1 className="text-2xl font-bold text-white">Manajemen Penarikan</h1>
+            <p className="text-sm text-slate-400 mt-1">Tinjau dan setujui penarikan pengguna</p>
           </div>
-          <div className="flex items-center gap-2">
-            {lastUpdated && (
-              <span className="text-xs text-slate-500">
-                {lastUpdated.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            )}
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="p-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg transition-colors disabled:opacity-50"
-              title="Refresh"
-            >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors text-sm disabled:opacity-50"
+          >
+            <ArrowsClockwise 
+              className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} 
+              weight="bold"
+            />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
         </div>
 
-        {/* Summary Stats - Compact Grid */}
+        {/* Last Updated */}
+        {lastUpdated && (
+          <div className="text-xs text-slate-500 mb-4">
+            Terakhir diperbarui: {lastUpdated.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </div>
+        )}
+
+        {/* Summary Stats */}
         {summary && (
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
             {statsData.map((stat, idx) => {
               const colors = colorClasses[stat.color]
               const Icon = stat.icon
               return (
                 <div 
                   key={idx} 
-                  className={`bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all`}
+                  className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm"
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <div className={`w-8 h-8 rounded ${colors.bg} flex items-center justify-center`}>
-                      <Icon className={`w-4 h-4 ${colors.icon}`} />
+                      <Icon className={`w-5 h-5 ${colors.icon}`} weight="duotone" />
                     </div>
                     <span className="text-xs text-slate-400">{stat.label}</span>
                   </div>
@@ -264,9 +277,9 @@ export default function AdminWithdrawalsPage() {
           </div>
         )}
 
-        {/* Filter Toggle - Compact */}
-        <div className="flex items-center justify-between">
-          <div className="inline-flex bg-white/5 rounded-lg p-1 backdrop-blur-sm border border-white/10">
+        {/* Filter Toggle */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="inline-flex bg-white/5 rounded-lg p-1 border border-white/10">
             {[
               { id: 'all', label: 'Semua' },
               { id: 'pending', label: 'Menunggu' },
@@ -277,9 +290,9 @@ export default function AdminWithdrawalsPage() {
               <button
                 key={filter.id}
                 onClick={() => setStatusFilter(filter.id as StatusFilter)}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
                   statusFilter === filter.id
-                    ? 'bg-indigo-600 text-white shadow-lg'
+                    ? 'bg-indigo-600 text-white'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -296,7 +309,7 @@ export default function AdminWithdrawalsPage() {
         <div className="bg-white/5 rounded-lg border border-white/10 backdrop-blur-sm overflow-hidden">
           <div className="p-4 border-b border-white/10">
             <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-slate-400" />
+              <FileText className="w-5 h-5 text-slate-400" weight="duotone" />
               <h2 className="text-base font-semibold text-white">
                 {statusFilter === 'all' ? 'Semua Permintaan' : `Permintaan ${getStatusLabel(statusFilter)}`}
               </h2>
@@ -306,13 +319,13 @@ export default function AdminWithdrawalsPage() {
           <div className="p-4">
             {loading ? (
               <div className="text-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-slate-400 mx-auto mb-3" />
+                <ArrowsClockwise className="w-8 h-8 animate-spin text-slate-400 mx-auto mb-3" weight="bold" />
                 <p className="text-sm text-slate-400">Memuat permintaan...</p>
               </div>
             ) : requests.length === 0 ? (
-              <div className="text-center py-12 sm:py-16">
+              <div className="text-center py-16">
                 <div className="w-16 h-16 bg-white/5 rounded-xl flex items-center justify-center mx-auto mb-4 border border-white/10">
-                  <FileText className="w-8 h-8 text-slate-500" />
+                  <FileText className="w-8 h-8 text-slate-500" weight="duotone" />
                 </div>
                 <h3 className="text-base font-semibold text-white mb-2">Tidak ada permintaan</h3>
                 <p className="text-sm text-slate-400">
@@ -331,12 +344,12 @@ export default function AdminWithdrawalsPage() {
                   return (
                     <div
                       key={request.id}
-                      className="p-4 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 hover:border-indigo-500/30 transition-all"
+                      className="p-4 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-all"
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            <User className="w-4 h-4 text-slate-400" />
+                            <User className="w-4 h-4 text-slate-400" weight="duotone" />
                             <span className="text-sm font-semibold text-white">
                               {request.userName || request.userEmail}
                             </span>
@@ -360,7 +373,7 @@ export default function AdminWithdrawalsPage() {
                           onClick={() => handleViewDetail(request)}
                           className="flex items-center gap-2 px-3 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg text-sm font-medium transition-colors border border-indigo-500/20"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-4 h-4" weight="duotone" />
                           <span className="hidden sm:inline">Detail</span>
                         </button>
                       </div>
@@ -369,7 +382,7 @@ export default function AdminWithdrawalsPage() {
                         {request.bankAccount && (
                           <div className="bg-white/5 rounded-lg p-3 border border-white/10">
                             <div className="flex items-center gap-1 text-xs text-slate-400 mb-1">
-                              <CreditCard className="w-3 h-3" />
+                              <CreditCard className="w-3 h-3" weight="duotone" />
                               Rekening Bank
                             </div>
                             <div className="text-sm font-semibold text-white">
@@ -386,23 +399,23 @@ export default function AdminWithdrawalsPage() {
                           <div className="flex items-center gap-3 text-xs">
                             {request.ktpVerified ? (
                               <span className="flex items-center gap-1 text-green-400">
-                                <Shield className="w-3 h-3" />
+                                <Shield className="w-3 h-3" weight="duotone" />
                                 KTP
                               </span>
                             ) : (
                               <span className="text-slate-500 flex items-center gap-1">
-                                <Shield className="w-3 h-3" />
+                                <Shield className="w-3 h-3" weight="duotone" />
                                 KTP
                               </span>
                             )}
                             {request.selfieVerified ? (
                               <span className="flex items-center gap-1 text-green-400">
-                                <Camera className="w-3 h-3" />
+                                <Camera className="w-3 h-3" weight="duotone" />
                                 Selfie
                               </span>
                             ) : (
                               <span className="text-slate-500 flex items-center gap-1">
-                                <Camera className="w-3 h-3" />
+                                <Camera className="w-3 h-3" weight="duotone" />
                                 Selfie
                               </span>
                             )}
@@ -420,7 +433,7 @@ export default function AdminWithdrawalsPage() {
                             }}
                             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 rounded-lg font-medium transition-colors"
                           >
-                            <CheckCircle className="w-4 h-4" />
+                            <CheckCircle className="w-4 h-4" weight="duotone" />
                             Setujui
                           </button>
                           <button
@@ -432,7 +445,7 @@ export default function AdminWithdrawalsPage() {
                             }}
                             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-lg font-medium transition-colors"
                           >
-                            <XCircle className="w-4 h-4" />
+                            <XCircle className="w-4 h-4" weight="duotone" />
                             Tolak
                           </button>
                         </div>
@@ -440,7 +453,7 @@ export default function AdminWithdrawalsPage() {
 
                       {request.rejectionReason && (
                         <div className="mt-3 flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                          <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                          <Warning className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" weight="duotone" />
                           <div>
                             <div className="text-xs font-semibold text-red-400 mb-1">Alasan Penolakan:</div>
                             <div className="text-sm text-red-300">{request.rejectionReason}</div>
@@ -496,7 +509,7 @@ export default function AdminWithdrawalsPage() {
                 {selectedRequest.bankAccount && (
                   <div className="p-4 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
                     <div className="flex items-center gap-2 mb-3">
-                      <CreditCard className="w-5 h-5 text-indigo-400" />
+                      <CreditCard className="w-5 h-5 text-indigo-400" weight="duotone" />
                       <span className="font-semibold text-indigo-400">Detail Rekening Bank</span>
                     </div>
                     <div className="space-y-2 text-sm">
@@ -526,7 +539,7 @@ export default function AdminWithdrawalsPage() {
                       }`}>
                         <Shield className={`w-6 h-6 ${
                           selectedRequest.ktpVerified ? 'text-green-400' : 'text-red-400'
-                        }`} />
+                        }`} weight="duotone" />
                       </div>
                       <div className="text-xs font-semibold text-slate-300">
                         {selectedRequest.ktpVerified ? 'KTP Terverifikasi' : 'KTP Belum Verifikasi'}
@@ -538,7 +551,7 @@ export default function AdminWithdrawalsPage() {
                       }`}>
                         <Camera className={`w-6 h-6 ${
                           selectedRequest.selfieVerified ? 'text-green-400' : 'text-red-400'
-                        }`} />
+                        }`} weight="duotone" />
                       </div>
                       <div className="text-xs font-semibold text-slate-300">
                         {selectedRequest.selfieVerified ? 'Selfie Terverifikasi' : 'Selfie Belum Verifikasi'}
@@ -550,7 +563,7 @@ export default function AdminWithdrawalsPage() {
                       }`}>
                         <Wallet className={`w-6 h-6 ${
                           selectedRequest.currentBalance >= selectedRequest.amount ? 'text-green-400' : 'text-red-400'
-                        }`} />
+                        }`} weight="duotone" />
                       </div>
                       <div className="text-xs font-semibold text-slate-300">
                         {selectedRequest.currentBalance >= selectedRequest.amount ? 'Saldo Cukup' : 'Saldo Kurang'}
@@ -620,7 +633,7 @@ export default function AdminWithdrawalsPage() {
                         disabled={!selectedRequest.ktpVerified || !selectedRequest.selfieVerified}
                         className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-500/20 hover:bg-green-500/30 disabled:bg-white/5 disabled:text-slate-500 text-green-400 border border-green-500/30 disabled:border-white/10 rounded-xl font-semibold transition-colors"
                       >
-                        <CheckCircle className="w-5 h-5" />
+                        <CheckCircle className="w-5 h-5" weight="duotone" />
                         Setujui & Proses
                       </button>
                       <button
@@ -628,7 +641,7 @@ export default function AdminWithdrawalsPage() {
                         disabled={!rejectionReason.trim()}
                         className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 disabled:bg-white/5 disabled:text-slate-500 text-red-400 border border-red-500/30 disabled:border-white/10 rounded-xl font-semibold transition-colors"
                       >
-                        <XCircle className="w-5 h-5" />
+                        <XCircle className="w-5 h-5" weight="duotone" />
                         Tolak Permintaan
                       </button>
                     </div>
@@ -639,7 +652,7 @@ export default function AdminWithdrawalsPage() {
                 {selectedRequest.rejectionReason && (
                   <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
                     <div className="flex items-start gap-2">
-                      <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                      <Warning className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" weight="duotone" />
                       <div>
                         <div className="font-semibold text-red-400 mb-1">Alasan Penolakan:</div>
                         <div className="text-sm text-red-300">{selectedRequest.rejectionReason}</div>
@@ -664,9 +677,9 @@ export default function AdminWithdrawalsPage() {
                   rejectionReason ? 'bg-red-500/10 border-red-500/30' : 'bg-green-500/10 border-green-500/30'
                 }`}>
                   {rejectionReason ? (
-                    <XCircle className="w-8 h-8 text-red-400" />
+                    <XCircle className="w-8 h-8 text-red-400" weight="duotone" />
                   ) : (
-                    <CheckCircle className="w-8 h-8 text-green-400" />
+                    <CheckCircle className="w-8 h-8 text-green-400" weight="duotone" />
                   )}
                 </div>
                 
@@ -700,19 +713,19 @@ export default function AdminWithdrawalsPage() {
                   >
                     {processing ? (
                       <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <ArrowsClockwise className="w-5 h-5 animate-spin" weight="bold" />
                         Memproses...
                       </>
                     ) : (
                       <>
                         {rejectionReason ? (
                           <>
-                            <XCircle className="w-5 h-5" />
+                            <XCircle className="w-5 h-5" weight="duotone" />
                             Konfirmasi Penolakan
                           </>
                         ) : (
                           <>
-                            <CheckCircle className="w-5 h-5" />
+                            <CheckCircle className="w-5 h-5" weight="duotone" />
                             Konfirmasi Persetujuan
                           </>
                         )}

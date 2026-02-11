@@ -9,22 +9,18 @@ import Navbar from '@/components/Navbar'
 import { 
   Users, 
   Plus,
-  Search,
-  Filter,
-  ChevronRight,
+  MagnifyingGlass,
+  ArrowsClockwise,
+  CaretRight,
   Eye,
   X,
-  DollarSign,
-  Trash2,
+  CurrencyDollar,
+  Trash,
   Shield,
   CheckCircle,
   XCircle,
-  Calendar,
-  UserCog,
-  Loader2,
-  RefreshCw,
-  MoreVertical
-} from 'lucide-react'
+  User
+} from 'phosphor-react'
 import { toast } from 'sonner'
 
 interface UserData {
@@ -63,7 +59,12 @@ const UserCardSkeleton = () => (
 )
 
 const LoadingSkeleton = () => (
-  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
+    {/* Pattern Overlay */}
+    <div 
+      className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"
+    ></div>
+    
     <Navbar />
     <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
       <div className="mb-4 sm:mb-6 animate-pulse">
@@ -180,7 +181,6 @@ export default function AdminUsersPage() {
     return role.toLowerCase()
   }
 
-  // Check if user is admin or super_admin
   const isAdminUser = (role: string | null | undefined): boolean => {
     const userRole = getUserRole(role)
     return userRole === 'admin' || userRole === 'super_admin'
@@ -268,7 +268,6 @@ export default function AdminUsersPage() {
 
   if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) return null
 
-  // Filter users
   const filteredUsers = users.filter(u => {
     const matchesSearch = u.email.toLowerCase().includes(searchQuery.toLowerCase())
     const userRole = getUserRole(u.role)
@@ -276,7 +275,6 @@ export default function AdminUsersPage() {
     return matchesSearch && matchesRole
   })
 
-  // Stats
   const stats = {
     total: users.length,
     active: users.filter(u => u.isActive).length,
@@ -292,12 +290,17 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
+      {/* Pattern Overlay */}
+      <div 
+        className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"
+      ></div>
+
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
-        {/* Header - Responsive */}
-        <div className="flex items-start justify-between gap-2">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6 relative z-10">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-2 mb-6">
           <div className="flex-1 min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold text-white mb-0.5 sm:mb-1">Manajemen Pengguna</h1>
             <p className="text-xs sm:text-sm text-slate-400">Kelola pengguna dan izin</p>
@@ -306,28 +309,38 @@ export default function AdminUsersPage() {
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="p-2 bg-white/5 hover:bg-white/10 active:bg-white/15 text-slate-300 rounded-lg transition-colors disabled:opacity-50"
-              title="Refresh"
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors text-sm disabled:opacity-50"
             >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <ArrowsClockwise 
+                className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} 
+                weight="bold"
+              />
+              <span className="hidden sm:inline">Refresh</span>
             </button>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg font-medium transition-colors text-xs sm:text-sm whitespace-nowrap"
+              className="flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-xs sm:text-sm whitespace-nowrap"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4" weight="bold" />
               <span>Tambah</span>
             </button>
           </div>
         </div>
 
-        {/* Stats - Compact Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-          <div className="bg-white/5 rounded-lg p-2.5 sm:p-3 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+        {/* Last Updated */}
+        {lastUpdated && (
+          <div className="text-xs text-slate-500 mb-4">
+            Terakhir diperbarui: {lastUpdated.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </div>
+        )}
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-6">
+          <div className="bg-white/5 rounded-lg p-2.5 sm:p-3 border border-white/10 backdrop-blur-sm">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" weight="duotone" />
                 </div>
                 <span className="text-xs text-slate-400">Total</span>
               </div>
@@ -335,11 +348,11 @@ export default function AdminUsersPage() {
             </div>
           </div>
 
-          <div className="bg-white/5 rounded-lg p-2.5 sm:p-3 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+          <div className="bg-white/5 rounded-lg p-2.5 sm:p-3 border border-white/10 backdrop-blur-sm">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-400" />
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-400" weight="duotone" />
                 </div>
                 <span className="text-xs text-slate-400">Aktif</span>
               </div>
@@ -347,11 +360,11 @@ export default function AdminUsersPage() {
             </div>
           </div>
 
-          <div className="bg-white/5 rounded-lg p-2.5 sm:p-3 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+          <div className="bg-white/5 rounded-lg p-2.5 sm:p-3 border border-white/10 backdrop-blur-sm">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                  <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+                  <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" weight="duotone" />
                 </div>
                 <span className="text-xs text-slate-400">Admin</span>
               </div>
@@ -359,11 +372,11 @@ export default function AdminUsersPage() {
             </div>
           </div>
 
-          <div className="bg-white/5 rounded-lg p-2.5 sm:p-3 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+          <div className="bg-white/5 rounded-lg p-2.5 sm:p-3 border border-white/10 backdrop-blur-sm">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
-                  <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400" />
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-yellow-500/10 flex items-center justify-center flex-shrink-0">
+                  <CurrencyDollar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400" weight="duotone" />
                 </div>
                 <span className="text-xs text-slate-400 whitespace-nowrap">Saldo</span>
               </div>
@@ -380,20 +393,20 @@ export default function AdminUsersPage() {
           </div>
         </div>
 
-        {/* Filters - Responsive */}
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-6">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" weight="bold" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari email..."
-              className="w-full pl-9 pr-3 py-2 sm:py-2.5 bg-white/5 border border-white/10 rounded-lg focus:border-blue-500 focus:bg-white/10 transition-all text-white placeholder-slate-500 text-sm"
+              className="w-full pl-9 pr-3 py-2 sm:py-2.5 bg-white/5 border border-white/10 rounded-lg focus:border-blue-500 focus:bg-white/10 transition-all focus:outline-none text-white placeholder-slate-500 text-sm"
             />
           </div>
           
-          <div className="inline-flex bg-white/5 rounded-lg p-1 backdrop-blur-sm border border-white/10">
+          <div className="inline-flex bg-white/5 rounded-lg p-1 border border-white/10">
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
@@ -407,12 +420,12 @@ export default function AdminUsersPage() {
           </div>
         </div>
 
-        {/* Users List - Mobile Optimized */}
+        {/* Users List */}
         <div className="bg-white/5 rounded-lg border border-white/10 backdrop-blur-sm overflow-hidden">
           {filteredUsers.length === 0 ? (
             <div className="text-center py-8 sm:py-12 px-4">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                <Users className="w-8 h-8 sm:w-10 sm:h-10 text-slate-500" />
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-white/10">
+                <Users className="w-8 h-8 sm:w-10 sm:h-10 text-slate-500" weight="duotone" />
               </div>
               <h3 className="text-base sm:text-lg font-semibold text-white mb-1 sm:mb-2">Tidak ada pengguna</h3>
               <p className="text-xs sm:text-sm text-slate-400 mb-4 sm:mb-6">
@@ -421,9 +434,9 @@ export default function AdminUsersPage() {
               {!searchQuery && (
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors text-sm"
+                  className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors text-sm"
                 >
-                  <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Plus className="w-4 h-4 sm:w-5 sm:h-5" weight="bold" />
                   Tambah Pengguna
                 </button>
               )}
@@ -434,7 +447,7 @@ export default function AdminUsersPage() {
                 const userIsAdmin = isAdminUser(u.role)
                 
                 return (
-                  <div key={u.id} className="p-3 hover:bg-white/5 active:bg-white/10 transition-colors">
+                  <div key={u.id} className="p-3 hover:bg-white/5 transition-colors">
                     <div className="flex items-center gap-2.5">
                       {/* Avatar */}
                       <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-400 font-bold border border-blue-500/20 flex-shrink-0">
@@ -448,9 +461,8 @@ export default function AdminUsersPage() {
                             {u.email}
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
-                            {/* Desktop Actions - Text Buttons */}
+                            {/* Desktop Actions */}
                             <div className="hidden sm:flex items-center gap-1.5">
-                              {/* Toggle Active Button - Hidden for admin/super_admin */}
                               {!userIsAdmin && (
                                 <button
                                   onClick={() => handleToggleActive(u.id, u.isActive)}
@@ -498,9 +510,8 @@ export default function AdminUsersPage() {
                               )}
                             </div>
 
-                            {/* Mobile Actions - Icon Buttons (Compact) */}
+                            {/* Mobile Actions */}
                             <div className="flex sm:hidden items-center gap-0.5">
-                              {/* Toggle Active Icon - Hidden for admin/super_admin */}
                               {!userIsAdmin && (
                                 <button
                                   onClick={() => handleToggleActive(u.id, u.isActive)}
@@ -511,7 +522,7 @@ export default function AdminUsersPage() {
                                   }`}
                                   title={u.isActive ? 'Nonaktifkan' : 'Aktifkan'}
                                 >
-                                  {u.isActive ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                                  {u.isActive ? <CheckCircle className="w-4 h-4" weight="duotone" /> : <XCircle className="w-4 h-4" weight="duotone" />}
                                 </button>
                               )}
 
@@ -520,7 +531,7 @@ export default function AdminUsersPage() {
                                 className="p-1.5 hover:bg-blue-500/10 text-blue-400 rounded transition-colors"
                                 title="Lihat Detail"
                               >
-                                <Eye className="w-4 h-4" />
+                                <Eye className="w-4 h-4" weight="duotone" />
                               </button>
                               
                               {user.role === 'super_admin' && (
@@ -533,7 +544,7 @@ export default function AdminUsersPage() {
                                     className="p-1.5 hover:bg-yellow-500/10 text-yellow-400 rounded transition-colors"
                                     title="Kelola Saldo"
                                   >
-                                    <DollarSign className="w-4 h-4" />
+                                    <CurrencyDollar className="w-4 h-4" weight="duotone" />
                                   </button>
                                   
                                   {getUserRole(u.role) !== 'super_admin' && (
@@ -545,7 +556,7 @@ export default function AdminUsersPage() {
                                       className="p-1.5 hover:bg-red-500/10 text-red-400 rounded transition-colors"
                                       title="Hapus"
                                     >
-                                      <Trash2 className="w-4 h-4" />
+                                      <Trash className="w-4 h-4" weight="duotone" />
                                     </button>
                                   )}
                                 </>
@@ -557,7 +568,7 @@ export default function AdminUsersPage() {
                         <div className="flex items-center justify-between text-xs">
                           <div className="flex items-center gap-1.5 text-slate-400">
                             <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border ${getRoleColor(u.role)}`}>
-                              <Shield className="w-2.5 h-2.5" />
+                              <Shield className="w-2.5 h-2.5" weight="duotone" />
                               {formatRole(u.role)}
                             </span>
                             <span>•</span>
@@ -583,7 +594,7 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      {/* Create User Modal - Responsive */}
+      {/* Create User Modal */}
       {showCreateModal && (
         <>
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={() => setShowCreateModal(false)} />
@@ -594,9 +605,9 @@ export default function AdminUsersPage() {
                   <h2 className="text-lg sm:text-xl font-bold text-white">Buat Pengguna Baru</h2>
                   <button
                     onClick={() => setShowCreateModal(false)}
-                    className="p-2 hover:bg-white/5 active:bg-white/10 text-slate-400 rounded-lg transition-colors"
+                    className="p-2 hover:bg-white/5 text-slate-400 rounded-lg transition-colors"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-5 h-5" weight="bold" />
                   </button>
                 </div>
               </div>
@@ -609,7 +620,7 @@ export default function AdminUsersPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:border-blue-500 focus:bg-white/10 transition-all text-white placeholder-slate-500 text-sm sm:text-base"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:border-blue-500 focus:bg-white/10 transition-all focus:outline-none text-white placeholder-slate-500 text-sm sm:text-base"
                     placeholder="pengguna@contoh.com"
                   />
                 </div>
@@ -622,7 +633,7 @@ export default function AdminUsersPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={8}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:border-blue-500 focus:bg-white/10 transition-all text-white placeholder-slate-500 text-sm sm:text-base"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:border-blue-500 focus:bg-white/10 transition-all focus:outline-none text-white placeholder-slate-500 text-sm sm:text-base"
                     placeholder="Minimal 8 karakter"
                   />
                 </div>
@@ -632,7 +643,7 @@ export default function AdminUsersPage() {
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value as UserRole)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:border-blue-500 focus:bg-white/10 transition-all text-white text-sm sm:text-base"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:border-blue-500 focus:bg-white/10 transition-all focus:outline-none text-white text-sm sm:text-base"
                   >
                     <option value="user" className="bg-slate-900">Pengguna</option>
                     <option value="admin" className="bg-slate-900">Admin</option>
@@ -645,11 +656,11 @@ export default function AdminUsersPage() {
                 <button
                   type="submit"
                   disabled={processing}
-                  className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white py-3 rounded-lg font-bold transition-all disabled:opacity-50 text-sm sm:text-base"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-bold transition-all disabled:opacity-50 text-sm sm:text-base"
                 >
                   {processing ? (
                     <span className="flex items-center justify-center gap-2">
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <ArrowsClockwise className="w-5 h-5 animate-spin" weight="bold" />
                       Membuat...
                     </span>
                   ) : (
@@ -662,7 +673,7 @@ export default function AdminUsersPage() {
         </>
       )}
 
-      {/* Balance Management Modal - Responsive */}
+      {/* Balance Management Modal */}
       {showBalanceModal && selectedUser && (
         <>
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={() => setShowBalanceModal(false)} />
@@ -673,9 +684,9 @@ export default function AdminUsersPage() {
                   <h2 className="text-lg sm:text-xl font-bold text-white">Kelola Saldo</h2>
                   <button
                     onClick={() => setShowBalanceModal(false)}
-                    className="p-2 hover:bg-white/5 active:bg-white/10 text-slate-400 rounded-lg transition-colors"
+                    className="p-2 hover:bg-white/5 text-slate-400 rounded-lg transition-colors"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-5 h-5" weight="bold" />
                   </button>
                 </div>
               </div>
@@ -757,7 +768,7 @@ export default function AdminUsersPage() {
                     required
                     min="0"
                     step="1000"
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-lg sm:text-xl font-mono focus:border-green-500 focus:bg-white/10 transition-all text-white placeholder-slate-500"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-lg sm:text-xl font-mono focus:border-green-500 focus:bg-white/10 transition-all focus:outline-none text-white placeholder-slate-500"
                     placeholder="10000"
                   />
                 </div>
@@ -769,7 +780,7 @@ export default function AdminUsersPage() {
                     value={balanceDescription}
                     onChange={(e) => setBalanceDescription(e.target.value)}
                     required
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:border-green-500 focus:bg-white/10 transition-all text-white placeholder-slate-500 text-sm sm:text-base"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:border-green-500 focus:bg-white/10 transition-all focus:outline-none text-white placeholder-slate-500 text-sm sm:text-base"
                     placeholder="Penyesuaian admin"
                   />
                 </div>
@@ -779,13 +790,13 @@ export default function AdminUsersPage() {
                   disabled={processing}
                   className={`w-full py-3 rounded-lg sm:rounded-xl font-bold transition-all disabled:opacity-50 text-sm sm:text-base ${
                     balanceType === 'deposit'
-                      ? 'bg-green-600 hover:bg-green-700 active:bg-green-800 text-white'
-                      : 'bg-red-600 hover:bg-red-700 active:bg-red-800 text-white'
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
+                      : 'bg-red-600 hover:bg-red-700 text-white'
                   }`}
                 >
                   {processing ? (
                     <span className="flex items-center justify-center gap-2">
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <ArrowsClockwise className="w-5 h-5 animate-spin" weight="bold" />
                       Memproses...
                     </span>
                   ) : (
@@ -798,7 +809,7 @@ export default function AdminUsersPage() {
         </>
       )}
 
-      {/* Delete Confirmation Modal - Responsive */}
+      {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedUser && (
         <>
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={() => setShowDeleteModal(false)} />
@@ -823,18 +834,18 @@ export default function AdminUsersPage() {
                 <div className="flex gap-2 sm:gap-3">
                   <button
                     onClick={() => setShowDeleteModal(false)}
-                    className="flex-1 px-4 py-2.5 sm:py-3 bg-white/5 hover:bg-white/10 active:bg-white/15 text-slate-300 border border-white/10 rounded-lg sm:rounded-xl font-bold transition-all text-sm"
+                    className="flex-1 px-4 py-2.5 sm:py-3 bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 rounded-lg sm:rounded-xl font-bold transition-all text-sm"
                   >
                     Batal
                   </button>
                   <button
                     onClick={handleDeleteUser}
                     disabled={processing}
-                    className="flex-1 px-4 py-2.5 sm:py-3 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-lg sm:rounded-xl font-bold transition-all disabled:opacity-50 text-sm"
+                    className="flex-1 px-4 py-2.5 sm:py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg sm:rounded-xl font-bold transition-all disabled:opacity-50 text-sm"
                   >
                     {processing ? (
                       <span className="flex items-center justify-center gap-2">
-                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <ArrowsClockwise className="w-5 h-5 animate-spin" weight="bold" />
                         Menghapus...
                       </span>
                     ) : (
