@@ -1433,7 +1433,7 @@ export default function LandingPage() {
         <div className="relative z-10">
           <div className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-sky-500/10 border border-sky-500/30 rounded-full mb-2 sm:mb-4">
             <Star className="w-3 h-3 sm:w-4 sm:h-4 text-sky-400" weight="bold" />
-            <span className="text-[10px] sm:text-xs font-semibold text-sky-400">Std & Gold</span>
+            <span className="text-[10px] sm:text-xs font-semibold text-sky-400">Standart & Gold</span>
           </div>
           
           <div className="flex flex-col sm:flex-row sm:items-baseline gap-0 sm:gap-2 mb-2 sm:mb-4">
@@ -1608,269 +1608,274 @@ export default function LandingPage() {
       )}
       
       {/* Auth Modal */}
-      {showAuthModal && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 animate-fade-in" 
-            onClick={() => setShowAuthModal(false)}
-          />
+      {/* Auth Modal */}
+{showAuthModal && (
+  <>
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 animate-fade-in" 
+      onClick={() => setShowAuthModal(false)}
+    />
 
-          <div className="fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-gradient-to-b from-[#0f1419] to-[#0a0e17] z-50 animate-slide-left shadow-2xl overflow-y-auto">
-            {/* Header */}
-            <div className="sticky top-0 z-10 bg-gradient-to-b from-[#0f1419] to-transparent backdrop-blur-xl border-b border-gray-800/50 p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="relative w-10 h-10">
-                    <Image
-                      src="/stc-logo1.png"
-                      alt="Stouch"
-                      fill
-                      className="object-contain rounded-md"
-                    />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold">Stouch</h2>
-                    <p className="text-xs text-gray-400">Platform Trading Profesional</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowAuthModal(false)}
-                  className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/5 transition-colors"
-                >
-                  <X className="w-5 h-5" weight="bold" />
-                </button>
-              </div>
+    {/* FIXED: Hapus overflow-y-auto dari container utama, gunakan h-full */}
+    <div className="fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-gradient-to-b from-[#0f1419] to-[#0a0e17] z-50 animate-slide-left shadow-2xl flex flex-col">
+      {/* Header - Sticky */}
+      <div className="flex-shrink-0 bg-gradient-to-b from-[#0f1419] to-[#0a0e17] backdrop-blur-xl border-b border-gray-800/50 p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative w-10 h-10">
+              <Image
+                src="/stc-logo1.png"
+                alt="Stouch"
+                fill
+                className="object-contain rounded-md"
+              />
             </div>
-
-            <div className="p-6">
-              {/* Mode Toggle */}
-              <div className="flex gap-2 p-1 bg-[#0a0e17] rounded-xl mb-6">
-                <button
-                  onClick={() => setIsLogin(true)}
-                  className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
-                    isLogin
-                      ? 'bg-[#1e293b] text-white shadow-lg border border-gray-700'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  Masuk
-                </button>
-                <button
-                  onClick={() => setIsLogin(false)}
-                  className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
-                    !isLogin
-                      ? 'bg-[#1e293b] text-white shadow-lg border border-gray-700'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  Daftar
-                </button>
-              </div>
-
-              {/* ✅ NEW: Referral Code Banner */}
-              {hasReferralCode && !isLogin && (
-                <div className="mb-6 p-4 bg-gradient-to-r from-emerald-500/10 to-emerald-500/10 border border-emerald-500/30 rounded-xl animate-fade-in-up">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-                      <CurrencyDollar className="w-5 h-5 text-emerald-400" weight="bold" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-semibold text-emerald-400">Kode Referral</span>
-                        <span className="px-2 py-0.5 bg-emerald-500/20 rounded text-xs text-emerald-300">
-                          {referralCode}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-400">
-                        Daftar sekarang untuk mendapatkan bonus dan komisi Anda!
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Header Text */}
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold mb-2">
-                  {isLogin ? 'Selamat Datang Kembali!' : 'Buat Akun'}
-                </h3>
-                <p className="text-gray-400">
-                  {isLogin 
-                    ? 'Masuk untuk melanjutkan trading' 
-                    : hasReferralCode 
-                      ? 'Bergabung dengan bonus referral'
-                      : 'Bergabung dengan ribuan trader sukses'}
-                </p>
-              </div>
-
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Alamat Email
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="anda@example.com"
-                    required
-                    disabled={loading}
-                    className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
-                    autoComplete="email"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    disabled={loading}
-                    className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
-                    autoComplete={isLogin ? 'current-password' : 'new-password'}
-                  />
-                  
-                  {!isLogin && (
-                    <div className="mt-6 p-3 bg-transparent rounded-lg">
-                      <p className="text-xs text-sky-400 font-medium mb-1">Password harus memiliki:</p>
-                      <ul className="text-xs text-gray-400 space-y-1">
-                        <li className={password.length >= 8 ? 'text-emerald-400' : ''}>
-                          • Minimal 8 karakter
-                        </li>
-                        <li className={/[A-Z]/.test(password) ? 'text-emerald-400' : ''}>
-                          • Minimal 1 huruf besar (A-Z)
-                        </li>
-                        <li className={/[a-z]/.test(password) ? 'text-emerald-400' : ''}>
-                          • Minimal 1 huruf kecil (a-z)
-                        </li>
-                        <li className={/[\d\W]/.test(password) ? 'text-emerald-400' : ''}>
-                          • Minimal 1 angka atau karakter khusus
-                        </li>
-                      </ul>
-                      <p className="text-xs text-gray-500 mt-2">
-                        Contoh: <span className="text-emerald-400">SecurePass123!</span>
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* ✅ NEW: Manual Referral Code Input (jika belum ada di URL) */}
-                {!isLogin && !hasReferralCode && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Kode Referral <span className="text-gray-500">(Opsional)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={referralCode}
-                      onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                      placeholder="Contoh: WUTJ8JGX"
-                      disabled={loading}
-                      className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                      maxLength={8}
-                    />
-                    <p className="mt-1 text-xs text-gray-500">
-                      Masukkan kode referral dari teman Anda untuk mendapatkan bonus
-                    </p>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full px-6 py-3.5 bg-[#1e293b] hover:bg-[#334155] rounded-lg text-lg font-semibold text-white transition-colors border border-gray-700 shadow-lg disabled:opacity-50 mt-6"
-                >
-                  {loading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      Memproses...
-                    </span>
-                  ) : (
-                    <span>{isLogin ? 'Masuk' : 'Buat Akun'}</span>
-                  )}
-                </button>
-              </form>
-
-              {!isLogin && (
-                <div className="mt-6 space-y-3">
-                  <div className="flex items-center gap-3 text-sm">
-                    <div className="w-6 h-6 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <span className="text-gray-300">Akun demo gratis Rp 10.000.000</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <div className="w-6 h-6 bg-sky-500/20 rounded-lg flex items-center justify-center">
-                      <svg className="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <span className="text-gray-300">Tanpa kartu kredit</span>
-                  </div>
-                  {hasReferralCode && (
-                    <div className="flex items-center gap-3 text-sm">
-                      <div className="w-6 h-6 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-                        <CurrencyDollar className="w-4 h-4 text-emerald-400" weight="bold" />
-                      </div>
-                      <span className="text-emerald-400 font-medium">Bonus referral aktif!</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Social Login */}
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-800"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-[#0f1419] text-gray-400">Atau lanjutkan dengan</span>
-                </div>
-              </div>
-
-              <button
-                onClick={handleGoogleSignIn}
-                disabled={loading || loadingGoogle}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#0a0e17] border border-gray-800 rounded-lg hover:bg-[#1a1f2e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loadingGoogle ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-400"></div>
-                    <span className="text-sm font-medium">Menghubungkan...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                      {/* Google icon paths */}
-                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                    </svg>
-                    <span className="text-sm font-medium">Google</span>
-                  </>
-                )}
-              </button>
-
-              {/* Terms */}
-              <p className="mt-6 text-xs text-center text-gray-500 leading-relaxed">
-                Dengan melanjutkan, Anda menyetujui{' '}
-                <a href="https://stockity.id/information/agreement " className="text-sky-400 hover:text-sky-300">Syarat & Ketentuan</a>
-                {' '}dan{' '}
-                <a href="https://stockity.id/information/privacy " className="text-sky-400 hover:text-sky-300">Kebijakan Privasi</a> kami
-              </p>
+            <div>
+              <h2 className="text-xl font-bold">Stouch</h2>
+              <p className="text-xs text-gray-400">Platform Trading Profesional</p>
             </div>
           </div>
-        </>
-      )}
+          <button
+            onClick={() => setShowAuthModal(false)}
+            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/5 transition-colors"
+          >
+            <X className="w-5 h-5" weight="bold" />
+          </button>
+        </div>
+      </div>
+
+      {/* FIXED: Content area dengan overflow-y-auto tunggal */}
+      <div className="flex-1 overflow-y-auto scrollbar-hide">
+        <div className="p-6">
+          {/* Mode Toggle */}
+          <div className="flex gap-2 p-1 bg-[#0a0e17] rounded-xl mb-6">
+            <button
+              onClick={() => setIsLogin(true)}
+              className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
+                isLogin
+                  ? 'bg-[#1e293b] text-white shadow-lg border border-gray-700'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Masuk
+            </button>
+            <button
+              onClick={() => setIsLogin(false)}
+              className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
+                !isLogin
+                  ? 'bg-[#1e293b] text-white shadow-lg border border-gray-700'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Daftar
+            </button>
+          </div>
+
+          {/* ✅ NEW: Referral Code Banner */}
+          {hasReferralCode && !isLogin && (
+            <div className="mb-6 p-4 bg-gradient-to-r from-emerald-500/10 to-emerald-500/10 border border-emerald-500/30 rounded-xl animate-fade-in-up">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                  <CurrencyDollar className="w-5 h-5 text-emerald-400" weight="bold" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-semibold text-emerald-400">Kode Referral</span>
+                    <span className="px-2 py-0.5 bg-emerald-500/20 rounded text-xs text-emerald-300">
+                      {referralCode}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    Daftar sekarang untuk mendapatkan bonus dan komisi Anda!
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Header Text */}
+          <div className="mb-6">
+            <h3 className="text-2xl font-bold mb-2">
+              {isLogin ? 'Selamat Datang Kembali!' : 'Buat Akun'}
+            </h3>
+            <p className="text-gray-400">
+              {isLogin 
+                ? 'Masuk untuk melanjutkan trading' 
+                : hasReferralCode 
+                  ? 'Bergabung dengan bonus referral'
+                  : 'Bergabung dengan ribuan trader sukses'}
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Alamat Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="anda@example.com"
+                required
+                disabled={loading}
+                className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
+                autoComplete="email"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                disabled={loading}
+                className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
+                autoComplete={isLogin ? 'current-password' : 'new-password'}
+              />
+              
+              {!isLogin && (
+                <div className="mt-6 p-3 bg-transparent rounded-lg">
+                  <p className="text-xs text-sky-400 font-medium mb-1">Password harus memiliki:</p>
+                  <ul className="text-xs text-gray-400 space-y-1">
+                    <li className={password.length >= 8 ? 'text-emerald-400' : ''}>
+                      • Minimal 8 karakter
+                    </li>
+                    <li className={/[A-Z]/.test(password) ? 'text-emerald-400' : ''}>
+                      • Minimal 1 huruf besar (A-Z)
+                    </li>
+                    <li className={/[a-z]/.test(password) ? 'text-emerald-400' : ''}>
+                      • Minimal 1 huruf kecil (a-z)
+                    </li>
+                    <li className={/[\d\W]/.test(password) ? 'text-emerald-400' : ''}>
+                      • Minimal 1 angka atau karakter khusus
+                    </li>
+                  </ul>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Contoh: <span className="text-emerald-400">SecurePass123!</span>
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* ✅ NEW: Manual Referral Code Input (jika belum ada di URL) */}
+            {!isLogin && !hasReferralCode && (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Kode Referral <span className="text-gray-500">(Opsional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                  placeholder="Contoh: WUTJ8JGX"
+                  disabled={loading}
+                  className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                  maxLength={8}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Masukkan kode referral dari teman Anda untuk mendapatkan bonus
+                </p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full px-6 py-3.5 bg-[#1e293b] hover:bg-[#334155] rounded-lg text-lg font-semibold text-white transition-colors border border-gray-700 shadow-lg disabled:opacity-50 mt-6"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  Memproses...
+                </span>
+              ) : (
+                <span>{isLogin ? 'Masuk' : 'Buat Akun'}</span>
+              )}
+            </button>
+          </form>
+
+          {!isLogin && (
+            <div className="mt-6 space-y-3">
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-6 h-6 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span className="text-gray-300">Akun demo gratis Rp 10.000.000</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-6 h-6 bg-sky-500/20 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span className="text-gray-300">Tanpa kartu kredit</span>
+              </div>
+              {hasReferralCode && (
+                <div className="flex items-center gap-3 text-sm">
+                  <div className="w-6 h-6 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                    <CurrencyDollar className="w-4 h-4 text-emerald-400" weight="bold" />
+                  </div>
+                  <span className="text-emerald-400 font-medium">Bonus referral aktif!</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Social Login */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-800"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-[#0f1419] text-gray-400">Atau lanjutkan dengan</span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleGoogleSignIn}
+            disabled={loading || loadingGoogle}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#0a0e17] border border-gray-800 rounded-lg hover:bg-[#1a1f2e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loadingGoogle ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-400"></div>
+                <span className="text-sm font-medium">Menghubungkan...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  {/* Google icon paths */}
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                <span className="text-sm font-medium">Google</span>
+              </>
+            )}
+          </button>
+
+          {/* Terms */}
+          <p className="mt-6 text-xs text-center text-gray-500 leading-relaxed">
+            Dengan melanjutkan, Anda menyetujui{' '}
+            <a href="https://stockity.id/information/agreement " className="text-sky-400 hover:text-sky-300">Syarat & Ketentuan</a>
+            {' '}dan{' '}
+            <a href="https://stockity.id/information/privacy " className="text-sky-400 hover:text-sky-300">Kebijakan Privasi</a> kami
+          </p>
+        </div>
+      </div>
+    </div>
+  </>
+)}
 
       <style jsx>{`
       @keyframes gradient {

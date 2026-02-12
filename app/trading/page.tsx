@@ -41,6 +41,7 @@ import {
   Award,
   Newspaper,
   MessageCircle,
+  Search,
 } from 'lucide-react'
 import OrderNotification from '@/components/OrderNotification'
 import { useWebSocket, usePriceSubscription, useOrderSubscription } from '@/components/providers/WebSocketProvider'
@@ -48,6 +49,8 @@ import { CalculationUtil } from '@/lib/calculation'
 import { TimezoneUtil } from '@/lib/timezone'
 import { useOptimisticOrders, useAggressiveResultPolling } from '@/hooks/useInstantOrders'
 import { useOrderResultNotification } from '@/hooks/useBatchNotification'
+import InformationBanner from '@/components/InformationBanner'
+import StatusBadge from '@/components/StatusBadge'
 
 const TradingChart = dynamic(() => import('@/components/TradingChart'), {
   ssr: false,
@@ -135,6 +138,7 @@ export default function TradingPage() {
   const balanceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   const [showAssetMenu, setShowAssetMenu] = useState(false)
+  const [assetSearch, setAssetSearch] = useState('')
   const [showAccountMenu, setShowAccountMenu] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showHistorySidebar, setShowHistorySidebar] = useState(false)
@@ -147,6 +151,7 @@ export default function TradingPage() {
   const [showDesktopDurationDropdown, setShowDesktopDurationDropdown] = useState(false)
   const [showLeftSidebar, setShowLeftSidebar] = useState(false)
   const [isLeftSidebarClosing, setIsLeftSidebarClosing] = useState(false)
+  const [showBanner, setShowBanner] = useState(false)
 
   const currentBalance = selectedAccountType === 'real' ? realBalance : demoBalance
   const isUltraFastMode = duration === 0.0167
@@ -415,6 +420,9 @@ export default function TradingPage() {
         }
         prefetchDefaultAsset(basePath)
       }
+
+      // Tampilkan banner setelah semua data & UI selesai dirender
+      setTimeout(() => setShowBanner(true), 600)
     }
     
     if (assets.length > 0) {
@@ -598,6 +606,16 @@ export default function TradingPage() {
   const potentialProfit = selectedAsset ? (validAmount * validProfitRate) / 100 : 0
   const potentialPayout = validAmount + potentialProfit
 
+  const filteredAssets = useMemo(() => {
+    if (!assetSearch.trim()) return assets
+    const q = assetSearch.toLowerCase()
+    return assets.filter(
+      (a) =>
+        a.symbol.toLowerCase().includes(q) ||
+        a.name.toLowerCase().includes(q)
+    )
+  }, [assets, assetSearch])
+
   if (!user) return null
 
   return (
@@ -619,7 +637,11 @@ export default function TradingPage() {
 
           <div className="relative">
             <button
-              onClick={() => setShowAssetMenu(!showAssetMenu)}
+              onClick={() => {
+                const next = !showAssetMenu
+                setShowAssetMenu(next)
+                if (!next) setAssetSearch('')
+              }}
               className="flex items-center gap-2 bg-[#2f3648] hover:bg-[#3a4360] px-2 py-2 rounded-lg transition-colors border border-gray-800/50"
             >
               {selectedAsset ? (
@@ -635,37 +657,71 @@ export default function TradingPage() {
 
             {showAssetMenu && (
               <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowAssetMenu(false)} />
-                <div className="absolute top-full left-0 mt-2 w-64 bg-[#232936] border border-gray-800/50 rounded-lg shadow-2xl z-50 max-h-80 overflow-y-auto">
-                  {assets.map((asset) => (
-                    <button
-                      key={asset.id}
-                      onClick={() => {
-                        setSelectedAsset(asset)
-                        setShowAssetMenu(false)
-                      }}
-                      onMouseEnter={() => {
-                        if (asset.realtimeDbPath) {
-                          prefetchMultipleTimeframes(
-                            asset.realtimeDbPath,
-                            ['1m', '5m']
-                          )
-                        }
-                      }}
-                      className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 last:border-0 ${
-                        selectedAsset?.id === asset.id ? 'bg-[#2a3142]' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <AssetIcon asset={asset} size="xs" />
-                        <div className="text-left">
-                          <div className="text-sm font-medium">{asset.symbol}</div>
-                          <div className="text-xs text-gray-400">{asset.name}</div>
-                        </div>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => {
+                    setShowAssetMenu(false)
+                    setAssetSearch('')
+                  }}
+                />
+                <div className="absolute top-full left-0 mt-2 w-64 bg-[#232936] border border-gray-800/50 rounded-lg shadow-2xl z-50 flex flex-col max-h-80">
+                  {/* Search Input */}
+                  <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-800/50 flex-shrink-0">
+                    <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                    <input
+                      autoFocus
+                      type="text"
+                      value={assetSearch}
+                      onChange={(e) => setAssetSearch(e.target.value)}
+                      placeholder="Cari aset..."
+                      className="flex-1 bg-transparent text-xs text-white placeholder-gray-500 focus:outline-none"
+                    />
+                    {assetSearch && (
+                      <button onClick={() => setAssetSearch('')} className="text-gray-500 hover:text-gray-300 transition-colors">
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Asset List */}
+                  <div className="overflow-y-auto">
+                    {filteredAssets.length === 0 ? (
+                      <div className="px-4 py-6 text-center text-xs text-gray-500">
+                        Aset tidak ditemukan
                       </div>
-                      <div className="text-xs font-bold text-emerald-400">+{asset.profitRate}%</div>
-                    </button>
-                  ))}
+                    ) : (
+                      filteredAssets.map((asset) => (
+                        <button
+                          key={asset.id}
+                          onClick={() => {
+                            setSelectedAsset(asset)
+                            setShowAssetMenu(false)
+                            setAssetSearch('')
+                          }}
+                          onMouseEnter={() => {
+                            if (asset.realtimeDbPath) {
+                              prefetchMultipleTimeframes(
+                                asset.realtimeDbPath,
+                                ['1m', '5m']
+                              )
+                            }
+                          }}
+                          className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 last:border-0 ${
+                            selectedAsset?.id === asset.id ? 'bg-[#2a3142]' : ''
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <AssetIcon asset={asset} size="xs" />
+                            <div className="text-left">
+                              <div className="text-sm font-medium">{asset.symbol}</div>
+                              <div className="text-xs text-gray-400">{asset.name}</div>
+                            </div>
+                          </div>
+                          <div className="text-xs font-bold text-emerald-400">+{asset.profitRate}%</div>
+                        </button>
+                      ))
+                    )}
+                  </div>
                 </div>
               </>
             )}
@@ -738,20 +794,25 @@ export default function TradingPage() {
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="w-10 h-10 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity overflow-hidden border-2 border-blue-500/30"
+              className="w-10 h-10 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity border-2 border-blue-500/30 relative"
             >
-              {userProfile?.profileInfo?.avatar?.url ? (
-                <Image
-                  src={userProfile.profileInfo.avatar.url}
-                  alt={user.email}
-                  width={40}
-                  height={40}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
-                  <span className="text-sm font-bold">{user.email[0].toUpperCase()}</span>
-                </div>
+              <div className="w-full h-full rounded-full overflow-hidden">
+                {userProfile?.profileInfo?.avatar?.url ? (
+                  <Image
+                    src={userProfile.profileInfo.avatar.url}
+                    alt={user.email}
+                    width={40}
+                    height={40}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
+                    <span className="text-sm font-bold">{user.email[0].toUpperCase()}</span>
+                  </div>
+                )}
+              </div>
+              {userProfile?.user?.status && (
+                <StatusBadge status={userProfile.user.status} size="sm" />
               )}
             </button>
 
@@ -903,25 +964,37 @@ export default function TradingPage() {
 
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="w-10 h-10 lg:w-8 lg:h-8 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity overflow-hidden border-2 border-blue-500/30"
+              className="w-10 h-10 lg:w-8 lg:h-8 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity border-2 border-blue-500/30 relative"
             >
-              {userProfile?.profileInfo?.avatar?.url ? (
-                <Image
-                  src={userProfile.profileInfo.avatar.url}
-                  alt={user.email}
-                  width={40}
-                  height={40}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
-                  <span className="text-sm font-bold">{user.email[0].toUpperCase()}</span>
-                </div>
+              <div className="w-full h-full rounded-full overflow-hidden">
+                {userProfile?.profileInfo?.avatar?.url ? (
+                  <Image
+                    src={userProfile.profileInfo.avatar.url}
+                    alt={user.email}
+                    width={40}
+                    height={40}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
+                    <span className="text-sm font-bold">{user.email[0].toUpperCase()}</span>
+                  </div>
+                )}
+              </div>
+              {userProfile?.user?.status && (
+                <StatusBadge status={userProfile.user.status} size="sm" />
               )}
             </button>
           </div>
         </div>
       </div>
+
+{/* Banner popup - fixed overlay, tidak mempengaruhi layout */}
+{showBanner && (
+  <InformationBanner 
+    onClose={() => setShowBanner(false)} 
+  />
+)}
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden min-h-0">

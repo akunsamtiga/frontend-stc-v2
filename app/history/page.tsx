@@ -61,34 +61,84 @@ const slideIn: Variants = {
 // ============================================
 const GlobalStyles = () => (
   <style jsx global>{`
-    /* Grid Pattern - Background putih, pattern kotak-kotak gelap 8% opacity, jarak lebar */
+    /* Shimmer reveal: lubang transparan bergerak dari bawah ke atas, mengekspos garis grid */
+    @keyframes grid-shimmer-up {
+      0%   { background-position: center 130%, center center, center center; }
+      100% { background-position: center -30%, center center, center center; }
+    }
+    @keyframes grid-shimmer-up-48 {
+      0%   { background-position: center 130%, center center, center center; }
+      100% { background-position: center -30%, center center, center center; }
+    }
+    @keyframes grid-shimmer-up-56 {
+      0%   { background-position: center 130%, center center, center center; }
+      100% { background-position: center -30%, center center, center center; }
+    }
+
+    /* Grid Pattern - overlay putih berlubang bergerak ke atas, mengekspos garis gelap di bawahnya */
     .bg-pattern-grid {
       background-color: #ffffff;
-      background-image: 
-        linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
-      background-size: 40px 40px;
-      background-position: center center;
+      background-image:
+        /* LAYER 1 (atas): penutup putih dengan lubang transparan yang bergerak */
+        linear-gradient(
+          to top,
+          rgba(255,255,255,1) 0%,
+          rgba(255,255,255,1) 35%,
+          rgba(255,255,255,0.4) 42%,
+          rgba(255,255,255,0)  50%,
+          rgba(255,255,255,0.4) 58%,
+          rgba(255,255,255,1) 65%,
+          rgba(255,255,255,1) 100%
+        ),
+        /* LAYER 2: garis horizontal gelap */
+        linear-gradient(rgba(0, 0, 0, 0.07) 1px, transparent 1px),
+        /* LAYER 3: garis vertikal gelap */
+        linear-gradient(90deg, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
+      background-size: 100% 220%, 40px 40px, 40px 40px;
+      background-position: center 130%, center center, center center;
+      animation: grid-shimmer-up 8s linear infinite;
     }
 
     /* Alternative: Grid dengan jarak 48px */
     .bg-pattern-grid-48 {
       background-color: #ffffff;
-      background-image: 
-        linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
-      background-size: 48px 48px;
-      background-position: center center;
+      background-image:
+        linear-gradient(
+          to top,
+          rgba(255,255,255,1) 0%,
+          rgba(255,255,255,1) 35%,
+          rgba(255,255,255,0.4) 42%,
+          rgba(255,255,255,0)  50%,
+          rgba(255,255,255,0.4) 58%,
+          rgba(255,255,255,1) 65%,
+          rgba(255,255,255,1) 100%
+        ),
+        linear-gradient(rgba(0, 0, 0, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
+      background-size: 100% 220%, 48px 48px, 48px 48px;
+      background-position: center 130%, center center, center center;
+      animation: grid-shimmer-up-48 8s linear infinite;
     }
 
     /* Alternative: Grid dengan jarak 56px */
     .bg-pattern-grid-56 {
       background-color: #ffffff;
-      background-image: 
-        linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
-      background-size: 56px 56px;
-      background-position: center center;
+      background-image:
+        linear-gradient(
+          to top,
+          rgba(255,255,255,1) 0%,
+          rgba(255,255,255,1) 35%,
+          rgba(255,255,255,0.4) 42%,
+          rgba(255,255,255,0)  50%,
+          rgba(255,255,255,0.4) 58%,
+          rgba(255,255,255,1) 65%,
+          rgba(255,255,255,1) 100%
+        ),
+        linear-gradient(rgba(0, 0, 0, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
+      background-size: 100% 220%, 56px 56px, 56px 56px;
+      background-position: center 130%, center center, center center;
+      animation: grid-shimmer-up-56 8s linear infinite;
     }
 
     /* Scrollbar hide utility */
@@ -139,14 +189,30 @@ const LoadingSkeleton = () => (
   <>
     {/* INJECT STYLE GLOBAL KHUSUS UNTUK SKELETON */}
     <style jsx global>{`
-      /* Grid Pattern - Background putih dengan pola halus */
+      /* Shimmer reveal: lubang transparan bergerak ke atas, mengekspos garis grid */
+      @keyframes grid-shimmer-up {
+        0%   { background-position: center 130%, center center, center center; }
+        100% { background-position: center -30%, center center, center center; }
+      }
+
       .bg-pattern-grid {
         background-color: #ffffff !important;
-        background-image: 
-          linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
-        background-size: 40px 40px;
-        background-position: center center;
+        background-image:
+          linear-gradient(
+            to top,
+            rgba(255,255,255,1) 0%,
+            rgba(255,255,255,1) 35%,
+            rgba(255,255,255,0.4) 42%,
+            rgba(255,255,255,0)  50%,
+            rgba(255,255,255,0.4) 58%,
+            rgba(255,255,255,1) 65%,
+            rgba(255,255,255,1) 100%
+          ),
+          linear-gradient(rgba(0, 0, 0, 0.07) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
+        background-size: 100% 220%, 40px 40px, 40px 40px;
+        background-position: center 130%, center center, center center;
+        animation: grid-shimmer-up 8s linear infinite;
       }
       
       /* Scrollbar hide utility */

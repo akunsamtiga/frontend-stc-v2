@@ -1089,7 +1089,7 @@ whileHover={{ scale: 1.02 }}
 >
 {React.createElement(getStatusIcon(statusInfo.current), { className: "w-4 h-4" })}
 <span className="font-semibold">{statusInfo.current.toUpperCase()}</span>
-<span className="opacity-90">{statusInfo.profitBonus}% Bonus</span>
+<span className="opacity-90">{statusInfo.profitBonus} Bonus</span>
 </motion.div>
 )}
 </div>

@@ -1539,7 +1539,7 @@ async getActiveInformation(page: number = 1, limit: number = 20): Promise<Inform
       dataLength: Array.isArray(response.data) ? response.data.length : 'N/A',
     })
     
-    // ✅ Defensive: Ensure data is always an array
+    // ✅ Backend returns: { success, message, data: [...], pagination: {...} }
     const items = Array.isArray(response.data) ? response.data : []
     
     return {
@@ -1551,7 +1551,6 @@ async getActiveInformation(page: number = 1, limit: number = 20): Promise<Inform
     }
   } catch (error) {
     console.error('❌ getActiveInformation API error:', error)
-    // Return safe empty result instead of throwing
     return {
       items: [],
       total: 0,
@@ -1561,6 +1560,51 @@ async getActiveInformation(page: number = 1, limit: number = 20): Promise<Inform
     }
   }
 }
+
+
+/**
+ * Get pinned information banner (only 1 pinned item)
+ */
+async getPinnedInformation(): Promise<Information | null> {
+  try {
+    const response: any = await this.client.get('/information/pinned')
+    
+    console.log('📌 API getPinnedInformation response:', response)
+    
+    // The NestJS ResponseInterceptor wraps the entire response in { success, data, timestamp, path }.
+    // The controller also manually wraps its return in { success, message, data: Information }.
+    // This means the actual Information lives at response.data.data (double-nested).
+    // We handle all possible nesting levels defensively:
+    let info: Information | null = null
+
+    if (response?.data?.data && typeof response.data.data === 'object' && response.data.data.title) {
+      // Double-wrapped: ResponseInterceptor({ success, data: controller({ success, message, data: Info }) })
+      info = response.data.data
+      console.log('✅ Unwrapped double-nested response')
+    } else if (response?.data && typeof response.data === 'object' && response.data.title) {
+      // Single-wrapped: response.data is the Information directly
+      info = response.data
+      console.log('✅ Unwrapped single-nested response')
+    } else if (response?.title) {
+      // Direct response: response is the Information object itself
+      info = response
+      console.log('✅ Direct response, no unwrapping needed')
+    }
+
+    if (info) {
+      console.log('✅ Found pinned banner:', info.title)
+      return info
+    }
+
+    console.log('ℹ️ No pinned banner found')
+    return null
+    
+  } catch (error) {
+    console.error('❌ getPinnedInformation API error:', error)
+    return null
+  }
+}
+
 
 /**
  * Get information detail by ID (User)

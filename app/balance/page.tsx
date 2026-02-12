@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import Navbar from '@/components/Navbar'
@@ -9,9 +10,16 @@ import { Balance as BalanceType, AccountType, UserProfile } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { getStatusProfitBonus } from '@/lib/status-utils'
 import {
-  Wallet, ArrowDownToLine, ArrowUpFromLine, X, Receipt, Award,
+  Wallet, ArrowDownToLine, ArrowUpFromLine, X, Receipt,
   CreditCard, Loader2, ChevronLeft, ChevronRight, Wifi, Clock
 } from 'lucide-react'
+
+// Status badge PNG mapping
+const STATUS_BADGE_IMG: Record<string, string> = {
+  standard: '/std.png',
+  gold: '/gold.png',
+  vip: '/vip.png',
+}
 import { toast } from 'sonner'
 
 const ITEMS_PER_PAGE = 10
@@ -83,32 +91,79 @@ const StaggerStyles = () => (
       background-size: 1000px 100%;
       animation: shimmer 3s infinite;
     }
-    /* Grid Pattern - Background putih, pattern kotak-kotak gelap 8% opacity, jarak lebar */
+    /* Shimmer reveal: lubang transparan bergerak dari bawah ke atas, mengekspos garis grid */
+    @keyframes grid-shimmer-up {
+      0%   { background-position: center 130%, center center, center center; }
+      100% { background-position: center -30%, center center, center center; }
+    }
+    @keyframes grid-shimmer-up-48 {
+      0%   { background-position: center 130%, center center, center center; }
+      100% { background-position: center -30%, center center, center center; }
+    }
+    @keyframes grid-shimmer-up-56 {
+      0%   { background-position: center 130%, center center, center center; }
+      100% { background-position: center -30%, center center, center center; }
+    }
+
+    /* Grid Pattern - overlay putih berlubang bergerak ke atas, mengekspos garis gelap di bawahnya */
     .bg-pattern-grid {
       background-color: #ffffff;
       background-image:
-        linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
-      background-size: 40px 40px;
-      background-position: center center;
+        linear-gradient(
+          to top,
+          rgba(255,255,255,1) 0%,
+          rgba(255,255,255,1) 35%,
+          rgba(255,255,255,0.4) 42%,
+          rgba(255,255,255,0)  50%,
+          rgba(255,255,255,0.4) 58%,
+          rgba(255,255,255,1) 65%,
+          rgba(255,255,255,1) 100%
+        ),
+        linear-gradient(rgba(0, 0, 0, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
+      background-size: 100% 220%, 40px 40px, 40px 40px;
+      background-position: center 130%, center center, center center;
+      animation: grid-shimmer-up 8s linear infinite;
     }
     /* Alternative: Grid dengan jarak 48px */
     .bg-pattern-grid-48 {
       background-color: #ffffff;
       background-image:
-        linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
-      background-size: 48px 48px;
-      background-position: center center;
+        linear-gradient(
+          to top,
+          rgba(255,255,255,1) 0%,
+          rgba(255,255,255,1) 35%,
+          rgba(255,255,255,0.4) 42%,
+          rgba(255,255,255,0)  50%,
+          rgba(255,255,255,0.4) 58%,
+          rgba(255,255,255,1) 65%,
+          rgba(255,255,255,1) 100%
+        ),
+        linear-gradient(rgba(0, 0, 0, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
+      background-size: 100% 220%, 48px 48px, 48px 48px;
+      background-position: center 130%, center center, center center;
+      animation: grid-shimmer-up-48 8s linear infinite;
     }
     /* Alternative: Grid dengan jarak 56px */
     .bg-pattern-grid-56 {
       background-color: #ffffff;
       background-image:
-        linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
-      background-size: 56px 56px;
-      background-position: center center;
+        linear-gradient(
+          to top,
+          rgba(255,255,255,1) 0%,
+          rgba(255,255,255,1) 35%,
+          rgba(255,255,255,0.4) 42%,
+          rgba(255,255,255,0)  50%,
+          rgba(255,255,255,0.4) 58%,
+          rgba(255,255,255,1) 65%,
+          rgba(255,255,255,1) 100%
+        ),
+        linear-gradient(rgba(0, 0, 0, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
+      background-size: 100% 220%, 56px 56px, 56px 56px;
+      background-position: center 130%, center center, center center;
+      animation: grid-shimmer-up-56 8s linear infinite;
     }
   `}</style>
 )
@@ -494,12 +549,18 @@ export default function BalancePage() {
                 </div>
               </div>
               {statusInfo && (
-                <div className={`hidden lg:flex items-center gap-3 px-4 py-2 rounded-xl text-white shadow-2xl border-2 border-white/30 stagger-item ${
+                <div className={`hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl text-white shadow-2xl border-2 border-white/30 stagger-item ${
                   statusInfo.current === 'standard' ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
                     statusInfo.current === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-orange-600' :
                       'bg-gradient-to-r from-purple-400 to-pink-600'
                 }`} style={{ animationDelay: '50ms' }}>
-                  <Award className="w-5 h-5" />
+                  <Image
+                    src={STATUS_BADGE_IMG[statusInfo.current] ?? '/std.png'}
+                    alt={statusInfo.current}
+                    width={44}
+                    height={44}
+                    className="w-11 h-11 object-contain drop-shadow-lg"
+                  />
                   <div className="text-sm">
                     <div className="font-bold">{statusInfo.current.toUpperCase()}</div>
                     <div className="text-xs opacity-90">+{profitBonus}% Bonus</div>
@@ -512,14 +573,20 @@ export default function BalancePage() {
           {/* Mobile Status Badge */}
           {statusInfo && (
             <div className="lg:hidden mb-4 sm:mb-6 stagger-item" style={{ animationDelay: '50ms' }}>
-              <div className={`p-3 sm:p-4 rounded-xl text-white shadow-lg ${
+              <div className={`p-2 sm:p-3 rounded-xl text-white shadow-lg ${
                 statusInfo.current === 'standard' ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
                   statusInfo.current === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-orange-600' :
                     'bg-gradient-to-r from-purple-400 to-pink-600'
               }`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 sm:gap-3">
-                    <Award className="w-6 h-6 sm:w-8 sm:h-8" />
+                    <Image
+                      src={STATUS_BADGE_IMG[statusInfo.current] ?? '/std.png'}
+                      alt={statusInfo.current}
+                      width={56}
+                      height={56}
+                      className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-lg"
+                    />
                     <div>
                       <div className="text-base sm:text-lg font-bold">{statusInfo.current.toUpperCase()} Status</div>
                       <div className="text-xs sm:text-sm opacity-90">Profit Bonus: +{profitBonus}%</div>
@@ -634,8 +701,14 @@ export default function BalancePage() {
                     <CreditCard className="w-5 h-5 text-green-600" />
                     Akun Real
                     {profitBonus > 0 && (
-                      <span className="flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-lg border border-green-500/30 text-xs font-bold text-green-700">
-                        <Award className="w-3 h-3" />
+                      <span className="flex items-center gap-1 px-1.5 py-0.5 bg-green-500/20 rounded-lg border border-green-500/30 text-xs font-bold text-green-700">
+                        <Image
+                          src={STATUS_BADGE_IMG[statusInfo?.current ?? 'standard'] ?? '/std.png'}
+                          alt="status"
+                          width={20}
+                          height={20}
+                          className="w-5 h-5 object-contain"
+                        />
                         +{profitBonus}%
                       </span>
                     )}
@@ -691,8 +764,14 @@ export default function BalancePage() {
                         {formatCurrency(realBalance)}
                       </div>
                       {profitBonus > 0 && (
-                        <div className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 backdrop-blur-sm rounded-md border border-white/20">
-                          <Award className="w-3 h-3 text-amber-300" />
+                        <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-white/10 backdrop-blur-sm rounded-md border border-white/20">
+                          <Image
+                            src={STATUS_BADGE_IMG[statusInfo?.current ?? 'standard'] ?? '/std.png'}
+                            alt="status"
+                            width={24}
+                            height={24}
+                            className="w-6 h-6 object-contain drop-shadow"
+                          />
                           <span className="text-xs font-bold text-white">+{profitBonus}% Profit Bonus Active</span>
                         </div>
                       )}

@@ -1,7 +1,7 @@
 // components/TradingChart.tsx - COMPLETE VERSION with OrderPriceTracker Integration
 'use client'
 
-import { useEffect, useRef, useState, useCallback, memo } from 'react'
+import { useEffect, useRef, useState, useCallback, memo, useMemo } from 'react'
 import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp, LineStyle } from 'lightweight-charts'
 import { useTradingStore, useTradingActions } from '@/store/trading'
 import { fetchHistoricalData, subscribeToOHLCUpdates, prefetchMultipleTimeframes } from '@/lib/firebase'
@@ -18,8 +18,24 @@ import {
   calculateMACD, 
   calculateStochastic, 
   calculateATR,
+  calculateWMA,
+  calculateADX,
+  calculateCCI,
+  calculateParabolicSAR,
+  calculateWilliamsR,
+  calculateOBV,
+  calculateIchimoku,
+  calculateVWAP,
+  calculateKeltnerChannels,
+  calculateDonchianChannels,
+  calculateMFI,
+  calculateAroon,
+  calculateSupertrend,
+  calculateTRIX,
+  calculateElderRay,
   CandleData as IndicatorCandleData
 } from '@/lib/indicators'
+
 
 
 const IndicatorControls = dynamic(() => import('./IndicatorControls'), { ssr: false })
@@ -35,24 +51,59 @@ interface TradingChartProps {
 }
 
 interface IndicatorConfig {
+  // Overlay Indicators
   sma?: { enabled: boolean; period: number; color: string }
   ema?: { enabled: boolean; period: number; color: string }
+  wma?: { enabled: boolean; period: number; color: string }
   bollinger?: { enabled: boolean; period: number; stdDev: number; colorUpper: string; colorMiddle: string; colorLower: string }
+  keltner?: { enabled: boolean; emaPeriod: number; atrPeriod: number; multiplier: number }
+  donchian?: { enabled: boolean; period: number }
+  ichimoku?: { enabled: boolean; tenkanPeriod: number; kijunPeriod: number; senkouBPeriod: number }
+  vwap?: { enabled: boolean; color: string }
+  parabolicSar?: { enabled: boolean; accelerationFactor: number; maxAF: number }
+  supertrend?: { enabled: boolean; period: number; multiplier: number }
+  
+  // Oscillator Indicators
   rsi?: { enabled: boolean; period: number; overbought: number; oversold: number }
   macd?: { enabled: boolean; fastPeriod: number; slowPeriod: number; signalPeriod: number }
   stochastic?: { enabled: boolean; kPeriod: number; dPeriod: number; overbought: number; oversold: number }
   atr?: { enabled: boolean; period: number }
+  adx?: { enabled: boolean; period: number }
+  cci?: { enabled: boolean; period: number }
+  williamsR?: { enabled: boolean; period: number }
+  mfi?: { enabled: boolean; period: number }
+  aroon?: { enabled: boolean; period: number }
+  trix?: { enabled: boolean; period: number }
+  obv?: { enabled: boolean }
+  elderRay?: { enabled: boolean; period: number }
 }
+
 
 const DEFAULT_INDICATOR_CONFIG: IndicatorConfig = {
   sma: { enabled: false, period: 20, color: '#3b82f6' },
   ema: { enabled: false, period: 20, color: '#f59e0b' },
+  wma: { enabled: false, period: 20, color: '#8b5cf6' },
   bollinger: { enabled: false, period: 20, stdDev: 2, colorUpper: '#ef4444', colorMiddle: '#6b7280', colorLower: '#10b981' },
+  keltner: { enabled: false, emaPeriod: 20, atrPeriod: 10, multiplier: 2 },
+  donchian: { enabled: false, period: 20 },
+  ichimoku: { enabled: false, tenkanPeriod: 9, kijunPeriod: 26, senkouBPeriod: 52 },
+  vwap: { enabled: false, color: '#06b6d4' },
+  parabolicSar: { enabled: false, accelerationFactor: 0.02, maxAF: 0.2 },
+  supertrend: { enabled: false, period: 10, multiplier: 3 },
   rsi: { enabled: false, period: 14, overbought: 70, oversold: 30 },
   macd: { enabled: false, fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
   stochastic: { enabled: false, kPeriod: 14, dPeriod: 3, overbought: 80, oversold: 20 },
-  atr: { enabled: false, period: 14 }
+  atr: { enabled: false, period: 14 },
+  adx: { enabled: false, period: 14 },
+  cci: { enabled: false, period: 20 },
+  williamsR: { enabled: false, period: 14 },
+  mfi: { enabled: false, period: 14 },
+  aroon: { enabled: false, period: 25 },
+  trix: { enabled: false, period: 14 },
+  obv: { enabled: false },
+  elderRay: { enabled: false, period: 13 }
 }
+
 
 interface CandleData {
   timestamp: number
@@ -568,10 +619,71 @@ const PriceDisplay = memo(({
   assets, 
   onSelectAsset 
 }: any) => {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedIndex, setSelectedIndex] = useState(0)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
   if (!asset || !price) return null
 
   const hasChange = price.change !== undefined && price.change !== 0
   const formattedPrice = formatPriceAuto(price.price, asset.type)
+
+  // Filter assets based on search query
+  const filteredAssets = useMemo(() => {
+    if (!searchQuery.trim()) return assets
+    
+    const query = searchQuery.toLowerCase()
+    return assets.filter((assetItem: any) => 
+      assetItem.symbol?.toLowerCase().includes(query) ||
+      assetItem.name?.toLowerCase().includes(query)
+    )
+  }, [assets, searchQuery])
+
+  // Focus search input when menu opens
+  useEffect(() => {
+    if (showMenu && searchInputRef.current) {
+      setTimeout(() => {
+        searchInputRef.current?.focus()
+      }, 100)
+      setSelectedIndex(0)
+    } else {
+      setSearchQuery('')
+      setSelectedIndex(0)
+    }
+  }, [showMenu])
+
+  // Reset selected index when filtered assets change
+  useEffect(() => {
+    setSelectedIndex(0)
+  }, [filteredAssets.length])
+
+  // Keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (filteredAssets.length === 0) return
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        setSelectedIndex(prev => 
+          prev < filteredAssets.length - 1 ? prev + 1 : prev
+        )
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        setSelectedIndex(prev => prev > 0 ? prev - 1 : 0)
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (filteredAssets[selectedIndex]) {
+          onSelectAsset(filteredAssets[selectedIndex])
+        }
+        break
+      case 'Escape':
+        e.preventDefault()
+        onClick()
+        break
+    }
+  }
 
   return (
     <div className="absolute top-2 left-2 z-20">
@@ -616,35 +728,104 @@ const PriceDisplay = memo(({
       {showMenu && (
         <>
           <div className="fixed inset-0 z-30 lg:hidden" onClick={onClick} />
-          <div className="absolute top-full left-0 mt-2 w-72 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl z-40 max-h-80 overflow-y-auto lg:hidden">
-            {assets.map((assetItem: any) => (
-              <button
-                key={assetItem.id}
-                onClick={() => {
-                  onSelectAsset(assetItem)
-                }}
-                onMouseEnter={() => {
-                  if (assetItem.realtimeDbPath) {
-                    prefetchMultipleTimeframes(
-                      assetItem.realtimeDbPath,
-                      ['1m', '5m']
-                    ).catch(err => console.log('Prefetch failed:', err))
-                  }
-                }}
-                className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#1a1f2e] transition-colors border-b border-gray-800/30 last:border-0 ${
-                  assetItem.id === asset?.id ? 'bg-[#1a1f2e]' : ''
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <AssetIcon asset={assetItem} size="xs" />
-                  <div className="text-left">
-                    <div className="text-sm font-medium">{assetItem.symbol}</div>
-                    <div className="text-xs text-gray-400">{assetItem.name}</div>
-                  </div>
+          <div className="absolute top-full left-0 mt-2 w-72 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl z-40 lg:hidden flex flex-col">
+            {/* Search Input */}
+            <div className="p-3 border-b border-gray-800/50 sticky top-0 bg-[#0f1419] z-10">
+              <div className="relative">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Search assets..."
+                  className="w-full bg-[#1a1f2e] border border-gray-700/50 rounded-lg px-3 py-2 pl-9 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all"
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <svg 
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                {searchQuery && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSearchQuery('')
+                      searchInputRef.current?.focus()
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-700/50 rounded transition-colors"
+                  >
+                    <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              {/* Keyboard hints */}
+              <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                <span className="flex items-center gap-1">
+                  <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-[10px]">↑↓</kbd>
+                  navigate
+                </span>
+                <span className="flex items-center gap-1">
+                  <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-[10px]">↵</kbd>
+                  select
+                </span>
+                <span className="flex items-center gap-1">
+                  <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-[10px]">Esc</kbd>
+                  close
+                </span>
+              </div>
+            </div>
+
+            {/* Assets List */}
+            <div className="max-h-80 overflow-y-auto">
+              {filteredAssets.length > 0 ? (
+                filteredAssets.map((assetItem: any, index: number) => (
+                  <button
+                    key={assetItem.id}
+                    onClick={() => {
+                      onSelectAsset(assetItem)
+                    }}
+                    onMouseEnter={() => {
+                      setSelectedIndex(index)
+                      if (assetItem.realtimeDbPath) {
+                        prefetchMultipleTimeframes(
+                          assetItem.realtimeDbPath,
+                          ['1m', '5m']
+                        ).catch(err => console.log('Prefetch failed:', err))
+                      }
+                    }}
+                    className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#1a1f2e] transition-colors border-b border-gray-800/30 last:border-0 ${
+                      index === selectedIndex ? 'bg-[#1a1f2e] ring-1 ring-blue-500/30' : ''
+                    } ${
+                      assetItem.id === asset?.id ? 'bg-[#1a1f2e]/50' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <AssetIcon asset={assetItem} size="xs" />
+                      <div className="text-left">
+                        <div className="text-sm font-medium">{assetItem.symbol}</div>
+                        <div className="text-xs text-gray-400">{assetItem.name}</div>
+                      </div>
+                    </div>
+                    <div className="text-xs font-bold text-emerald-400">+{assetItem.profitRate}%</div>
+                  </button>
+                ))
+              ) : (
+                <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                  <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p>No assets found</p>
+                  <p className="text-xs mt-1">Try a different search term</p>
                 </div>
-                <div className="text-xs font-bold text-emerald-400">+{assetItem.profitRate}%</div>
-              </button>
-            ))}
+              )}
+            </div>
           </div>
         </>
       )}
@@ -967,7 +1148,57 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const stochasticContainerRef = useRef<HTMLDivElement>(null)
   const atrContainerRef = useRef<HTMLDivElement>(null)
 
-  
+  // ✅ NEW OVERLAY INDICATOR REFS
+const wmaSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
+const keltnerUpperRef = useRef<ISeriesApi<"Line"> | null>(null)
+const keltnerMiddleRef = useRef<ISeriesApi<"Line"> | null>(null)
+const keltnerLowerRef = useRef<ISeriesApi<"Line"> | null>(null)
+const donchianUpperRef = useRef<ISeriesApi<"Line"> | null>(null)
+const donchianMiddleRef = useRef<ISeriesApi<"Line"> | null>(null)
+const donchianLowerRef = useRef<ISeriesApi<"Line"> | null>(null)
+const ichimokuTenkanRef = useRef<ISeriesApi<"Line"> | null>(null)
+const ichimokuKijunRef = useRef<ISeriesApi<"Line"> | null>(null)
+const ichimokuSpanARef = useRef<ISeriesApi<"Line"> | null>(null)
+const ichimokuSpanBRef = useRef<ISeriesApi<"Line"> | null>(null)
+const vwapSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
+const parabolicSarSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
+const supertrendSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
+
+// ✅ NEW OSCILLATOR CHARTS & SERIES
+const adxChartRef = useRef<IChartApi | null>(null)
+const adxSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
+const adxContainerRef = useRef<HTMLDivElement>(null)
+
+const cciChartRef = useRef<IChartApi | null>(null)
+const cciSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
+const cciContainerRef = useRef<HTMLDivElement>(null)
+
+const williamsRChartRef = useRef<IChartApi | null>(null)
+const williamsRSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
+const williamsRContainerRef = useRef<HTMLDivElement>(null)
+
+const mfiChartRef = useRef<IChartApi | null>(null)
+const mfiSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
+const mfiContainerRef = useRef<HTMLDivElement>(null)
+
+const aroonChartRef = useRef<IChartApi | null>(null)
+const aroonUpRef = useRef<ISeriesApi<"Line"> | null>(null)
+const aroonDownRef = useRef<ISeriesApi<"Line"> | null>(null)
+const aroonContainerRef = useRef<HTMLDivElement>(null)
+
+const trixChartRef = useRef<IChartApi | null>(null)
+const trixSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
+const trixContainerRef = useRef<HTMLDivElement>(null)
+
+const obvChartRef = useRef<IChartApi | null>(null)
+const obvSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
+const obvContainerRef = useRef<HTMLDivElement>(null)
+
+const elderRayChartRef = useRef<IChartApi | null>(null)
+const elderRayBullRef = useRef<ISeriesApi<"Histogram"> | null>(null)
+const elderRayBearRef = useRef<ISeriesApi<"Histogram"> | null>(null)
+const elderRayContainerRef = useRef<HTMLDivElement>(null)
+
   const isMountedRef = useRef(false)
   const cleanupFunctionsRef = useRef<Array<() => void>>([])
   const currentBarRef = useRef<CandleData | null>(null)
@@ -1430,7 +1661,15 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       indicatorConfig.rsi?.enabled ||
       indicatorConfig.macd?.enabled ||
       indicatorConfig.stochastic?.enabled ||
-      indicatorConfig.atr?.enabled
+      indicatorConfig.atr?.enabled ||
+      indicatorConfig.adx?.enabled ||
+      indicatorConfig.cci?.enabled ||
+      indicatorConfig.williamsR?.enabled ||
+      indicatorConfig.mfi?.enabled ||
+      indicatorConfig.aroon?.enabled ||
+      indicatorConfig.trix?.enabled ||
+      indicatorConfig.obv?.enabled ||
+      indicatorConfig.elderRay?.enabled
 
     if (!hasOscillators) {
       // Cleanup oscillator charts
@@ -1663,6 +1902,258 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       atrSeriesRef.current = atrSeries
     }
 
+    if (indicatorConfig.adx?.enabled && adxContainerRef.current && !adxChartRef.current) {
+  const { width } = adxContainerRef.current.getBoundingClientRect()
+  const adxChart = createChart(adxContainerRef.current, {
+    ...chartOptions,
+    width,
+    height: 120
+  })
+
+  const adxSeries = adxChart.addLineSeries({
+    color: '#3b82f6',
+    lineWidth: 2,
+    priceLineVisible: false,
+    lastValueVisible: true
+  })
+
+  adxChart.timeScale().fitContent()
+  if (chartRef.current) {
+    adxChart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+      const range = adxChart.timeScale().getVisibleLogicalRange()
+      if (range && chartRef.current) {
+        chartRef.current.timeScale().setVisibleLogicalRange(range)
+      }
+    })
+  }
+
+  adxChartRef.current = adxChart
+  adxSeriesRef.current = adxSeries
+}
+
+// ✅ CCI Chart
+if (indicatorConfig.cci?.enabled && cciContainerRef.current && !cciChartRef.current) {
+  const { width } = cciContainerRef.current.getBoundingClientRect()
+  const cciChart = createChart(cciContainerRef.current, {
+    ...chartOptions,
+    width,
+    height: 120
+  })
+
+  const cciSeries = cciChart.addLineSeries({
+    color: '#f59e0b',
+    lineWidth: 2,
+    priceLineVisible: false,
+    lastValueVisible: true
+  })
+
+  cciChart.timeScale().fitContent()
+  if (chartRef.current) {
+    cciChart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+      const range = cciChart.timeScale().getVisibleLogicalRange()
+      if (range && chartRef.current) {
+        chartRef.current.timeScale().setVisibleLogicalRange(range)
+      }
+    })
+  }
+
+  cciChartRef.current = cciChart
+  cciSeriesRef.current = cciSeries
+}
+
+// ✅ Williams %R Chart
+if (indicatorConfig.williamsR?.enabled && williamsRContainerRef.current && !williamsRChartRef.current) {
+  const { width } = williamsRContainerRef.current.getBoundingClientRect()
+  const williamsRChart = createChart(williamsRContainerRef.current, {
+    ...chartOptions,
+    width,
+    height: 120
+  })
+
+  const williamsRSeries = williamsRChart.addLineSeries({
+    color: '#10b981',
+    lineWidth: 2,
+    priceLineVisible: false,
+    lastValueVisible: true
+  })
+
+  williamsRChart.timeScale().fitContent()
+  if (chartRef.current) {
+    williamsRChart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+      const range = williamsRChart.timeScale().getVisibleLogicalRange()
+      if (range && chartRef.current) {
+        chartRef.current.timeScale().setVisibleLogicalRange(range)
+      }
+    })
+  }
+
+  williamsRChartRef.current = williamsRChart
+  williamsRSeriesRef.current = williamsRSeries
+}
+
+// ✅ MFI Chart
+if (indicatorConfig.mfi?.enabled && mfiContainerRef.current && !mfiChartRef.current) {
+  const { width } = mfiContainerRef.current.getBoundingClientRect()
+  const mfiChart = createChart(mfiContainerRef.current, {
+    ...chartOptions,
+    width,
+    height: 120
+  })
+
+  const mfiSeries = mfiChart.addLineSeries({
+    color: '#8b5cf6',
+    lineWidth: 2,
+    priceLineVisible: false,
+    lastValueVisible: true
+  })
+
+  mfiChart.timeScale().fitContent()
+  if (chartRef.current) {
+    mfiChart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+      const range = mfiChart.timeScale().getVisibleLogicalRange()
+      if (range && chartRef.current) {
+        chartRef.current.timeScale().setVisibleLogicalRange(range)
+      }
+    })
+  }
+
+  mfiChartRef.current = mfiChart
+  mfiSeriesRef.current = mfiSeries
+}
+
+// ✅ Aroon Chart
+if (indicatorConfig.aroon?.enabled && aroonContainerRef.current && !aroonChartRef.current) {
+  const { width } = aroonContainerRef.current.getBoundingClientRect()
+  const aroonChart = createChart(aroonContainerRef.current, {
+    ...chartOptions,
+    width,
+    height: 120
+  })
+
+  const aroonUpSeries = aroonChart.addLineSeries({
+    color: '#10b981',
+    lineWidth: 2,
+    priceLineVisible: false,
+    lastValueVisible: true
+  })
+
+  const aroonDownSeries = aroonChart.addLineSeries({
+    color: '#ef4444',
+    lineWidth: 2,
+    priceLineVisible: false,
+    lastValueVisible: true
+  })
+
+  aroonChart.timeScale().fitContent()
+  if (chartRef.current) {
+    aroonChart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+      const range = aroonChart.timeScale().getVisibleLogicalRange()
+      if (range && chartRef.current) {
+        chartRef.current.timeScale().setVisibleLogicalRange(range)
+      }
+    })
+  }
+
+  aroonChartRef.current = aroonChart
+  aroonUpRef.current = aroonUpSeries
+  aroonDownRef.current = aroonDownSeries
+}
+
+// ✅ TRIX Chart
+if (indicatorConfig.trix?.enabled && trixContainerRef.current && !trixChartRef.current) {
+  const { width } = trixContainerRef.current.getBoundingClientRect()
+  const trixChart = createChart(trixContainerRef.current, {
+    ...chartOptions,
+    width,
+    height: 120
+  })
+
+  const trixSeries = trixChart.addLineSeries({
+    color: '#ec4899',
+    lineWidth: 2,
+    priceLineVisible: false,
+    lastValueVisible: true
+  })
+
+  trixChart.timeScale().fitContent()
+  if (chartRef.current) {
+    trixChart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+      const range = trixChart.timeScale().getVisibleLogicalRange()
+      if (range && chartRef.current) {
+        chartRef.current.timeScale().setVisibleLogicalRange(range)
+      }
+    })
+  }
+
+  trixChartRef.current = trixChart
+  trixSeriesRef.current = trixSeries
+}
+
+// ✅ OBV Chart
+if (indicatorConfig.obv?.enabled && obvContainerRef.current && !obvChartRef.current) {
+  const { width } = obvContainerRef.current.getBoundingClientRect()
+  const obvChart = createChart(obvContainerRef.current, {
+    ...chartOptions,
+    width,
+    height: 120
+  })
+
+  const obvSeries = obvChart.addLineSeries({
+    color: '#06b6d4',
+    lineWidth: 2,
+    priceLineVisible: false,
+    lastValueVisible: true
+  })
+
+  obvChart.timeScale().fitContent()
+  if (chartRef.current) {
+    obvChart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+      const range = obvChart.timeScale().getVisibleLogicalRange()
+      if (range && chartRef.current) {
+        chartRef.current.timeScale().setVisibleLogicalRange(range)
+      }
+    })
+  }
+
+  obvChartRef.current = obvChart
+  obvSeriesRef.current = obvSeries
+}
+
+// ✅ Elder Ray Chart
+if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderRayChartRef.current) {
+  const { width } = elderRayContainerRef.current.getBoundingClientRect()
+  const elderRayChart = createChart(elderRayContainerRef.current, {
+    ...chartOptions,
+    width,
+    height: 120
+  })
+
+  const elderRayBullSeries = elderRayChart.addHistogramSeries({
+    color: '#10b981',
+    priceLineVisible: false
+  })
+
+  const elderRayBearSeries = elderRayChart.addHistogramSeries({
+    color: '#ef4444',
+    priceLineVisible: false
+  })
+
+  elderRayChart.timeScale().fitContent()
+  if (chartRef.current) {
+    elderRayChart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+      const range = elderRayChart.timeScale().getVisibleLogicalRange()
+      if (range && chartRef.current) {
+        chartRef.current.timeScale().setVisibleLogicalRange(range)
+      }
+    })
+  }
+
+  elderRayChartRef.current = elderRayChart
+  elderRayBullRef.current = elderRayBullSeries
+  elderRayBearRef.current = elderRayBearSeries
+}
+
+
     // Resize handler for oscillator charts
     const handleResize = () => {
       if (rsiChartRef.current && rsiContainerRef.current) {
@@ -1681,6 +2172,38 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         const { width } = atrContainerRef.current.getBoundingClientRect()
         atrChartRef.current.applyOptions({ width, height: 120 })
       }
+      if (adxChartRef.current && adxContainerRef.current) {
+        const { width } = adxContainerRef.current.getBoundingClientRect()
+        adxChartRef.current.applyOptions({ width, height: 120 })
+      }
+      if (cciChartRef.current && cciContainerRef.current) {
+        const { width } = cciContainerRef.current.getBoundingClientRect()
+        cciChartRef.current.applyOptions({ width, height: 120 })
+      }
+      if (williamsRChartRef.current && williamsRContainerRef.current) {
+        const { width } = williamsRContainerRef.current.getBoundingClientRect()
+        williamsRChartRef.current.applyOptions({ width, height: 120 })
+      }
+      if (mfiChartRef.current && mfiContainerRef.current) {
+        const { width } = mfiContainerRef.current.getBoundingClientRect()
+        mfiChartRef.current.applyOptions({ width, height: 120 })
+      }
+      if (aroonChartRef.current && aroonContainerRef.current) {
+        const { width } = aroonContainerRef.current.getBoundingClientRect()
+        aroonChartRef.current.applyOptions({ width, height: 120 })
+      }
+      if (trixChartRef.current && trixContainerRef.current) {
+        const { width } = trixContainerRef.current.getBoundingClientRect()
+        trixChartRef.current.applyOptions({ width, height: 120 })
+      }
+      if (obvChartRef.current && obvContainerRef.current) {
+        const { width } = obvContainerRef.current.getBoundingClientRect()
+        obvChartRef.current.applyOptions({ width, height: 120 })
+      }
+      if (elderRayChartRef.current && elderRayContainerRef.current) {
+        const { width } = elderRayContainerRef.current.getBoundingClientRect()
+        elderRayChartRef.current.applyOptions({ width, height: 120 })
+      }
     }
 
     window.addEventListener('resize', handleResize)
@@ -1688,7 +2211,21 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     return () => {
       window.removeEventListener('resize', handleResize)
     }
-  }, [isInitialized, indicatorConfig.rsi?.enabled, indicatorConfig.macd?.enabled, indicatorConfig.stochastic?.enabled, indicatorConfig.atr?.enabled])
+  }, [
+    isInitialized, 
+    indicatorConfig.rsi?.enabled, 
+    indicatorConfig.macd?.enabled, 
+    indicatorConfig.stochastic?.enabled, 
+    indicatorConfig.atr?.enabled,
+    indicatorConfig.adx?.enabled,
+    indicatorConfig.cci?.enabled,
+    indicatorConfig.williamsR?.enabled,
+    indicatorConfig.mfi?.enabled,
+    indicatorConfig.aroon?.enabled,
+    indicatorConfig.trix?.enabled,
+    indicatorConfig.obv?.enabled,
+    indicatorConfig.elderRay?.enabled
+  ])
 
   // CHART TYPE CHANGES - MODIFIED FOR 60 CANDLE ZOOM
   useEffect(() => {
@@ -1833,6 +2370,371 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       if (bollingerLowerRef.current) bollingerLowerRef.current.applyOptions({ visible: false })
     }
 
+    // WMA
+    if (indicatorConfig.wma?.enabled) {
+      if (!wmaSeriesRef.current) {
+        wmaSeriesRef.current = chart.addLineSeries({
+          color: indicatorConfig.wma.color,
+          lineWidth: 2,
+          priceLineVisible: false,
+          lastValueVisible: false
+        })
+      }
+
+      // Convert chart data to indicator format
+      const wmaIndicatorData: IndicatorCandleData[] = currentChartData.map(d => ({
+        time: d.time,
+        open: d.open,
+        high: d.high,
+        low: d.low,
+        close: d.close,
+        volume: d.volume
+      }))
+      
+      const wmaData = calculateWMA(wmaIndicatorData, indicatorConfig.wma.period)
+      const wmaChartData = wmaData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.value
+      }))
+
+      wmaSeriesRef.current.setData(wmaChartData)
+      wmaSeriesRef.current.applyOptions({ 
+        color: indicatorConfig.wma.color,
+        visible: true
+      })
+    } else if (wmaSeriesRef.current) {
+      wmaSeriesRef.current.applyOptions({ visible: false })
+    }
+
+    // Keltner Channels
+    if (indicatorConfig.keltner?.enabled) {
+      const keltnerIndicatorData: IndicatorCandleData[] = currentChartData.map(d => ({
+        time: d.time,
+        open: d.open,
+        high: d.high,
+        low: d.low,
+        close: d.close,
+        volume: d.volume
+      }))
+
+      const keltnerData = calculateKeltnerChannels(
+        keltnerIndicatorData,
+        indicatorConfig.keltner.emaPeriod,
+        indicatorConfig.keltner.atrPeriod,
+        indicatorConfig.keltner.multiplier
+      )
+
+      if (!keltnerUpperRef.current) {
+        keltnerUpperRef.current = chart.addLineSeries({
+          color: '#ef4444',
+          lineWidth: 1,
+          priceLineVisible: false,
+          lastValueVisible: false
+        })
+      }
+      if (!keltnerMiddleRef.current) {
+        keltnerMiddleRef.current = chart.addLineSeries({
+          color: '#6b7280',
+          lineWidth: 1,
+          lineStyle: 2,
+          priceLineVisible: false,
+          lastValueVisible: false
+        })
+      }
+      if (!keltnerLowerRef.current) {
+        keltnerLowerRef.current = chart.addLineSeries({
+          color: '#10b981',
+          lineWidth: 1,
+          priceLineVisible: false,
+          lastValueVisible: false
+        })
+      }
+
+      const upperData = keltnerData.map((d: any) => ({
+        time: d.time as UTCTimestamp,
+        value: d.upper
+      }))
+      const middleData = keltnerData.map((d: any) => ({
+        time: d.time as UTCTimestamp,
+        value: d.middle
+      }))
+      const lowerData = keltnerData.map((d: any) => ({
+        time: d.time as UTCTimestamp,
+        value: d.lower
+      }))
+
+      keltnerUpperRef.current.setData(upperData)
+      keltnerMiddleRef.current.setData(middleData)
+      keltnerLowerRef.current.setData(lowerData)
+      
+      keltnerUpperRef.current.applyOptions({ visible: true })
+      keltnerMiddleRef.current.applyOptions({ visible: true })
+      keltnerLowerRef.current.applyOptions({ visible: true })
+    } else {
+      if (keltnerUpperRef.current) keltnerUpperRef.current.applyOptions({ visible: false })
+      if (keltnerMiddleRef.current) keltnerMiddleRef.current.applyOptions({ visible: false })
+      if (keltnerLowerRef.current) keltnerLowerRef.current.applyOptions({ visible: false })
+    }
+
+    // Donchian Channels
+    if (indicatorConfig.donchian?.enabled) {
+      const donchianIndicatorData: IndicatorCandleData[] = currentChartData.map(d => ({
+        time: d.time,
+        open: d.open,
+        high: d.high,
+        low: d.low,
+        close: d.close,
+        volume: d.volume
+      }))
+
+      const donchianData = calculateDonchianChannels(
+        donchianIndicatorData,
+        indicatorConfig.donchian.period
+      )
+
+      if (!donchianUpperRef.current) {
+        donchianUpperRef.current = chart.addLineSeries({
+          color: '#ef4444',
+          lineWidth: 1,
+          priceLineVisible: false,
+          lastValueVisible: false
+        })
+      }
+      if (!donchianMiddleRef.current) {
+        donchianMiddleRef.current = chart.addLineSeries({
+          color: '#6b7280',
+          lineWidth: 1,
+          lineStyle: 2,
+          priceLineVisible: false,
+          lastValueVisible: false
+        })
+      }
+      if (!donchianLowerRef.current) {
+        donchianLowerRef.current = chart.addLineSeries({
+          color: '#10b981',
+          lineWidth: 1,
+          priceLineVisible: false,
+          lastValueVisible: false
+        })
+      }
+
+      const upperData = donchianData.map((d: any) => ({
+        time: d.time as UTCTimestamp,
+        value: d.upper
+      }))
+      const middleData = donchianData.map((d: any) => ({
+        time: d.time as UTCTimestamp,
+        value: d.middle
+      }))
+      const lowerData = donchianData.map((d: any) => ({
+        time: d.time as UTCTimestamp,
+        value: d.lower
+      }))
+
+      donchianUpperRef.current.setData(upperData)
+      donchianMiddleRef.current.setData(middleData)
+      donchianLowerRef.current.setData(lowerData)
+      
+      donchianUpperRef.current.applyOptions({ visible: true })
+      donchianMiddleRef.current.applyOptions({ visible: true })
+      donchianLowerRef.current.applyOptions({ visible: true })
+    } else {
+      if (donchianUpperRef.current) donchianUpperRef.current.applyOptions({ visible: false })
+      if (donchianMiddleRef.current) donchianMiddleRef.current.applyOptions({ visible: false })
+      if (donchianLowerRef.current) donchianLowerRef.current.applyOptions({ visible: false })
+    }
+
+    // Ichimoku Cloud
+    if (indicatorConfig.ichimoku?.enabled) {
+      const ichimokuIndicatorData: IndicatorCandleData[] = currentChartData.map(d => ({
+        time: d.time,
+        open: d.open,
+        high: d.high,
+        low: d.low,
+        close: d.close,
+        volume: d.volume
+      }))
+
+      const ichimokuData = calculateIchimoku(
+        ichimokuIndicatorData,
+        indicatorConfig.ichimoku.tenkanPeriod,
+        indicatorConfig.ichimoku.kijunPeriod,
+        indicatorConfig.ichimoku.senkouBPeriod
+      )
+
+      if (!ichimokuTenkanRef.current) {
+        ichimokuTenkanRef.current = chart.addLineSeries({
+          color: '#3b82f6',
+          lineWidth: 1,
+          priceLineVisible: false,
+          lastValueVisible: false
+        })
+      }
+      if (!ichimokuKijunRef.current) {
+        ichimokuKijunRef.current = chart.addLineSeries({
+          color: '#ef4444',
+          lineWidth: 1,
+          priceLineVisible: false,
+          lastValueVisible: false
+        })
+      }
+      if (!ichimokuSpanARef.current) {
+        ichimokuSpanARef.current = chart.addLineSeries({
+          color: '#10b981',
+          lineWidth: 1,
+          priceLineVisible: false,
+          lastValueVisible: false
+        })
+      }
+      if (!ichimokuSpanBRef.current) {
+        ichimokuSpanBRef.current = chart.addLineSeries({
+          color: '#f59e0b',
+          lineWidth: 1,
+          priceLineVisible: false,
+          lastValueVisible: false
+        })
+      }
+
+      const tenkanData = ichimokuData.map((d: any) => ({
+        time: d.time as UTCTimestamp,
+        value: d.tenkanSen
+      }))
+      const kijunData = ichimokuData.map((d: any) => ({
+        time: d.time as UTCTimestamp,
+        value: d.kijunSen
+      }))
+      const spanAData = ichimokuData.map((d: any) => ({
+        time: d.time as UTCTimestamp,
+        value: d.senkouSpanA
+      }))
+      const spanBData = ichimokuData.map((d: any) => ({
+        time: d.time as UTCTimestamp,
+        value: d.senkouSpanB
+      }))
+
+      ichimokuTenkanRef.current.setData(tenkanData)
+      ichimokuKijunRef.current.setData(kijunData)
+      ichimokuSpanARef.current.setData(spanAData)
+      ichimokuSpanBRef.current.setData(spanBData)
+      
+      ichimokuTenkanRef.current.applyOptions({ visible: true })
+      ichimokuKijunRef.current.applyOptions({ visible: true })
+      ichimokuSpanARef.current.applyOptions({ visible: true })
+      ichimokuSpanBRef.current.applyOptions({ visible: true })
+    } else {
+      if (ichimokuTenkanRef.current) ichimokuTenkanRef.current.applyOptions({ visible: false })
+      if (ichimokuKijunRef.current) ichimokuKijunRef.current.applyOptions({ visible: false })
+      if (ichimokuSpanARef.current) ichimokuSpanARef.current.applyOptions({ visible: false })
+      if (ichimokuSpanBRef.current) ichimokuSpanBRef.current.applyOptions({ visible: false })
+    }
+
+    // VWAP
+    if (indicatorConfig.vwap?.enabled) {
+      if (!vwapSeriesRef.current) {
+        vwapSeriesRef.current = chart.addLineSeries({
+          color: indicatorConfig.vwap.color,
+          lineWidth: 2,
+          priceLineVisible: false,
+          lastValueVisible: false
+        })
+      }
+
+      const vwapIndicatorData: IndicatorCandleData[] = currentChartData.map(d => ({
+        time: d.time,
+        open: d.open,
+        high: d.high,
+        low: d.low,
+        close: d.close,
+        volume: d.volume
+      }))
+      
+      const vwapData = calculateVWAP(vwapIndicatorData)
+      const vwapChartData = vwapData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.value
+      }))
+
+      vwapSeriesRef.current.setData(vwapChartData)
+      vwapSeriesRef.current.applyOptions({ 
+        color: indicatorConfig.vwap.color,
+        visible: true
+      })
+    } else if (vwapSeriesRef.current) {
+      vwapSeriesRef.current.applyOptions({ visible: false })
+    }
+
+    // Parabolic SAR
+    if (indicatorConfig.parabolicSar?.enabled) {
+      if (!parabolicSarSeriesRef.current) {
+        parabolicSarSeriesRef.current = chart.addLineSeries({
+          color: '#f59e0b',
+          lineWidth: 1,
+          priceLineVisible: false,
+          lastValueVisible: false,
+          lineStyle: 2
+        })
+      }
+
+      const sarIndicatorData: IndicatorCandleData[] = currentChartData.map(d => ({
+        time: d.time,
+        open: d.open,
+        high: d.high,
+        low: d.low,
+        close: d.close,
+        volume: d.volume
+      }))
+      
+      const sarData = calculateParabolicSAR(
+        sarIndicatorData,
+        indicatorConfig.parabolicSar.accelerationFactor,
+        indicatorConfig.parabolicSar.maxAF
+      )
+      const sarChartData = sarData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.value
+      }))
+
+      parabolicSarSeriesRef.current.setData(sarChartData)
+      parabolicSarSeriesRef.current.applyOptions({ visible: true })
+    } else if (parabolicSarSeriesRef.current) {
+      parabolicSarSeriesRef.current.applyOptions({ visible: false })
+    }
+
+    // Supertrend
+    if (indicatorConfig.supertrend?.enabled) {
+      if (!supertrendSeriesRef.current) {
+        supertrendSeriesRef.current = chart.addLineSeries({
+          color: '#10b981',
+          lineWidth: 2,
+          priceLineVisible: false,
+          lastValueVisible: false
+        })
+      }
+
+      const supertrendIndicatorData: IndicatorCandleData[] = currentChartData.map(d => ({
+        time: d.time,
+        open: d.open,
+        high: d.high,
+        low: d.low,
+        close: d.close,
+        volume: d.volume
+      }))
+      
+      const supertrendData = calculateSupertrend(
+        supertrendIndicatorData,
+        indicatorConfig.supertrend.period,
+        indicatorConfig.supertrend.multiplier
+      )
+      const supertrendChartData = supertrendData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.value
+      }))
+
+      supertrendSeriesRef.current.setData(supertrendChartData)
+      supertrendSeriesRef.current.applyOptions({ visible: true })
+    } else if (supertrendSeriesRef.current) {
+      supertrendSeriesRef.current.applyOptions({ visible: false })
+    }
 
 
   }, [indicatorConfig, currentChartData])
@@ -1959,6 +2861,118 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
 
       atrSeriesRef.current.setData(atrChartData)
       atrChartRef.current?.timeScale().fitContent()
+    }
+
+    // ADX
+    if (indicatorConfig.adx?.enabled && adxSeriesRef.current) {
+      const adxData = calculateADX(indicatorData, indicatorConfig.adx.period)
+      const adxChartData = adxData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.adx
+      }))
+
+      adxSeriesRef.current.setData(adxChartData)
+      adxChartRef.current?.timeScale().fitContent()
+    }
+
+    // CCI
+    if (indicatorConfig.cci?.enabled && cciSeriesRef.current) {
+      const cciData = calculateCCI(indicatorData, indicatorConfig.cci.period)
+      const cciChartData = cciData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.value
+      }))
+
+      cciSeriesRef.current.setData(cciChartData)
+      cciChartRef.current?.timeScale().fitContent()
+    }
+
+    // Williams %R
+    if (indicatorConfig.williamsR?.enabled && williamsRSeriesRef.current) {
+      const williamsRData = calculateWilliamsR(indicatorData, indicatorConfig.williamsR.period)
+      const williamsRChartData = williamsRData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.value
+      }))
+
+      williamsRSeriesRef.current.setData(williamsRChartData)
+      williamsRChartRef.current?.timeScale().fitContent()
+    }
+
+    // MFI
+    if (indicatorConfig.mfi?.enabled && mfiSeriesRef.current) {
+      const mfiData = calculateMFI(indicatorData, indicatorConfig.mfi.period)
+      const mfiChartData = mfiData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.value
+      }))
+
+      mfiSeriesRef.current.setData(mfiChartData)
+      mfiChartRef.current?.timeScale().fitContent()
+    }
+
+    // Aroon
+    if (indicatorConfig.aroon?.enabled && aroonUpRef.current && aroonDownRef.current) {
+      const aroonData = calculateAroon(indicatorData, indicatorConfig.aroon.period)
+      
+      const aroonUpData = aroonData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.aroonUp
+      }))
+      
+      const aroonDownData = aroonData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.aroonDown
+      }))
+
+      aroonUpRef.current.setData(aroonUpData)
+      aroonDownRef.current.setData(aroonDownData)
+      aroonChartRef.current?.timeScale().fitContent()
+    }
+
+    // TRIX
+    if (indicatorConfig.trix?.enabled && trixSeriesRef.current) {
+      const trixData = calculateTRIX(indicatorData, indicatorConfig.trix.period)
+      const trixChartData = trixData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.value
+      }))
+
+      trixSeriesRef.current.setData(trixChartData)
+      trixChartRef.current?.timeScale().fitContent()
+    }
+
+    // OBV
+    if (indicatorConfig.obv?.enabled && obvSeriesRef.current) {
+      const obvData = calculateOBV(indicatorData)
+      const obvChartData = obvData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.value
+      }))
+
+      obvSeriesRef.current.setData(obvChartData)
+      obvChartRef.current?.timeScale().fitContent()
+    }
+
+    // Elder Ray
+    if (indicatorConfig.elderRay?.enabled && elderRayBullRef.current && elderRayBearRef.current) {
+      const elderRayData = calculateElderRay(indicatorData, indicatorConfig.elderRay.period)
+      
+      const bullData = elderRayData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.bullPower,
+        color: d.bullPower >= 0 ? '#10b981' : '#ef4444'
+      }))
+      
+      const bearData = elderRayData.map(d => ({
+        time: d.time as UTCTimestamp,
+        value: d.bearPower,
+        color: d.bearPower >= 0 ? '#10b981' : '#ef4444'
+      }))
+
+      elderRayBullRef.current.setData(bullData as any)
+      elderRayBearRef.current.setData(bearData as any)
+      elderRayChartRef.current?.timeScale().fitContent()
     }
 
   }, [indicatorConfig, currentChartData])
@@ -2282,13 +3296,29 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
     indicatorConfig.rsi?.enabled ||
     indicatorConfig.macd?.enabled ||
     indicatorConfig.stochastic?.enabled ||
-    indicatorConfig.atr?.enabled
+    indicatorConfig.atr?.enabled ||
+    indicatorConfig.adx?.enabled ||
+    indicatorConfig.cci?.enabled ||
+    indicatorConfig.williamsR?.enabled ||
+    indicatorConfig.mfi?.enabled ||
+    indicatorConfig.aroon?.enabled ||
+    indicatorConfig.trix?.enabled ||
+    indicatorConfig.obv?.enabled ||
+    indicatorConfig.elderRay?.enabled
 
   const oscillatorCount = [
     indicatorConfig.rsi?.enabled,
     indicatorConfig.macd?.enabled,
     indicatorConfig.stochastic?.enabled,
-    indicatorConfig.atr?.enabled
+    indicatorConfig.atr?.enabled,
+    indicatorConfig.adx?.enabled,
+    indicatorConfig.cci?.enabled,
+    indicatorConfig.williamsR?.enabled,
+    indicatorConfig.mfi?.enabled,
+    indicatorConfig.aroon?.enabled,
+    indicatorConfig.trix?.enabled,
+    indicatorConfig.obv?.enabled,
+    indicatorConfig.elderRay?.enabled
   ].filter(Boolean).length
 
   const mainChartHeight = hasOscillators 
@@ -2385,6 +3415,62 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       <div className="border-t border-gray-800/30">
         <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">ATR ({indicatorConfig.atr.period})</div>
         <div ref={atrContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      </div>
+    )}
+
+    {indicatorConfig.adx?.enabled && (
+      <div className="border-t border-gray-800/30">
+        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">ADX ({indicatorConfig.adx.period})</div>
+        <div ref={adxContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      </div>
+    )}
+
+    {indicatorConfig.cci?.enabled && (
+      <div className="border-t border-gray-800/30">
+        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">CCI ({indicatorConfig.cci.period})</div>
+        <div ref={cciContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      </div>
+    )}
+
+    {indicatorConfig.williamsR?.enabled && (
+      <div className="border-t border-gray-800/30">
+        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">Williams %R ({indicatorConfig.williamsR.period})</div>
+        <div ref={williamsRContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      </div>
+    )}
+
+    {indicatorConfig.mfi?.enabled && (
+      <div className="border-t border-gray-800/30">
+        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">MFI ({indicatorConfig.mfi.period})</div>
+        <div ref={mfiContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      </div>
+    )}
+
+    {indicatorConfig.aroon?.enabled && (
+      <div className="border-t border-gray-800/30">
+        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">Aroon ({indicatorConfig.aroon.period})</div>
+        <div ref={aroonContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      </div>
+    )}
+
+    {indicatorConfig.trix?.enabled && (
+      <div className="border-t border-gray-800/30">
+        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">TRIX ({indicatorConfig.trix.period})</div>
+        <div ref={trixContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      </div>
+    )}
+
+    {indicatorConfig.obv?.enabled && (
+      <div className="border-t border-gray-800/30">
+        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">OBV</div>
+        <div ref={obvContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      </div>
+    )}
+
+    {indicatorConfig.elderRay?.enabled && (
+      <div className="border-t border-gray-800/30">
+        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">Elder Ray ({indicatorConfig.elderRay.period})</div>
+        <div ref={elderRayContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
       </div>
     )}
 
