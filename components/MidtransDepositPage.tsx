@@ -708,23 +708,13 @@ const MidtransPaymentPage: React.FC = () => {
           <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
             {/* KOLOM KIRI - Form */}
             <div className="space-y-5">
-              {/* Header */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 sm:p-6">
-                <div className="flex items-center gap-4 mb-1">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-sky-500 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Wallet size={24} weight="bold" className="text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Deposit Saldo</h1>
-                    <p className="text-sm text-gray-600 mt-0.5">Pembayaran cepat & aman dengan Midtrans</p>
-                  </div>
-                </div>
-              </div>
-
               {/* Kartu Input Jumlah */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 sm:p-6">
+                <div className="mb-5">
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Top Up Saldo</h1>
+                </div>
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Jumlah Deposit
+                  Jumlah
                 </label>
                 <div className="relative mb-4">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-semibold text-lg">
@@ -786,7 +776,7 @@ const MidtransPaymentPage: React.FC = () => {
                 <button
                   onClick={handleSubmit}
                   disabled={loading || !amount || parseInt(amount) < 10000}
-                  className="flex-1 bg-gradient-to-r from-sky-600 to-indigo-600 text-white py-4 px-6 rounded-xl font-bold text-lg hover:from-sky-700 hover:to-indigo-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                  className="flex-1 bg-gradient-to-r from-sky-400 to-blue-500 text-white py-4 px-6 rounded-xl font-bold text-lg hover:from-sky-700 hover:to-indigo-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <>
@@ -814,8 +804,8 @@ const MidtransPaymentPage: React.FC = () => {
             {/* KOLOM KANAN - Ringkasan */}
             <div className="lg:sticky lg:top-8 h-fit">
               <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                <div className="bg-gradient-to-l from-gray-300 to-gray-600 p-4 sm:p-5">
-                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <div className="bg-gradient-to-l from-sky-50 to-blue-100 p-4 sm:p-5">
+                  <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                     Ringkasan Pembayaran
                   </h3>
                 </div>

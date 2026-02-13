@@ -7,6 +7,7 @@ import { websocketService } from '@/lib/websocket'
 interface WebSocketContextValue {
   isConnected: boolean
   isConnecting: boolean
+  isReconnecting: boolean
   reconnectAttempts: number
   subscribeToPrice: (assetId: string, callback: (data: any) => void) => () => void
   subscribeToOrders: (userId: string, callback: (data: any) => void) => () => void
@@ -39,6 +40,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       try {
         await websocketService.connect(token)
         
+        // ✅ FIX: Polling lebih cepat (200ms) agar status reconnect terdeteksi segera
         const statusInterval = setInterval(() => {
           const status = websocketService.getConnectionStatus()
           setConnectionStatus({
@@ -46,7 +48,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
             isConnecting: status.isConnecting,
             reconnectAttempts: status.reconnectAttempts,
           })
-        }, 1000)
+        }, 200)
 
         return () => {
           clearInterval(statusInterval)
@@ -75,6 +77,8 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   const value: WebSocketContextValue = {
     isConnected: connectionStatus.isConnected,
     isConnecting: connectionStatus.isConnecting,
+    // ✅ FIX: isReconnecting = pernah connect tapi sedang reconnect (bukan initial connect)
+    isReconnecting: !connectionStatus.isConnected && connectionStatus.reconnectAttempts > 0,
     reconnectAttempts: connectionStatus.reconnectAttempts,
     subscribeToPrice,
     subscribeToOrders,

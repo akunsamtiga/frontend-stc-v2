@@ -240,52 +240,60 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
                       </div>
                       
                       {/* Details Grid */}
-                      <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                        <div className={`flex items-center gap-1.5 ${
-                          isClickable ? 'text-gray-600' : 'text-gray-400'
-                        }`}>
-                          <TrendingUp className={`w-3.5 h-3.5 ${
-                            isClickable ? 'text-sky-500' : 'text-gray-400'
-                          }`} />
-                          <span className="font-medium">Min: {formatCurrency(voucher.minDeposit)}</span>
-                        </div>
-                        
-                        {voucher.type === 'percentage' && voucher.maxBonusAmount && (
-                          <div className={`flex items-center gap-1.5 ${
-                            isClickable ? 'text-gray-600' : 'text-gray-400'
-                          }`}>
-                            <Percent className={`w-3.5 h-3.5 ${
-                              isClickable ? 'text-sky-500' : 'text-gray-400'
-                            }`} />
-                            <span className="font-medium">Maks: {formatCurrency(voucher.maxBonusAmount)}</span>
-                          </div>
-                        )}
-                        
-                        <div className={`flex items-center gap-1.5 ${
-                          isClickable ? 'text-gray-600' : 'text-gray-400'
-                        }`}>
-                          <Calendar className={`w-3.5 h-3.5 ${
-                            isClickable ? 'text-sky-500' : 'text-gray-400'
-                          }`} />
-                          <span className="font-medium">
-                            Hingga {new Date(voucher.validUntil).toLocaleDateString('id-ID', { 
-                              day: '2-digit', 
-                              month: 'short' 
-                            })}
-                          </span>
-                        </div>
-                        
-                        {voucher.maxUses && (
-                          <div className={`flex items-center gap-1.5 ${
-                            isClickable ? 'text-gray-600' : 'text-gray-400'
-                          }`}>
-                            <Users className={`w-3.5 h-3.5 ${
-                              isClickable ? 'text-sky-500' : 'text-gray-400'
-                            }`} />
-                            <span className="font-medium">{voucher.maxUses - voucher.usedCount} tersisa</span>
-                          </div>
-                        )}
-                      </div>
+                      <div className="space-y-2 text-xs mb-3">
+  {/* Row 1: Min Deposit (Left) + Expiry Date (Right) */}
+  <div className="flex items-center justify-between">
+    <div className={`flex items-center gap-1.5 ${
+      isClickable ? 'text-gray-600' : 'text-gray-400'
+    }`}>
+      <TrendingUp className={`w-3.5 h-3.5 ${
+        isClickable ? 'text-sky-500' : 'text-gray-400'
+      }`} />
+      <span className="font-medium">Min: {formatCurrency(voucher.minDeposit)}</span>
+    </div>
+    
+    <div className={`flex items-center gap-1.5 ${
+      isClickable ? 'text-gray-600' : 'text-gray-400'
+    }`}>
+      <Calendar className={`w-3.5 h-3.5 ${
+        isClickable ? 'text-sky-500' : 'text-gray-400'
+      }`} />
+      <span className="font-medium">
+        Hingga {new Date(voucher.validUntil).toLocaleDateString('id-ID', { 
+          day: '2-digit', 
+          month: 'short' 
+        })}
+      </span>
+    </div>
+  </div>
+  
+  {/* Row 2: Max Bonus (Left, conditional) + Remaining Uses (Right, conditional) */}
+  {(voucher.type === 'percentage' && voucher.maxBonusAmount) || voucher.maxUses ? (
+    <div className="flex items-center justify-between">
+      {voucher.type === 'percentage' && voucher.maxBonusAmount ? (
+        <div className={`flex items-center gap-1.5 ${
+          isClickable ? 'text-gray-600' : 'text-gray-400'
+        }`}>
+          <Percent className={`w-3.5 h-3.5 ${
+            isClickable ? 'text-sky-500' : 'text-gray-400'
+          }`} />
+          <span className="font-medium">Maks: {formatCurrency(voucher.maxBonusAmount)}</span>
+        </div>
+      ) : <div />}
+      
+      {voucher.maxUses ? (
+        <div className={`flex items-center gap-1.5 ${
+          isClickable ? 'text-gray-600' : 'text-gray-400'
+        }`}>
+          <Users className={`w-3.5 h-3.5 ${
+            isClickable ? 'text-sky-500' : 'text-gray-400'
+          }`} />
+          <span className="font-medium">{voucher.maxUses - voucher.usedCount} tersisa</span>
+        </div>
+      ) : <div />}
+    </div>
+  ) : null}
+</div>
                       
                       {/* Status Messages */}
                       {!status.eligible && !status.needsAmount && (

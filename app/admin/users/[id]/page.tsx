@@ -21,7 +21,9 @@ import {
   XCircle
 } from 'phosphor-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { toast } from 'sonner'
 
+// ✅ Enhanced interface dengan null support
 interface UserDetail {
   user: {
     id: string
@@ -52,6 +54,78 @@ interface UserDetail {
   }
 }
 
+// ✅ Default values untuk mencegah undefined
+const DEFAULT_BALANCE_HISTORY = {
+  transactions: [],
+  summary: {
+    totalDeposits: 0,
+    totalWithdrawals: 0,
+    netDeposits: 0,
+    transactionCount: 0
+  }
+}
+
+const DEFAULT_TRADING_HISTORY = {
+  orders: [],
+  statistics: {
+    totalOrders: 0,
+    activeOrders: 0,
+    wonOrders: 0,
+    lostOrders: 0,
+    winRate: 0,
+    totalProfit: 0
+  }
+}
+
+const DEFAULT_USER = {
+  id: '',
+  email: 'Unknown',
+  role: 'user',
+  isActive: false,
+  createdAt: new Date().toISOString()
+}
+
+// ✅ Helper function untuk normalize data
+function normalizeUserDetail(data: any, userId: string): UserDetail {
+  if (!data || typeof data !== 'object') {
+    return {
+      user: { ...DEFAULT_USER, id: userId },
+      balanceHistory: DEFAULT_BALANCE_HISTORY,
+      tradingHistory: DEFAULT_TRADING_HISTORY
+    }
+  }
+
+  return {
+    user: {
+      id: data.user?.id || userId,
+      email: data.user?.email || DEFAULT_USER.email,
+      role: data.user?.role || DEFAULT_USER.role,
+      isActive: data.user?.isActive ?? DEFAULT_USER.isActive,
+      createdAt: data.user?.createdAt || DEFAULT_USER.createdAt
+    },
+    balanceHistory: {
+      transactions: data.balanceHistory?.transactions || [],
+      summary: {
+        totalDeposits: data.balanceHistory?.summary?.totalDeposits ?? 0,
+        totalWithdrawals: data.balanceHistory?.summary?.totalWithdrawals ?? 0,
+        netDeposits: data.balanceHistory?.summary?.netDeposits ?? 0,
+        transactionCount: data.balanceHistory?.summary?.transactionCount ?? 0
+      }
+    },
+    tradingHistory: {
+      orders: data.tradingHistory?.orders || [],
+      statistics: {
+        totalOrders: data.tradingHistory?.statistics?.totalOrders ?? 0,
+        activeOrders: data.tradingHistory?.statistics?.activeOrders ?? 0,
+        wonOrders: data.tradingHistory?.statistics?.wonOrders ?? 0,
+        lostOrders: data.tradingHistory?.statistics?.lostOrders ?? 0,
+        winRate: data.tradingHistory?.statistics?.winRate ?? 0,
+        totalProfit: data.tradingHistory?.statistics?.totalProfit ?? 0
+      }
+    }
+  }
+}
+
 const StatCardSkeleton = () => (
   <div className="bg-white/5 rounded-lg p-4 border border-white/10 animate-pulse backdrop-blur-sm">
     <div className="flex items-center gap-3 mb-3">
@@ -78,7 +152,6 @@ const TransactionSkeleton = () => (
 
 const LoadingSkeleton = () => (
   <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
-    {/* Pattern Overlay */}
     <div 
       className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"
     ></div>
@@ -149,15 +222,43 @@ export default function AdminUserDetailPage() {
   const loadUserDetail = async () => {
     try {
       setLoading(true)
-      const [historyResponse, statsResponse] = await Promise.all([
-        api.getUserHistory(userId),
-        api.getUserTradingStats(userId)
-      ])
       
-      setUserDetail(historyResponse?.data || historyResponse)
-      setTradingStats(statsResponse?.data || statsResponse)
+      // ✅ Fetch dengan individual error handling
+      let historyData: any = null
+      let statsData: any = null
+      
+      try {
+        const historyResponse = await api.getUserHistory(userId)
+        historyData = historyResponse?.data || historyResponse
+      } catch (historyError) {
+        console.error('Failed to load user history:', historyError)
+        toast.error('Gagal memuat riwayat pengguna')
+      }
+      
+      try {
+        const statsResponse = await api.getUserTradingStats(userId)
+        statsData = statsResponse?.data || statsResponse
+      } catch (statsError) {
+        console.error('Failed to load trading stats:', statsError)
+        toast.error('Gagal memuat statistik trading')
+      }
+      
+      // ✅ Normalize data dengan default values
+      const normalizedUserDetail = normalizeUserDetail(historyData, userId)
+      setUserDetail(normalizedUserDetail)
+      setTradingStats(statsData || { byAsset: {} })
+      
     } catch (error) {
       console.error('Gagal memuat detail pengguna:', error)
+      toast.error('Gagal memuat detail pengguna')
+      
+      // ✅ Set default data saat error
+      setUserDetail({
+        user: { ...DEFAULT_USER, id: userId },
+        balanceHistory: DEFAULT_BALANCE_HISTORY,
+        tradingHistory: DEFAULT_TRADING_HISTORY
+      })
+      setTradingStats({ byAsset: {} })
     } finally {
       setLoading(false)
     }
@@ -169,10 +270,10 @@ export default function AdminUserDetailPage() {
     return <LoadingSkeleton />
   }
 
+  // ✅ Early return dengan safe data
   if (!userDetail) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
-        {/* Pattern Overlay */}
         <div 
           className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"
         ></div>
@@ -193,9 +294,20 @@ export default function AdminUserDetailPage() {
     )
   }
 
+  // ✅ Extract data dengan safe access
+  const { user: userData, balanceHistory, tradingHistory } = userDetail
+  
+  // ✅ Safe values untuk render
+  const totalDeposits = balanceHistory?.summary?.totalDeposits ?? 0
+  const totalWithdrawals = balanceHistory?.summary?.totalWithdrawals ?? 0
+  const totalOrders = tradingHistory?.statistics?.totalOrders ?? 0
+  const winRate = tradingHistory?.statistics?.winRate ?? 0
+  const transactions = balanceHistory?.transactions || []
+  const orders = tradingHistory?.orders || []
+  const byAsset = tradingStats?.byAsset || {}
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
-      {/* Pattern Overlay */}
       <div 
         className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"
       ></div>
@@ -220,37 +332,37 @@ export default function AdminUserDetailPage() {
             </div>
             
             <div className="flex-1">
-              <h1 className="text-2xl md:text-3xl font-bold mb-3 text-white">{userDetail.user.email}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold mb-3 text-white">{userData.email}</h1>
               
               <div className="flex flex-wrap gap-3">
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-500/20 border border-indigo-500/30 rounded-full">
                   <Shield className="w-4 h-4 text-indigo-400" weight="duotone" />
                   <span className="text-sm font-medium text-indigo-400 capitalize">
-                    {userDetail.user.role.replace('_', ' ')}
+                    {userData.role.replace('_', ' ')}
                   </span>
                 </div>
                 
                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${
-                  userDetail.user.isActive 
+                  userData.isActive 
                     ? 'bg-green-500/20 border border-green-500/30' 
                     : 'bg-red-500/20 border border-red-500/30'
                 }`}>
-                  {userDetail.user.isActive ? (
+                  {userData.isActive ? (
                     <CheckCircle className="w-4 h-4 text-green-400" weight="duotone" />
                   ) : (
                     <XCircle className="w-4 h-4 text-red-400" weight="duotone" />
                   )}
                   <span className={`text-sm font-medium ${
-                    userDetail.user.isActive ? 'text-green-400' : 'text-red-400'
+                    userData.isActive ? 'text-green-400' : 'text-red-400'
                   }`}>
-                    {userDetail.user.isActive ? 'Aktif' : 'Nonaktif'}
+                    {userData.isActive ? 'Aktif' : 'Nonaktif'}
                   </span>
                 </div>
                 
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full">
                   <CalendarBlank className="w-4 h-4 text-slate-400" weight="duotone" />
                   <span className="text-sm text-slate-400">
-                    Anggota sejak {new Date(userDetail.user.createdAt).toLocaleDateString('id-ID', { 
+                    Anggota sejak {new Date(userData.createdAt).toLocaleDateString('id-ID', { 
                       year: 'numeric', 
                       month: 'short', 
                       day: 'numeric' 
@@ -262,7 +374,7 @@ export default function AdminUserDetailPage() {
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats Cards - ✅ dengan safe values */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
             <div className="flex items-center gap-3 mb-3">
@@ -272,7 +384,7 @@ export default function AdminUserDetailPage() {
               <span className="text-sm text-slate-400">Total Deposit</span>
             </div>
             <div className="text-2xl font-bold text-white">
-              {formatCurrency(userDetail.balanceHistory.summary.totalDeposits)}
+              {formatCurrency(totalDeposits)}
             </div>
           </div>
 
@@ -284,7 +396,7 @@ export default function AdminUserDetailPage() {
               <span className="text-sm text-slate-400">Total Penarikan</span>
             </div>
             <div className="text-2xl font-bold text-white">
-              {formatCurrency(userDetail.balanceHistory.summary.totalWithdrawals)}
+              {formatCurrency(totalWithdrawals)}
             </div>
           </div>
 
@@ -296,7 +408,7 @@ export default function AdminUserDetailPage() {
               <span className="text-sm text-slate-400">Total Order</span>
             </div>
             <div className="text-2xl font-bold text-white">
-              {userDetail.tradingHistory.statistics.totalOrders}
+              {totalOrders}
             </div>
           </div>
 
@@ -308,7 +420,7 @@ export default function AdminUserDetailPage() {
               <span className="text-sm text-slate-400">Win Rate</span>
             </div>
             <div className="text-2xl font-bold text-emerald-400">
-              {userDetail.tradingHistory.statistics.winRate}%
+              {winRate}%
             </div>
           </div>
         </div>
@@ -341,15 +453,15 @@ export default function AdminUserDetailPage() {
           <div className="p-6">
             {activeTab === 'balance' ? (
               <div className="space-y-3">
-                {userDetail.balanceHistory.transactions.length === 0 ? (
+                {transactions.length === 0 ? (
                   <div className="text-center py-12">
                     <CurrencyDollar className="w-16 h-16 mx-auto mb-4 text-slate-500 opacity-20" weight="duotone" />
                     <p className="text-slate-400">Tidak ada transaksi saldo</p>
                   </div>
                 ) : (
-                  userDetail.balanceHistory.transactions.slice(0, 10).map((tx) => (
+                  transactions.slice(0, 10).map((tx: any) => (
                     <div
-                      key={tx.id}
+                      key={tx.id || Math.random()}
                       className="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all"
                     >
                       <div className="flex items-center gap-4">
@@ -363,7 +475,7 @@ export default function AdminUserDetailPage() {
                           )}
                         </div>
                         <div>
-                          <div className="font-medium text-white capitalize">{tx.type}</div>
+                          <div className="font-medium text-white capitalize">{tx.type || 'Unknown'}</div>
                           <div className="text-sm text-slate-400">{formatDate(tx.createdAt)}</div>
                           {tx.description && (
                             <div className="text-xs text-slate-500 mt-1">{tx.description}</div>
@@ -376,7 +488,7 @@ export default function AdminUserDetailPage() {
                           tx.type === 'deposit' ? 'text-green-400' : 'text-red-400'
                         }`}>
                           {tx.type === 'deposit' ? '+' : '-'}
-                          {formatCurrency(tx.amount)}
+                          {formatCurrency(tx.amount || 0)}
                         </div>
                       </div>
                     </div>
@@ -385,12 +497,12 @@ export default function AdminUserDetailPage() {
               </div>
             ) : (
               <div className="space-y-6">
-                {/* Trading Stats by Asset */}
-                {tradingStats && Object.keys(tradingStats.byAsset).length > 0 && (
+                {/* Trading Stats by Asset - ✅ dengan safe checking */}
+                {Object.keys(byAsset).length > 0 && (
                   <div>
                     <h3 className="text-lg font-bold mb-4 text-white">Performa per Aset</h3>
                     <div className="space-y-3">
-                      {Object.entries(tradingStats.byAsset).map(([asset, stats]: [string, any]) => (
+                      {Object.entries(byAsset).map(([asset, stats]: [string, any]) => (
                         <div
                           key={asset}
                           className="p-4 bg-white/5 border border-white/10 rounded-lg"
@@ -398,25 +510,25 @@ export default function AdminUserDetailPage() {
                           <div className="flex items-center justify-between mb-3">
                             <span className="font-medium text-white">{asset}</span>
                             <span className="text-sm text-slate-400">
-                              {stats.total} order
+                              {stats?.total || 0} order
                             </span>
                           </div>
                           
                           <div className="grid grid-cols-3 gap-4 text-sm">
                             <div>
                               <div className="text-slate-400 mb-1">Menang</div>
-                              <div className="font-bold text-green-400">{stats.won}</div>
+                              <div className="font-bold text-green-400">{stats?.won || 0}</div>
                             </div>
                             <div>
                               <div className="text-slate-400 mb-1">Kalah</div>
-                              <div className="font-bold text-red-400">{stats.lost}</div>
+                              <div className="font-bold text-red-400">{stats?.lost || 0}</div>
                             </div>
                             <div>
                               <div className="text-slate-400 mb-1">Profit</div>
                               <div className={`font-bold ${
-                                stats.profit >= 0 ? 'text-green-400' : 'text-red-400'
+                                (stats?.profit || 0) >= 0 ? 'text-green-400' : 'text-red-400'
                               }`}>
-                                {formatCurrency(stats.profit)}
+                                {formatCurrency(stats?.profit || 0)}
                               </div>
                             </div>
                           </div>
@@ -426,56 +538,62 @@ export default function AdminUserDetailPage() {
                   </div>
                 )}
 
-                {/* Recent Orders */}
+                {/* Recent Orders - ✅ dengan safe values */}
                 <div>
                   <h3 className="text-lg font-bold mb-4 text-white">Order Terbaru</h3>
                   <div className="space-y-3">
-                    {userDetail.tradingHistory.orders.slice(0, 10).map((order) => (
-                      <div
-                        key={order.id}
-                        className="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                            order.direction === 'CALL' ? 'bg-green-500/10' : 'bg-red-500/10'
-                          }`}>
-                            {order.direction === 'CALL' ? (
-                              <TrendUp className="w-5 h-5 text-green-400" weight="duotone" />
-                            ) : (
-                              <TrendDown className="w-5 h-5 text-red-400" weight="duotone" />
-                            )}
+                    {orders.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-slate-400">Tidak ada order</p>
+                      </div>
+                    ) : (
+                      orders.slice(0, 10).map((order: any) => (
+                        <div
+                          key={order.id || Math.random()}
+                          className="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                              order.direction === 'CALL' ? 'bg-green-500/10' : 'bg-red-500/10'
+                            }`}>
+                              {order.direction === 'CALL' ? (
+                                <TrendUp className="w-5 h-5 text-green-400" weight="duotone" />
+                              ) : (
+                                <TrendDown className="w-5 h-5 text-red-400" weight="duotone" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-medium text-white">{order.asset_name || 'Unknown'}</div>
+                              <div className="text-sm text-slate-400">
+                                {formatDate(order.createdAt)} • {order.duration || 0}m
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="font-medium text-white">{order.asset_name}</div>
-                            <div className="text-sm text-slate-400">
-                              {formatDate(order.createdAt)} • {order.duration}m
+                          
+                          <div className="text-right">
+                            <div className={`text-lg font-bold ${
+                              order.status === 'WON' ? 'text-green-400' :
+                              order.status === 'LOST' ? 'text-red-400' :
+                              'text-slate-400'
+                            }`}>
+                              {order.profit !== null && order.profit !== undefined ? (
+                                <>{order.profit >= 0 ? '+' : ''}{formatCurrency(order.profit)}</>
+                              ) : '-'}
+                            </div>
+                            <div className={`text-xs ${
+                              order.status === 'WON' ? 'text-green-400' :
+                              order.status === 'LOST' ? 'text-red-400' :
+                              order.status === 'ACTIVE' ? 'text-blue-400' :
+                              'text-slate-400'
+                            }`}>
+                              {order.status === 'WON' ? 'MENANG' : 
+                               order.status === 'LOST' ? 'KALAH' : 
+                               order.status === 'ACTIVE' ? 'AKTIF' : order.status || 'UNKNOWN'}
                             </div>
                           </div>
                         </div>
-                        
-                        <div className="text-right">
-                          <div className={`text-lg font-bold ${
-                            order.status === 'WON' ? 'text-green-400' :
-                            order.status === 'LOST' ? 'text-red-400' :
-                            'text-slate-400'
-                          }`}>
-                            {order.profit !== null ? (
-                              <>{order.profit >= 0 ? '+' : ''}{formatCurrency(order.profit)}</>
-                            ) : '-'}
-                          </div>
-                          <div className={`text-xs ${
-                            order.status === 'WON' ? 'text-green-400' :
-                            order.status === 'LOST' ? 'text-red-400' :
-                            order.status === 'ACTIVE' ? 'text-blue-400' :
-                            'text-slate-400'
-                          }`}>
-                            {order.status === 'WON' ? 'MENANG' : 
-                             order.status === 'LOST' ? 'KALAH' : 
-                             order.status === 'ACTIVE' ? 'AKTIF' : order.status}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               </div>

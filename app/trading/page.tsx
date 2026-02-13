@@ -136,6 +136,8 @@ export default function TradingPage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   
   const balanceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const balanceRef = useRef({ real: 0, demo: 0 })
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   const [showAssetMenu, setShowAssetMenu] = useState(false)
   const [assetSearch, setAssetSearch] = useState('')
@@ -155,12 +157,26 @@ export default function TradingPage() {
 
   const currentBalance = selectedAccountType === 'real' ? realBalance : demoBalance
   const isUltraFastMode = duration === 0.0167
+
+  // ✅ FIX: Sync balanceRef agar handlePlaceOrder tidak stale closure
+  useEffect(() => {
+    balanceRef.current = { real: realBalance, demo: demoBalance }
+  }, [realBalance, demoBalance])
   const durationDisplay = getDurationDisplay(duration)
 
   const activeOrders = allOrders.filter(o => o.status === 'ACTIVE' || o.status === 'PENDING')
   const completedOrders = allOrders.filter(o => o.status === 'WON' || o.status === 'LOST')
 
-  const { isConnected, isConnecting } = useWebSocket()
+  const { isConnected, isConnecting, isReconnecting } = useWebSocket()
+
+  // ✅ FIX: Tampilkan toast saat reconnecting tapi TIDAK block tombol
+  useEffect(() => {
+    if (isReconnecting) {
+      toast.loading('Menghubungkan ulang...', { id: 'ws-reconnect', duration: Infinity })
+    } else if (isConnected) {
+      toast.dismiss('ws-reconnect')
+    }
+  }, [isReconnecting, isConnected])
   
   const { priceData: wsPrice, lastUpdate: priceLastUpdate } = usePriceSubscription(
     selectedAsset?.id || null,
@@ -484,6 +500,9 @@ export default function TradingPage() {
       if (balanceUpdateTimeoutRef.current) {
         clearTimeout(balanceUpdateTimeoutRef.current)
       }
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current)
+      }
       notifiedOrderIdsRef.current.clear()
     }
   }, [])
@@ -511,15 +530,23 @@ export default function TradingPage() {
       toast.error('Invalid amount')
       return
     }
+
+    // ✅ FIX: Baca balance dari ref agar selalu fresh, hindari stale closure
+    const latestBalance = selectedAccountType === 'real'
+      ? balanceRef.current.real
+      : balanceRef.current.demo
     
-    const currentBalance = selectedAccountType === 'real' ? realBalance : demoBalance
-    
-    if (amount > currentBalance) {
-      toast.error(`Insufficient ${selectedAccountType} balance`)
+    if (amount > latestBalance) {
+      toast.error(`Saldo ${selectedAccountType} tidak mencukupi`)
       return
     }
 
+    // ✅ FIX: Safety timeout agar loading tidak pernah stuck
+    if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current)
     setLoading(true)
+    loadingTimeoutRef.current = setTimeout(() => {
+      setLoading(false)
+    }, 10000)
 
     const now = TimezoneUtil.getCurrentTimestamp()
     const timing = CalculationUtil.formatOrderTiming(selectedAsset, duration, now)
@@ -569,6 +596,11 @@ export default function TradingPage() {
       const errorMsg = error?.response?.data?.error || 'Failed to place order'
       toast.error(errorMsg)
     } finally {
+      // ✅ FIX: Selalu clear safety timeout dan reset loading
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current)
+        loadingTimeoutRef.current = null
+      }
       setLoading(false)
     }
   }, [
@@ -576,8 +608,7 @@ export default function TradingPage() {
     amount, 
     duration, 
     selectedAccountType, 
-    realBalance, 
-    demoBalance,
+    // ✅ FIX: Hapus realBalance & demoBalance dari deps — pakai balanceRef.current
     addOptimisticOrder,
     confirmOrder,
     rollbackOrder,
@@ -1164,7 +1195,7 @@ export default function TradingPage() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handlePlaceOrder('CALL')}
-                  disabled={loading || !selectedAsset || !isConnected}
+                  disabled={loading || !selectedAsset}
                   className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-emerald-500/20"
                 >
                   <ArrowUp className="w-6 h-6" />
@@ -1172,7 +1203,7 @@ export default function TradingPage() {
 
                 <button
                   onClick={() => handlePlaceOrder('PUT')}
-                  disabled={loading || !selectedAsset || !isConnected}
+                  disabled={loading || !selectedAsset}
                   className="bg-rose-500 hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-rose-500/20"
                 >
                   <ArrowDown className="w-6 h-6" />
@@ -1323,7 +1354,7 @@ export default function TradingPage() {
           <div className="grid grid-cols-2 gap-4 pt-2">
             <button
               onClick={() => handlePlaceOrder('CALL')}
-              disabled={loading || !selectedAsset || !isConnected}
+              disabled={loading || !selectedAsset}
               className="bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 disabled:opacity-50 py-4 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
             >
               <ArrowUp className="w-5 h-5" />
@@ -1331,7 +1362,7 @@ export default function TradingPage() {
             </button>
             <button
               onClick={() => handlePlaceOrder('PUT')}
-              disabled={loading || !selectedAsset || !isConnected}
+              disabled={loading || !selectedAsset}
               className="bg-rose-500 hover:bg-rose-600 active:bg-rose-700 disabled:opacity-50 py-4 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
             >
               <ArrowDown className="w-5 h-5" />

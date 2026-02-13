@@ -14,11 +14,8 @@ import {
   CaretRight,
   Eye,
   X,
-  CurrencyDollar,
   Trash,
   Shield,
-  CheckCircle,
-  XCircle,
   User
 } from 'phosphor-react'
 import { toast } from 'sonner'
@@ -33,6 +30,33 @@ interface UserData {
 }
 
 type UserRole = 'user' | 'admin' | 'super_admin'
+
+// ✅ NEW: Switch Toggle Component
+const SwitchToggle = ({ 
+  isActive, 
+  onToggle, 
+  disabled = false 
+}: { 
+  isActive: boolean
+  onToggle: () => void
+  disabled?: boolean
+}) => {
+  return (
+    <button
+      onClick={onToggle}
+      disabled={disabled}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${
+        isActive ? 'bg-green-500' : 'bg-slate-600'
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-90'}`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+          isActive ? 'translate-x-6' : 'translate-x-1'
+        }`}
+      />
+    </button>
+  )
+}
 
 const StatCardSkeleton = () => (
   <div className="bg-white/5 rounded-lg p-2.5 sm:p-3 border border-white/10 animate-pulse backdrop-blur-sm">
@@ -60,7 +84,6 @@ const UserCardSkeleton = () => (
 
 const LoadingSkeleton = () => (
   <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
-    {/* Pattern Overlay */}
     <div 
       className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"
     ></div>
@@ -99,7 +122,7 @@ export default function AdminUsersPage() {
   
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showBalanceModal, setShowBalanceModal] = useState(false)
+  // ✅ REMOVED: showBalanceModal state
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
   
@@ -107,11 +130,10 @@ export default function AdminUsersPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<UserRole>('user')
-  const [balanceType, setBalanceType] = useState<'deposit' | 'withdrawal'>('deposit')
-  const [balanceAmount, setBalanceAmount] = useState('')
-  const [balanceDescription, setBalanceDescription] = useState('')
-  const [accountType, setAccountType] = useState<'real' | 'demo'>('real')
+  // ✅ REMOVED: balance form states
   const [processing, setProcessing] = useState(false)
+  // ✅ NEW: Track which user is being toggled
+  const [togglingUserId, setTogglingUserId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) {
@@ -205,38 +227,7 @@ export default function AdminUsersPage() {
     }
   }
 
-  const handleManageBalance = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedUser) return
-
-    const amount = parseFloat(balanceAmount)
-    if (isNaN(amount) || amount <= 0) {
-      toast.error('Jumlah tidak valid')
-      return
-    }
-
-    setProcessing(true)
-
-    try {
-      await api.manageUserBalance(selectedUser.id, {
-        accountType,
-        type: balanceType,
-        amount,
-        description: balanceDescription
-      })
-      
-      toast.success(`${balanceType === 'deposit' ? 'Deposit' : 'Penarikan'} berhasil!`)
-      setShowBalanceModal(false)
-      setBalanceAmount('')
-      setBalanceDescription('')
-      setAccountType('real')
-      loadUsers()
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Gagal mengelola saldo')
-    } finally {
-      setProcessing(false)
-    }
-  }
+  // ✅ REMOVED: handleManageBalance function
 
   const handleDeleteUser = async () => {
     if (!selectedUser) return
@@ -256,13 +247,25 @@ export default function AdminUsersPage() {
     }
   }
 
+  // ✅ NEW: Enhanced toggle handler dengan loading state
   const handleToggleActive = async (userId: string, currentStatus: boolean) => {
+    // Prevent toggling admin users
+    const targetUser = users.find(u => u.id === userId)
+    if (targetUser && isAdminUser(targetUser.role)) {
+      toast.error('Tidak dapat menonaktifkan akun admin')
+      return
+    }
+
+    setTogglingUserId(userId)
+    
     try {
       await api.updateUser(userId, { isActive: !currentStatus })
-      toast.success('Status pengguna diperbarui!')
+      toast.success(`Pengguna ${!currentStatus ? 'diaktifkan' : 'dinonaktifkan'}!`)
       loadUsers()
     } catch (error: any) {
       toast.error('Gagal memperbarui status pengguna')
+    } finally {
+      setTogglingUserId(null)
     }
   }
 
@@ -291,7 +294,6 @@ export default function AdminUsersPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
-      {/* Pattern Overlay */}
       <div 
         className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"
       ></div>
@@ -352,7 +354,7 @@ export default function AdminUsersPage() {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-green-500/10 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-400" weight="duotone" />
+                  <div className={`w-2 h-2 rounded-full ${stats.active > 0 ? 'bg-green-400' : 'bg-slate-400'}`} />
                 </div>
                 <span className="text-xs text-slate-400">Aktif</span>
               </div>
@@ -376,9 +378,9 @@ export default function AdminUsersPage() {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-yellow-500/10 flex items-center justify-center flex-shrink-0">
-                  <CurrencyDollar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400" weight="duotone" />
+                  <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400 font-bold">Rp</div>
                 </div>
-                <span className="text-xs text-slate-400 whitespace-nowrap">Saldo</span>
+                <span className="text-xs text-slate-400 whitespace-nowrap">Total Saldo</span>
               </div>
               <div className="text-xs sm:text-sm font-bold text-yellow-400 font-mono">
                 {new Intl.NumberFormat('id-ID', { 
@@ -445,85 +447,80 @@ export default function AdminUsersPage() {
             <div className="divide-y divide-white/10">
               {filteredUsers.map((u) => {
                 const userIsAdmin = isAdminUser(u.role)
+                const isToggling = togglingUserId === u.id
                 
                 return (
                   <div key={u.id} className="p-3 hover:bg-white/5 transition-colors">
                     <div className="flex items-center gap-2.5">
                       {/* Avatar */}
-                      <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-400 font-bold border border-blue-500/20 flex-shrink-0">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold border flex-shrink-0 ${
+                        u.isActive 
+                          ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' 
+                          : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                      }`}>
                         {u.email[0].toUpperCase()}
                       </div>
                       
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 mb-1">
-                          <div className="font-semibold text-white text-sm truncate">
+                          <div className={`font-semibold text-sm truncate ${
+                            u.isActive ? 'text-white' : 'text-slate-500'
+                          }`}>
                             {u.email}
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
                             {/* Desktop Actions */}
-                            <div className="hidden sm:flex items-center gap-1.5">
+                            <div className="hidden sm:flex items-center gap-2">
+                              {/* ✅ NEW: Switch Toggle untuk aktif/nonaktif */}
                               {!userIsAdmin && (
-                                <button
-                                  onClick={() => handleToggleActive(u.id, u.isActive)}
-                                  className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors ${
-                                    u.isActive 
-                                      ? 'bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20' 
-                                      : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
-                                  }`}
-                                >
-                                  {u.isActive ? 'Aktif' : 'Nonaktif'}
-                                </button>
+                                <div className="flex items-center gap-2 px-2 py-1 bg-white/5 rounded-lg border border-white/10">
+                                  <span className={`text-xs ${u.isActive ? 'text-green-400' : 'text-slate-400'}`}>
+                                    {u.isActive ? 'Aktif' : 'Nonaktif'}
+                                  </span>
+                                  <SwitchToggle
+                                    isActive={u.isActive}
+                                    onToggle={() => handleToggleActive(u.id, u.isActive)}
+                                    disabled={isToggling}
+                                  />
+                                </div>
                               )}
 
                               <button
                                 onClick={() => router.push(`/admin/users/${u.id}`)}
-                                className="px-2.5 py-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded text-xs font-medium transition-colors"
+                                className="px-2.5 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
                               >
-                                Lihat
+                                <Eye className="w-3.5 h-3.5" weight="duotone" />
+                                Detail
                               </button>
                               
-                              {user.role === 'super_admin' && (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      setSelectedUser(u)
-                                      setShowBalanceModal(true)
-                                    }}
-                                    className="px-2.5 py-1 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/20 rounded text-xs font-medium transition-colors"
-                                  >
-                                    Saldo
-                                  </button>
-                                  
-                                  {getUserRole(u.role) !== 'super_admin' && (
-                                    <button
-                                      onClick={() => {
-                                        setSelectedUser(u)
-                                        setShowDeleteModal(true)
-                                      }}
-                                      className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded text-xs font-medium transition-colors"
-                                    >
-                                      Hapus
-                                    </button>
-                                  )}
-                                </>
+                              {/* ✅ REMOVED: Tombol Saldo dihapus */}
+                              
+                              {user.role === 'super_admin' && getUserRole(u.role) !== 'super_admin' && (
+                                <button
+                                  onClick={() => {
+                                    setSelectedUser(u)
+                                    setShowDeleteModal(true)
+                                  }}
+                                  className="px-2.5 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg text-xs font-medium transition-colors"
+                                  title="Hapus"
+                                >
+                                  <Trash className="w-3.5 h-3.5" weight="duotone" />
+                                </button>
                               )}
                             </div>
 
                             {/* Mobile Actions */}
                             <div className="flex sm:hidden items-center gap-0.5">
+                              {/* ✅ NEW: Switch Toggle Mobile */}
                               {!userIsAdmin && (
-                                <button
-                                  onClick={() => handleToggleActive(u.id, u.isActive)}
-                                  className={`p-1.5 rounded transition-colors ${
-                                    u.isActive 
-                                      ? 'text-green-400 hover:bg-green-500/10' 
-                                      : 'text-red-400 hover:bg-red-500/10'
-                                  }`}
-                                  title={u.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-                                >
-                                  {u.isActive ? <CheckCircle className="w-4 h-4" weight="duotone" /> : <XCircle className="w-4 h-4" weight="duotone" />}
-                                </button>
+                                <div className="flex items-center gap-1.5 px-1.5 py-1 bg-white/5 rounded border border-white/10">
+                                  <SwitchToggle
+                                    isActive={u.isActive}
+                                    onToggle={() => handleToggleActive(u.id, u.isActive)}
+                                    disabled={isToggling}
+                                  />
+                                </div>
                               )}
 
                               <button
@@ -534,32 +531,19 @@ export default function AdminUsersPage() {
                                 <Eye className="w-4 h-4" weight="duotone" />
                               </button>
                               
-                              {user.role === 'super_admin' && (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      setSelectedUser(u)
-                                      setShowBalanceModal(true)
-                                    }}
-                                    className="p-1.5 hover:bg-yellow-500/10 text-yellow-400 rounded transition-colors"
-                                    title="Kelola Saldo"
-                                  >
-                                    <CurrencyDollar className="w-4 h-4" weight="duotone" />
-                                  </button>
-                                  
-                                  {getUserRole(u.role) !== 'super_admin' && (
-                                    <button
-                                      onClick={() => {
-                                        setSelectedUser(u)
-                                        setShowDeleteModal(true)
-                                      }}
-                                      className="p-1.5 hover:bg-red-500/10 text-red-400 rounded transition-colors"
-                                      title="Hapus"
-                                    >
-                                      <Trash className="w-4 h-4" weight="duotone" />
-                                    </button>
-                                  )}
-                                </>
+                              {/* ✅ REMOVED: Tombol Saldo mobile dihapus */}
+                              
+                              {user.role === 'super_admin' && getUserRole(u.role) !== 'super_admin' && (
+                                <button
+                                  onClick={() => {
+                                    setSelectedUser(u)
+                                    setShowDeleteModal(true)
+                                  }}
+                                  className="p-1.5 hover:bg-red-500/10 text-red-400 rounded transition-colors"
+                                  title="Hapus"
+                                >
+                                  <Trash className="w-4 h-4" weight="duotone" />
+                                </button>
                               )}
                             </div>
                           </div>
@@ -673,141 +657,7 @@ export default function AdminUsersPage() {
         </>
       )}
 
-      {/* Balance Management Modal */}
-      {showBalanceModal && selectedUser && (
-        <>
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={() => setShowBalanceModal(false)} />
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <div className="w-full sm:max-w-md bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border-t sm:border border-white/10 max-h-[90vh] sm:max-h-none overflow-y-auto">
-              <div className="sticky top-0 bg-slate-900 p-4 sm:p-6 border-b border-white/10 z-10">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg sm:text-xl font-bold text-white">Kelola Saldo</h2>
-                  <button
-                    onClick={() => setShowBalanceModal(false)}
-                    className="p-2 hover:bg-white/5 text-slate-400 rounded-lg transition-colors"
-                  >
-                    <X className="w-5 h-5" weight="bold" />
-                  </button>
-                </div>
-              </div>
-
-              <form onSubmit={handleManageBalance} className="p-4 sm:p-6 space-y-4">
-                <div className="bg-white/5 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/10">
-                  <div className="text-xs sm:text-sm text-slate-400 mb-1">Saldo Saat Ini</div>
-                  <div className="text-2xl sm:text-3xl font-bold font-mono text-white">
-                    {new Intl.NumberFormat('id-ID', { 
-                      style: 'currency', 
-                      currency: 'IDR',
-                      minimumFractionDigits: 0 
-                    }).format(selectedUser.currentBalance || 0)}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-white mb-2">Tipe Akun</label>
-                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setAccountType('real')}
-                      className={`py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-bold transition-all text-sm ${
-                        accountType === 'real'
-                          ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                          : 'bg-white/5 text-slate-400 border border-white/10'
-                      }`}
-                    >
-                      Real
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAccountType('demo')}
-                      className={`py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-bold transition-all text-sm ${
-                        accountType === 'demo'
-                          ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                          : 'bg-white/5 text-slate-400 border border-white/10'
-                      }`}
-                    >
-                      Demo
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-white mb-2">Tipe Transaksi</label>
-                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setBalanceType('deposit')}
-                      className={`py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-bold transition-all text-sm ${
-                        balanceType === 'deposit'
-                          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                          : 'bg-white/5 text-slate-400 border border-white/10'
-                      }`}
-                    >
-                      Deposit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBalanceType('withdrawal')}
-                      className={`py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-bold transition-all text-sm ${
-                        balanceType === 'withdrawal'
-                          ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                          : 'bg-white/5 text-slate-400 border border-white/10'
-                      }`}
-                    >
-                      Penarikan
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-white mb-2">Jumlah (IDR)</label>
-                  <input
-                    type="number"
-                    value={balanceAmount}
-                    onChange={(e) => setBalanceAmount(e.target.value)}
-                    required
-                    min="0"
-                    step="1000"
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-lg sm:text-xl font-mono focus:border-green-500 focus:bg-white/10 transition-all focus:outline-none text-white placeholder-slate-500"
-                    placeholder="10000"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-white mb-2">Keterangan</label>
-                  <input
-                    type="text"
-                    value={balanceDescription}
-                    onChange={(e) => setBalanceDescription(e.target.value)}
-                    required
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:border-green-500 focus:bg-white/10 transition-all focus:outline-none text-white placeholder-slate-500 text-sm sm:text-base"
-                    placeholder="Penyesuaian admin"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={processing}
-                  className={`w-full py-3 rounded-lg sm:rounded-xl font-bold transition-all disabled:opacity-50 text-sm sm:text-base ${
-                    balanceType === 'deposit'
-                      ? 'bg-green-600 hover:bg-green-700 text-white'
-                      : 'bg-red-600 hover:bg-red-700 text-white'
-                  }`}
-                >
-                  {processing ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <ArrowsClockwise className="w-5 h-5 animate-spin" weight="bold" />
-                      Memproses...
-                    </span>
-                  ) : (
-                    `Konfirmasi ${balanceType === 'deposit' ? 'Deposit' : 'Penarikan'}`
-                  )}
-                </button>
-              </form>
-            </div>
-          </div>
-        </>
-      )}
+      {/* ✅ REMOVED: Balance Management Modal dihapus seluruhnya */}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedUser && (

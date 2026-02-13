@@ -12,6 +12,7 @@ import dynamic from 'next/dynamic'
 import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2 } from 'lucide-react'
 import AssetIcon from '@/components/common/AssetIcon'
 import OrderPriceTracker from '@/components/OrderPriceTracker'
+import CandleCountdown from '@/components/CandleCountdown'
 import { useChartPriceScale } from '@/hooks/useChartPriceScale'
 import { 
   calculateRSI, 
@@ -193,6 +194,19 @@ const ChartSkeleton = memo(({ timeframe, assetSymbol }: { timeframe: Timeframe; 
         }
         .animate-shimmer {
           animation: shimmer 2s infinite;
+        }
+        @keyframes scale-in {
+          0% { 
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          100% { 
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        .animate-scale-in {
+          animation: scale-in 0.15s ease-out;
         }
       `}</style>
     </div>
@@ -944,78 +958,171 @@ const MobileControls = memo(({
   onRefresh,
   onOpenIndicators
 }: any) => {
-  const [isOpen, setIsOpen] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+  const [showTimeframeMenu, setShowTimeframeMenu] = useState(false)
+  const [showChartTypeMenu, setShowChartTypeMenu] = useState(false)
+  const timeframeRef = useRef<HTMLDivElement>(null)
+  const chartTypeRef = useRef<HTMLDivElement>(null)
 
   const timeframes: Timeframe[] = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d']
 
+  // Close menus on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
+      if (timeframeRef.current && !timeframeRef.current.contains(event.target as Node)) {
+        setShowTimeframeMenu(false)
+      }
+      if (chartTypeRef.current && !chartTypeRef.current.contains(event.target as Node)) {
+        setShowChartTypeMenu(false)
       }
     }
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Countdown state (integrated from CandleCountdown)
+  const TIMEFRAME_SECONDS_MAP: Record<string, number> = {
+    '1s': 1, '1m': 60, '5m': 300, '15m': 900,
+    '30m': 1800, '1h': 3600, '4h': 14400, '1d': 86400,
+  }
+  const [countdownSecs, setCountdownSecs] = useState<number>(0)
+  useEffect(() => {
+    const calc = () => {
+      const now = Math.floor(Date.now() / 1000)
+      const interval = TIMEFRAME_SECONDS_MAP[timeframe] ?? 60
+      setCountdownSecs(interval - (now % interval))
     }
-  }, [isOpen])
+    calc()
+    const t = setInterval(calc, 1000)
+    return () => clearInterval(t)
+  }, [timeframe])
+
+  const formatCd = (secs: number) => {
+    if (timeframe === '1s') return `00:${String(secs).padStart(2, '0')}`
+    return `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`
+  }
 
   return (
-    <div className="lg:hidden absolute top-24 left-2 z-10" ref={dropdownRef}>
-      <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg hover:bg-black/50 transition-all">
-        <div className="flex items-center gap-1.5">
-          <Clock className="w-3 h-3 text-gray-300" />
+    <div className="lg:hidden absolute bottom-10 left-2 z-10 flex items-center gap-1.5">
+      {/* Timeframe Control */}
+      <div className="relative" ref={timeframeRef}>
+        <button 
+          onClick={() => {
+            setShowTimeframeMenu(!showTimeframeMenu)
+            setShowChartTypeMenu(false)
+          }}
+          disabled={isLoading}
+          className="h-8 px-2 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-lg hover:bg-gray-800/80 transition-all disabled:opacity-50 flex items-center gap-1"
+          title="Timeframe"
+        >
+          <Clock className="w-3.5 h-3.5 text-blue-400" />
           <span className="text-xs font-bold text-white">{timeframe}</span>
-          <span className="text-xs text-gray-400">|</span>
-          <span className="text-xs text-gray-300">{chartType === 'candle' ? 'Candle' : 'Line'}</span>
-        </div>
-        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
+          <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${showTimeframeMenu ? 'rotate-180' : ''}`} />
+        </button>
 
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-1 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden animate-scale-in min-w-[200px]">
-          <div className="p-2 border-b border-gray-800/50">
-            <div className="text-[10px] font-semibold text-gray-400 mb-1.5 px-2">Timeframe</div>
-            <div className="grid grid-cols-3 gap-1">
-              {timeframes.map((tf) => (
-                <button key={tf} onClick={() => { onTimeframeChange(tf); setIsOpen(false) }} disabled={isLoading} className={`px-2 py-1.5 text-xs font-bold rounded transition-all flex items-center justify-center gap-1 ${
-                  timeframe === tf ? 'bg-blue-500 text-white shadow-sm' : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#232936]'
-                } disabled:opacity-50`}>
-                  {tf}
+        {showTimeframeMenu && (
+          <div className="absolute bottom-full left-0 mb-1 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl overflow-hidden min-w-[160px] animate-scale-in">
+            <div className="p-2">
+              <div className="text-[10px] font-semibold text-gray-400 mb-1.5 px-1">SELECT TIMEFRAME</div>
+              <div className="grid grid-cols-2 gap-1">
+                {timeframes.map((tf) => (
+                  <button 
+                    key={tf} 
+                    onClick={() => { 
+                      onTimeframeChange(tf)
+                      setShowTimeframeMenu(false)
+                    }} 
+                    disabled={isLoading}
+                    className={`px-2 py-1.5 text-xs font-bold rounded transition-all ${
+                      timeframe === tf 
+                        ? 'bg-blue-500 text-white shadow-sm' 
+                        : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#232936]'
+                    } disabled:opacity-50`}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Chart Type Control */}
+      <div className="relative" ref={chartTypeRef}>
+        <button 
+          onClick={() => {
+            setShowChartTypeMenu(!showChartTypeMenu)
+            setShowTimeframeMenu(false)
+          }}
+          disabled={isLoading}
+          className="h-8 w-8 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-lg hover:bg-gray-800/80 transition-all disabled:opacity-50 flex items-center justify-center"
+          title={chartType === 'candle' ? 'Candlestick Chart' : 'Line Chart'}
+        >
+          {chartType === 'candle' ? (
+            <BarChart2 className="w-3.5 h-3.5 text-gray-300" />
+          ) : (
+            <Activity className="w-3.5 h-3.5 text-gray-300" />
+          )}
+        </button>
+
+        {showChartTypeMenu && (
+          <div className="absolute bottom-full left-0 mb-1 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl overflow-hidden min-w-[140px] animate-scale-in">
+            <div className="p-2">
+              <div className="text-[10px] font-semibold text-gray-400 mb-1.5 px-1">CHART TYPE</div>
+              <div className="flex flex-col gap-1">
+                <button 
+                  onClick={() => { 
+                    onChartTypeChange('candle')
+                    setShowChartTypeMenu(false)
+                  }} 
+                  disabled={isLoading}
+                  className={`px-3 py-2 text-xs font-semibold rounded transition-all flex items-center gap-2 ${
+                    chartType === 'candle' 
+                      ? 'bg-blue-500 text-white shadow-sm' 
+                      : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#232936]'
+                  }`}
+                >
+                  <BarChart2 className="w-3.5 h-3.5" />
+                  Candlestick
                 </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="p-2 border-b border-gray-800/50">
-            <div className="text-[10px] font-semibold text-gray-400 mb-1.5 px-2">Chart Type</div>
-            <div className="flex gap-1">
-              <button onClick={() => { onChartTypeChange('candle'); setIsOpen(false) }} disabled={isLoading} className={`flex-1 px-2 py-1.5 text-xs font-semibold rounded transition-all ${
-                chartType === 'candle' ? 'bg-blue-500 text-white shadow-sm' : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#232936]'
-              }`}>Candle</button>
-              <button onClick={() => { onChartTypeChange('line'); setIsOpen(false) }} disabled={isLoading} className={`flex-1 px-2 py-1.5 text-xs font-semibold rounded transition-all ${
-                chartType === 'line' ? 'bg-blue-500 text-white shadow-sm' : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#232936]'
-              }`}>Line</button>
-            </div>
-          </div>
-
-          <div className="p-2">
-            <div className="flex flex-col gap-1">
-              <button onClick={() => { onOpenIndicators(); setIsOpen(false) }} className="px-2 py-1.5 text-xs font-medium text-gray-300 bg-[#1a1f2e] hover:bg-[#232936] rounded transition-all flex items-center gap-2">
-                <Sliders className="w-3.5 h-3.5" /> Indicators
-              </button>
-              <div className="flex gap-1">
-                <button onClick={() => { onFitContent(); setIsOpen(false) }} className="flex-1 px-2 py-1.5 text-xs font-medium text-gray-300 bg-[#1a1f2e] hover:bg-[#232936] rounded transition-all">Fit</button>
-                <button onClick={() => { onRefresh(); setIsOpen(false) }} disabled={isLoading} className="px-2 py-1.5 text-gray-300 bg-[#1a1f2e] hover:bg-[#232936] rounded transition-all disabled:opacity-50 flex items-center gap-1">
-                  <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+                <button 
+                  onClick={() => { 
+                    onChartTypeChange('line')
+                    setShowChartTypeMenu(false)
+                  }} 
+                  disabled={isLoading}
+                  className={`px-3 py-2 text-xs font-semibold rounded transition-all flex items-center gap-2 ${
+                    chartType === 'line' 
+                      ? 'bg-blue-500 text-white shadow-sm' 
+                      : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#232936]'
+                  }`}
+                >
+                  <Activity className="w-3.5 h-3.5" />
+                  Line
                 </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      {/* Indicators Control */}
+      <button 
+        onClick={onOpenIndicators}
+        disabled={isLoading}
+        className="h-8 w-8 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-lg hover:bg-gray-800/80 transition-all disabled:opacity-50 flex items-center justify-center"
+        title="Indicators"
+      >
+        <Sliders className="w-3.5 h-3.5 text-gray-300" />
+      </button>
+
+      {/* Candle Countdown — integrated inline */}
+      <div className="h-8 px-2 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-lg flex items-center gap-1">
+        <span className="text-xs font-light text-white tabular-nums">
+          {formatCd(countdownSecs)}
+        </span>
+      </div>
     </div>
   )
 })
@@ -1522,8 +1629,8 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
         height,
         layout: { background: { type: ColorType.Solid, color: '#0a0e17' }, textColor: '#9ca3af' },
         grid: {
-          vertLines: { color: 'rgba(255, 255, 255, 0.08)', style: 0, visible: true },
-          horzLines: { color: 'rgba(255, 255, 255, 0.08)', style: 0, visible: true }
+          vertLines: { color: 'rgba(255, 255, 255, 0.12)', style: 0, visible: true },
+          horzLines: { color: 'rgba(255, 255, 255, 0.12)', style: 0, visible: true }
         },
         crosshair: { mode: CrosshairMode.Normal },
         rightPriceScale: { borderColor: 'rgba(255, 255, 255, 0.1)' },
@@ -3387,6 +3494,11 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
           assetSymbol={selectedAsset?.symbol || ''} 
         />
       )}
+
+      {/* Candle Countdown Timer — desktop only; mobile version is inside MobileControls row */}
+      <div className="hidden lg:block">
+        <CandleCountdown timeframe={timeframe} />
+      </div>
     </div>
 
     {/* Oscillator Charts */}
