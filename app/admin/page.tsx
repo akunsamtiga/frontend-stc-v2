@@ -228,50 +228,58 @@ export default function AdminDashboard() {
       <Navbar />
       
       <div className="max-w-6xl mx-auto px-4 py-6 relative z-10">
-        {/* Header with Account Filter */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-white">Dashboard Admin</h1>
-              <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-white/10">
-                <button
-                  onClick={() => setAccountFilter('real')}
-                  className={`px-3 py-1 rounded text-xs font-medium transition-all ${
-                    accountFilter === 'real'
-                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Real
-                </button>
-                <button
-                  onClick={() => setAccountFilter('demo')}
-                  className={`px-3 py-1 rounded text-xs font-medium transition-all ${
-                    accountFilter === 'demo'
-                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Demo
-                </button>
-              </div>
+
+        {/* ── HEADER ── */}
+        {/* 
+          Pada mobile: title + filter toggle di baris atas, 
+          subtitle + tombol refresh di baris bawah (flex-wrap).
+          Pada desktop: tetap 1 baris kiri-kanan seperti sebelumnya.
+        */}
+        <div className="flex flex-wrap items-center gap-y-2 justify-between mb-6">
+          {/* Kiri: Judul + toggle */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Dashboard Admin</h1>
+            <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-white/10">
+              <button
+                onClick={() => setAccountFilter('real')}
+                className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                  accountFilter === 'real'
+                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Real
+              </button>
+              <button
+                onClick={() => setAccountFilter('demo')}
+                className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                  accountFilter === 'demo'
+                    ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Demo
+              </button>
             </div>
-            <p className="text-sm text-slate-400 mt-1">
-              Statistik sistem dan aktivitas pengguna
-            </p>
           </div>
-          
+
+          {/* Kanan: Tombol Refresh */}
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors text-sm disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors text-sm disabled:opacity-50"
           >
             <ArrowsClockwise 
               className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} 
               weight="bold"
             />
-            <span className="hidden sm:inline">Refresh</span>
+            <span>Refresh</span>
           </button>
+
+          {/* Subtitle — full width baris sendiri di mobile */}
+          <p className="w-full text-xs sm:text-sm text-slate-400 -mt-1">
+            Statistik sistem dan aktivitas pengguna
+          </p>
         </div>
 
         {/* Last Updated */}
@@ -431,9 +439,9 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* System Health - Compact */}
+        {/* ── SYSTEM HEALTH ── 1 baris horizontal di semua ukuran layar */}
         <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm mb-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-semibold text-white">System Health</h2>
             <Link 
               href="/admin/users"
@@ -444,41 +452,45 @@ export default function AdminDashboard() {
             </Link>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="text-center p-3 bg-white/5 rounded border border-white/10">
-              <div className="text-2xl font-bold text-indigo-400 mb-1">
+          {/* 
+            Selalu 4 kolom (grid-cols-4) agar tampil 1 baris.
+            p-2 + text-sm/xs agar tidak overflow di layar kecil.
+          */}
+          <div className="grid grid-cols-4 gap-2">
+            <div className="text-center p-2 bg-white/5 rounded border border-white/10">
+              <div className="text-lg sm:text-2xl font-bold text-indigo-400 mb-0.5">
                 {Math.round((stats.users.active / stats.users.total) * 100)}%
               </div>
-              <div className="text-xs text-slate-400">Active Rate</div>
+              <div className="text-[10px] sm:text-xs text-slate-400 leading-tight">Active Rate</div>
             </div>
             
-            <div className="text-center p-3 bg-white/5 rounded border border-white/10">
-              <div className="text-2xl font-bold text-green-400 mb-1">
+            <div className="text-center p-2 bg-white/5 rounded border border-white/10">
+              <div className="text-lg sm:text-2xl font-bold text-green-400 mb-0.5">
                 {filteredStats.trading.winRate}%
               </div>
-              <div className="text-xs text-slate-400">Win Rate</div>
+              <div className="text-[10px] sm:text-xs text-slate-400 leading-tight">Win Rate</div>
             </div>
             
-            <div className="text-center p-3 bg-white/5 rounded border border-white/10">
-              <div className="text-2xl font-bold text-purple-400 mb-1">
+            <div className="text-center p-2 bg-white/5 rounded border border-white/10">
+              <div className="text-lg sm:text-2xl font-bold text-purple-400 mb-0.5">
                 {filteredStats.trading.activeOrders}
               </div>
-              <div className="text-xs text-slate-400">Active Orders</div>
+              <div className="text-[10px] sm:text-xs text-slate-400 leading-tight">Active Orders</div>
             </div>
             
-            <div className="text-center p-3 bg-white/5 rounded border border-white/10">
-              <div className="text-2xl font-bold text-orange-400 mb-1">
+            <div className="text-center p-2 bg-white/5 rounded border border-white/10">
+              <div className="text-lg sm:text-2xl font-bold text-orange-400 mb-0.5">
                 {stats.users.admins}
               </div>
-              <div className="text-xs text-slate-400">Admins</div>
+              <div className="text-[10px] sm:text-xs text-slate-400 leading-tight">Admins</div>
             </div>
           </div>
         </div>
 
-        {/* Withdrawal Overview - Compact */}
+        {/* ── REQUEST PENARIKAN ── 1 baris horizontal di semua ukuran layar */}
         {stats?.withdrawal && (
           <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <h2 className="text-base font-semibold text-white">Request Penarikan</h2>
               <Link 
                 href="/admin/withdrawals"
@@ -489,7 +501,11 @@ export default function AdminDashboard() {
               </Link>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+            {/* 
+              Selalu 4 kolom agar tampil 1 baris.
+              p-2 + teks kecil agar tidak overflow di HP.
+            */}
+            <div className="grid grid-cols-4 gap-2 mb-3">
               {[
                 { 
                   label: 'Pending', 
@@ -518,22 +534,22 @@ export default function AdminDashboard() {
               ].map((stat, idx) => (
                 <div 
                   key={idx} 
-                  className={`p-3 rounded border ${
+                  className={`p-2 rounded border text-center ${
                     stat.color === 'yellow' ? 'bg-yellow-500/10 border-yellow-500/20' :
-                    stat.color === 'blue' ? 'bg-blue-500/10 border-blue-500/20' :
-                    stat.color === 'green' ? 'bg-green-500/10 border-green-500/20' :
-                    'bg-red-500/10 border-red-500/20'
+                    stat.color === 'blue'   ? 'bg-blue-500/10 border-blue-500/20'     :
+                    stat.color === 'green'  ? 'bg-green-500/10 border-green-500/20'   :
+                                              'bg-red-500/10 border-red-500/20'
                   } ${stat.urgent ? 'animate-pulse' : ''}`}
                 >
-                  <div className={`text-2xl font-bold mb-1 ${
+                  <div className={`text-lg sm:text-2xl font-bold mb-0.5 ${
                     stat.color === 'yellow' ? 'text-yellow-400' :
-                    stat.color === 'blue' ? 'text-blue-400' :
-                    stat.color === 'green' ? 'text-green-400' :
-                    'text-red-400'
+                    stat.color === 'blue'   ? 'text-blue-400'   :
+                    stat.color === 'green'  ? 'text-green-400'  :
+                                              'text-red-400'
                   }`}>
                     {stat.value}
                   </div>
-                  <div className="text-xs text-slate-400">{stat.label}</div>
+                  <div className="text-[10px] sm:text-xs text-slate-400 leading-tight">{stat.label}</div>
                 </div>
               ))}
             </div>

@@ -550,7 +550,7 @@ export default function AssetSchedulePage() {
   
   // Pagination state - client-side only, no limit
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(10) // User can change this
+  const [itemsPerPage, setItemsPerPage] = useState(10)
   
   const [filters, setFilters] = useState<GetAssetSchedulesQuery>({})
   
@@ -589,7 +589,6 @@ export default function AssetSchedulePage() {
     try {
       if (showRefreshing) setRefreshing(true)
       
-      // Fetch all schedules without limit
       const [schedulesRes, statsRes] = await Promise.all([
         assetScheduleApi.getSchedules({}).catch((err: any) => {
           console.error('Schedules API error:', err)
@@ -597,7 +596,7 @@ export default function AssetSchedulePage() {
         }),
         assetScheduleApi.getStatistics().catch((err: any) => {
           console.error('Stats API error:', err)
-          return { total: 0, pending: 0, executed: 0, failed: 0, cancelled: 0, activeSchedules: 0, upcomingToday: 0, upcomingThisWeek: 0 }
+          return null
         })
       ])
 
@@ -605,7 +604,23 @@ export default function AssetSchedulePage() {
         setSchedules(schedulesRes.data.data || [])
       }
 
-      if (statsRes) setStatistics(statsRes as AssetScheduleStatistics)
+      // ✅ FIX: Response chain berlapis dua:
+      // 1. NestJS global interceptor membungkus return service → { success, data: <hasil_service> }
+      // 2. Axios interceptor unwrap response.data → statsRes = { success, data: { success, data: { total, ... } } }
+      //
+      // Sehingga stats yang sebenarnya ada di statsRes.data.data
+      // (sama seperti schedules yang sudah benar pakai schedulesRes.data.data)
+      const statsData = (statsRes as any)?.data?.data
+      if (statsData && typeof statsData.total === 'number') {
+        setStatistics(statsData as AssetScheduleStatistics)
+      } else if ((statsRes as any)?.data && typeof (statsRes as any).data.total === 'number') {
+        // Fallback: kalau hanya single-wrap
+        setStatistics((statsRes as any).data as AssetScheduleStatistics)
+      } else if (statsRes && typeof (statsRes as any).total === 'number') {
+        // Fallback: kalau tidak ter-wrap sama sekali
+        setStatistics(statsRes as unknown as AssetScheduleStatistics)
+      }
+
       setLastUpdated(new Date())
     } catch (error) {
       console.error('Gagal memuat data:', error)
@@ -732,7 +747,6 @@ export default function AssetSchedulePage() {
       let successCount = 0
       let failCount = 0
 
-      // Delete all schedules sequentially
       for (const schedule of schedules) {
         try {
           await assetScheduleApi.delete(schedule.id)
@@ -745,7 +759,7 @@ export default function AssetSchedulePage() {
 
       if (successCount > 0) {
         toast.success(`${successCount} jadwal berhasil dihapus`)
-        setCurrentPage(1) // Reset to first page
+        setCurrentPage(1)
         loadData()
       }
       if (failCount > 0) toast.error(`${failCount} jadwal gagal dihapus`)
@@ -987,7 +1001,6 @@ export default function AssetSchedulePage() {
                       
                       <div className="flex items-center gap-1">
                         {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                          // Show pages around current page
                           let pageNum = i + 1
                           if (totalPages > 5) {
                             if (currentPage > 3) {

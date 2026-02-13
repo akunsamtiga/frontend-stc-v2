@@ -37,6 +37,60 @@ import {
   CandleData as IndicatorCandleData
 } from '@/lib/indicators'
 
+// ============================================================================
+// WIB TIMEZONE HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Konversi UTC timestamp ke WIB timestamp
+ * @param timestamp - Unix timestamp dalam seconds (UTC)
+ * @returns Unix timestamp dalam seconds (WIB equivalent)
+ */
+function toWIBTimestamp(timestamp: number): number {
+  const date = new Date(timestamp * 1000);
+  const wibString = date.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' });
+  const wibDate = new Date(wibString);
+  return Math.floor(wibDate.getTime() / 1000);
+}
+
+/**
+ * Format timestamp ke format waktu WIB (HH:MM atau HH:MM:SS)
+ * @param timestamp - Unix timestamp dalam seconds
+ * @param showSeconds - Tampilkan detik atau tidak
+ * @returns String waktu dalam format WIB
+ */
+function formatWIBTime(timestamp: number, showSeconds: boolean = false): string {
+  const date = new Date(timestamp * 1000);
+  const wibDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+  
+  const hours = String(wibDate.getHours()).padStart(2, '0');
+  const minutes = String(wibDate.getMinutes()).padStart(2, '0');
+  const seconds = String(wibDate.getSeconds()).padStart(2, '0');
+  
+  return showSeconds ? `${hours}:${minutes}:${seconds}` : `${hours}:${minutes}`;
+}
+
+/**
+ * Format timestamp ke format tanggal dan waktu lengkap WIB
+ * @param timestamp - Unix timestamp dalam seconds
+ * @returns String tanggal waktu dalam format DD/MM/YYYY HH:MM
+ */
+function formatWIBDateTime(timestamp: number): string {
+  const date = new Date(timestamp * 1000);
+  const wibDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+  
+  const day = String(wibDate.getDate()).padStart(2, '0');
+  const month = String(wibDate.getMonth() + 1).padStart(2, '0');
+  const year = wibDate.getFullYear();
+  const hours = String(wibDate.getHours()).padStart(2, '0');
+  const minutes = String(wibDate.getMinutes()).padStart(2, '0');
+  
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
+}
+
+// ============================================================================
+// END WIB HELPER FUNCTIONS
+// ============================================================================
 
 
 const IndicatorControls = dynamic(() => import('./IndicatorControls'), { ssr: false })
@@ -613,7 +667,7 @@ const RealtimeClock = memo(() => {
   })
 
   return (
-    <div className="absolute top-14 left-2 z-10 bg-black/20 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/10">
+    <div className="absolute top-16 left-2 z-10 bg-black/20 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/10">
       <div className="flex items-center gap-2">
         <div className="text-xs font-light text-white">
           {timeStr} <span className="text-gray-300">|</span> {dateStr}
@@ -1224,6 +1278,100 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const lineSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   const candleAnimatorRef = useRef<SmoothCandleAnimator | null>(null)
   const { setChart, setSeries, priceToPixel } = useChartPriceScale()
+  
+  // Refs for zoom/scroll preservation on manual refresh
+  const savedVisibleRangeRef = useRef<{ from: number; to: number } | null>(null)
+  const targetVisibleRangeRef = useRef<{ from: number; to: number } | null>(null)
+  const preservePositionModeRef = useRef<boolean>(false)
+  const positionRestoreAttemptsRef = useRef<number>(0)
+  
+  /**
+   * ✅ Helper function: Safely update chart data while preserving zoom/scroll position
+   * This prevents the chart from "jumping" during updates
+   */
+  const safeSetChartData = useCallback((
+    candleData: Array<{ time: UTCTimestamp; open: number; high: number; low: number; close: number }>,
+    options: { 
+      preservePosition?: boolean; 
+      skipDefaultZoom?: boolean;
+    } = {}
+  ) => {
+    const { 
+      preservePosition = true, 
+      skipDefaultZoom = false 
+    } = options;
+
+    if (!chartRef.current || !candleSeriesRef.current || !lineSeriesRef.current) {
+      return;
+    }
+
+    let savedRange: { from: number; to: number } | null = null;
+
+    // Save current position if preserve is enabled
+    if (preservePosition) {
+      try {
+        const timeScale = chartRef.current.timeScale();
+        const visibleRange = timeScale.getVisibleLogicalRange();
+        if (visibleRange) {
+          savedRange = { from: visibleRange.from, to: visibleRange.to };
+          targetVisibleRangeRef.current = savedRange;
+          preservePositionModeRef.current = true;
+          positionRestoreAttemptsRef.current = 0;
+        }
+      } catch (error) {
+        console.warn('Failed to save position:', error);
+      }
+    }
+
+    // Update chart data
+    try {
+      candleSeriesRef.current.setData(candleData);
+      lineSeriesRef.current.setData(candleData.map(bar => ({ 
+        time: bar.time, 
+        value: bar.close 
+      })));
+    } catch (error) {
+      console.error('Failed to update chart data:', error);
+      return;
+    }
+
+    // Restore position with multiple attempts
+    const attemptRestore = (attempt: number = 0) => {
+      const timeScale = chartRef.current?.timeScale();
+      if (!timeScale) return;
+
+      try {
+        if (savedRange && preservePosition) {
+          timeScale.setVisibleLogicalRange(savedRange);
+        } else if (!skipDefaultZoom && !preservePositionModeRef.current) {
+          // Apply default zoom (last 60 candles) only if NOT in preserve mode
+          if (candleData.length > 60) {
+            timeScale.setVisibleLogicalRange({
+              from: candleData.length - 60,
+              to: candleData.length - 1
+            });
+          } else {
+            timeScale.fitContent();
+          }
+        }
+      } catch (error) {
+        console.warn(`Failed to restore/set position (attempt ${attempt + 1}):`, error);
+      }
+    };
+
+    // Attempt 1: Immediate (requestAnimationFrame)
+    requestAnimationFrame(() => attemptRestore(0));
+    
+    // Attempt 2 & 3: Staggered for render safety
+    if (preservePosition && savedRange) {
+      setTimeout(() => attemptRestore(1), 100);
+      setTimeout(() => {
+        attemptRestore(2);
+        preservePositionModeRef.current = false;
+      }, 300);
+    }
+  }, []);
+  
   const smaSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   const emaSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   const bollingerUpperRef = useRef<ISeriesApi<"Line"> | null>(null)
@@ -1482,7 +1630,7 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
     }
   }, [selectedAsset?.id, isInitialized, fetchCurrentPriceImmediately])
 
-  // REALTIME OHLC SUBSCRIPTION with Enhanced Cache Invalidation
+  // REALTIME OHLC SUBSCRIPTION
   useEffect(() => {
     if (!selectedAsset?.realtimeDbPath || !isInitialized) return
     if (!candleSeriesRef.current || !lineSeriesRef.current) return
@@ -1494,35 +1642,22 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
     const unsubscribe = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
       if (!newBar) return
 
-      // FIXED: More aggressive cache invalidation on bar completion
+      // Invalidate cache when a bar completes so the next manual refresh gets fresh data
       if (newBar.isCompleted && newBar.timestamp !== lastCompletedTimestamp) {
         lastCompletedTimestamp = newBar.timestamp
         const cacheKey = `${selectedAsset.id}-${timeframe}`
         GLOBAL_DATA_CACHE.delete(cacheKey)
 
-        // Also clear from firebase cache
         if (typeof window !== 'undefined' && (window as any).firebaseDebug) {
           const fbCacheKey = `${assetPath}-${timeframe}-historical`
           ;(window as any).firebaseDebug.memoryCache.delete(fbCacheKey)
         }
-
-        console.log('Bar completed, cache invalidated for', cacheKey, 'timestamp:', newBar.timestamp)
-
-        // Force refresh historical data when bar completes to ensure consistency
-        setTimeout(() => {
-          refreshHistoricalData()
-        }, 100)
       }
 
       // Get bar period timestamp
       const barPeriod = getBarPeriodTimestamp(newBar.timestamp, timeframe)
 
       if (!currentBarRef.current || currentBarRef.current.timestamp !== barPeriod) {
-        // New bar started - if we had a previous live bar, it should now be in historical data
-        if (currentBarRef.current && !currentBarRef.current.isCompleted) {
-          console.log('Previous bar was live, will be replaced by historical data')
-        }
-
         currentBarRef.current = {
           timestamp: barPeriod,
           open: newBar.open,
@@ -1532,12 +1667,7 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
           volume: newBar.volume || 0,
           isCompleted: newBar.isCompleted || false
         }
-        console.log('New bar:', barPeriod, 'Open:', newBar.open)
       } else {
-        // Update current bar
-        const prevHigh = currentBarRef.current.high
-        const prevLow = currentBarRef.current.low
-
         currentBarRef.current = {
           ...currentBarRef.current,
           high: Math.max(currentBarRef.current.high, newBar.high),
@@ -1545,10 +1675,6 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
           close: newBar.close,
           volume: (currentBarRef.current.volume || 0) + (newBar.volume || 0),
           isCompleted: newBar.isCompleted || false
-        }
-
-        if (currentBarRef.current.high !== prevHigh || currentBarRef.current.low !== prevLow) {
-          console.log('Bar update - High:', currentBarRef.current.high, 'Low:', currentBarRef.current.low)
         }
       }
 
@@ -1582,30 +1708,6 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
       lastUpdateTimeRef.current = Date.now()
     })
 
-    // Helper function to refresh historical data
-    const refreshHistoricalData = async () => {
-      try {
-        const freshData = await fetchHistoricalData(assetPath, timeframe, { forceFresh: true })
-        if (freshData.length > 0) {
-          const candleData = freshData.map((bar: any) => ({
-            time: bar.timestamp as UTCTimestamp,
-            open: bar.open,
-            high: bar.high,
-            low: bar.low,
-            close: bar.close
-          }))
-
-          setCurrentChartData(candleData)
-          candleSeriesRef.current?.setData(candleData)
-          lineSeriesRef.current?.setData(candleData.map((bar: any) => ({ time: bar.time, value: bar.close })))
-
-          console.log('Historical data refreshed after bar completion:', freshData.length, 'bars')
-        }
-      } catch (error) {
-        console.warn('Failed to refresh historical data:', error)
-      }
-    }
-
     return () => {
       unsubscribe()
     }
@@ -1637,11 +1739,35 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
         timeScale: {
           borderColor: 'rgba(255, 255, 255, 0.1)',
           timeVisible: true,
-          secondsVisible: false
+          secondsVisible: timeframe === '1s' || timeframe === '1m',
+          tickMarkFormatter: (time: UTCTimestamp, tickMarkType: any, locale: string) => {
+            // Konversi ke WIB untuk ditampilkan
+            const date = new Date((time as number) * 1000);
+            const wibDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+            
+            const hours = String(wibDate.getHours()).padStart(2, '0');
+            const minutes = String(wibDate.getMinutes()).padStart(2, '0');
+            const seconds = String(wibDate.getSeconds()).padStart(2, '0');
+            const day = String(wibDate.getDate()).padStart(2, '0');
+            const month = String(wibDate.getMonth() + 1).padStart(2, '0');
+            
+            // Format berbeda berdasarkan timeframe
+            if (timeframe === '1s' || timeframe === '1m' || timeframe === '5m') {
+              return `${hours}:${minutes}${timeframe === '1s' ? ':' + seconds : ''}`;
+            } else if (timeframe === '1d') {
+              return `${day}/${month}`;
+            } else {
+              return `${hours}:${minutes}`;
+            }
+          }
         },
         localization: {
           locale: 'id-ID',
-          dateFormat: 'dd/MM/yyyy'
+          dateFormat: 'dd/MM/yyyy',
+          // Format time di crosshair
+          timeFormatter: (time: UTCTimestamp) => {
+            return formatWIBTime(time as number, timeframe === '1s');
+          }
         }
       })
 
@@ -1821,12 +1947,36 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
       timeScale: {
         borderColor: 'rgba(255, 255, 255, 0.1)',
         timeVisible: true,
-        secondsVisible: false,
-        visible: false
+        secondsVisible: timeframe === '1s' || timeframe === '1m',
+        visible: false,
+        tickMarkFormatter: (time: UTCTimestamp, tickMarkType: any, locale: string) => {
+          // Konversi ke WIB untuk ditampilkan
+          const date = new Date((time as number) * 1000);
+          const wibDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+          
+          const hours = String(wibDate.getHours()).padStart(2, '0');
+          const minutes = String(wibDate.getMinutes()).padStart(2, '0');
+          const seconds = String(wibDate.getSeconds()).padStart(2, '0');
+          const day = String(wibDate.getDate()).padStart(2, '0');
+          const month = String(wibDate.getMonth() + 1).padStart(2, '0');
+          
+          // Format berbeda berdasarkan timeframe
+          if (timeframe === '1s' || timeframe === '1m' || timeframe === '5m') {
+            return `${hours}:${minutes}${timeframe === '1s' ? ':' + seconds : ''}`;
+          } else if (timeframe === '1d') {
+            return `${day}/${month}`;
+          } else {
+            return `${hours}:${minutes}`;
+          }
+        }
       },
       localization: {
         locale: 'id-ID',
-        dateFormat: 'dd/MM/yyyy'
+        dateFormat: 'dd/MM/yyyy',
+        // Format time di crosshair
+        timeFormatter: (time: UTCTimestamp) => {
+          return formatWIBTime(time as number, timeframe === '1s');
+        }
       }
     }
 
@@ -3174,18 +3324,17 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
 
         setCurrentChartData(candleData)
 
-        candleSeriesRef.current!.setData(candleData)
-        lineSeriesRef.current!.setData(candleData.map(bar => ({ time: bar.time, value: bar.close })))
+        // Preserve position only on manual refresh (when user clicked Refresh)
+        const isManualRefresh = savedVisibleRangeRef.current !== null;
         
-        // MODIFIED: Zoom to show only last 60 candles by default
-        const timeScale = chartRef.current?.timeScale()
-        if (timeScale && candleData.length > 60) {
-          timeScale.setVisibleLogicalRange({
-            from: candleData.length - 60,
-            to: candleData.length - 1
-          })
-        } else {
-          timeScale?.fitContent()
+        safeSetChartData(candleData, {
+          preservePosition: isManualRefresh,
+          skipDefaultZoom: false
+        });
+        
+        // Clear saved range after use
+        if (isManualRefresh) {
+          savedVisibleRangeRef.current = null;
         }
 
         const lastBar = sortedData[sortedData.length - 1]
@@ -3288,6 +3437,23 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
   const handleRefresh = useCallback(() => {
     if (!selectedAsset) return
     
+    // ✅ Save current zoom/scroll position before refresh
+    if (chartRef.current) {
+      try {
+        const visibleRange = chartRef.current.timeScale().getVisibleLogicalRange()
+        if (visibleRange) {
+          savedVisibleRangeRef.current = {
+            from: visibleRange.from,
+            to: visibleRange.to
+          }
+          console.log('💾 Saved visible range:', savedVisibleRangeRef.current)
+        }
+      } catch (error) {
+        console.warn('Failed to save visible range:', error)
+        savedVisibleRangeRef.current = null
+      }
+    }
+    
     // 🔧 FIX: Clear cache lebih agresif
     const cacheKey = `${selectedAsset.id}-${timeframe}`
     GLOBAL_DATA_CACHE.delete(cacheKey)
@@ -3349,38 +3515,6 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
     onAssetSelect?.(asset)
     setShowAssetMenu(false)
   }, [setSelectedAsset, onAssetSelect])
-
-  // 🔧 DEBUG HELPER: Log perbedaan antara live dan historical
-  useEffect(() => {
-    // Debug: Log perbedaan antara live dan historical setiap 10 detik
-    const debugInterval = setInterval(() => {
-      if (currentBarRef.current && currentChartData.length > 0) {
-        const lastHistorical = currentChartData[currentChartData.length - 1]
-        const live = currentBarRef.current
-        
-        if (lastHistorical.time === live.timestamp) {
-          if (lastHistorical.close !== live.close || 
-              lastHistorical.high !== live.high || 
-              lastHistorical.low !== live.low) {
-            console.warn('⚠️ MISMATCH DETECTED:', {
-              historical: { 
-                close: lastHistorical.close, 
-                high: lastHistorical.high, 
-                low: lastHistorical.low 
-              },
-              live: { 
-                close: live.close, 
-                high: live.high, 
-                low: live.low 
-              }
-            })
-          }
-        }
-      }
-    }, 10000)
-    
-    return () => clearInterval(debugInterval)
-  }, [currentChartData])
 
   if (!selectedAsset) {
     return (
