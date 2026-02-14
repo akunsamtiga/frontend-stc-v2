@@ -111,7 +111,7 @@ export default function TradingPage() {
     rollbackOrder,
     updateOrder,
     setAllOrders,
-  } = useOptimisticOrders()
+  } = useOptimisticOrders(user?.id)
 
   const notification = useOrderResultNotification()
   
@@ -763,7 +763,7 @@ export default function TradingPage() {
           <div className="relative">
             <BalanceDisplay
               amount={currentBalance}
-              label={`Akun ${selectedAccountType === 'real' ? 'Riil' : 'Demo'}`}
+              label={`Akun ${selectedAccountType === 'real' ? 'Real' : 'Demo'}`}
               isActive={showAccountMenu}
               onClick={() => setShowAccountMenu(!showAccountMenu)}
               isMobile={false}
@@ -796,7 +796,7 @@ export default function TradingPage() {
                       selectedAccountType === 'real' ? 'bg-[#2a3142]' : ''
                     }`}
                   >
-                    <span className="text-xs text-white">Akun Riil</span>
+                    <span className="text-xs text-white">Akun Real</span>
                     <span className="text-base font-bold text-white pl-4">
                       {formatCurrency(realBalance)}
                     </span>

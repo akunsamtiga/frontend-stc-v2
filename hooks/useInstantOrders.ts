@@ -1,6 +1,8 @@
-// hooks/useInstantOrders.ts
+// hooks/useInstantOrders.ts - WITH REAL-TIME SYNC ACROSS DEVICES
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { BinaryOrder } from '@/types'
+import { websocketService } from '@/lib/websocket'
+import { toast } from 'sonner'
 
 interface OptimisticOrder extends Partial<BinaryOrder> {
   id: string
@@ -8,10 +10,45 @@ interface OptimisticOrder extends Partial<BinaryOrder> {
   optimisticTimestamp: number
 }
 
-export function useOptimisticOrders() {
+interface OrderUpdate {
+  event: 'order:created' | 'order:settled' | 'order:updated'
+  id: string
+  status?: string
+  exit_price?: number
+  profit?: number
+  timestamp: number
+}
+
+// ✅ Fetch order details from API
+async function fetchOrderDetails(orderId: string): Promise<BinaryOrder | null> {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) return null
+
+    const response = await fetch(`/api/v1/binary-orders/${orderId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Cache-Control': 'no-cache',
+      },
+    })
+
+    if (!response.ok) return null
+
+    const data = await response.json()
+    return data?.data || data
+  } catch (error) {
+    console.error('Error fetching order details:', error)
+    return null
+  }
+}
+
+export function useOptimisticOrders(userId?: string) {
   const [orders, setOrders] = useState<BinaryOrder[]>([])
   const [optimisticOrders, setOptimisticOrders] = useState<Map<string, OptimisticOrder>>(new Map())
   const rollbackTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
+  const orderIdsRef = useRef<Set<string>>(new Set())
+  const processedEventsRef = useRef<Set<string>>(new Set())
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // ✅ Add optimistic order instantly
   const addOptimisticOrder = useCallback((orderData: Partial<BinaryOrder>) => {
@@ -62,9 +99,11 @@ export function useOptimisticOrders() {
     // Add confirmed order
     setOrders(prev => {
       // Prevent duplicates
-      if (prev.some(o => o.id === confirmedOrder.id)) {
+      if (orderIdsRef.current.has(confirmedOrder.id)) {
+        console.log('⏭️ Order already exists:', confirmedOrder.id)
         return prev
       }
+      orderIdsRef.current.add(confirmedOrder.id)
       return [confirmedOrder, ...prev]
     })
 
@@ -88,26 +127,199 @@ export function useOptimisticOrders() {
     console.log('🔄 Order rolled back:', optimisticId)
   }, [])
 
+  // ✅ Add order from external source (WebSocket, polling)
+  const addOrder = useCallback((order: BinaryOrder) => {
+    setOrders(prev => {
+      // Prevent duplicates
+      if (orderIdsRef.current.has(order.id)) {
+        console.log('⏭️ Order already exists (skipping):', order.id)
+        return prev
+      }
+      
+      orderIdsRef.current.add(order.id)
+      console.log('➕ New order added:', order.id)
+      return [order, ...prev]
+    })
+  }, [])
+
   // Update existing orders
   const updateOrder = useCallback((orderId: string, updates: Partial<BinaryOrder>) => {
     setOrders(prev => prev.map(order => 
       order.id === orderId ? { ...order, ...updates } : order
     ))
+    console.log('🔄 Order updated:', orderId)
+  }, [])
+
+  // ✅ Replace entire order
+  const replaceOrder = useCallback((updatedOrder: BinaryOrder) => {
+    setOrders(prev => {
+      const index = prev.findIndex(o => o.id === updatedOrder.id)
+      if (index === -1) {
+        // Order not found, add it
+        orderIdsRef.current.add(updatedOrder.id)
+        return [updatedOrder, ...prev]
+      }
+      
+      // Replace existing order
+      const newOrders = [...prev]
+      newOrders[index] = updatedOrder
+      return newOrders
+    })
+    console.log('🔄 Order replaced:', updatedOrder.id)
   }, [])
 
   // Remove order
   const removeOrder = useCallback((orderId: string) => {
     setOrders(prev => prev.filter(order => order.id !== orderId))
+    orderIdsRef.current.delete(orderId)
+    console.log('🗑️ Order removed:', orderId)
   }, [])
 
   // Set all orders (from API or callback)
   const setAllOrders = useCallback((newOrders: BinaryOrder[] | ((prev: BinaryOrder[]) => BinaryOrder[])) => {
-    if (typeof newOrders === 'function') {
-      setOrders(prev => newOrders(prev))
-    } else {
-      setOrders(newOrders)
+    const ordersToSet = typeof newOrders === 'function' ? newOrders(orders) : newOrders
+    
+    // Update order IDs ref
+    orderIdsRef.current.clear()
+    ordersToSet.forEach(order => orderIdsRef.current.add(order.id))
+    
+    setOrders(ordersToSet)
+    console.log('📋 All orders set:', ordersToSet.length)
+  }, [orders])
+
+  // ✅ WEBSOCKET SYNC - Handle real-time order events from other devices
+  useEffect(() => {
+    if (!userId) return
+
+    console.log('📡 Setting up WebSocket order sync for user:', userId)
+
+    const unsubscribe = websocketService.subscribeToOrders(userId, async (data: OrderUpdate) => {
+      // Prevent duplicate processing
+      const eventKey = `${data.event}-${data.id}-${data.timestamp}`
+      if (processedEventsRef.current.has(eventKey)) {
+        console.log('⏭️ Skipping duplicate event:', eventKey)
+        return
+      }
+      processedEventsRef.current.add(eventKey)
+
+      // Clean old events (keep last 100)
+      if (processedEventsRef.current.size > 100) {
+        const entries = Array.from(processedEventsRef.current)
+        entries.slice(0, 50).forEach(key => processedEventsRef.current.delete(key))
+      }
+
+      console.log('📡 Order sync event:', data.event, data.id)
+
+      switch (data.event) {
+        case 'order:created':
+          const createdOrder = await fetchOrderDetails(data.id)
+          if (createdOrder) {
+            addOrder(createdOrder)
+            toast.success('New order created', {
+              description: `${createdOrder.asset_name} ${createdOrder.direction} $${createdOrder.amount}`,
+              duration: 3000,
+            })
+          }
+          break
+
+        case 'order:updated':
+          const updatedOrder = await fetchOrderDetails(data.id)
+          if (updatedOrder) {
+            replaceOrder(updatedOrder)
+          }
+          break
+
+        case 'order:settled':
+          const settledOrder = await fetchOrderDetails(data.id)
+          if (settledOrder) {
+            replaceOrder(settledOrder)
+            const isWin = settledOrder.status === 'WON'
+            toast[isWin ? 'success' : 'error'](
+              isWin ? '🎉 Order Won!' : '📉 Order Lost',
+              {
+                description: `${settledOrder.asset_name} ${settledOrder.direction} ${isWin ? '+' : ''}$${settledOrder.profit?.toFixed(2)}`,
+                duration: 5000,
+              }
+            )
+          }
+          break
+      }
+    })
+
+    return () => {
+      console.log('🧹 Order sync cleanup for user:', userId)
+      unsubscribe()
+      processedEventsRef.current.clear()
     }
-  }, [])
+  }, [userId, addOrder, replaceOrder])
+
+  // ✅ POLLING FALLBACK - When WebSocket is not connected
+  useEffect(() => {
+    if (!userId) return
+
+    // Check WebSocket status
+    const wsStatus = websocketService.getConnectionStatus()
+    const isConnected = wsStatus.isConnected
+
+    // Only poll if WebSocket is NOT connected
+    if (isConnected) {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+        pollingIntervalRef.current = null
+      }
+      return
+    }
+
+    console.log('⏱️ Order polling started (WebSocket not connected)')
+
+    const pollOrders = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) return
+
+        const response = await fetch('/api/v1/binary-orders?status=PENDING,WON,LOST&limit=50', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Cache-Control': 'no-cache',
+          },
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          const polledOrders: BinaryOrder[] = data?.data?.orders || []
+          
+          // Merge polled orders with existing orders
+          setOrders(prev => {
+            const existingIds = new Set(prev.map(o => o.id))
+            const newOrders = polledOrders.filter(o => !existingIds.has(o.id))
+            
+            if (newOrders.length > 0) {
+              newOrders.forEach(o => orderIdsRef.current.add(o.id))
+              console.log('➕ New orders from polling:', newOrders.length)
+              return [...newOrders, ...prev]
+            }
+            
+            return prev
+          })
+        }
+      } catch (error) {
+        console.error('Order polling error:', error)
+      }
+    }
+
+    // Initial poll
+    pollOrders()
+
+    // Setup interval (5 seconds)
+    pollingIntervalRef.current = setInterval(pollOrders, 5000)
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+        pollingIntervalRef.current = null
+      }
+    }
+  }, [userId])
 
   // Combine optimistic and confirmed orders
   const allOrders = [
@@ -120,6 +332,9 @@ export function useOptimisticOrders() {
     return () => {
       rollbackTimeoutsRef.current.forEach(timeout => clearTimeout(timeout))
       rollbackTimeoutsRef.current.clear()
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+      }
     }
   }, [])
 
@@ -130,7 +345,9 @@ export function useOptimisticOrders() {
     addOptimisticOrder,
     confirmOrder,
     rollbackOrder,
+    addOrder,
     updateOrder,
+    replaceOrder,
     removeOrder,
     setAllOrders,
   }

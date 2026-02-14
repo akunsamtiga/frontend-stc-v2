@@ -197,7 +197,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
         <div
           style={{
             width: '100%',
-            maxWidth: '460px',
+            maxWidth: '640px',
             pointerEvents: active ? 'auto' : 'none',
             opacity: active ? 1 : 0,
             transform: isIn
@@ -215,7 +215,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
             style={{
               position: 'relative',
               overflow: 'hidden',
-              borderRadius: '14px',
+              borderRadius: '16px',
               background: 'rgba(13,17,23,0.98)',
               border: `1px solid ${config.accentBorder}`,
               boxShadow: `0 0 0 1px rgba(255,255,255,0.035), 0 20px 60px rgba(0,0,0,0.7), 0 0 50px ${config.accentDim}`,
@@ -231,7 +231,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
 
             {/* Optional image */}
             {banner.imageUrl && (
-              <div style={{ position: 'relative', width: '100%', height: '150px', overflow: 'hidden' }}>
+              <div style={{ position: 'relative', width: '100%', height: '200px', overflow: 'hidden' }}>
                 <Image
                   src={banner.imageUrl}
                   alt={banner.title}
@@ -259,7 +259,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
             )}
 
             {/* Body */}
-            <div style={{ padding: '18px 18px 0 18px' }}>
+            <div style={{ padding: '24px 24px 0 24px' }}>
 
               {/* Row: badges + close */}
               <div
@@ -276,8 +276,8 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
                   <span
                     style={{
                       display: 'inline-block',
-                      width: '6px',
-                      height: '6px',
+                      width: '7px',
+                      height: '7px',
                       borderRadius: '50%',
                       background: config.accent,
                       flexShrink: 0,
@@ -287,7 +287,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
                   {/* Type badge */}
                   <span
                     style={{
-                      fontSize: '10px',
+                      fontSize: '11px',
                       fontWeight: 600,
                       letterSpacing: '0.07em',
                       textTransform: 'uppercase',
@@ -311,9 +311,9 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: '26px',
-                    height: '26px',
-                    borderRadius: '7px',
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '8px',
                     border: '1px solid rgba(255,255,255,0.1)',
                     background: 'rgba(255,255,255,0.05)',
                     color: 'rgba(255,255,255,0.45)',
@@ -329,14 +329,14 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
                     e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
                   }}
                 >
-                  <X size={12} strokeWidth={2.5} />
+                  <X size={14} strokeWidth={2.5} />
                 </button>
               </div>
 
               {/* Title */}
               <h3
                 style={{
-                  fontSize: '15px',
+                  fontSize: '18px',
                   fontWeight: 600,
                   color: '#f1f5f9',
                   lineHeight: 1.4,
@@ -351,7 +351,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
               {banner.subtitle && (
                 <p
                   style={{
-                    fontSize: '11px',
+                    fontSize: '13px',
                     fontWeight: 500,
                     color: config.accent,
                     marginBottom: '7px',
@@ -365,7 +365,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
               {/* Description */}
               <p
                 style={{
-                  fontSize: '12px',
+                  fontSize: '14px',
                   color: 'rgba(241,245,249,0.5)',
                   lineHeight: 1.65,
                   marginBottom: '16px',
@@ -386,10 +386,10 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '5px',
-                      padding: '7px 14px',
-                      borderRadius: '7px',
-                      fontSize: '11px',
+                      gap: '6px',
+                      padding: '9px 16px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
                       fontWeight: 600,
                       letterSpacing: '0.02em',
                       background: config.accent,
@@ -408,14 +408,14 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
                     }}
                   >
                     <span>{banner.linkText || 'Lihat Detail'}</span>
-                    <ArrowUpRight size={12} strokeWidth={2.5} />
+                    <ArrowUpRight size={14} strokeWidth={2.5} />
                   </button>
                 </div>
               )}
             </div>
 
             {/* Footer + progress */}
-            <div style={{ padding: '0 18px 14px 18px' }}>
+            <div style={{ padding: '0 24px 18px 24px' }}>
               <div
                 style={{
                   display: 'flex',
@@ -424,7 +424,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
                   marginBottom: '6px',
                 }}
               >
-                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.28)', letterSpacing: '0.03em' }}>
+                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.28)', letterSpacing: '0.03em' }}>
                   Menutup otomatis
                 </span>
               </div>

@@ -1638,6 +1638,9 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
     const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath)
     let lastCompletedTimestamp: number | null = null
     let updateCount = 0
+    
+    // ✅ CRITICAL FIX: Track ALL completed bar timestamps
+    const completedBarsSet = new Set<number>()
 
     const unsubscribe = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
       if (!newBar) return
@@ -1657,7 +1660,23 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
       // Get bar period timestamp
       const barPeriod = getBarPeriodTimestamp(newBar.timestamp, timeframe)
 
-      if (!currentBarRef.current || currentBarRef.current.timestamp !== barPeriod) {
+      // ✅ CRITICAL: If this bar is already completed, NEVER update it
+      if (completedBarsSet.has(barPeriod)) {
+        console.warn('⚠️ Blocked update to completed bar:', barPeriod)
+        return
+      }
+
+      // ✅ Check if this is a new bar
+      const isNewBar = !currentBarRef.current || currentBarRef.current.timestamp !== barPeriod
+
+      if (isNewBar) {
+        // Mark previous bar as completed if it was
+        if (currentBarRef.current && currentBarRef.current.isCompleted) {
+          completedBarsSet.add(currentBarRef.current.timestamp)
+          console.log('🔒 Bar locked:', currentBarRef.current.timestamp)
+        }
+
+        // Create new bar
         currentBarRef.current = {
           timestamp: barPeriod,
           open: newBar.open,
@@ -1668,14 +1687,32 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
           isCompleted: newBar.isCompleted || false
         }
       } else {
-        currentBarRef.current = {
-          ...currentBarRef.current,
-          high: Math.max(currentBarRef.current.high, newBar.high),
-          low: Math.min(currentBarRef.current.low, newBar.low),
-          close: newBar.close,
-          volume: (currentBarRef.current.volume || 0) + (newBar.volume || 0),
-          isCompleted: newBar.isCompleted || false
+        // Update current bar only if NOT completed
+        if (currentBarRef.current && !currentBarRef.current.isCompleted) {
+          currentBarRef.current = {
+            ...currentBarRef.current,
+            high: Math.max(currentBarRef.current.high, newBar.high),
+            low: Math.min(currentBarRef.current.low, newBar.low),
+            close: newBar.close,
+            volume: (currentBarRef.current.volume || 0) + (newBar.volume || 0),
+            isCompleted: newBar.isCompleted || false
+          }
+          
+          // If bar just completed, lock it
+          if (newBar.isCompleted) {
+            completedBarsSet.add(barPeriod)
+            console.log('🔒 Bar completed:', barPeriod)
+          }
+        } else {
+          console.warn('⚠️ Attempted to update completed candle, skipping')
+          return
         }
+      }
+
+      // Safety check
+      if (!currentBarRef.current) {
+        console.warn('⚠️ currentBarRef.current is null, skipping update')
+        return
       }
 
       const chartCandle = {
@@ -1686,10 +1723,15 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
         close: currentBarRef.current.close,
       }
 
-      // Update chart with throttling for performance
+      // Update chart
       updateCount++
-      if (updateCount % 3 === 0 || newBar.isCompleted || newBar.isNewBar) {
-        if (candleAnimatorRef.current) {
+      if (updateCount % 3 === 0 || newBar.isCompleted || isNewBar) {
+        // Final check: Don't update if bar is locked
+        if (completedBarsSet.has(barPeriod) && !isNewBar) {
+          return
+        }
+
+        if (candleAnimatorRef.current && currentBarRef.current) {
           candleAnimatorRef.current.updateCandle(currentBarRef.current)
         } else {
           try {
@@ -1710,6 +1752,7 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
 
     return () => {
       unsubscribe()
+      completedBarsSet.clear()
     }
   }, [selectedAsset?.realtimeDbPath, timeframe, isInitialized])
 
