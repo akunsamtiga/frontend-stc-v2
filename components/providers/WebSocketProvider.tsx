@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode, useRef } from 'react'
 import { useAuthStore } from '@/store/auth'
 import { websocketService } from '@/lib/websocket'
 
@@ -11,6 +11,7 @@ interface WebSocketContextValue {
   reconnectAttempts: number
   subscribeToPrice: (assetId: string, callback: (data: any) => void) => () => void
   subscribeToOrders: (userId: string, callback: (data: any) => void) => () => void
+  forceReconnect: () => void
 }
 
 const WebSocketContext = createContext<WebSocketContextValue | undefined>(undefined)
@@ -25,9 +26,26 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     reconnectAttempts: 0,
   })
 
+  // ✅ FIX: Use ref untuk menghindari re-render berlebihan
+  const statusIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // ✅ FIX: Cleanup function yang proper
+  const cleanup = useCallback(() => {
+    if (statusIntervalRef.current) {
+      clearInterval(statusIntervalRef.current)
+      statusIntervalRef.current = null
+    }
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current)
+      reconnectTimeoutRef.current = null
+    }
+  }, [])
+
   useEffect(() => {
     if (!user || !token) {
       websocketService.disconnect()
+      cleanup()
       setConnectionStatus({
         isConnected: false,
         isConnecting: false,
@@ -38,33 +56,34 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
     const initWebSocket = async () => {
       try {
+        setConnectionStatus(prev => ({ ...prev, isConnecting: true }))
+        
         await websocketService.connect(token)
         
-        // ✅ FIX: Polling lebih cepat (200ms) agar status reconnect terdeteksi segera
-        const statusInterval = setInterval(() => {
+        // ✅ FIX: Polling setiap 1 detik cukup, tidak perlu 200ms
+        statusIntervalRef.current = setInterval(() => {
           const status = websocketService.getConnectionStatus()
           setConnectionStatus({
             isConnected: status.isConnected,
             isConnecting: status.isConnecting,
             reconnectAttempts: status.reconnectAttempts,
           })
-        }, 200)
+        }, 1000) // 1 detik cukup
 
-        return () => {
-          clearInterval(statusInterval)
-        }
       } catch (error) {
         console.error('WebSocket init error:', error)
+        setConnectionStatus(prev => ({ ...prev, isConnecting: false }))
       }
     }
 
-    const timer = setTimeout(initWebSocket, 500)
+    // ✅ FIX: Delay lebih lama untuk menghindari race condition saat login
+    reconnectTimeoutRef.current = setTimeout(initWebSocket, 1000)
 
     return () => {
-      clearTimeout(timer)
+      cleanup()
       websocketService.disconnect()
     }
-  }, [user?.id, token])
+  }, [user?.id, token, cleanup])
 
   const subscribeToPrice = useCallback((assetId: string, callback: (data: any) => void) => {
     return websocketService.subscribeToPrice(assetId, callback)
@@ -74,14 +93,20 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     return websocketService.subscribeToOrders(userId, callback)
   }, [])
 
+  // ✅ FIX: Tambahkan force reconnect function
+  const forceReconnect = useCallback(() => {
+    console.log('🔄 Force reconnecting WebSocket...')
+    websocketService.forceReconnect()
+  }, [])
+
   const value: WebSocketContextValue = {
     isConnected: connectionStatus.isConnected,
     isConnecting: connectionStatus.isConnecting,
-    // ✅ FIX: isReconnecting = pernah connect tapi sedang reconnect (bukan initial connect)
     isReconnecting: !connectionStatus.isConnected && connectionStatus.reconnectAttempts > 0,
     reconnectAttempts: connectionStatus.reconnectAttempts,
     subscribeToPrice,
     subscribeToOrders,
+    forceReconnect,
   }
 
   return (
@@ -93,68 +118,57 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
 export function useWebSocket() {
   const context = useContext(WebSocketContext)
-  
   if (context === undefined) {
     throw new Error('useWebSocket must be used within a WebSocketProvider')
   }
-  
   return context
 }
 
 export function usePriceSubscription(assetId: string | null, enabled = true) {
-  const { subscribeToPrice } = useWebSocket()
+  const { subscribeToPrice, isConnected } = useWebSocket()
   const [priceData, setPriceData] = useState<any>(null)
   const [lastUpdate, setLastUpdate] = useState<number>(0)
 
   useEffect(() => {
     if (!assetId || !enabled) return
 
+    console.log('📡 Subscribing to price:', assetId, 'Connected:', isConnected)
+    
     const unsubscribe = subscribeToPrice(assetId, (data) => {
       setPriceData(data)
       setLastUpdate(Date.now())
     })
 
-    return unsubscribe
-  }, [assetId, enabled, subscribeToPrice])
+    return () => {
+      console.log('📡 Unsubscribing from price:', assetId)
+      unsubscribe()
+    }
+  }, [assetId, enabled, subscribeToPrice, isConnected])
 
   return { priceData, lastUpdate }
 }
 
 export function useOrderSubscription(userId: string | null, enabled = true) {
-  const { subscribeToOrders } = useWebSocket()
+  const { subscribeToOrders, isConnected } = useWebSocket()
   const [orderUpdate, setOrderUpdate] = useState<any>(null)
   const [lastUpdate, setLastUpdate] = useState<number>(0)
 
   useEffect(() => {
     if (!userId || !enabled) return
 
+    console.log('📡 Subscribing to orders:', userId, 'Connected:', isConnected)
+    
     const unsubscribe = subscribeToOrders(userId, (data) => {
+      console.log('📡 Order update received:', data)
       setOrderUpdate(data)
       setLastUpdate(Date.now())
     })
 
-    return unsubscribe
-  }, [userId, enabled, subscribeToOrders])
+    return () => {
+      console.log('📡 Unsubscribing from orders:', userId)
+      unsubscribe()
+    }
+  }, [userId, enabled, subscribeToOrders, isConnected])
 
   return { orderUpdate, lastUpdate }
-}
-
-export function usePriceStream(assetId: string | null) {
-  const { isConnected } = useWebSocket()
-  const [price, setPrice] = useState<number | null>(null)
-
-  useEffect(() => {
-    if (!assetId || !isConnected) return
-    
-    const unsubscribe = websocketService.subscribeToPrice(assetId, (data) => {
-      setPrice(data.price)
-    })
-    
-    return () => {
-      unsubscribe()
-      setPrice(null)
-    }
-  }, [assetId, isConnected])
-
-  return price
 }
