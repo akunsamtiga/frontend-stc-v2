@@ -2,7 +2,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { BinaryOrder } from '@/types'
 import { websocketService } from '@/lib/websocket'
-import { toast } from 'sonner'
 
 interface OptimisticOrder extends Partial<BinaryOrder> {
   id: string
@@ -215,10 +214,6 @@ export function useOptimisticOrders(userId?: string) {
           const createdOrder = await fetchOrderDetails(data.id)
           if (createdOrder) {
             addOrder(createdOrder)
-            toast.success('New order created', {
-              description: `${createdOrder.asset_name} ${createdOrder.direction} $${createdOrder.amount}`,
-              duration: 3000,
-            })
           }
           break
 
@@ -233,14 +228,6 @@ export function useOptimisticOrders(userId?: string) {
           const settledOrder = await fetchOrderDetails(data.id)
           if (settledOrder) {
             replaceOrder(settledOrder)
-            const isWin = settledOrder.status === 'WON'
-            toast[isWin ? 'success' : 'error'](
-              isWin ? '🎉 Order Won!' : '📉 Order Lost',
-              {
-                description: `${settledOrder.asset_name} ${settledOrder.direction} ${isWin ? '+' : ''}$${settledOrder.profit?.toFixed(2)}`,
-                duration: 5000,
-              }
-            )
           }
           break
       }
