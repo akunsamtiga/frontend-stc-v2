@@ -62,14 +62,15 @@ export default function OrderNotification({ orders, onClose }: OrderNotification
     setBatchResult(batch)
     setIsClosing(false)
 
-    // ⚡ INSTANT: Show immediately with requestAnimationFrame
+    // Show compact
     requestAnimationFrame(() => {
       setVisible(true)
-      // Expand immediately (no delay)
-      requestAnimationFrame(() => {
-        setExpanded(true)
-      })
     })
+
+    // Expand after 150ms
+    setTimeout(() => {
+      setExpanded(true)
+    }, 150)
 
     // Play sound based on overall result
     try {
@@ -77,7 +78,7 @@ export default function OrderNotification({ orders, onClose }: OrderNotification
       playSound(isOverallWin ? '/sounds/win.mp3' : '/sounds/lose.mp3', 0.3)
     } catch (e) {}
 
-    // Auto close after 3 seconds (reduced from 4)
+    // Auto close after 4 seconds (longer for batch)
     autoCloseTimeoutRef.current = setTimeout(() => {
       setIsClosing(true)
       setTimeout(() => {
@@ -91,9 +92,9 @@ export default function OrderNotification({ orders, onClose }: OrderNotification
             setExpanded(false)
             setIsClosing(false)
           }, 500)
-        }, 300) // Reduced from 500ms
+        }, 500)
       }, 100)
-    }, 3000) // Reduced from 4000ms
+    }, 4000)
 
     return () => {
       if (autoCloseTimeoutRef.current) clearTimeout(autoCloseTimeoutRef.current)
@@ -125,7 +126,7 @@ export default function OrderNotification({ orders, onClose }: OrderNotification
       <div 
         className={`
           fixed z-[9999] top-3 left-1/2 -translate-x-1/2
-          transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
+          transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
           
           ${visible 
             ? 'translate-y-0 opacity-100 scale-100' 
@@ -141,7 +142,7 @@ export default function OrderNotification({ orders, onClose }: OrderNotification
               : 'bg-gradient-to-br from-rose-500/12 via-slate-900/85 to-slate-950/90'
             }
             rounded-full
-            transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]
+            transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
             
             ${showExpandedContent 
               ? isBatch 
@@ -164,7 +165,7 @@ export default function OrderNotification({ orders, onClose }: OrderNotification
           <div 
             className={`
               flex items-center justify-center gap-1.5 w-full
-              transition-all duration-300
+              transition-all duration-500
               ${showExpandedContent ? 'opacity-0 absolute' : 'opacity-100'}
             `}
           >
@@ -175,7 +176,7 @@ export default function OrderNotification({ orders, onClose }: OrderNotification
           <div 
             className={`
               flex items-center justify-between w-full gap-2
-              transition-all duration-300
+              transition-all duration-500 delay-100
               ${showExpandedContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 absolute'}
             `}
           >
@@ -259,7 +260,7 @@ export default function OrderNotification({ orders, onClose }: OrderNotification
             <div 
               className={`h-full ${isOverallWin ? 'bg-emerald-500' : 'bg-rose-500'}`}
               style={{
-                animation: (expanded && !isClosing) ? 'progress 3s linear forwards' : 'none',
+                animation: (expanded && !isClosing) ? 'progress 4s linear forwards' : 'none',
                 width: isClosing ? '0%' : '100%'
               }}
             />

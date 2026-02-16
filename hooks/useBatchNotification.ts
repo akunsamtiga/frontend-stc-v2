@@ -8,7 +8,7 @@ interface BatchConfig {
 }
 
 const DEFAULT_CONFIG: BatchConfig = {
-  batchWindowMs: 0, // ⚡ INSTANT - no batching delay
+  batchWindowMs: 500,
   maxBatchSize: 10,
 }
 
@@ -78,14 +78,6 @@ export function useBatchNotification(config: Partial<BatchConfig> = {}) {
 
     // Add to pending
     pendingOrdersRef.current.push(order)
-
-    // ⚡ INSTANT: Flush immediately on next frame for instant feedback
-    if (finalConfig.batchWindowMs === 0) {
-      requestAnimationFrame(() => {
-        flushBatch()
-      })
-      return
-    }
 
     // Clear existing timeout
     if (batchTimeoutRef.current) {

@@ -221,16 +221,18 @@ class WebSocketService {
   private handleHighPriorityOrderUpdate(data: OrderUpdate) {
     console.log('🚀 High-priority order update:', data.event, data.id);
     
-    // ⚡ ULTRA INSTANT: Process immediately without any delay
-    if (this.orderCallbacks.size > 0) {
-      this.orderCallbacks.forEach(callback => {
-        try {
-          callback(data);
-        } catch (error) {
-          console.error('Order callback error:', error);
-        }
-      });
-    }
+    // Process immediately on next tick for instant feedback
+    requestAnimationFrame(() => {
+      if (this.orderCallbacks.size > 0) {
+        this.orderCallbacks.forEach(callback => {
+          try {
+            callback(data);
+          } catch (error) {
+            console.error('Order callback error:', error);
+          }
+        });
+      }
+    });
   }
 
   // ✅ Normal priority order updates
