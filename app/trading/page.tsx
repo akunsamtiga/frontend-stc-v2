@@ -1503,41 +1503,41 @@ export default function TradingPage() {
             
             <div className="space-y-2">
               <div className="mb-4">
-                <label className="text-xs text-gray-400 mb-2 block">Pilih Aset</label>
-                <div className="space-y-1 max-h-64 overflow-y-auto">
-                  {assets.map((asset) => (
-                    <button
-                      key={asset.id}
-                      onClick={() => {
-                        setSelectedAsset(asset)
-                        handleCloseMobileMenu()
-                      }}
-                      onTouchStart={() => {
-                        if (asset.realtimeDbPath) {
-                          prefetchMultipleTimeframes(
-                            asset.realtimeDbPath,
-                            ['1m', '5m']
-                          )
-                        }
-                      }}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                        selectedAsset?.id === asset.id 
-                          ? 'bg-blue-500/20 border border-blue-500/50' 
-                          : 'bg-[#1a1f2e] hover:bg-[#232936]'
-                      }`}
-                    >
-                      <AssetIcon asset={asset} size="sm" />
-                      <div className="flex-1 text-left">
-                        <div className="text-sm font-medium">{asset.symbol}</div>
-                        <div className="text-xs text-gray-400">{asset.name}</div>
-                      </div>
-                      <div className="text-xs font-bold text-emerald-400">
-                        +{asset.profitRate}%
-                      </div>
-                    </button>
-                  ))}
-                </div>
+              <label className="text-xs text-gray-400 mb-2 block">Pilih Aset</label>
+              <div className="space-y-1 max-h-48 overflow-y-auto"> {/* ✅ Ubah dari max-h-64 */}
+                {assets.map((asset) => (
+                  <button
+                    key={asset.id}
+                    onClick={() => {
+                      setSelectedAsset(asset)
+                      handleCloseMobileMenu()
+                    }}
+                    onTouchStart={() => {
+                      if (asset.realtimeDbPath) {
+                        prefetchMultipleTimeframes(
+                          asset.realtimeDbPath,
+                          ['1m', '5m']
+                        )
+                      }
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      selectedAsset?.id === asset.id
+                        ? 'bg-blue-500/20 border border-blue-500/50'
+                        : 'bg-[#1a1f2e] hover:bg-[#232936]'
+                    }`}
+                  >
+                    <AssetIcon asset={asset} size="sm" />
+                    <div className="flex-1 text-left">
+                      <div className="text-sm font-medium">{asset.symbol}</div>
+                      <div className="text-xs text-gray-400">{asset.name}</div>
+                    </div>
+                    <div className="text-xs font-bold text-emerald-400">
+                      +{asset.profitRate}%
+                    </div>
+                  </button>
+                ))}
               </div>
+            </div>
 
               <button
                 onClick={() => {

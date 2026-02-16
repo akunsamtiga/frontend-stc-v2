@@ -80,11 +80,11 @@ export default function AssetIcon({
   // If we have a valid icon URL
   if (iconUrl && !imageError) {
     return (
-      <div className={`${SIZE_CLASSES[size]} rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0 ${className}`}>
+      <div className={`${SIZE_CLASSES[size]} rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 ${className}`}>
         <img 
           src={iconUrl}
           alt={`${asset.name} icon`}
-          className="w-full h-full object-contain p-1"
+          className="w-full h-full object-contain"
           onError={() => setImageError(true)}
         />
       </div>
@@ -100,7 +100,7 @@ export default function AssetIcon({
           : 'from-blue-400 to-purple-500'
       } flex items-center justify-center text-white flex-shrink-0 ${className}`}>
         {asset.category === 'crypto' ? (
-          <span className={`${ICON_SIZE_CLASSES[size]} text-2xl`}>ðŸª™</span>
+          <span className={`${ICON_SIZE_CLASSES[size]} text-2xl`}>Blank</span>
         ) : (
           <TrendingUp className={ICON_SIZE_CLASSES[size]} />
         )}

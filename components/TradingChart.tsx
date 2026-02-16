@@ -794,109 +794,112 @@ const PriceDisplay = memo(({
       </div>
 
       {showMenu && (
-        <>
-          <div className="fixed inset-0 z-30 lg:hidden" onClick={onClick} />
-          <div className="absolute top-full left-0 mt-2 w-72 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl z-40 lg:hidden flex flex-col">
-            {/* Search Input */}
-            <div className="p-3 border-b border-gray-800/50 sticky top-0 bg-[#0f1419] z-10">
-              <div className="relative">
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Search assets..."
-                  className="w-full bg-[#1a1f2e] border border-gray-700/50 rounded-lg px-3 py-2 pl-9 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all"
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <svg 
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                {searchQuery && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSearchQuery('')
-                      searchInputRef.current?.focus()
-                    }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-700/50 rounded transition-colors"
-                  >
-                    <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-              {/* Keyboard hints */}
-              <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-                <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-[10px]">↑↓</kbd>
-                  navigate
-                </span>
-                <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-[10px]">↵</kbd>
-                  select
-                </span>
-                <span className="flex items-center gap-1">
-                  <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-[10px]">Esc</kbd>
-                  close
-                </span>
-              </div>
-            </div>
-
-            {/* Assets List */}
-            <div className="max-h-80 overflow-y-auto">
-              {filteredAssets.length > 0 ? (
-                filteredAssets.map((assetItem: any, index: number) => (
-                  <button
-                    key={assetItem.id}
-                    onClick={() => {
-                      onSelectAsset(assetItem)
-                    }}
-                    onMouseEnter={() => {
-                      setSelectedIndex(index)
-                      if (assetItem.realtimeDbPath) {
-                        prefetchMultipleTimeframes(
-                          assetItem.realtimeDbPath,
-                          ['1m', '5m']
-                        ).catch(err => console.log('Prefetch failed:', err))
-                      }
-                    }}
-                    className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#1a1f2e] transition-colors border-b border-gray-800/30 last:border-0 ${
-                      index === selectedIndex ? 'bg-[#1a1f2e] ring-1 ring-blue-500/30' : ''
-                    } ${
-                      assetItem.id === asset?.id ? 'bg-[#1a1f2e]/50' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <AssetIcon asset={assetItem} size="xs" />
-                      <div className="text-left">
-                        <div className="text-sm font-medium">{assetItem.symbol}</div>
-                        <div className="text-xs text-gray-400">{assetItem.name}</div>
-                      </div>
-                    </div>
-                    <div className="text-xs font-bold text-emerald-400">+{assetItem.profitRate}%</div>
-                  </button>
-                ))
-              ) : (
-                <div className="px-4 py-8 text-center text-gray-500 text-sm">
-                  <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p>No assets found</p>
-                  <p className="text-xs mt-1">Try a different search term</p>
+  <>
+    {/* Overlay dengan z-index lebih tinggi */}
+    <div className="fixed inset-0 z-[62] lg:hidden" onClick={onClick} />
+    
+    {/* Dropdown dengan z-index tinggi dan max-height untuk 3 item */}
+    <div className="absolute top-full left-0 mt-2 w-72 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl z-[63] lg:hidden flex flex-col max-h-[calc(100vh-120px)]">
+      {/* Search Input */}
+      <div className="p-3 border-b border-gray-800/50 sticky top-0 bg-[#0f1419] z-10">
+        <div className="relative">
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Search assets..."
+            className="w-full bg-[#1a1f2e] border border-gray-700/50 rounded-lg px-3 py-2 pl-9 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <svg
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          {searchQuery && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setSearchQuery('')
+                searchInputRef.current?.focus()
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-700/50 rounded transition-colors"
+            >
+              <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+        {/* Keyboard hints */}
+        <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+          <span className="flex items-center gap-1">
+            <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-[10px]">↑↓</kbd>
+            navigate
+          </span>
+          <span className="flex items-center gap-1">
+            <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-[10px]">↵</kbd>
+            select
+          </span>
+          <span className="flex items-center gap-1">
+            <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-[10px]">Esc</kbd>
+            close
+          </span>
+        </div>
+      </div>
+      
+      {/* Assets List - Scrollable dengan max 3 item yang terlihat */}
+      <div className="overflow-y-auto pr-2 max-h-[200px]"> {/* ✅ max-h-[200px] untuk 3 item */}
+        {filteredAssets.length > 0 ? (
+          filteredAssets.map((assetItem: any, index: number) => (
+            <button
+              key={assetItem.id}
+              onClick={() => {
+                onSelectAsset(assetItem)
+              }}
+              onMouseEnter={() => {
+                setSelectedIndex(index)
+                if (assetItem.realtimeDbPath) {
+                  prefetchMultipleTimeframes(
+                    assetItem.realtimeDbPath,
+                    ['1m', '5m']
+                  ).catch(err => console.log('Prefetch failed:', err))
+                }
+              }}
+              className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#1a1f2e] transition-colors border-b border-gray-800/30 last:border-0 ${
+                index === selectedIndex ? 'bg-[#1a1f2e] ring-1 ring-blue-500/30' : ''
+              } ${
+                assetItem.id === asset?.id ? 'bg-[#1a1f2e]/50' : ''
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <AssetIcon asset={assetItem} size="xs" />
+                <div className="text-left">
+                  <div className="text-sm font-medium">{assetItem.symbol}</div>
+                  <div className="text-xs text-gray-400">{assetItem.name}</div>
                 </div>
-              )}
-            </div>
+              </div>
+              <div className="text-xs font-bold text-emerald-400">+{assetItem.profitRate}%</div>
+            </button>
+          ))
+        ) : (
+          <div className="px-4 py-8 text-center text-gray-500 text-sm">
+            <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p>No assets found</p>
+            <p className="text-xs mt-1">Try a different search term</p>
           </div>
-        </>
-      )}
+        )}
+      </div>
+    </div>
+  </>
+)}
     </div>
   )
 })
@@ -1057,7 +1060,7 @@ const MobileControls = memo(({
   }
 
   return (
-    <div className="lg:hidden absolute bottom-10 left-2 z-10 flex items-center gap-1.5">
+    <div className="lg:hidden absolute bottom-10 left-2 z-10 flex items-center gap-2">
       {/* Timeframe Control */}
       <div className="relative" ref={timeframeRef}>
         <button 
@@ -1066,12 +1069,12 @@ const MobileControls = memo(({
             setShowChartTypeMenu(false)
           }}
           disabled={isLoading}
-          className="h-8 px-2 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-lg hover:bg-gray-800/80 transition-all disabled:opacity-50 flex items-center gap-1"
+          className="h-10 px-3 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-lg hover:bg-gray-800/80 transition-all disabled:opacity-50 flex items-center gap-1.5"
           title="Timeframe"
         >
-          <Clock className="w-3.5 h-3.5 text-blue-400" />
-          <span className="text-xs font-bold text-white">{timeframe}</span>
-          <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${showTimeframeMenu ? 'rotate-180' : ''}`} />
+          <Clock className="w-4 h-4 text-blue-400" />
+          <span className="text-sm font-bold text-white">{timeframe}</span>
+          <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showTimeframeMenu ? 'rotate-180' : ''}`} />
         </button>
 
         {showTimeframeMenu && (
@@ -1110,13 +1113,13 @@ const MobileControls = memo(({
             setShowTimeframeMenu(false)
           }}
           disabled={isLoading}
-          className="h-8 w-8 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-lg hover:bg-gray-800/80 transition-all disabled:opacity-50 flex items-center justify-center"
+          className="h-10 w-10 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-lg hover:bg-gray-800/80 transition-all disabled:opacity-50 flex items-center justify-center"
           title={chartType === 'candle' ? 'Candlestick Chart' : 'Line Chart'}
         >
           {chartType === 'candle' ? (
-            <BarChart2 className="w-3.5 h-3.5 text-gray-300" />
+            <BarChart2 className="w-4 h-4 text-gray-300" />
           ) : (
-            <Activity className="w-3.5 h-3.5 text-gray-300" />
+            <Activity className="w-4 h-4 text-gray-300" />
           )}
         </button>
 
@@ -1165,15 +1168,15 @@ const MobileControls = memo(({
       <button 
         onClick={onOpenIndicators}
         disabled={isLoading}
-        className="h-8 w-8 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-lg hover:bg-gray-800/80 transition-all disabled:opacity-50 flex items-center justify-center"
+        className="h-10 w-10 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-lg hover:bg-gray-800/80 transition-all disabled:opacity-50 flex items-center justify-center"
         title="Indicators"
       >
-        <Sliders className="w-3.5 h-3.5 text-gray-300" />
+        <Sliders className="w-4 h-4 text-gray-300" />
       </button>
 
       {/* Candle Countdown — integrated inline */}
-      <div className="h-8 px-2 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-lg flex items-center gap-1">
-        <span className="text-xs font-light text-white tabular-nums">
+      <div className="h-10 px-3 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-lg flex items-center gap-1">
+        <span className="text-sm font-light text-white tabular-nums">
           {formatCd(countdownSecs)}
         </span>
       </div>
@@ -1694,7 +1697,10 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
             high: Math.max(currentBarRef.current.high, newBar.high),
             low: Math.min(currentBarRef.current.low, newBar.low),
             close: newBar.close,
-            volume: (currentBarRef.current.volume || 0) + (newBar.volume || 0),
+            // ✅ FIX: Jangan akumulasi volume per-tick. Firebase sudah kirim
+            // volume kumulatif per bar, bukan delta. Akumulasi di sini
+            // menyebabkan volume membengkak ribuan kali.
+            volume: newBar.volume || 0,
             isCompleted: newBar.isCompleted || false
           }
           
@@ -3298,6 +3304,11 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         lineSeriesRef.current.setData([])
         currentBarRef.current = null // Reset live bar
         
+        // ✅ FIX BUG CANDLE PANJANG: Reset animator agar tidak menginterpolasi
+        // dari harga aset lama ke harga aset baru (keduanya bisa di timestamp
+        // yang sama tapi price range berbeda jauh → candle stretched)
+        candleAnimatorRef.current?.reset()
+        
         // Clear semua cache untuk asset ini
         TIMEFRAMES.forEach(tf => {
           const cacheKey = `${selectedAsset.id}-${tf}`
@@ -3310,6 +3321,9 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         const cacheKey = `${selectedAsset.id}-${timeframe}`
         GLOBAL_DATA_CACHE.delete(cacheKey)
         currentBarRef.current = null // Reset live bar untuk timeframe baru
+        
+        // ✅ FIX: Stop animasi saat ganti timeframe juga
+        candleAnimatorRef.current?.stop()
       }
     }
 
@@ -3318,6 +3332,11 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
 
     const processAndDisplayData = (data: any[]) => {
       if (data.length > 0 && !isCancelled) {
+        // ✅ FIX BUG CANDLE PANJANG: Hentikan animasi yang sedang berjalan
+        // sebelum data baru di-set. Tanpa ini, frame animasi berikutnya masih
+        // bisa memanggil candleSeries.update() dengan nilai lerp dari aset lama.
+        candleAnimatorRef.current?.stop()
+
         // 🔧 FIX: Sort data untuk memastikan urutan benar
         const sortedData = [...data].sort((a, b) => a.timestamp - b.timestamp)
         
@@ -3339,7 +3358,11 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
                 currentBarRef.current.low
               ),
               close: currentBarRef.current.close, // Prioritaskan close live
-              volume: (sortedData[sortedData.length - 1].volume || 0) + (currentBarRef.current.volume || 0)
+              // ✅ FIX: Ambil volume terbesar, jangan dijumlah (sudah kumulatif)
+              volume: Math.max(
+                sortedData[sortedData.length - 1].volume || 0,
+                currentBarRef.current.volume || 0
+              )
             }
             
             sortedData[sortedData.length - 1] = mergedBar
