@@ -1,23 +1,13 @@
-// components/CandleCountdown.tsx
+// components/CandleCountdown.tsx - ⚡ SYNCHRONIZED VERSION
 'use client'
 
 import { useEffect, useState } from 'react'
 import { Clock } from 'lucide-react'
 import { Timeframe } from '@/types'
+import { getBarPeriodTimestamp, getTimeframeSeconds } from '@/lib/calculation'
 
 interface CandleCountdownProps {
   timeframe: Timeframe
-}
-
-const TIMEFRAME_SECONDS: Record<Timeframe, number> = {
-  '1s': 1,
-  '1m': 60,
-  '5m': 300,
-  '15m': 900,
-  '30m': 1800,
-  '1h': 3600,
-  '4h': 14400,
-  '1d': 86400,
 }
 
 const formatCountdown = (seconds: number, timeframe: Timeframe): string => {
@@ -37,14 +27,18 @@ const CandleCountdown = ({ timeframe }: CandleCountdownProps) => {
 
   useEffect(() => {
     const calculateTimeRemaining = () => {
-      const now = Math.floor(Date.now() / 1000) // Current time in seconds
-      const intervalSeconds = TIMEFRAME_SECONDS[timeframe]
+      // ⚡ SYNCHRONIZED: Use same method as order calculation
+      const now = Math.floor(Date.now() / 1000) // Current timestamp in seconds
+      const intervalSeconds = getTimeframeSeconds(timeframe)
       
-      // Calculate seconds since the start of the current candle
-      const secondsSinceIntervalStart = now % intervalSeconds
+      // Get current bar period start (same as backend)
+      const barPeriodStart = getBarPeriodTimestamp(now, timeframe)
+      
+      // Calculate next bar period
+      const nextBarPeriod = barPeriodStart + intervalSeconds
       
       // Calculate seconds remaining until next candle
-      const remaining = intervalSeconds - secondsSinceIntervalStart
+      const remaining = nextBarPeriod - now
       
       setTimeRemaining(remaining)
     }
@@ -52,10 +46,21 @@ const CandleCountdown = ({ timeframe }: CandleCountdownProps) => {
     // Initial calculation
     calculateTimeRemaining()
 
-    // Update every second
-    const interval = setInterval(calculateTimeRemaining, 1000)
+    // ⚡ PERFORMANCE: Update every second, synchronized to the second boundary
+    const now = Date.now()
+    const msUntilNextSecond = 1000 - (now % 1000)
+    
+    // Start exactly on the next second boundary
+    const initialTimeout = setTimeout(() => {
+      calculateTimeRemaining()
+      
+      // Then update every second
+      const interval = setInterval(calculateTimeRemaining, 1000)
+      
+      return () => clearInterval(interval)
+    }, msUntilNextSecond)
 
-    return () => clearInterval(interval)
+    return () => clearTimeout(initialTimeout)
   }, [timeframe])
 
   return (
