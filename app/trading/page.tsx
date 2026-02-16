@@ -1199,14 +1199,14 @@ export default function TradingPage() {
               <span className="text-[9px] text-gray-500 group-hover:text-yellow-400">Turnamen</span>
             </button>
 
-            <button
+            {/* <button
               onClick={() => router.push('/runner-up')}
               className="w-12 h-12 flex flex-col items-center justify-center gap-1 hover:bg-[#1a1f2e] rounded-lg transition-colors group"
               title="Trader Terbaik"
             >
               <Award className="w-5 h-5 text-gray-400 group-hover:text-emerald-400" />
               <span className="text-[9px] text-gray-500 group-hover:text-emerald-400">Terbaik</span>
-            </button>
+            </button> */}
 
             <button
               onClick={() => router.push('/berita')}
@@ -1796,7 +1796,7 @@ export default function TradingPage() {
                 <span>Turnamen</span>
               </button>
               
-              <button
+              {/* <button
                 onClick={() => {
                   handleCloseLeftSidebar()
                   setTimeout(() => router.push('/runner-up'), 300)
@@ -1805,7 +1805,7 @@ export default function TradingPage() {
               >
                 <ArrowUp className="w-4 h-4" />
                 <span>Trader Terbaik</span>
-              </button>
+              </button> */}
 
               <button
                 onClick={() => {

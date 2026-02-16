@@ -19,18 +19,16 @@ const WebSocketContext = createContext<WebSocketContextValue | undefined>(undefi
 export function WebSocketProvider({ children }: { children: ReactNode }) {
   const user = useAuthStore((state) => state.user)
   const token = useAuthStore((state) => state.token)
-  
+
   const [connectionStatus, setConnectionStatus] = useState({
     isConnected: false,
     isConnecting: false,
     reconnectAttempts: 0,
   })
 
-  // ✅ FIX: Use ref untuk menghindari re-render berlebihan
   const statusIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // ✅ FIX: Cleanup function yang proper
   const cleanup = useCallback(() => {
     if (statusIntervalRef.current) {
       clearInterval(statusIntervalRef.current)
@@ -46,29 +44,34 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     if (!user || !token) {
       websocketService.disconnect()
       cleanup()
-      setConnectionStatus({
-        isConnected: false,
-        isConnecting: false,
-        reconnectAttempts: 0,
-      })
+      setConnectionStatus({ isConnected: false, isConnecting: false, reconnectAttempts: 0 })
       return
     }
 
     const initWebSocket = async () => {
       try {
         setConnectionStatus(prev => ({ ...prev, isConnecting: true }))
-        
         await websocketService.connect(token)
-        
-        // ✅ FIX: Polling setiap 1 detik cukup, tidak perlu 200ms
+
         statusIntervalRef.current = setInterval(() => {
           const status = websocketService.getConnectionStatus()
-          setConnectionStatus({
-            isConnected: status.isConnected,
-            isConnecting: status.isConnecting,
-            reconnectAttempts: status.reconnectAttempts,
+          setConnectionStatus(prev => {
+            // ✅ FIX: Hanya update state kalau benar-benar ada perubahan
+            // Tanpa ini, setiap detik state berubah → semua consumer re-render
+            if (
+              prev.isConnected === status.isConnected &&
+              prev.isConnecting === status.isConnecting &&
+              prev.reconnectAttempts === status.reconnectAttempts
+            ) {
+              return prev // ← return referensi sama, React skip re-render
+            }
+            return {
+              isConnected: status.isConnected,
+              isConnecting: status.isConnecting,
+              reconnectAttempts: status.reconnectAttempts,
+            }
           })
-        }, 1000) // 1 detik cukup
+        }, 1000)
 
       } catch (error) {
         console.error('WebSocket init error:', error)
@@ -76,7 +79,6 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // ✅ FIX: Delay lebih lama untuk menghindari race condition saat login
     reconnectTimeoutRef.current = setTimeout(initWebSocket, 1000)
 
     return () => {
@@ -93,7 +95,6 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     return websocketService.subscribeToOrders(userId, callback)
   }, [])
 
-  // ✅ FIX: Tambahkan force reconnect function
   const forceReconnect = useCallback(() => {
     console.log('🔄 Force reconnecting WebSocket...')
     websocketService.forceReconnect()
@@ -130,10 +131,13 @@ export function usePriceSubscription(assetId: string | null, enabled = true) {
   const [lastUpdate, setLastUpdate] = useState<number>(0)
 
   useEffect(() => {
+    // ✅ FIX: Guard di dalam effect, bukan di dependency array
+    // isConnected DIHAPUS dari deps — kalau dipakai sebagai dep,
+    // polling 1 detik di atas bikin hook ini subscribe/unsubscribe terus-menerus
     if (!assetId || !enabled) return
 
-    console.log('📡 Subscribing to price:', assetId, 'Connected:', isConnected)
-    
+    console.log('📡 Subscribing to price:', assetId)
+
     const unsubscribe = subscribeToPrice(assetId, (data) => {
       setPriceData(data)
       setLastUpdate(Date.now())
@@ -143,7 +147,9 @@ export function usePriceSubscription(assetId: string | null, enabled = true) {
       console.log('📡 Unsubscribing from price:', assetId)
       unsubscribe()
     }
-  }, [assetId, enabled, subscribeToPrice, isConnected])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetId, enabled, subscribeToPrice])
+  // ✅ isConnected sengaja tidak ada di sini
 
   return { priceData, lastUpdate }
 }
@@ -154,10 +160,11 @@ export function useOrderSubscription(userId: string | null, enabled = true) {
   const [lastUpdate, setLastUpdate] = useState<number>(0)
 
   useEffect(() => {
+    // ✅ FIX: Sama — guard di dalam, isConnected dihapus dari deps
     if (!userId || !enabled) return
 
-    console.log('📡 Subscribing to orders:', userId, 'Connected:', isConnected)
-    
+    console.log('📡 Subscribing to orders:', userId)
+
     const unsubscribe = subscribeToOrders(userId, (data) => {
       console.log('📡 Order update received:', data)
       setOrderUpdate(data)
@@ -168,7 +175,9 @@ export function useOrderSubscription(userId: string | null, enabled = true) {
       console.log('📡 Unsubscribing from orders:', userId)
       unsubscribe()
     }
-  }, [userId, enabled, subscribeToOrders, isConnected])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, enabled, subscribeToOrders])
+  // ✅ isConnected sengaja tidak ada di sini
 
   return { orderUpdate, lastUpdate }
 }
