@@ -1,4 +1,4 @@
-// app/(main)/trading/page.tsx - FIXED: Maximum update depth exceeded
+// app/(main)/trading/page.tsx - WITH ASSET TYPE QUICK FILTER
 'use client'
 
 import { useEffect, useState, useCallback, memo, useRef, useMemo } from 'react'
@@ -42,6 +42,7 @@ import {
   Newspaper,
   MessageCircle,
   Search,
+  CalendarClock,
 } from 'lucide-react'
 import OrderNotification from '@/components/OrderNotification'
 import { useWebSocket, usePriceSubscription, useOrderSubscription } from '@/components/providers/WebSocketProvider'
@@ -81,6 +82,92 @@ const EXTENDED_DURATIONS = [
   { value: 60, label: '1 jam', shortLabel: '60m' },
 ]
 
+// ============================================================================
+// ✅ MODIFIED: ASSET TYPE FILTER WITHOUT ICONS
+// ============================================================================
+
+type AssetTypeFilter = 'all' | 'forex' | 'crypto' | 'stock' | 'commodity' | 'index'
+
+const ASSET_TYPE_META: Record<AssetTypeFilter, {
+  label: string
+  activeBg: string
+  activeBorder: string
+  activeText: string
+}> = {
+  all:       { label: 'Semua',     activeBg: 'bg-slate-600',       activeBorder: 'border-slate-400',   activeText: 'text-white'       },
+  forex:     { label: 'Forex',     activeBg: 'bg-blue-500/30',     activeBorder: 'border-blue-400',    activeText: 'text-blue-300'    },
+  crypto:    { label: 'Crypto',    activeBg: 'bg-orange-500/30',   activeBorder: 'border-orange-400',  activeText: 'text-orange-300'  },
+  stock:     { label: 'Stocks',    activeBg: 'bg-emerald-500/30',  activeBorder: 'border-emerald-400', activeText: 'text-emerald-300' },
+  commodity: { label: 'Komoditas', activeBg: 'bg-yellow-500/30',   activeBorder: 'border-yellow-400',  activeText: 'text-yellow-300'  },
+  index:     { label: 'Indeks',    activeBg: 'bg-purple-500/30',   activeBorder: 'border-purple-400',  activeText: 'text-purple-300'  },
+}
+
+const TypeFilterChips = memo(({
+  activeFilter,
+  onFilterChange,
+  assetCounts,
+  availableTypes,
+}: {
+  activeFilter: AssetTypeFilter
+  onFilterChange: (f: AssetTypeFilter) => void
+  assetCounts: Record<string, number>
+  availableTypes: AssetTypeFilter[]
+}) => {
+  const types: AssetTypeFilter[] = ['all', ...availableTypes]
+  
+  // Bagi chips menjadi 2 baris yang seimbang
+  const midPoint = Math.ceil(types.length / 2)
+  const row1 = types.slice(0, midPoint)
+  const row2 = types.slice(midPoint)
+
+  const renderChip = (type: AssetTypeFilter) => {
+    const meta = ASSET_TYPE_META[type]
+    const count = type === 'all'
+      ? Object.values(assetCounts).reduce((a, b) => a + b, 0)
+      : (assetCounts[type] || 0)
+    const isActive = activeFilter === type
+
+    return (
+      <button
+        key={type}
+        onClick={(e) => { e.stopPropagation(); onFilterChange(type) }}
+        className={`
+          flex-1 flex items-center justify-center gap-1 px-2 py-1 rounded-md
+          text-[11px] font-semibold border transition-all duration-150
+          ${isActive
+            ? `${meta.activeBg} ${meta.activeBorder} ${meta.activeText}`
+            : 'bg-[#1a1f2e] border-gray-700/50 text-gray-400 hover:border-gray-500 hover:text-gray-300'
+          }
+        `}
+      >
+        <span>{meta.label}</span>
+        {count > 0 && (
+          <span className={`text-[9px] px-1 py-0.5 rounded ${isActive ? 'bg-white/10' : 'bg-gray-700/60'}`}>
+            {count}
+          </span>
+        )}
+      </button>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex gap-1.5">
+        {row1.map(renderChip)}
+      </div>
+      {row2.length > 0 && (
+        <div className="flex gap-1.5">
+          {row2.map(renderChip)}
+        </div>
+      )}
+    </div>
+  )
+})
+
+TypeFilterChips.displayName = 'TypeFilterChips'
+
+// ============================================================================
+
 const formatExpiryTime = (durationMinutes: number): string => {
   const asset = useTradingStore.getState().selectedAsset
   if (!asset) return getDurationDisplay(durationMinutes)
@@ -88,7 +175,9 @@ const formatExpiryTime = (durationMinutes: number): string => {
   const now = TimezoneUtil.getCurrentTimestamp()
   const timing = CalculationUtil.formatOrderTiming(asset, durationMinutes, now)
   
-  return TimezoneUtil.formatWIBTime(timing.expiryTimestamp)
+  // Format waktu dan ganti titik dengan colon
+  const formattedTime = TimezoneUtil.formatWIBTime(timing.expiryTimestamp)
+  return formattedTime.replace(/\./g, ':')
 }
 
 export default function TradingPage() {
@@ -140,7 +229,10 @@ export default function TradingPage() {
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   const [showAssetMenu, setShowAssetMenu] = useState(false)
+  const [isAssetMenuClosing, setIsAssetMenuClosing] = useState(false)
   const [assetSearch, setAssetSearch] = useState('')
+  // ✅ Asset type filter state
+  const [assetTypeFilter, setAssetTypeFilter] = useState<AssetTypeFilter>('all')
   const [showAccountMenu, setShowAccountMenu] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showHistorySidebar, setShowHistorySidebar] = useState(false)
@@ -162,6 +254,7 @@ export default function TradingPage() {
   useEffect(() => {
     balanceRef.current = { real: realBalance, demo: demoBalance }
   }, [realBalance, demoBalance])
+
   const durationDisplay = getDurationDisplay(duration)
 
   const activeOrders = allOrders.filter(o => o.status === 'ACTIVE' || o.status === 'PENDING')
@@ -205,17 +298,13 @@ export default function TradingPage() {
     if (wsOrder.event === 'order:created') {
       // FIXED: Immediately add the order to the list instead of just reloading
       if (wsOrder.orderData) {
-        // Add order directly for instant UI update
         setAllOrders((prevOrders: BinaryOrder[]) => {
-          // Check if order already exists
           if (prevOrders.some((o: BinaryOrder) => o.id === wsOrder.id)) {
             return prevOrders
           }
           return [wsOrder.orderData, ...prevOrders]
         })
-        console.log('Order added via WebSocket:', wsOrder.id)
       }
-      // Also reload to ensure consistency
       loadOrdersRef.current()
     } else if (wsOrder.event === 'order:settled') {
       updateOrderRef.current(wsOrder.id, {
@@ -240,16 +329,13 @@ export default function TradingPage() {
         setAllOrders((prevOrders: BinaryOrder[]) => {
           const existingIndex = prevOrders.findIndex((o: BinaryOrder) => o.id === wsOrder.id)
           if (existingIndex >= 0) {
-            // Update existing order
             const updated = [...prevOrders]
             updated[existingIndex] = { ...updated[existingIndex], ...wsOrder.orderData }
             return updated
           } else {
-            // Add new order
             return [wsOrder.orderData, ...prevOrders]
           }
         })
-        console.log('Order updated via WebSocket:', wsOrder.id)
       }
     }
   }, [wsOrder])
@@ -402,6 +488,16 @@ export default function TradingPage() {
       setShowWalletModal(false)
       setIsWalletModalClosing(false)
     }, 250)
+  }, [])
+
+  const handleCloseAssetMenu = useCallback(() => {
+    setIsAssetMenuClosing(true)
+    setTimeout(() => {
+      setShowAssetMenu(false)
+      setIsAssetMenuClosing(false)
+      setAssetSearch('')
+      setAssetTypeFilter('all')
+    }, 200)
   }, [])
 
   const handleCloseMobileMenu = useCallback(() => {
@@ -581,7 +677,6 @@ export default function TradingPage() {
       })
 
       const confirmedOrderData = response?.data || response
-      
       confirmOrder(optimisticId, confirmedOrderData)
 
     } catch (error: any) {
@@ -637,15 +732,39 @@ export default function TradingPage() {
   const potentialProfit = selectedAsset ? (validAmount * validProfitRate) / 100 : 0
   const potentialPayout = validAmount + potentialProfit
 
-  const filteredAssets = useMemo(() => {
-    if (!assetSearch.trim()) return assets
-    const q = assetSearch.toLowerCase()
-    return assets.filter(
-      (a) =>
-        a.symbol.toLowerCase().includes(q) ||
-        a.name.toLowerCase().includes(q)
+  // ✅ Count assets per type for chip badges
+  const assetCountsByType = useMemo(() => {
+    const counts: Record<string, number> = {}
+    assets.forEach(a => {
+      if (a.type) counts[a.type] = (counts[a.type] || 0) + 1
+    })
+    return counts
+  }, [assets])
+
+  // ✅ Derive which types actually have assets
+  const availableAssetTypes = useMemo((): AssetTypeFilter[] => {
+    return (Object.keys(assetCountsByType) as AssetTypeFilter[]).filter(
+      t => assetCountsByType[t] > 0
     )
-  }, [assets, assetSearch])
+  }, [assetCountsByType])
+
+  // ✅ MODIFIED: filteredAssets applies type filter + text search together
+  const filteredAssets = useMemo(() => {
+    let result = assets
+
+    if (assetTypeFilter !== 'all') {
+      result = result.filter(a => a.type === assetTypeFilter)
+    }
+
+    if (assetSearch.trim()) {
+      const q = assetSearch.toLowerCase()
+      result = result.filter(
+        a => a.symbol.toLowerCase().includes(q) || a.name.toLowerCase().includes(q)
+      )
+    }
+
+    return result
+  }, [assets, assetSearch, assetTypeFilter])
 
   if (!user) return null
 
@@ -666,12 +785,15 @@ export default function TradingPage() {
             <span className="font-bold text-xl">Stouch</span>
           </div>
 
+          {/* ✅ MODIFIED: Desktop asset dropdown with type filter chips (text only, 2-row wrap) */}
           <div className="relative">
             <button
               onClick={() => {
-                const next = !showAssetMenu
-                setShowAssetMenu(next)
-                if (!next) setAssetSearch('')
+                if (showAssetMenu) {
+                  handleCloseAssetMenu()
+                } else {
+                  setShowAssetMenu(true)
+                }
               }}
               className="flex items-center gap-2 bg-[#2f3648] hover:bg-[#3a4360] px-2 py-2 rounded-lg transition-colors border border-gray-800/50"
             >
@@ -690,14 +812,14 @@ export default function TradingPage() {
               <>
                 <div
                   className="fixed inset-0 z-40"
-                  onClick={() => {
-                    setShowAssetMenu(false)
-                    setAssetSearch('')
-                  }}
+                  onClick={handleCloseAssetMenu}
                 />
-                <div className="absolute top-full left-0 mt-2 w-64 bg-[#232936] border border-gray-800/50 rounded-lg shadow-2xl z-50 flex flex-col max-h-80">
+                <div className={`absolute top-full left-0 mt-2 w-72 bg-[#232936] border border-gray-800/50 rounded-lg shadow-2xl z-50 flex flex-col max-h-[420px] ${
+                  isAssetMenuClosing ? 'animate-dropdown-out' : 'animate-dropdown-in'
+                }`}>
+
                   {/* Search Input */}
-                  <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-800/50 flex-shrink-0">
+                  <div className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-800/50 flex-shrink-0">
                     <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                     <input
                       autoFocus
@@ -714,11 +836,40 @@ export default function TradingPage() {
                     )}
                   </div>
 
+                  {/* ✅ MODIFIED: Type Filter Chips - text only, 2-row wrap */}
+                  {availableAssetTypes.length > 1 && (
+                    <div
+                      className="px-3 py-2 border-b border-gray-800/30 flex-shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <TypeFilterChips
+                        activeFilter={assetTypeFilter}
+                        onFilterChange={setAssetTypeFilter}
+                        assetCounts={assetCountsByType}
+                        availableTypes={availableAssetTypes}
+                      />
+                    </div>
+                  )}
+
                   {/* Asset List */}
                   <div className="overflow-y-auto">
                     {filteredAssets.length === 0 ? (
-                      <div className="px-4 py-6 text-center text-xs text-gray-500">
-                        Aset tidak ditemukan
+                      <div className="px-4 py-8 text-center">
+                        <div className="text-2xl mb-2 opacity-50">🔍</div>
+                        <p className="text-xs text-gray-500">
+                          {assetSearch
+                            ? 'Aset tidak ditemukan'
+                            : `Tidak ada ${ASSET_TYPE_META[assetTypeFilter]?.label || ''} tersedia`
+                          }
+                        </p>
+                        {assetTypeFilter !== 'all' && !assetSearch && (
+                          <button
+                            onClick={() => setAssetTypeFilter('all')}
+                            className="mt-2 text-[11px] text-blue-400 hover:text-blue-300 underline"
+                          >
+                            Tampilkan semua
+                          </button>
+                        )}
                       </div>
                     ) : (
                       filteredAssets.map((asset) => (
@@ -726,15 +877,11 @@ export default function TradingPage() {
                           key={asset.id}
                           onClick={() => {
                             setSelectedAsset(asset)
-                            setShowAssetMenu(false)
-                            setAssetSearch('')
+                            handleCloseAssetMenu()
                           }}
                           onMouseEnter={() => {
                             if (asset.realtimeDbPath) {
-                              prefetchMultipleTimeframes(
-                                asset.realtimeDbPath,
-                                ['1m', '5m']
-                              )
+                              prefetchMultipleTimeframes(asset.realtimeDbPath, ['1m', '5m'])
                             }
                           }}
                           className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 last:border-0 ${
@@ -748,7 +895,9 @@ export default function TradingPage() {
                               <div className="text-xs text-gray-400">{asset.name}</div>
                             </div>
                           </div>
-                          <div className="text-xs font-bold text-emerald-400">+{asset.profitRate}%</div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="text-xs font-bold text-emerald-400">+{asset.profitRate}%</div>
+                          </div>
                         </button>
                       ))
                     )}
@@ -818,7 +967,7 @@ export default function TradingPage() {
             onClick={() => setShowHistorySidebar(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-[#2f3648] hover:bg-[#3a4360] rounded-lg transition-colors border border-gray-800/50"
           >
-            <History className="w-4 h-4" />
+            <CalendarClock className="w-4 h-4" />
             <span className="text-sm">Riwayat</span>
           </button>
 
@@ -874,8 +1023,8 @@ export default function TradingPage() {
                     }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#232936] transition-colors text-left"
                   >
-                    <History className="w-4 h-4" />
-                    <span className="text-sm">History</span>
+                    <CalendarClock className="w-4 h-4" />
+                    <span className="text-sm">Riwayat</span>
                   </button>
 
                   <button
@@ -1020,12 +1169,12 @@ export default function TradingPage() {
         </div>
       </div>
 
-{/* Banner popup - fixed overlay, tidak mempengaruhi layout */}
-{showBanner && (
-  <InformationBanner 
-    onClose={() => setShowBanner(false)} 
-  />
-)}
+      {/* Banner popup - fixed overlay, tidak mempengaruhi layout */}
+      {showBanner && (
+        <InformationBanner 
+          onClose={() => setShowBanner(false)} 
+        />
+      )}
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden min-h-0">
@@ -1503,41 +1652,41 @@ export default function TradingPage() {
             
             <div className="space-y-2">
               <div className="mb-4">
-              <label className="text-xs text-gray-400 mb-2 block">Pilih Aset</label>
-              <div className="space-y-1 max-h-48 overflow-y-auto"> {/* ✅ Ubah dari max-h-64 */}
-                {assets.map((asset) => (
-                  <button
-                    key={asset.id}
-                    onClick={() => {
-                      setSelectedAsset(asset)
-                      handleCloseMobileMenu()
-                    }}
-                    onTouchStart={() => {
-                      if (asset.realtimeDbPath) {
-                        prefetchMultipleTimeframes(
-                          asset.realtimeDbPath,
-                          ['1m', '5m']
-                        )
-                      }
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                      selectedAsset?.id === asset.id
-                        ? 'bg-blue-500/20 border border-blue-500/50'
-                        : 'bg-[#1a1f2e] hover:bg-[#232936]'
-                    }`}
-                  >
-                    <AssetIcon asset={asset} size="sm" />
-                    <div className="flex-1 text-left">
-                      <div className="text-sm font-medium">{asset.symbol}</div>
-                      <div className="text-xs text-gray-400">{asset.name}</div>
-                    </div>
-                    <div className="text-xs font-bold text-emerald-400">
-                      +{asset.profitRate}%
-                    </div>
-                  </button>
-                ))}
+                <label className="text-xs text-gray-400 mb-2 block">Pilih Aset</label>
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {assets.map((asset) => (
+                    <button
+                      key={asset.id}
+                      onClick={() => {
+                        setSelectedAsset(asset)
+                        handleCloseMobileMenu()
+                      }}
+                      onTouchStart={() => {
+                        if (asset.realtimeDbPath) {
+                          prefetchMultipleTimeframes(
+                            asset.realtimeDbPath,
+                            ['1m', '5m']
+                          )
+                        }
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                        selectedAsset?.id === asset.id
+                          ? 'bg-blue-500/20 border border-blue-500/50'
+                          : 'bg-[#1a1f2e] hover:bg-[#232936]'
+                      }`}
+                    >
+                      <AssetIcon asset={asset} size="sm" />
+                      <div className="flex-1 text-left">
+                        <div className="text-sm font-medium">{asset.symbol}</div>
+                        <div className="text-xs text-gray-400">{asset.name}</div>
+                      </div>
+                      <div className="text-xs font-bold text-emerald-400">
+                        +{asset.profitRate}%
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
               <button
                 onClick={() => {
@@ -1568,10 +1717,9 @@ export default function TradingPage() {
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
-                <History className="w-4 h-4" />
+                <CalendarClock className="w-4 h-4" />
                 <span>Riwayat</span>
               </button>
-
 
               <button
                 onClick={() => {
@@ -1708,6 +1856,26 @@ export default function TradingPage() {
       />
 
       <style jsx>{`
+        @keyframes dropdown-in {
+          from { 
+            opacity: 0;
+            transform: translateY(-8px) scale(0.96);
+          }
+          to { 
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        @keyframes dropdown-out {
+          from { 
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+          to { 
+            opacity: 0;
+            transform: translateY(-8px) scale(0.96);
+          }
+        }
         @keyframes slide-left {
           from { transform: translateX(100%); opacity: 0; }
           to { transform: translateX(0); opacity: 1; }
@@ -1739,6 +1907,12 @@ export default function TradingPage() {
         @keyframes fade-out {
           from { opacity: 1; }
           to { opacity: 0; }
+        }
+        .animate-dropdown-in {
+          animation: dropdown-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .animate-dropdown-out {
+          animation: dropdown-out 0.2s cubic-bezier(0.4, 0, 1, 1);
         }
         .animate-slide-left {
           animation: slide-left 0.25s cubic-bezier(0.16, 1, 0.3, 1);

@@ -134,14 +134,38 @@ class PaymentAPI {
   static async getRealBalance(): Promise<number> {
     const response = await fetch(`${this.baseURL}/balance/real`, {
       method: 'GET',
-      headers: this.getHeaders()
+      headers: this.getHeaders(),
+      cache: 'no-store' // ✅ Prevent caching to get fresh balance
     });
 
     if (!response.ok) {
       throw new Error('Gagal mengambil saldo');
     }
     const data = await response.json();
-    return data.balance || 0;
+    
+    // ✅ FIXED: Handle multiple response formats
+    let balance = 0;
+    
+    // Format 1: Direct data.balance
+    if (data.balance !== undefined) {
+      balance = data.balance;
+    }
+    // Format 2: data.data.balance
+    else if (data.data?.balance !== undefined) {
+      balance = data.data.balance;
+    }
+    // Format 3: data.data.data.balance
+    else if (data.data?.data?.balance !== undefined) {
+      balance = data.data.data.balance;
+    }
+    
+    console.log('💰 getRealBalance response:', { 
+      rawData: data, 
+      extractedBalance: balance,
+      timestamp: new Date().toISOString()
+    });
+    
+    return balance;
   }
 }
 
@@ -278,6 +302,59 @@ const MidtransPaymentPage: React.FC = () => {
     loadInitialBalance();
   }, []);
 
+  // ✅ NEW: Auto-refresh balance jika payment success tapi balance masih 0
+  useEffect(() => {
+    if (paymentStatus === 'success' && (!currentBalance || currentBalance === 0)) {
+      console.log('⚠️ Payment success tapi balance 0 - Auto-refresh...');
+      
+      let retryCount = 0;
+      const maxRetries = 5;
+      
+      const tryRefreshBalance = async () => {
+        try {
+          retryCount++;
+          console.log(`🔄 Auto-refresh attempt #${retryCount}...`);
+          
+          const freshBalance = await PaymentAPI.getRealBalance();
+          
+          if (freshBalance > 0) {
+            setCurrentBalance(freshBalance);
+            console.log(`✅ Balance berhasil di-refresh: ${freshBalance}`);
+            return true;
+          } else {
+            console.log(`⚠️ Balance masih 0 pada attempt #${retryCount}`);
+            return false;
+          }
+        } catch (error) {
+          console.error(`❌ Error on refresh attempt #${retryCount}:`, error);
+          return false;
+        }
+      };
+      
+      // Try immediately
+      tryRefreshBalance().then(success => {
+        if (success) return;
+        
+        // If failed, retry every 2 seconds up to 5 times
+        const intervalId = setInterval(async () => {
+          if (retryCount >= maxRetries) {
+            clearInterval(intervalId);
+            console.log('❌ Max retries reached, stopping auto-refresh');
+            return;
+          }
+          
+          const success = await tryRefreshBalance();
+          if (success) {
+            clearInterval(intervalId);
+          }
+        }, 2000);
+        
+        // Cleanup
+        return () => clearInterval(intervalId);
+      });
+    }
+  }, [paymentStatus, currentBalance]);
+
   // ✅ PERBAIKAN KRITIS: Penanganan pemilihan voucher eksternal
   useEffect(() => {
     if (externalVoucherCode && availableVouchers.length > 0) {
@@ -374,15 +451,39 @@ const MidtransPaymentPage: React.FC = () => {
           clearInterval(intervalId);
           clearTimeout(timeoutId);
 
+          // ✅ IMPROVED: Multiple balance refresh to ensure latest balance
+          console.log('🔄 Memulai refresh saldo final...');
+          
+          // Refresh 1: Immediate
+          try {
+            const freshBalance1 = await PaymentAPI.getRealBalance();
+            setCurrentBalance(freshBalance1);
+            console.log('🔄 Refresh saldo #1 (immediate):', freshBalance1);
+          } catch (error) {
+            console.error('❌ Gagal refresh saldo #1:', error);
+          }
+
+          // Refresh 2: After 1 second
           setTimeout(async () => {
             try {
-              const freshBalance = await PaymentAPI.getRealBalance();
-              setCurrentBalance(freshBalance);
-              console.log('🔄 Penyegaran saldo akhir:', freshBalance);
+              const freshBalance2 = await PaymentAPI.getRealBalance();
+              setCurrentBalance(freshBalance2);
+              console.log('🔄 Refresh saldo #2 (+1s):', freshBalance2);
             } catch (error) {
-              console.error('Gagal menyegarkan saldo:', error);
+              console.error('❌ Gagal refresh saldo #2:', error);
             }
           }, 1000);
+
+          // Refresh 3: After 3 seconds (final)
+          setTimeout(async () => {
+            try {
+              const freshBalance3 = await PaymentAPI.getRealBalance();
+              setCurrentBalance(freshBalance3);
+              console.log('🔄 Refresh saldo #3 (+3s - FINAL):', freshBalance3);
+            } catch (error) {
+              console.error('❌ Gagal refresh saldo #3:', error);
+            }
+          }, 3000);
 
           await loadTransactionHistory();
         } else if (transaction && transaction.status === 'failed') {
@@ -493,11 +594,17 @@ const MidtransPaymentPage: React.FC = () => {
     if (loading) return;
     setLoading(true);
     try {
+      console.log('🔄 Memulai refresh saldo manual...');
       const balance = await PaymentAPI.getRealBalance();
       setCurrentBalance(balance);
-      console.log('🔄 Saldo disegarkan:', balance);
+      console.log('✅ Saldo disegarkan berhasil:', balance);
+      
+      // Show success feedback
+      if (balance !== currentBalance) {
+        console.log(`   📊 Perubahan saldo: ${currentBalance} → ${balance}`);
+      }
     } catch (error) {
-      console.error('Gagal menyegarkan saldo:', error);
+      console.error('❌ Gagal menyegarkan saldo:', error);
     } finally {
       setLoading(false);
     }
@@ -1060,9 +1167,24 @@ const MidtransPaymentPage: React.FC = () => {
                     Saldo Anda telah diperbarui
                   </p>
                   <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl p-6 mb-6">
-                    <div className="text-sm text-green-900 mb-2">Saldo Baru</div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-sm text-green-900">Saldo Baru</div>
+                      <button
+                        onClick={handleRefreshBalance}
+                        disabled={loading}
+                        className="p-2 hover:bg-green-100 rounded-lg transition-all disabled:opacity-50"
+                        title="Segarkan saldo"
+                      >
+                        <ArrowsClockwise size={16} weight="bold" className={`text-green-600 ${loading ? 'animate-spin' : ''}`} />
+                      </button>
+                    </div>
                     <div className="text-4xl font-bold text-green-700 mb-4">
-                      {formatCurrency(currentBalance)}
+                      {currentBalance > 0 ? formatCurrency(currentBalance) : (
+                        <div className="flex items-center gap-2">
+                          <SpinnerGap size={32} weight="bold" className="text-green-600 animate-spin" />
+                          <span className="text-2xl">Memuat saldo...</span>
+                        </div>
+                      )}
                     </div>
                     <div className="bg-white/60 rounded-lg p-3">
                       <div className="flex justify-between text-sm text-green-800 mb-1">

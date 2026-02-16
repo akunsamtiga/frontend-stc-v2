@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { X, ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Information } from '@/types'
 import Image from 'next/image'
@@ -229,14 +229,32 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
               }}
             />
 
-            {/* Optional image */}
+            {/* Optional image - MODIFIED: aspect-ratio auto, object-contain */}
             {banner.imageUrl && (
-              <div style={{ position: 'relative', width: '100%', height: '200px', overflow: 'hidden' }}>
+              <div 
+                style={{ 
+                  position: 'relative', 
+                  width: '100%',
+                  maxHeight: '320px',
+                  minHeight: '160px',
+                  overflow: 'hidden',
+                  background: 'rgba(0,0,0,0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 <Image
                   src={banner.imageUrl}
                   alt={banner.title}
-                  fill
-                  className="object-cover"
+                  width={640}
+                  height={320}
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    maxHeight: '320px',
+                    objectFit: 'contain', // Changed from 'cover' to 'contain'
+                  }}
                   priority
                   onLoad={handleImageLoad}
                   onError={(e) => {
@@ -253,6 +271,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
                     position: 'absolute',
                     inset: 0,
                     background: 'linear-gradient(to bottom, transparent 30%, rgba(13,17,23,0.95) 100%)',
+                    pointerEvents: 'none',
                   }}
                 />
               </div>
@@ -261,76 +280,44 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
             {/* Body */}
             <div style={{ padding: '24px 24px 0 24px' }}>
 
-              {/* Row: badges + close */}
+              {/* Row: badges */}
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
                   marginBottom: '12px',
-                  gap: '8px',
+                  gap: '7px',
+                  flexWrap: 'wrap',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' }}>
-                  {/* Pulse dot */}
-                  <span
-                    style={{
-                      display: 'inline-block',
-                      width: '7px',
-                      height: '7px',
-                      borderRadius: '50%',
-                      background: config.accent,
-                      flexShrink: 0,
-                      animation: 'ib-dot-pulse 1.6s ease-in-out infinite',
-                    }}
-                  />
-                  {/* Type badge */}
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      letterSpacing: '0.07em',
-                      textTransform: 'uppercase',
-                      color: config.accent,
-                      background: config.accentDim,
-                      border: `1px solid ${config.accentBorder}`,
-                      padding: '2px 7px',
-                      borderRadius: '4px',
-                    }}
-                  >
-                    {banner.type}
-                  </span>
-                </div>
-
-                {/* Close button */}
-                <button
-                  onClick={dismiss}
-                  aria-label="Tutup"
+                {/* Pulse dot */}
+                <span
                   style={{
+                    display: 'inline-block',
+                    width: '7px',
+                    height: '7px',
+                    borderRadius: '50%',
+                    background: config.accent,
                     flexShrink: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '30px',
-                    height: '30px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    background: 'rgba(255,255,255,0.05)',
-                    color: 'rgba(255,255,255,0.45)',
-                    cursor: 'pointer',
-                    transition: 'background 0.15s, color 0.15s',
+                    animation: 'ib-dot-pulse 1.6s ease-in-out infinite',
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
-                    e.currentTarget.style.color = '#fff'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                    e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+                />
+                {/* Type badge */}
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    letterSpacing: '0.07em',
+                    textTransform: 'uppercase',
+                    color: config.accent,
+                    background: config.accentDim,
+                    border: `1px solid ${config.accentBorder}`,
+                    padding: '2px 7px',
+                    borderRadius: '4px',
                   }}
                 >
-                  <X size={14} strokeWidth={2.5} />
-                </button>
+                  {banner.type}
+                </span>
               </div>
 
               {/* Title */}

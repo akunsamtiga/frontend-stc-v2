@@ -133,7 +133,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
           <div className="grid grid-cols-4 gap-3">
             <div className="text-center">
               <div className="text-xl font-bold text-white mb-0.5">{winRate}%</div>
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Tingkat Kemenangan</div>
+              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Win Rate</div>
             </div>
             <div className="text-center">
               <div className="text-xl font-bold text-green-400 mb-0.5">{stats.won}</div>
@@ -218,29 +218,46 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                 const durationDisplay = getDurationDisplay(order.duration)
                 const isExpanded = expandedOrder === order.id
                 const isUltraFast = order.duration < 1
+                const isActive = order.status === 'ACTIVE'
                 
                 return (
                   <div
                     key={order.id}
                     className="group relative"
                   >
+                    {/* Animated Border for Active Orders */}
+                    {isActive && (
+                      <div className="absolute inset-0 rounded-xl animate-border-glow pointer-events-none" />
+                    )}
+
                     {/* Compact Order Item */}
                     <button
                       onClick={() => toggleExpand(order.id)}
-                      className="w-full bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05] rounded-xl p-3.5 transition-all text-left"
+                      className={`w-full rounded-xl p-3.5 transition-all text-left relative ${
+                        isActive
+                          ? 'bg-gradient-to-br from-blue-500/[0.08] via-purple-500/[0.06] to-blue-500/[0.08] border-2 border-blue-500/30 shadow-lg shadow-blue-500/10 animate-breathing'
+                          : 'bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05]'
+                      }`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         {/* Left: Icon + Asset */}
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 relative ${
                             order.direction === 'CALL' 
                               ? 'bg-green-500/10 border border-green-500/20' 
                               : 'bg-red-500/10 border border-red-500/20'
                           }`}>
+                            {/* Live Indicator for Active Orders */}
+                            {isActive && (
+                              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500 border-2 border-[#0a0e17]"></span>
+                              </span>
+                            )}
                             {order.direction === 'CALL' ? (
-                              <TrendingUp className="w-4 h-4 text-green-400" />
+                              <TrendingUp className={`w-4 h-4 ${isActive ? 'text-green-400 animate-pulse-subtle' : 'text-green-400'}`} />
                             ) : (
-                              <TrendingDown className="w-4 h-4 text-red-400" />
+                              <TrendingDown className={`w-4 h-4 ${isActive ? 'text-red-400 animate-pulse-subtle' : 'text-red-400'}`} />
                             )}
                           </div>
                           
@@ -256,6 +273,12 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                               }`}>
                                 {order.accountType || 'demo'}
                               </span>
+                              {/* LIVE Badge for Active Orders */}
+                              {isActive && (
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase flex-shrink-0 bg-blue-500 text-white animate-pulse-badge shadow-lg shadow-blue-500/50">
+                                  LIVE
+                                </span>
+                              )}
                             </div>
                             <div className="flex items-center gap-2 text-[11px] text-gray-500">
                               <span>{formatCurrency(order.amount)}</span>
@@ -290,13 +313,17 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                     <div className={`overflow-hidden transition-all duration-300 ${
                       isExpanded ? 'max-h-[500px] opacity-100 mt-2' : 'max-h-0 opacity-0'
                     }`}>
-                      <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4 space-y-3">
+                      <div className={`rounded-xl p-4 space-y-3 ${
+                        isActive
+                          ? 'bg-gradient-to-br from-blue-500/[0.05] to-purple-500/[0.05] border-2 border-blue-500/20'
+                          : 'bg-white/[0.02] border border-white/[0.05]'
+                      }`}>
                         {/* Status Badge */}
                         <div className="flex items-center gap-2 pb-3 border-b border-white/[0.05]">
                           <div className={`px-3 py-1 rounded-full text-xs font-bold ${
                             order.status === 'WON' ? 'bg-green-500/20 text-green-400' :
                             order.status === 'LOST' ? 'bg-red-500/20 text-red-400' :
-                            order.status === 'ACTIVE' ? 'bg-blue-500/20 text-blue-400' :
+                            order.status === 'ACTIVE' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/50 animate-pulse-badge' :
                             'bg-gray-500/20 text-gray-400'
                           }`}>
                             {order.status}
@@ -363,12 +390,66 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
           to { opacity: 1; }
         }
 
+        @keyframes breathing {
+          0%, 100% { 
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+          }
+          50% { 
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.25), 0 0 40px rgba(168, 85, 247, 0.15);
+          }
+        }
+
+        @keyframes border-glow {
+          0%, 100% {
+            box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.1);
+          }
+          50% {
+            box-shadow: inset 0 0 30px rgba(59, 130, 246, 0.2), inset 0 0 40px rgba(168, 85, 247, 0.1);
+          }
+        }
+
+        @keyframes pulse-subtle {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.7;
+          }
+        }
+
+        @keyframes pulse-badge {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.85;
+            transform: scale(0.98);
+          }
+        }
+
         .animate-slide-left {
           animation: slide-left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .animate-fade-in {
           animation: fade-in 0.2s ease-out;
+        }
+
+        .animate-breathing {
+          animation: breathing 3s ease-in-out infinite;
+        }
+
+        .animate-border-glow {
+          animation: border-glow 3s ease-in-out infinite;
+        }
+
+        .animate-pulse-subtle {
+          animation: pulse-subtle 2s ease-in-out infinite;
+        }
+
+        .animate-pulse-badge {
+          animation: pulse-badge 2s ease-in-out infinite;
         }
 
         /* Custom Scrollbar */

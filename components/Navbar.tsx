@@ -82,9 +82,31 @@ export default function Navbar() {
     return () => clearTimeout(timeout)
   }, [logoPhase])
 
-  const handleLogout = () => {
-    logout()
-    router.push('/')
+  const handleLogout = async () => {
+    try {
+      // Clear API token and cache
+      api.removeToken()
+      api.clearCache()
+      
+      // Logout from store
+      logout()
+      
+      // Clear all storage
+      if (typeof window !== 'undefined') {
+        localStorage.clear()
+        sessionStorage.clear()
+      }
+      
+      // Small delay to ensure cleanup
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Force redirect to root page using replace (prevents back button)
+      router.replace('/')
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Even if error, still redirect to root
+      router.replace('/')
+    }
   }
 
   const isActive = (path: string) => pathname === path

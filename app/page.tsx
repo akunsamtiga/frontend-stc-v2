@@ -46,9 +46,9 @@ import EnhancedFooter from '@/components/EnhancedFooter'
 // DATA CONSTANTS
 // ===================================
 const stats = [
-  { label: 'Pengguna', value: '1 jt+', icon: Users },
-  { label: 'Volume Harian', value: '$10 B', icon: CurrencyDollar },
-  { label: 'Win Rate', value: '100%', icon: Target },
+  { label: 'Unduhan', value: '1 jt+', icon: Users },
+  { label: 'Volume Harian', value: '$10K', icon: CurrencyDollar },
+  { label: 'Realtime', value: '24/7', icon: Clock },
   { label: 'Negara', value: '15+', icon: Globe },
 ]
 
@@ -102,6 +102,7 @@ const dummyTrades = [
   { user: 'fire_warrior', asset: 'ETH/USD', profit: 1420000, time: '7 menit lalu' },
   { user: 'swift_ninja', asset: 'BNB/USD', profit: 890000, time: '8 menit lalu' },
   { user: 'bullrun2024', asset: 'BTC/USD', profit: 2750000, time: '9 menit lalu' },
+
   { user: 'satoshi_fan', asset: 'ETH/USD', profit: 1950000, time: '10 menit lalu' },
   { user: 'whale_alert', asset: 'BNB/USD', profit: 1120000, time: '11 menit lalu' },
   { user: 'defi_king', asset: 'BTC/USD', profit: 3450000, time: '12 menit lalu' },
@@ -112,6 +113,7 @@ const dummyTrades = [
   { user: 'paper_hands', asset: 'BNB/USD', profit: 1050000, time: '17 menit lalu' },
   { user: 'rekt_veteran', asset: 'BTC/USD', profit: 3100000, time: '18 menit lalu' },
   { user: 'pumpit_up', asset: 'ETH/USD', profit: 1520000, time: '19 menit lalu' },
+
   { user: 'gem_hunter99', asset: 'BNB/USD', profit: 850000, time: '20 menit lalu' },
   { user: 'stack_lord', asset: 'BTC/USD', profit: 2650000, time: '21 menit lalu' },
   { user: 'alt_season', asset: 'ETH/USD', profit: 1890000, time: '22 menit lalu' },
@@ -122,6 +124,39 @@ const dummyTrades = [
   { user: 'bull_gang', asset: 'BTC/USD', profit: 2920000, time: '27 menit lalu' },
   { user: 'legendary_ape', asset: 'ETH/USD', profit: 1580000, time: '28 menit lalu' },
   { user: 'to_the_moon', asset: 'BNB/USD', profit: 890000, time: '29 menit lalu' },
+
+  { user: 'shadow_bull', asset: 'BTC/USD', profit: 3680000, time: '30 menit lalu' },
+  { user: 'eth_phantom', asset: 'ETH/USD', profit: 1940000, time: '31 menit lalu' },
+  { user: 'bnb_reaper', asset: 'BNB/USD', profit: 1010000, time: '32 menit lalu' },
+  { user: 'midnight_trader', asset: 'BTC/USD', profit: 3520000, time: '33 menit lalu' },
+  { user: 'silent_whale', asset: 'ETH/USD', profit: 2080000, time: '34 menit lalu' },
+  { user: 'crypto_knight', asset: 'BNB/USD', profit: 930000, time: '35 menit lalu' },
+  { user: 'bullish_shadow', asset: 'BTC/USD', profit: 3890000, time: '36 menit lalu' },
+  { user: 'ether_blade', asset: 'ETH/USD', profit: 1770000, time: '37 menit lalu' },
+  { user: 'bnb_snake', asset: 'BNB/USD', profit: 990000, time: '38 menit lalu' },
+  { user: 'quantum_bull', asset: 'BTC/USD', profit: 3410000, time: '39 menit lalu' },
+
+  { user: 'atlas_crypto', asset: 'ETH/USD', profit: 1860000, time: '40 menit lalu' },
+  { user: 'delta_hunter', asset: 'BNB/USD', profit: 870000, time: '41 menit lalu' },
+  { user: 'zenith_eth', asset: 'BTC/USD', profit: 3720000, time: '42 menit lalu' },
+  { user: 'orbit_bnb', asset: 'ETH/USD', profit: 1950000, time: '43 menit lalu' },
+  { user: 'velocity_btc', asset: 'BNB/USD', profit: 1120000, time: '44 menit lalu' },
+  { user: 'eth_nomad', asset: 'BTC/USD', profit: 3600000, time: '45 menit lalu' },
+  { user: 'bnb_spartan', asset: 'ETH/USD', profit: 1690000, time: '46 menit lalu' },
+  { user: 'storm_trader', asset: 'BNB/USD', profit: 1040000, time: '47 menit lalu' },
+  { user: 'crypto_rogue', asset: 'BTC/USD', profit: 3940000, time: '48 menit lalu' },
+  { user: 'nebula_eth', asset: 'ETH/USD', profit: 1820000, time: '49 menit lalu' },
+
+  { user: 'phoenix_btc', asset: 'BNB/USD', profit: 910000, time: '50 menit lalu' },
+  { user: 'darkmatter', asset: 'BTC/USD', profit: 3750000, time: '51 menit lalu' },
+  { user: 'liquid_alpha', asset: 'ETH/USD', profit: 1980000, time: '52 menit lalu' },
+  { user: 'gamma_wave', asset: 'BNB/USD', profit: 940000, time: '53 menit lalu' },
+  { user: 'cosmic_trader', asset: 'BTC/USD', profit: 3880000, time: '54 menit lalu' },
+  { user: 'futures_edge', asset: 'ETH/USD', profit: 1790000, time: '55 menit lalu' },
+  { user: 'block_rider', asset: 'BNB/USD', profit: 1020000, time: '56 menit lalu' },
+  { user: 'eth_matrix', asset: 'BTC/USD', profit: 3610000, time: '57 menit lalu' },
+  { user: 'btc_visionary', asset: 'ETH/USD', profit: 1870000, time: '58 menit lalu' },
+  { user: 'bnb_oracle', asset: 'BNB/USD', profit: 970000, time: '59 menit lalu' },
 ]
 
 // ===================================
@@ -176,7 +211,7 @@ const LiveCryptoTicker = () => {
               <div className="text-[10px] text-gray-400">{trade.asset}</div>
             </div>
             <div className="text-right">
-              <div className="text-xs font-bold text-emerald-400">+Rp {trade.profit.toLocaleString()}</div>
+              <div className="text-xs font-bold text-emerald-400">+USD {trade.profit.toLocaleString()}</div>
               <div className="text-[10px] text-gray-500">{trade.time}</div>
             </div>
           </div>

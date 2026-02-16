@@ -9,7 +9,7 @@ import { BinaryOrder, TIMEFRAMES, Timeframe as TimeframeType } from '@/types'
 import { database, ref, get } from '@/lib/firebase'
 import { formatPriceAuto } from '@/lib/utils'
 import dynamic from 'next/dynamic'
-import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2 } from 'lucide-react'
+import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2, X, Search } from 'lucide-react'
 import AssetIcon from '@/components/common/AssetIcon'
 import OrderPriceTracker from '@/components/OrderPriceTracker'
 import CandleCountdown from '@/components/CandleCountdown'
@@ -90,6 +90,92 @@ function formatWIBDateTime(timestamp: number): string {
 
 // ============================================================================
 // END WIB HELPER FUNCTIONS
+// ============================================================================
+
+// ============================================================================
+// ASSET TYPE FILTER WITHOUT ICONS
+// ============================================================================
+
+type AssetTypeFilter = 'all' | 'forex' | 'crypto' | 'stock' | 'commodity' | 'index'
+
+const ASSET_TYPE_META: Record<AssetTypeFilter, {
+  label: string
+  activeBg: string
+  activeBorder: string
+  activeText: string
+}> = {
+  all:       { label: 'Semua',     activeBg: 'bg-slate-600',       activeBorder: 'border-slate-400',   activeText: 'text-white'       },
+  forex:     { label: 'Forex',     activeBg: 'bg-blue-500/30',     activeBorder: 'border-blue-400',    activeText: 'text-blue-300'    },
+  crypto:    { label: 'Crypto',    activeBg: 'bg-orange-500/30',   activeBorder: 'border-orange-400',  activeText: 'text-orange-300'  },
+  stock:     { label: 'Stocks',    activeBg: 'bg-emerald-500/30',  activeBorder: 'border-emerald-400', activeText: 'text-emerald-300' },
+  commodity: { label: 'Komoditas', activeBg: 'bg-yellow-500/30',   activeBorder: 'border-yellow-400',  activeText: 'text-yellow-300'  },
+  index:     { label: 'Indeks',    activeBg: 'bg-purple-500/30',   activeBorder: 'border-purple-400',  activeText: 'text-purple-300'  },
+}
+
+const TypeFilterChips = memo(({
+  activeFilter,
+  onFilterChange,
+  assetCounts,
+  availableTypes,
+}: {
+  activeFilter: AssetTypeFilter
+  onFilterChange: (f: AssetTypeFilter) => void
+  assetCounts: Record<string, number>
+  availableTypes: AssetTypeFilter[]
+}) => {
+  const types: AssetTypeFilter[] = ['all', ...availableTypes]
+  
+  // Bagi chips menjadi 2 baris yang seimbang
+  const midPoint = Math.ceil(types.length / 2)
+  const row1 = types.slice(0, midPoint)
+  const row2 = types.slice(midPoint)
+
+  const renderChip = (type: AssetTypeFilter) => {
+    const meta = ASSET_TYPE_META[type]
+    const count = type === 'all'
+      ? Object.values(assetCounts).reduce((a, b) => a + b, 0)
+      : (assetCounts[type] || 0)
+    const isActive = activeFilter === type
+
+    return (
+      <button
+        key={type}
+        onClick={(e) => { e.stopPropagation(); onFilterChange(type) }}
+        className={`
+          flex-1 flex items-center justify-center gap-1 px-2 py-1 rounded-md
+          text-[11px] font-semibold border transition-all duration-150
+          ${isActive
+            ? `${meta.activeBg} ${meta.activeBorder} ${meta.activeText}`
+            : 'bg-[#1a1f2e] border-gray-700/50 text-gray-400 hover:border-gray-500 hover:text-gray-300'
+          }
+        `}
+      >
+        <span>{meta.label}</span>
+        {count > 0 && (
+          <span className={`text-[9px] px-1 py-0.5 rounded ${isActive ? 'bg-white/10' : 'bg-gray-700/60'}`}>
+            {count}
+          </span>
+        )}
+      </button>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex gap-1.5">
+        {row1.map(renderChip)}
+      </div>
+      {row2.length > 0 && (
+        <div className="flex gap-1.5">
+          {row2.map(renderChip)}
+        </div>
+      )}
+    </div>
+  )
+})
+
+TypeFilterChips.displayName = 'TypeFilterChips'
+
 // ============================================================================
 
 
@@ -689,6 +775,8 @@ const PriceDisplay = memo(({
 }: any) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [assetTypeFilter, setAssetTypeFilter] = useState<AssetTypeFilter>('all')
+  const [isClosing, setIsClosing] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   if (!asset || !price) return null
@@ -696,16 +784,53 @@ const PriceDisplay = memo(({
   const hasChange = price.change !== undefined && price.change !== 0
   const formattedPrice = formatPriceAuto(price.price, asset.type)
 
-  // Filter assets based on search query
-  const filteredAssets = useMemo(() => {
-    if (!searchQuery.trim()) return assets
-    
-    const query = searchQuery.toLowerCase()
-    return assets.filter((assetItem: any) => 
-      assetItem.symbol?.toLowerCase().includes(query) ||
-      assetItem.name?.toLowerCase().includes(query)
+  // Count assets per type for chip badges
+  const assetCountsByType = useMemo(() => {
+    const counts: Record<string, number> = {}
+    assets.forEach((a: any) => {
+      if (a.type) counts[a.type] = (counts[a.type] || 0) + 1
+    })
+    return counts
+  }, [assets])
+
+  // Derive which types actually have assets
+  const availableAssetTypes = useMemo((): AssetTypeFilter[] => {
+    return (Object.keys(assetCountsByType) as AssetTypeFilter[]).filter(
+      t => assetCountsByType[t] > 0
     )
-  }, [assets, searchQuery])
+  }, [assetCountsByType])
+
+  // Filter assets based on type filter and search query
+  const filteredAssets = useMemo(() => {
+    let result = assets
+
+    // Apply type filter
+    if (assetTypeFilter !== 'all') {
+      result = result.filter((a: any) => a.type === assetTypeFilter)
+    }
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      result = result.filter((assetItem: any) => 
+        assetItem.symbol?.toLowerCase().includes(query) ||
+        assetItem.name?.toLowerCase().includes(query)
+      )
+    }
+    
+    return result
+  }, [assets, searchQuery, assetTypeFilter])
+
+  // Handle menu close with animation
+  const handleClose = useCallback(() => {
+    setIsClosing(true)
+    setTimeout(() => {
+      onClick()
+      setIsClosing(false)
+      setSearchQuery('')
+      setAssetTypeFilter('all')
+    }, 200)
+  }, [onClick])
 
   // Focus search input when menu opens
   useEffect(() => {
@@ -716,6 +841,7 @@ const PriceDisplay = memo(({
       setSelectedIndex(0)
     } else {
       setSearchQuery('')
+      setAssetTypeFilter('all')
       setSelectedIndex(0)
     }
   }, [showMenu])
@@ -748,7 +874,7 @@ const PriceDisplay = memo(({
         break
       case 'Escape':
         e.preventDefault()
-        onClick()
+        handleClose()
         break
     }
   }
@@ -762,7 +888,7 @@ const PriceDisplay = memo(({
         {asset && <AssetIcon asset={asset} size="sm" />}
         
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-400">{asset.name}</span>
+          <span className="text-sm text-gray-400">{asset.symbol}</span>
           <span className="text-xl font-bold">{formattedPrice}</span>
         </div>
         {hasChange && (
@@ -794,112 +920,117 @@ const PriceDisplay = memo(({
       </div>
 
       {showMenu && (
-  <>
-    {/* Overlay dengan z-index lebih tinggi */}
-    <div className="fixed inset-0 z-[62] lg:hidden" onClick={onClick} />
-    
-    {/* Dropdown dengan z-index tinggi dan max-height untuk 3 item */}
-    <div className="absolute top-full left-0 mt-2 w-72 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl z-[63] lg:hidden flex flex-col max-h-[calc(100vh-120px)]">
-      {/* Search Input */}
-      <div className="p-3 border-b border-gray-800/50 sticky top-0 bg-[#0f1419] z-10">
-        <div className="relative">
-          <input
-            ref={searchInputRef}
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Search assets..."
-            className="w-full bg-[#1a1f2e] border border-gray-700/50 rounded-lg px-3 py-2 pl-9 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all"
-            onClick={(e) => e.stopPropagation()}
+        <>
+          {/* Overlay with animation */}
+          <div 
+            className={`fixed inset-0 z-[62] lg:hidden ${
+              isClosing ? 'animate-fade-out' : 'animate-fade-in'
+            }`}
+            onClick={handleClose} 
           />
-          <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          {searchQuery && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setSearchQuery('')
-                searchInputRef.current?.focus()
-              }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-700/50 rounded transition-colors"
-            >
-              <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
-        </div>
-        {/* Keyboard hints */}
-        <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-          <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-[10px]">↑↓</kbd>
-            navigate
-          </span>
-          <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-[10px]">↵</kbd>
-            select
-          </span>
-          <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-[10px]">Esc</kbd>
-            close
-          </span>
-        </div>
-      </div>
-      
-      {/* Assets List - Scrollable dengan max 3 item yang terlihat */}
-      <div className="overflow-y-auto pr-2 max-h-[200px]"> {/* ✅ max-h-[200px] untuk 3 item */}
-        {filteredAssets.length > 0 ? (
-          filteredAssets.map((assetItem: any, index: number) => (
-            <button
-              key={assetItem.id}
-              onClick={() => {
-                onSelectAsset(assetItem)
-              }}
-              onMouseEnter={() => {
-                setSelectedIndex(index)
-                if (assetItem.realtimeDbPath) {
-                  prefetchMultipleTimeframes(
-                    assetItem.realtimeDbPath,
-                    ['1m', '5m']
-                  ).catch(err => console.log('Prefetch failed:', err))
-                }
-              }}
-              className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#1a1f2e] transition-colors border-b border-gray-800/30 last:border-0 ${
-                index === selectedIndex ? 'bg-[#1a1f2e] ring-1 ring-blue-500/30' : ''
-              } ${
-                assetItem.id === asset?.id ? 'bg-[#1a1f2e]/50' : ''
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <AssetIcon asset={assetItem} size="xs" />
-                <div className="text-left">
-                  <div className="text-sm font-medium">{assetItem.symbol}</div>
-                  <div className="text-xs text-gray-400">{assetItem.name}</div>
-                </div>
+          
+          {/* Dropdown with animation */}
+          <div className={`absolute top-full left-0 mt-2 w-72 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl z-[63] lg:hidden flex flex-col max-h-[calc(100vh-120px)] ${
+            isClosing ? 'animate-dropdown-out' : 'animate-dropdown-in'
+          }`}>
+            {/* Search Input */}
+            <div className="p-3 border-b border-gray-800/50 sticky top-0 bg-[#0f1419] z-10">
+              <div className="relative flex items-center gap-2 mb-2">
+                <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Cari aset..."
+                  className="flex-1 bg-transparent text-xs text-white placeholder-gray-500 focus:outline-none"
+                  onClick={(e) => e.stopPropagation()}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSearchQuery('')
+                      searchInputRef.current?.focus()
+                    }}
+                    className="text-gray-500 hover:text-gray-300 transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
               </div>
-              <div className="text-xs font-bold text-emerald-400">+{assetItem.profitRate}%</div>
-            </button>
-          ))
-        ) : (
-          <div className="px-4 py-8 text-center text-gray-500 text-sm">
-            <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p>No assets found</p>
-            <p className="text-xs mt-1">Try a different search term</p>
+              
+              {/* Type Filter Chips */}
+              {availableAssetTypes.length > 1 && (
+                <div onClick={(e) => e.stopPropagation()}>
+                  <TypeFilterChips
+                    activeFilter={assetTypeFilter}
+                    onFilterChange={setAssetTypeFilter}
+                    assetCounts={assetCountsByType}
+                    availableTypes={availableAssetTypes}
+                  />
+                </div>
+              )}
+            </div>
+            
+            {/* Assets List - Scrollable */}
+            <div className="overflow-y-auto max-h-[300px]">
+              {filteredAssets.length > 0 ? (
+                filteredAssets.map((assetItem: any, index: number) => (
+                  <button
+                    key={assetItem.id}
+                    onClick={() => {
+                      onSelectAsset(assetItem)
+                    }}
+                    onMouseEnter={() => {
+                      setSelectedIndex(index)
+                      if (assetItem.realtimeDbPath) {
+                        prefetchMultipleTimeframes(
+                          assetItem.realtimeDbPath,
+                          ['1m', '5m']
+                        ).catch(err => console.log('Prefetch failed:', err))
+                      }
+                    }}
+                    className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#1a1f2e] transition-colors border-b border-gray-800/30 last:border-0 ${
+                      index === selectedIndex ? 'bg-[#1a1f2e] ring-1 ring-blue-500/30' : ''
+                    } ${
+                      assetItem.id === asset?.id ? 'bg-[#1a1f2e]/50' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <AssetIcon asset={assetItem} size="xs" />
+                      <div className="text-left">
+                        <div className="text-sm font-medium">{assetItem.symbol}</div>
+                        <div className="text-xs text-gray-400">{assetItem.name}</div>
+                      </div>
+                    </div>
+                    <div className="text-xs font-bold text-emerald-400">+{assetItem.profitRate}%</div>
+                  </button>
+                ))
+              ) : (
+                <div className="px-4 py-8 text-center">
+                  <div className="text-2xl mb-2 opacity-50">🔍</div>
+                  <p className="text-xs text-gray-500">
+                    {searchQuery
+                      ? 'Aset tidak ditemukan'
+                      : `Tidak ada ${ASSET_TYPE_META[assetTypeFilter]?.label || ''} tersedia`
+                    }
+                  </p>
+                  {assetTypeFilter !== 'all' && !searchQuery && (
+                    <button
+                      onClick={() => setAssetTypeFilter('all')}
+                      className="mt-2 text-[11px] text-blue-400 hover:text-blue-300 underline"
+                    >
+                      Tampilkan semua
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
-    </div>
-  </>
-)}
+        </>
+      )}
     </div>
   )
 })
@@ -937,7 +1068,7 @@ const OHLCDisplay = memo(({
   }
 
   return (
-    <div className="absolute bottom-12 left-2 z-10 bg-[#0a0e17] border border-gray-800/50 rounded-lg px-3 py-2 text-xs">
+    <div className="absolute bottom-20 left-2 z-10 bg-[#0a0e17] border border-gray-800/50 rounded-lg px-3 py-2 text-xs">
       <div className="flex items-center gap-1 text-gray-400 mb-1">
         <Clock className="w-3 h-3" />
         <span>{timeStr} WIB</span>
@@ -1217,7 +1348,7 @@ const DesktopControls = memo(({
   }, [showTimeframeMenu])
 
   return (
-    <div className="hidden lg:block absolute top-2 right-16 z-10">
+    <div className="hidden lg:block absolute top-2 right-24 z-10">
       <div className="flex items-center gap-2">
         <div className="relative" ref={timeframeRef}>
           <button onClick={() => setShowTimeframeMenu(!showTimeframeMenu)} disabled={isLoading} className="p-2.5 bg-black/20 backdrop-blur-md border border-white/10 rounded-lg hover:bg-black/30 transition-all flex items-center gap-1.5 disabled:opacity-50" title="Timeframe">
@@ -3797,5 +3928,57 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
 })
 
 TradingChart.displayName = 'TradingChart'
+
+// Add global styles for dropdown animations
+if (typeof document !== 'undefined') {
+  const styleId = 'trading-chart-animations'
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement('style')
+    style.id = styleId
+    style.textContent = `
+      @keyframes dropdown-in {
+        from { 
+          opacity: 0;
+          transform: translateY(-8px) scale(0.96);
+        }
+        to { 
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      @keyframes dropdown-out {
+        from { 
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+        to { 
+          opacity: 0;
+          transform: translateY(-8px) scale(0.96);
+        }
+      }
+      @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes fade-out {
+        from { opacity: 1; }
+        to { opacity: 0; }
+      }
+      .animate-dropdown-in {
+        animation: dropdown-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .animate-dropdown-out {
+        animation: dropdown-out 0.2s cubic-bezier(0.4, 0, 1, 1);
+      }
+      .animate-fade-in {
+        animation: fade-in 0.2s ease-out;
+      }
+      .animate-fade-out {
+        animation: fade-out 0.2s ease-in;
+      }
+    `
+    document.head.appendChild(style)
+  }
+}
 
 export default TradingChart
