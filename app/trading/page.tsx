@@ -310,6 +310,9 @@ export default function TradingPage() {
   const currentBalance = selectedAccountType === 'real' ? realBalance : demoBalance
   const isUltraFastMode = duration === 0.0167
 
+  // ✅ Notif merah jika profil belum 100% complete
+  const isProfileIncomplete = (userProfile?.profileInfo?.completion ?? 0) < 100
+
   // ✅ FIX: Sync balanceRef agar handlePlaceOrder tidak stale closure
   useEffect(() => {
     balanceRef.current = { real: realBalance, demo: demoBalance }
@@ -1112,19 +1115,29 @@ export default function TradingPage() {
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
                 <div className="absolute top-full right-0 mt-2 w-56 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50">
-                  <div className="px-4 py-3 border-b border-gray-800/30">
+                  <div className="px-4 py-4 border-b border-gray-800/30">
                     <div className="text-sm font-medium truncate">{user.email}</div>
                     <div className="text-xs text-gray-400 mt-1">{user.role}</div>
                   </div>
                   
+                  <div className="p-2 space-y-0.5">
                   <button
                     onClick={() => {
                       router.push('/profile')
                       setShowUserMenu(false)
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#232936] transition-colors text-left"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#232936] transition-colors text-left"
                   >
-                    <Settings className="w-4 h-4" />
+                    {/* ✅ Icon wrapper dengan badge notif di pojok kanan atas */}
+                    <div className="relative flex-shrink-0">
+                      <Settings className="w-4 h-4" />
+                      {isProfileIncomplete && (
+                        <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                          <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
+                        </span>
+                      )}
+                    </div>
                     <span className="text-sm">Profil</span>
                   </button>
 
@@ -1133,9 +1146,9 @@ export default function TradingPage() {
                       router.push('/history')
                       setShowUserMenu(false)
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#232936] transition-colors text-left"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#232936] transition-colors text-left"
                   >
-                    <CalendarClock className="w-4 h-4" />
+                    <CalendarClock className="w-4 h-4 flex-shrink-0" />
                     <span className="text-sm">Riwayat</span>
                   </button>
 
@@ -1144,9 +1157,9 @@ export default function TradingPage() {
                       router.push('/balance')
                       setShowUserMenu(false)
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#232936] transition-colors text-left"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#232936] transition-colors text-left"
                   >
-                    <Wallet className="w-4 h-4" />
+                    <Wallet className="w-4 h-4 flex-shrink-0" />
                     <span className="text-sm">Keuangan</span>
                   </button>
 
@@ -1157,21 +1170,22 @@ export default function TradingPage() {
                         setShowTutorial(true)
                       }, 300)
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-blue-500/10 transition-colors text-left text-blue-400"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-500/10 transition-colors text-left text-blue-400"
                   >
-                    <Info className="w-4 h-4" />
+                    <Info className="w-4 h-4 flex-shrink-0" />
                     <span className="text-sm">Tutorial</span>
                   </button>
+                  </div>
                   
-                  <div className="border-t border-gray-800/30">
+                  <div className="p-2 border-t border-gray-800/30">
                     <button
                       onClick={() => {
                         setShowUserMenu(false)
                         handleLogout()
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-rose-500/10 transition-colors text-left text-rose-400"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-rose-500/10 transition-colors text-left text-rose-400"
                     >
-                      <LogOut className="w-4 h-4" />
+                      <LogOut className="w-4 h-4 flex-shrink-0" />
                       <span className="text-sm">Keluar</span>
                     </button>
                   </div>
@@ -1783,6 +1797,18 @@ export default function TradingPage() {
                 <div className="flex-1">
                   <h3 className="font-bold text-sm truncate">{user.email}</h3>
                   <p className="text-xs text-gray-400">{user.role}</p>
+                  {/* ✅ Info kelengkapan profil di header sidebar */}
+                  {isProfileIncomplete && (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="flex h-1.5 w-1.5 flex-shrink-0">
+                        <span className="animate-ping absolute inline-flex h-1.5 w-1.5 rounded-full bg-red-400 opacity-75" />
+                        <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
+                      </span>
+                      <span className="text-[10px] text-red-400 font-medium">
+                        Profil {userProfile?.profileInfo?.completion ?? 0}% lengkap
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1830,9 +1856,18 @@ export default function TradingPage() {
                   handleCloseMobileMenu()
                   setTimeout(() => router.push('/profile'), 300)
                 }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+                className="w-full flex items-center gap-3.5 px-4 py-3.5 bg-[#1a1f2e] hover:bg-[#232936] rounded-xl transition-colors"
               >
-                <Settings className="w-4 h-4" />
+                {/* ✅ Icon wrapper dengan badge notif di pojok kanan atas */}
+                <div className="relative flex-shrink-0">
+                  <Settings className="w-4 h-4" />
+                  {isProfileIncomplete && (
+                    <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                      <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
+                    </span>
+                  )}
+                </div>
                 <span>Profil</span>
               </button>
 
@@ -1841,9 +1876,9 @@ export default function TradingPage() {
                   handleCloseMobileMenu()
                   setTimeout(() => router.push('/balance'), 300)
                 }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+                className="w-full flex items-center gap-3.5 px-4 py-3.5 bg-[#1a1f2e] hover:bg-[#232936] rounded-xl transition-colors"
               >
-                <Wallet className="w-4 h-4" />
+                <Wallet className="w-4 h-4 flex-shrink-0" />
                 <span>Keuangan</span>
               </button>
               
@@ -1852,9 +1887,9 @@ export default function TradingPage() {
                   setShowHistorySidebar(true)
                   handleCloseMobileMenu()
                 }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+                className="w-full flex items-center gap-3.5 px-4 py-3.5 bg-[#1a1f2e] hover:bg-[#232936] rounded-xl transition-colors"
               >
-                <CalendarClock className="w-4 h-4" />
+                <CalendarClock className="w-4 h-4 flex-shrink-0" />
                 <span>Riwayat</span>
               </button>
 
@@ -1865,9 +1900,9 @@ export default function TradingPage() {
                     setShowTutorial(true)
                   }, 300)
                 }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg transition-colors text-blue-400"
+                className="w-full flex items-center gap-3.5 px-4 py-3.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-xl transition-colors text-blue-400"
               >
-                <Info className="w-4 h-4" />
+                <Info className="w-4 h-4 flex-shrink-0" />
                 <span>Lihat Tutorial</span>
               </button>
 
@@ -1877,9 +1912,9 @@ export default function TradingPage() {
                   setTimeout(() => handleLogout(), 300)
                   handleLogout()
                 }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg transition-colors text-rose-400"
+                className="w-full flex items-center gap-3.5 px-4 py-3.5 bg-rose-500/10 hover:bg-rose-500/20 rounded-xl transition-colors text-rose-400"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4 flex-shrink-0" />
                 <span>Keluar</span>
               </button>
             </div>

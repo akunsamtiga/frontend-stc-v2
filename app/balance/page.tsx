@@ -11,7 +11,8 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { getStatusProfitBonus } from '@/lib/status-utils'
 import {
   Wallet, ArrowDownToLine, ArrowUpFromLine, X, Receipt,
-  CreditCard, Loader2, ChevronLeft, ChevronRight, Wifi, Clock
+  CreditCard, Loader2, ChevronLeft, ChevronRight, Wifi, Clock,
+  Play
 } from 'lucide-react'
 
 // Status badge PNG mapping
@@ -37,6 +38,8 @@ interface MidtransDeposit {
   description?: string
   createdAt: string
   completedAt?: string
+  snap_token?: string        // tersedia untuk status pending
+  snap_redirect_url?: string // tersedia untuk status pending
 }
 
 // ============================================
@@ -52,6 +55,9 @@ interface CombinedTransaction {
   status?: string
   payment_type?: string
   source: 'balance' | 'midtrans' // Menandai sumber data
+  order_id?: string               // untuk melanjutkan pembayaran pending
+  snap_token?: string             // untuk melanjutkan pembayaran pending
+  snap_redirect_url?: string      // fallback redirect
 }
 
 // ============================================
@@ -91,7 +97,6 @@ const StaggerStyles = () => (
       background-size: 1000px 100%;
       animation: shimmer 3s infinite;
     }
-    /* Shimmer reveal: lubang transparan bergerak dari bawah ke atas, mengekspos garis grid */
     @keyframes grid-shimmer-up {
       0%   { background-position: center 130%, center center, center center; }
       100% { background-position: center -30%, center center, center center; }
@@ -105,7 +110,6 @@ const StaggerStyles = () => (
       100% { background-position: center -30%, center center, center center; }
     }
 
-    /* Grid Pattern - overlay putih berlubang bergerak ke atas, mengekspos garis gelap di bawahnya */
     .bg-pattern-grid {
       background-color: #ffffff;
       background-image:
@@ -125,7 +129,6 @@ const StaggerStyles = () => (
       background-position: center 130%, center center, center center;
       animation: grid-shimmer-up 8s linear infinite;
     }
-    /* Alternative: Grid dengan jarak 48px */
     .bg-pattern-grid-48 {
       background-color: #ffffff;
       background-image:
@@ -145,7 +148,6 @@ const StaggerStyles = () => (
       background-position: center 130%, center center, center center;
       animation: grid-shimmer-up-48 8s linear infinite;
     }
-    /* Alternative: Grid dengan jarak 56px */
     .bg-pattern-grid-56 {
       background-color: #ffffff;
       background-image:
@@ -239,9 +241,7 @@ const SkeletonTransactionRow = ({ index = 0 }: { index?: number }) => (
 
 const LoadingSkeleton = () => (
   <>
-    {/* INJECT STYLE GLOBAL KHUSUS UNTUK SKELETON */}
     <style jsx global>{`
-      /* Grid Pattern - Background putih dengan pola halus */
       .bg-pattern-grid {
         background-color: #ffffff !important;
         background-image: 
@@ -250,22 +250,9 @@ const LoadingSkeleton = () => (
         background-size: 40px 40px;
         background-position: center center;
       }
-      
-      /* Scrollbar hide utility */
-      .scrollbar-hide::-webkit-scrollbar {
-        display: none;
-      }
-      .scrollbar-hide {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
-      
-      /* Pastikan body tidak hitam saat loading */
-      body {
-        background-color: #ffffff !important;
-      }
-      
-      /* Skeleton animations */
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+      .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      body { background-color: #ffffff !important; }
       @keyframes skeleton-pulse {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.4; }
@@ -279,7 +266,6 @@ const LoadingSkeleton = () => (
     
     <div className="min-h-screen bg-pattern-grid">
       <Navbar />
-      {/* Mobile Skeleton */}
       <div className="lg:hidden container mx-auto px-3 py-4">
         <div className="mb-4 skeleton-item" style={{ animationDelay: '0ms' }}>
           <div className="h-3 bg-gray-200 rounded w-32 mb-2"></div>
@@ -300,7 +286,6 @@ const LoadingSkeleton = () => (
           ))}
         </div>
       </div>
-      {/* Desktop Skeleton */}
       <div className="hidden lg:block container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-6 skeleton-item" style={{ animationDelay: '0ms' }}>
           <div className="h-4 bg-gray-200 rounded w-48 mb-3"></div>
@@ -336,6 +321,32 @@ const LoadingSkeleton = () => (
   </>
 )
 
+// ============================================
+// LOAD MIDTRANS SNAP.JS
+// ============================================
+function loadMidtransSnap(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if ((window as any).snap) {
+      resolve()
+      return
+    }
+    const existingScript = document.getElementById('midtrans-snap')
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve())
+      return
+    }
+    const script = document.createElement('script')
+    script.id = 'midtrans-snap'
+    script.src = process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === 'true'
+      ? 'https://app.midtrans.com/snap/snap.js'
+      : 'https://app.sandbox.midtrans.com/snap/snap.js'
+    script.setAttribute('data-client-key', process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '')
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error('Gagal memuat Midtrans'))
+    document.head.appendChild(script)
+  })
+}
+
 export default function BalancePage() {
   const router = useRouter()
   const user = useAuthStore((state) => state.user)
@@ -350,6 +361,8 @@ export default function BalancePage() {
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
+  // ✅ State untuk melanjutkan pembayaran pending
+  const [continuingPaymentId, setContinuingPaymentId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) {
@@ -366,7 +379,6 @@ export default function BalancePage() {
   const loadData = async () => {
     try {
       setInitialLoading(true)
-      // ✅ PERBAIKAN: Load balance, balance history, deposit history, dan profile secara parallel
       const [balancesRes, historyRes, depositHistoryRes, profileRes] = await Promise.all([
         api.getBothBalances(),
         api.getBalanceHistory(1, 100),
@@ -377,15 +389,13 @@ export default function BalancePage() {
         api.getProfile()
       ])
 
-      // Set balances
       const balances = balancesRes?.data || balancesRes
       setRealBalance(balances?.realBalance || 0)
       setDemoBalance(balances?.demoBalance || 0)
 
       // ============================================
-      // ✅ GABUNGKAN TRANSAKSI DARI BALANCE DAN MIDTRANS
+      // GABUNGKAN TRANSAKSI DARI BALANCE DAN MIDTRANS
       // ============================================
-      // 1. Ambil transaksi dari balance (filter hanya deposit dan withdrawal)
       const balanceTransactions: CombinedTransaction[] = (historyRes?.data?.transactions || historyRes?.transactions || [])
         .filter((tx: any) => {
           const txType = tx.type.toLowerCase()
@@ -401,61 +411,58 @@ export default function BalancePage() {
           source: 'balance' as const
         }))
 
-      // 2. Ambil deposit dari Midtrans
       let midtransDeposits: MidtransDeposit[] = []
       if (depositHistoryRes) {
         midtransDeposits = (depositHistoryRes as any)?.data?.deposits ||
           (depositHistoryRes as any)?.deposits || []
       }
 
-      // 3. Convert Midtrans deposits ke format CombinedTransaction (hanya yang sukses)
+      // ✅ PERUBAHAN: Sertakan SEMUA deposit Midtrans (pending, success, failed, expired)
+      //    Bukan hanya yang success
       const midtransTransactions: CombinedTransaction[] = midtransDeposits
-        .filter((deposit: MidtransDeposit) => deposit.status === 'success')
         .map((deposit: MidtransDeposit) => ({
           id: deposit.id,
           type: 'deposit' as const,
           amount: deposit.amount,
-          accountType: 'real' as const, // Midtrans selalu ke real account
+          accountType: 'real' as const,
           description: deposit.description || 'Top up via payment gateway',
           createdAt: deposit.completedAt || deposit.createdAt,
           status: deposit.status,
           payment_type: deposit.payment_type,
-          source: 'midtrans' as const
+          source: 'midtrans' as const,
+          order_id: deposit.order_id,
+          // ✅ Snap info hanya ada untuk pending (dikembalikan backend)
+          snap_token: deposit.snap_token,
+          snap_redirect_url: deposit.snap_redirect_url,
         }))
 
-      // 4. Gabungkan kedua array
       const combinedTransactions = [...balanceTransactions, ...midtransTransactions]
 
-      // 5. Remove potential duplicates
       const uniqueTransactions = combinedTransactions.filter((tx, index, self) => {
         const isDuplicate = self.findIndex(t => {
-          if (t.id === tx.id) return true // Same ID
+          if (t.id === tx.id) return true
           if (t.type !== tx.type) return false
           if (t.amount !== tx.amount) return false
           if (t.accountType !== tx.accountType) return false
-          // Check if created within 1 minute of each other
           const timeDiff = Math.abs(
             new Date(t.createdAt).getTime() - new Date(tx.createdAt).getTime()
           )
-          return timeDiff < 60000 // Within 1 minute
+          return timeDiff < 60000
         })
         return isDuplicate === index
       })
 
-      // 6. Sort by date (newest first)
       uniqueTransactions.sort((a, b) => {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       })
 
-      // ✅ Log untuk debugging
       console.log('📊 Transaction Summary:')
       console.log('  - Balance transactions:', balanceTransactions.length)
-      console.log('  - Midtrans deposits:', midtransTransactions.length)
+      console.log('  - Midtrans deposits (all status):', midtransTransactions.length)
       console.log('  - Combined (after dedup):', uniqueTransactions.length)
 
       setAllTransactions(uniqueTransactions)
 
-      // Set profile
       let profileData: UserProfile | null = null
       if (profileRes && typeof profileRes === 'object') {
         if ('data' in profileRes && profileRes.data) {
@@ -472,6 +479,71 @@ export default function BalancePage() {
       toast.error('Failed to load wallet data')
     } finally {
       setInitialLoading(false)
+    }
+  }
+
+  // ============================================
+  // ✅ HANDLER: Lanjutkan Pembayaran Pending
+  // ============================================
+  const handleContinuePayment = async (tx: CombinedTransaction) => {
+    if (!tx.order_id) return
+    setContinuingPaymentId(tx.id)
+
+    try {
+      // Jika snap_token masih tersedia, gunakan Snap popup
+      if (tx.snap_token) {
+        try {
+          await loadMidtransSnap()
+          const snap = (window as any).snap
+          if (snap) {
+            snap.pay(tx.snap_token, {
+              onSuccess: () => {
+                toast.success('Pembayaran berhasil! Saldo sedang diproses.')
+                loadData()
+              },
+              onPending: () => {
+                toast.info('Pembayaran sedang diproses.')
+              },
+              onError: () => {
+                toast.error('Pembayaran gagal. Silakan coba lagi.')
+              },
+              onClose: () => {
+                toast.info('Jendela pembayaran ditutup.')
+              },
+            })
+            setContinuingPaymentId(null)
+            return
+          }
+        } catch (err) {
+          console.warn('Snap popup gagal, fallback ke redirect:', err)
+        }
+      }
+
+      // Fallback: redirect ke snap_redirect_url
+      if (tx.snap_redirect_url) {
+        window.open(tx.snap_redirect_url, '_blank', 'noopener,noreferrer')
+        toast.info('Halaman pembayaran dibuka di tab baru.')
+        setContinuingPaymentId(null)
+        return
+      }
+
+      // Jika tidak ada snap info, cek status dari server
+      toast.info('Memeriksa status pembayaran...')
+      const statusRes = await api.checkMidtransDepositStatus(tx.order_id!)
+      const deposit = (statusRes as any)?.data?.deposit || (statusRes as any)?.deposit
+      if (deposit?.status === 'success') {
+        toast.success('Pembayaran sudah berhasil! Halaman akan diperbarui.')
+        loadData()
+      } else if (deposit?.status === 'pending') {
+        toast.warning('Pembayaran masih tertunda. Silakan hubungi support jika butuh bantuan.')
+      } else {
+        toast.error('Tidak dapat melanjutkan pembayaran. Silakan buat deposit baru.')
+      }
+    } catch (error) {
+      console.error('Continue payment error:', error)
+      toast.error('Gagal melanjutkan pembayaran')
+    } finally {
+      setContinuingPaymentId(null)
     }
   }
 
@@ -492,7 +564,7 @@ export default function BalancePage() {
       toast.success(`Demo top up successful!`)
       setShowDeposit(false)
       setAmount('')
-      loadData() // Reload data setelah deposit
+      loadData()
     } catch (error) {
       toast.error('Demo top up failed')
     } finally {
@@ -502,7 +574,6 @@ export default function BalancePage() {
 
   const quickAmounts = [10000, 50000, 100000, 250000, 500000, 1000000]
 
-  // Filter berdasarkan account type yang dipilih
   const filteredTransactions = selectedAccount === 'all'
     ? allTransactions
     : allTransactions.filter(t => t.accountType === selectedAccount)
@@ -511,6 +582,11 @@ export default function BalancePage() {
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE))
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
   const displayedTransactions = filteredTransactions.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+
+  // ✅ Hitung pending deposits untuk banner notifikasi
+  const pendingDeposits = allTransactions.filter(
+    t => t.source === 'midtrans' && t.status === 'pending'
+  )
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -570,6 +646,30 @@ export default function BalancePage() {
             </div>
           </div>
 
+          {/* ============================================ */}
+          {/* ✅ BANNER NOTIFIKASI PEMBAYARAN PENDING      */}
+          {/* ============================================ */}
+          {pendingDeposits.length > 0 && (
+            <div
+              className="mb-4 sm:mb-6 p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 stagger-item"
+              style={{ animationDelay: '60ms' }}
+            >
+              <div className="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Clock className="w-5 h-5 text-amber-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-amber-800">
+                  {pendingDeposits.length === 1
+                    ? 'Ada 1 pembayaran yang belum selesai'
+                    : `Ada ${pendingDeposits.length} pembayaran yang belum selesai`}
+                </p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Klik tombol <span className="font-bold">Lanjutkan</span> di riwayat transaksi untuk menyelesaikan pembayaran Anda.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Mobile Status Badge */}
           {statusInfo && (
             <div className="lg:hidden mb-4 sm:mb-6 stagger-item" style={{ animationDelay: '50ms' }}>
@@ -603,12 +703,9 @@ export default function BalancePage() {
             </div>
           )}
 
-          {/* ============================================ */}
-          {/* MOBILE VERSION - Side by Side Layout */}
-          {/* ============================================ */}
+          {/* MOBILE VERSION */}
           <div className="lg:hidden mb-4 sm:mb-6">
             <div className="space-y-3">
-              {/* Real Account Card - Side by Side */}
               <div
                 className="bg-gradient-to-r from-emerald-50 to-gray-200 rounded-xl border border-gray-200 p-4 shadow-sm stagger-item"
                 style={{ animationDelay: '100ms' }}
@@ -648,7 +745,6 @@ export default function BalancePage() {
                 </div>
               </div>
 
-              {/* Demo Account Card - Side by Side */}
               <div
                 className="bg-gradient-to-r from-sky-50 to-gray-200 rounded-xl border border-gray-200 p-4 shadow-sm stagger-item"
                 style={{ animationDelay: '200ms' }}
@@ -684,9 +780,7 @@ export default function BalancePage() {
             </div>
           </div>
 
-          {/* ============================================ */}
-          {/* DESKTOP VERSION - Enhanced Realistic Cards */}
-          {/* ============================================ */}
+          {/* DESKTOP VERSION */}
           <div className="hidden lg:block mb-6">
             <div className="grid grid-cols-2 gap-6">
               {/* Real Account Desktop Card */}
@@ -884,9 +978,7 @@ export default function BalancePage() {
             </div>
           </div>
 
-          {/* ============================================ */}
-          {/* Transaction History - UPDATED */}
-          {/* ============================================ */}
+          {/* TRANSACTION HISTORY */}
           <div
             id="transaction-list"
             className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm stagger-item"
@@ -897,11 +989,10 @@ export default function BalancePage() {
                 Riwayat Transaksi
                 {allTransactions.length > 0 && (
                   <span className="text-sm font-normal text-gray-500 ml-auto">
-                    ({filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''})
+                    ({filteredTransactions.length} transaksi)
                   </span>
                 )}
               </h2>
-              {/* Account Filter */}
               <div className="flex gap-2 flex-wrap">
                 {[
                   { id: 'all' as const, label: 'Semua', count: allTransactions.length },
@@ -926,76 +1017,125 @@ export default function BalancePage() {
                   <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
                     <Wallet className="w-8 h-8 text-gray-300" />
                   </div>
-                  <h3 className="text-base font-semibold text-gray-900 mb-1">No transactions yet</h3>
+                  <h3 className="text-base font-semibold text-gray-900 mb-1">Belum ada transaksi</h3>
                   <p className="text-sm text-gray-500">
                     {selectedAccount === 'all'
-                      ? 'Your wallet activity will appear here'
-                      : `No ${selectedAccount} account transactions yet`
+                      ? 'Aktivitas dompet Anda akan muncul di sini'
+                      : `Belum ada transaksi akun ${selectedAccount}`
                     }
                   </p>
                 </div>
               ) : (
                 <>
                   <div className="space-y-2 sm:space-y-3">
-                    {displayedTransactions.map((tx, index) => (
-                      <div
-                        key={`${tx.source}-${tx.id}`}
-                        className="flex items-center justify-between p-3 sm:p-4 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100 gap-3 stagger-item"
-                        style={{ animationDelay: `${(index + 4) * 50}ms` }}
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                            tx.type === 'deposit' ? 'bg-green-50' : 'bg-red-50'
-                          }`}>
-                            {tx.type === 'deposit' ? (
-                              <ArrowDownToLine className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
-                            ) : (
-                              <ArrowUpFromLine className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                              <div className="font-semibold text-gray-900 capitalize text-sm">
-                                {tx.type === 'deposit' ? 'Top Up' : 'Withdraw'}
-                              </div>
-                              <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
-                                tx.accountType === 'real' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                              }`}>
-                                {tx.accountType.toUpperCase()}
-                              </span>
-                              {tx.status && tx.status !== 'success' && (
-                                <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
-                                  tx.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                                    tx.status === 'failed' ? 'bg-red-100 text-red-700' :
-                                      'bg-gray-100 text-gray-700'
-                                }`}>
-                                  {tx.status.toUpperCase()}
-                                </span>
+                    {displayedTransactions.map((tx, index) => {
+                      const isPending = tx.status === 'pending'
+                      const isFailed = tx.status === 'failed' || tx.status === 'expired'
+                      const isContinuing = continuingPaymentId === tx.id
+
+                      return (
+                        <div
+                          key={`${tx.source}-${tx.id}`}
+                          className={`flex items-center justify-between p-3 sm:p-4 rounded-xl transition-colors border gap-3 stagger-item ${
+                            isPending
+                              ? 'bg-amber-50 border-amber-200 hover:bg-amber-100'
+                              : isFailed
+                                ? 'bg-red-50 border-red-100 hover:bg-red-100'
+                                : 'hover:bg-gray-50 border-gray-100'
+                          }`}
+                          style={{ animationDelay: `${(index + 4) * 50}ms` }}
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                              isPending ? 'bg-amber-100' :
+                              isFailed ? 'bg-red-100' :
+                              tx.type === 'deposit' ? 'bg-green-50' : 'bg-red-50'
+                            }`}>
+                              {isPending ? (
+                                <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" />
+                              ) : tx.type === 'deposit' ? (
+                                <ArrowDownToLine className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+                              ) : (
+                                <ArrowUpFromLine className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
                               )}
                             </div>
-                            <div className="text-xs text-gray-500 flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {formatDate(tx.createdAt)}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                                <div className="font-semibold text-gray-900 capitalize text-sm">
+                                  {tx.type === 'deposit' ? 'Top Up' : 'Withdraw'}
+                                </div>
+                                <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
+                                  tx.accountType === 'real' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                                }`}>
+                                  {tx.accountType.toUpperCase()}
+                                </span>
+                                {/* ✅ Status badge yang lebih informatif */}
+                                {tx.status && (
+                                  <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
+                                    tx.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                                    tx.status === 'success' ? 'bg-green-100 text-green-700' :
+                                    tx.status === 'failed' ? 'bg-red-100 text-red-700' :
+                                    tx.status === 'expired' ? 'bg-gray-100 text-gray-600' :
+                                    'bg-gray-100 text-gray-700'
+                                  }`}>
+                                    {tx.status === 'pending' ? '⏳ MENUNGGU' :
+                                     tx.status === 'success' ? '✓ SUKSES' :
+                                     tx.status === 'failed' ? '✗ GAGAL' :
+                                     tx.status === 'expired' ? 'KADALUARSA' :
+                                     tx.status.toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500 flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {formatDate(tx.createdAt)}
+                              </div>
+                              {tx.description && (
+                                <div className="text-xs text-gray-400 mt-0.5 truncate">
+                                  {tx.description}
+                                </div>
+                              )}
+                              {tx.payment_type && (
+                                <div className="text-xs text-purple-600 mt-0.5 font-medium">
+                                  via {tx.payment_type.replace(/_/g, ' ')}
+                                </div>
+                              )}
+                              {/* ✅ Info tambahan untuk pending */}
+                              {isPending && (
+                                <div className="text-xs text-amber-600 mt-0.5 font-medium">
+                                  Klik "Lanjutkan" untuk menyelesaikan pembayaran
+                                </div>
+                              )}
                             </div>
-                            {tx.description && (
-                              <div className="text-xs text-gray-400 mt-0.5 truncate">
-                                {tx.description}
-                              </div>
-                            )}
-                            {tx.payment_type && (
-                              <div className="text-xs text-purple-600 mt-0.5 font-medium">
-                                via {tx.payment_type.replace(/_/g, ' ')}
-                              </div>
+                          </div>
+
+                          {/* ✅ Kolom kanan: amount + tombol lanjutkan (jika pending) */}
+                          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                            <div className={`text-base sm:text-lg font-bold ${
+                              isPending ? 'text-amber-600' :
+                              isFailed ? 'text-gray-400' :
+                              tx.type === 'deposit' ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {tx.type === 'deposit' ? '+' : '-'}{formatCurrency(tx.amount)}
+                            </div>
+                            {/* ✅ Tombol Lanjutkan hanya untuk pending Midtrans */}
+                            {isPending && tx.source === 'midtrans' && (
+                              <button
+                                onClick={() => handleContinuePayment(tx)}
+                                disabled={isContinuing}
+                                className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white rounded-lg text-xs font-bold transition-colors whitespace-nowrap"
+                              >
+                                {isContinuing ? (
+                                  <><Loader2 className="w-3 h-3 animate-spin" /> Memuat...</>
+                                ) : (
+                                  <><Play className="w-3 h-3" /> Lanjutkan</>
+                                )}
+                              </button>
                             )}
                           </div>
                         </div>
-                        <div className={`text-base sm:text-lg font-bold flex-shrink-0 ${
-                          tx.type === 'deposit' ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {tx.type === 'deposit' ? '+' : '-'}{formatCurrency(tx.amount)}
-                        </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
 
                   {/* Pagination */}
@@ -1026,7 +1166,7 @@ export default function BalancePage() {
                       </div>
                       <div className="hidden md:flex items-center justify-between">
                         <div className="text-sm text-gray-600">
-                          Showing {startIndex + 1}-{Math.min(startIndex + ITEMS_PER_PAGE, totalItems)} of {totalItems}
+                          Menampilkan {startIndex + 1}-{Math.min(startIndex + ITEMS_PER_PAGE, totalItems)} dari {totalItems}
                         </div>
                         <div className="flex items-center gap-2">
                           <button
