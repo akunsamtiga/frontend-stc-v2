@@ -26,7 +26,7 @@ export default function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
   if (!badgeImage) return null
 
   return (
-    <div className={`absolute -bottom-0.5 -right-0.5 ${config.container} rounded-full bg-[#0f1419] p-0.5 border border-gray-800/50 shadow-lg z-50`}>
+    <div className={`absolute -bottom-0.5 -right-0.5 ${config.container} rounded-full bg-[#0f1419] border border-gray-800/50 shadow-lg z-50`}>
       <Image
         src={badgeImage}
         alt={`${status} status`}

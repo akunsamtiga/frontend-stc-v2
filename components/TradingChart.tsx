@@ -2,8 +2,11 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimestamp, LineStyle } from 'lightweight-charts'
 import { useTradingStore, useTradingActions } from '@/store/trading'
+import { useAuthStore } from '@/store/auth'
+import { api } from '@/lib/api'
 import { fetchHistoricalData, subscribeToOHLCUpdates, prefetchMultipleTimeframes } from '@/lib/firebase'
 import { BinaryOrder, TIMEFRAMES, Timeframe as TimeframeType } from '@/types'
 import { database, ref, get } from '@/lib/firebase'
@@ -1619,6 +1622,11 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
   const [prefetchedAssets, setPrefetchedAssets] = useState<Set<string>>(new Set())
   const [currentChartData, setCurrentChartData] = useState<any[]>([])
   const [isMobile, setIsMobile] = useState(false)
+  const [showReferralModal, setShowReferralModal] = useState(false)
+  const [referralCopied, setReferralCopied] = useState(false)
+  const [referralCode, setReferralCode] = useState<string | null>(null)
+  const [referralLoading, setReferralLoading] = useState(false)
+  const user = useAuthStore((state) => state.user)
 
   useEffect(() => {
     const checkMobile = () => {
@@ -3764,7 +3772,8 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
     : '100%'
 
   return (
-    <div ref={fullscreenContainerRef} className={`relative h-full flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : ''}`}>
+    <>
+    <div ref={fullscreenContainerRef} className={`relative h-full flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : ''}`} style={showReferralModal ? { filter: 'blur(5px)', transition: 'filter 0.25s ease' } : { filter: 'none', transition: 'filter 0.25s ease' }}>
       <div className="relative" style={{ height: mainChartHeight }}>
         <PriceDisplay 
         asset={selectedAsset} 
@@ -3775,6 +3784,232 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         onSelectAsset={handleAssetSelect}
       />
       <RealtimeClock />
+
+      {/* Brutalist Button - Powered by GPT-Omni */}
+      <div className="absolute top-24 left-1 z-10">
+        <style jsx>{`
+          .gpt-omni-brutalist-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #000000;
+            border-radius: 10px;
+            padding: 0;
+            text-decoration: none;
+            color: #000000;
+            font-weight: bold;
+            position: relative;
+            box-shadow: 3px 3px 0px #000000;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            height: 60px;
+            width: 60px;
+            cursor: pointer;
+            background-color: #ff6b35;
+            transform: scale(0.72);
+          }
+          @keyframes gpt-omni-shimmer {
+            0% { transform: translateX(-200%) skewX(-15deg); opacity: 0; }
+            15% { opacity: 1; }
+            85% { opacity: 1; }
+            100% { transform: translateX(400%) skewX(-15deg); opacity: 0; }
+          }
+          .gpt-omni-brutalist-btn::after {
+            content: "";
+            position: absolute;
+            top: -20%;
+            left: 0;
+            width: 65%;
+            height: 140%;
+            background: linear-gradient(
+              105deg,
+              transparent 20%,
+              rgba(255,255,255,0.08) 35%,
+              rgba(255,255,255,0.38) 50%,
+              rgba(255,255,255,0.08) 65%,
+              transparent 80%
+            );
+            animation: gpt-omni-shimmer 3.6s ease-in-out infinite;
+            z-index: 3;
+            pointer-events: none;
+          }
+          .gpt-omni-brutalist-btn::before {
+            content: "";
+            position: absolute;
+            left: 50%;
+            bottom: -150%;
+            width: 300%;
+            height: 300%;
+            border-radius: 50%;
+            transform: translateX(-50%) scale(0);
+            transition: transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+            z-index: 1;
+            background-color: #ff8c42;
+          }
+          .gpt-omni-brutalist-btn:hover::before {
+            transform: translateX(-50%) scale(1);
+          }
+          .gpt-omni-brutalist-btn:hover {
+            transform: scale(0.9) translate(2px, 2px);
+            box-shadow: 6px 6px 0px #000000;
+            opacity: 1;
+          }
+          .gpt-omni-brutalist-btn:hover::after {
+            animation: gpt-omni-shimmer 2s ease-in-out infinite;
+          }
+          .gpt-omni-brutalist-btn:active {
+            transform: scale(1) translate(1px, 1px);
+            box-shadow: 2px 2px 0px #000000;
+          }
+          .gpt-omni-logo-circle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            background-color: #ffffff;
+          }
+          .gpt-omni-logo-svg {
+            width: 24px;
+            height: 24px;
+            transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+          }
+          @keyframes gpt-omni-spin {
+            0% {
+              transform: translate(-50%, -50%) rotate(0deg);
+            }
+            100% {
+              transform: translate(-50%, -50%) rotate(360deg);
+            }
+          }
+          .gpt-omni-brutalist-btn:hover .gpt-omni-logo-circle {
+            animation: gpt-omni-spin 5s linear infinite;
+            width: 26px;
+            height: 26px;
+            top: 30%;
+          }
+          .gpt-omni-brutalist-btn:hover .gpt-omni-logo-svg {
+            transform: scale(0.75);
+          }
+          .gpt-omni-btn-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1;
+            transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            text-align: center;
+            opacity: 0;
+            transform: translateY(15px);
+            z-index: 2;
+            position: absolute;
+            bottom: 8px;
+            left: 0;
+            right: 0;
+            color: #ffffff;
+          }
+          .gpt-omni-btn-text span:first-child {
+            font-size: 8px;
+            font-weight: 500;
+            margin-bottom: 0px;
+          }
+          .gpt-omni-btn-text span:last-child {
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            color: #ffffff;
+          }
+          .gpt-omni-brutalist-btn:hover .gpt-omni-btn-text {
+            opacity: 1;
+            transform: translateY(0);
+          }
+          @media (hover: hover) and (pointer: fine) {
+            .gpt-omni-brutalist-btn:hover {
+              transform: scale(0.9) translate(2px, 2px);
+              box-shadow: 6px 6px 0px #000000;
+            }
+          }
+        `}</style>
+        <button
+          className="gpt-omni-brutalist-btn"
+          onClick={async () => {
+            setShowReferralModal(true)
+            if (!referralCode) {
+              setReferralLoading(true)
+              try {
+                const response = await api.getProfile()
+                let data: any = null
+                if (response && typeof response === 'object') {
+                  if ('data' in response && (response as any).data) data = (response as any).data
+                  else if ('affiliate' in response) data = response
+                }
+                const code = data?.affiliate?.referralCode || data?.user?.referralCode || null
+                setReferralCode(code)
+              } catch (e) {
+                console.error('Failed to fetch referral code', e)
+              } finally {
+                setReferralLoading(false)
+              }
+            }
+          }}
+        >
+          <div className="gpt-omni-logo-circle">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#ff6b35"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="gpt-omni-logo-svg"
+            >
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <div className="gpt-omni-btn-text">
+            <span>Referral</span>
+            <span>Program</span>
+          </div>
+        </button>
+
+        {/* Referral Modal Animations - injected globally */}
+        <style jsx global>{`
+          @keyframes ref-backdrop-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes ref-modal-in {
+            from { opacity: 0; transform: scale(0.82) translateY(24px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+          }
+          @keyframes ref-code-glow {
+            0%, 100% { box-shadow: 0 0 8px rgba(255,107,53,0.25); }
+            50% { box-shadow: 0 0 22px rgba(255,107,53,0.65); }
+          }
+          @keyframes ref-spin {
+            to { transform: rotate(360deg); }
+          }
+          .ref-backdrop { animation: ref-backdrop-in 0.22s ease forwards; }
+          .ref-modal-box { animation: ref-modal-in 0.32s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+          .ref-code-box { animation: ref-code-glow 2.5s ease-in-out infinite; }
+          .ref-spin { animation: ref-spin 0.9s linear infinite; }
+          .ref-close-btn:hover { background: rgba(255,107,53,0.22) !important; color: #ff6b35 !important; }
+          .ref-copy-btn:hover { filter: brightness(1.15); transform: scale(1.04); }
+        `}</style>
+      </div>
 
       <DesktopControls 
         timeframe={timeframe} 
@@ -3924,6 +4159,151 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         onChange={setIndicatorConfig} 
       />
     </div>
+
+    {/* Referral Modal - rendered via portal to document.body to escape stacking contexts */}
+    {typeof document !== 'undefined' && showReferralModal && createPortal(
+      <div
+        className="ref-backdrop"
+        style={{
+          position: 'fixed', inset: 0, zIndex: 2147483647,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backgroundColor: 'rgba(0,0,0,0.72)',
+        }}
+        onClick={() => setShowReferralModal(false)}
+      >
+        <div
+          className="ref-modal-box"
+          style={{
+            background: 'linear-gradient(150deg, #1c2033 0%, #12161f 100%)',
+            border: '2px solid #ff6b35',
+            borderRadius: '20px',
+            padding: '28px 30px 24px',
+            minWidth: '300px', maxWidth: '390px', width: '90vw',
+            boxShadow: '8px 8px 0px #ff6b35, 0 24px 64px rgba(0,0,0,0.6)',
+            position: 'relative',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Close */}
+          <button
+            className="ref-close-btn"
+            onClick={() => setShowReferralModal(false)}
+            style={{
+              position: 'absolute', top: '13px', right: '13px',
+              background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '7px', color: '#999', fontSize: '13px',
+              cursor: 'pointer', width: '28px', height: '28px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.18s',
+            }}
+          >✕</button>
+
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+            <div style={{
+              width: '46px', height: '46px', borderRadius: '13px', flexShrink: 0,
+              background: 'linear-gradient(135deg, #ff6b35, #ff9a5c)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(255,107,53,0.45)',
+            }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <div>
+              <div style={{ color: '#ff6b35', fontWeight: 800, fontSize: '16px' }}>Program Referral</div>
+              <div style={{ color: '#666', fontSize: '12px', marginTop: '2px' }}>Ajak teman & raih bonus bersama</div>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,107,53,0.35), transparent)', marginBottom: '18px' }} />
+
+          {/* Label */}
+          <div style={{ color: '#777', fontSize: '10.5px', fontWeight: 700, letterSpacing: '1.8px', marginBottom: '10px' }}>
+            KODE REFERRAL KAMU
+          </div>
+
+          {/* Code Box */}
+          <div
+            className="ref-code-box"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              background: '#0c1018',
+              border: '2px solid #ff6b35',
+              borderRadius: '12px',
+              padding: '14px 16px',
+              marginBottom: '12px',
+            }}
+          >
+            {referralLoading ? (
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <svg className="ref-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff6b35" strokeWidth="2.5">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                </svg>
+                <span style={{ color: '#555', fontSize: '13px' }}>Memuat kode referral...</span>
+              </div>
+            ) : (
+              <span style={{
+                flex: 1, fontFamily: 'monospace', fontSize: '22px', fontWeight: 900,
+                color: referralCode ? '#fff' : '#444',
+                letterSpacing: '4px',
+              }}>
+                {referralCode ?? '—'}
+              </span>
+            )}
+            <button
+              className="ref-copy-btn"
+              onClick={() => {
+                if (referralCode) {
+                  navigator.clipboard.writeText(referralCode)
+                  setReferralCopied(true)
+                  setTimeout(() => setReferralCopied(false), 2000)
+                }
+              }}
+              disabled={!referralCode || referralLoading}
+              style={{
+                background: referralCopied ? '#22c55e' : 'linear-gradient(135deg, #ff6b35, #ff8c42)',
+                border: 'none', borderRadius: '8px',
+                padding: '8px 14px', color: '#fff',
+                fontWeight: 700, fontSize: '12px',
+                cursor: referralCode ? 'pointer' : 'not-allowed',
+                opacity: !referralCode || referralLoading ? 0.4 : 1,
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap', flexShrink: 0,
+              }}
+            >
+              {referralCopied ? '✓ Disalin!' : 'Salin'}
+            </button>
+          </div>
+
+          {/* Referral Link */}
+          {referralCode && (
+            <div style={{
+              background: 'rgba(255,107,53,0.07)',
+              border: '1px solid rgba(255,107,53,0.18)',
+              borderRadius: '10px',
+              padding: '10px 14px',
+              marginBottom: '14px',
+            }}>
+              <div style={{ color: '#666', fontSize: '10px', fontWeight: 700, letterSpacing: '1.2px', marginBottom: '5px' }}>LINK REFERRAL</div>
+              <div style={{ color: '#bbb', fontSize: '11px', wordBreak: 'break-all', fontFamily: 'monospace', lineHeight: 1.5 }}>
+                {typeof window !== 'undefined' ? `${window.location.origin}/?ref=${referralCode}` : `/?ref=${referralCode}`}
+              </div>
+            </div>
+          )}
+
+          <div style={{ color: '#4a5060', fontSize: '11px', textAlign: 'center' }}>
+            🎁 Bagikan kode ini ke teman untuk mendapatkan bonus referral!
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
+    </>
   )
 })
 

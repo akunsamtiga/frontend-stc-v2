@@ -58,7 +58,7 @@ const BalanceDisplay = memo(({
       onClick={onClick}
       className={`
         flex flex-col items-start gap-0.5 
-        hover:bg-[#232936] px-4 py-2.5 rounded-lg transition-all duration-300
+        hover:scale-105 px-4 py-2.5 rounded-lg transition-all duration-300
         ${isActive ? 'bg-[#232936]' : ''}
       `}
     >

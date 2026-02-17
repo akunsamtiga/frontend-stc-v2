@@ -253,7 +253,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
                     width: '100%',
                     height: 'auto',
                     maxHeight: '320px',
-                    objectFit: 'contain', // Changed from 'cover' to 'contain'
+                    objectFit: 'cover', // Changed from 'cover' to 'contain'
                   }}
                   priority
                   onLoad={handleImageLoad}
@@ -270,136 +270,12 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
                   style={{
                     position: 'absolute',
                     inset: 0,
-                    background: 'linear-gradient(to bottom, transparent 30%, rgba(13,17,23,0.95) 100%)',
+                    background: 'linear-gradient(to bottom, transparent 80%, rgba(13,17,23,0.95) 100%)',
                     pointerEvents: 'none',
                   }}
                 />
               </div>
             )}
-
-            {/* Body */}
-            <div style={{ padding: '24px 24px 0 24px' }}>
-
-              {/* Row: badges */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  marginBottom: '12px',
-                  gap: '7px',
-                  flexWrap: 'wrap',
-                }}
-              >
-                {/* Pulse dot */}
-                <span
-                  style={{
-                    display: 'inline-block',
-                    width: '7px',
-                    height: '7px',
-                    borderRadius: '50%',
-                    background: config.accent,
-                    flexShrink: 0,
-                    animation: 'ib-dot-pulse 1.6s ease-in-out infinite',
-                  }}
-                />
-                {/* Type badge */}
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    letterSpacing: '0.07em',
-                    textTransform: 'uppercase',
-                    color: config.accent,
-                    background: config.accentDim,
-                    border: `1px solid ${config.accentBorder}`,
-                    padding: '2px 7px',
-                    borderRadius: '4px',
-                  }}
-                >
-                  {banner.type}
-                </span>
-              </div>
-
-              {/* Title */}
-              <h3
-                style={{
-                  fontSize: '18px',
-                  fontWeight: 600,
-                  color: '#f1f5f9',
-                  lineHeight: 1.4,
-                  letterSpacing: '-0.01em',
-                  marginBottom: '5px',
-                }}
-              >
-                {banner.title}
-              </h3>
-
-              {/* Subtitle */}
-              {banner.subtitle && (
-                <p
-                  style={{
-                    fontSize: '13px',
-                    fontWeight: 500,
-                    color: config.accent,
-                    marginBottom: '7px',
-                    opacity: 0.85,
-                  }}
-                >
-                  {banner.subtitle}
-                </p>
-              )}
-
-              {/* Description */}
-              <p
-                style={{
-                  fontSize: '14px',
-                  color: 'rgba(241,245,249,0.5)',
-                  lineHeight: 1.65,
-                  marginBottom: '16px',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 3,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                }}
-              >
-                {banner.description}
-              </p>
-
-              {/* CTA */}
-              {banner.linkUrl && (
-                <div style={{ marginBottom: '16px' }}>
-                  <button
-                    onClick={handleClick}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '9px 16px',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      letterSpacing: '0.02em',
-                      background: config.accent,
-                      color: '#fff',
-                      border: 'none',
-                      cursor: 'pointer',
-                      transition: 'opacity 0.15s, transform 0.15s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.opacity = '0.82'
-                      e.currentTarget.style.transform = 'translateY(-1px)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.opacity = '1'
-                      e.currentTarget.style.transform = 'translateY(0)'
-                    }}
-                  >
-                    <span>{banner.linkText || 'Lihat Detail'}</span>
-                    <ArrowUpRight size={14} strokeWidth={2.5} />
-                  </button>
-                </div>
-              )}
-            </div>
 
             {/* Footer + progress */}
             <div style={{ padding: '0 24px 18px 24px' }}>
@@ -409,6 +285,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   marginBottom: '6px',
+                  marginTop: '6px',
                 }}
               >
                 <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.28)', letterSpacing: '0.03em' }}>

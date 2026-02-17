@@ -83,6 +83,64 @@ const EXTENDED_DURATIONS = [
 ]
 
 // ============================================================================
+// ✅ NEW: HELPER FUNCTIONS FOR MIN/MAX ORDER VALIDATION
+// ============================================================================
+
+/**
+ * Get min/max order limits from asset tradingSettings
+ * Falls back to default values if tradingSettings not available
+ */
+const getOrderLimits = (asset: Asset | null) => {
+  const defaultMin = 10000
+  const defaultMax = 10000000
+  
+  if (!asset?.tradingSettings) {
+    return { min: defaultMin, max: defaultMax }
+  }
+  
+  const min = asset.tradingSettings.minOrderAmount ?? defaultMin
+  const max = asset.tradingSettings.maxOrderAmount ?? defaultMax
+  
+  return { min, max }
+}
+
+/**
+ * Generate preset amounts based on min/max limits
+ * Returns array of reasonable increment values between min and max
+ */
+const generatePresetAmounts = (min: number, max: number): number[] => {
+  const presets: number[] = []
+  
+  // Start from min
+  presets.push(min)
+  
+  // Generate reasonable increments
+  const increments = [
+    min * 2.5,
+    min * 5,
+    min * 7.5,
+    min * 10,
+    min * 25,
+    min * 50,
+    min * 100,
+  ]
+  
+  increments.forEach(amount => {
+    if (amount > min && amount <= max && !presets.includes(amount)) {
+      presets.push(Math.floor(amount))
+    }
+  })
+  
+  // Always add max if not already included
+  if (!presets.includes(max)) {
+    presets.push(max)
+  }
+  
+  // Sort and return unique values, limit to 8 presets
+  return Array.from(new Set(presets)).sort((a, b) => a - b).slice(0, 8)
+}
+
+// ============================================================================
 // ✅ MODIFIED: ASSET TYPE FILTER WITHOUT ICONS
 // ============================================================================
 
@@ -622,6 +680,20 @@ export default function TradingPage() {
       toast.error('Please select an asset')
       return
     }
+    
+    // ✅ NEW: Validate against asset min/max limits
+    const limits = getOrderLimits(selectedAsset)
+    
+    if (amount < limits.min) {
+      toast.error(`Jumlah minimum untuk ${selectedAsset.name} adalah ${formatCurrency(limits.min)}`)
+      return
+    }
+    
+    if (amount > limits.max) {
+      toast.error(`Jumlah maksimum untuk ${selectedAsset.name} adalah ${formatCurrency(limits.max)}`)
+      return
+    }
+    
     if (amount <= 0) {
       toast.error('Invalid amount')
       return
@@ -732,6 +804,35 @@ export default function TradingPage() {
   const potentialProfit = selectedAsset ? (validAmount * validProfitRate) / 100 : 0
   const potentialPayout = validAmount + potentialProfit
 
+  // ============================================================================
+  // ✅ NEW: Order Limits and Preset Amounts based on Asset
+  // ============================================================================
+  
+  // Get min/max limits for current asset
+  const orderLimits = useMemo(() => getOrderLimits(selectedAsset), [selectedAsset])
+  
+  // Generate preset amounts based on asset limits
+  const presetAmounts = useMemo(() => 
+    generatePresetAmounts(orderLimits.min, orderLimits.max),
+    [orderLimits.min, orderLimits.max]
+  )
+  
+  // Auto-adjust amount when asset changes if out of range
+  useEffect(() => {
+    if (!selectedAsset) return
+    
+    const limits = getOrderLimits(selectedAsset)
+    
+    // If current amount is below min, set to min
+    if (amount < limits.min) {
+      setAmount(limits.min)
+    }
+    // If current amount is above max, set to max
+    else if (amount > limits.max) {
+      setAmount(limits.max)
+    }
+  }, [selectedAsset?.id, amount])
+
   // ✅ Count assets per type for chip badges
   const assetCountsByType = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -774,7 +875,7 @@ export default function TradingPage() {
       <div className="h-14 lg:h-16 bg-[#1a1f2e] px-2 lg:px-5 border-b border-gray-800/50 flex items-center justify-between px-2 flex-shrink-0">
         <div className="hidden lg:flex items-center gap-4 w-full">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 relative">
+            <div className="w-8 h-8 relative rounded-md">
               <Image 
                 src="/stc-logo1.png" 
                 alt="Stouch" 
@@ -1254,7 +1355,10 @@ export default function TradingPage() {
               <div className="text-[10px] text-gray-500 text-center leading-none">Jumlah</div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setAmount(prev => Math.max(1000, prev - 10000))}
+                  onClick={() => {
+                    const newAmount = Math.max(orderLimits.min, amount - 10000)
+                    setAmount(newAmount)
+                  }}
                   className="hover:bg-[#232936] rounded-lg p-1.5 transition-colors flex-shrink-0"
                 >
                   <Minus className="w-4 h-4" />
@@ -1263,17 +1367,37 @@ export default function TradingPage() {
                 <input
                   type="number"
                   value={amount}
-                  onChange={(e) => setAmount(Number(e.target.value))}
+                  onChange={(e) => {
+                    const newAmount = Number(e.target.value)
+                    const limits = getOrderLimits(selectedAsset)
+                    
+                    // Clamp between min and max
+                    if (newAmount >= limits.min && newAmount <= limits.max) {
+                      setAmount(newAmount)
+                    } else if (newAmount < limits.min) {
+                      setAmount(limits.min)
+                    } else if (newAmount > limits.max) {
+                      setAmount(limits.max)
+                    }
+                  }}
                   className="flex-1 min-w-0 bg-transparent border-0 text-center text-base text-white focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  min="1000"
+                  min={orderLimits.min}
+                  max={orderLimits.max}
                   step="1000"
                 />
                 <button
-                  onClick={() => setAmount(prev => prev + 10000)}
+                  onClick={() => {
+                    const newAmount = Math.min(orderLimits.max, amount + 10000)
+                    setAmount(newAmount)
+                  }}
                   className="hover:bg-[#232936] rounded-lg p-1.5 transition-colors flex-shrink-0"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
+              </div>
+              {/* Optional: Show limits */}
+              <div className="text-[9px] text-gray-500 text-center mt-1">
+                Min: {formatCurrency(orderLimits.min)} - Max: {formatCurrency(orderLimits.max)}
               </div>
             </div>
 
@@ -1377,7 +1501,8 @@ export default function TradingPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      setAmount(prev => Math.max(1000, prev - 10000))
+                      const newAmount = Math.max(orderLimits.min, amount - 10000)
+                      setAmount(newAmount)
                     }}
                     className="flex items-center justify-center hover:bg-[#2a3142] rounded p-1 transition-colors"
                   >
@@ -1389,7 +1514,8 @@ export default function TradingPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      setAmount(prev => prev + 10000)
+                      const newAmount = Math.min(orderLimits.max, amount + 10000)
+                      setAmount(newAmount)
                     }}
                     className="flex items-center justify-center hover:bg-[#2a3142] rounded p-1 transition-colors"
                   >
@@ -1405,7 +1531,7 @@ export default function TradingPage() {
                     onClick={() => setShowAmountDropdown(false)} 
                   />
                   <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden max-h-[280px] overflow-y-auto">
-                    {[10000, 25000, 50000, 75000, 100000, 250000, 500000, 1000000].map((preset) => {
+                    {presetAmounts.map((preset) => {
                       const isSelected = amount === preset
                       const isAffordable = preset <= currentBalance
                       

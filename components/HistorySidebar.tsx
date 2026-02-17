@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { BinaryOrder } from '@/types'
 import { formatCurrency, formatDate, getDurationDisplay } from '@/lib/utils'
-import { X, TrendingUp, TrendingDown, Clock, RefreshCw, ChevronDown } from 'lucide-react'
+import { X, TrendingUp, TrendingDown, Clock, RefreshCw, ChevronDown, CalendarClockIcon } from 'lucide-react'
 
 interface HistorySidebarProps {
   isOpen: boolean
@@ -103,7 +103,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-800/30">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center border border-blue-500/30">
-              <Clock className="w-4 h-4 text-blue-400" />
+              <CalendarClockIcon className="w-4 h-4 text-blue-400" />
             </div>
             <div>
               <h2 className="text-base font-semibold text-white">Riwayat</h2>

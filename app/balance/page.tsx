@@ -610,7 +610,7 @@ export default function BalancePage() {
             <div className="space-y-3">
               {/* Real Account Card - Side by Side */}
               <div
-                className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm stagger-item"
+                className="bg-gradient-to-r from-emerald-50 to-gray-200 rounded-xl border border-gray-200 p-4 shadow-sm stagger-item"
                 style={{ animationDelay: '100ms' }}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -636,14 +636,12 @@ export default function BalancePage() {
                       href="/payment"
                       className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-green-500 text-white rounded-lg text-xs font-semibold hover:bg-green-600 transition-colors whitespace-nowrap"
                     >
-                      <ArrowDownToLine className="w-3.5 h-3.5" />
                       Top Up
                     </Link>
                     <Link
                       href="/withdrawal"
                       className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-semibold hover:bg-red-600 transition-colors whitespace-nowrap"
                     >
-                      <ArrowUpFromLine className="w-3.5 h-3.5" />
                       Penarikan
                     </Link>
                   </div>
@@ -652,7 +650,7 @@ export default function BalancePage() {
 
               {/* Demo Account Card - Side by Side */}
               <div
-                className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm stagger-item"
+                className="bg-gradient-to-r from-sky-50 to-gray-200 rounded-xl border border-gray-200 p-4 shadow-sm stagger-item"
                 style={{ animationDelay: '200ms' }}
               >
                 <div className="flex items-center justify-between gap-3">
@@ -718,14 +716,12 @@ export default function BalancePage() {
                       href="/payment"
                       className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold shadow-md transition-colors"
                     >
-                      <ArrowDownToLine className="w-4 h-4" />
                       Top Up
                     </Link>
                     <Link
                       href="/withdrawal"
                       className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-semibold shadow-md transition-colors"
                     >
-                      <ArrowUpFromLine className="w-4 h-4" />
                       Penarikan
                     </Link>
                   </div>
