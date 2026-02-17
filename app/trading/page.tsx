@@ -285,6 +285,8 @@ export default function TradingPage() {
   const balanceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const balanceRef = useRef({ real: 0, demo: 0 })
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  // ✅ FIX: Pastikan banner hanya muncul sekali, meski effect re-run karena assets.length berubah
+  const bannerShownRef = useRef(false)
   
   const [showAssetMenu, setShowAssetMenu] = useState(false)
   const [isAssetMenuClosing, setIsAssetMenuClosing] = useState(false)
@@ -574,6 +576,8 @@ export default function TradingPage() {
     }, 250)
   }, [])
 
+  // ✅ FIX: Effect init hanya jalan sekali saat user berubah (login/logout)
+  // assets.length DIHAPUS dari dependency agar tidak trigger ulang setelah loadData()
   useEffect(() => {
     if (!user) {
       router.push('/')
@@ -591,16 +595,23 @@ export default function TradingPage() {
         prefetchDefaultAsset(basePath)
       }
 
-      // Tampilkan banner setelah semua data & UI selesai dirender
-      setTimeout(() => setShowBanner(true), 600)
-    }
-    
-    if (assets.length > 0) {
-      useTradingStore.getState().setAssets(assets)
+      // ✅ FIX: Guard dengan ref agar banner hanya muncul 1x, tidak ikut re-run effect
+      if (!bannerShownRef.current) {
+        bannerShownRef.current = true
+        setTimeout(() => setShowBanner(true), 600)
+      }
     }
     
     initializeData()
-  }, [user, router, assets.length])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, router]) // assets.length sengaja dihapus dari sini
+
+  // ✅ FIX: Sync assets ke TradingStore dipisah ke effect sendiri
+  useEffect(() => {
+    if (assets.length > 0) {
+      useTradingStore.getState().setAssets(assets)
+    }
+  }, [assets])
 
   useEffect(() => {
     if (!user) return
