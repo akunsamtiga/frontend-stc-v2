@@ -3794,7 +3794,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
             align-items: center;
             justify-content: center;
             border: 2px solid #000000;
-            border-radius: 10px;
+            border-radius: 14px;
             padding: 0;
             text-decoration: none;
             color: #000000;
@@ -3807,7 +3807,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
             width: 60px;
             cursor: pointer;
             background-color: #ff6b35;
-            transform: scale(0.72);
+            transform: scale(0.60);
           }
           @keyframes gpt-omni-shimmer {
             0% { transform: translateX(-200%) skewX(-15deg); opacity: 0; }

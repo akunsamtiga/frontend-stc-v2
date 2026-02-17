@@ -1078,9 +1078,9 @@ export default function BalancePage() {
                                     tx.status === 'expired' ? 'bg-gray-100 text-gray-600' :
                                     'bg-gray-100 text-gray-700'
                                   }`}>
-                                    {tx.status === 'pending' ? '⏳ MENUNGGU' :
-                                     tx.status === 'success' ? '✓ SUKSES' :
-                                     tx.status === 'failed' ? '✗ GAGAL' :
+                                    {tx.status === 'pending' ? 'MENUNGGU' :
+                                     tx.status === 'success' ? 'SUKSES' :
+                                     tx.status === 'failed' ? 'GAGAL' :
                                      tx.status === 'expired' ? 'KADALUARSA' :
                                      tx.status.toUpperCase()}
                                   </span>
