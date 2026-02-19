@@ -26,6 +26,10 @@ interface UseProfileReturn {
   uploadAvatar: (file: File) => Promise<boolean>
   uploadKTP: (photoFront: File, photoBack?: File) => Promise<boolean>
   uploadSelfie: (file: File) => Promise<boolean>
+
+  // Phone verification
+  sendPhoneOTP: (phoneNumber: string) => Promise<boolean>
+  verifyPhoneOTP: (phoneNumber: string, code: string) => Promise<boolean>
   
   // Helper
   getCompletionPercentage: () => number
@@ -324,6 +328,63 @@ export function useProfile(): UseProfileReturn {
   }, [loadProfile])
 
   /**
+   * Send OTP to phone number
+   */
+  const sendPhoneOTP = useCallback(async (phoneNumber: string): Promise<boolean> => {
+    try {
+      if (!phoneNumber) {
+        toast.error('Masukkan nomor telepon terlebih dahulu')
+        return false
+      }
+
+      setUpdating(true)
+      await api.sendPhoneOTP(phoneNumber)
+      toast.success('Kode OTP telah dikirim ke nomor Anda')
+      return true
+
+    } catch (error: any) {
+      console.error('Failed to send OTP:', error)
+      toast.error(error?.response?.data?.error || 'Gagal mengirim kode OTP')
+      return false
+    } finally {
+      setUpdating(false)
+    }
+  }, [])
+
+  /**
+   * Verify phone OTP code
+   */
+  const verifyPhoneOTP = useCallback(async (phoneNumber: string, code: string): Promise<boolean> => {
+    try {
+      if (!phoneNumber || !code) {
+        toast.error('Nomor telepon dan kode OTP diperlukan')
+        return false
+      }
+
+      if (code.length !== 6 || !/^\d+$/.test(code)) {
+        toast.error('Kode OTP harus 6 digit angka')
+        return false
+      }
+
+      setUpdating(true)
+      await api.verifyPhone({ phoneNumber, verificationCode: code })
+
+      // Reload profile to reflect verified status
+      await loadProfile()
+
+      toast.success('Nomor telepon berhasil diverifikasi!')
+      return true
+
+    } catch (error: any) {
+      console.error('Failed to verify OTP:', error)
+      toast.error(error?.response?.data?.error || 'Kode OTP salah atau sudah kedaluwarsa')
+      return false
+    } finally {
+      setUpdating(false)
+    }
+  }, [loadProfile])
+
+  /**
    * Get profile completion percentage
    */
   const getCompletionPercentage = useCallback((): number => {
@@ -345,7 +406,9 @@ export function useProfile(): UseProfileReturn {
     changePassword,
     uploadAvatar,
     uploadKTP,      
-    uploadSelfie,   
+    uploadSelfie,
+    sendPhoneOTP,
+    verifyPhoneOTP,
     getCompletionPercentage
   }
 }

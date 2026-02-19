@@ -667,6 +667,24 @@ class ApiClient {
     }
   }
 
+  async sendPhoneOTP(phoneNumber: string): Promise<ApiResponse> {
+    try {
+      if (!phoneNumber) {
+        throw new Error('Phone number is required')
+      }
+
+      const result = await this.client.post('/user/send-phone-otp', { phoneNumber }, {
+        headers: {
+          'X-Silent-Error': 'false'
+        }
+      })
+
+      return result
+    } catch (error) {
+      throw error
+    }
+  }
+
   async verifyPhone(data: {
     phoneNumber: string
     verificationCode: string
