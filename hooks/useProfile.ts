@@ -27,9 +27,8 @@ interface UseProfileReturn {
   uploadKTP: (photoFront: File, photoBack?: File) => Promise<boolean>
   uploadSelfie: (file: File) => Promise<boolean>
 
-  // Phone verification
-  sendPhoneOTP: (phoneNumber: string) => Promise<boolean>
-  verifyPhoneOTP: (phoneNumber: string, code: string) => Promise<boolean>
+  // Phone verification (Firebase-based)
+  verifyPhoneWithFirebaseToken: (idToken: string) => Promise<boolean>
   
   // Helper
   getCompletionPercentage: () => number
@@ -328,46 +327,18 @@ export function useProfile(): UseProfileReturn {
   }, [loadProfile])
 
   /**
-   * Send OTP to phone number
+   * Verify phone number using Firebase ID Token
+   * Flow: Firebase signInWithPhoneNumber → confirm OTP → getIdToken() → call this
    */
-  const sendPhoneOTP = useCallback(async (phoneNumber: string): Promise<boolean> => {
+  const verifyPhoneWithFirebaseToken = useCallback(async (idToken: string): Promise<boolean> => {
     try {
-      if (!phoneNumber) {
-        toast.error('Masukkan nomor telepon terlebih dahulu')
+      if (!idToken) {
+        toast.error('Firebase token tidak ditemukan')
         return false
       }
 
       setUpdating(true)
-      await api.sendPhoneOTP(phoneNumber)
-      toast.success('Kode OTP telah dikirim ke nomor Anda')
-      return true
-
-    } catch (error: any) {
-      console.error('Failed to send OTP:', error)
-      toast.error(error?.response?.data?.error || 'Gagal mengirim kode OTP')
-      return false
-    } finally {
-      setUpdating(false)
-    }
-  }, [])
-
-  /**
-   * Verify phone OTP code
-   */
-  const verifyPhoneOTP = useCallback(async (phoneNumber: string, code: string): Promise<boolean> => {
-    try {
-      if (!phoneNumber || !code) {
-        toast.error('Nomor telepon dan kode OTP diperlukan')
-        return false
-      }
-
-      if (code.length !== 6 || !/^\d+$/.test(code)) {
-        toast.error('Kode OTP harus 6 digit angka')
-        return false
-      }
-
-      setUpdating(true)
-      await api.verifyPhone({ phoneNumber, verificationCode: code })
+      await api.verifyPhone({ idToken })
 
       // Reload profile to reflect verified status
       await loadProfile()
@@ -376,8 +347,8 @@ export function useProfile(): UseProfileReturn {
       return true
 
     } catch (error: any) {
-      console.error('Failed to verify OTP:', error)
-      toast.error(error?.response?.data?.error || 'Kode OTP salah atau sudah kedaluwarsa')
+      console.error('Failed to verify phone:', error)
+      toast.error(error?.response?.data?.error || 'Verifikasi gagal, coba lagi')
       return false
     } finally {
       setUpdating(false)
@@ -407,8 +378,7 @@ export function useProfile(): UseProfileReturn {
     uploadAvatar,
     uploadKTP,      
     uploadSelfie,
-    sendPhoneOTP,
-    verifyPhoneOTP,
+    verifyPhoneWithFirebaseToken,
     getCompletionPercentage
   }
 }

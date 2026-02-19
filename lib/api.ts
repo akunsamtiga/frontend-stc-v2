@@ -667,31 +667,15 @@ class ApiClient {
     }
   }
 
-  async sendPhoneOTP(phoneNumber: string): Promise<ApiResponse> {
+  /**
+   * Verify phone number via Firebase Phone Auth.
+   * Frontend must first use signInWithPhoneNumber (Firebase) → confirm OTP →
+   * get idToken from the resulting Firebase user, then send idToken here.
+   */
+  async verifyPhone(data: { idToken: string }): Promise<ApiResponse> {
     try {
-      if (!phoneNumber) {
-        throw new Error('Phone number is required')
-      }
-
-      const result = await this.client.post('/user/send-phone-otp', { phoneNumber }, {
-        headers: {
-          'X-Silent-Error': 'false'
-        }
-      })
-
-      return result
-    } catch (error) {
-      throw error
-    }
-  }
-
-  async verifyPhone(data: {
-    phoneNumber: string
-    verificationCode: string
-  }): Promise<ApiResponse> {
-    try {
-      if (!data.phoneNumber || !data.verificationCode) {
-        throw new Error('Phone number and verification code are required')
+      if (!data.idToken) {
+        throw new Error('Firebase ID token is required')
       }
 
       const result = await this.client.post('/user/verify-phone', data, {

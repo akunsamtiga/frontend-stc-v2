@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useState, useCallback, useMemo } from 'react'
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
@@ -16,6 +16,8 @@ import { toast, Toaster } from 'sonner'
 import type { UserProfile, UserProfileInfo, UpdateProfileRequest, ChangePasswordRequest } from '@/types'
 import { STATUS_CONFIG, calculateProfileCompletion } from '@/types'
 import { getStatusGradient, getStatusIcon, formatStatusInfo, getAllStatusTiers, calculateStatusProgress, formatDepositRequirement } from '@/lib/status-utils'
+import { auth } from '@/lib/firebase-auth'
+import { signInWithPhoneNumber, RecaptchaVerifier, ConfirmationResult } from 'firebase/auth'
 
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 20 },
@@ -391,12 +393,15 @@ export default function ProfilePage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({})
 
-  // Phone OTP verification state
+  // Firebase Phone Auth state
   const [showPhoneOTP, setShowPhoneOTP] = useState(false)
   const [otpCode, setOtpCode] = useState('')
   const [otpLoading, setOtpLoading] = useState(false)
   const [otpSent, setOtpSent] = useState(false)
   const [otpCooldown, setOtpCooldown] = useState(0)
+  const confirmationRef = useRef<ConfirmationResult | null>(null)
+  const recaptchaRef = useRef<RecaptchaVerifier | null>(null)
+  const recaptchaContainerRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (!user) {
@@ -478,7 +483,7 @@ export default function ProfilePage() {
     }
   }
 
-  // ─── Phone OTP handlers ───────────────────────────────────────────────────
+  // ─── Firebase Phone Auth handlers ────────────────────────────────────────
 
   const startOtpCooldown = useCallback((seconds = 60) => {
     setOtpCooldown(seconds)
@@ -490,42 +495,113 @@ export default function ProfilePage() {
     }, 1000)
   }, [])
 
+  /**
+   * Setup invisible reCAPTCHA and send OTP via Firebase
+   */
   const handleSendPhoneOTP = useCallback(async () => {
     const phone = personalData.phoneNumber
     if (!phone) { toast.error('Masukkan nomor telepon terlebih dahulu'); return }
-    if (!validatePhone(phone)) { toast.error('Format nomor telepon tidak valid'); return }
+    if (!validatePhone(phone)) { toast.error('Format nomor telepon tidak valid (contoh: +6281234567890)'); return }
+
+    // Guard: pastikan Firebase auth terinisialisasi
+    if (!auth) {
+      toast.error('Firebase belum siap, refresh halaman')
+      return
+    }
+
     setOtpLoading(true)
     try {
-      await api.sendPhoneOTP(phone)
+      // Cleanup reCAPTCHA lama
+      if (recaptchaRef.current) {
+        try { recaptchaRef.current.clear() } catch (_) {}
+        recaptchaRef.current = null
+      }
+
+      // Pastikan container ada di DOM
+      const container = document.getElementById('recaptcha-container')
+      if (!container) {
+        toast.error('Komponen halaman belum siap, coba lagi')
+        return
+      }
+
+      // Buat RecaptchaVerifier baru
+      const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+        callback: () => {},
+        'expired-callback': () => {
+          toast.error('reCAPTCHA kedaluwarsa, coba lagi')
+          setOtpLoading(false)
+        },
+      })
+
+      // Render verifier dulu secara eksplisit
+      await verifier.render()
+      recaptchaRef.current = verifier
+
+      const result = await signInWithPhoneNumber(auth, phone, verifier)
+      confirmationRef.current = result
+
       setOtpSent(true)
       setShowPhoneOTP(true)
       startOtpCooldown(60)
-      toast.success('Kode OTP dikirim ke nomor Anda')
+      toast.success(`Kode OTP dikirim ke ${phone}`)
     } catch (error: any) {
-      toast.error(error?.response?.data?.error || 'Gagal mengirim OTP')
+      console.error('Send OTP error:', error)
+
+      // Cleanup reCAPTCHA agar bisa dicoba ulang
+      if (recaptchaRef.current) {
+        try { recaptchaRef.current.clear() } catch (_) {}
+        recaptchaRef.current = null
+      }
+
+      const msg =
+        error.code === 'auth/invalid-phone-number'    ? 'Nomor telepon tidak valid' :
+        error.code === 'auth/too-many-requests'        ? 'Terlalu banyak percobaan, coba lagi nanti' :
+        error.code === 'auth/captcha-check-failed'     ? 'Verifikasi reCAPTCHA gagal, refresh halaman' :
+        error.code === 'auth/invalid-app-credential'   ? 'Konfigurasi Firebase belum diaktifkan. Hubungi admin.' :
+        error.code === 'auth/quota-exceeded'           ? 'Kuota SMS habis, coba lagi nanti' :
+        error.code === 'auth/missing-phone-number'     ? 'Nomor telepon tidak boleh kosong' :
+        error.code === 'auth/app-not-authorized'       ? 'Aplikasi belum diotorisasi untuk Phone Auth' :
+        error.message || 'Gagal mengirim OTP, coba lagi'
+      toast.error(msg)
     } finally {
       setOtpLoading(false)
     }
   }, [personalData.phoneNumber, startOtpCooldown])
 
+  /**
+   * Confirm OTP → ambil Firebase idToken → kirim ke backend
+   */
   const handleVerifyPhoneOTP = useCallback(async () => {
+    if (!confirmationRef.current) { toast.error('Kirim OTP terlebih dahulu'); return }
     if (otpCode.length !== 6 || !/^\d+$/.test(otpCode)) {
       toast.error('Kode OTP harus 6 digit angka'); return
     }
+
     setOtpLoading(true)
     try {
-      await api.verifyPhone({ phoneNumber: personalData.phoneNumber, verificationCode: otpCode })
+      const userCredential = await confirmationRef.current.confirm(otpCode)
+      const idToken = await userCredential.user.getIdToken()
+
+      await api.verifyPhone({ idToken })
+      await loadProfile()
+
       setShowPhoneOTP(false)
       setOtpCode('')
       setOtpSent(false)
-      await loadProfile()
+      confirmationRef.current = null
       toast.success('Nomor telepon berhasil diverifikasi! ✓')
     } catch (error: any) {
-      toast.error(error?.response?.data?.error || 'Kode OTP salah atau kedaluwarsa')
+      console.error('Verify OTP error:', error)
+      const msg =
+        error.code === 'auth/invalid-verification-code' ? 'Kode OTP salah, coba lagi' :
+        error.code === 'auth/code-expired' ? 'Kode OTP sudah kedaluwarsa, kirim ulang' :
+        error?.response?.data?.error || 'Verifikasi gagal'
+      toast.error(msg)
     } finally {
       setOtpLoading(false)
     }
-  }, [otpCode, personalData.phoneNumber, loadProfile])
+  }, [otpCode, loadProfile])
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -1527,23 +1603,21 @@ export default function ProfilePage() {
                       </motion.div>
                     ) : (
                       field.key === 'phoneNumber' ? (
-                        <div>
+                        <div className="space-y-2">
+                          {/* Tampilkan nomor + badge status */}
                           <div className="flex items-center gap-2">
-                            <motion.div
-                              className="flex-1 px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm"
-                              whileHover={{ backgroundColor: 'rgb(243 244 246)' }}
-                            >
+                            <div className="flex-1 px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm">
                               {(personalData as any)[field.key] || '-'}
-                            </motion.div>
+                            </div>
                             {(personalData as any)[field.key] && (
                               profileInfo?.verification?.phoneVerified ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200 flex-shrink-0">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200 whitespace-nowrap">
                                   <CheckCircle2 className="w-3.5 h-3.5" /> Terverifikasi
                                 </span>
                               ) : (
                                 <button
                                   onClick={() => setShowPhoneOTP(prev => !prev)}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-200 hover:bg-amber-100 transition-colors flex-shrink-0"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-200 hover:bg-amber-100 transition-colors whitespace-nowrap"
                                 >
                                   <Phone className="w-3.5 h-3.5" /> Verifikasi
                                 </button>
@@ -1551,35 +1625,42 @@ export default function ProfilePage() {
                             )}
                           </div>
 
-                          {/* OTP inline panel */}
+                          {/* OTP Panel — Firebase Phone Auth */}
                           <AnimatePresence>
                             {showPhoneOTP && !profileInfo?.verification?.phoneVerified && (
                               <motion.div
+                                key="otp-panel"
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                                 exit={{ opacity: 0, height: 0 }}
                                 className="overflow-hidden"
                               >
-                                <div className="mt-3 p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3">
-                                  <p className="text-xs text-amber-800 font-medium flex items-center gap-1.5">
+                                <div className="mt-1 p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3">
+                                  <p className="text-xs font-semibold text-amber-800 flex items-center gap-1.5">
                                     <Phone className="w-3.5 h-3.5" />
-                                    Verifikasi nomor telepon Anda
+                                    Verifikasi Nomor Telepon via SMS OTP
                                   </p>
 
                                   {!otpSent ? (
+                                    // Step 1 — Kirim OTP
                                     <button
                                       onClick={handleSendPhoneOTP}
-                                      disabled={otpLoading || otpCooldown > 0}
+                                      disabled={otpLoading}
                                       className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-lg text-sm font-semibold transition-colors"
                                     >
-                                      {otpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Phone className="w-4 h-4" />}
-                                      Kirim Kode OTP via SMS
+                                      {otpLoading
+                                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Mengirim...</>
+                                        : <><Phone className="w-4 h-4" /> Kirim Kode OTP</>
+                                      }
                                     </button>
                                   ) : (
+                                    // Step 2 — Input & konfirmasi OTP
                                     <div className="space-y-2">
                                       <p className="text-xs text-amber-700">
-                                        Masukkan kode 6 digit yang dikirim ke <strong>{personalData.phoneNumber}</strong>
+                                        Masukkan kode 6 digit yang dikirim ke{' '}
+                                        <strong>{personalData.phoneNumber}</strong>
                                       </p>
+
                                       <div className="flex gap-2">
                                         <input
                                           type="text"
@@ -1588,28 +1669,34 @@ export default function ProfilePage() {
                                           value={otpCode}
                                           onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                           placeholder="• • • • • •"
-                                          className="flex-1 px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-center text-lg font-bold tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                          className="flex-1 px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-center text-xl font-bold tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-amber-400 transition-all"
                                         />
                                         <button
                                           onClick={handleVerifyPhoneOTP}
                                           disabled={otpLoading || otpCode.length !== 6}
-                                          className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-lg text-sm font-semibold transition-colors flex items-center gap-1"
+                                          className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5"
                                         >
-                                          {otpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                                          Verifikasi
+                                          {otpLoading
+                                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                                            : <CheckCircle2 className="w-4 h-4" />
+                                          }
+                                          Konfirmasi
                                         </button>
                                       </div>
-                                      <div className="flex items-center justify-between">
+
+                                      <div className="flex items-center justify-between pt-1">
                                         <button
                                           onClick={handleSendPhoneOTP}
                                           disabled={otpLoading || otpCooldown > 0}
                                           className="text-xs text-amber-700 hover:text-amber-900 disabled:opacity-40 disabled:cursor-not-allowed underline transition-colors"
                                         >
-                                          {otpCooldown > 0 ? `Kirim ulang dalam ${otpCooldown}s` : 'Kirim ulang OTP'}
+                                          {otpCooldown > 0
+                                            ? `Kirim ulang dalam ${otpCooldown}s`
+                                            : 'Kirim ulang OTP'}
                                         </button>
                                         <button
-                                          onClick={() => { setShowPhoneOTP(false); setOtpCode(''); setOtpSent(false) }}
-                                          className="text-xs text-gray-500 hover:text-gray-700"
+                                          onClick={() => { setShowPhoneOTP(false); setOtpCode(''); setOtpSent(false); confirmationRef.current = null }}
+                                          className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
                                         >
                                           Batal
                                         </button>
@@ -2905,6 +2992,9 @@ export default function ProfilePage() {
         title="Konfirmasi Keluar"
         message="Apakah Anda yakin ingin keluar? Anda akan diarahkan ke beranda."
       />
+
+      {/* Invisible reCAPTCHA container — diperlukan Firebase Phone Auth */}
+      <div id="recaptcha-container" ref={recaptchaContainerRef} />
     </div>
   )
 }
