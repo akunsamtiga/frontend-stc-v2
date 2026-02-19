@@ -1,4 +1,4 @@
-// hooks/useInstantOrders.ts - FIXED: Better real-time sync dengan aggressive polling
+// hooks/useInstantOrders.ts 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { BinaryOrder } from '@/types'
 import { websocketService } from '@/lib/websocket'

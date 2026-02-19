@@ -1,16 +1,16 @@
-// app/(main)/trading/page.tsx - WITH ASSET TYPE QUICK FILTER
 'use client'
 
-import { useEffect, useState, useCallback, memo, useRef, useMemo } from 'react'
+import React, { useEffect, useState, useCallback, memo, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { unstable_batchedUpdates } from 'react-dom'
 import { useAuthStore } from '@/store/auth'
 import { useTradingStore, useSelectedAsset, useCurrentPrice, useSelectedAccountType, useTradingActions } from '@/store/trading'
 import { api } from '@/lib/api'
-import { subscribeToPriceUpdates, prefetchDefaultAsset, prefetchMultipleTimeframes } from '@/lib/firebase'
+import { prefetchDefaultAsset, prefetchMultipleTimeframes } from '@/lib/firebase'
 import { toast } from 'sonner'
-import { Asset, BinaryOrder, AccountType, UserProfile } from '@/types'
+import { Asset, BinaryOrder, AccountType, UserProfile, STATUS_CONFIG } from '@/types'
+import { calculateStatusProgress, formatDepositRequirement } from '@/lib/status-utils'
 import { formatCurrency, getDurationDisplay } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 import TradingTutorial from '@/components/TradingTutorial'
@@ -285,6 +285,7 @@ export default function TradingPage() {
   const balanceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const balanceRef = useRef({ real: 0, demo: 0 })
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isPlacingRef = useRef(false) // ✅ Guard sinkron anti double-submit
   // ✅ FIX: Pastikan banner hanya muncul sekali, meski effect re-run karena assets.length berubah
   const bannerShownRef = useRef(false)
   
@@ -306,6 +307,17 @@ export default function TradingPage() {
   const [showLeftSidebar, setShowLeftSidebar] = useState(false)
   const [isLeftSidebarClosing, setIsLeftSidebarClosing] = useState(false)
   const [showBanner, setShowBanner] = useState(false)
+  const [btnEffect, setBtnEffect] = useState<'CALL' | 'PUT' | null>(null)
+
+  const triggerBtnEffect = (dir: 'CALL' | 'PUT') => {
+    setBtnEffect(null)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setBtnEffect(dir)
+        setTimeout(() => setBtnEffect(null), 800)
+      })
+    })
+  }
 
   const currentBalance = selectedAccountType === 'real' ? realBalance : demoBalance
   const isUltraFastMode = duration === 0.0167
@@ -635,33 +647,7 @@ export default function TradingPage() {
     }
   }, [user])
 
-  useEffect(() => {
-    if (!selectedAsset) return
-
-    let unsubscribe: (() => void) | undefined
-
-    if (selectedAsset.dataSource === 'realtime_db' && selectedAsset.realtimeDbPath) {
-      let basePath = selectedAsset.realtimeDbPath
-      
-      if (basePath.endsWith('/current_price')) {
-        basePath = basePath.replace('/current_price', '')
-      }
-      
-      unsubscribe = subscribeToPriceUpdates(
-        selectedAsset.realtimeDbPath,
-        (data) => {
-          setCurrentPrice(data)
-          addPriceToHistory(data)
-        }
-      )
-    }
-
-    return () => {
-      if (unsubscribe) {
-        unsubscribe()
-      }
-    }
-  }, [selectedAsset?.id, setCurrentPrice, addPriceToHistory])
+  // Price updates are handled by WebSocket via usePriceSubscription (see wsPrice effect above)
 
   useEffect(() => {
     return () => {
@@ -694,22 +680,29 @@ export default function TradingPage() {
       toast.error('Please select an asset')
       return
     }
+
+    // ✅ Guard sinkron: langsung lock sebelum validasi apapun
+    if (isPlacingRef.current) return
+    isPlacingRef.current = true
     
     // ✅ NEW: Validate against asset min/max limits
     const limits = getOrderLimits(selectedAsset)
     
     if (amount < limits.min) {
       toast.error(`Jumlah minimum untuk ${selectedAsset.name} adalah ${formatCurrency(limits.min)}`)
+      isPlacingRef.current = false
       return
     }
     
     if (amount > limits.max) {
       toast.error(`Jumlah maksimum untuk ${selectedAsset.name} adalah ${formatCurrency(limits.max)}`)
+      isPlacingRef.current = false
       return
     }
     
     if (amount <= 0) {
       toast.error('Invalid amount')
+      isPlacingRef.current = false
       return
     }
 
@@ -720,6 +713,7 @@ export default function TradingPage() {
     
     if (amount > latestBalance) {
       toast.error(`Saldo ${selectedAccountType} tidak mencukupi`)
+      isPlacingRef.current = false
       return
     }
 
@@ -783,6 +777,7 @@ export default function TradingPage() {
         loadingTimeoutRef.current = null
       }
       setLoading(false)
+      isPlacingRef.current = false // ✅ Unlock setelah selesai
     }
   }, [
     selectedAsset, 
@@ -902,26 +897,44 @@ export default function TradingPage() {
 
           {/* ✅ MODIFIED: Desktop asset dropdown with type filter chips (text only, 2-row wrap) */}
           <div className="relative">
-            <button
-              onClick={() => {
-                if (showAssetMenu) {
-                  handleCloseAssetMenu()
-                } else {
-                  setShowAssetMenu(true)
-                }
-              }}
-              className="flex items-center gap-2 bg-[#2f3648] hover:bg-[#3a4360] px-2 py-2 rounded-lg transition-colors border border-gray-800/50"
-            >
-              {selectedAsset ? (
-                <>
-                  <AssetIcon asset={selectedAsset} size="xs" />
-                  <span className="text-sm font-medium">{selectedAsset.symbol}</span>
-                  <span className="text-sm text-white ml-2">{effectiveProfitRate}%</span>
-                </>
-              ) : (
-                <span className="text-sm text-gray-400">Pilih Asset</span>
-              )}
-            </button>
+            <div
+  className="relative rounded-xl group"
+  style={{
+    padding: '2px',
+    background: 'linear-gradient(to right, rgba(52,211,153,0.25) 0%, rgba(52,211,153,0.18) 15%, rgba(52,211,153,0.12) 28%, rgba(52,211,153,0.07) 40%, rgba(52,211,153,0.06) 55%, rgba(52,211,153,0.07) 70%, rgba(52,211,153,0.07) 100%)',
+  }}
+>
+  <button
+    onClick={() => {
+      if (showAssetMenu) {
+        handleCloseAssetMenu()
+      } else {
+        setShowAssetMenu(true)
+      }
+    }}
+    className="relative z-10 flex items-center gap-2 px-2 py-2 transition-colors w-full hover:brightness-110"
+    style={{
+      background: 'linear-gradient(to right, rgba(47,54,72,0.95) 0%, rgba(47,54,72,0.75) 28%, rgba(47,54,72,0.35) 52%, rgba(47,54,72,0.12) 72%, rgba(47,54,72,0.12) 100%)',
+      borderRadius: '10px',
+    }}
+  >
+    {selectedAsset ? (
+      <>
+        <span className="transition-transform duration-200 group-hover:scale-110">
+          <AssetIcon asset={selectedAsset} size="xs" />
+        </span>
+        <span className="text-sm font-medium transition-transform duration-200 delay-75 group-hover:scale-105">
+          {selectedAsset.symbol}
+        </span>
+        <span className="text-sm text-emerald-400 ml-2 transition-transform duration-200 delay-75 group-hover:scale-105">
+          {effectiveProfitRate}%
+        </span>
+      </>
+    ) : (
+      <span className="text-sm text-gray-400">Pilih Asset</span>
+    )}
+  </button>
+</div>
 
             {showAssetMenu && (
               <>
@@ -934,21 +947,22 @@ export default function TradingPage() {
                 }`}>
 
                   {/* Search Input */}
-                  <div className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-800/50 flex-shrink-0">
-                    <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                    <input
-                      autoFocus
-                      type="text"
-                      value={assetSearch}
-                      onChange={(e) => setAssetSearch(e.target.value)}
-                      placeholder="Cari aset..."
-                      className="flex-1 bg-transparent text-xs text-white placeholder-gray-500 focus:outline-none"
-                    />
-                    {assetSearch && (
-                      <button onClick={() => setAssetSearch('')} className="text-gray-500 hover:text-gray-300 transition-colors">
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
+                  <div className="px-3 py-2.5 border-b border-gray-800/50 flex-shrink-0">
+                    <div className="flex items-center gap-2 px-2 py-1.5">
+                      <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                      <input
+                        type="text"
+                        value={assetSearch}
+                        onChange={(e) => setAssetSearch(e.target.value)}
+                        placeholder="Cari aset..."
+                        className="flex-1 bg-[#1a1f2e] text-xs text-white outline-none border-0 hover:border-1 ring-0 hover:ring-1"
+                      />
+                      {assetSearch && (
+                        <button onClick={() => setAssetSearch('')} className="text-gray-500 hover:text-gray-300 transition-colors">
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* ✅ MODIFIED: Type Filter Chips - text only, 2-row wrap */}
@@ -1070,19 +1084,43 @@ export default function TradingPage() {
             )}
           </div>
 
-          <button
-            onClick={() => router.push('/balance')}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#0C8DF8] rounded-lg"
-          >
-            <Wallet className="w-4 h-4 text-white" />
-            <span className="text-sm font-medium text-white">Top Up</span>
-          </button>
+          <div className="relative rounded-lg p-px overflow-hidden group">
+  <div
+    className="absolute inset-[-100%]"
+    style={{
+      background: 'conic-gradient(from 0deg, transparent 0%, transparent 35%, rgba(255,255,255,0.15) 42%, rgba(255,255,255,0.9) 50%, rgba(255,255,255,0.15) 58%, transparent 65%, transparent 85%, rgba(255,255,255,0.08) 92%, rgba(255,255,255,0.4) 100%)',
+      animation: 'spin-variable 4s ease-in-out infinite',
+    }}
+  />
+  <div
+    className="absolute inset-[-100%] blur-sm"
+    style={{
+      background: 'conic-gradient(from 0deg, transparent 0%, transparent 38%, rgba(147,210,255,0.4) 50%, transparent 62%, transparent 100%)',
+      animation: 'spin-variable 4s ease-in-out infinite',
+    }}
+  />
+  <div className="absolute inset-[1px] rounded-lg bg-[#0C8DF8]" />
+  <div className="absolute inset-[1px] rounded-lg bg-white/0 group-hover:bg-white/10 transition-colors duration-300" />
 
+  <button
+    onClick={() => router.push('/balance')}
+    className="relative z-10 flex items-center gap-2 px-4 py-2.5 bg-[#0C8DF8] rounded-lg group-hover:brightness-110 transition-all duration-300"
+  >
+    <Wallet className="w-4 h-4 text-white transition-transform duration-200 group-hover:scale-110" />
+    <span className="text-sm font-medium text-white">Top Up</span>
+  </button>
+</div>
           <button
             onClick={() => setShowHistorySidebar(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-[#2f3648] hover:bg-[#3a4360] rounded-lg transition-colors border border-gray-800/50"
           >
-            <CalendarClock className="w-4 h-4" />
+            <div className="relative">
+              <CalendarClock className="w-4 h-4" />
+              <span className={`absolute -top-1.5 -right-1.5 flex h-2.5 w-2.5 transition-opacity duration-300 ${activeOrders.length > 0 ? 'opacity-100' : 'opacity-0'}`}>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
+              </span>
+            </div>
             <span className="text-sm">Riwayat</span>
           </button>
 
@@ -1121,6 +1159,62 @@ export default function TradingPage() {
                   </div>
                   
                   <div className="p-2 space-y-0.5">
+                  {/* ✅ Status Progress Widget - Desktop */}
+                  {userProfile?.statusInfo && (() => {
+                    const statusInfo = userProfile.statusInfo
+                    const progress = calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current)
+                    if (!progress.next) return null
+                    const nextConfig = STATUS_CONFIG[progress.next]
+                    const STATUS_BADGE_IMAGES: Record<string, string> = {
+                      standard: '/std.png',
+                      gold: '/gold.png',
+                      vip: '/vip.png'
+                    }
+                    const badgeImg = STATUS_BADGE_IMAGES[statusInfo.current]
+                    return (
+                      <div className="px-3 py-2.5 mb-1 bg-[#0f1419] rounded-lg border border-gray-800/60">
+                        {/* Header: status saat ini */}
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-1.5">
+                            {badgeImg && (
+                              <Image
+                                src={badgeImg}
+                                alt={statusInfo.current}
+                                width={18}
+                                height={18}
+                                className="object-contain"
+                              />
+                            )}
+                            <span className="text-[10px] font-semibold text-gray-300 uppercase tracking-wider">
+                              {statusInfo.current}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-bold text-blue-400">
+                            {progress.progress}%
+                          </span>
+                        </div>
+                        {/* Progress bar */}
+                        <div className="w-full bg-gray-700/60 rounded-full h-1.5 mb-2 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500"
+                            style={{ width: `${progress.progress}%` }}
+                          />
+                        </div>
+                        {/* Keterangan naik status */}
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <span className="text-[10px] text-gray-400">Butuh</span>
+                          <span className="text-[10px] text-white font-semibold">
+                            {formatDepositRequirement(progress.depositNeeded)}
+                          </span>
+                          <span className="text-[10px] text-gray-400"> ke</span>
+                          <span className="text-[10px] text-blue-400 font-semibold">
+                            {nextConfig?.label ?? progress.next}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })()}
+
                   <button
                     onClick={() => {
                       router.push('/profile')
@@ -1148,7 +1242,13 @@ export default function TradingPage() {
                     }}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#232936] transition-colors text-left"
                   >
-                    <CalendarClock className="w-4 h-4 flex-shrink-0" />
+                    <div className="relative flex-shrink-0">
+                      <CalendarClock className="w-4 h-4" />
+                      <span className={`absolute -top-1.5 -right-1.5 flex h-2.5 w-2.5 transition-opacity duration-300 ${activeOrders.length > 0 ? 'opacity-100' : 'opacity-0'}`}>
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                        <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
+                      </span>
+                    </div>
                     <span className="text-sm">Riwayat</span>
                   </button>
 
@@ -1478,7 +1578,7 @@ export default function TradingPage() {
             </div>
 
             {selectedAsset && (
-              <div className="bg-gradient-to-r from-emerald-500/10 to-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-3">
+              <div className="bg-gradient-to-r from-emerald-500/10 to-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-3">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-gray-400">Pendapatan</span>
                   <div className="flex items-center gap-2">
@@ -1492,19 +1592,59 @@ export default function TradingPage() {
             <div>
               <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={() => handlePlaceOrder('CALL')}
+                  onClick={() => { triggerBtnEffect('CALL'); handlePlaceOrder('CALL') }}
                   disabled={loading || !selectedAsset}
-                  className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-emerald-500/20"
+                  className="relative overflow-hidden bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white flex items-center justify-center shadow-lg shadow-emerald-500/20"
+                  style={btnEffect === 'CALL' ? {
+                    animation: 'tradeBtnPress 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards, tradeBtnGlowBuy 0.7s ease-out forwards'
+                  } : undefined}
                 >
-                  <ArrowUp className="w-6 h-6" />
+                  {btnEffect === 'CALL' && <span style={{
+                    position:'absolute', borderRadius:'50%',
+                    width:36, height:36, top:'50%', left:'50%',
+                    marginTop:-18, marginLeft:-18,
+                    background:'rgba(255,255,255,0.45)',
+                    animation:'tradeBtnRipple 0.65s ease-out forwards',
+                    pointerEvents:'none'
+                  }} />}
+                  {btnEffect === 'CALL' && <span style={{
+                    position:'absolute', top:0, width:'55%', height:'100%',
+                    background:'linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.28) 50%,transparent 100%)',
+                    transform:'skewX(-20deg)',
+                    animation:'tradeBtnShine 0.55s ease-out forwards',
+                    pointerEvents:'none'
+                  }} />}
+                  <ArrowUp className="w-6 h-6 relative z-10" style={btnEffect === 'CALL' ? {
+                    animation:'tradeBtnIconBounce 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards'
+                  } : undefined} />
                 </button>
 
                 <button
-                  onClick={() => handlePlaceOrder('PUT')}
+                  onClick={() => { triggerBtnEffect('PUT'); handlePlaceOrder('PUT') }}
                   disabled={loading || !selectedAsset}
-                  className="bg-rose-500 hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white transition-all flex items-center justify-center shadow-lg shadow-rose-500/20"
+                  className="relative overflow-hidden bg-rose-500 hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed py-3.5 rounded-xl font-bold text-white flex items-center justify-center shadow-lg shadow-rose-500/20"
+                  style={btnEffect === 'PUT' ? {
+                    animation: 'tradeBtnPress 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards, tradeBtnGlowSell 0.7s ease-out forwards'
+                  } : undefined}
                 >
-                  <ArrowDown className="w-6 h-6" />
+                  {btnEffect === 'PUT' && <span style={{
+                    position:'absolute', borderRadius:'50%',
+                    width:36, height:36, top:'50%', left:'50%',
+                    marginTop:-18, marginLeft:-18,
+                    background:'rgba(255,255,255,0.45)',
+                    animation:'tradeBtnRipple 0.65s ease-out forwards',
+                    pointerEvents:'none'
+                  }} />}
+                  {btnEffect === 'PUT' && <span style={{
+                    position:'absolute', top:0, width:'55%', height:'100%',
+                    background:'linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.28) 50%,transparent 100%)',
+                    transform:'skewX(-20deg)',
+                    animation:'tradeBtnShine 0.55s ease-out forwards',
+                    pointerEvents:'none'
+                  }} />}
+                  <ArrowDown className="w-6 h-6 relative z-10" style={btnEffect === 'PUT' ? {
+                    animation:'tradeBtnIconBounce 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards'
+                  } : undefined} />
                 </button>
               </div>
             </div>
@@ -1641,7 +1781,7 @@ export default function TradingPage() {
 
           {selectedAsset && (
             <div className="flex justify-center py-2">
-              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500/10 to-emerald-500/10 border border-emerald-500/20 rounded-xl px-5 py-2.5">
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500/10 to-emerald-500/10 border border-emerald-500/20 rounded-full px-5 py-2.5">
                 <span className="text-xs text-gray-400">Pendapatan</span>
                 <span className="text-xs text-emerald-400">+{effectiveProfitRate}%</span>
                 <span className="text-sm font-bold text-emerald-400">
@@ -1653,20 +1793,60 @@ export default function TradingPage() {
 
           <div className="grid grid-cols-2 gap-4 pt-2">
             <button
-              onClick={() => handlePlaceOrder('CALL')}
+              onClick={() => { triggerBtnEffect('CALL'); handlePlaceOrder('CALL') }}
               disabled={loading || !selectedAsset}
-              className="bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 disabled:opacity-50 py-4 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
+              className="relative overflow-hidden bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 disabled:opacity-50 py-4 rounded-xl font-bold text-white flex items-center justify-center gap-2 shadow-lg"
+              style={btnEffect === 'CALL' ? {
+                animation: 'tradeBtnPress 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards, tradeBtnGlowBuy 0.7s ease-out forwards'
+              } : undefined}
             >
-              <ArrowUp className="w-5 h-5" />
-              <span>BUY</span>
+              {btnEffect === 'CALL' && <span style={{
+                position:'absolute', borderRadius:'50%',
+                width:40, height:40, top:'50%', left:'50%',
+                marginTop:-20, marginLeft:-20,
+                background:'rgba(255,255,255,0.45)',
+                animation:'tradeBtnRipple 0.65s ease-out forwards',
+                pointerEvents:'none', zIndex:1
+              }} />}
+              {btnEffect === 'CALL' && <span style={{
+                position:'absolute', top:0, width:'55%', height:'100%',
+                background:'linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.28) 50%,transparent 100%)',
+                transform:'skewX(-20deg)',
+                animation:'tradeBtnShine 0.55s ease-out forwards',
+                pointerEvents:'none', zIndex:1
+              }} />}
+              <ArrowUp className="w-5 h-5 relative z-10" style={btnEffect === 'CALL' ? {
+                animation:'tradeBtnIconBounce 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards'
+              } : undefined} />
+              <span className="relative z-10">BUY</span>
             </button>
             <button
-              onClick={() => handlePlaceOrder('PUT')}
+              onClick={() => { triggerBtnEffect('PUT'); handlePlaceOrder('PUT') }}
               disabled={loading || !selectedAsset}
-              className="bg-rose-500 hover:bg-rose-600 active:bg-rose-700 disabled:opacity-50 py-4 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg"
+              className="relative overflow-hidden bg-rose-500 hover:bg-rose-600 active:bg-rose-700 disabled:opacity-50 py-4 rounded-xl font-bold text-white flex items-center justify-center gap-2 shadow-lg"
+              style={btnEffect === 'PUT' ? {
+                animation: 'tradeBtnPress 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards, tradeBtnGlowSell 0.7s ease-out forwards'
+              } : undefined}
             >
-              <ArrowDown className="w-5 h-5" />
-              <span>SELL</span>
+              {btnEffect === 'PUT' && <span style={{
+                position:'absolute', borderRadius:'50%',
+                width:40, height:40, top:'50%', left:'50%',
+                marginTop:-20, marginLeft:-20,
+                background:'rgba(255,255,255,0.45)',
+                animation:'tradeBtnRipple 0.65s ease-out forwards',
+                pointerEvents:'none', zIndex:1
+              }} />}
+              {btnEffect === 'PUT' && <span style={{
+                position:'absolute', top:0, width:'55%', height:'100%',
+                background:'linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.28) 50%,transparent 100%)',
+                transform:'skewX(-20deg)',
+                animation:'tradeBtnShine 0.55s ease-out forwards',
+                pointerEvents:'none', zIndex:1
+              }} />}
+              <ArrowDown className="w-5 h-5 relative z-10" style={btnEffect === 'PUT' ? {
+                animation:'tradeBtnIconBounce 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards'
+              } : undefined} />
+              <span className="relative z-10">SELL</span>
             </button>
           </div>
         </div>
@@ -1851,6 +2031,62 @@ export default function TradingPage() {
                 </div>
               </div>
 
+              {/* ✅ Status Progress Widget - Mobile */}
+              {userProfile?.statusInfo && (() => {
+                const statusInfo = userProfile.statusInfo
+                const progress = calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current)
+                if (!progress.next) return null
+                const nextConfig = STATUS_CONFIG[progress.next]
+                const STATUS_BADGE_IMAGES: Record<string, string> = {
+                  standard: '/std.png',
+                  gold: '/gold.png',
+                  vip: '/vip.png'
+                }
+                const badgeImg = STATUS_BADGE_IMAGES[statusInfo.current]
+                return (
+                  <div className="px-4 py-3 bg-[#1a1f2e] rounded-xl border border-gray-700/50">
+                    {/* Header: status saat ini */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1.5">
+                        {badgeImg && (
+                          <Image
+                            src={badgeImg}
+                            alt={statusInfo.current}
+                            width={18}
+                            height={18}
+                            className="object-contain"
+                          />
+                        )}
+                        <span className="text-[10px] font-semibold text-gray-300 uppercase tracking-wider">
+                          {statusInfo.current}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold text-blue-400">
+                        {progress.progress}%
+                      </span>
+                    </div>
+                    {/* Progress bar */}
+                    <div className="w-full bg-gray-700/60 rounded-full h-1.5 mb-2 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500"
+                        style={{ width: `${progress.progress}%` }}
+                      />
+                    </div>
+                    {/* Keterangan naik status */}
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <span className="text-[10px] text-gray-400">Butuh</span>
+                      <span className="text-[10px] text-white font-semibold">
+                        {formatDepositRequirement(progress.depositNeeded)}
+                      </span>
+                      <span className="text-[10px] text-gray-400"> ke</span>
+                      <span className="text-[10px] text-blue-400 font-semibold">
+                        {nextConfig?.label ?? progress.next}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })()}
+
               <button
                 onClick={() => {
                   handleCloseMobileMenu()
@@ -1889,7 +2125,13 @@ export default function TradingPage() {
                 }}
                 className="w-full flex items-center gap-3.5 px-4 py-3.5 bg-[#1a1f2e] hover:bg-[#232936] rounded-xl transition-colors"
               >
-                <CalendarClock className="w-4 h-4 flex-shrink-0" />
+                <div className="relative flex-shrink-0">
+                  <CalendarClock className="w-4 h-4" />
+                  <span className={`absolute -top-1.5 -right-1.5 flex h-2.5 w-2.5 transition-opacity duration-300 ${activeOrders.length > 0 ? 'opacity-100' : 'opacity-0'}`}>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
+                  </span>
+                </div>
                 <span>Riwayat</span>
               </button>
 
@@ -2027,26 +2269,14 @@ export default function TradingPage() {
         onClose={notification.closeBatch}
       />
 
-      <style jsx>{`
+      <style>{`
         @keyframes dropdown-in {
-          from { 
-            opacity: 0;
-            transform: translateY(-8px) scale(0.96);
-          }
-          to { 
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
+          from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
         @keyframes dropdown-out {
-          from { 
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-          to { 
-            opacity: 0;
-            transform: translateY(-8px) scale(0.96);
-          }
+          from { opacity: 1; transform: translateY(0) scale(1); }
+          to { opacity: 0; transform: translateY(-8px) scale(0.96); }
         }
         @keyframes slide-left {
           from { transform: translateX(100%); opacity: 0; }
@@ -2072,61 +2302,72 @@ export default function TradingPage() {
           from { transform: translateX(0); opacity: 1; }
           to { transform: translateX(100%); opacity: 0; }
         }
-        @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+        @keyframes spin-variable {
+          0%   { transform: rotate(0deg); }
+          30%  { transform: rotate(60deg); }
+          55%  { transform: rotate(110deg); }
+          65%  { transform: rotate(250deg); }
+          80%  { transform: rotate(300deg); }
+          100% { transform: rotate(360deg); }
         }
-        @keyframes fade-out {
-          from { opacity: 1; }
-          to { opacity: 0; }
+        @keyframes border-shimmer {
+          0%   { opacity: 0.9; } 15%  { opacity: 0.3; }
+          25%  { opacity: 0.7; } 40%  { opacity: 0.15; }
+          50%  { opacity: 1; }   60%  { opacity: 0.4; }
+          72%  { opacity: 0.8; } 85%  { opacity: 0.2; }
+          100% { opacity: 0.9; }
         }
-        .animate-dropdown-in {
-          animation: dropdown-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        .animate-dropdown-in  { animation: dropdown-in 0.2s cubic-bezier(0.16,1,0.3,1); }
+        .animate-dropdown-out { animation: dropdown-out 0.2s cubic-bezier(0.4,0,1,1); }
+        .animate-slide-left   { animation: slide-left 0.25s cubic-bezier(0.16,1,0.3,1); }
+        .animate-slide-right  { animation: slide-right 0.25s cubic-bezier(0.16,1,0.3,1); }
+        .animate-slide-left-out  { animation: slide-left-out 0.25s cubic-bezier(0.4,0,1,1); }
+        .animate-slide-right-out { animation: slide-right-out 0.25s cubic-bezier(0.4,0,1,1); }
+        .animate-slide-up   { animation: slide-up 0.25s cubic-bezier(0.16,1,0.3,1); }
+        .animate-slide-down { animation: slide-down 0.25s cubic-bezier(0.4,0,1,1); }
+        .animate-fade-in { animation: fade-in 0.2s ease-out; }
+        .animate-fade-out { animation: fade-out 0.2s ease-in; }
+        button { transition: all 0.2s ease; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+
+        /* ===== TRADE BUTTON CLICK EFFECTS ===== */
+        @keyframes tradeBtnPress {
+          0%   { transform: scale(1); }
+          18%  { transform: scale(0.91); }
+          52%  { transform: scale(1.07); }
+          76%  { transform: scale(0.98); }
+          100% { transform: scale(1); }
         }
-        .animate-dropdown-out {
-          animation: dropdown-out 0.2s cubic-bezier(0.4, 0, 1, 1);
+        @keyframes tradeBtnRipple {
+          0%   { transform: scale(0); opacity: 0.8; }
+          100% { transform: scale(14); opacity: 0; }
         }
-        .animate-slide-left {
-          animation: slide-left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        @keyframes tradeBtnShine {
+          0%   { left: -80%; opacity: 0; }
+          10%  { opacity: 1; }
+          100% { left: 200%; opacity: 0; }
         }
-        .animate-slide-right {
-          animation: slide-right 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        @keyframes tradeBtnGlowBuy {
+          0%   { box-shadow: 0 4px 15px rgba(16,185,129,0.4); }
+          30%  { box-shadow: 0 0 0 5px rgba(16,185,129,0.22), 0 0 35px rgba(16,185,129,0.85), 0 0 70px rgba(16,185,129,0.3); }
+          100% { box-shadow: 0 4px 15px rgba(16,185,129,0.15); }
         }
-        .animate-slide-left-out {
-          animation: slide-left-out 0.25s cubic-bezier(0.4, 0, 1, 1);
+        @keyframes tradeBtnGlowSell {
+          0%   { box-shadow: 0 4px 15px rgba(244,63,94,0.4); }
+          30%  { box-shadow: 0 0 0 5px rgba(244,63,94,0.22), 0 0 35px rgba(244,63,94,0.85), 0 0 70px rgba(244,63,94,0.3); }
+          100% { box-shadow: 0 4px 15px rgba(244,63,94,0.15); }
         }
-        .animate-slide-right-out {
-          animation: slide-right-out 0.25s cubic-bezier(0.4, 0, 1, 1);
-        }
-        .animate-slide-up {
-          animation: slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .animate-slide-down {
-          animation: slide-down 0.25s cubic-bezier(0.4, 0, 1, 1);
-        }
-        .animate-fade-in {
-          animation: fade-in 0.2s ease-out;
-        }
-        .animate-fade-out {
-          animation: fade-out 0.2s ease-in;
-        }
-        button {
-          transition: all 0.2s ease;
-        }
-        ::-webkit-scrollbar {
-          width: 6px;
-          height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.2);
-          border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.3);
+        @keyframes tradeBtnIconBounce {
+          0%   { transform: translateY(0) scale(1); }
+          28%  { transform: translateY(-5px) scale(1.4); }
+          58%  { transform: translateY(2px) scale(0.88); }
+          80%  { transform: translateY(-1px) scale(1.06); }
+          100% { transform: translateY(0) scale(1); }
         }
       `}</style>
     </div>

@@ -1,4 +1,4 @@
-// lib/calculation.ts - FIXED: Match backend calculation exactly
+// lib/calculation.ts 
 import { TimezoneUtil } from './timezone';
 import type { BinaryOrder, Asset } from '@/types';
 
@@ -19,19 +19,6 @@ export class CalculationUtil {
     }
   }
 
-  /**
-   * ✅ FIXED: Calculate expiry timestamp - MATCHES BACKEND EXACTLY
-   * 
-   * Backend logic:
-   * 1. Get seconds from start of current minute
-   * 2. If seconds > threshold (20), add 1 extra minute
-   * 3. Set to exact minute:00
-   * 
-   * Examples (threshold=20):
-   * - Entry at 10:30:15 + 1m = 10:31:00 (15 ≤ 20, no extra)
-   * - Entry at 10:30:25 + 1m = 10:32:00 (25 > 20, +1 extra)
-   * - Entry at 10:30:50 + 5m = 10:36:00 (50 > 20, +1 extra)
-   */
   static calculateExpiryTimestamp(
     entryTimestamp: number,
     durationMinutes: number,

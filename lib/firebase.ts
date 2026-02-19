@@ -1,4 +1,4 @@
-// lib/firebase.ts - FIXED: Real-time data synchronization
+// lib/firebase.ts 
 
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
 import { getDatabase, Database, ref, onValue, off, query, limitToLast, get } from 'firebase/database'

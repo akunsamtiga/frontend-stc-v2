@@ -1,8 +1,17 @@
+// components/providers/WebSocketProvider.tsx
 'use client'
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode, useRef } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  ReactNode,
+  useRef,
+} from 'react'
 import { useAuthStore } from '@/store/auth'
-import { websocketService } from '@/lib/websocket'
+import { websocketService, OHLCUpdate } from '@/lib/websocket'
 
 interface WebSocketContextValue {
   isConnected: boolean
@@ -11,6 +20,8 @@ interface WebSocketContextValue {
   reconnectAttempts: number
   subscribeToPrice: (assetId: string, callback: (data: any) => void) => () => void
   subscribeToOrders: (userId: string, callback: (data: any) => void) => () => void
+  /** Subscribe ke OHLC update — tidak perlu Firebase RTDB listener lagi */
+  subscribeToOHLC: (assetId: string, callback: (data: OHLCUpdate) => void) => () => void
   forceReconnect: () => void
 }
 
@@ -50,20 +61,18 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
     const initWebSocket = async () => {
       try {
-        setConnectionStatus(prev => ({ ...prev, isConnecting: true }))
+        setConnectionStatus((prev) => ({ ...prev, isConnecting: true }))
         await websocketService.connect(token)
 
         statusIntervalRef.current = setInterval(() => {
           const status = websocketService.getConnectionStatus()
-          setConnectionStatus(prev => {
-            // ✅ FIX: Hanya update state kalau benar-benar ada perubahan
-            // Tanpa ini, setiap detik state berubah → semua consumer re-render
+          setConnectionStatus((prev) => {
             if (
               prev.isConnected === status.isConnected &&
               prev.isConnecting === status.isConnecting &&
               prev.reconnectAttempts === status.reconnectAttempts
             ) {
-              return prev // ← return referensi sama, React skip re-render
+              return prev
             }
             return {
               isConnected: status.isConnected,
@@ -72,10 +81,9 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
             }
           })
         }, 1000)
-
       } catch (error) {
         console.error('WebSocket init error:', error)
-        setConnectionStatus(prev => ({ ...prev, isConnecting: false }))
+        setConnectionStatus((prev) => ({ ...prev, isConnecting: false }))
       }
     }
 
@@ -87,13 +95,23 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.id, token, cleanup])
 
-  const subscribeToPrice = useCallback((assetId: string, callback: (data: any) => void) => {
-    return websocketService.subscribeToPrice(assetId, callback)
-  }, [])
+  const subscribeToPrice = useCallback(
+    (assetId: string, callback: (data: any) => void) =>
+      websocketService.subscribeToPrice(assetId, callback),
+    []
+  )
 
-  const subscribeToOrders = useCallback((userId: string, callback: (data: any) => void) => {
-    return websocketService.subscribeToOrders(userId, callback)
-  }, [])
+  const subscribeToOrders = useCallback(
+    (userId: string, callback: (data: any) => void) =>
+      websocketService.subscribeToOrders(userId, callback),
+    []
+  )
+
+  const subscribeToOHLC = useCallback(
+    (assetId: string, callback: (data: OHLCUpdate) => void) =>
+      websocketService.subscribeToOHLC(assetId, callback),
+    []
+  )
 
   const forceReconnect = useCallback(() => {
     console.log('🔄 Force reconnecting WebSocket...')
@@ -103,10 +121,12 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   const value: WebSocketContextValue = {
     isConnected: connectionStatus.isConnected,
     isConnecting: connectionStatus.isConnecting,
-    isReconnecting: !connectionStatus.isConnected && connectionStatus.reconnectAttempts > 0,
+    isReconnecting:
+      !connectionStatus.isConnected && connectionStatus.reconnectAttempts > 0,
     reconnectAttempts: connectionStatus.reconnectAttempts,
     subscribeToPrice,
     subscribeToOrders,
+    subscribeToOHLC,
     forceReconnect,
   }
 
@@ -126,14 +146,11 @@ export function useWebSocket() {
 }
 
 export function usePriceSubscription(assetId: string | null, enabled = true) {
-  const { subscribeToPrice, isConnected } = useWebSocket()
+  const { subscribeToPrice } = useWebSocket()
   const [priceData, setPriceData] = useState<any>(null)
   const [lastUpdate, setLastUpdate] = useState<number>(0)
 
   useEffect(() => {
-    // ✅ FIX: Guard di dalam effect, bukan di dependency array
-    // isConnected DIHAPUS dari deps — kalau dipakai sebagai dep,
-    // polling 1 detik di atas bikin hook ini subscribe/unsubscribe terus-menerus
     if (!assetId || !enabled) return
 
     console.log('📡 Subscribing to price:', assetId)
@@ -147,20 +164,18 @@ export function usePriceSubscription(assetId: string | null, enabled = true) {
       console.log('📡 Unsubscribing from price:', assetId)
       unsubscribe()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assetId, enabled, subscribeToPrice])
-  // ✅ isConnected sengaja tidak ada di sini
 
   return { priceData, lastUpdate }
 }
 
 export function useOrderSubscription(userId: string | null, enabled = true) {
-  const { subscribeToOrders, isConnected } = useWebSocket()
+  const { subscribeToOrders } = useWebSocket()
   const [orderUpdate, setOrderUpdate] = useState<any>(null)
   const [lastUpdate, setLastUpdate] = useState<number>(0)
 
   useEffect(() => {
-    // ✅ FIX: Sama — guard di dalam, isConnected dihapus dari deps
     if (!userId || !enabled) return
 
     console.log('📡 Subscribing to orders:', userId)
@@ -175,9 +190,40 @@ export function useOrderSubscription(userId: string | null, enabled = true) {
       console.log('📡 Unsubscribing from orders:', userId)
       unsubscribe()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, enabled, subscribeToOrders])
-  // ✅ isConnected sengaja tidak ada di sini
 
   return { orderUpdate, lastUpdate }
+}
+
+/**
+ * Hook untuk subscribe ke OHLC update via WebSocket.
+ * Menggantikan Firebase RTDB listener — zero RTDB reads saat live.
+ */
+export function useOHLCSubscription(
+  assetId: string | null,
+  enabled = true
+) {
+  const { subscribeToOHLC } = useWebSocket()
+  const [ohlcData, setOHLCData] = useState<OHLCUpdate | null>(null)
+  const [lastUpdate, setLastUpdate] = useState<number>(0)
+
+  useEffect(() => {
+    if (!assetId || !enabled) return
+
+    console.log('📊 Subscribing to OHLC:', assetId)
+
+    const unsubscribe = subscribeToOHLC(assetId, (data) => {
+      setOHLCData(data)
+      setLastUpdate(Date.now())
+    })
+
+    return () => {
+      console.log('📊 Unsubscribing from OHLC:', assetId)
+      unsubscribe()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetId, enabled, subscribeToOHLC])
+
+  return { ohlcData, lastUpdate }
 }

@@ -1,3 +1,4 @@
+// store/trading.ts
 import { create } from 'zustand'
 import { devtools, subscribeWithSelector, persist } from 'zustand/middleware'
 import { TimezoneUtil } from '@/lib/timezone'

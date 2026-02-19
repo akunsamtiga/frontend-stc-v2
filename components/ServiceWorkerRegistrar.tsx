@@ -3,14 +3,6 @@
 
 import { useEffect, useState } from 'react'
 
-/**
- * ✅ ServiceWorkerRegistrar - Register and manage service worker
- * Features:
- * - Auto-register on mount
- * - Force update on new version
- * - Periodic update checks
- * - Cache management utilities
- */
 export default function ServiceWorkerRegistrar() {
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null)

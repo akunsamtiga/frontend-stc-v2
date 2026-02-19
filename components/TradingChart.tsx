@@ -1,4 +1,4 @@
-// components/TradingChart.tsx - COMPLETE VERSION with OrderPriceTracker Integration
+// components/TradingChart.tsx 
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo, useMemo } from 'react'
@@ -7,7 +7,9 @@ import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, UTCTimest
 import { useTradingStore, useTradingActions } from '@/store/trading'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
-import { fetchHistoricalData, subscribeToOHLCUpdates, prefetchMultipleTimeframes } from '@/lib/firebase'
+import { fetchHistoricalData, prefetchMultipleTimeframes } from '@/lib/firebase'
+import { websocketService } from '@/lib/websocket'
+import type { OHLCUpdate } from '@/lib/websocket'
 import { BinaryOrder, TIMEFRAMES, Timeframe as TimeframeType } from '@/types'
 import { database, ref, get } from '@/lib/firebase'
 import { formatPriceAuto } from '@/lib/utils'
@@ -835,14 +837,9 @@ const PriceDisplay = memo(({
     }, 200)
   }, [onClick])
 
-  // Focus search input when menu opens
+  // Reset search when menu closes
   useEffect(() => {
-    if (showMenu && searchInputRef.current) {
-      setTimeout(() => {
-        searchInputRef.current?.focus()
-      }, 100)
-      setSelectedIndex(0)
-    } else {
+    if (!showMenu) {
       setSearchQuery('')
       setAssetTypeFilter('all')
       setSelectedIndex(0)
@@ -938,7 +935,7 @@ const PriceDisplay = memo(({
           }`}>
             {/* Search Input */}
             <div className="p-3 border-b border-gray-800/50 sticky top-0 bg-[#0f1419] z-10">
-              <div className="relative flex items-center gap-2 mb-2">
+              <div className="relative flex items-center gap-2 mb-2 px-2 py-1.5">
                 <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                 <input
                   ref={searchInputRef}
@@ -947,7 +944,7 @@ const PriceDisplay = memo(({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Cari aset..."
-                  className="flex-1 bg-transparent text-xs text-white placeholder-gray-500 focus:outline-none"
+                  className="flex-1 bg-[#1a1f2e50] text-xs text-white outline-none border-0 ring-0 hover:ring-1"
                   onClick={(e) => e.stopPropagation()}
                 />
                 {searchQuery && (
@@ -1203,7 +1200,7 @@ const MobileControls = memo(({
             setShowChartTypeMenu(false)
           }}
           disabled={isLoading}
-          className="h-10 px-3 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-lg hover:bg-gray-800/80 transition-all disabled:opacity-50 flex items-center gap-1.5"
+          className="h-10 px-3 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-full hover:bg-gray-800/80 transition-all disabled:opacity-50 flex items-center gap-1.5"
           title="Timeframe"
         >
           <Clock className="w-4 h-4 text-blue-400" />
@@ -1247,7 +1244,7 @@ const MobileControls = memo(({
             setShowTimeframeMenu(false)
           }}
           disabled={isLoading}
-          className="h-10 w-10 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-lg hover:bg-gray-800/80 transition-all disabled:opacity-50 flex items-center justify-center"
+          className="h-10 w-10 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-full hover:bg-gray-800/80 transition-all disabled:opacity-50 flex items-center justify-center"
           title={chartType === 'candle' ? 'Candlestick Chart' : 'Line Chart'}
         >
           {chartType === 'candle' ? (
@@ -1302,14 +1299,14 @@ const MobileControls = memo(({
       <button 
         onClick={onOpenIndicators}
         disabled={isLoading}
-        className="h-10 w-10 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-lg hover:bg-gray-800/80 transition-all disabled:opacity-50 flex items-center justify-center"
+        className="h-10 w-10 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-full hover:bg-gray-800/80 transition-all disabled:opacity-50 flex items-center justify-center"
         title="Indicators"
       >
         <Sliders className="w-4 h-4 text-gray-300" />
       </button>
 
       {/* Candle Countdown — integrated inline */}
-      <div className="h-10 px-3 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-lg flex items-center gap-1">
+      <div className="h-10 px-3 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-full flex items-center gap-1">
         <span className="text-sm font-light text-white tabular-nums">
           {formatCd(countdownSecs)}
         </span>
@@ -1354,7 +1351,7 @@ const DesktopControls = memo(({
     <div className="hidden lg:block absolute top-2 right-24 z-10">
       <div className="flex items-center gap-2">
         <div className="relative" ref={timeframeRef}>
-          <button onClick={() => setShowTimeframeMenu(!showTimeframeMenu)} disabled={isLoading} className="p-2.5 bg-black/20 backdrop-blur-md border border-white/10 rounded-lg hover:bg-black/30 transition-all flex items-center gap-1.5 disabled:opacity-50" title="Timeframe">
+          <button onClick={() => setShowTimeframeMenu(!showTimeframeMenu)} disabled={isLoading} className="p-2.5 bg-black/20 backdrop-blur-md border border-white/10 rounded-full hover:bg-black/30 transition-all flex items-center gap-1.5 disabled:opacity-50" title="Timeframe">
             <Clock className="w-5 h-5 text-gray-300" />
             <span className="text-xs font-bold text-white">{timeframe}</span>
             <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showTimeframeMenu ? 'rotate-180' : ''}`} />
@@ -1376,27 +1373,27 @@ const DesktopControls = memo(({
           )}
         </div>
 
-        <div className="flex items-center gap-1 bg-black/20 backdrop-blur-md border border-white/10 rounded-lg p-1">
-          <button onClick={() => onChartTypeChange('candle')} disabled={isLoading} className={`p-2 rounded transition-all ${
+        <div className="flex items-center gap-1 bg-black/20 backdrop-blur-md border border-white/10 rounded-full p-1">
+          <button onClick={() => onChartTypeChange('candle')} disabled={isLoading} className={`p-2 rounded-full transition-all ${
             chartType === 'candle' ? 'bg-blue-500/80 text-white shadow-sm' : 'text-gray-300 hover:text-white hover:bg-white/10'
           }`} title="Candlestick">
             <BarChart2 className="w-5 h-5" />
           </button>
-          <button onClick={() => onChartTypeChange('line')} disabled={isLoading} className={`p-2 rounded transition-all ${
+          <button onClick={() => onChartTypeChange('line')} disabled={isLoading} className={`p-2 rounded-full transition-all ${
             chartType === 'line' ? 'bg-blue-500/80 text-white shadow-sm' : 'text-gray-300 hover:text-white hover:bg-white/10'
           }`} title="Line">
             <Activity className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="flex items-center gap-1 bg-black/20 backdrop-blur-md border border-white/10 rounded-lg p-1">
-          <button onClick={onOpenIndicators} disabled={isLoading} className="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-50" title="Indicators">
+        <div className="flex items-center gap-1 bg-black/20 backdrop-blur-md border border-white/10 rounded-full p-1">
+          <button onClick={onOpenIndicators} disabled={isLoading} className="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors disabled:opacity-50" title="Indicators">
             <Sliders className="w-5 h-5" />
           </button>
-          <button onClick={onRefresh} disabled={isLoading} className="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-50" title="Refresh">
+          <button onClick={onRefresh} disabled={isLoading} className="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors disabled:opacity-50" title="Refresh">
             <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
-          <button onClick={onToggleFullscreen} className="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded transition-colors" title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
+          <button onClick={onToggleFullscreen} className="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors" title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
             {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
           </button>
         </div>
@@ -1772,134 +1769,111 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
     }
   }, [selectedAsset?.id, isInitialized, fetchCurrentPriceImmediately])
 
-  // REALTIME OHLC SUBSCRIPTION
+  // REALTIME OHLC SUBSCRIPTION (via WebSocket)
   useEffect(() => {
-    if (!selectedAsset?.realtimeDbPath || !isInitialized) return
+    if (!selectedAsset?.id || !isInitialized) return
     if (!candleSeriesRef.current || !lineSeriesRef.current) return
 
-    const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath)
+    const assetId = selectedAsset.id
     let lastCompletedTimestamp: number | null = null
-    let updateCount = 0
     
-    // ✅ CRITICAL FIX: Track ALL completed bar timestamps
+    // Track ALL completed bar timestamps to prevent re-updates
     const completedBarsSet = new Set<number>()
 
-    const unsubscribe = subscribeToOHLCUpdates(assetPath, timeframe, (newBar) => {
-      if (!newBar) return
+    const handleOHLCUpdate = (data: OHLCUpdate) => {
+      const currentBar = data.currentBars?.[timeframe]
+      const completedBar = data.completedBars?.[timeframe]
 
-      // Invalidate cache when a bar completes so the next manual refresh gets fresh data
-      if (newBar.isCompleted && newBar.timestamp !== lastCompletedTimestamp) {
-        lastCompletedTimestamp = newBar.timestamp
-        const cacheKey = `${selectedAsset.id}-${timeframe}`
+      // Process completed bar first
+      if (completedBar && completedBar.timestamp !== lastCompletedTimestamp) {
+        lastCompletedTimestamp = completedBar.timestamp
+        completedBarsSet.add(completedBar.timestamp)
+
+        // Invalidate cache for fresh data on next manual refresh
+        const cacheKey = `${assetId}-${timeframe}`
         GLOBAL_DATA_CACHE.delete(cacheKey)
 
-        if (typeof window !== 'undefined' && (window as any).firebaseDebug) {
-          const fbCacheKey = `${assetPath}-${timeframe}-historical`
-          ;(window as any).firebaseDebug.memoryCache.delete(fbCacheKey)
+        // Render final completed bar
+        try {
+          const completedChartCandle = {
+            time: completedBar.timestamp as UTCTimestamp,
+            open: completedBar.open,
+            high: completedBar.high,
+            low: completedBar.low,
+            close: completedBar.close,
+          }
+          candleSeriesRef.current?.update(completedChartCandle)
+          lineSeriesRef.current?.update({
+            time: completedChartCandle.time,
+            value: completedChartCandle.close,
+          })
+        } catch (error) {
+          console.warn('Completed bar update error:', error)
         }
       }
 
-      // Get bar period timestamp
-      const barPeriod = getBarPeriodTimestamp(newBar.timestamp, timeframe)
+      // Process live (current) bar
+      if (!currentBar) return
 
-      // ✅ CRITICAL: If this bar is already completed, NEVER update it
-      if (completedBarsSet.has(barPeriod)) {
-        console.warn('⚠️ Blocked update to completed bar:', barPeriod)
-        return
-      }
+      const barTimestamp = currentBar.timestamp
 
-      // ✅ Check if this is a new bar
-      const isNewBar = !currentBarRef.current || currentBarRef.current.timestamp !== barPeriod
+      // Never update a locked completed bar
+      if (completedBarsSet.has(barTimestamp)) return
+
+      const isNewBar = !currentBarRef.current || currentBarRef.current.timestamp !== barTimestamp
 
       if (isNewBar) {
-        // Mark previous bar as completed if it was
-        if (currentBarRef.current && currentBarRef.current.isCompleted) {
-          completedBarsSet.add(currentBarRef.current.timestamp)
-          console.log('🔒 Bar locked:', currentBarRef.current.timestamp)
-        }
-
-        // Create new bar
         currentBarRef.current = {
-          timestamp: barPeriod,
-          open: newBar.open,
-          high: newBar.high,
-          low: newBar.low,
-          close: newBar.close,
-          volume: newBar.volume || 0,
-          isCompleted: newBar.isCompleted || false
+          timestamp: barTimestamp,
+          open: currentBar.open,
+          high: currentBar.high,
+          low: currentBar.low,
+          close: currentBar.close,
+          volume: currentBar.volume || 0,
         }
       } else {
-        // Update current bar only if NOT completed
-        if (currentBarRef.current && !currentBarRef.current.isCompleted) {
-          currentBarRef.current = {
-            ...currentBarRef.current,
-            high: Math.max(currentBarRef.current.high, newBar.high),
-            low: Math.min(currentBarRef.current.low, newBar.low),
-            close: newBar.close,
-            // ✅ FIX: Jangan akumulasi volume per-tick. Firebase sudah kirim
-            // volume kumulatif per bar, bukan delta. Akumulasi di sini
-            // menyebabkan volume membengkak ribuan kali.
-            volume: newBar.volume || 0,
-            isCompleted: newBar.isCompleted || false
-          }
-          
-          // If bar just completed, lock it
-          if (newBar.isCompleted) {
-            completedBarsSet.add(barPeriod)
-            console.log('🔒 Bar completed:', barPeriod)
-          }
-        } else {
-          console.warn('⚠️ Attempted to update completed candle, skipping')
-          return
+        currentBarRef.current = {
+          ...currentBarRef.current!,
+          high: Math.max(currentBarRef.current!.high, currentBar.high),
+          low: Math.min(currentBarRef.current!.low, currentBar.low),
+          close: currentBar.close,
+          volume: currentBar.volume || 0,
         }
       }
 
-      // Safety check
-      if (!currentBarRef.current) {
-        console.warn('⚠️ currentBarRef.current is null, skipping update')
-        return
-      }
+      if (!currentBarRef.current) return
 
-      const chartCandle = {
-        time: currentBarRef.current.timestamp as UTCTimestamp,
-        open: currentBarRef.current.open,
-        high: currentBarRef.current.high,
-        low: currentBarRef.current.low,
-        close: currentBarRef.current.close,
-      }
-
-      // Update chart
-      updateCount++
-      if (updateCount % 3 === 0 || newBar.isCompleted || isNewBar) {
-        // Final check: Don't update if bar is locked
-        if (completedBarsSet.has(barPeriod) && !isNewBar) {
-          return
-        }
-
-        if (candleAnimatorRef.current && currentBarRef.current) {
-          candleAnimatorRef.current.updateCandle(currentBarRef.current)
-        } else {
-          try {
-            candleSeriesRef.current?.update(chartCandle)
-            lineSeriesRef.current?.update({
-              time: chartCandle.time,
-              value: chartCandle.close
-            })
-          } catch (error) {
-            console.warn('Chart update error:', error)
-          }
+      if (candleAnimatorRef.current) {
+        candleAnimatorRef.current.updateCandle(currentBarRef.current)
+      } else {
+        try {
+          candleSeriesRef.current?.update({
+            time: currentBarRef.current.timestamp as UTCTimestamp,
+            open: currentBarRef.current.open,
+            high: currentBarRef.current.high,
+            low: currentBarRef.current.low,
+            close: currentBarRef.current.close,
+          })
+          lineSeriesRef.current?.update({
+            time: currentBarRef.current.timestamp as UTCTimestamp,
+            value: currentBarRef.current.close,
+          })
+        } catch (error) {
+          console.warn('Live bar update error:', error)
         }
       }
 
-      setLastPrice(newBar.close)
+      setLastPrice(currentBar.close)
       lastUpdateTimeRef.current = Date.now()
-    })
+    }
+
+    const unsubscribe = websocketService.subscribeToOHLC(assetId, handleOHLCUpdate)
 
     return () => {
       unsubscribe()
       completedBarsSet.clear()
     }
-  }, [selectedAsset?.realtimeDbPath, timeframe, isInitialized])
+  }, [selectedAsset?.id, timeframe, isInitialized])
 
   // INITIALIZE CHART
   useEffect(() => {
