@@ -1273,6 +1273,9 @@ export default function TradingPage() {
                   >
                     <UserPlus className="w-4 h-4 flex-shrink-0" />
                     <span className="text-sm">Undang Teman</span>
+                    <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold text-white tracking-wide badge-new-shimmer">
+                      NEW
+                    </span>
                   </button>
 
                   <button
@@ -2264,6 +2267,9 @@ export default function TradingPage() {
               >
                 <UserPlus className="w-4 h-4" />
                 <span>Undang Teman</span>
+                <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold text-white tracking-wide badge-new-shimmer">
+                  NEW
+                </span>
               </button>
             </div>
           </div>
@@ -2353,6 +2359,24 @@ export default function TradingPage() {
         .animate-fade-in { animation: fade-in 0.2s ease-out; }
         .animate-fade-out { animation: fade-out 0.2s ease-in; }
         button { transition: all 0.2s ease; }
+        .badge-new-shimmer {
+          position: relative;
+          overflow: hidden;
+          background: linear-gradient(90deg, #2563eb, #3b82f6, #2563eb);
+        }
+        .badge-new-shimmer::after {
+          content: '';
+          position: absolute;
+          top: 0; left: -100%;
+          width: 60%;
+          height: 100%;
+          background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%);
+          animation: badge-shimmer-move 1.8s ease-in-out infinite;
+        }
+        @keyframes badge-shimmer-move {
+          0%   { left: -60%; }
+          100% { left: 160%; }
+        }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 3px; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }

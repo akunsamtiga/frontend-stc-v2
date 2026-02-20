@@ -1353,7 +1353,7 @@ const DesktopControls = memo(({
         <div className="relative" ref={timeframeRef}>
           <button onClick={() => setShowTimeframeMenu(!showTimeframeMenu)} disabled={isLoading} className="p-2.5 bg-black/20 backdrop-blur-md border border-white/10 rounded-full hover:bg-black/30 transition-all flex items-center gap-1.5 disabled:opacity-50" title="Timeframe">
             <Clock className="w-5 h-5 text-gray-300" />
-            <span className="text-xs font-bold text-white">{timeframe}</span>
+            <span className="text-base font-extrabold text-white">{timeframe}</span>
             <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showTimeframeMenu ? 'rotate-180' : ''}`} />
           </button>
 
