@@ -1,6 +1,12 @@
 // components/MidtransDepositPage.tsx
-// ✅ VERSI FINAL - Tampilan Bonus Voucher Diperbaiki + Optimasi Mobile & Professional UI
+// ✅ VERSI FINAL - Redirect ke B.com untuk pembayaran Midtrans
 import React, { useState, useEffect } from 'react';
+
+// ============================================================
+// CONFIG: URL B.com - isi di .env.local A.com
+// NEXT_PUBLIC_B_COM_URL=https://B.com
+// ============================================================
+const B_COM_URL = process.env.NEXT_PUBLIC_B_COM_URL || '';
 import { 
   // Phosphor Icons
   ArrowLeft, CreditCard, Wallet, WarningCircle, CheckCircle, 
@@ -169,61 +175,7 @@ class PaymentAPI {
   }
 }
 
-class MidtransSnap {
-  private static isLoaded = false;
-
-  static loadScript(): Promise<void> {
-    if (this.isLoaded) return Promise.resolve();
-
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      const isSandbox = process.env.NEXT_PUBLIC_MIDTRANS_MODE === 'sandbox';
-      script.src = isSandbox
-        ? 'https://app.sandbox.midtrans.com/snap/snap.js'
-        : 'https://app.midtrans.com/snap/snap.js';
-      script.setAttribute('data-client-key', process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '');
-      script.onload = () => {
-        this.isLoaded = true;
-        resolve();
-      };
-      script.onerror = () => reject(new Error('Gagal memuat Midtrans Snap'));
-      document.head.appendChild(script);
-    });
-  }
-
-  static async pay(snapToken: string): Promise<any> {
-    await this.loadScript();
-    return new Promise((resolve, reject) => {
-      if (!window.snap) {
-        reject(new Error('Midtrans Snap belum dimuat'));
-        return;
-      }
-
-      window.snap.pay(snapToken, {
-        onSuccess: (result: any) => {
-          resolve({ status: 'success', result });
-        },
-        onPending: (result: any) => {
-          resolve({ status: 'pending', result });
-        },
-        onError: (result: any) => {
-          reject(new Error('Pembayaran gagal'));
-        },
-        onClose: () => {
-          resolve({ status: 'closed' });
-        }
-      });
-    });
-  }
-}
-
-declare global {
-  interface Window {
-    snap?: {
-      pay: (token: string, options: any) => void;
-    };
-  }
-}
+// ✅ MidtransSnap class dihapus - popup Midtrans sekarang ditangani oleh B.com
 
 const TransactionStatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const statusConfig = {
@@ -300,6 +252,42 @@ const MidtransPaymentPage: React.FC = () => {
     loadTransactionHistory();
     loadAvailableVouchers();
     loadInitialBalance();
+
+    // ✅ BARU: Handle return dari B.com via URL params
+    // B.com redirect ke: A.com/deposit?status=success&orderId=xxx
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const returnStatus = params.get('status')
+      const returnOrderId = params.get('orderId')
+
+      if (returnStatus && returnOrderId) {
+        console.log('↩️ Kembali dari B.com:', { returnStatus, returnOrderId })
+
+        // Ambil data transaksi dari sessionStorage yang disimpan sebelum redirect
+        const savedTx = sessionStorage.getItem('pending_transaction')
+        if (savedTx) {
+          const txData = JSON.parse(savedTx)
+          setCurrentTransaction(txData)
+          setVoucherBonus(txData.voucherBonusAmount || 0)
+          setVoucherCode(txData.voucherCode || '')
+          sessionStorage.removeItem('pending_transaction')
+          console.log('✅ Data transaksi dipulihkan dari sessionStorage:', txData)
+        }
+
+        if (returnStatus === 'success' || returnStatus === 'pending') {
+          setStep('success')
+          setPaymentStatus('verifying')
+          setVerificationStartTime(Date.now())
+          setIsMonitoringBalance(true)
+        } else if (returnStatus === 'closed' || returnStatus === 'error') {
+          setError('Pembayaran dibatalkan atau gagal. Silakan coba lagi.')
+        }
+
+        // Bersihkan URL params tanpa reload halaman
+        const cleanUrl = window.location.pathname
+        window.history.replaceState({}, '', cleanUrl)
+      }
+    }
   }, []);
 
   // ✅ NEW: Auto-refresh balance jika payment success tapi balance masih 0
@@ -632,10 +620,11 @@ const MidtransPaymentPage: React.FC = () => {
         voucherBonus
       });
 
+      // Ambil saldo awal sebelum redirect
       const freshBalance = await PaymentAPI.getRealBalance();
       setInitialBalance(freshBalance);
       setCurrentBalance(freshBalance);
-      console.log('💰 Saldo awal diambil sebelum pembayaran:', freshBalance);
+      console.log('💰 Saldo awal diambil sebelum redirect ke B.com:', freshBalance);
 
       const response = await PaymentAPI.createTransaction(
         depositAmount,
@@ -649,26 +638,40 @@ const MidtransPaymentPage: React.FC = () => {
         throw new Error('Token snap tidak diterima');
       }
 
-      if (response.data.deposit.voucherBonusAmount && response.data.deposit.voucherBonusAmount > 0) {
-        setVoucherBonus(response.data.deposit.voucherBonusAmount);
-        console.log('💎 Bonus voucher dikonfirmasi dari backend:', response.data.deposit.voucherBonusAmount);
+      const deposit = response.data.deposit;
+
+      // Konfirmasi bonus voucher dari backend
+      const confirmedBonus = deposit.voucherBonusAmount || voucherBonus;
+      if (confirmedBonus > 0) {
+        setVoucherBonus(confirmedBonus);
+        console.log('💎 Bonus voucher dikonfirmasi dari backend:', confirmedBonus);
       }
 
-      setCurrentTransaction(response.data.deposit);
-      setStep('payment');
+      setCurrentTransaction(deposit);
+      setStep('payment'); // Tampilkan layar "Mengalihkan..."
 
-      const paymentResult = await MidtransSnap.pay(response.data.deposit.snap_token);
-      console.log('💳 Hasil popup pembayaran:', paymentResult);
+      // ✅ Simpan data transaksi ke sessionStorage sebelum redirect
+      // Digunakan saat user kembali dari B.com
+      sessionStorage.setItem('pending_transaction', JSON.stringify({
+        ...deposit,
+        voucherBonusAmount: confirmedBonus,
+        voucherCode: voucherCode || deposit.voucherCode || '',
+      }));
+      console.log('💾 Data transaksi disimpan ke sessionStorage');
 
-      if (paymentResult.status === 'success' || paymentResult.status === 'pending') {
-        setStep('success');
-        setPaymentStatus('verifying');
-        setVerificationStartTime(Date.now());
-        setIsMonitoringBalance(true);
-      } else if (paymentResult.status === 'closed') {
-        setError('Pembayaran dibatalkan');
-        setStep('amount');
-      }
+      // ✅ Redirect ke B.com dengan snap token
+      const params = new URLSearchParams({
+        token: deposit.snap_token,
+        orderId: deposit.order_id,
+      });
+
+      const redirectUrl = `${B_COM_URL}/payment?${params.toString()}`;
+      console.log('🔀 Redirect ke B.com:', redirectUrl);
+
+      // Delay kecil agar user melihat layar "Mengalihkan..."
+      await new Promise(resolve => setTimeout(resolve, 800));
+      window.location.href = redirectUrl;
+
     } catch (err: any) {
       console.error('❌ Error pembayaran:', err);
       setError(err.message || 'Pembayaran gagal. Silakan coba lagi.');
@@ -1038,19 +1041,19 @@ const MidtransPaymentPage: React.FC = () => {
     );
   }
 
-  // Layar pemrosesan pembayaran
+  // Layar redirect ke B.com
   if (step === 'payment') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-lg max-w-md w-full p-8 text-center border border-gray-200">
           <SpinnerGap size={64} weight="bold" className="text-sky-600 animate-spin mx-auto mb-6" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">Memproses Pembayaran</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">Mengalihkan ke Pembayaran</h2>
           <p className="text-gray-600 mb-6">
-            Silakan selesaikan pembayaran di jendela popup
+            Anda akan segera diarahkan ke halaman pembayaran yang aman
           </p>
           <div className="bg-sky-50 border border-sky-200 rounded-lg p-4">
             <p className="text-sm text-sky-800">
-              Jika popup tidak muncul, periksa apakah diblokir oleh browser Anda
+              Mohon jangan tutup atau refresh halaman ini
             </p>
           </div>
         </div>

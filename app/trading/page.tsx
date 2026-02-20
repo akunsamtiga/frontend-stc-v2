@@ -43,6 +43,7 @@ import {
   MessageCircle,
   Search,
   CalendarClock,
+  UserPlus,
 } from 'lucide-react'
 import OrderNotification from '@/components/OrderNotification'
 import { useWebSocket, usePriceSubscription, useOrderSubscription } from '@/components/providers/WebSocketProvider'
@@ -1265,6 +1266,17 @@ export default function TradingPage() {
 
                   <button
                     onClick={() => {
+                      router.push('/referral')
+                      setShowUserMenu(false)
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-yellow-500/10 transition-colors text-left text-yellow-400"
+                  >
+                    <UserPlus className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-sm">Undang Teman</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
                       setShowUserMenu(false)
                       setTimeout(() => {
                         setShowTutorial(true)
@@ -2241,6 +2253,17 @@ export default function TradingPage() {
               >
                 <MessageCircle className="w-4 h-4" />
                 <span>Support</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  handleCloseLeftSidebar()
+                  setTimeout(() => router.push('/referral'), 300)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors text-yellow-400"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Undang Teman</span>
               </button>
             </div>
           </div>

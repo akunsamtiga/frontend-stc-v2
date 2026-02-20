@@ -16,7 +16,8 @@ import {
   Menu,
   X,
   ChevronDown,
-  User
+  User,
+  UserPlus
 } from 'lucide-react'
 
 export default function Navbar() {
@@ -25,6 +26,7 @@ export default function Navbar() {
   const { user, logout } = useAuthStore()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [isClosingMenu, setIsClosingMenu] = useState(false)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [logoPhase, setLogoPhase] = useState<'stc-logo-in' | 'stc-text-in' | 'stc-hold' | 'stc-text-out' | 'stc-logo-out' | 'stockity-logo-in' | 'stockity-text-in' | 'stockity-hold' | 'stockity-text-out' | 'stockity-logo-out'>('stc-logo-in')
 
@@ -84,29 +86,29 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
-      // Clear API token and cache
       api.removeToken()
       api.clearCache()
-      
-      // Logout from store
       logout()
       
-      // Clear all storage
       if (typeof window !== 'undefined') {
         localStorage.clear()
         sessionStorage.clear()
       }
       
-      // Small delay to ensure cleanup
       await new Promise(resolve => setTimeout(resolve, 100))
-      
-      // Force redirect to root page using replace (prevents back button)
       router.replace('/')
     } catch (error) {
       console.error('Logout error:', error)
-      // Even if error, still redirect to root
       router.replace('/')
     }
+  }
+
+  const closeMobileMenu = () => {
+    setIsClosingMenu(true)
+    setTimeout(() => {
+      setShowMobileMenu(false)
+      setIsClosingMenu(false)
+    }, 280) // sedikit kurang dari durasi animasi 0.3s
   }
 
   const isActive = (path: string) => pathname === path
@@ -115,6 +117,7 @@ export default function Navbar() {
     { path: '/trading', label: 'Trading', icon: BarChart3 },
     { path: '/history', label: 'Riwayat', icon: History },
     { path: '/balance', label: 'Keuangan', icon: Wallet },
+    { path: '/referral', label: 'Undang Teman', icon: UserPlus },
     { path: '/profile', label: 'Profil', icon: User },
   ]
 
@@ -122,193 +125,237 @@ export default function Navbar() {
 
   return (
     <nav className="bg-white border-b border-gray-200">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo dengan animasi sequence */}
-          <div 
-            className="relative h-10 w-48 overflow-visible cursor-pointer"
-            onClick={() => router.push('/trading')}
-          >
-            {/* Stouch - hanya visible di fase STC */}
-            {logoPhase.startsWith('stc-') && (
-              <div className="flex items-center gap-3 absolute left-0 top-0">
-                {/* Logo STC */}
-                <div className={`relative w-10 h-10 flex-shrink-0 overflow-visible ${
-                  logoPhase === 'stc-logo-in' ? 'animate-logo-bounce-in' :
-                  logoPhase === 'stc-logo-out' ? 'animate-logo-bounce-out' : 
-                  'opacity-100'
-                }`}>
-                  <Image
-                    src="/stc-logo1.png"
-                    alt="Stouch"
-                    fill
-                    className="object-contain rounded-md"
-                    priority
-                  />
-                </div>
-                
-                {/* Text STC - hanya show setelah logo in */}
-                {(logoPhase !== 'stc-logo-in' && logoPhase !== 'stc-logo-out') && (
-                  <div className="flex overflow-hidden">
-                    <span className={`text-lg font-bold text-gray-900 whitespace-nowrap ${
-                      logoPhase === 'stc-text-in' ? 'animate-text-slide-in' :
-                      logoPhase === 'stc-text-out' ? 'animate-text-slide-out' : 
-                      'opacity-100 translate-x-0'
-                    }`}>
-                      Stouch
-                    </span>
-                  </div>
-                )}
+      {/* Desktop: full-width layout tanpa container constraint */}
+      <div className="hidden md:flex items-center h-16 px-6 gap-4">
+
+        {/* Logo */}
+        <div 
+          className="relative h-10 w-44 flex-shrink-0 overflow-visible cursor-pointer"
+          onClick={() => router.push('/trading')}
+        >
+          {/* Stouch - hanya visible di fase STC */}
+          {logoPhase.startsWith('stc-') && (
+            <div className="flex items-center gap-3 absolute left-0 top-0">
+              <div className={`relative w-10 h-10 flex-shrink-0 overflow-visible ${
+                logoPhase === 'stc-logo-in' ? 'animate-logo-bounce-in' :
+                logoPhase === 'stc-logo-out' ? 'animate-logo-bounce-out' : 
+                'opacity-100'
+              }`}>
+                <Image
+                  src="/stc-logo1.png"
+                  alt="Stouch"
+                  fill
+                  className="object-contain rounded-md"
+                  priority
+                />
               </div>
-            )}
-
-            {/* By Stockity - hanya visible di fase Stockity */}
-            {logoPhase.startsWith('stockity-') && (
-              <div className="flex items-center gap-3 absolute left-0 top-1">
-                {/* Logo Stockity */}
-                <div className={`relative w-8 h-8 flex-shrink-0 overflow-visible ${
-                  logoPhase === 'stockity-logo-in' ? 'animate-logo-bounce-in' :
-                  logoPhase === 'stockity-logo-out' ? 'animate-logo-bounce-out' : 
-                  'opacity-100'
-                }`}>
-                  <Image
-                    src="/stockity.png"
-                    alt="Stockity"
-                    fill
-                    className="object-contain rounded-md"
-                    priority
-                  />
+              
+              {(logoPhase !== 'stc-logo-in' && logoPhase !== 'stc-logo-out') && (
+                <div className="flex overflow-hidden">
+                  <span className={`text-lg font-bold text-gray-900 whitespace-nowrap ${
+                    logoPhase === 'stc-text-in' ? 'animate-text-slide-in' :
+                    logoPhase === 'stc-text-out' ? 'animate-text-slide-out' : 
+                    'opacity-100 translate-x-0'
+                  }`}>
+                    Stouch
+                  </span>
                 </div>
-                
-                {/* Text Stockity - hanya show setelah logo in */}
-                {(logoPhase !== 'stockity-logo-in' && logoPhase !== 'stockity-logo-out') && (
-                  <div className="flex overflow-hidden">
-                    <span className={`text-lg font-bold text-gray-900 whitespace-nowrap ${
-                      logoPhase === 'stockity-text-in' ? 'animate-text-slide-in' :
-                      logoPhase === 'stockity-text-out' ? 'animate-text-slide-out' : 
-                      'opacity-100 translate-x-0'
-                    }`}>
-                      By Stockity
-                    </span>
-                  </div>
-                )}
+              )}
+            </div>
+          )}
+
+          {/* By Stockity - hanya visible di fase Stockity */}
+          {logoPhase.startsWith('stockity-') && (
+            <div className="flex items-center gap-3 absolute left-0 top-1">
+              <div className={`relative w-8 h-8 flex-shrink-0 overflow-visible ${
+                logoPhase === 'stockity-logo-in' ? 'animate-logo-bounce-in' :
+                logoPhase === 'stockity-logo-out' ? 'animate-logo-bounce-out' : 
+                'opacity-100'
+              }`}>
+                <Image
+                  src="/stockity.png"
+                  alt="Stockity"
+                  fill
+                  className="object-contain rounded-md"
+                  priority
+                />
               </div>
-            )}
-          </div>
+              
+              {(logoPhase !== 'stockity-logo-in' && logoPhase !== 'stockity-logo-out') && (
+                <div className="flex overflow-hidden">
+                  <span className={`text-lg font-bold text-gray-900 whitespace-nowrap ${
+                    logoPhase === 'stockity-text-in' ? 'animate-text-slide-in' :
+                    logoPhase === 'stockity-text-out' ? 'animate-text-slide-out' : 
+                    'opacity-100 translate-x-0'
+                  }`}>
+                    By Stockity
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => {
-              const Icon = link.icon
-              return (
-                <button
-                  key={link.path}
-                  onClick={() => router.push(link.path)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive(link.path)
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{link.label}</span>
-                </button>
-              )
-            })}
-
-            {/* Admin Link */}
-            {(user.role === 'super_admin' || user.role === 'admin') && (
+        {/* Nav Links — flex-1 agar mengisi semua ruang tengah, merata */}
+        <div className="flex-1 flex items-center justify-evenly">
+          {navLinks.map((link) => {
+            const Icon = link.icon
+            return (
               <button
-                onClick={() => router.push('/admin')}
+                key={link.path}
+                onClick={() => router.push(link.path)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  pathname.startsWith('/admin')
+                  isActive(link.path)
                     ? 'bg-blue-50 text-blue-600'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
-                <Shield className="w-4 h-4" />
-                <span>Admin</span>
+                <Icon className="w-4 h-4" />
+                <span>{link.label}</span>
               </button>
-            )}
-          </div>
+            )
+          })}
 
-          {/* User Menu - Desktop */}
-          <div className="hidden md:block relative">
+          {/* Admin Link */}
+          {(user.role === 'super_admin' || user.role === 'admin') && (
             <button
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+              onClick={() => router.push('/admin')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                pathname.startsWith('/admin')
+                  ? 'bg-blue-50 text-blue-600'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
             >
-              <div className="text-sm font-medium text-gray-900">{user.email.split('@')[0]}</div>
-              {userProfile?.profileInfo?.avatar?.url ? (
-                <div className="relative w-8 h-8 rounded-full overflow-hidden ring-2 ring-gray-200">
-                  <Image
-                    src={userProfile.profileInfo.avatar.url}
-                    alt={user.email}
-                    width={32}
-                    height={32}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="flat-avatar">
-                  {user.email[0].toUpperCase()}
-                </div>
-              )}
-              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+              <Shield className="w-4 h-4" />
+              <span>Admin</span>
             </button>
+          )}
+        </div>
 
-            {showUserMenu && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
-                <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-flat-lg z-50 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-gray-100">
-                    <div className="text-sm font-medium text-gray-900 truncate mb-1">{user.email}</div>
-                    <div className="text-xs text-gray-500 capitalize">
-                      {user.role.replace('_', ' ')} | {user.status.toUpperCase()}
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 transition-colors text-left text-red-600"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span className="text-sm font-medium">Keluar</span>
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Mobile Menu Button */}
+        {/* User Menu */}
+        <div className="flex-shrink-0 relative">
           <button
-            onClick={() => setShowMobileMenu(true)}
-            className="md:hidden p-2 rounded-lg hover:bg-gray-50 transition-colors"
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            <Menu className="w-6 h-6 text-gray-700" />
+            <div className="text-sm font-medium text-gray-900">{user.email.split('@')[0]}</div>
+            {userProfile?.profileInfo?.avatar?.url ? (
+              <div className="relative w-8 h-8 rounded-full overflow-hidden ring-2 ring-gray-200">
+                <Image
+                  src={userProfile.profileInfo.avatar.url}
+                  alt={user.email}
+                  width={32}
+                  height={32}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="flat-avatar">
+                {user.email[0].toUpperCase()}
+              </div>
+            )}
+            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
           </button>
+
+          {showUserMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+              <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-flat-lg z-50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <div className="text-sm font-medium text-gray-900 truncate mb-1">{user.email}</div>
+                  <div className="text-xs text-gray-500 capitalize">
+                    {user.role.replace('_', ' ')} | {user.status.toUpperCase()}
+                  </div>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 transition-colors text-left text-red-600"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="text-sm font-medium">Keluar</span>
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile: layout asli tetap dipertahankan */}
+      <div className="md:hidden flex items-center justify-between h-16 px-4">
+        {/* Logo */}
+        <div 
+          className="relative h-10 w-48 overflow-visible cursor-pointer"
+          onClick={() => router.push('/trading')}
+        >
+          {logoPhase.startsWith('stc-') && (
+            <div className="flex items-center gap-3 absolute left-0 top-0">
+              <div className={`relative w-10 h-10 flex-shrink-0 overflow-visible ${
+                logoPhase === 'stc-logo-in' ? 'animate-logo-bounce-in' :
+                logoPhase === 'stc-logo-out' ? 'animate-logo-bounce-out' : 
+                'opacity-100'
+              }`}>
+                <Image src="/stc-logo1.png" alt="Stouch" fill className="object-contain rounded-md" priority />
+              </div>
+              {(logoPhase !== 'stc-logo-in' && logoPhase !== 'stc-logo-out') && (
+                <div className="flex overflow-hidden">
+                  <span className={`text-lg font-bold text-gray-900 whitespace-nowrap ${
+                    logoPhase === 'stc-text-in' ? 'animate-text-slide-in' :
+                    logoPhase === 'stc-text-out' ? 'animate-text-slide-out' : 
+                    'opacity-100 translate-x-0'
+                  }`}>Stouch</span>
+                </div>
+              )}
+            </div>
+          )}
+          {logoPhase.startsWith('stockity-') && (
+            <div className="flex items-center gap-3 absolute left-0 top-1">
+              <div className={`relative w-8 h-8 flex-shrink-0 overflow-visible ${
+                logoPhase === 'stockity-logo-in' ? 'animate-logo-bounce-in' :
+                logoPhase === 'stockity-logo-out' ? 'animate-logo-bounce-out' : 
+                'opacity-100'
+              }`}>
+                <Image src="/stockity.png" alt="Stockity" fill className="object-contain rounded-md" priority />
+              </div>
+              {(logoPhase !== 'stockity-logo-in' && logoPhase !== 'stockity-logo-out') && (
+                <div className="flex overflow-hidden">
+                  <span className={`text-lg font-bold text-gray-900 whitespace-nowrap ${
+                    logoPhase === 'stockity-text-in' ? 'animate-text-slide-in' :
+                    logoPhase === 'stockity-text-out' ? 'animate-text-slide-out' : 
+                    'opacity-100 translate-x-0'
+                  }`}>By Stockity</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Menu Button */}
+        <button
+          onClick={() => setShowMobileMenu(true)}
+          className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          <Menu className="w-6 h-6 text-gray-700" />
+        </button>
+      </div>
+
+      {/* Mobile Menu Drawer */}
       {showMobileMenu && (
         <>
           <div 
-            className="fixed inset-0 bg-black/20 z-50 animate-fade-in" 
-            onClick={() => setShowMobileMenu(false)} 
+            className={`fixed inset-0 bg-black/20 z-50 ${isClosingMenu ? 'animate-fade-out' : 'animate-fade-in'}`}
+            onClick={closeMobileMenu} 
           />
-          <div className="fixed top-0 right-0 bottom-0 w-80 bg-white border-l border-gray-200 z-50 animate-slide-left overflow-y-auto">
-            {/* Header */}
+          <div className={`fixed top-0 right-0 bottom-0 w-80 bg-white border-l border-gray-200 z-50 overflow-y-auto ${isClosingMenu ? 'animate-slide-right' : 'animate-slide-left'}`}>
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <h3 className="font-bold text-gray-900">Menu</h3>
               <button 
-                onClick={() => setShowMobileMenu(false)}
+                onClick={closeMobileMenu}
                 className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
 
-            {/* User Info */}
             <div className="p-4 bg-gray-50 border-b border-gray-200">
               <div className="flex items-center gap-3">
                 {userProfile?.profileInfo?.avatar?.url ? (
@@ -333,7 +380,6 @@ export default function Navbar() {
               </div>
             </div>
 
-            {/* Navigation Links */}
             <div className="p-4 space-y-1">
               {navLinks.map((link) => {
                 const Icon = link.icon
@@ -342,7 +388,7 @@ export default function Navbar() {
                     key={link.path}
                     onClick={() => {
                       router.push(link.path)
-                      setShowMobileMenu(false)
+                      closeMobileMenu()
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                       isActive(link.path)
@@ -356,12 +402,11 @@ export default function Navbar() {
                 )
               })}
 
-              {/* Admin Link */}
               {(user.role === 'super_admin' || user.role === 'admin') && (
                 <button
                   onClick={() => {
                     router.push('/admin')
-                    setShowMobileMenu(false)
+                    closeMobileMenu()
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                     pathname.startsWith('/admin')
@@ -375,7 +420,6 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* Logout */}
             <div className="p-4 border-t border-gray-200 space-y-1">              
               <button
                 onClick={handleLogout}
@@ -394,9 +438,29 @@ export default function Navbar() {
           from { transform: translateX(100%); }
           to { transform: translateX(0); }
         }
-
+        @keyframes slide-right {
+          from { transform: translateX(0); }
+          to { transform: translateX(100%); }
+        }
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes fade-out {
+          from { opacity: 1; }
+          to { opacity: 0; }
+        }
         .animate-slide-left {
-          animation: slide-left 0.3s ease-out;
+          animation: slide-left 0.3s ease-out forwards;
+        }
+        .animate-slide-right {
+          animation: slide-right 0.3s ease-in forwards;
+        }
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out forwards;
+        }
+        .animate-fade-out {
+          animation: fade-out 0.3s ease-in forwards;
         }
       `}</style>
     </nav>

@@ -171,14 +171,6 @@ const validatePassword = (password: string) => ({
   hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password)
 })
 
-const useDebounce = (value: string, delay: number) => {
-  const [debounced, setDebounced] = useState(value)
-  useEffect(() => {
-    const handler = setTimeout(() => setDebounced(value), delay)
-    return () => clearTimeout(handler)
-  }, [value, delay])
-  return debounced
-}
 
 const PasswordStrengthMeter = ({ password }: { password: string }) => {
   if (!password) return null
@@ -334,7 +326,6 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [savingSection, setSavingSection] = useState<string | null>(null)
-  const [autoSaving, setAutoSaving] = useState<string | null>(null)
   const [updating, setUpdating] = useState(false)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [profileInfo, setProfileInfo] = useState<UserProfileInfo | null>(null)
@@ -410,14 +401,6 @@ export default function ProfilePage() {
     }
     loadProfile()
   }, [user, router])
-
-  const debouncedPersonalData = useDebounce(JSON.stringify(personalData), 1000)
-  useEffect(() => {
-    if (editingPersonal && Object.values(personalData).some(v => v)) {
-      setAutoSaving('personal')
-      setTimeout(() => setAutoSaving(null), 1000)
-    }
-  }, [debouncedPersonalData, editingPersonal])
 
   const loadProfile = async () => {
     try {
@@ -1179,19 +1162,26 @@ export default function ProfilePage() {
                     {/* Avatar */}
                     <div className="flex items-end gap-3 -mt-8 mb-3">
                       <motion.div className="relative flex-shrink-0" whileHover={{ scale: 1.05 }}>
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center shadow-lg overflow-hidden border-2 border-white">
+                        <div className="w-16 h-16 rounded-2xl shadow-lg overflow-hidden border-2 border-white">
                           {profileInfo?.avatar?.url ? (
-                            <img src={profileInfo.avatar.url} alt="Avatar" className="w-full h-full object-cover" />
-                          ) : (
-                            <motion.span
-                              className="text-white text-2xl font-bold"
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-                            >
-                              {user.email[0].toUpperCase()}
-                            </motion.span>
-                          )}
+                            <img
+                              src={profileInfo.avatar.url}
+                              alt="Avatar"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const img = e.target as HTMLImageElement
+                                img.style.display = 'none'
+                                const fallback = img.nextElementSibling as HTMLElement
+                                if (fallback) fallback.style.display = 'flex'
+                              }}
+                            />
+                          ) : null}
+                          <div
+                            className="flat-avatar w-full h-full rounded-2xl flex items-center justify-center text-2xl font-bold select-none"
+                            style={{ display: profileInfo?.avatar?.url ? 'none' : 'flex' }}
+                          >
+                            {(user.email)[0].toUpperCase()}
+                          </div>
                         </div>
                         <label className="absolute -bottom-1 -right-1 w-6 h-6 bg-sky-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-sky-600 transition-all shadow border-2 border-white group">
                           <Camera className="w-3 h-3 text-white group-hover:scale-110 transition-transform" />
@@ -1605,19 +1595,19 @@ export default function ProfilePage() {
                       field.key === 'phoneNumber' ? (
                         <div className="space-y-2">
                           {/* Tampilkan nomor + badge status */}
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex-1 min-w-0 px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm truncate">
                               {(personalData as any)[field.key] || '-'}
                             </div>
                             {(personalData as any)[field.key] && (
                               profileInfo?.verification?.phoneVerified ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200 whitespace-nowrap">
+                                <span className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200 whitespace-nowrap">
                                   <CheckCircle2 className="w-3.5 h-3.5" /> Terverifikasi
                                 </span>
                               ) : (
                                 <button
                                   onClick={() => setShowPhoneOTP(prev => !prev)}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-200 hover:bg-amber-100 transition-colors whitespace-nowrap"
+                                  className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-200 hover:bg-amber-100 transition-colors whitespace-nowrap"
                                 >
                                   <Phone className="w-3.5 h-3.5" /> Verifikasi
                                 </button>
@@ -1718,17 +1708,6 @@ export default function ProfilePage() {
                           : (personalData as any)[field.key] || '-'}
                       </motion.div>
                       )
-                    )}
-                    {autoSaving === 'personal' && (
-                      <motion.div
-                        className="mt-1 text-xs text-sky-600 flex items-center gap-1"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                      >
-                        <Save className="w-3 h-3 animate-pulse" />
-                        Auto-saving...
-                      </motion.div>
                     )}
                   </motion.div>
                 ))}
@@ -2931,6 +2910,36 @@ export default function ProfilePage() {
             transition={{ delay: 0.4 }}
           >
             <div className="bg-white rounded-xl border border-gray-200 p-2 sticky top-4 shadow-sm">
+              {/* Mini user card */}
+              <div className="flex items-center gap-3 px-3 py-3 mb-1 border-b border-gray-100">
+                <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 border border-gray-200">
+                  {profileInfo?.avatar?.url ? (
+                    <img
+                      src={profileInfo.avatar.url}
+                      alt="Avatar"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const img = e.target as HTMLImageElement
+                        img.style.display = 'none'
+                        const fallback = img.nextElementSibling as HTMLElement
+                        if (fallback) fallback.style.display = 'flex'
+                      }}
+                    />
+                  ) : null}
+                  <div
+                    className="flat-avatar w-full h-full rounded-xl flex items-center justify-center text-sm font-bold select-none"
+                    style={{ display: profileInfo?.avatar?.url ? 'none' : 'flex' }}
+                  >
+                    {(user.email)[0].toUpperCase()}
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-900 truncate">
+                    {profileInfo?.personal?.fullName || user.email.split('@')[0]}
+                  </p>
+                  <p className="text-[10px] text-gray-400 truncate">{user.email}</p>
+                </div>
+              </div>
               <motion.div
                 className="space-y-1"
                 variants={staggerContainer}

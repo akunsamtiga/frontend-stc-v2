@@ -57,29 +57,17 @@ const slideIn: Variants = {
 }
 
 // ============================================
-// STYLES COMPONENT - Pattern sama seperti Balance
+// STYLES COMPONENT
 // ============================================
 const GlobalStyles = () => (
   <style jsx global>{`
-    /* Shimmer reveal: lubang transparan bergerak dari bawah ke atas, mengekspos garis grid */
     @keyframes grid-shimmer-up {
       0%   { background-position: center 130%, center center, center center; }
       100% { background-position: center -30%, center center, center center; }
     }
-    @keyframes grid-shimmer-up-48 {
-      0%   { background-position: center 130%, center center, center center; }
-      100% { background-position: center -30%, center center, center center; }
-    }
-    @keyframes grid-shimmer-up-56 {
-      0%   { background-position: center 130%, center center, center center; }
-      100% { background-position: center -30%, center center, center center; }
-    }
-
-    /* Grid Pattern - overlay putih berlubang bergerak ke atas, mengekspos garis gelap di bawahnya */
     .bg-pattern-grid {
       background-color: #ffffff;
       background-image:
-        /* LAYER 1 (atas): penutup putih dengan lubang transparan yang bergerak */
         linear-gradient(
           to top,
           rgba(255,255,255,1) 0%,
@@ -90,65 +78,14 @@ const GlobalStyles = () => (
           rgba(255,255,255,1) 65%,
           rgba(255,255,255,1) 100%
         ),
-        /* LAYER 2: garis horizontal gelap */
         linear-gradient(rgba(0, 0, 0, 0.07) 1px, transparent 1px),
-        /* LAYER 3: garis vertikal gelap */
         linear-gradient(90deg, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
       background-size: 100% 220%, 40px 40px, 40px 40px;
       background-position: center 130%, center center, center center;
       animation: grid-shimmer-up 8s linear infinite;
     }
-
-    /* Alternative: Grid dengan jarak 48px */
-    .bg-pattern-grid-48 {
-      background-color: #ffffff;
-      background-image:
-        linear-gradient(
-          to top,
-          rgba(255,255,255,1) 0%,
-          rgba(255,255,255,1) 35%,
-          rgba(255,255,255,0.4) 42%,
-          rgba(255,255,255,0)  50%,
-          rgba(255,255,255,0.4) 58%,
-          rgba(255,255,255,1) 65%,
-          rgba(255,255,255,1) 100%
-        ),
-        linear-gradient(rgba(0, 0, 0, 0.07) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
-      background-size: 100% 220%, 48px 48px, 48px 48px;
-      background-position: center 130%, center center, center center;
-      animation: grid-shimmer-up-48 8s linear infinite;
-    }
-
-    /* Alternative: Grid dengan jarak 56px */
-    .bg-pattern-grid-56 {
-      background-color: #ffffff;
-      background-image:
-        linear-gradient(
-          to top,
-          rgba(255,255,255,1) 0%,
-          rgba(255,255,255,1) 35%,
-          rgba(255,255,255,0.4) 42%,
-          rgba(255,255,255,0)  50%,
-          rgba(255,255,255,0.4) 58%,
-          rgba(255,255,255,1) 65%,
-          rgba(255,255,255,1) 100%
-        ),
-        linear-gradient(rgba(0, 0, 0, 0.07) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
-      background-size: 100% 220%, 56px 56px, 56px 56px;
-      background-position: center 130%, center center, center center;
-      animation: grid-shimmer-up-56 8s linear infinite;
-    }
-
-    /* Scrollbar hide utility */
-    .scrollbar-hide::-webkit-scrollbar {
-      display: none;
-    }
-    .scrollbar-hide {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
   `}</style>
 )
 
@@ -187,14 +124,11 @@ const DesktopTableRowSkeleton = () => (
 
 const LoadingSkeleton = () => (
   <>
-    {/* INJECT STYLE GLOBAL KHUSUS UNTUK SKELETON */}
     <style jsx global>{`
-      /* Shimmer reveal: lubang transparan bergerak ke atas, mengekspos garis grid */
       @keyframes grid-shimmer-up {
         0%   { background-position: center 130%, center center, center center; }
         100% { background-position: center -30%, center center, center center; }
       }
-
       .bg-pattern-grid {
         background-color: #ffffff !important;
         background-image:
@@ -214,28 +148,17 @@ const LoadingSkeleton = () => (
         background-position: center 130%, center center, center center;
         animation: grid-shimmer-up 8s linear infinite;
       }
-      
-      /* Scrollbar hide utility */
-      .scrollbar-hide::-webkit-scrollbar {
-        display: none;
-      }
-      .scrollbar-hide {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
-      
-      /* Pastikan body tidak hitam saat loading */
-      body {
-        background-color: #ffffff !important;
-      }
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+      .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      body { background-color: #ffffff !important; }
     `}</style>
     
     <div className="min-h-screen bg-pattern-grid">
       <Navbar />
       <Toaster position="top-right" />
       
-      {/* Mobile Skeleton */}
-      <div className="md:hidden container mx-auto px-3 py-4">
+      {/* ✅ Skeleton Mobile — sinkron dengan balance: px-3 sm:px-4, max-w-7xl */}
+      <div className="md:hidden container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl">
         <div className="mb-4">
           <div className="h-3 bg-gray-200 rounded w-36 mb-2"></div>
           <div className="flex items-center justify-between">
@@ -270,8 +193,8 @@ const LoadingSkeleton = () => (
         <div className="h-24"></div>
       </div>
 
-      {/* Desktop Skeleton */}
-      <div className="hidden md:block container mx-auto px-4 py-6">
+      {/* ✅ Skeleton Desktop — sinkron dengan balance: px-3 sm:px-4 lg:py-8, max-w-7xl */}
+      <div className="hidden md:block container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">
         <motion.div className="mb-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
           <div className="h-3 bg-gray-200 rounded w-48 mb-3"></div>
           <div className="flex items-center justify-between">
@@ -315,19 +238,15 @@ export default function HistoryPage() {
   const router = useRouter()
   const user = useAuthStore((state) => state.user)
   
-  // State untuk semua data (fetched sekali)
   const [allOrders, setAllOrders] = useState<BinaryOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   
-  // Filter state
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [accountFilter, setAccountFilter] = useState<'all' | 'real' | 'demo'>('all')
   
-  // Pagination state (client-side)
   const [currentPage, setCurrentPage] = useState(1)
 
-  // Fetch semua data sekali (tanpa pagination params)
   useEffect(() => {
     if (!user) {
       router.push('/')
@@ -336,7 +255,6 @@ export default function HistoryPage() {
     loadAllOrders()
   }, [user])
 
-  // Reset ke page 1 ketika filter berubah
   useEffect(() => {
     setCurrentPage(1)
   }, [statusFilter, accountFilter])
@@ -346,12 +264,11 @@ export default function HistoryPage() {
       if (showRefreshing) setRefreshing(true)
       else setLoading(true)
       
-      // Fetch SEMUA data tanpa limit/page
       const status = statusFilter === 'all' ? undefined : statusFilter
       const response = await api.getOrders(
         status, 
-        undefined, // page - tidak dikirim ke API
-        undefined, // limit - tidak dikirim ke API (atau set 9999)
+        undefined,
+        undefined,
         accountFilter === 'all' ? undefined : accountFilter
       )
       
@@ -369,36 +286,21 @@ export default function HistoryPage() {
     }
   }
 
-  // Client-side filtering & pagination logic
   const filteredOrders = useMemo(() => {
     let result = [...allOrders]
-    
-    // Filter berdasarkan status (jika belum difilter di API)
-    if (statusFilter !== 'all') {
-      result = result.filter(order => order.status === statusFilter)
-    }
-    
-    // Filter berdasarkan account type
-    if (accountFilter !== 'all') {
-      result = result.filter(order => order.accountType === accountFilter)
-    }
-    
-    // Sort by date desc
+    if (statusFilter !== 'all') result = result.filter(order => order.status === statusFilter)
+    if (accountFilter !== 'all') result = result.filter(order => order.accountType === accountFilter)
     result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    
     return result
   }, [allOrders, statusFilter, accountFilter])
 
-  // Slice untuk pagination
   const totalItems = filteredOrders.length
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE))
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
   const endIndex = startIndex + ITEMS_PER_PAGE
   const displayedOrders = filteredOrders.slice(startIndex, endIndex)
 
-  const handleRefresh = async () => {
-    await loadAllOrders(true)
-  }
+  const handleRefresh = async () => { await loadAllOrders(true) }
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -408,27 +310,18 @@ export default function HistoryPage() {
   }
 
   const handleFilterChange = (filter: string, type: 'status' | 'account') => {
-    if (type === 'status') {
-      setStatusFilter(filter)
-    } else {
-      setAccountFilter(filter as 'all' | 'real' | 'demo')
-    }
+    if (type === 'status') setStatusFilter(filter)
+    else setAccountFilter(filter as 'all' | 'real' | 'demo')
   }
 
-  // Stats berdasarkan filtered data (atau allOrders untuk global stats)
-  const stats = useMemo(() => {
-    return {
-      total: filteredOrders.length,
-      won: filteredOrders.filter(o => o.status === 'WON').length,
-      lost: filteredOrders.filter(o => o.status === 'LOST').length,
-      active: filteredOrders.filter(o => o.status === 'ACTIVE').length,
-    }
-  }, [filteredOrders])
+  const stats = useMemo(() => ({
+    total: filteredOrders.length,
+    won: filteredOrders.filter(o => o.status === 'WON').length,
+    lost: filteredOrders.filter(o => o.status === 'LOST').length,
+    active: filteredOrders.filter(o => o.status === 'ACTIVE').length,
+  }), [filteredOrders])
 
-  const totalProfit = useMemo(() => {
-    return filteredOrders.reduce((sum, o) => sum + (o.profit || 0), 0)
-  }, [filteredOrders])
-
+  const totalProfit = useMemo(() => filteredOrders.reduce((sum, o) => sum + (o.profit || 0), 0), [filteredOrders])
   const winRate = stats.total > 0 ? ((stats.won / stats.total) * 100).toFixed(1) : '0'
 
   if (!user) return null
@@ -441,9 +334,9 @@ export default function HistoryPage() {
         <Navbar />
         <Toaster position="top-right" />
         
-        {/* MOBILE VIEW */}
+        {/* ✅ MOBILE VIEW — sinkron: px-3 sm:px-4, max-w-7xl */}
         <motion.div 
-          className="md:hidden container mx-auto px-3 py-4 pb-28"
+          className="md:hidden container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl pb-28"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
@@ -475,7 +368,7 @@ export default function HistoryPage() {
           </motion.div>
 
           {/* Horizontal Stats */}
-          <motion.div className="flex gap-3 overflow-x-auto pb-2 mb-4 scrollbar-hide snap-x" variants={staggerContainer} initial="hidden" animate="visible">
+          <motion.div className="flex gap-3 overflow-x-auto mb-4 scrollbar-visible snap-x" variants={staggerContainer} initial="hidden" animate="visible">
             <motion.div className="bg-white rounded-xl p-3 border border-gray-100 flex-shrink-0 w-36 snap-start flex flex-col justify-center" variants={fadeIn} whileTap={{ scale: 0.98 }}>
               <div className="flex items-center gap-2 mb-1">
                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${totalProfit >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
@@ -650,8 +543,13 @@ export default function HistoryPage() {
           </motion.div>
         )}
 
-        {/* DESKTOP VIEW */}
-        <motion.div className="hidden md:block container mx-auto px-4 py-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
+        {/* ✅ DESKTOP VIEW — sinkron: px-3 sm:px-4 lg:py-8, max-w-7xl */}
+        <motion.div
+          className="hidden md:block container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
           {/* Desktop Header */}
           <motion.div className="mb-6" variants={fadeIn} initial="hidden" animate="visible">
             <motion.div className="flex items-center gap-2 text-sm text-gray-500 mb-3" variants={staggerContainer}>
