@@ -4,11 +4,6 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
-  FacebookLogo,
-  InstagramLogo,
-  TelegramLogo,
-  YoutubeLogo,
-  TiktokLogo,
   CaretDown,
   CaretUp,
 } from 'phosphor-react'
@@ -55,34 +50,54 @@ export default function EnhancedFooter() {
 
   const socialLinks = [
     {
-      icon: FacebookLogo,
       href: 'https://www.facebook.com/profile.php?id=61576277923484',
       label: 'Facebook',
-      color: 'hover:text-blue-400',
+      bg: 'bg-blue-500/10',
+      border: 'border-blue-500/20',
+      hoverBg: 'hover:bg-blue-500/20',
+      hoverBorder: 'hover:border-blue-400/40',
+      glow: 'hover:shadow-blue-500/20',
+      icon: 'https://cdn.simpleicons.org/facebook/60a5fa',
     },
     {
-      icon: InstagramLogo,
       href: 'https://www.instagram.com/stockity_id/',
       label: 'Instagram',
-      color: 'hover:text-pink-400',
+      bg: 'bg-pink-500/10',
+      border: 'border-pink-500/20',
+      hoverBg: 'hover:bg-pink-500/20',
+      hoverBorder: 'hover:border-pink-400/40',
+      glow: 'hover:shadow-pink-500/20',
+      icon: 'https://cdn.simpleicons.org/instagram/f472b6',
     },
     {
-      icon: TelegramLogo,
       href: 'https://t.me/+gj1bIkhkGRBhNzIy',
       label: 'Telegram',
-      color: 'hover:text-blue-400',
+      bg: 'bg-sky-500/10',
+      border: 'border-sky-500/20',
+      hoverBg: 'hover:bg-sky-500/20',
+      hoverBorder: 'hover:border-sky-400/40',
+      glow: 'hover:shadow-sky-500/20',
+      icon: 'https://cdn.simpleicons.org/telegram/38bdf8',
     },
     {
-      icon: YoutubeLogo,
       href: 'https://www.youtube.com/@Stockity_channel',
       label: 'YouTube',
-      color: 'hover:text-red-500',
+      bg: 'bg-red-500/10',
+      border: 'border-red-500/20',
+      hoverBg: 'hover:bg-red-500/20',
+      hoverBorder: 'hover:border-red-400/40',
+      glow: 'hover:shadow-red-500/20',
+      icon: 'https://cdn.simpleicons.org/youtube/f87171',
     },
     {
-      icon: TiktokLogo,
       href: 'https://www.tiktok.com/@stockity_indonesian',
       label: 'TikTok',
-      color: 'hover:text-white',
+      bg: 'bg-white/5',
+      border: 'border-white/10',
+      hoverBg: 'hover:bg-white/10',
+      hoverBorder: 'hover:border-white/20',
+      glow: 'hover:shadow-white/10',
+      icon: 'https://cdn.simpleicons.org/tiktok/d1d5db',
     },
   ]
 
@@ -138,22 +153,33 @@ export default function EnhancedFooter() {
                 Beralamat di International Business Centre, Suite 8, Pot 820/104, Route Elluk, Port Vila, Vanuatu
               </p>
               {/* Social */}
-              <div className="flex items-center gap-3">
-                {socialLinks.map((social, index) => {
-                  const IconComponent = social.icon
-                  return (
-                    <a
-                      key={index}
-                      href={social.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 border border-gray-800/50 text-gray-400 ${social.color} transition-all hover:bg-white/10 hover:border-gray-700`}
-                      aria-label={social.label}
-                    >
-                      <IconComponent size={18} weight="regular" />
-                    </a>
-                  )
-                })}
+              <div className="flex items-center gap-2">
+                {socialLinks.map((social, index) => (
+                  <a
+                    key={index}
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={social.label}
+                    className={`
+                      group relative w-10 h-10 flex items-center justify-center rounded-xl
+                      ${social.bg} ${social.border} ${social.hoverBg} ${social.hoverBorder}
+                      border backdrop-blur-sm
+                      transition-all duration-300 ease-out
+                      hover:scale-110 hover:-translate-y-0.5
+                      hover:shadow-lg ${social.glow}
+                    `}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={social.icon}
+                      alt={social.label}
+                      width={20}
+                      height={20}
+                      className="w-5 h-5 object-contain"
+                    />
+                  </a>
+                ))}
               </div>
             </div>
 
@@ -231,13 +257,13 @@ export default function EnhancedFooter() {
         </div>
 
         {/* Bottom */}
-        <div className="py-1 border-t border-gray-800/50">
+        <div className="pt-1 pb-4 border-t border-gray-800/50">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-sm text-gray-500 text-center md:text-left">
               © 2022 - {new Date().getFullYear()} Stouch by Stockity. All rights reserved.
             </div>
 
-            <div className="flex items-center gap-4 text-xs text-gray-500">
+            <div className="hidden md:flex items-center gap-4 text-xs text-gray-500">
               <Image
                 src="/ssl.png"
                 alt="SSL Secured"

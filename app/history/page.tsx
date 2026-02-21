@@ -157,19 +157,20 @@ const LoadingSkeleton = () => (
       <Navbar />
       <Toaster position="top-right" />
       
-      {/* ✅ Skeleton Mobile — sinkron dengan balance: px-3 sm:px-4, max-w-7xl */}
+      {/* ✅ Skeleton Mobile */}
       <div className="md:hidden container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl">
         <div className="mb-4">
-          <div className="h-3 bg-gray-200 rounded w-36 mb-2"></div>
+          {/* Breadcrumb skeleton */}
+          <div className="h-3 bg-gray-200 rounded w-32 mb-2 animate-pulse"></div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gray-200 rounded-xl"></div>
+              <div className="w-8 h-8 bg-gray-200 rounded-xl animate-pulse"></div>
               <div>
-                <div className="h-5 bg-gray-200 rounded w-28 mb-1"></div>
-                <div className="h-3 bg-gray-200 rounded w-36"></div>
+                <div className="h-5 bg-gray-200 rounded w-28 mb-1 animate-pulse"></div>
+                <div className="h-3 bg-gray-200 rounded w-36 animate-pulse"></div>
               </div>
             </div>
-            <div className="h-9 bg-gray-200 rounded-lg w-20"></div>
+            <div className="h-9 bg-gray-200 rounded-lg w-20 animate-pulse"></div>
           </div>
         </div>
 
@@ -193,19 +194,19 @@ const LoadingSkeleton = () => (
         <div className="h-24"></div>
       </div>
 
-      {/* ✅ Skeleton Desktop — sinkron dengan balance: px-3 sm:px-4 lg:py-8, max-w-7xl */}
+      {/* ✅ Skeleton Desktop */}
       <div className="hidden md:block container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">
         <motion.div className="mb-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-          <div className="h-3 bg-gray-200 rounded w-48 mb-3"></div>
+          <div className="h-3 bg-gray-200 rounded w-48 mb-3 animate-pulse"></div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gray-200 rounded-xl"></div>
+              <div className="w-10 h-10 bg-gray-200 rounded-xl animate-pulse"></div>
               <div>
-                <div className="h-6 bg-gray-200 rounded w-32 mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-48"></div>
+                <div className="h-6 bg-gray-200 rounded w-32 mb-2 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-48 animate-pulse"></div>
               </div>
             </div>
-            <div className="h-10 bg-gray-200 rounded-lg w-24"></div>
+            <div className="h-10 bg-gray-200 rounded-lg w-24 animate-pulse"></div>
           </div>
         </motion.div>
 
@@ -219,7 +220,7 @@ const LoadingSkeleton = () => (
               <motion.tr className="bg-gray-50 border-b border-gray-200" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
                 {[...Array(10)].map((_, i) => (
                   <th key={i} className="text-left text-xs font-semibold text-gray-600 py-4 px-4">
-                    <div className="h-3 bg-gray-200 rounded w-16 mx-auto"></div>
+                    <div className="h-3 bg-gray-200 rounded w-16 mx-auto animate-pulse"></div>
                   </th>
                 ))}
               </motion.tr>
@@ -334,7 +335,9 @@ export default function HistoryPage() {
         <Navbar />
         <Toaster position="top-right" />
         
-        {/* ✅ MOBILE VIEW — sinkron: px-3 sm:px-4, max-w-7xl */}
+        {/* ══════════════════════════════════════════════════
+            MOBILE VIEW
+        ══════════════════════════════════════════════════ */}
         <motion.div 
           className="md:hidden container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl pb-28"
           initial={{ opacity: 0 }}
@@ -343,6 +346,12 @@ export default function HistoryPage() {
         >
           {/* Header */}
           <motion.div className="mb-4" variants={fadeIn} initial="hidden" animate="visible">
+            {/* ✅ Breadcrumb Mobile */}
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-2">
+              <span>Dasbor</span>
+              <span>/</span>
+              <span className="text-gray-900 font-medium">Riwayat</span>
+            </div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
@@ -543,7 +552,9 @@ export default function HistoryPage() {
           </motion.div>
         )}
 
-        {/* ✅ DESKTOP VIEW — sinkron: px-3 sm:px-4 lg:py-8, max-w-7xl */}
+        {/* ══════════════════════════════════════════════════
+            DESKTOP VIEW
+        ══════════════════════════════════════════════════ */}
         <motion.div
           className="hidden md:block container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl"
           initial={{ opacity: 0 }}

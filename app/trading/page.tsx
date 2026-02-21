@@ -53,6 +53,7 @@ import { useOptimisticOrders, useAggressiveResultPolling } from '@/hooks/useInst
 import { useOrderResultNotification } from '@/hooks/useBatchNotification'
 import InformationBanner from '@/components/InformationBanner'
 import StatusBadge from '@/components/StatusBadge'
+import { CalendarBlank, TrendUp, NewspaperClipping, ChatCircle, Eye, EyeSlash } from 'phosphor-react'
 
 const TradingChart = dynamic(() => import('@/components/TradingChart'), {
   ssr: false,
@@ -308,7 +309,9 @@ export default function TradingPage() {
   const [showLeftSidebar, setShowLeftSidebar] = useState(false)
   const [isLeftSidebarClosing, setIsLeftSidebarClosing] = useState(false)
   const [showBanner, setShowBanner] = useState(false)
+  const [isBalanceHidden, setIsBalanceHidden] = useState(false)
   const [btnEffect, setBtnEffect] = useState<'CALL' | 'PUT' | null>(null)
+  const [hideBalance, setHideBalance] = useState(false)
 
   const triggerBtnEffect = (dir: 'CALL' | 'PUT') => {
     setBtnEffect(null)
@@ -1039,13 +1042,15 @@ export default function TradingPage() {
 
           <div className="flex-1"></div>
 
-          <div className="relative">
+          <div className="relative flex items-center gap-1.5">
             <BalanceDisplay
-              amount={currentBalance}
+              amount={hideBalance ? 0 : currentBalance}
               label={`Akun ${selectedAccountType === 'real' ? 'Real' : 'Demo'}`}
               isActive={showAccountMenu}
               onClick={() => setShowAccountMenu(!showAccountMenu)}
               isMobile={false}
+              hideBalance={hideBalance}
+              onToggleHide={() => setHideBalance(h => !h)}
             />
 
             {showAccountMenu && (
@@ -1063,7 +1068,7 @@ export default function TradingPage() {
                   >
                     <span className="text-xs text-white">Akun Demo</span>
                     <span className="text-base font-bold text-white pl-4">
-                      {formatCurrency(demoBalance)}
+                      {hideBalance ? '••••••' : formatCurrency(demoBalance)}
                     </span>
                   </button>
                   <button
@@ -1077,7 +1082,7 @@ export default function TradingPage() {
                   >
                     <span className="text-xs text-white">Akun Real</span>
                     <span className="text-base font-bold text-white pl-4">
-                      {formatCurrency(realBalance)}
+                      {hideBalance ? '••••••' : formatCurrency(realBalance)}
                     </span>
                   </button>
                 </div>
@@ -1330,13 +1335,15 @@ export default function TradingPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="relative">
+            <div className="relative flex items-center gap-1">
               <BalanceDisplay
-                amount={currentBalance}
+                amount={hideBalance ? 0 : currentBalance}
                 label={selectedAccountType === 'real' ? 'Real' : 'Demo'}
                 isActive={showAccountMenu}
                 onClick={() => setShowAccountMenu(!showAccountMenu)}
                 isMobile={true}
+                hideBalance={hideBalance}
+                onToggleHide={() => setHideBalance(h => !h)}
               />
 
               {showAccountMenu && (
@@ -1354,7 +1361,7 @@ export default function TradingPage() {
                     >
                       <span className="text-[10px] text-gray-400">Demo</span>
                       <span className="text-xs font-bold text-white leading-tight whitespace-nowrap">
-                        {formatCurrency(demoBalance)}
+                        {hideBalance ? '••••••' : formatCurrency(demoBalance)}
                       </span>
                     </button>
                     <button
@@ -1368,7 +1375,7 @@ export default function TradingPage() {
                     >
                       <span className="text-[10px] text-gray-400">Real</span>
                       <span className="text-xs font-bold text-white leading-tight whitespace-nowrap">
-                        {formatCurrency(realBalance)}
+                        {hideBalance ? '••••••' : formatCurrency(realBalance)}
                       </span>
                     </button>
                   </div>
@@ -1907,7 +1914,7 @@ export default function TradingPage() {
                     <span className="text-sm font-medium text-gray-300">Real Account</span>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-bold text-emerald-400">{formatCurrency(realBalance)}</div>
+                    <div className="text-lg font-bold text-emerald-400">{hideBalance ? '••••••' : formatCurrency(realBalance)}</div>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -1918,7 +1925,6 @@ export default function TradingPage() {
                     }}
                     className="flex items-center justify-center gap-2 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-400 py-2.5 rounded-xl font-medium transition-all active:scale-95"
                   >
-                    <ArrowDownToLine className="w-4 h-4" />
                     <span className="text-sm">Top Up</span>
                   </button>
                   <button
@@ -1928,7 +1934,6 @@ export default function TradingPage() {
                     }}
                     className="flex items-center justify-center gap-2 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-400 py-2.5 rounded-xl font-medium transition-all active:scale-95"
                   >
-                    <ArrowUpFromLine className="w-4 h-4" />
                     <span className="text-sm">Penarikan</span>
                   </button>
                 </div>
@@ -1944,7 +1949,7 @@ export default function TradingPage() {
                     <span className="text-sm font-medium text-gray-300">Demo Account</span>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-bold text-blue-400">{formatCurrency(demoBalance)}</div>
+                    <div className="text-lg font-bold text-blue-400">{hideBalance ? '••••••' : formatCurrency(demoBalance)}</div>
                   </div>
                 </div>
                 <button
@@ -1954,7 +1959,6 @@ export default function TradingPage() {
                   }}
                   className="w-full flex items-center justify-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 py-2.5 rounded-xl font-medium transition-all active:scale-95"
                 >
-                  <Plus className="w-4 h-4" />
                   <span className="text-sm">Top Up Demo</span>
                 </button>
               </div>
@@ -1974,7 +1978,7 @@ export default function TradingPage() {
           }`}>
             <div className="mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-blue-500/30">
+                <div className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full overflow-hidden border-2 border-blue-500/30 flex-shrink-0">
                   {userProfile?.profileInfo?.avatar?.url ? (
                     <Image
                       src={userProfile.profileInfo.avatar.url}
@@ -2153,6 +2157,20 @@ export default function TradingPage() {
               <button
                 onClick={() => {
                   handleCloseMobileMenu()
+                  setTimeout(() => router.push('/referral'), 300)
+                }}
+                className="w-full flex items-center gap-3.5 px-4 py-3.5 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 rounded-xl transition-colors text-yellow-400"
+              >
+                <UserPlus className="w-4 h-4 flex-shrink-0" />
+                <span className="whitespace-nowrap">Undang Teman</span>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold text-white tracking-wide badge-new-shimmer flex-shrink-0">
+                  NEW
+                </span>
+              </button>
+
+              <button
+                onClick={() => {
+                  handleCloseMobileMenu()
                   setTimeout(() => {
                     setShowTutorial(true)
                   }, 300)
@@ -2185,12 +2203,12 @@ export default function TradingPage() {
           <div className={`fixed inset-0 bg-black/80 z-50 ${
             isLeftSidebarClosing ? 'animate-fade-out' : 'animate-fade-in'
           }`} onClick={handleCloseLeftSidebar} />
-          <div className={`fixed top-0 left-0 bottom-0 w-64 bg-[#0f1419] border-r border-gray-800/50 z-50 p-4 ${
+          <div className={`fixed top-0 left-0 bottom-0 min-w-max bg-[#0f1419] border-r border-gray-800/50 z-50 p-4 flex flex-col ${
             isLeftSidebarClosing ? 'animate-slide-left-out' : 'animate-slide-right'
           }`}>
             <div className="mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 relative">
+                <div className="w-9 h-9 relative">
                   <Image 
                     src="/stc-logo1.png" 
                     alt="Stouch" 
@@ -2198,20 +2216,20 @@ export default function TradingPage() {
                     className="object-contain rounded-md"
                   />
                 </div>
-                <span className="font-bold">Stouch</span>
+                <span className="text-base font-bold">Stouch</span>
               </div>
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <button
                 onClick={() => {
                   handleCloseLeftSidebar()
                   setTimeout(() => router.push('/calendar'), 300)
                 }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+                className="w-full flex items-center gap-3.5 px-3 py-2 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
-                <Calendar className="w-4 h-4" />
-                <span>Kalender</span>
+                <CalendarBlank size={16} weight="regular" />
+                <span className="text-base whitespace-nowrap">Kalender</span>
               </button>
 
               <button
@@ -2219,32 +2237,21 @@ export default function TradingPage() {
                   handleCloseLeftSidebar()
                   setTimeout(() => router.push('/tournament'), 300)
                 }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+                className="w-full flex items-center gap-3.5 px-3 py-2 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
-                <TrendingUp className="w-4 h-4" />
-                <span>Turnamen</span>
+                <TrendUp size={16} weight="regular" />
+                <span className="text-base whitespace-nowrap">Turnamen</span>
               </button>
-              
-              {/* <button
-                onClick={() => {
-                  handleCloseLeftSidebar()
-                  setTimeout(() => router.push('/runner-up'), 300)
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
-              >
-                <ArrowUp className="w-4 h-4" />
-                <span>Trader Terbaik</span>
-              </button> */}
 
               <button
                 onClick={() => {
                   handleCloseLeftSidebar()
                   setTimeout(() => router.push('/berita'), 300)
                 }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+                className="w-full flex items-center gap-3.5 px-3 py-2 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
-                <Newspaper className="w-4 h-4" />
-                <span>Berita</span>
+                <NewspaperClipping size={16} weight="regular" />
+                <span className="text-base whitespace-nowrap">Berita</span>
               </button>
 
               <button
@@ -2252,25 +2259,40 @@ export default function TradingPage() {
                   handleCloseLeftSidebar()
                   setTimeout(() => router.push('/support'), 300)
                 }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
+                className="w-full flex items-center gap-3.5 px-3 py-2 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors"
               >
-                <MessageCircle className="w-4 h-4" />
-                <span>Support</span>
+                <ChatCircle size={16} weight="regular" />
+                <span className="text-base whitespace-nowrap">Support</span>
               </button>
 
-              <button
-                onClick={() => {
-                  handleCloseLeftSidebar()
-                  setTimeout(() => router.push('/referral'), 300)
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-[#1a1f2e] hover:bg-[#232936] rounded-lg transition-colors text-yellow-400"
+            </div>
+
+            {/* Legal Links */}
+            <div className="mt-auto border-t border-gray-800/50 pt-3 flex flex-col gap-1.5 items-center">
+              <a
+                href="https://stockity.id/id/static/aml-policy-stockity.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-gray-500 hover:text-gray-300 transition-colors text-center whitespace-nowrap"
               >
-                <UserPlus className="w-4 h-4" />
-                <span>Undang Teman</span>
-                <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold text-white tracking-wide badge-new-shimmer">
-                  NEW
-                </span>
-              </button>
+                Kebijakan AML
+              </a>
+              <a
+                href="https://stockity.id/information/agreement"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-gray-500 hover:text-gray-300 transition-colors text-center whitespace-nowrap"
+              >
+                Perjanjian Klien
+              </a>
+              <a
+                href="https://stockity.id/information/copy-trading-agreement"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-gray-500 hover:text-gray-300 transition-colors text-center whitespace-nowrap"
+              >
+                Perjanjian Copy Trading
+              </a>
             </div>
           </div>
         </>

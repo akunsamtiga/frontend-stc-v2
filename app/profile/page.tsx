@@ -6,16 +6,18 @@ import { api } from '@/lib/api'
 import Navbar from '@/components/Navbar'
 import { motion, AnimatePresence, Variants } from 'framer-motion'
 import {
-  User, Mail, Shield, Calendar, Lock, Bell, Eye, EyeOff, Save, LogOut,
-  CheckCircle2, Settings, Award, Crown, TrendingUp, Users, Copy, Check,
-  Gift, Share2, MapPin, CreditCard, FileText, Camera, Phone, Edit2,
+  User, Mail, Shield, Calendar, Bell, Save, LogOut,
+  CheckCircle2, Settings, Award, Crown, TrendingUp, Copy, Check,
+  MapPin, CreditCard, FileText, Camera, Phone, Edit2,
   ChevronRight, AlertCircle, Home, Building, Globe, Loader2, ShieldCheck,
-  UserCheck, Briefcase, X, Menu, Info, Eye as EyeIcon, CheckSquare, Square
+  UserCheck, Briefcase, X, Menu, Info, CheckSquare, Square,
+  UserPlus2,
+  User2
 } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
 import type { UserProfile, UserProfileInfo, UpdateProfileRequest, ChangePasswordRequest } from '@/types'
 import { STATUS_CONFIG, calculateProfileCompletion } from '@/types'
-import { getStatusGradient, getStatusIcon, formatStatusInfo, getAllStatusTiers, calculateStatusProgress, formatDepositRequirement } from '@/lib/status-utils'
+import { getStatusGradient, formatStatusInfo, calculateStatusProgress, formatDepositRequirement } from '@/lib/status-utils'
 import { auth } from '@/lib/firebase-auth'
 import { signInWithPhoneNumber, RecaptchaVerifier, ConfirmationResult } from 'firebase/auth'
 
@@ -163,56 +165,6 @@ const LoadingSkeleton = () => (
 
 const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 const validatePhone = (phone: string) => /^\+?[\d\s-()]{10,}$/.test(phone)
-const validatePassword = (password: string) => ({
-  minLength: password.length >= 8,
-  hasUpperCase: /[A-Z]/.test(password),
-  hasLowerCase: /[a-z]/.test(password),
-  hasNumber: /\d/.test(password),
-  hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password)
-})
-
-
-const PasswordStrengthMeter = ({ password }: { password: string }) => {
-  if (!password) return null
-  const checks = validatePassword(password)
-  const strength = Object.values(checks).filter(Boolean).length
-  const colors = ['bg-red-500', 'bg-yellow-500', 'bg-sky-500', 'bg-emerald-500']
-  const labels = ['Sangat Lemah', 'Lemah', 'Cukup', 'Baik', 'Kuat']
-  return (
-    <motion.div
-      className="mt-2"
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: 'auto' }}
-      exit={{ opacity: 0, height: 0 }}
-    >
-      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-        <motion.div
-          className={`h-full ${colors[strength - 1] || 'bg-red-500'}`}
-          initial={{ width: 0 }}
-          animate={{ width: `${(strength / 5) * 100}%` }}
-          transition={{ duration: 0.3 }}
-        />
-      </div>
-      <p className="text-xs text-gray-600 mt-1">{labels[strength - 1] || 'Sangat Lemah'}</p>
-      <div className="grid grid-cols-2 gap-1 mt-2 text-xs">
-        {Object.entries(checks).map(([key, passed]) => (
-          <motion.div
-            key={key}
-            className="flex items-center gap-1"
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            {passed ? <Check className="w-3 h-3 text-emerald-500" /> : <X className="w-3 h-3 text-red-400" />}
-            <span className={passed ? 'text-emerald-600' : 'text-gray-400'}>
-              {key.replace(/([A-Z])/g, ' $1').trim()}
-            </span>
-          </motion.div>
-        ))}
-      </div>
-    </motion.div>
-  )
-}
 
 const PhoneInput = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -362,15 +314,6 @@ export default function ProfilePage() {
     accountNumber: '',
     accountHolderName: ''
   })
-  const [showPassword, setShowPassword] = useState(false)
-  const [showNewPassword, setShowNewPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  })
-  const [passwordErrors, setPasswordErrors] = useState<string[]>([])
   const [settings, setSettings] = useState({
     emailNotifications: true,
     smsNotifications: true,
@@ -379,7 +322,6 @@ export default function ProfilePage() {
     language: 'id',
     timezone: 'Asia/Jakarta'
   })
-  const [copied, setCopied] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({})
@@ -827,39 +769,6 @@ export default function ProfilePage() {
     }
   }
 
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const passwordChecks = validatePassword(passwordData.newPassword)
-    const strength = Object.values(passwordChecks).filter(Boolean).length
-    if (strength < 4) {
-      toast.error('Password must meet at least 4 requirements', {
-        style: { background: '#ef4444', color: '#fff' }
-      })
-      return
-    }
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('Passwords do not match', {
-        style: { background: '#ef4444', color: '#fff' }
-      })
-      return
-    }
-    setLoading(true)
-    try {
-      await api.changePassword(passwordData)
-      toast.success('Password changed successfully!', {
-        style: { background: '#10b981', color: '#fff' }
-      })
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
-      setPasswordErrors([])
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to change password', {
-        style: { background: '#ef4444', color: '#fff' }
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleUploadAvatar = async (file: File) => {
     try {
       if (!file.type.startsWith('image/')) {
@@ -1115,17 +1024,14 @@ export default function ProfilePage() {
   }
 
   const statusInfo = profile?.statusInfo
-  const affiliateInfo = profile?.affiliate
 
   const tabs = [
-    { id: 'overview', label: 'Ringkasan', icon: User },
-    { id: 'personal', label: 'Info Pribadi', icon: User },
+    { id: 'overview', label: 'Ringkasan', icon: UserPlus2 },
+    { id: 'personal', label: 'Info Pribadi', icon: User2 },
     { id: 'address', label: 'Alamat', icon: MapPin },
     { id: 'identity', label: 'Identitas', icon: FileText },
     { id: 'bank', label: 'Bank', icon: CreditCard },
     { id: 'status', label: 'Status', icon: Award },
-    { id: 'affiliate', label: 'Afiliasi', icon: Users },
-    { id: 'security', label: 'Keamanan', icon: Lock },
   ]
 
   const renderTabContent = () => {
@@ -1197,7 +1103,11 @@ export default function ProfilePage() {
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ delay: 0.3, type: 'spring' }}
                         >
-                          {React.createElement(getStatusIcon(statusInfo.current), { className: 'w-3.5 h-3.5' })}
+                          <img
+                            src={{ standard: '/std.png', gold: '/gold.png', vip: '/vip.png' }[statusInfo.current]}
+                            alt={statusInfo.current}
+                            className="w-3.5 h-3.5 object-contain"
+                          />
                           {statusInfo.current.toUpperCase()}
                         </motion.div>
                       )}
@@ -2435,372 +2345,335 @@ export default function ProfilePage() {
               </motion.div>
             </motion.div>
           )}
-          {activeTab === 'status' && statusInfo && (
-            <motion.div
-              className="space-y-4"
-              variants={staggerContainer}
-              initial="hidden"
-              animate="visible"
-            >
+          {activeTab === 'status' && statusInfo && (() => {
+            const progress = calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current)
+            const statusTheme = {
+              standard: {
+                // Coklat / bronze-brown
+                heroBg: 'from-stone-600 via-amber-900 to-stone-900',
+                accent: 'from-amber-700 to-stone-600',
+                glow: 'shadow-amber-900/40',
+                badge: 'bg-amber-900/40 text-amber-100 border-amber-800/40',
+                progressBar: 'from-amber-700 to-stone-600',
+                ring: 'ring-amber-800/40',
+                cardBorder: 'border-amber-200 bg-amber-50/60',
+                activeDot: 'bg-amber-800',
+                cardAccentText: 'text-amber-900',
+                cardSubText: 'text-amber-700',
+                unlockBg: 'bg-amber-50',
+                unlockBorder: 'border-amber-100',
+              },
+              gold: {
+                // Emas / golden
+                heroBg: 'from-yellow-400 via-amber-400 to-yellow-600',
+                accent: 'from-yellow-300 to-amber-400',
+                glow: 'shadow-yellow-400/50',
+                badge: 'bg-yellow-300/25 text-yellow-900 border-yellow-400/40',
+                progressBar: 'from-yellow-300 to-amber-400',
+                ring: 'ring-yellow-400/50',
+                cardBorder: 'border-yellow-300 bg-yellow-50/70',
+                activeDot: 'bg-yellow-500',
+                cardAccentText: 'text-yellow-900',
+                cardSubText: 'text-yellow-700',
+                unlockBg: 'bg-yellow-50',
+                unlockBorder: 'border-yellow-100',
+              },
+              vip: {
+                // Silver / perak
+                heroBg: 'from-slate-400 via-gray-500 to-slate-700',
+                accent: 'from-slate-300 to-gray-400',
+                glow: 'shadow-slate-400/50',
+                badge: 'bg-white/20 text-white border-white/30',
+                progressBar: 'from-slate-300 to-gray-400',
+                ring: 'ring-slate-300/50',
+                cardBorder: 'border-slate-300 bg-slate-50/70',
+                activeDot: 'bg-slate-500',
+                cardAccentText: 'text-slate-900',
+                cardSubText: 'text-slate-600',
+                unlockBg: 'bg-slate-50',
+                unlockBorder: 'border-slate-100',
+              },
+            }
+            const theme = statusTheme[statusInfo.current]
+            const STATUS_IMAGES: Record<string, string> = {
+              standard: '/std.png',
+              gold: '/gold.png',
+              vip: '/vip.png',
+            }
+            const tierBenefits = {
+              standard: ['Akses trading penuh', 'Dukungan pelanggan standar', 'Penarikan reguler', 'Laporan performa bulanan'],
+              gold: ['Semua benefit Standard', 'Bonus profit +5%', 'Prioritas penarikan', 'Manajer akun dedikasi', 'Laporan performa mingguan'],
+              vip: ['Semua benefit Gold', 'Bonus profit +10%', 'Penarikan kilat 24 jam', 'Manajer akun VIP eksklusif', 'Sinyal trading premium', 'Akses fitur beta eksklusif'],
+            }
+            return (
               <motion.div
-                className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6"
-                variants={fadeInUp}
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-r ${getStatusGradient(statusInfo.current)} flex items-center justify-center shadow-sm`}>
-                      {React.createElement(getStatusIcon(statusInfo.current), { className: "w-7 h-7 text-white" })}
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 huruf besar tracking-wider mb-0.5">Current Status</p>
-                      <h3 className="text-xl font-bold text-gray-900 mb-0.5">{statusInfo.current.toUpperCase()}</h3>
-                      <p className="text-sm font-medium text-emerald-600">Bonus +{statusInfo.profitBonus}%</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between sm:justify-end gap-6 pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-100">
-                    <div className="text-left sm:text-right">
-                      <p className="text-xs text-gray-500 mb-0.5">Total Deposit</p>
-                      <p className="text-base font-semibold text-gray-900">{formatDepositRequirement(statusInfo.totalDeposit)}</p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-              {calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current).next && (
-                <motion.div
-                  className="bg-white rounded-xl border border-gray-200 p-4"
-                  variants={fadeInUp}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-sky-500" />
-                      <span className="text-sm font-semibold text-gray-900">
-                        Progress to {STATUS_CONFIG[calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current).next!].label}
-                      </span>
-                    </div>
-                    <span className="text-sm font-bold text-sky-600">
-                      {calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current).progress}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-100 rounded-full h-2">
-                    <motion.div
-                      className="h-full rounded-full bg-sky-500"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current).progress}%` }}
-                      transition={{ duration: 0.5 }}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Need {formatDepositRequirement(calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current).depositNeeded)} more to upgrade
-                  </p>
-                </motion.div>
-              )}
-              <motion.div
-                className="bg-white rounded-xl border border-gray-200 p-4"
-                variants={fadeInUp}
-              >
-                <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Crown className="w-4 h-4 text-yellow-500" />
-                  All Status Tiers
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {getAllStatusTiers().map(({ status, config, icon: Icon }) => {
-                    const isCurrent = status === statusInfo.current
-                    const isUnlocked = STATUS_CONFIG[status].minDeposit <= statusInfo.totalDeposit
-                    return (
-                      <motion.div
-                        key={status}
-                        className={`relative p-4 rounded-lg border transition-all ${isCurrent
-                            ? 'border-sky-500 bg-sky-50/50'
-                            : isUnlocked
-                              ? 'border-emerald-200 bg-emerald-50/30'
-                              : 'border-gray-100 bg-gray-50/50'
-                          }`}
-                        whileHover={{ scale: 1.01 }}
-                      >
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isCurrent ? 'bg-sky-100 text-sky-600' :
-                              isUnlocked ? 'bg-emerald-100 text-emerald-600' :
-                                'bg-gray-200 text-gray-400'
-                            }`}>
-                            <Icon className="w-4 h-4" />
-                          </div>
-                          <div className="flex-1">
-                            <p className={`text-sm font-semibold ${isCurrent ? 'text-sky-900' : 'text-gray-900'}`}>
-                              {config.label}
-                            </p>
-                          </div>
-                          {isCurrent && (
-                            <span className="text-[10px] font-bold text-white bg-sky-500 px-2 py-0.5 rounded-full">
-                              ACTIVE
-                            </span>
-                          )}
-                        </div>
-                        <div className="space-y-2 text-xs">
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-500">Profit Bonus</span>
-                            <span className="font-semibold text-gray-900">{config.profitBonus}%</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-500">Min Deposit</span>
-                            <span className="font-semibold text-gray-900">{formatDepositRequirement(config.minDeposit)}</span>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )
-                  })}
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-          {activeTab === 'affiliate' && affiliateInfo && (
-            <motion.div
-              className="space-y-4"
-              variants={staggerContainer}
-              initial="hidden"
-              animate="visible"
-            >
-              <motion.div
-                className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow"
-                variants={fadeInUp}
-                whileHover={{ y: -2 }}
-              >
-                <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center">
-                  <Users className="w-5 h-5 mr-2 text-violet-500" />
-                  Affiliate Program
-                </h3>
-                <motion.div
-                  className="grid grid-cols-3 gap-3"
-                  variants={staggerContainer}
-                >
-                  {[
-                    { label: 'Total Referrals', value: affiliateInfo.totalReferrals, color: 'text-gray-900', bg: 'bg-gray-100' },
-                    { label: 'Completed', value: affiliateInfo.completedReferrals, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                    { label: 'Pending', value: affiliateInfo.pendingReferrals, color: 'text-yellow-600', bg: 'bg-yellow-50' }
-                  ].map((stat, i) => (
-                    <motion.div
-                      key={stat.label}
-                      className={`text-center p-3 ${stat.bg} rounded-lg border border-gray-200`}
-                      variants={fadeInUp}
-                      transition={{ delay: i * 0.1 }}
-                      whileHover={{ scale: 1.02 }}
-                    >
-                      <motion.div
-                        className={`text-xl font-bold ${stat.color}`}
-                        initial={{ opacity: 0, scale: 0.5 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ type: "spring", delay: i * 0.1 }}
-                      >
-                        {stat.value}
-                      </motion.div>
-                      <div className="text-xs text-gray-600 mt-1">{stat.label}</div>
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </motion.div>
-              <motion.div
-                className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow"
-                variants={fadeInUp}
-                whileHover={{ y: -2 }}
-              >
-                <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center">
-                  <Share2 className="w-5 h-5 mr-2 text-sky-500" />
-                  Your Referral Link
-                </h3>
-                <motion.div
-                  className="flex flex-col gap-2"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  <motion.div
-                    className="px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-black text-xs break-all"
-                  >
-                    {typeof window !== 'undefined' && `${window.location.origin}/?ref=${affiliateInfo.referralCode}`}
-                  </motion.div>
-                  <motion.button
-                    onClick={() => {
-                      if (typeof window !== 'undefined') {
-                        navigator.clipboard.writeText(`${window.location.origin}/?ref=${affiliateInfo.referralCode}`)
-                        setCopied(true)
-                        toast.success('Referral link copied!', {
-                          style: { background: '#10b981', color: '#fff' }
-                        })
-                        setTimeout(() => setCopied(false), 2000)
-                      }
-                    }}
-                    className="w-full px-3 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-all flex items-center justify-center gap-2 text-sm font-medium"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    <span className="font-medium">{copied ? 'Copied!' : 'Copy Link'}</span>
-                  </motion.button>
-                </motion.div>
-                <motion.p
-                  className="text-xs text-gray-600 mt-2 flex items-center gap-1"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                >
-                  <Gift className="w-4 h-4 text-yellow-500" />
-                  Share this link to earn <span className="font-bold">Rp 25,000</span> per successful referral!
-                </motion.p>
-              </motion.div>
-              <motion.div
-                className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-shadow"
-                variants={fadeInUp}
-                whileHover={{ y: -2 }}
-              >
-                <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center">
-                  <Gift className="w-5 h-5 mr-2 text-yellow-500" />
-                  Commission Earned
-                </h3>
-                <motion.div
-                  className="flex items-center gap-4"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 }}
-                >
-                  <div>
-                    <motion.div
-                      className="text-xl font-bold text-gray-900"
-                      key={affiliateInfo.totalCommission}
-                      initial={{ scale: 1.2 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring" }}
-                    >
-                      {formatDepositRequirement(affiliateInfo.totalCommission)}
-                    </motion.div>
-                    <div className="text-xs text-gray-600">Total Commission</div>
-                  </div>
-                </motion.div>
-              </motion.div>
-            </motion.div>
-          )}
-          {activeTab === 'security' && (
-            <motion.div
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <div className="p-4 bg-red-50">
-                <h3 className="text-base font-bold text-gray-900 mb-1 flex items-center">
-                  <Lock className="w-5 h-5 mr-2 text-red-500" />
-                  Security Settings
-                </h3>
-                <p className="text-xs text-gray-500">Change Anda password & security preferences</p>
-              </div>
-              <motion.form
-                onSubmit={handleChangePassword}
-                className="p-4 space-y-4"
+                className="space-y-4"
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
               >
-                <motion.div variants={fadeInUp}>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Current Password <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={passwordData.currentPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                      className="w-full pl-10 pr-10 py-3 bg-gray-100 border border-gray-300 rounded-xl focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-colors text-sm"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </motion.div>
-                <motion.div variants={fadeInUp}>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    New Password <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type={showNewPassword ? 'text' : 'password'}
-                      value={passwordData.newPassword}
-                      onChange={(e) => {
-                        setPasswordData({ ...passwordData, newPassword: e.target.value })
-                        const checks = validatePassword(e.target.value)
-                        const errors = Object.entries(checks)
-                          .filter(([_, passed]) => !passed)
-                          .map(([key]) => key.replace(/([A-Z])/g, ' $1').trim())
-                        setPasswordErrors(errors)
-                      }}
-                      className="w-full pl-10 pr-10 py-3 bg-gray-100 border border-gray-300 rounded-xl focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-colors text-sm"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  <PasswordStrengthMeter password={passwordData.newPassword} />
-                </motion.div>
-                <motion.div variants={fadeInUp}>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Confirm New Password <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      value={passwordData.confirmPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                      className="w-full pl-10 pr-10 py-3 bg-gray-100 border border-gray-300 rounded-xl focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-colors text-sm"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  {passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword && (
-                    <motion.p
-                      className="mt-1 text-sm text-red-600 flex items-center gap-1"
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                    >
-                      <AlertCircle className="w-4 h-4" />
-                      Passwords do not match
-                    </motion.p>
-                  )}
-                </motion.div>
-                <motion.button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-md text-sm"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                {/* ── Hero Status Card ── */}
+                <motion.div
+                  className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${theme.heroBg} p-5 sm:p-7 shadow-xl ${theme.glow}`}
+                  variants={fadeInUp}
                 >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> Changing...
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="w-4 h-4" /> Change Password
-                    </>
+                  {/* decorative circles */}
+                  <div className="pointer-events-none absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/5" />
+                  <div className="pointer-events-none absolute -right-2 bottom-4 w-24 h-24 rounded-full bg-white/5" />
+                  <div className="pointer-events-none absolute left-1/2 -bottom-10 w-48 h-48 rounded-full bg-white/5" />
+
+                  <div className="relative flex flex-col sm:flex-row sm:items-center gap-5">
+                    {/* icon + name */}
+                    <div className="flex items-center gap-4 flex-1">
+                      <motion.div
+                        className={`relative w-16 h-16 rounded-2xl bg-white/15 ring-2 ${theme.ring} flex items-center justify-center shadow-lg backdrop-blur-sm flex-shrink-0`}
+                        initial={{ scale: 0, rotate: -15 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ type: 'spring', delay: 0.1 }}
+                      >
+                        <img
+                          src={STATUS_IMAGES[statusInfo.current]}
+                          alt={statusInfo.current}
+                          className="w-10 h-10 object-contain drop-shadow-lg"
+                        />
+                      </motion.div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-widest text-white/60 mb-1">Status Keanggotaan</p>
+                        <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1">
+                          {STATUS_CONFIG[statusInfo.current].label}
+                        </h2>
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border backdrop-blur-sm ${theme.badge}`}>
+                          {statusInfo.current === 'vip' ? '✦ MAX TIER' : `+${String(statusInfo.profitBonus).replace(/[^0-9.]/g, '')}% Profit Bonus`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* stats row */}
+                    <div className="flex items-center gap-4 sm:gap-6 pt-4 sm:pt-0 border-t sm:border-t-0 border-white/10">
+                      <div className="text-center">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-white/50 mb-0.5">Total Deposit</p>
+                        <p className="text-base font-bold text-white leading-tight">{formatDepositRequirement(statusInfo.totalDeposit)}</p>
+                      </div>
+                      <div className="w-px h-8 bg-white/15 hidden sm:block" />
+                      <div className="text-center">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-white/50 mb-0.5">Bonus Profit</p>
+                        <p className="text-base font-bold text-white leading-tight">+{String(statusInfo.profitBonus).replace(/[^0-9.]/g, '')}%</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* progress inside hero */}
+                  {progress.next && (
+                    <div className="relative mt-5 pt-4 border-t border-white/10">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <TrendingUp className="w-3.5 h-3.5 text-white/70" />
+                          <span className="text-xs font-semibold text-white/80">
+                            Menuju {STATUS_CONFIG[progress.next].label}
+                          </span>
+                        </div>
+                        <span className="text-xs font-black text-white">{progress.progress}%</span>
+                      </div>
+                      <div className="w-full bg-white/15 rounded-full h-2 overflow-hidden">
+                        <motion.div
+                          className={`h-full rounded-full bg-gradient-to-r ${theme.accent}`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${progress.progress}%` }}
+                          transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }}
+                        />
+                      </div>
+                      <p className="text-[11px] text-white/50 mt-1.5">
+                        Butuh {formatDepositRequirement(progress.depositNeeded ?? 0)} lagi untuk naik tier
+                      </p>
+                    </div>
                   )}
-                </motion.button>
-              </motion.form>
-            </motion.div>
-          )}
+                  {statusInfo.current === 'vip' && (
+                    <div className="relative mt-5 pt-4 border-t border-white/10 flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-yellow-300 flex-shrink-0" />
+                      <p className="text-xs font-semibold text-white/80">Selamat! Anda telah mencapai tier tertinggi.</p>
+                    </div>
+                  )}
+                </motion.div>
+
+                {/* ── Tier Journey ── */}
+                <motion.div
+                  className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm"
+                  variants={fadeInUp}
+                >
+                  <h3 className="text-sm font-bold text-gray-900 mb-5 flex items-center gap-2">
+                    <Crown className="w-4 h-4 text-yellow-500" />
+                    Perjalanan Tier
+                  </h3>
+
+                  {/* milestone path */}
+                  <div className="flex items-start gap-0 mb-6 relative">
+                    {(['standard', 'gold', 'vip'] as const).map((tier, i) => {
+                      const isReached = STATUS_CONFIG[tier].minDeposit <= statusInfo.totalDeposit
+                      const isCurrent = tier === statusInfo.current
+                      const dotTheme = statusTheme[tier]
+                      return (
+                        <React.Fragment key={tier}>
+                          <div className="flex flex-col items-center flex-1 relative z-10">
+                            <motion.div
+                              className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all ${
+                                isCurrent
+                                  ? `${dotTheme.activeDot} border-transparent shadow-lg`
+                                  : isReached
+                                    ? 'bg-emerald-500 border-transparent'
+                                    : 'bg-white border-gray-200'
+                              }`}
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{ delay: 0.1 * i, type: 'spring' }}
+                            >
+                              <img
+                                src={STATUS_IMAGES[tier]}
+                                alt={tier}
+                                className={`w-7 h-7 object-contain transition-all ${!isReached ? 'opacity-30 grayscale' : ''}`}
+                              />
+                            </motion.div>
+                            <p className={`text-[11px] font-bold mt-2 ${isCurrent ? 'text-gray-900' : isReached ? 'text-emerald-600' : 'text-gray-400'}`}>
+                              {STATUS_CONFIG[tier].label}
+                            </p>
+                            {isCurrent && (
+                              <motion.span
+                                className="text-[9px] font-black uppercase tracking-wider text-white bg-sky-500 px-2 py-0.5 rounded-full mt-1"
+                                initial={{ opacity: 0, y: 4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.4 }}
+                              >
+                                Aktif
+                              </motion.span>
+                            )}
+                            <p className={`text-[10px] mt-1 ${isReached ? 'text-gray-500' : 'text-gray-300'}`}>
+                              {tier === 'standard' ? 'Gratis' : formatDepositRequirement(STATUS_CONFIG[tier].minDeposit)}
+                            </p>
+                          </div>
+                          {i < 2 && (
+                            <div className="flex-1 flex items-center justify-center mt-5 relative">
+                              <div className="absolute w-full h-0.5 bg-gray-100" />
+                              <motion.div
+                                className="absolute left-0 h-0.5 bg-gradient-to-r from-emerald-400 to-emerald-300"
+                                style={{ originX: 0 }}
+                                initial={{ width: 0 }}
+                                animate={{
+                                  width: STATUS_CONFIG[(['standard', 'gold', 'vip'] as const)[i + 1]].minDeposit <= statusInfo.totalDeposit
+                                    ? '100%'
+                                    : progress.next === (['standard', 'gold', 'vip'] as const)[i + 1]
+                                      ? `${progress.progress}%`
+                                      : '0%'
+                                }}
+                                transition={{ duration: 0.8, delay: 0.3 + i * 0.1, ease: 'easeOut' }}
+                              />
+                            </div>
+                          )}
+                        </React.Fragment>
+                      )
+                    })}
+                  </div>
+
+                  {/* ── Tier Comparison Cards ── */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {(['standard', 'gold', 'vip'] as const).map((status, i) => {
+                      const config = STATUS_CONFIG[status]
+                      const isCurrent = status === statusInfo.current
+                      const isUnlocked = STATUS_CONFIG[status].minDeposit <= statusInfo.totalDeposit
+                      const cardTheme = statusTheme[status]
+                      return (
+                        <motion.div
+                          key={status}
+                          className={`relative rounded-xl border p-4 transition-all ${
+                            isCurrent
+                              ? `${cardTheme.cardBorder} ring-1 ${cardTheme.ring} shadow-md`
+                              : isUnlocked
+                                ? `${cardTheme.unlockBg} ${cardTheme.unlockBorder} border`
+                                : 'border-gray-100 bg-gray-50/50'
+                          }`}
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.15 * i }}
+                          whileHover={{ y: -2, transition: { duration: 0.15 } }}
+                        >
+                          {isCurrent && (
+                            <div className="absolute top-2.5 right-2.5">
+                              <span className={`text-[9px] font-black uppercase tracking-widest text-white bg-gradient-to-r ${cardTheme.accent} px-2 py-0.5 rounded-full shadow`}>
+                                Aktif
+                              </span>
+                            </div>
+                          )}
+                          {!isUnlocked && (
+                            <div className="absolute top-2.5 right-2.5">
+                              <span className="text-[9px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Terkunci</span>
+                            </div>
+                          )}
+
+                          {/* tier header */}
+                          <div className={`w-11 h-11 rounded-xl mb-3 flex items-center justify-center bg-gradient-to-br ${cardTheme.accent}`}>
+                            <img
+                              src={STATUS_IMAGES[status]}
+                              alt={status}
+                              className={`w-7 h-7 object-contain ${!isUnlocked ? 'opacity-50 grayscale' : ''}`}
+                            />
+                          </div>
+                          <p className={`text-sm font-black mb-0.5 ${isCurrent ? cardTheme.cardAccentText : isUnlocked ? cardTheme.cardAccentText : 'text-gray-400'}`}>
+                            {config.label}
+                          </p>
+                          <p className={`text-xs font-semibold mb-3 ${isCurrent ? cardTheme.cardSubText : isUnlocked ? cardTheme.cardSubText : 'text-gray-300'}`}>
+                            {config.profitBonus > 0 ? `+${config.profitBonus}% profit bonus` : 'Tanpa bonus'}
+                          </p>
+
+                          {/* divider */}
+                          <div className="w-full h-px bg-gray-100 mb-3" />
+
+                          {/* benefits */}
+                          <ul className="space-y-1.5">
+                            {tierBenefits[status].map((benefit, bi) => (
+                              <motion.li
+                                key={bi}
+                                className="flex items-start gap-1.5"
+                                initial={{ opacity: 0, x: -6 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.2 + bi * 0.05 }}
+                              >
+                                <CheckCircle2 className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${isUnlocked ? cardTheme.cardSubText : 'text-gray-300'}`} />
+                                <span className={`text-[11px] leading-snug ${isUnlocked ? 'text-gray-600' : 'text-gray-300'}`}>
+                                  {benefit}
+                                </span>
+                              </motion.li>
+                            ))}
+                          </ul>
+
+                          {/* min deposit badge */}
+                          <div className={`mt-3 pt-3 border-t border-gray-100 flex items-center justify-between`}>
+                            <span className="text-[10px] text-gray-400">Min. Deposit</span>
+                            <span className={`text-[11px] font-bold ${isCurrent ? cardTheme.cardAccentText : isUnlocked ? cardTheme.cardSubText : 'text-gray-400'}`}>
+                              {status === 'standard' ? 'Gratis' : formatDepositRequirement(config.minDeposit)}
+                            </span>
+                          </div>
+                        </motion.div>
+                      )
+                    })}
+                  </div>
+                </motion.div>
+
+                {/* ── Info Banner ── */}
+                <motion.div
+                  className="rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50 to-blue-50 p-4 flex items-start gap-3"
+                  variants={fadeInUp}
+                >
+                  <div className="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Info className="w-4 h-4 text-sky-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-sky-900 mb-0.5">Bagaimana cara naik tier?</p>
+                    <p className="text-xs text-sky-700 leading-relaxed">
+                      Tier Anda naik otomatis berdasarkan akumulasi total deposit. Tingkatkan deposit untuk mendapatkan bonus profit lebih tinggi dan akses fitur eksklusif.
+                    </p>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )
+          })()}
         </motion.div>
       </AnimatePresence>
     )

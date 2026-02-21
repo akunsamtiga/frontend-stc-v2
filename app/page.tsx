@@ -1,7 +1,7 @@
 // app/(landing)/page.tsx - ✅ FIXED: Referral Code Support
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useAuthStore } from '@/store/auth'
@@ -458,6 +458,15 @@ export default function LandingPage() {
   // ✅ ALL useState hooks at the top
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [isClosingModal, setIsClosingModal] = useState(false)
+
+  const closeAuthModal = () => {
+    setIsClosingModal(true)
+    setTimeout(() => {
+      setShowAuthModal(false)
+      setIsClosingModal(false)
+    }, 350)
+  }
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -482,6 +491,26 @@ export default function LandingPage() {
     }, 100)
     return () => clearTimeout(timer)
   }, [])
+
+  // ✅ Scroll lock: kunci scroll body saat modal auth terbuka
+  const savedScrollY = useRef(0)
+
+  useEffect(() => {
+    if (showAuthModal) {
+      savedScrollY.current = window.scrollY
+      document.documentElement.style.overflow = 'hidden'
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.documentElement.style.overflow = ''
+      document.body.style.overflow = ''
+      window.scrollTo(0, savedScrollY.current)
+    }
+
+    return () => {
+      document.documentElement.style.overflow = ''
+      document.body.style.overflow = ''
+    }
+  }, [showAuthModal])
 
   // ✅ Effect 2: Redirect if authenticated
   useEffect(() => {
@@ -716,7 +745,7 @@ export default function LandingPage() {
         toast.success(message)
       }
 
-      setShowAuthModal(false)
+      setShowAuthModal(false)  // langsung tutup karena redirect
       router.push('/trading')
 
     } catch (error: any) {
@@ -917,7 +946,6 @@ export default function LandingPage() {
 
                 <button className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-white/5 hover:bg-white/10 border border-gray-700 hover:border-gray-600 rounded-xl text-sm sm:text-lg font-semibold transition-colors backdrop-blur-sm"   onClick={() => setShowDemoTutorial(true)}>
                   <span className="flex items-center justify-center gap-2">
-                    <Eye className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" weight="bold" />
                     <span className="hidden sm:inline">Lihat Demo</span>
                     <span className="sm:hidden">Demo</span>
                   </span>
@@ -1165,7 +1193,7 @@ export default function LandingPage() {
     </div>
 
     {/* Desktop Grid */}
-    <div className="hidden sm:block max-w-5xl mx-auto space-y-3 sm:space-y-4">
+    <div className="hidden lg:block max-w-5xl mx-auto space-y-3 sm:space-y-4">
       <div className="grid grid-cols-6 gap-4">
         {[
           { name: 'Mandiri', logo: '/mandiri.webp' },
@@ -1222,14 +1250,16 @@ export default function LandingPage() {
       </div>
     </div>
 
-    {/* Mobile Scrollable Grid */}
-    <div className="sm:hidden space-y-3">
-      {/* Baris 1 - 6 logo pertama */}
+    {/* Mobile & Tablet Infinite Marquee */}
+    <div className="lg:hidden space-y-3 overflow-hidden">
+      {/* Baris 1 - scroll ke kiri */}
       <div className="relative">
-        <div className="absolute right-0 top-0 bottom-0 w-6 z-10 pointer-events-none"></div>
-        
-        <div className="overflow-x-auto pb-2 hide-scrollbar">
-          <div className="flex gap-3 px-4">
+        {/* fade edges */}
+        <div className="absolute left-0 top-0 bottom-0 w-10 z-10 pointer-events-none bg-gradient-to-r from-[#0E111A] to-transparent" />
+        <div className="absolute right-0 top-0 bottom-0 w-10 z-10 pointer-events-none bg-gradient-to-l from-[#0E111A] to-transparent" />
+
+        <div className="flex overflow-hidden">
+          <div className="flex gap-3 animate-marquee-left">
             {[
               { name: 'DANA', logo: '/dana.webp' },
               { name: 'OVO', logo: '/ovo.webp' },
@@ -1237,41 +1267,29 @@ export default function LandingPage() {
               { name: 'BNI', logo: '/bni.webp' },
               { name: 'BRI', logo: '/bri.webp' },
               { name: 'Mandiri', logo: '/mandiri.webp' },
-            ].map((item) => (
-              <div key={item.name} className="flex-shrink-0 w-28 bg-white border border-gray-200 rounded-xl p-4">
-                <div className="relative h-12 flex items-center justify-center">
-                  <Image 
-                    src={item.logo} 
-                    alt={item.name}
-                    width={100}
-                    height={40}
-                    className="h-full w-auto object-contain"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Baris 2 - 5 logo terakhir */}
-      <div className="relative">
-        <div className="absolute right-0 top-0 bottom-0 w-6 z-10 pointer-events-none"></div>
-        
-        <div className="overflow-x-auto pb-2 hide-scrollbar">
-          <div className="flex gap-3 px-4">
-            {[
               { name: 'QRIS', logo: '/qris.png' },
               { name: 'Visa', logo: '/visa.webp' },
               { name: 'Mastercard', logo: '/mastercard.webp' },
               { name: 'Bitcoin', logo: '/bitcoin.webp' },
               { name: 'BCA', logo: '/bca.webp' },
+              /* duplicate for seamless loop */
+              { name: 'DANA2', logo: '/dana.webp' },
+              { name: 'OVO2', logo: '/ovo.webp' },
+              { name: 'GoPay2', logo: '/gopay.webp' },
+              { name: 'BNI2', logo: '/bni.webp' },
+              { name: 'BRI2', logo: '/bri.webp' },
+              { name: 'Mandiri2', logo: '/mandiri.webp' },
+              { name: 'QRIS2', logo: '/qris.png' },
+              { name: 'Visa2', logo: '/visa.webp' },
+              { name: 'Mastercard2', logo: '/mastercard.webp' },
+              { name: 'Bitcoin2', logo: '/bitcoin.webp' },
+              { name: 'BCA2', logo: '/bca.webp' },
             ].map((item) => (
               <div key={item.name} className="flex-shrink-0 w-28 bg-white border border-gray-200 rounded-xl p-4">
-                <div className="relative h-12 flex items-center justify-center">
+                <div className="relative h-10 flex items-center justify-center">
                   <Image 
                     src={item.logo} 
-                    alt={item.name}
+                    alt={item.name.replace(/\d+$/, '')}
                     width={100}
                     height={40}
                     className="h-full w-auto object-contain"
@@ -1283,9 +1301,52 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Indikator scroll */}
-      <div className="text-center">
-        <p className="text-xs text-gray-500">← Geser untuk melihat lebih banyak →</p>
+      {/* Baris 2 - scroll ke kanan */}
+      <div className="relative">
+        <div className="absolute left-0 top-0 bottom-0 w-10 z-10 pointer-events-none bg-gradient-to-r from-[#0E111A] to-transparent" />
+        <div className="absolute right-0 top-0 bottom-0 w-10 z-10 pointer-events-none bg-gradient-to-l from-[#0E111A] to-transparent" />
+
+        <div className="flex overflow-hidden">
+          <div className="flex gap-3 animate-marquee-right">
+            {[
+              { name: 'BCA', logo: '/bca.webp' },
+              { name: 'Bitcoin', logo: '/bitcoin.webp' },
+              { name: 'Mastercard', logo: '/mastercard.webp' },
+              { name: 'Visa', logo: '/visa.webp' },
+              { name: 'QRIS', logo: '/qris.png' },
+              { name: 'Mandiri', logo: '/mandiri.webp' },
+              { name: 'BRI', logo: '/bri.webp' },
+              { name: 'BNI', logo: '/bni.webp' },
+              { name: 'GoPay', logo: '/gopay.webp' },
+              { name: 'OVO', logo: '/ovo.webp' },
+              { name: 'DANA', logo: '/dana.webp' },
+              /* duplicate for seamless loop */
+              { name: 'BCA2', logo: '/bca.webp' },
+              { name: 'Bitcoin2', logo: '/bitcoin.webp' },
+              { name: 'Mastercard2', logo: '/mastercard.webp' },
+              { name: 'Visa2', logo: '/visa.webp' },
+              { name: 'QRIS2', logo: '/qris.png' },
+              { name: 'Mandiri2', logo: '/mandiri.webp' },
+              { name: 'BRI2', logo: '/bri.webp' },
+              { name: 'BNI2', logo: '/bni.webp' },
+              { name: 'GoPay2', logo: '/gopay.webp' },
+              { name: 'OVO2', logo: '/ovo.webp' },
+              { name: 'DANA2', logo: '/dana.webp' },
+            ].map((item) => (
+              <div key={item.name} className="flex-shrink-0 w-28 bg-white border border-gray-200 rounded-xl p-4">
+                <div className="relative h-10 flex items-center justify-center">
+                  <Image 
+                    src={item.logo} 
+                    alt={item.name.replace(/\d+$/, '')}
+                    width={100}
+                    height={40}
+                    className="h-full w-auto object-contain"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1647,12 +1708,12 @@ export default function LandingPage() {
 {showAuthModal && (
   <>
     <div 
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 animate-fade-in" 
-      onClick={() => setShowAuthModal(false)}
+      className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-50 transition-opacity duration-350 ${isClosingModal ? 'opacity-0' : 'animate-fade-in'}`}
+      onClick={closeAuthModal}
     />
 
     {/* FIXED: Hapus overflow-y-auto dari container utama, gunakan h-full */}
-    <div className="fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-gradient-to-b from-[#0f1419] to-[#0a0e17] z-50 animate-slide-left shadow-2xl flex flex-col">
+    <div className={`fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-gradient-to-b from-[#0f1419] to-[#0a0e17] z-50 shadow-2xl flex flex-col transition-transform duration-350 ease-in-out ${isClosingModal ? 'translate-x-full' : 'animate-slide-left'}`}>
       {/* Header - Sticky */}
       <div className="flex-shrink-0 bg-gradient-to-b from-[#0f1419] to-[#0a0e17] backdrop-blur-xl border-b border-gray-800/50 p-6">
         <div className="flex items-center justify-between">
@@ -1671,7 +1732,7 @@ export default function LandingPage() {
             </div>
           </div>
           <button
-            onClick={() => setShowAuthModal(false)}
+            onClick={closeAuthModal}
             className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/5 transition-colors"
           >
             <X className="w-5 h-5" weight="bold" />
@@ -1913,6 +1974,30 @@ export default function LandingPage() {
 )}
 
       <style jsx>{`
+      .duration-350 {
+        transition-duration: 350ms;
+      }
+
+      @keyframes marquee-left {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+
+      @keyframes marquee-right {
+        0% { transform: translateX(-50%); }
+        100% { transform: translateX(0); }
+      }
+
+      .animate-marquee-left {
+        animation: marquee-left 55s linear infinite;
+        width: max-content;
+      }
+
+      .animate-marquee-right {
+        animation: marquee-right 55s linear infinite;
+        width: max-content;
+      }
+
       @keyframes gradient {
         0%, 100% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }

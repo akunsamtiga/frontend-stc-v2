@@ -82,7 +82,6 @@ const StaggerStyles = () => (
       animation: shimmer 3s infinite;
     }
 
-    /* ✨ Kilauan diagonal lambat mengalir dari kiri ke kanan */
     @keyframes card-shine {
       0%   { transform: translateX(-150%) skewX(-18deg); }
       100% { transform: translateX(400%) skewX(-18deg); }
@@ -105,7 +104,6 @@ const StaggerStyles = () => (
       pointer-events: none;
       z-index: 5;
     }
-    /* Kartu Demo berkilau 2.5 detik setelah kartu Real agar terasa bergantian */
     .card-shine-delay {
       animation-delay: 2.5s;
     }
@@ -190,16 +188,27 @@ const SkeletonTransactionRow = ({ index = 0 }: { index?: number }) => (
   </div>
 )
 
+// ✅ FIXED: Skeleton container classes now match the actual content layout
 const LoadingSkeleton = () => (
   <>
     <style jsx global>{`
       .bg-pattern-grid {
         background-color: #ffffff !important;
-        background-image: 
+        background-image:
+          linear-gradient(
+            to top,
+            rgba(255,255,255,1) 0%,
+            rgba(255,255,255,1) 35%,
+            rgba(255,255,255,0.4) 42%,
+            rgba(255,255,255,0)  50%,
+            rgba(255,255,255,0.4) 58%,
+            rgba(255,255,255,1) 65%,
+            rgba(255,255,255,1) 100%
+          ),
           linear-gradient(rgba(0,0,0,0.08) 1px, transparent 1px),
           linear-gradient(90deg, rgba(0,0,0,0.08) 1px, transparent 1px);
-        background-size: 40px 40px;
-        background-position: center center;
+        background-size: 100% 220%, 40px 40px, 40px 40px;
+        background-position: center 130%, center center, center center;
       }
       .scrollbar-hide::-webkit-scrollbar { display: none; }
       .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
@@ -216,7 +225,8 @@ const LoadingSkeleton = () => (
     `}</style>
     <div className="min-h-screen bg-pattern-grid">
       <Navbar />
-      <div className="lg:hidden container mx-auto px-3 py-4">
+      {/* ✅ Mobile skeleton — px-3 sm:px-4, py-4 sm:py-6, max-w-7xl  (identik dengan konten asli) */}
+      <div className="lg:hidden container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl">
         <div className="mb-4 skeleton-item" style={{ animationDelay: '0ms' }}>
           <div className="h-3 bg-gray-200 rounded w-32 mb-2"></div>
           <div className="flex items-center gap-2">
@@ -234,7 +244,8 @@ const LoadingSkeleton = () => (
           {[...Array(5)].map((_, i) => <SkeletonTransactionRow key={i} index={i} />)}
         </div>
       </div>
-      <div className="hidden lg:block container mx-auto px-4 py-8 max-w-7xl">
+      {/* ✅ Desktop skeleton — px-3 sm:px-4, py-4 sm:py-6 lg:py-8, max-w-7xl (identik dengan konten asli) */}
+      <div className="hidden lg:block container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">
         <div className="mb-6 skeleton-item" style={{ animationDelay: '0ms' }}>
           <div className="h-4 bg-gray-200 rounded w-48 mb-3"></div>
           <div className="flex items-center justify-between">
@@ -526,9 +537,7 @@ export default function BalancePage() {
               <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-600 to-green-700 shadow-lg">
                 <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
                 <div className="absolute -bottom-3 -left-3 w-14 h-14 bg-white/10 rounded-full" />
-                {/* ✨ Shimmer — Real */}
                 <div className="card-shine" />
-
                 <div className="relative z-10 p-3 flex flex-col gap-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
@@ -564,9 +573,7 @@ export default function BalancePage() {
               <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 shadow-lg">
                 <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
                 <div className="absolute -bottom-3 -left-3 w-14 h-14 bg-white/10 rounded-full" />
-                {/* ✨ Shimmer — Demo (mulai 2.5s setelah Real agar bergantian) */}
                 <div className="card-shine card-shine-delay" />
-
                 <div className="relative z-10 p-3 flex flex-col gap-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
@@ -589,7 +596,6 @@ export default function BalancePage() {
                     onClick={() => { setTransactionAccount('demo'); setShowDeposit(true) }}
                     className="w-full flex items-center justify-center gap-1 py-1.5 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-lg text-[10px] font-bold transition-colors"
                   >
-                    <ArrowDownToLine className="w-3 h-3" />
                     Isi Ulang
                   </button>
                 </div>
@@ -610,9 +616,7 @@ export default function BalancePage() {
                 <div className="absolute -bottom-8 -left-8 w-36 h-36 bg-white/10 rounded-full" />
                 <div className="absolute top-1/2 right-16 w-24 h-24 bg-white/5 rounded-full -translate-y-1/2" />
                 <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '18px 18px' }} />
-                {/* ✨ Shimmer — desktop Real */}
                 <div className="card-shine" />
-
                 <div className="relative z-10 p-5 flex items-center gap-5">
                   <div className="flex-shrink-0 w-14 h-14 bg-white/15 border border-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
                     <CreditCard className="w-7 h-7 text-white" />
@@ -634,11 +638,9 @@ export default function BalancePage() {
                   </div>
                   <div className="flex-shrink-0 flex flex-col gap-2">
                     <Link href="/payment" className="flex items-center justify-center gap-1.5 px-4 py-2 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm">
-                      <ArrowDownToLine className="w-3.5 h-3.5" />
                       Top Up
                     </Link>
                     <Link href="/withdrawal" className="flex items-center justify-center gap-1.5 px-4 py-2 bg-black/20 hover:bg-black/30 border border-white/20 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm">
-                      <ArrowUpFromLine className="w-3.5 h-3.5" />
                       Tarik Dana
                     </Link>
                   </div>
@@ -652,9 +654,7 @@ export default function BalancePage() {
                 <div className="absolute -bottom-8 -left-8 w-36 h-36 bg-white/10 rounded-full" />
                 <div className="absolute top-1/2 right-16 w-24 h-24 bg-white/5 rounded-full -translate-y-1/2" />
                 <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '18px 18px' }} />
-                {/* ✨ Shimmer — desktop Demo (bergantian dengan Real) */}
                 <div className="card-shine card-shine-delay" />
-
                 <div className="relative z-10 p-5 flex items-center gap-5">
                   <div className="flex-shrink-0 w-14 h-14 bg-white/15 border border-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
                     <Wallet className="w-7 h-7 text-white" />
@@ -676,7 +676,6 @@ export default function BalancePage() {
                       onClick={() => { setTransactionAccount('demo'); setShowDeposit(true) }}
                       className="flex items-center justify-center gap-1.5 px-4 py-2 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm"
                     >
-                      <ArrowDownToLine className="w-3.5 h-3.5" />
                       Isi Ulang
                     </button>
                   </div>

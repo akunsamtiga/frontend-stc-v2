@@ -110,11 +110,15 @@ const LoadingSkeleton = () => (
 
       {/* Skeleton Mobile */}
       <div className="md:hidden container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 bg-gray-200 rounded-xl animate-pulse" />
-          <div className="space-y-1">
-            <SkeletonBlock w="w-32" h="h-5" />
-            <SkeletonBlock w="w-40" h="h-3" />
+        <div className="mb-4">
+          {/* Breadcrumb skeleton */}
+          <SkeletonBlock w="w-32" h="h-3" />
+          <div className="flex items-center gap-2 mt-2">
+            <div className="w-8 h-8 bg-gray-200 rounded-xl animate-pulse" />
+            <div className="space-y-1">
+              <SkeletonBlock w="w-32" h="h-5" />
+              <SkeletonBlock w="w-40" h="h-3" />
+            </div>
           </div>
         </div>
         <div className="h-28 bg-gray-200 rounded-xl animate-pulse mb-4" />
@@ -201,14 +205,6 @@ const ITEMS_PER_PAGE = 10
 const formatDate = (d: string) =>
   new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
 
-/**
- * Komisi ditentukan berdasarkan status deposit TEMAN yang diundang (referee),
- * bukan status referrer itu sendiri.
- *
- * Standard → Rp 25.000
- * Gold     → Rp 100.000
- * VIP      → Rp 400.000
- */
 const COMMISSION_PER_REFEREE_STATUS: Record<string, number> = {
   standard: 25_000,
   gold: 100_000,
@@ -228,26 +224,6 @@ const REFEREE_STATUS_BADGE: Record<string, string> = {
   gold: 'bg-yellow-100 text-yellow-700',
   vip: 'bg-purple-100 text-purple-700',
 }
-
-// ─── Commission Tier Info ─────────────────────────────────────────────────────
-
-/**
- * Komponen kecil yang menampilkan info tier komisi secara ringkas.
- * Digunakan di stat card mobile & desktop.
- */
-const CommissionTierBadges = () => (
-  <div className="flex flex-col gap-0.5 mt-1">
-    <span className="text-[10px] text-gray-500">
-      Standard <span className="font-bold text-gray-700">{formatCurrency(25_000)}</span>
-    </span>
-    <span className="text-[10px] text-yellow-600">
-      Gold <span className="font-bold">{formatCurrency(100_000)}</span>
-    </span>
-    <span className="text-[10px] text-purple-600">
-      VIP <span className="font-bold">{formatCurrency(400_000)}</span>
-    </span>
-  </div>
-)
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
@@ -297,7 +273,6 @@ export default function ReferralPage() {
         const profileData = p?.data ?? p
         const userData = profileData?.user ?? profileData
         setReferralCode(userData?.referralCode ?? '')
-        // userStatus tidak lagi digunakan untuk kalkulasi komisi
       }
 
       if (affiliateRes.status === 'fulfilled') {
@@ -388,27 +363,35 @@ export default function ReferralPage() {
           transition={{ duration: 0.2 }}
         >
           {/* Header */}
-          <motion.div className="flex items-center justify-between mb-4" variants={fadeIn} initial="hidden" animate="visible">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-                <UserPlus className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-gray-900">Undang Teman</h1>
-                <p className="text-xs text-gray-500">
-                  {summary?.totalReferrals ?? 0} referral · {summary?.completedReferrals ?? 0} selesai
-                </p>
-              </div>
+          <motion.div className="mb-4" variants={fadeIn} initial="hidden" animate="visible">
+            {/* ✅ Breadcrumb Mobile */}
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-2">
+              <span>Dasbor</span>
+              <span>/</span>
+              <span className="text-gray-900 font-medium">Undang Teman</span>
             </div>
-            <motion.button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="flex items-center gap-1.5 px-2.5 py-2 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-600 active:bg-gray-100"
-              whileTap={{ scale: 0.95 }}
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              Perbarui
-            </motion.button>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                  <UserPlus className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold text-gray-900">Undang Teman</h1>
+                  <p className="text-xs text-gray-500">
+                    {summary?.totalReferrals ?? 0} referral · {summary?.completedReferrals ?? 0} selesai
+                  </p>
+                </div>
+              </div>
+              <motion.button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="flex items-center gap-1.5 px-2.5 py-2 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-600 active:bg-gray-100"
+                whileTap={{ scale: 0.95 }}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                Perbarui
+              </motion.button>
+            </div>
           </motion.div>
 
           {/* Referral Code Card */}
@@ -498,8 +481,6 @@ export default function ReferralPage() {
                 <p className="text-[10px] text-gray-500 mt-0.5">{s.label}</p>
               </motion.div>
             ))}
-
-
           </motion.div>
 
           {/* Commission breakdown */}
@@ -563,7 +544,6 @@ export default function ReferralPage() {
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      {/* Komisi ditentukan dari status deposit teman (refereeStatus) */}
                       <p className={`text-xs font-bold ${r.status === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
                         {r.status === 'completed'
                           ? `+${formatCurrency(r.commission_amount)}`
@@ -697,8 +677,6 @@ export default function ReferralPage() {
                   <div className="text-lg font-bold text-purple-600">{String(summary?.completedReferrals ?? 0)}</div>
                 </div>
               </motion.div>
-
-
             </div>
           </motion.div>
 
@@ -743,7 +721,6 @@ export default function ReferralPage() {
             {referralLink && (
               <p className="text-xs text-gray-400 mt-2 font-mono truncate max-w-lg">{referralLink}</p>
             )}
-            {/* Info tier komisi: berdasarkan status deposit teman yang diundang */}
             <div className="mt-4 pt-4 border-t border-gray-100">
               <p className="text-xs text-gray-500 mb-1.5">
                 Komisi ditentukan berdasarkan <strong className="text-gray-700">total deposit teman yang kamu undang</strong>:
@@ -822,10 +799,8 @@ export default function ReferralPage() {
                             </td>
                             <td className="py-4 px-4 text-sm font-bold">
                               {r.status === 'completed' ? (
-                                // Gunakan commission_amount dari API (sudah dihitung backend berdasarkan status referee)
                                 <span className="text-green-600">+{formatCurrency(r.commission_amount)}</span>
                               ) : (
-                                // Tampilkan estimasi berdasarkan status teman saat ini
                                 <span className="text-gray-400" title={`Estimasi jika teman deposit hingga status ${r.refereeStatus}`}>
                                   ~{formatCurrency(COMMISSION_PER_REFEREE_STATUS[r.refereeStatus] ?? 25_000)}
                                 </span>
