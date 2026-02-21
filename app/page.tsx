@@ -916,12 +916,17 @@ export default function LandingPage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div className="space-y-8">
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold leading-tight">
-                Raih Bonus
-                <span className="block mt-2 font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-emerald-400 to-cyan-400 animate-gradient bg-[length:200%_auto]">
-                  Deposit 100%
-                </span>
-              </h1>
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 px-1">
+                  <span className="text-xs sm:text-sm font-medium shimmer-date">1 Februari – 31 Maret</span>
+                </div>
+                <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold leading-tight">
+                  Raih Bonus
+                  <span className="block mt-2 font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-emerald-400 to-cyan-400 animate-gradient bg-[length:200%_auto]">
+                    Deposit 100%
+                  </span>
+                </h1>
+              </div>
 
               <p className="text-lg sm:text-xl text-gray-400 leading-relaxed">
                 Tersedia berbagai aset <span className="text-emerald-400 font-semibold">global</span>, 
@@ -935,7 +940,7 @@ export default function LandingPage() {
                     setIsLogin(true)
                     setShowAuthModal(true)
                   }}
-                  className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-sky-600 to-cyan-600 hover:from-sky-500 hover:to-cyan-500 rounded-xl text-sm sm:text-lg font-semibold text-white transition-colors shadow-lg"
+                  className="group flex-none px-4 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-sky-600 to-cyan-600 hover:from-sky-500 hover:to-cyan-500 rounded-xl text-sm sm:text-lg font-semibold text-white transition-colors shadow-lg"
                 >
                   <span className="flex items-center justify-center gap-2">
                     <span className="hidden sm:inline">Masuk untuk Trading</span>
@@ -944,7 +949,7 @@ export default function LandingPage() {
                   </span>
                 </button>
 
-                <button className="group flex-1 sm:flex-none px-4 sm:px-8 py-3 sm:py-4 bg-white/5 hover:bg-white/10 border border-gray-700 hover:border-gray-600 rounded-xl text-sm sm:text-lg font-semibold transition-colors backdrop-blur-sm"   onClick={() => setShowDemoTutorial(true)}>
+                <button className="group flex-none px-4 sm:px-8 py-3 sm:py-4 bg-white/5 hover:bg-white/10 border border-gray-700 hover:border-gray-600 rounded-xl text-sm sm:text-lg font-semibold transition-colors backdrop-blur-sm"   onClick={() => setShowDemoTutorial(true)}>
                   <span className="flex items-center justify-center gap-2">
                     <span className="hidden sm:inline">Lihat Demo</span>
                     <span className="sm:hidden">Demo</span>
@@ -1154,6 +1159,7 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
 
 {/* Payment Methods */}
 <section id="payment" className="py-16 sm:py-20 relative border-t border-orange-800/30 overflow-visible">
@@ -1638,12 +1644,12 @@ export default function LandingPage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[100px]"></div>
         
         {/* AI2 Image Layer */}
-        <div className="hidden lg:block absolute left-[-21%] bottom-0 w-1/2 h-full opacity-20 pointer-events-none z-0">
+        <div className="block absolute left-[-110] md:left-[-140] bottom-50 w-3/5 h-full opacity-20 pointer-events-none z-0 lg:left-[-21%] lg:w-1/2 lg:opacity-20">
           <Image
             src="/ai2.png"
             alt=""
             fill
-            className="object-contain object-right-bottom scale-105"
+            className="object-contain object-left-bottom scale-105"
           />
         </div>
       </div>
@@ -1976,6 +1982,29 @@ export default function LandingPage() {
       <style jsx>{`
       .duration-350 {
         transition-duration: 350ms;
+      }
+
+      @keyframes shimmer-sweep {
+        0% { background-position: 100% center; }
+        100% { background-position: -100% center; }
+      }
+
+      .shimmer-date {
+        background: linear-gradient(
+          90deg,
+          #d97706 0%,
+          #eab308 20%,
+          #fde68a 38%,
+          #fefce8 50%,
+          #fde68a 62%,
+          #eab308 80%,
+          #d97706 100%
+        );
+        background-size: 200% 100%;
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: shimmer-sweep 5s linear infinite;
       }
 
       @keyframes marquee-left {
