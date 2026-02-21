@@ -206,6 +206,13 @@ export default function AdminDashboard() {
       href: '/admin/information',
       color: 'pink'
     },
+    {
+      title: 'AutoLose',
+      description: 'Kontrol sistem lose',
+      icon: Target,
+      href: '/admin/auto-lose',
+      color: 'red'
+    },
   ]
 
   const colorClasses: Record<string, { bg: string, icon: string, hover: string }> = {
@@ -216,6 +223,7 @@ export default function AdminDashboard() {
     cyan: { bg: 'bg-cyan-500/10', icon: 'text-cyan-400', hover: 'hover:bg-cyan-500/20' },
     orange: { bg: 'bg-orange-500/10', icon: 'text-orange-400', hover: 'hover:bg-orange-500/20' },
     pink: { bg: 'bg-pink-500/10', icon: 'text-pink-400', hover: 'hover:bg-pink-500/20' },
+    red: { bg: 'bg-red-500/10', icon: 'text-red-400', hover: 'hover:bg-red-500/20' },
   }
 
   return (

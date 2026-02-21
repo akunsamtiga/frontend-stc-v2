@@ -1447,15 +1447,6 @@ export default function TradingPage() {
               <span className="text-[9px] text-gray-500 group-hover:text-yellow-400">Turnamen</span>
             </button>
 
-            {/* <button
-              onClick={() => router.push('/runner-up')}
-              className="w-12 h-12 flex flex-col items-center justify-center gap-1 hover:bg-[#1a1f2e] rounded-lg transition-colors group"
-              title="Trader Terbaik"
-            >
-              <Award className="w-5 h-5 text-gray-400 group-hover:text-emerald-400" />
-              <span className="text-[9px] text-gray-500 group-hover:text-emerald-400">Terbaik</span>
-            </button> */}
-
             <button
               onClick={() => router.push('/berita')}
               className="w-12 h-12 flex flex-col items-center justify-center gap-1 hover:bg-[#1a1f2e] rounded-lg transition-colors group"
@@ -2013,43 +2004,6 @@ export default function TradingPage() {
             </div>
             
             <div className="space-y-2">
-              <div className="mb-4">
-                <label className="text-xs text-gray-400 mb-2 block">Pilih Aset</label>
-                <div className="space-y-1 max-h-48 overflow-y-auto">
-                  {assets.map((asset) => (
-                    <button
-                      key={asset.id}
-                      onClick={() => {
-                        setSelectedAsset(asset)
-                        handleCloseMobileMenu()
-                      }}
-                      onTouchStart={() => {
-                        if (asset.realtimeDbPath) {
-                          prefetchMultipleTimeframes(
-                            asset.realtimeDbPath,
-                            ['1m', '5m']
-                          )
-                        }
-                      }}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                        selectedAsset?.id === asset.id
-                          ? 'bg-blue-500/20 border border-blue-500/50'
-                          : 'bg-[#1a1f2e] hover:bg-[#232936]'
-                      }`}
-                    >
-                      <AssetIcon asset={asset} size="sm" />
-                      <div className="flex-1 text-left">
-                        <div className="text-sm font-medium">{asset.symbol}</div>
-                        <div className="text-xs text-gray-400">{asset.name}</div>
-                      </div>
-                      <div className="text-xs font-bold text-emerald-400">
-                        +{asset.profitRate}%
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* ✅ Status Progress Widget - Mobile */}
               {userProfile?.statusInfo && (() => {
                 const statusInfo = userProfile.statusInfo
