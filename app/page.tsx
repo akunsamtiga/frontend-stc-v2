@@ -431,7 +431,7 @@ const LiveCryptoChart = () => {
         </button>
       </div>
 
-      <div className="sm:hidden mt-4">
+      <div className="lg:hidden mt-4">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
           <span className="text-xs font-semibold text-gray-300">Transaksi Live</span>
@@ -447,7 +447,7 @@ const LiveCryptoChart = () => {
                 <div className="text-[10px] text-gray-400">{trade.asset}</div>
               </div>
               <div className="text-right ml-3">
-                <div className="text-xs font-bold text-emerald-400">+Rp {trade.profit.toLocaleString()}</div>
+                <div className="text-xs font-bold text-emerald-400">+USD {trade.profit.toLocaleString()}</div>
                 <div className="text-[9px] text-gray-500">{trade.time}</div>
               </div>
             </div>
@@ -486,7 +486,7 @@ export default function LandingPage() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [touchStart, setTouchStart] = useState(0)
   const [touchEnd, setTouchEnd] = useState(0)
-  const [logoPhase, setLogoPhase] = useState<'stc-logo-in' | 'stc-text-in' | 'stc-hold' | 'stc-text-out' | 'stc-logo-out' | 'stockity-logo-in' | 'stockity-text-in' | 'stockity-hold' | 'stockity-text-out' | 'stockity-logo-out'>('stc-hold')
+  const [logoPhase, setLogoPhase] = useState<'stc-logo-in' | 'stc-text-in' | 'stc-hold' | 'stc-text-out' | 'stc-logo-out' | 'stockity-logo-in' | 'stockity-text-in' | 'stockity-hold' | 'stockity-text-out' | 'stockity-logo-out'>('stc-logo-in')
   const [loadingGoogle, setLoadingGoogle] = useState(false)
   const [showDemoTutorial, setShowDemoTutorial] = useState(false)
 
@@ -557,9 +557,8 @@ export default function LandingPage() {
     }
   }, [])
 
-  // Effect 3: Logo animation — hanya desktop agar tidak buang CPU mobile
+  // Effect 3: Logo animation
   useEffect(() => {
-    if (!isDesktop) return // skip di mobile
     const phaseTimings = {
       'stc-logo-in': 800,
       'stc-text-in': 800,
@@ -828,7 +827,7 @@ export default function LandingPage() {
               {/* STC AutoTrade */}
               {logoPhase.startsWith('stc-') && (
                 <div className="flex items-center gap-3 absolute left-0 top-0">
-                  <div className={`relative w-10 h-10 flex-shrink-0 overflow-visible ${
+                  <div className={`relative w-10 h-10 flex-shrink-0 overflow-visible rounded-md ${
                     logoPhase === 'stc-logo-in' ? 'animate-logo-bounce-in' :
                     logoPhase === 'stc-logo-out' ? 'animate-logo-bounce-out' : 
                     'opacity-100'
@@ -860,7 +859,7 @@ export default function LandingPage() {
               {/* By Stockity */}
               {logoPhase.startsWith('stockity-') && (
                 <div className="flex items-center gap-3 absolute left-0 top-0">
-                  <div className={`relative w-10 h-10 flex-shrink-0 overflow-visible ${
+                  <div className={`relative w-10 h-10 flex-shrink-0 overflow-visible rounded-md ${
                     logoPhase === 'stockity-logo-in' ? 'animate-logo-bounce-in' :
                     logoPhase === 'stockity-logo-out' ? 'animate-logo-bounce-out' : 
                     'opacity-100'
@@ -2013,6 +2012,8 @@ export default function LandingPage() {
       .duration-350 {
         transition-duration: 350ms;
       }
+
+      /* ── Navbar logo shimmer overlay ─────────────────────────────── */
 
       @keyframes shimmer-sweep {
         0% { background-position: 100% center; }
