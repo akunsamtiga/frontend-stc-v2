@@ -299,6 +299,9 @@ const LiveCryptoChart = () => {
   const [priceHistory, setPriceHistory] = useState<number[]>([])
   const [currentTradeIndex, setCurrentTradeIndex] = useState(0)
 
+  // Polling lebih lambat di mobile untuk hemat baterai & CPU
+  const pollInterval = typeof window !== 'undefined' && window.innerWidth < 1024 ? 10000 : 3000
+
   useEffect(() => {
     setPriceHistory([])
     
@@ -315,7 +318,7 @@ const LiveCryptoChart = () => {
           })
         }
       },
-      3000
+      pollInterval
     )
 
     return () => unsubscribe()
@@ -483,9 +486,15 @@ export default function LandingPage() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [touchStart, setTouchStart] = useState(0)
   const [touchEnd, setTouchEnd] = useState(0)
-  const [logoPhase, setLogoPhase] = useState<'stc-logo-in' | 'stc-text-in' | 'stc-hold' | 'stc-text-out' | 'stc-logo-out' | 'stockity-logo-in' | 'stockity-text-in' | 'stockity-hold' | 'stockity-text-out' | 'stockity-logo-out'>('stc-logo-in')
+  const [logoPhase, setLogoPhase] = useState<'stc-logo-in' | 'stc-text-in' | 'stc-hold' | 'stc-text-out' | 'stc-logo-out' | 'stockity-logo-in' | 'stockity-text-in' | 'stockity-hold' | 'stockity-text-out' | 'stockity-logo-out'>('stc-hold')
   const [loadingGoogle, setLoadingGoogle] = useState(false)
   const [showDemoTutorial, setShowDemoTutorial] = useState(false)
+
+  // ✅ MOBILE PERF: hanya render komponen desktop berat setelah konfirmasi viewport
+  const [isDesktop, setIsDesktop] = useState(false)
+  useEffect(() => {
+    setIsDesktop(window.innerWidth >= 1024)
+  }, [])
 
   // ✅ NEW: Referral code state
   const [referralCode, setReferralCode] = useState<string>('')
@@ -548,8 +557,9 @@ export default function LandingPage() {
     }
   }, [])
 
-  // Effect 3: Logo animation
+  // Effect 3: Logo animation — hanya desktop agar tidak buang CPU mobile
   useEffect(() => {
+    if (!isDesktop) return // skip di mobile
     const phaseTimings = {
       'stc-logo-in': 800,
       'stc-text-in': 800,
@@ -599,8 +609,9 @@ export default function LandingPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Effect 6: Mouse parallax effect — throttled via rAF
+  // Effect 6: Mouse parallax effect — throttled via rAF, skip on touch devices
   useEffect(() => {
+    if (window.matchMedia('(hover: none)').matches) return // mobile/touch — skip
     let rafId: number
     const handleMouseMove = (e: MouseEvent) => {
       cancelAnimationFrame(rafId)
@@ -826,6 +837,7 @@ export default function LandingPage() {
                       src="/stc-logo1.png"
                       alt="Stouch"
                       fill
+                      sizes="40px"
                       className="object-contain rounded-md"
                       priority
                     />
@@ -857,6 +869,7 @@ export default function LandingPage() {
                       src="/stockity.png"
                       alt="Stockity"
                       fill
+                      sizes="40px"
                       className="object-contain rounded-md"
                       priority
                     />
@@ -988,38 +1001,46 @@ export default function LandingPage() {
 
             {/* Right - Real Crypto Components */}
             <div className="relative">
-              <LiveCryptoTicker />
+              {/* Desktop-only: tidak di-mount di mobile agar tidak ada polling sia-sia */}
+              {isDesktop && <LiveCryptoTicker />}
 
-              <FloatingCryptoPriceCard 
-                symbol="BTC" 
-                delay={0}
-                style={{ top: '10%', left: '-10%' }}
-              />
-              <FloatingCryptoPriceCard 
-                symbol="ETH" 
-                delay={0.5}
-                style={{ top: '60%', left: '-5%' }}
-              />
-              <FloatingCryptoPriceCard 
-                symbol="BNB" 
-                delay={1}
-                style={{ bottom: '10%', right: '-10%' }}
-              />
+              {isDesktop && (
+                <FloatingCryptoPriceCard 
+                  symbol="BTC" 
+                  delay={0}
+                  style={{ top: '10%', left: '-10%' }}
+                />
+              )}
+              {isDesktop && (
+                <FloatingCryptoPriceCard 
+                  symbol="ETH" 
+                  delay={0.5}
+                  style={{ top: '60%', left: '-5%' }}
+                />
+              )}
+              {isDesktop && (
+                <FloatingCryptoPriceCard 
+                  symbol="BNB" 
+                  delay={1}
+                  style={{ bottom: '10%', right: '-10%' }}
+                />
+              )}
 
               <LiveCryptoChart />
             </div>
           </div>
         </div>
-        {/* AI Image Layer */}
-        <div className="hidden lg:block absolute left-0 bottom-0 w-2/5 h-2/5 opacity-15 pointer-events-none z-0">
-          <Image
-            src="/ai1.png"
-            alt=""
-            fill
-            className="object-contain object-left-bottom"
-            priority
-          />
-        </div>
+        {/* AI Image Layer — desktop only, tidak di-fetch di mobile */}
+        {isDesktop && (
+          <div className="absolute left-0 bottom-0 w-2/5 h-2/5 opacity-15 pointer-events-none z-0">
+            <Image
+              src="/ai1.png"
+              alt=""
+              fill
+              className="object-contain object-left-bottom"
+            />
+          </div>
+        )}
       </section>
 
       {/* How It Works */}
@@ -1234,6 +1255,7 @@ export default function LandingPage() {
                   alt={item.name}
                   width={120}
                   height={40}
+                  sizes="(max-width: 1024px) 0px, 120px"
                   className="h-full w-auto object-contain transition-transform duration-300 group-hover:scale-110"
                 />
               </div>
@@ -1261,6 +1283,7 @@ export default function LandingPage() {
                   alt={item.name}
                   width={120}
                   height={40}
+                  sizes="(max-width: 1024px) 0px, 120px"
                   className="h-full w-auto object-contain transition-transform duration-300 group-hover:scale-110"
                 />
               </div>
