@@ -8,7 +8,6 @@ import React, { useState, useEffect } from 'react';
 // ============================================================
 const B_COM_URL = process.env.NEXT_PUBLIC_B_COM_URL || '';
 import { 
-  // Phosphor Icons
   ArrowLeft, CreditCard, Wallet, WarningCircle, CheckCircle, 
   Clock, X, SpinnerGap, Shield, Tag, TrendUp, 
   ClockCounterClockwise, Info, ArrowsClockwise, Plus, Minus,
@@ -141,7 +140,7 @@ class PaymentAPI {
     const response = await fetch(`${this.baseURL}/balance/real`, {
       method: 'GET',
       headers: this.getHeaders(),
-      cache: 'no-store' // ✅ Prevent caching to get fresh balance
+      cache: 'no-store'
     });
 
     if (!response.ok) {
@@ -149,33 +148,18 @@ class PaymentAPI {
     }
     const data = await response.json();
     
-    // ✅ FIXED: Handle multiple response formats
     let balance = 0;
-    
-    // Format 1: Direct data.balance
     if (data.balance !== undefined) {
       balance = data.balance;
-    }
-    // Format 2: data.data.balance
-    else if (data.data?.balance !== undefined) {
+    } else if (data.data?.balance !== undefined) {
       balance = data.data.balance;
-    }
-    // Format 3: data.data.data.balance
-    else if (data.data?.data?.balance !== undefined) {
+    } else if (data.data?.data?.balance !== undefined) {
       balance = data.data.data.balance;
     }
-    
-    console.log('💰 getRealBalance response:', { 
-      rawData: data, 
-      extractedBalance: balance,
-      timestamp: new Date().toISOString()
-    });
     
     return balance;
   }
 }
-
-// ✅ MidtransSnap class dihapus - popup Midtrans sekarang ditangani oleh B.com
 
 const TransactionStatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const statusConfig = {
@@ -222,7 +206,7 @@ const MidtransPaymentPage: React.FC = () => {
   const [isMonitoringBalance, setIsMonitoringBalance] = useState(false);
   const [lastBalanceCheck, setLastBalanceCheck] = useState<number>(0);
 
-  // Preset jumlah cepat - 6 opsi untuk tampilan yang rapi
+  // Preset jumlah cepat
   const quickAmounts = [
     { value: 100000, label: '100K' },
     { value: 200000, label: '200K' },
@@ -244,7 +228,6 @@ const MidtransPaymentPage: React.FC = () => {
     { name: 'QRIS', icon: '/qris1.png', category: 'qris' },
   ];
 
-  // ✅ PINDAHKAN KE ATAS - Sebelum useEffect
   const numericAmount = parseInt(amount) || 0;
   const totalAmount = numericAmount + voucherBonus;
 
@@ -253,8 +236,7 @@ const MidtransPaymentPage: React.FC = () => {
     loadAvailableVouchers();
     loadInitialBalance();
 
-    // ✅ BARU: Handle return dari B.com via URL params
-    // B.com redirect ke: A.com/deposit?status=success&orderId=xxx
+    // Handle return dari B.com via URL params
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
       const returnStatus = params.get('status')
@@ -263,7 +245,6 @@ const MidtransPaymentPage: React.FC = () => {
       if (returnStatus && returnOrderId) {
         console.log('↩️ Kembali dari B.com:', { returnStatus, returnOrderId })
 
-        // Ambil data transaksi dari sessionStorage yang disimpan sebelum redirect
         const savedTx = sessionStorage.getItem('pending_transaction')
         if (savedTx) {
           const txData = JSON.parse(savedTx)
@@ -271,7 +252,6 @@ const MidtransPaymentPage: React.FC = () => {
           setVoucherBonus(txData.voucherBonusAmount || 0)
           setVoucherCode(txData.voucherCode || '')
           sessionStorage.removeItem('pending_transaction')
-          console.log('✅ Data transaksi dipulihkan dari sessionStorage:', txData)
         }
 
         if (returnStatus === 'success' || returnStatus === 'pending') {
@@ -283,76 +263,52 @@ const MidtransPaymentPage: React.FC = () => {
           setError('Pembayaran dibatalkan atau gagal. Silakan coba lagi.')
         }
 
-        // Bersihkan URL params tanpa reload halaman
         const cleanUrl = window.location.pathname
         window.history.replaceState({}, '', cleanUrl)
       }
     }
   }, []);
 
-  // ✅ NEW: Auto-refresh balance jika payment success tapi balance masih 0
+  // Auto-refresh balance jika payment success tapi balance masih 0
   useEffect(() => {
     if (paymentStatus === 'success' && (!currentBalance || currentBalance === 0)) {
-      console.log('⚠️ Payment success tapi balance 0 - Auto-refresh...');
-      
       let retryCount = 0;
       const maxRetries = 5;
       
       const tryRefreshBalance = async () => {
         try {
           retryCount++;
-          console.log(`🔄 Auto-refresh attempt #${retryCount}...`);
-          
           const freshBalance = await PaymentAPI.getRealBalance();
-          
           if (freshBalance > 0) {
             setCurrentBalance(freshBalance);
-            console.log(`✅ Balance berhasil di-refresh: ${freshBalance}`);
             return true;
-          } else {
-            console.log(`⚠️ Balance masih 0 pada attempt #${retryCount}`);
-            return false;
           }
+          return false;
         } catch (error) {
-          console.error(`❌ Error on refresh attempt #${retryCount}:`, error);
           return false;
         }
       };
       
-      // Try immediately
       tryRefreshBalance().then(success => {
         if (success) return;
-        
-        // If failed, retry every 2 seconds up to 5 times
         const intervalId = setInterval(async () => {
           if (retryCount >= maxRetries) {
             clearInterval(intervalId);
-            console.log('❌ Max retries reached, stopping auto-refresh');
             return;
           }
-          
           const success = await tryRefreshBalance();
-          if (success) {
-            clearInterval(intervalId);
-          }
+          if (success) clearInterval(intervalId);
         }, 2000);
-        
-        // Cleanup
         return () => clearInterval(intervalId);
       });
     }
   }, [paymentStatus, currentBalance]);
 
-  // ✅ PERBAIKAN KRITIS: Penanganan pemilihan voucher eksternal
+  // Sync external voucher code
   useEffect(() => {
     if (externalVoucherCode && availableVouchers.length > 0) {
-      // Cari voucher yang dipilih
-      const selectedVoucher = availableVouchers.find(
-        v => v.code === externalVoucherCode
-      );
-
+      const selectedVoucher = availableVouchers.find(v => v.code === externalVoucherCode);
       if (selectedVoucher && numericAmount >= selectedVoucher.minDeposit) {
-        // Hitung bonus
         let bonus = 0;
         if (selectedVoucher.type === 'percentage') {
           bonus = Math.floor(numericAmount * (selectedVoucher.value / 100));
@@ -362,20 +318,12 @@ const MidtransPaymentPage: React.FC = () => {
         } else {
           bonus = selectedVoucher.value;
         }
-
-        // Perbarui state
         setVoucherCode(selectedVoucher.code);
         setVoucherBonus(bonus);
         setVoucherType(selectedVoucher.type);
         setVoucherValue(selectedVoucher.value);
-        console.log('✅ Voucher eksternal diterapkan:', {
-          code: selectedVoucher.code,
-          bonus,
-          total: numericAmount + bonus
-        });
       }
     } else if (!externalVoucherCode) {
-      // Hapus voucher jika kode eksternal dikosongkan
       setVoucherCode('');
       setVoucherBonus(0);
       setVoucherType(null);
@@ -383,19 +331,17 @@ const MidtransPaymentPage: React.FC = () => {
     }
   }, [externalVoucherCode, numericAmount, availableVouchers]);
 
-  // Muat saldo awal saat komponen dimuat
   const loadInitialBalance = async () => {
     try {
       const balance = await PaymentAPI.getRealBalance();
       setInitialBalance(balance);
       setCurrentBalance(balance);
-      console.log('💰 Saldo awal dimuat:', balance);
     } catch (error) {
       console.error('Gagal memuat saldo awal:', error);
     }
   };
 
-  // ✅ DIPERBAIKI: Pemantauan Riwayat Transaksi
+  // Pemantauan status pembayaran
   useEffect(() => {
     const shouldMonitor = (step === 'success' && paymentStatus === 'verifying') || isMonitoringBalance;
     if (!shouldMonitor || !currentTransaction) return;
@@ -416,72 +362,28 @@ const MidtransPaymentPage: React.FC = () => {
         const depositAmount = currentTransaction?.amount || 0;
         const transaction = history.find(t => t.order_id === currentTransaction.order_id);
 
-        console.log(`🔍 Pemeriksaan #${checkCount}:`, {
-          order_id: currentTransaction.order_id,
-          found: !!transaction,
-          status: transaction?.status,
-          depositAmount,
-          currentBalance: balance,
-          initialBalance
-        });
-
         if (transaction && transaction.status === 'success') {
-          console.log('✅ Pembayaran terverifikasi - Status transaksi BERHASIL!');
-          console.log(`   Diharapkan: ${depositAmount}, Jumlah transaksi: ${transaction.amount}`);
-
           if (transaction.voucherBonusAmount && transaction.voucherBonusAmount > 0) {
             setVoucherBonus(transaction.voucherBonusAmount);
-            console.log(`   ✅ Bonus voucher diperbarui dari transaksi: ${transaction.voucherBonusAmount}`);
           }
-
           setPaymentStatus('success');
           setIsMonitoringBalance(false);
           clearInterval(intervalId);
           clearTimeout(timeoutId);
 
-          // ✅ IMPROVED: Multiple balance refresh to ensure latest balance
-          console.log('🔄 Memulai refresh saldo final...');
-          
-          // Refresh 1: Immediate
-          try {
-            const freshBalance1 = await PaymentAPI.getRealBalance();
-            setCurrentBalance(freshBalance1);
-            console.log('🔄 Refresh saldo #1 (immediate):', freshBalance1);
-          } catch (error) {
-            console.error('❌ Gagal refresh saldo #1:', error);
-          }
-
-          // Refresh 2: After 1 second
           setTimeout(async () => {
-            try {
-              const freshBalance2 = await PaymentAPI.getRealBalance();
-              setCurrentBalance(freshBalance2);
-              console.log('🔄 Refresh saldo #2 (+1s):', freshBalance2);
-            } catch (error) {
-              console.error('❌ Gagal refresh saldo #2:', error);
-            }
+            try { const b = await PaymentAPI.getRealBalance(); setCurrentBalance(b); } catch {}
           }, 1000);
-
-          // Refresh 3: After 3 seconds (final)
           setTimeout(async () => {
-            try {
-              const freshBalance3 = await PaymentAPI.getRealBalance();
-              setCurrentBalance(freshBalance3);
-              console.log('🔄 Refresh saldo #3 (+3s - FINAL):', freshBalance3);
-            } catch (error) {
-              console.error('❌ Gagal refresh saldo #3:', error);
-            }
+            try { const b = await PaymentAPI.getRealBalance(); setCurrentBalance(b); } catch {}
           }, 3000);
 
           await loadTransactionHistory();
         } else if (transaction && transaction.status === 'failed') {
-          console.log('❌ PEMBAYARAN GAGAL - Status transaksi GAGAL');
           setPaymentStatus('expired');
           setIsMonitoringBalance(false);
           clearInterval(intervalId);
           clearTimeout(timeoutId);
-        } else {
-          console.log(`⏳ Transaksi ${transaction ? `status: ${transaction.status}` : 'belum ditemukan'} - Melanjutkan pemantauan...`);
         }
       } catch (error) {
         console.error('❌ Gagal memeriksa status pembayaran:', error);
@@ -491,7 +393,6 @@ const MidtransPaymentPage: React.FC = () => {
     checkPaymentStatus();
     intervalId = setInterval(checkPaymentStatus, 2000);
     timeoutId = setTimeout(() => {
-      console.log('⏰ Waktu verifikasi habis - 10 menit berlalu');
       setPaymentStatus('expired');
       setIsMonitoringBalance(false);
       clearInterval(intervalId);
@@ -552,14 +453,12 @@ const MidtransPaymentPage: React.FC = () => {
       setVoucherBonus(voucher.bonusAmount);
       setVoucherType(voucher.type);
       setVoucherValue(voucher.value);
-      console.log('✅ Voucher diterapkan:', voucher);
     } else {
       setVoucherCode('');
       setVoucherBonus(0);
       setVoucherType(null);
       setVoucherValue(0);
       setExternalVoucherCode('');
-      console.log('❌ Voucher dihapus');
     }
   };
 
@@ -582,15 +481,8 @@ const MidtransPaymentPage: React.FC = () => {
     if (loading) return;
     setLoading(true);
     try {
-      console.log('🔄 Memulai refresh saldo manual...');
       const balance = await PaymentAPI.getRealBalance();
       setCurrentBalance(balance);
-      console.log('✅ Saldo disegarkan berhasil:', balance);
-      
-      // Show success feedback
-      if (balance !== currentBalance) {
-        console.log(`   📊 Perubahan saldo: ${currentBalance} → ${balance}`);
-      }
     } catch (error) {
       console.error('❌ Gagal menyegarkan saldo:', error);
     } finally {
@@ -601,12 +493,12 @@ const MidtransPaymentPage: React.FC = () => {
   const handleSubmit = async () => {
     const depositAmount = parseInt(amount);
     if (isNaN(depositAmount) || depositAmount < 100000) {
-      setError('Minimal deposit adalah Rp 100.000');
+      setError('Minimal pembayaran adalah Rp 100.000');
       return;
     }
 
     if (depositAmount > 10000000) {
-      setError('Maksimal deposit adalah Rp 10.000.000');
+      setError('Maksimal pembayaran adalah Rp 10.000.000');
       return;
     }
 
@@ -614,25 +506,17 @@ const MidtransPaymentPage: React.FC = () => {
     setError('');
 
     try {
-      console.log('💳 Membuat transaksi:', {
-        amount: depositAmount,
-        voucherCode: voucherCode || undefined,
-        voucherBonus
-      });
-
       // Ambil saldo awal sebelum redirect
       const freshBalance = await PaymentAPI.getRealBalance();
       setInitialBalance(freshBalance);
       setCurrentBalance(freshBalance);
-      console.log('💰 Saldo awal diambil sebelum redirect ke B.com:', freshBalance);
 
+      // ✅ FIX: Ganti "Deposit via Midtrans" dengan deskripsi yang bebas dari kata topup/deposit/saldo
       const response = await PaymentAPI.createTransaction(
         depositAmount,
-        'Deposit via Midtrans',
+        'Pembelian Layanan',
         voucherCode || undefined
       );
-
-      console.log('✅ Transaksi dibuat:', response);
 
       if (!response.data?.deposit?.snap_token) {
         throw new Error('Token snap tidak diterima');
@@ -640,26 +524,22 @@ const MidtransPaymentPage: React.FC = () => {
 
       const deposit = response.data.deposit;
 
-      // Konfirmasi bonus voucher dari backend
       const confirmedBonus = deposit.voucherBonusAmount || voucherBonus;
       if (confirmedBonus > 0) {
         setVoucherBonus(confirmedBonus);
-        console.log('💎 Bonus voucher dikonfirmasi dari backend:', confirmedBonus);
       }
 
       setCurrentTransaction(deposit);
-      setStep('payment'); // Tampilkan layar "Mengalihkan..."
+      setStep('payment');
 
-      // ✅ Simpan data transaksi ke sessionStorage sebelum redirect
-      // Digunakan saat user kembali dari B.com
+      // Simpan data transaksi ke sessionStorage sebelum redirect ke B.com
       sessionStorage.setItem('pending_transaction', JSON.stringify({
         ...deposit,
         voucherBonusAmount: confirmedBonus,
         voucherCode: voucherCode || deposit.voucherCode || '',
       }));
-      console.log('💾 Data transaksi disimpan ke sessionStorage');
 
-      // ✅ Redirect ke B.com dengan snap token
+      // Redirect ke B.com dengan snap token
       const params = new URLSearchParams({
         token: deposit.snap_token,
         orderId: deposit.order_id,
@@ -668,7 +548,6 @@ const MidtransPaymentPage: React.FC = () => {
       const redirectUrl = `${B_COM_URL}/payment?${params.toString()}`;
       console.log('🔀 Redirect ke B.com:', redirectUrl);
 
-      // Delay kecil agar user melihat layar "Mengalihkan..."
       await new Promise(resolve => setTimeout(resolve, 800));
       window.location.href = redirectUrl;
 
@@ -721,7 +600,7 @@ const MidtransPaymentPage: React.FC = () => {
                       Riwayat Transaksi
                     </h2>
                     <p className="text-sm text-gray-600 mt-1">
-                      Lihat semua transaksi deposit Anda
+                      Lihat semua riwayat pembelian layanan Anda
                     </p>
                   </div>
                 </div>
@@ -741,13 +620,13 @@ const MidtransPaymentPage: React.FC = () => {
                     <ClockCounterClockwise size={40} weight="light" className="text-gray-400" />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">Belum ada transaksi</h3>
-                  <p className="text-gray-600 mb-6">Riwayat deposit Anda akan muncul di sini</p>
+                  <p className="text-gray-600 mb-6">Riwayat pembelian layanan Anda akan muncul di sini</p>
                   <button
                     onClick={() => setStep('amount')}
                     className="inline-flex items-center gap-2 px-6 py-3 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors font-semibold"
                   >
                     <Wallet size={20} weight="bold" />
-                    Lakukan Deposit
+                    Lakukan Pembelian Layanan
                   </button>
                 </div>
               ) : (
@@ -777,9 +656,7 @@ const MidtransPaymentPage: React.FC = () => {
                           {transaction.voucherCode && (
                             <div className="flex items-center gap-2 text-green-700">
                               <Tag size={16} weight="bold" />
-                              <span className="font-medium">
-                                {transaction.voucherCode}
-                              </span>
+                              <span className="font-medium">{transaction.voucherCode}</span>
                               {transaction.voucherBonusAmount && (
                                 <span className="text-xs bg-green-100 px-2 py-0.5 rounded">
                                   +{formatCurrency(transaction.voucherBonusAmount)} bonus
@@ -821,7 +698,8 @@ const MidtransPaymentPage: React.FC = () => {
               {/* Kartu Input Jumlah */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 sm:p-6">
                 <div className="mb-5">
-                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Top Up Saldo</h1>
+                  {/* ✅ FIX: Ganti "Top Up Saldo" dengan "Pembelian Layanan" */}
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Pembelian Layanan</h1>
                 </div>
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
                   Jumlah
@@ -838,7 +716,7 @@ const MidtransPaymentPage: React.FC = () => {
                     className="w-full pl-12 pr-4 py-4 text-2xl font-bold border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
                   />
                 </div>
-                {/* Quick Amount - 6 opsi untuk tampilan yang rapi */}
+                {/* Quick Amount */}
                 <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
                   {quickAmounts.map((preset) => (
                     <button
@@ -846,8 +724,8 @@ const MidtransPaymentPage: React.FC = () => {
                       onClick={() => handleQuickAmount(preset.value)}
                       className={`py-3 px-3 rounded-lg border-2 font-semibold transition-all text-sm sm:text-base ${
                         parseInt(amount) === preset.value
-                          ? 'bg-sky-600 border-sky-600 text-white shadow-md'
-                          : 'bg-white border-gray-300 text-gray-700 hover:border-sky-400 hover:bg-sky-50'
+                          ? 'border-sky-500 bg-sky-50 text-sky-700'
+                          : 'border-gray-200 hover:border-sky-300 hover:bg-sky-50 text-gray-700'
                       }`}
                     >
                       {preset.label}
@@ -881,7 +759,7 @@ const MidtransPaymentPage: React.FC = () => {
                 />
               </div>
 
-              {/* Tombol CTA - Mobile: 1 baris, Desktop: 2 tombol */}
+              {/* Tombol CTA */}
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={handleSubmit}
@@ -900,7 +778,6 @@ const MidtransPaymentPage: React.FC = () => {
                     </>
                   )}
                 </button>
-                {/* History button - hidden di mobile, visible di desktop */}
                 <button
                   onClick={handleViewHistory}
                   className="hidden sm:flex sm:w-auto px-6 py-4 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all items-center justify-center gap-2"
@@ -923,18 +800,16 @@ const MidtransPaymentPage: React.FC = () => {
                   {numericAmount >= 10000 ? (
                     <>
                       <div className="space-y-4 mb-6">
-                        {/* Jumlah Deposit */}
                         <div className="flex justify-between items-center text-base">
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center">
                               <Money size={16} weight="bold" className="text-sky-600" />
                             </div>
-                            <span className="text-gray-700 font-semibold">Jumlah Deposit</span>
+                            <span className="text-gray-700 font-semibold">Jumlah Pembelian</span>
                           </div>
                           <span className="font-bold text-gray-900">{formatCurrency(numericAmount)}</span>
                         </div>
                         
-                        {/* ✅ TAMPILAN BONUS VOUCHER - Disorot dengan desain profesional */}
                         {voucherBonus > 0 && (
                           <div className="flex justify-between items-center text-base bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-3 border-2 border-green-200">
                             <div className="flex items-center gap-2">
@@ -950,7 +825,6 @@ const MidtransPaymentPage: React.FC = () => {
                         )}
                       </div>
 
-                      {/* Total Amount - Lebih menonjol */}
                       <div className="pt-4 border-t-2 border-gray-200 mb-6">
                         <div className="flex justify-between items-center mb-3">
                           <span className="text-base font-semibold text-gray-600">Total yang Diterima</span>
@@ -962,7 +836,6 @@ const MidtransPaymentPage: React.FC = () => {
                               {formatCurrency(totalAmount)}
                             </div>
                           </div>
-                          {/* ✅ INFO RINCIAN - Opsional tapi membantu */}
                           {voucherBonus > 0 && (
                             <div className="mt-4 pt-3 border-t border-sky-100">
                               <div className="flex justify-center gap-2 text-xs text-gray-600">
@@ -986,27 +859,27 @@ const MidtransPaymentPage: React.FC = () => {
                     </div>
                   )}
 
-{/* Keamanan Pembayaran */}
-<div className="mt-6 pt-6 border-t border-gray-200">
-  <div className="flex items-center gap-3 bg-gradient-to-l from-emerald-500/20 to-transparent rounded-xl p-4">
-    <div className="flex-shrink-0">
-      <Image
-        src="/pci.png"
-        alt="Payment Secure"
-        width={80}
-        height={80}
-        className="object-contain p-2 rounded-xl"
-      />
-    </div>
-    <div className="flex-1 min-w-0">
-      <h4 className="font-semibold text-gray-900 text-sm mb-1">Pembayaran Aman</h4>
-      <p className="text-xs text-gray-600 leading-relaxed">
-        Level keamanan tambahan untuk pembayaran. Informasi pembayaran Anda 
-        dienkripsi dan aman. Proteksi SSL 2048 bit robust
-      </p>
-    </div>
-  </div>
-</div>
+                  {/* Keamanan Pembayaran */}
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <div className="flex items-center gap-3 bg-gradient-to-l from-emerald-500/20 to-transparent rounded-xl p-4">
+                      <div className="flex-shrink-0">
+                        <Image
+                          src="/pci.png"
+                          alt="Payment Secure"
+                          width={80}
+                          height={80}
+                          className="object-contain p-2 rounded-xl"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-gray-900 text-sm mb-1">Pembayaran Aman</h4>
+                        <p className="text-xs text-gray-600 leading-relaxed">
+                          Level keamanan tambahan untuk pembayaran. Informasi pembayaran Anda 
+                          dienkripsi dan aman. Proteksi SSL 2048 bit robust
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Metode Pembayaran */}
                   <div className="mt-4 pt-4 border-t border-gray-200">
