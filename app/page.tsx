@@ -1,13 +1,17 @@
 // app/(landing)/page.tsx - ✅ FIXED: Referral Code Support
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
-import DemoTradingTutorial from '@/components/DemoTradingTutorial'
+const DemoTradingTutorial = dynamic(
+  () => import('@/components/DemoTradingTutorial'),
+  { ssr: false }
+)
 import { 
   TrendUp,
   TrendDown,
@@ -40,7 +44,10 @@ import {
   LiveTradeData
 } from '@/lib/crypto-price'
 import { signInWithGoogle, getIdToken, isRedirectPending } from '@/lib/firebase-auth'
-import EnhancedFooter from '@/components/EnhancedFooter'
+const EnhancedFooter = dynamic(
+  () => import('@/components/EnhancedFooter'),
+  { ssr: false }
+)
 
 // ===================================
 // DATA CONSTANTS
@@ -592,17 +599,24 @@ export default function LandingPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Effect 6: Mouse parallax effect
+  // Effect 6: Mouse parallax effect — throttled via rAF
   useEffect(() => {
+    let rafId: number
     const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({
-        x: (e.clientX / window.innerWidth) * 20,
-        y: (e.clientY / window.innerHeight) * 20
+      cancelAnimationFrame(rafId)
+      rafId = requestAnimationFrame(() => {
+        setMousePosition({
+          x: (e.clientX / window.innerWidth) * 20,
+          y: (e.clientY / window.innerHeight) * 20,
+        })
       })
     }
 
-    window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mousemove', handleMouseMove, { passive: true })
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      cancelAnimationFrame(rafId)
+    }
   }, [])
 
   // ✅ NOW do conditional rendering AFTER all hooks
@@ -2025,161 +2039,6 @@ export default function LandingPage() {
       .animate-marquee-right {
         animation: marquee-right 55s linear infinite;
         width: max-content;
-      }
-
-      @keyframes gradient {
-        0%, 100% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-      }
-
-      @keyframes float {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-20px); }
-      }
-
-      @keyframes pulse-slow {
-        0%, 100% { opacity: 0.05; }
-        50% { opacity: 0.15; }
-      }
-
-      @keyframes fade-in {
-        from { opacity: 0; }
-        to { opacity: 1; }
-      }
-
-      @keyframes fade-in-up {
-        from {
-          opacity: 0;
-          transform: translateY(20px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      @keyframes slide-in-right {
-        from {
-          opacity: 0;
-          transform: translateX(50px);
-        }
-        to {
-          opacity: 1;
-          transform: translateX(0);
-        }
-      }
-
-      @keyframes slide-left {
-        from {
-          transform: translateX(100%);
-        }
-        to {
-          transform: translateX(0);
-        }
-      }
-
-      @keyframes text-slide-out {
-        0% {
-          transform: translateX(0);
-          opacity: 1;
-        }
-        100% {
-          transform: translateX(-100%);
-          opacity: 0;
-        }
-      }
-
-      @keyframes text-slide-in {
-        0% {
-          transform: translateX(-100%);
-          opacity: 0;
-        }
-        100% {
-          transform: translateX(0);
-          opacity: 1;
-        }
-      }
-
-      @keyframes logo-bounce-out {
-        0% {
-          transform: scale(1);
-          opacity: 1;
-        }
-        40% {
-          transform: scale(1.15);
-          opacity: 1;
-        }
-        100% {
-          transform: scale(0);
-          opacity: 0;
-        }
-      }
-
-      @keyframes logo-bounce-in {
-        0% {
-          transform: scale(0);
-          opacity: 0;
-        }
-        60% {
-          transform: scale(1.25);
-          opacity: 1;
-        }
-        80% {
-          transform: scale(0.95);
-        }
-        100% {
-          transform: scale(1);
-          opacity: 1;
-        }
-      }
-
-      .animate-gradient {
-        background-size: 200% 200%;
-        animation: gradient 3s ease infinite;
-      }
-
-      .animate-float {
-        animation: float 6s ease-in-out infinite;
-      }
-
-      .animate-pulse-slow {
-        animation: pulse-slow 4s ease-in-out infinite;
-      }
-
-      .animate-fade-in {
-        animation: fade-in 0.3s ease-out;
-      }
-
-      .animate-fade-in-up {
-        animation: fade-in-up 0.6s ease-out;
-      }
-
-      .animate-slide-in-right {
-        animation: slide-in-right 0.8s ease-out;
-      }
-
-      .animate-slide-left {
-        animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      }
-
-      .animate-text-slide-out {
-        animation: text-slide-out 1s ease-in-out forwards;
-      }
-
-      .animate-text-slide-in {
-        animation: text-slide-in 1s ease-in-out forwards;
-      }
-
-      .animate-logo-bounce-out {
-        animation: logo-bounce-out 1s ease-in-out forwards;
-      }
-
-      .animate-logo-bounce-in {
-        animation: logo-bounce-in 1s ease-in-out forwards;
-      }
-
-      html {
-        scroll-behavior: smooth;
       }
 
       .hide-scrollbar {

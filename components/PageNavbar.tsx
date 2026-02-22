@@ -35,7 +35,7 @@ function ShimmerBrand() {
         }
       `}</style>
       <span
-        className="shimmer-brand text-sm sm:text-[15px] font-bold tracking-tight select-none"
+        className="shimmer-brand text-lg font-bold tracking-tight select-none"
         style={{ letterSpacing: '-0.02em' }}
       >
         Stouch.id

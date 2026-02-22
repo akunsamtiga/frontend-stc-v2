@@ -3,10 +3,8 @@ import type { Metadata, Viewport } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import { Toaster } from 'sonner'
-import GoogleAuthHandler from '@/components/GoogleAuthHandler'
-import ChartPreloader from '@/components/ChartPreloader'
-import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar'
 import { WebSocketProvider } from '@/components/providers/WebSocketProvider'
+import ClientProviders from '@/components/ClientProviders'
 import './globals.css'
 
 // ─── Site constants ────────────────────────────────────────────────────────────
@@ -19,7 +17,7 @@ const SITE_DESCRIPTION =
 export const metadata: Metadata = {
   // ── Title template ──────────────────────────────────────────────────────────
   title: {
-    default: `${SITE_NAME} — Platform Trading Binary Option Terpercaya`,
+    default: `${SITE_NAME}`,
     template: `%s | ${SITE_NAME}`,
   },
 
@@ -65,7 +63,7 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     images: [
       {
-        url: '/og-image.png',     // buat file 1200×630 px
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: 'Stouch.id — Platform Trading Binary Option',
@@ -239,13 +237,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
 
       <body className="text-white bg-black">
-        <GoogleAuthHandler />
-
         <WebSocketProvider>
-          <ServiceWorkerRegistrar />
-          <ChartPreloader />
+          {/*
+            ─── PERUBAHAN DARI ASLI ──────────────────────────────────────────
+            Sebelumnya: GoogleAuthHandler, ChartPreloader, ServiceWorkerRegistrar
+            di-import langsung di sini dengan dynamic() + ssr:false.
 
-          {children}
+            Masalah: layout.tsx adalah Server Component — ssr:false tidak boleh
+            di Server Component, menyebabkan error build.
+
+            Solusi: pindahkan ketiganya ke ClientProviders.tsx ('use client'),
+            lalu panggil <ClientProviders> di sini sebagai wrapper.
+            Hasilnya identik secara fungsional, error hilang.
+            ─────────────────────────────────────────────────────────────────
+          */}
+          <ClientProviders>
+            {children}
+          </ClientProviders>
 
           <Toaster
             position="top-right"
