@@ -178,6 +178,7 @@ export default function AdminAssetsPage() {
                 weight="bold"
               />
             </button>
+            {/* DISABLED: Tombol Create Asset
             {user.role === 'super_admin' && (
               <button
                 onClick={handleCreate}
@@ -187,6 +188,7 @@ export default function AdminAssetsPage() {
                 Tambah
               </button>
             )}
+            */}
           </div>
         </div>
 
@@ -271,6 +273,7 @@ export default function AdminAssetsPage() {
             <p className="text-sm text-slate-500 mb-5">
               {assets.length === 0 ? 'Tambahkan aset trading pertama' : 'Coba ubah filter pencarian'}
             </p>
+            {/* DISABLED: Tombol Create Asset (empty state)
             {assets.length === 0 && user.role === 'super_admin' && (
               <button
                 onClick={handleCreate}
@@ -280,6 +283,7 @@ export default function AdminAssetsPage() {
                 Tambah Aset
               </button>
             )}
+            */}
           </div>
         ) : (
           <div className="space-y-2">
