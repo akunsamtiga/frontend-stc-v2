@@ -695,7 +695,7 @@ export default function LandingPage() {
         toast.success(response.message || 'Login berhasil!')
       }
 
-      router.replace('/trading')
+      window.location.href = '/trading'
     } catch (error: any) {
       const errorMessage = 
         error.response?.data?.error || 
@@ -759,8 +759,8 @@ export default function LandingPage() {
         toast.success(message)
       }
 
-      setShowAuthModal(false)  // langsung tutup karena redirect
-      router.push('/trading')
+      setShowAuthModal(false)
+      window.location.href = '/trading'
 
     } catch (error: any) {
       console.error('❌ Google Sign-In failed:', error)
