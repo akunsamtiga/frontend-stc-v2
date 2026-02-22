@@ -1297,10 +1297,6 @@ export default function LandingPage() {
     <div className="lg:hidden space-y-3 overflow-hidden">
       {/* Baris 1 - scroll ke kiri */}
       <div className="relative">
-        {/* fade edges */}
-        <div className="absolute left-0 top-0 bottom-0 w-10 z-10 pointer-events-none bg-gradient-to-r from-[#0E111A] to-transparent" />
-        <div className="absolute right-0 top-0 bottom-0 w-10 z-10 pointer-events-none bg-gradient-to-l from-[#0E111A] to-transparent" />
-
         <div className="flex overflow-hidden">
           <div className="flex gap-3 animate-marquee-left">
             {[
@@ -1346,9 +1342,6 @@ export default function LandingPage() {
 
       {/* Baris 2 - scroll ke kanan */}
       <div className="relative">
-        <div className="absolute left-0 top-0 bottom-0 w-10 z-10 pointer-events-none bg-gradient-to-r from-[#0E111A] to-transparent" />
-        <div className="absolute right-0 top-0 bottom-0 w-10 z-10 pointer-events-none bg-gradient-to-l from-[#0E111A] to-transparent" />
-
         <div className="flex overflow-hidden">
           <div className="flex gap-3 animate-marquee-right">
             {[
