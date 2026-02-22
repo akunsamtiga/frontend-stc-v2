@@ -36,15 +36,14 @@ export default function EnhancedFooter() {
 
   const footerLinks = {
     platform: [
-      { label: 'Status', href: 'https://stockity.id/information/pricing' },
-      { label: 'Tentang Kami', href: 'https://stockity.id/information/about' },
-      { label: 'Pusat Bantuan', href: 'https://supportnow.zendesk.com/hc/id?utm_source=hc_burger_menu&utm_medium=referral&utm_campaign=not_logged_in' },
-      { label: 'Turnamen', href: 'https://stockity.id/information/tournaments' },
+      { label: 'Status', href: '/status' },
+      { label: 'Tentang Kami', href: '/about' },
+      { label: 'Pusat Bantuan', href: '/help-center' },
     ],
     legal: [
-      { label: 'Kebijakan AML', href: 'https://stockity.id/id/static/aml-policy-stockity.pdf' },
-      { label: 'Perjanjian Klien', href: 'https://stockity.id/information/agreement' },
-      { label: 'Perjanjian Copy Trading', href: 'https://stockity.id/information/copy-trading-agreement' },
+      { label: 'Kebijakan AML', href: '/documents/aml_policy_stockity.en.pdf' },
+      { label: 'Perjanjian Klien', href: '/agreement' },
+      { label: 'Perjanjian Copy Trading', href: '/copytrading-agreement' },
     ],
   }
 

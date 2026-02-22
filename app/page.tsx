@@ -920,7 +920,7 @@ export default function LandingPage() {
                 <div className="inline-flex items-center gap-2 px-1">
                   <span className="text-xs sm:text-sm font-medium shimmer-date">1 Februari – 31 Maret</span>
                 </div>
-                <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold leading-tight">
+                <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight">
                   Raih Bonus
                   <span className="block mt-2 font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-emerald-400 to-cyan-400 animate-gradient bg-[length:200%_auto]">
                     Deposit 100%
