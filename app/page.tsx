@@ -297,7 +297,7 @@ const LiveCryptoChart = () => {
   const [selectedCrypto, setSelectedCrypto] = useState('BTC')
   const [priceData, setPriceData] = useState<CryptoPriceData | null>(null)
   const [priceHistory, setPriceHistory] = useState<number[]>([])
-  const [currentTradeIndex, setCurrentTradeIndex] = useState(0)
+  const [mobileTrades, setMobileTrades] = useState<LiveTradeData[]>([])
 
   // Polling lebih lambat di mobile untuk hemat baterai & CPU
   const pollInterval = typeof window !== 'undefined' && window.innerWidth < 1024 ? 10000 : 3000
@@ -325,23 +325,23 @@ const LiveCryptoChart = () => {
   }, [selectedCrypto])
 
   useEffect(() => {
+    const cryptos = ['BTC/USD', 'ETH/USD', 'BNB/USD']
+
     const interval = setInterval(() => {
-      setCurrentTradeIndex((prev) => {
-        return (prev + 1) % dummyTrades.length
-      })
-    }, 8000)
+      const randomCrypto = cryptos[Math.floor(Math.random() * cryptos.length)]
+      const cryptoKey = randomCrypto.split('/')[0]
+      const currentPrice = priceData?.price || 0
+
+      const newTrade = generateLiveTrade(randomCrypto, currentPrice)
+      setMobileTrades(prev => [newTrade, ...prev.slice(0, 1)]) // tampilkan 2 trade terbaru
+    }, 3500)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [priceData])
 
   const maxPrice = Math.max(...priceHistory, 1)
   const minPrice = Math.min(...priceHistory, 0)
   const priceRange = maxPrice - minPrice || 1
-
-  const currentTrades = [
-    dummyTrades[currentTradeIndex],
-    dummyTrades[(currentTradeIndex + 1) % dummyTrades.length]
-  ]
 
   return (
     <div className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl p-6 shadow-2xl backdrop-blur-xl hover:scale-[1.02] transition-transform duration-300">
@@ -437,9 +437,9 @@ const LiveCryptoChart = () => {
           <span className="text-xs font-semibold text-gray-300">Transaksi Live</span>
         </div>
         <div className="space-y-2">
-          {currentTrades.map((trade, i) => (
+          {mobileTrades.map((trade, i) => (
             <div 
-              key={`${currentTradeIndex}-${i}`}
+              key={i}
               className="flex items-center justify-between p-2.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/10 transition-all duration-500 animate-fade-in-up"
             >
               <div className="flex-1 min-w-0">
