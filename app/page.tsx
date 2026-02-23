@@ -580,6 +580,9 @@ export default function LandingPage() {
 
   // ─── GSAP Master Animation Setup ─────────────────────────────────────────────
   useEffect(() => {
+    // ✅ FIX: Skip GSAP entirely on mobile — elements stay visible via CSS
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) return
+
     let ctx: any
     let cleanup: (() => void) | undefined
     loadGSAP().then(({ gsap, ScrollTrigger }) => {
@@ -1300,7 +1303,7 @@ export default function LandingPage() {
             {/* Left Content — animated by GSAP hero timeline */}
             <div className="space-y-8">
               <div className="space-y-2">
-                <div className="gsap-hero-badge inline-flex items-center gap-2 px-1" style={{ opacity: 0 }}>
+                <div className="gsap-hero-badge inline-flex items-center gap-2 px-1" style={{ opacity: isDesktop ? 0 : 1 }}>
                   <span className="text-xs sm:text-sm font-medium shimmer-date">1 Februari – 31 Maret</span>
                 </div>
                 <h1 className="gsap-hero-title text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight" style={{ opacity: 1 }}>
@@ -1316,13 +1319,13 @@ export default function LandingPage() {
                 </h1>
               </div>
 
-              <p className="gsap-hero-desc text-lg sm:text-xl text-gray-400 leading-relaxed" style={{ opacity: 0, transform: 'translateY(30px)' }}>
+              <p className="gsap-hero-desc text-lg sm:text-xl text-gray-400 leading-relaxed" style={{ opacity: isDesktop ? 0 : 1, transform: isDesktop ? 'translateY(30px)' : 'none' }}>
                 Tersedia berbagai aset <span className="text-emerald-400 font-semibold">global</span>, 
                 dapatkan profit hingga <span className="text-teal-500 font-semibold">100%</span>, 
                 dan penarikan secepat <span className="text-amber-400 font-semibold">kilat.</span>
               </p>
 
-              <div className="gsap-hero-buttons flex flex-row gap-3 sm:gap-4" style={{ opacity: 0 }}>
+              <div className="gsap-hero-buttons flex flex-row gap-3 sm:gap-4" style={{ opacity: isDesktop ? 0 : 1 }}>
                 <motion.button
                   onClick={() => {
                     setIsLogin(true)
@@ -1355,7 +1358,7 @@ export default function LandingPage() {
               </div>
 
               {/* Stats Row */}
-              <div className="gsap-hero-stats hidden sm:grid grid-cols-4 gap-4 pt-8" style={{ opacity: 0 }}>
+              <div className="gsap-hero-stats hidden sm:grid grid-cols-4 gap-4 pt-8" style={{ opacity: isDesktop ? 0 : 1 }}>
                 {stats.map((stat, index) => (
                   <motion.div 
                     key={index}
@@ -1380,7 +1383,7 @@ export default function LandingPage() {
             </div>
 
             {/* Right - Real Crypto Components */}
-            <div className="gsap-hero-chart relative" style={{ opacity: 0, transform: 'translateX(90px) scale(0.94)' }}>
+            <div className="gsap-hero-chart relative" style={{ opacity: isDesktop ? 0 : 1, transform: isDesktop ? 'translateX(90px) scale(0.94)' : 'none' }}>
               {/* Desktop-only: tidak di-mount di mobile agar tidak ada polling sia-sia */}
               {isDesktop && <LiveCryptoTicker />}
 
