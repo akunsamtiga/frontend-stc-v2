@@ -1137,49 +1137,7 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-sky-950/40 via-transparent to-emerald-950/30" />
       </div>
 
-      {/* Grid pattern overlay + shimmer — GPU-accelerated via transform */}
-      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 0, overflow: 'hidden' }} aria-hidden>
-        {/* Base static grid — no animation, zero paint cost */}
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)
-            `,
-            backgroundSize: '48px 48px',
-          }}
-        />
-        {/* Shimmer band — moves with translateY (GPU layer, zero repaint) */}
-        <div
-          className="grid-shimmer-band"
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            top: 0,
-            height: '500px',
-            backgroundImage: `
-              linear-gradient(rgba(16,185,129,0.12) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(16,185,129,0.12) 1px, transparent 1px)
-            `,
-            backgroundSize: '48px 48px',
-            maskImage: 'linear-gradient(to bottom, transparent 0%, white 25%, white 75%, transparent 100%)',
-            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, white 25%, white 75%, transparent 100%)',
-          }}
-        />
-      </div>
 
-      <style>{`
-        @keyframes grid-shimmer-move {
-          0%   { transform: translateY(-500px); }
-          100% { transform: translateY(9000px); }
-        }
-        .grid-shimmer-band {
-          animation: grid-shimmer-move 20s linear infinite;
-          will-change: transform;
-        }
-      `}</style>
 
       {/* Navigation */}
       <nav className="gsap-navbar fixed top-0 left-0 right-0 z-50 bg-[#1a1f2e]/55 backdrop-blur-xl border-b border-gray-700/50">
@@ -1294,8 +1252,6 @@ export default function LandingPage() {
           <div className="gsap-orb absolute top-1/4 left-[60%] w-3 h-3 bg-emerald-400/40 rounded-full blur-[2px]" style={{ willChange: 'transform' }} />
           <div className="gsap-orb absolute top-1/2 left-[15%] w-2 h-2 bg-teal-400/30 rounded-full blur-[1px]" style={{ willChange: 'transform' }} />
           <div className="gsap-orb absolute bottom-1/3 right-[20%] w-2.5 h-2.5 bg-blue-400/35 rounded-full blur-[2px]" style={{ willChange: 'transform' }} />
-          {/* Subtle grid */}
-          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(16,185,129,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(16,185,129,0.5) 1px,transparent 1px)', backgroundSize: '64px 64px' }} />
         </div>
         
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
