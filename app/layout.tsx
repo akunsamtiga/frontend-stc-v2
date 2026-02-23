@@ -238,19 +238,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
       <body className="text-white bg-black">
         <WebSocketProvider>
-          {/*
-            ─── PERUBAHAN DARI ASLI ──────────────────────────────────────────
-            Sebelumnya: GoogleAuthHandler, ChartPreloader, ServiceWorkerRegistrar
-            di-import langsung di sini dengan dynamic() + ssr:false.
-
-            Masalah: layout.tsx adalah Server Component — ssr:false tidak boleh
-            di Server Component, menyebabkan error build.
-
-            Solusi: pindahkan ketiganya ke ClientProviders.tsx ('use client'),
-            lalu panggil <ClientProviders> di sini sebagai wrapper.
-            Hasilnya identik secara fungsional, error hilang.
-            ─────────────────────────────────────────────────────────────────
-          */}
           <ClientProviders>
             {children}
           </ClientProviders>

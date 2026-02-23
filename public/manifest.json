@@ -1,7 +1,7 @@
 {
-  "name": "Stouch.id — Platform Trading Binary Option",
+  "name": "Stouch.id",
   "short_name": "Stouch",
-  "description": "Platform trading binary option terpercaya. Profit hingga 95%, penarikan kilat, bonus VIP.",
+  "description": "Platform trading binary option terpercaya di Indonesia. Profit hingga 95%, penarikan kilat, bonus VIP.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0e17",
@@ -31,20 +31,6 @@
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Trade Sekarang",
-      "short_name": "Trade",
-      "url": "/trade",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Deposit Dana",
-      "short_name": "Deposit",
-      "url": "/wallet/deposit",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ],
   "prefer_related_applications": false
