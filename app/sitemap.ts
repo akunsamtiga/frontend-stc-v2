@@ -54,5 +54,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.4,
       alternates: { languages: { id: `${BASE_URL}/copytrading-agreement` } },
     },
+    {
+      url: `${BASE_URL}/privacy`,
+      lastModified: new Date('2026-01-15'),
+      changeFrequency: 'monthly',
+      priority: 0.4,
+      alternates: { languages: { id: `${BASE_URL}/privacy` } },
+    },
   ]
 }

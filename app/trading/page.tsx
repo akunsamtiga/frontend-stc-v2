@@ -1,3 +1,4 @@
+// app/trading/page.tsx
 'use client'
 
 import React, { useEffect, useState, useCallback, memo, useRef, useMemo } from 'react'

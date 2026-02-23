@@ -2,7 +2,8 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { motion, AnimatePresence, useInView } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useAuthStore } from '@/store/auth'
@@ -50,13 +51,110 @@ const EnhancedFooter = dynamic(
 )
 
 // ===================================
+// FRAMER MOTION VARIANTS
+// ===================================
+const fadeInUp = {
+  hidden: { opacity: 0, y: 28 },
+  visible: (delay = 0) => ({
+    opacity: 1, y: 0,
+    transition: { duration: 0.65, ease: [0.16, 1, 0.3, 1], delay },
+  }),
+}
+
+const fadeInLeft = {
+  hidden: { opacity: 0, x: -30 },
+  visible: (delay = 0) => ({
+    opacity: 1, x: 0,
+    transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1], delay },
+  }),
+}
+
+const scaleIn = {
+  hidden: { opacity: 0, scale: 0.88 },
+  visible: (delay = 0) => ({
+    opacity: 1, scale: 1,
+    transition: { duration: 0.6, ease: [0.34, 1.56, 0.64, 1], delay },
+  }),
+}
+
+const staggerContainer = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.1, delayChildren: 0.1 },
+  },
+}
+
+const cardHover = {
+  rest: { scale: 1, y: 0, transition: { duration: 0.2, ease: 'easeOut' } },
+  hover: { scale: 1.025, y: -4, transition: { duration: 0.2, ease: 'easeOut' } },
+  tap: { scale: 0.975, transition: { duration: 0.1 } },
+}
+
+const btnHover = {
+  rest: { scale: 1 },
+  hover: { scale: 1.04, transition: { duration: 0.18, ease: 'easeOut' } },
+  tap: { scale: 0.96, transition: { duration: 0.1 } },
+}
+
+// ===================================
+// GSAP ANIMATION UTILITIES
+// ===================================
+async function loadGSAP() {
+  const { gsap } = await import('gsap')
+  const { ScrollTrigger } = await import('gsap/ScrollTrigger')
+  gsap.registerPlugin(ScrollTrigger)
+  return { gsap, ScrollTrigger }
+}
+
+// ── Helper: split text node into word <span>s ──────────────────────────────
+function splitTextToWordSpans(el: HTMLElement): HTMLSpanElement[] {
+  const originalText = el.textContent || ''
+  el.textContent = ''
+  return originalText.split(' ').filter(Boolean).map((word, i, arr) => {
+    const span = document.createElement('span')
+    span.textContent = i < arr.length - 1 ? word + '\u00A0' : word
+    span.style.display = 'inline-block'
+    span.style.overflow = 'hidden'
+    el.appendChild(span)
+    return span
+  })
+}
+
+// Reveal wrapper — uses Framer Motion whileInView for performance
+interface RevealProps {
+  children: React.ReactNode
+  className?: string
+  delay?: number
+  direction?: 'up' | 'left' | 'right' | 'fade'
+}
+function Reveal({ children, className = '', delay = 0, direction = 'up' }: RevealProps) {
+  const initial = {
+    opacity: 0,
+    ...(direction === 'up'    ? { y: 32 }  :
+        direction === 'left'  ? { x: -32 } :
+        direction === 'right' ? { x: 32 }  : {}),
+  }
+  return (
+    <motion.div
+      className={className}
+      initial={initial}
+      whileInView={{ opacity: 1, y: 0, x: 0 }}
+      viewport={{ once: true, margin: '-60px' }}
+      transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1], delay: delay / 1000 }}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+// ===================================
 // DATA CONSTANTS
 // ===================================
 const stats = [
-  { label: 'Unduhan', value: '1 jt+', icon: Users },
-  { label: 'Volume Harian', value: '$10K', icon: CurrencyDollar },
-  { label: 'Realtime', value: '24/7', icon: Clock },
-  { label: 'Negara', value: '15+', icon: Globe },
+  { label: 'Unduhan', value: '1 jt+', rawValue: 1, suffix: 'jt+', displayShort: '1', icon: Users },
+  { label: 'Volume Harian', value: '$10K', rawValue: 10, suffix: 'K', displayShort: '$10', icon: CurrencyDollar },
+  { label: 'Realtime', value: '24/7', rawValue: 24, suffix: '/7', displayShort: '24', icon: Clock },
+  { label: 'Negara', value: '15+', rawValue: 15, suffix: '+', displayShort: '15', icon: Globe },
 ]
 
 const features = [
@@ -64,10 +162,10 @@ const features = [
     icon: Lightning,
     title: 'Eksekusi Kilat',
     description: 'Eksekusi order dalam milidetik',
-    gradient: 'from-yellow-500/20 to-orange-500/20',
-    color: 'text-yellow-400',
-    bgColor: 'bg-yellow-500/10',
-    borderColor: 'border-yellow-500/30'
+    gradient: 'from-emerald-500/20 to-blue-600/20',
+    color: 'text-emerald-400',
+    bgColor: 'bg-emerald-500/10',
+    borderColor: 'border-emerald-500/30'
   },
   {
     icon: Shield,
@@ -201,7 +299,7 @@ const LiveCryptoTicker = () => {
   }, [prices])
 
   return (
-    <div className="hidden lg:block absolute bottom-32 right-8 w-72 bg-[#0a0e17]/95 backdrop-blur-xl border border-gray-800/50 rounded-2xl p-4 shadow-2xl z-10 animate-slide-in-right">
+    <div className="hidden lg:block absolute bottom-32 right-8 w-72 bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-4 shadow-xl z-10 animate-slide-in-right">
       <div className="flex items-center gap-2 mb-3">
         <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
         <span className="text-xs font-semibold text-gray-300">Transaksi Live</span>
@@ -257,7 +355,7 @@ const FloatingCryptoPriceCard = ({ symbol, delay, style }: FloatingCryptoPriceCa
   if (!priceData) {
     return (
       <div 
-        className="hidden lg:block absolute bg-[#0a0e17]/95 backdrop-blur-xl border border-gray-800/50 rounded-xl p-3 shadow-2xl animate-float"
+        className="hidden lg:block absolute bg-[#0a0e17] border border-gray-800/50 rounded-xl p-3 shadow-xl"
         style={{ animationDelay: `${delay}s`, ...style }}
       >
         <div className="animate-pulse">
@@ -273,7 +371,7 @@ const FloatingCryptoPriceCard = ({ symbol, delay, style }: FloatingCryptoPriceCa
 
   return (
     <div 
-      className="hidden lg:block absolute bg-[#0a0e17]/95 backdrop-blur-xl border border-gray-800/50 rounded-xl p-3 shadow-2xl animate-float"
+      className="hidden lg:block absolute bg-[#0a0e17] border border-gray-800/50 rounded-xl p-3 shadow-xl"
       style={{ animationDelay: `${delay}s`, ...style }}
     >
       <div className="text-xs text-gray-400 mb-1">{priceData.symbol}</div>
@@ -344,7 +442,7 @@ const LiveCryptoChart = () => {
   const priceRange = maxPrice - minPrice || 1
 
   return (
-    <div className="relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl p-6 shadow-2xl backdrop-blur-xl hover:scale-[1.02] transition-transform duration-300">
+    <div className="relative bg-[#0d1220] border border-gray-800/50 rounded-3xl p-6 shadow-xl hover:scale-[1.01] transition-transform duration-200">
       <div className="flex gap-2 mb-4">
         {['BTC', 'ETH', 'BNB'].map(crypto => (
           <button
@@ -475,20 +573,261 @@ export default function LandingPage() {
     setTimeout(() => {
       setShowAuthModal(false)
       setIsClosingModal(false)
+      setAgreedToTerms(false)
+      setShowTermsWarning(false)
     }, 350)
   }
+
+  // ─── GSAP Master Animation Setup ─────────────────────────────────────────────
+  useEffect(() => {
+    let ctx: any
+    let cleanup: (() => void) | undefined
+    loadGSAP().then(({ gsap, ScrollTrigger }) => {
+
+      // ── Helper: safe fromTo that won't leave elements invisible ───────────────
+      const reveal = (targets: string | HTMLElement | HTMLElement[], vars: gsap.TweenVars, trigger?: Element | string) => {
+        gsap.from(targets, {
+          ...vars,
+          immediateRender: false,
+          scrollTrigger: {
+            trigger: trigger ?? (typeof targets === 'string' ? targets : undefined),
+            start: 'top 87%',
+            once: true,
+            ...(vars.scrollTrigger as object ?? {}),
+          },
+        })
+      }
+
+      ctx = gsap.context(() => {
+
+        // ════════════════════════════════════════════════════════════════════════
+        // HERO — GSAP Text Splitting (per-kata dengan stagger + expo.out)
+        // ════════════════════════════════════════════════════════════════════════
+        const heroTitleEl = document.querySelector<HTMLElement>('.gsap-hero-title-line1')
+        const heroAccentEl = document.querySelector<HTMLElement>('.gsap-hero-title-accent')
+        
+        const heroTl = gsap.timeline({ defaults: { ease: 'expo.out' } })
+        
+        if (heroTitleEl && heroAccentEl) {
+          // Split "Raih Bonus" jadi word spans
+          const titleWords = splitTextToWordSpans(heroTitleEl)
+          heroTitleEl.style.opacity = '1'
+          heroTitleEl.style.transform = 'none'
+
+          // ⚠️  JANGAN split accent element — bg-clip:text tidak diwariskan ke child spans
+          // → teks jadi transparan tanpa background = invisible.
+          // Animasikan accent sebagai satu unit (whole-element).
+          gsap.set(heroAccentEl, { opacity: 0, y: 50, scale: 0.75 })
+
+          heroTl
+            .to('.gsap-hero-badge',   { opacity: 1, y: 0, scale: 1, duration: 0.65 }, 0.05)
+            .fromTo(titleWords,
+              { opacity: 0, y: 45, rotateX: -25 },
+              { opacity: 1, y: 0, rotateX: 0, duration: 0.75, stagger: 0.12, ease: 'expo.out', transformOrigin: 'bottom center' },
+              0.2)
+            .to(heroAccentEl,
+              { opacity: 1, y: 0, scale: 1, duration: 0.65, ease: 'back.out(2)' },
+              0.48)
+            .to('.gsap-hero-desc',        { opacity: 1, y: 0, duration: 0.7 }, 0.55)
+            .to('.gsap-hero-buttons',     { opacity: 1, duration: 0.55, ease: 'power2.out' }, 0.75)
+            .to('.gsap-hero-stats',       { opacity: 1, duration: 0.5 }, 0.9)
+            .to('.gsap-hero-chart',       { opacity: 1, x: 0, scale: 1, duration: 1.1, ease: 'power3.out' }, 0.2)
+        } else {
+          // Fallback jika splitter gagal
+          heroTl
+            .to('.gsap-hero-badge',       { opacity: 1, y: 0, scale: 1, duration: 0.65 }, 0.05)
+            .to('.gsap-hero-title',       { opacity: 1, y: 0, duration: 1.05, ease: 'power4.out' }, 0.2)
+            .to('.gsap-hero-title span',  { opacity: 1, scale: 1, duration: 0.7, ease: 'back.out(2)' }, 0.55)
+            .to('.gsap-hero-desc',        { opacity: 1, y: 0, duration: 0.7 }, 0.5)
+            .to('.gsap-hero-buttons',     { opacity: 1, duration: 0.55, ease: 'power2.out' }, 0.72)
+            .to('.gsap-hero-stats',       { opacity: 1, duration: 0.5 }, 0.88)
+            .to('.gsap-hero-chart',       { opacity: 1, x: 0, scale: 1, duration: 1.1, ease: 'power3.out' }, 0.2)
+        }
+
+        // ════════════════════════════════════════════════════════════════════════
+        // FLOATING BLOBS — infinite slow drift (compositor only, no paint)
+        // ════════════════════════════════════════════════════════════════════════
+        gsap.utils.toArray<HTMLElement>('.gsap-float-blob').forEach((blob, i) => {
+          const yRange = 18 + i * 8
+          const xRange = 12 + i * 5
+          const dur    = 5 + i * 1.5
+          gsap.to(blob, {
+            y: `+=${yRange}`,
+            x: `+=${xRange}`,
+            duration: dur,
+            ease: 'sine.inOut',
+            repeat: -1,
+            yoyo: true,
+            delay: i * 0.8,
+          })
+        })
+
+        // ════════════════════════════════════════════════════════════════════════
+        // FLOATING DECORATIVE ORBS — small rotating glow orbs in background
+        // ════════════════════════════════════════════════════════════════════════
+        gsap.utils.toArray<HTMLElement>('.gsap-orb').forEach((orb, i) => {
+          const tl = gsap.timeline({ repeat: -1, yoyo: true, delay: i * 1.2 })
+          tl.to(orb, { y: -24, x: 12, scale: 1.08, duration: 3.5 + i, ease: 'sine.inOut' })
+            .to(orb, { y: 12, x: -8, scale: 0.94, duration: 4 + i, ease: 'sine.inOut' })
+        })
+
+        // ════════════════════════════════════════════════════════════════════════
+        // SMOOTH COUNTER — angka naik saat scroll masuk viewport
+        // ════════════════════════════════════════════════════════════════════════
+        gsap.utils.toArray<HTMLElement>('.gsap-counter').forEach(el => {
+          const end    = parseFloat(el.dataset.count || '0')
+          const prefix = el.dataset.prefix || ''
+          const suffix = el.dataset.suffix || ''
+          const isFloat = String(end).includes('.')
+          const obj     = { val: 0 }
+
+          ScrollTrigger.create({
+            trigger: el,
+            start: 'top 90%',
+            once: true,
+            onEnter: () => {
+              gsap.to(obj, {
+                val: end,
+                duration: 2,
+                ease: 'power2.out',
+                onUpdate: () => {
+                  const display = isFloat ? obj.val.toFixed(1) : Math.round(obj.val)
+                  el.textContent = `${prefix}${display}${suffix}`
+                },
+              })
+            },
+          })
+        })
+
+        // ════════════════════════════════════════════════════════════════════════
+        // PARALLAX — gambar partnership bergerak lambat saat scroll
+        // ════════════════════════════════════════════════════════════════════════
+        gsap.utils.toArray<HTMLElement>('.gsap-parallax-img').forEach((el, i) => {
+          const depth = i % 2 === 0 ? -40 : 40
+          gsap.to(el, {
+            y: depth,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: el.closest('section') || el,
+              start: 'top bottom',
+              end: 'bottom top',
+              scrub: 1.2,
+            },
+          })
+        })
+
+        // ════════════════════════════════════════════════════════════════════════
+        // NAVBAR
+        // ════════════════════════════════════════════════════════════════════════
+        gsap.set('.gsap-navbar', { opacity: 0, y: -40 })
+        gsap.to('.gsap-navbar', { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', delay: 0.02 })
+
+        // ════════════════════════════════════════════════════════════════════════
+        // SECTION HEADERS — elegant fade + rise
+        // ════════════════════════════════════════════════════════════════════════
+        gsap.utils.toArray<HTMLElement>('.gsap-section-header').forEach(el => {
+          gsap.set(el, { opacity: 0, y: 50 })
+          gsap.to(el, { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
+            scrollTrigger: { trigger: el, start: 'top 87%', once: true },
+          })
+        })
+
+        // ════════════════════════════════════════════════════════════════════════
+        // HOW IT WORKS — alternating slide in from sides
+        // ════════════════════════════════════════════════════════════════════════
+        gsap.utils.toArray<HTMLElement>('.gsap-step-card').forEach((card, i) => {
+          gsap.set(card, { opacity: 0, x: i % 2 === 0 ? -80 : 80, y: 30 })
+          gsap.to(card, {
+            opacity: 1, x: 0, y: 0,
+            duration: 1.0, ease: 'power3.out',
+            scrollTrigger: { trigger: card, start: 'top 85%', once: true },
+          })
+        })
+
+        // ════════════════════════════════════════════════════════════════════════
+        // PAYMENT GRID — cards stagger with spring pop
+        // ════════════════════════════════════════════════════════════════════════
+        gsap.utils.toArray<HTMLElement>('.gsap-payment-grid').forEach(grid => {
+          gsap.set(grid.children as unknown as HTMLElement[], { opacity: 0, y: 40, scale: 0.88, rotation: -2 })
+          gsap.to(grid.children as unknown as HTMLElement[], {
+            opacity: 1, y: 0, scale: 1, rotation: 0,
+            stagger: { amount: 0.5, from: 'start' },
+            duration: 0.65, ease: 'back.out(1.6)',
+            scrollTrigger: { trigger: grid, start: 'top 86%', once: true },
+          })
+        })
+
+        // ════════════════════════════════════════════════════════════════════════
+        // PARTNERSHIP ROWS — cinematic slide + fade
+        // ════════════════════════════════════════════════════════════════════════
+        gsap.utils.toArray<HTMLElement>('.gsap-partner-row').forEach((row, i) => {
+          gsap.set(row, { opacity: 0, x: i % 2 === 0 ? -80 : 80 })
+          gsap.to(row, {
+            opacity: 1, x: 0,
+            duration: 1.1, ease: 'power4.out',
+            scrollTrigger: { trigger: row, start: 'top 83%', once: true },
+          })
+        })
+
+        // ════════════════════════════════════════════════════════════════════════
+        // AFFILIATE CARDS — scale pop with stagger
+        // ════════════════════════════════════════════════════════════════════════
+        const affiliateCards = gsap.utils.toArray<HTMLElement>('.gsap-affiliate-card')
+        if (affiliateCards.length) {
+          gsap.set(affiliateCards, { opacity: 0, y: 60, scale: 0.88 })
+          gsap.to(affiliateCards, {
+            opacity: 1, y: 0, scale: 1,
+            stagger: 0.18, duration: 0.85, ease: 'back.out(1.8)',
+            scrollTrigger: { trigger: affiliateCards[0], start: 'top 86%', once: true },
+          })
+        }
+
+        // ════════════════════════════════════════════════════════════════════════
+        // AFFILIATE STEPS — cascade stagger
+        // ════════════════════════════════════════════════════════════════════════
+        gsap.utils.toArray<HTMLElement>('.gsap-affiliate-steps-grid').forEach(grid => {
+          gsap.set(grid.children as unknown as HTMLElement[], { opacity: 0, y: 45, x: -15 })
+          gsap.to(grid.children as unknown as HTMLElement[], {
+            opacity: 1, y: 0, x: 0,
+            stagger: 0.13, duration: 0.75, ease: 'power3.out',
+            scrollTrigger: { trigger: grid, start: 'top 85%', once: true },
+          })
+        })
+
+        // ════════════════════════════════════════════════════════════════════════
+        // CTA — dramatic entrance with scale
+        // ════════════════════════════════════════════════════════════════════════
+        const ctaEl = document.querySelector('.gsap-cta-section') as HTMLElement
+        if (ctaEl) {
+          gsap.set(ctaEl, { opacity: 0, y: 80, scale: 0.94 })
+          gsap.to(ctaEl, {
+            opacity: 1, y: 0, scale: 1,
+            duration: 1.1, ease: 'power4.out',
+            scrollTrigger: { trigger: ctaEl, start: 'top 82%', once: true },
+          })
+        }
+
+      })
+
+      cleanup = () => ctx?.revert()
+    })
+    return () => cleanup?.()
+  }, [])
+
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [activeTestimonial, setActiveTestimonial] = useState(0)
   const [activeFeature, setActiveFeature] = useState(0)
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  // mousePosition state removed — was causing re-render on every mousemove
   const [touchStart, setTouchStart] = useState(0)
   const [touchEnd, setTouchEnd] = useState(0)
   const [logoPhase, setLogoPhase] = useState<'stc-logo-in' | 'stc-text-in' | 'stc-hold' | 'stc-text-out' | 'stc-logo-out' | 'stockity-logo-in' | 'stockity-text-in' | 'stockity-hold' | 'stockity-text-out' | 'stockity-logo-out'>('stc-logo-in')
   const [loadingGoogle, setLoadingGoogle] = useState(false)
   const [showDemoTutorial, setShowDemoTutorial] = useState(false)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [showTermsWarning, setShowTermsWarning] = useState(false)
 
   // ✅ MOBILE PERF: hanya render komponen desktop berat setelah konfirmasi viewport
   const [isDesktop, setIsDesktop] = useState(false)
@@ -608,26 +947,8 @@ export default function LandingPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Effect 6: Mouse parallax effect — throttled via rAF, skip on touch devices
-  useEffect(() => {
-    if (window.matchMedia('(hover: none)').matches) return // mobile/touch — skip
-    let rafId: number
-    const handleMouseMove = (e: MouseEvent) => {
-      cancelAnimationFrame(rafId)
-      rafId = requestAnimationFrame(() => {
-        setMousePosition({
-          x: (e.clientX / window.innerWidth) * 20,
-          y: (e.clientY / window.innerHeight) * 20,
-        })
-      })
-    }
-
-    window.addEventListener('mousemove', handleMouseMove, { passive: true })
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
-      cancelAnimationFrame(rafId)
-    }
-  }, [])
+  // Mouse parallax removed — no animated elements use it anymore,
+  // but the mousemove listener + setState was triggering re-renders on every move.
 
   // ✅ NOW do conditional rendering AFTER all hooks
   if (isCheckingAuth || isRedirectPending()) {
@@ -674,6 +995,11 @@ export default function LandingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!agreedToTerms) {
+      setShowTermsWarning(true)
+      return
+    }
+    setShowTermsWarning(false)
     setLoading(true)
 
     try {
@@ -721,6 +1047,11 @@ export default function LandingPage() {
 
   // ✅ FIXED: handleGoogleSignIn sudah OK (sudah ada referralCode)
   const handleGoogleSignIn = async () => {
+    if (!agreedToTerms) {
+      setShowTermsWarning(true)
+      return
+    }
+    setShowTermsWarning(false)
     setLoadingGoogle(true)
 
     try {
@@ -797,28 +1128,58 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] text-white overflow-hidden">
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div 
-          className="absolute top-1/4 -left-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-[120px] animate-pulse-slow"
-          style={{
-            transform: `translate(${mousePosition.x}px, ${mousePosition.y}px)`
-          }}
-        />
-        <div 
-          className="absolute bottom-1/4 -right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] animate-pulse-slow"
-          style={{
-            transform: `translate(${-mousePosition.x}px, ${-mousePosition.y}px)`,
-            animationDelay: '1s'
-          }}
-        />
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-05"></div>
-
+    <div className="relative min-h-screen bg-[#0a0e17] text-white overflow-hidden">
+      {/* Static background tint — single element, no animation, no blur paint */}
+      <div className="fixed inset-0 pointer-events-none" aria-hidden>
+        <div className="absolute inset-0 bg-gradient-to-br from-sky-950/40 via-transparent to-emerald-950/30" />
       </div>
 
+      {/* Grid pattern overlay + shimmer — GPU-accelerated via transform */}
+      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 0, overflow: 'hidden' }} aria-hidden>
+        {/* Base static grid — no animation, zero paint cost */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `
+              linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)
+            `,
+            backgroundSize: '48px 48px',
+          }}
+        />
+        {/* Shimmer band — moves with translateY (GPU layer, zero repaint) */}
+        <div
+          className="grid-shimmer-band"
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 0,
+            height: '500px',
+            backgroundImage: `
+              linear-gradient(rgba(16,185,129,0.12) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(16,185,129,0.12) 1px, transparent 1px)
+            `,
+            backgroundSize: '48px 48px',
+            maskImage: 'linear-gradient(to bottom, transparent 0%, white 25%, white 75%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, white 25%, white 75%, transparent 100%)',
+          }}
+        />
+      </div>
+
+      <style>{`
+        @keyframes grid-shimmer-move {
+          0%   { transform: translateY(-500px); }
+          100% { transform: translateY(9000px); }
+        }
+        .grid-shimmer-band {
+          animation: grid-shimmer-move 20s linear infinite;
+          will-change: transform;
+        }
+      `}</style>
+
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#1a1f2e]/55 backdrop-blur-xl border-b border-gray-700/50">
+      <nav className="gsap-navbar fixed top-0 left-0 right-0 z-50 bg-[#1a1f2e]/55 backdrop-blur-xl border-b border-gray-700/50">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-20">
             
@@ -837,7 +1198,7 @@ export default function LandingPage() {
                       alt="Stouch"
                       fill
                       sizes="40px"
-                      className="object-contain rounded-md"
+                      className="object-contain rounded-full bg-[#2A324B]/50"
                       priority
                     />
                   </div>
@@ -922,84 +1283,104 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32 overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-[#1a1f2e] via-[#0f1419] to-[#0a0e17]"></div>
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-600/20 rounded-full blur-[100px]"></div>
-          <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-cyan-600/15 rounded-full blur-[100px]"></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-violet-600/10 rounded-full blur-[100px]"></div>
-          <div 
-            className="absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage: `
-                linear-gradient(rgba(59, 130, 246, 0.4) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(59, 130, 246, 0.4) 1px, transparent 1px)
-              `,
-              backgroundSize: '60px 60px',
-            }}
-          ></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#121824] via-[#0d1320] to-[#080c16]" />
+          {/* Floating blobs — GSAP infinite drift via gsap-float-blob class */}
+          <div className="gsap-float-blob absolute top-0 left-1/4 w-[500px] h-[500px] bg-emerald-600/10 rounded-full blur-[100px]" style={{ willChange: 'transform' }} />
+          <div className="gsap-float-blob absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-700/8 rounded-full blur-[100px]" style={{ willChange: 'transform' }} />
+          {/* Decorative orbs — GSAP infinite loop */}
+          <div className="gsap-orb absolute top-1/4 left-[60%] w-3 h-3 bg-emerald-400/40 rounded-full blur-[2px]" style={{ willChange: 'transform' }} />
+          <div className="gsap-orb absolute top-1/2 left-[15%] w-2 h-2 bg-teal-400/30 rounded-full blur-[1px]" style={{ willChange: 'transform' }} />
+          <div className="gsap-orb absolute bottom-1/3 right-[20%] w-2.5 h-2.5 bg-blue-400/35 rounded-full blur-[2px]" style={{ willChange: 'transform' }} />
+          {/* Subtle grid */}
+          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(16,185,129,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(16,185,129,0.5) 1px,transparent 1px)', backgroundSize: '64px 64px' }} />
         </div>
         
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left Content */}
+            {/* Left Content — animated by GSAP hero timeline */}
             <div className="space-y-8">
               <div className="space-y-2">
-                <div className="inline-flex items-center gap-2 px-1">
+                <div className="gsap-hero-badge inline-flex items-center gap-2 px-1" style={{ opacity: 0 }}>
                   <span className="text-xs sm:text-sm font-medium shimmer-date">1 Februari – 31 Maret</span>
                 </div>
-                <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight">
-                  Raih Bonus
-                  <span className="block mt-2 font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-emerald-400 to-cyan-400 animate-gradient bg-[length:200%_auto]">
-                    Deposit 100%
+                <h1 className="gsap-hero-title text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight" style={{ opacity: 1 }}>
+                  <span className="gsap-hero-title-line1 inline">Raih Bonus</span>
+                  <span className="block mt-2" aria-hidden="false">
+                    <span
+                      className="gsap-hero-title-accent font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-400 to-blue-400 animate-gradient bg-[length:200%_auto]"
+                      style={{ display: 'inline-block' }}
+                    >
+                      Deposit 100%
+                    </span>
                   </span>
                 </h1>
               </div>
 
-              <p className="text-lg sm:text-xl text-gray-400 leading-relaxed">
+              <p className="gsap-hero-desc text-lg sm:text-xl text-gray-400 leading-relaxed" style={{ opacity: 0, transform: 'translateY(30px)' }}>
                 Tersedia berbagai aset <span className="text-emerald-400 font-semibold">global</span>, 
-                dapatkan profit hingga <span className="text-sky-400 font-semibold">100%</span>, 
-                dan penarikan secepat <span className="text-cyan-400 font-semibold">kilat</span>.
+                dapatkan profit hingga <span className="text-teal-500 font-semibold">100%</span>, 
+                dan penarikan secepat <span className="text-amber-400 font-semibold">kilat.</span>
               </p>
 
-              <div className="flex flex-row gap-3 sm:gap-4">
-                <button
+              <div className="gsap-hero-buttons flex flex-row gap-3 sm:gap-4" style={{ opacity: 0 }}>
+                <motion.button
                   onClick={() => {
                     setIsLogin(true)
                     setShowAuthModal(true)
                   }}
-                  className="group flex-none px-4 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-sky-600 to-cyan-600 hover:from-sky-500 hover:to-cyan-500 rounded-xl text-sm sm:text-lg font-semibold text-white transition-colors shadow-lg"
+                  whileHover={{ scale: 1.04, y: -1 }}
+                  whileTap={{ scale: 0.96 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                  className="btn-glow group flex-none px-4 sm:px-8 py-3 sm:py-4 bg-gradient-to-br from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 rounded-xl text-sm sm:text-lg font-semibold text-white shadow-lg shadow-emerald-900/40"
                 >
                   <span className="flex items-center justify-center gap-2">
                     <span className="hidden sm:inline">Masuk untuk Trading</span>
                     <span className="sm:hidden">Login Sekarang</span>
                     <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" weight="bold" />
                   </span>
-                </button>
+                </motion.button>
 
-                <button className="group flex-none px-4 sm:px-8 py-3 sm:py-4 bg-white/5 hover:bg-white/10 border border-gray-700 hover:border-gray-600 rounded-xl text-sm sm:text-lg font-semibold transition-colors backdrop-blur-sm"   onClick={() => setShowDemoTutorial(true)}>
+                <motion.button
+                  className="btn-glow group flex-none px-4 sm:px-8 py-3 sm:py-4 bg-[#1a2035] hover:bg-[#1e2840] border border-emerald-500/20 hover:border-emerald-500/40 rounded-xl text-sm sm:text-lg font-semibold"
+                  onClick={() => setShowDemoTutorial(true)}
+                  whileHover={{ scale: 1.04, y: -1 }}
+                  whileTap={{ scale: 0.96 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                >
                   <span className="flex items-center justify-center gap-2">
                     <span className="hidden sm:inline">Lihat Demo</span>
                     <span className="sm:hidden">Demo</span>
                   </span>
-                </button>
+                </motion.button>
               </div>
 
               {/* Stats Row */}
-              <div className="hidden sm:grid grid-cols-4 gap-4 pt-8">
+              <div className="gsap-hero-stats hidden sm:grid grid-cols-4 gap-4 pt-8" style={{ opacity: 0 }}>
                 {stats.map((stat, index) => (
-                  <div 
-                    key={index} 
-                    className="text-center transform hover:scale-105 transition-transform cursor-default bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-gray-800/50"
+                  <motion.div 
+                    key={index}
+                    whileHover={{ scale: 1.05, y: -3 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ duration: 0.18, ease: 'easeOut' }}
+                    className="text-center cursor-default bg-slate-900/80 rounded-xl p-3 border border-emerald-500/10 hover:border-emerald-500/25 transition-colors"
                   >
-                    <stat.icon className="w-6 h-6 text-sky-400 mx-auto mb-2" weight="bold" />
-                    <div className="text-xl font-bold">{stat.value}</div>
+                    <stat.icon className="w-6 h-6 text-sky-300 mx-auto mb-2" weight="bold" />
+                    <div
+                      className="gsap-counter text-xl font-bold"
+                      data-count={stat.rawValue}
+                      data-prefix={stat.label === 'Volume Harian' ? '$' : ''}
+                      data-suffix={stat.suffix}
+                    >
+                      {stat.value}
+                    </div>
                     <div className="text-xs text-gray-500">{stat.label}</div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </div>
 
             {/* Right - Real Crypto Components */}
-            <div className="relative">
+            <div className="gsap-hero-chart relative" style={{ opacity: 0, transform: 'translateX(90px) scale(0.94)' }}>
               {/* Desktop-only: tidak di-mount di mobile agar tidak ada polling sia-sia */}
               {isDesktop && <LiveCryptoTicker />}
 
@@ -1042,10 +1423,13 @@ export default function LandingPage() {
         )}
       </section>
 
+      {/* Premium section divider */}
+      <div className="section-glow-line" />
+
       {/* How It Works */}
-      <section id="how-it-works" className="py-16 sm:py-20 relative border-t border-sky-800/50 overflow-hidden">
+      <section id="how-it-works" className="py-16 sm:py-20 relative overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="text-center mb-20 animate-fade-in-up">
+          <div className="gsap-section-header text-center mb-20">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-violet-500/10 border border-violet-500/20 rounded-full mb-6">
               <div className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse"></div>
               <span className="text-sm font-medium text-violet-400">Mulai dalam 3 langkah mudah</span>
@@ -1061,13 +1445,18 @@ export default function LandingPage() {
           {/* Desktop Timeline */}
           <div className="hidden lg:block max-w-5xl mx-auto">
             <div className="relative">
-              <div className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 bg-gradient-to-b from-violet-500/20 via-pink-500/20 to-sky-500/20"></div>
+              <div className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 timeline-line"></div>
 
               <div className="space-y-24">
                 {/* Step 1 */}
-                <div className="relative flex items-center">
+                <div className="gsap-step-card relative flex items-center">
                   <div className="w-[calc(50%-3rem)] mr-auto">
-                    <div className="bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-8 hover:border-violet-500/30 transition-all">
+                    <motion.div
+                      className="glass-card step-card-inner rounded-2xl p-8 hover:border-violet-500/40"
+                      whileHover={{ scale: 1.025, y: -4 }}
+                      whileTap={{ scale: 0.975 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                    >
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 bg-violet-500/10 border border-violet-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
                           <Users className="w-6 h-6 text-violet-400" weight="bold" />
@@ -1083,12 +1472,12 @@ export default function LandingPage() {
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   </div>
 
                   <div className="absolute left-1/2 -translate-x-1/2 z-10">
                     <div className="relative w-16 h-16">
-                      <div className="absolute inset-0 bg-violet-500/20 rounded-full animate-ping opacity-75"></div>
+                      <div className="absolute inset-2 bg-[#0a0e17] rounded-full border-2 border-violet-500/60 step-ring-violet"></div>
                       <div className="absolute inset-2 bg-[#0a0e17] rounded-full border-2 border-violet-500/50 flex items-center justify-center">
                         <span className="text-xl font-bold text-violet-400">1</span>
                       </div>
@@ -1097,9 +1486,14 @@ export default function LandingPage() {
                 </div>
 
                 {/* Step 2 */}
-                <div className="relative flex items-center flex-row-reverse">
+                <div className="gsap-step-card relative flex items-center flex-row-reverse">
                   <div className="w-[calc(50%-3rem)] ml-auto">
-                    <div className="bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-8 hover:border-pink-500/30 transition-all">
+                    <motion.div
+                      className="glass-card step-card-inner rounded-2xl p-8 hover:border-pink-500/40"
+                      whileHover={{ scale: 1.025, y: -4 }}
+                      whileTap={{ scale: 0.975 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                    >
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 bg-pink-500/10 border border-pink-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
                           <CurrencyDollar className="w-6 h-6 text-pink-400" weight="bold" />
@@ -1115,12 +1509,12 @@ export default function LandingPage() {
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   </div>
 
                   <div className="absolute left-1/2 -translate-x-1/2 z-10">
                     <div className="relative w-16 h-16">
-                      <div className="absolute inset-0 bg-pink-500/20 rounded-full animate-ping opacity-75" style={{ animationDelay: '0.5s' }}></div>
+                      <div className="absolute inset-2 bg-[#0a0e17] rounded-full border-2 border-pink-500/60 step-ring-pink"></div>
                       <div className="absolute inset-2 bg-[#0a0e17] rounded-full border-2 border-pink-500/50 flex items-center justify-center">
                         <span className="text-xl font-bold text-pink-400">2</span>
                       </div>
@@ -1129,9 +1523,14 @@ export default function LandingPage() {
                 </div>
 
                 {/* Step 3 */}
-                <div className="relative flex items-center">
+                <div className="gsap-step-card relative flex items-center">
                   <div className="w-[calc(50%-3rem)] mr-auto">
-                    <div className="bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-8 hover:border-sky-500/30 transition-all">
+                    <motion.div
+                      className="glass-card step-card-inner rounded-2xl p-8 hover:border-sky-500/40"
+                      whileHover={{ scale: 1.025, y: -4 }}
+                      whileTap={{ scale: 0.975 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                    >
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 bg-sky-500/10 border border-sky-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
                           <TrendUp className="w-6 h-6 text-sky-400" weight="bold" />
@@ -1147,12 +1546,12 @@ export default function LandingPage() {
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   </div>
 
                   <div className="absolute left-1/2 -translate-x-1/2 z-10">
                     <div className="relative w-16 h-16">
-                      <div className="absolute inset-0 bg-sky-500/20 rounded-full animate-ping opacity-75" style={{ animationDelay: '1s' }}></div>
+                      <div className="absolute inset-2 bg-[#0a0e17] rounded-full border-2 border-sky-500/60 step-ring-sky"></div>
                       <div className="absolute inset-2 bg-[#0a0e17] rounded-full border-2 border-sky-500/50 flex items-center justify-center">
                         <span className="text-xl font-bold text-sky-400">3</span>
                       </div>
@@ -1195,32 +1594,21 @@ export default function LandingPage() {
       </section>
 
 
+{/* Premium section divider */}
+<div className="section-glow-line" />
+
 {/* Payment Methods */}
-<section id="payment" className="py-16 sm:py-20 relative border-t border-orange-800/30 overflow-visible">
+<section id="payment" className="py-16 sm:py-20 relative overflow-visible">
   {/* Animated gradient background layers - WARNA LEBIH PEKAT */}
-  <div className="absolute inset-0 pointer-events-none overflow-visible">
-    {/* Layer 1 - sky/violet gradient blob - OPACITY DINAbbilangkkan dari /10 ke /20 */}
-    <div className="absolute top-1/3 left-1/3 w-[300px] h-[300px] bg-gradient-to-r from-sky-500/25 via-violet-500/25 to-pink-500/25 rounded-full blur-[60px] animate-float" style={{ animationDelay: '0s' }} />
-    
-    {/* Layer 2 - emerald/Cyan gradient blob - OPACITY DINAbbilangkkan dari /10 ke /20 */}
-    <div className="absolute bottom-1/3 right-1/3 w-[300px] h-[300px] bg-gradient-to-r from-emerald-500/25 via-cyan-500/25 to-teal-500/25 rounded-full blur-[60px] animate-float" style={{ animationDelay: '2s' }} />
-    
-    {/* Layer 3 - Orange/Red gradient blob - OPACITY DINAbbilangkkan dari /10 ke /25 */}
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-gradient-to-r from-orange-500/30 via-red-500/30 to-amber-500/30 rounded-full blur-[70px] animate-float" style={{ animationDelay: '4s' }} />
-    
-    {/* Subtle grid overlay - LEBIH HALUS */}
-    <div className="absolute inset-0 opacity-[0.02]" style={{
-      backgroundImage: `
-        linear-gradient(rgba(59, 130, 246, 0.3) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(59, 130, 246, 0.3) 1px, transparent 1px)
-      `,
-      backgroundSize: '80px 80px',
-    }} />
+  <div className="absolute inset-0 pointer-events-none">
+    {/* Static radial gradient — zero per-frame cost */}
+    <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_20%_40%,rgba(14,165,233,0.07),transparent)]" />
+    <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_80%_70%,rgba(16,185,129,0.06),transparent)]" />
   </div>
   
   <div className="container mx-auto px-4 sm:px-6 relative z-10">
     {/* Header */}
-    <div className="text-center mb-12">
+    <div className="gsap-section-header text-center mb-12">
       <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6">
         <span className="text-xs font-medium text-emerald-400">Berbagai Metode Pembayaran</span>
       </div>
@@ -1234,7 +1622,7 @@ export default function LandingPage() {
 
     {/* Desktop Grid */}
     <div className="hidden lg:block max-w-5xl mx-auto space-y-3 sm:space-y-4">
-      <div className="grid grid-cols-6 gap-4">
+      <div className="gsap-payment-grid grid grid-cols-6 gap-4">
         {[
           { name: 'Mandiri', logo: '/mandiri.webp' },
           { name: 'BRI', logo: '/bri.webp' },
@@ -1243,9 +1631,9 @@ export default function LandingPage() {
           { name: 'OVO', logo: '/ovo.webp' },
           { name: 'DANA', logo: '/dana.webp' },
         ].map((item) => (
-          <div key={item.name} className="group bg-white border border-gray-200 rounded-xl p-6 transition-all hover:shadow-md relative overflow-hidden">
+          <div key={item.name} className="payment-card group bg-white border border-gray-200 rounded-xl p-6 relative overflow-hidden">
             {/* Hover glow effect on box */}
-            <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 via-orange-500/5 to-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-lg" />
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-lg" />
             
             <div className="relative z-10">
               <div className="relative h-12 flex items-center justify-center">
@@ -1263,7 +1651,7 @@ export default function LandingPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-5 gap-4">
+      <div className="gsap-payment-grid grid grid-cols-5 gap-4">
         {[
           { name: 'QRIS', logo: '/qris.png' },
           { name: 'Visa', logo: '/visa.webp' },
@@ -1271,9 +1659,9 @@ export default function LandingPage() {
           { name: 'Bitcoin', logo: '/bitcoin.webp' },
           { name: 'BCA', logo: '/bca.webp' },
         ].map((item) => (
-          <div key={item.name} className="group bg-white border border-gray-200 rounded-xl p-6 transition-all hover:shadow-md relative overflow-hidden">
+          <div key={item.name} className="payment-card group bg-white border border-gray-200 rounded-xl p-6 relative overflow-hidden">
             {/* Hover glow effect on box */}
-            <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 via-orange-500/5 to-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-lg" />
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-lg" />
             
             <div className="relative z-10">
               <div className="relative h-12 flex items-center justify-center">
@@ -1293,7 +1681,7 @@ export default function LandingPage() {
     </div>
 
     {/* Mobile & Tablet Infinite Marquee */}
-    <div className="lg:hidden space-y-3 overflow-hidden">
+    <div className="lg:hidden space-y-3 overflow-hidden marquee-fade">
       {/* Baris 1 - scroll ke kiri */}
       <div className="relative">
         <div className="flex overflow-hidden">
@@ -1398,23 +1786,21 @@ export default function LandingPage() {
 </section>
 
       {/* Stockity x LindungiHutan Partnership */}
-<section className="relative py-12 sm:py-16 lg:py-20 bg-[#24283750] border-t border-sky-800/30 overflow-hidden">
+<section className="relative py-12 sm:py-16 lg:py-20 bg-[#0d1422] overflow-hidden">
   {/* Background Effects */}
   <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-600/40 rounded-full blur-[100px]"></div>
-          <div className="absolute bottom-10 left-1/5 w-96 h-96 bg-red-700/10 rounded-full blur-[100px]"></div>
 
-    <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[100px] animate-pulse-slow" />
-    <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-sky-500/10 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '2s' }} />
+
+    <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_30%_50%,rgba(16,185,129,0.06),transparent)]" />
   </div>
 
   <div className="container mx-auto px-3 sm:px-4 lg:px-6 relative z-10">
     <div className="max-w-7xl mx-auto">
       {/* BARIS 1: LindungiHutan - Gambar Pohon + Konten */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:gap-12 items-center mb-12 sm:mb-16 lg:mb-24">
+      <div className="gsap-partner-row grid grid-cols-2 gap-3 sm:gap-6 lg:gap-12 items-center mb-12 sm:mb-16 lg:mb-24">
         {/* Kiri - Gambar Pohon */}
         <div className="relative">
-          <div className="relative aspect-[1/1] m-8 lg:m-0 rounded-xl sm:rounded-2xl lg:rounded-3xl overflow-hidden">
+          <div className="relative aspect-[1/1] m-8 lg:m-0 rounded-xl sm:rounded-2xl lg:rounded-3xl overflow-hidden gsap-parallax-img">
             <Image
               src="/v1.webp"
               alt="Stockity x LindungiHutan"
@@ -1450,7 +1836,7 @@ export default function LandingPage() {
 
           {/* Button */}
           <a href="https://stockity.id/id/ad/ecostockity?utm_source=ecostockity_new&utm_medium=marprod&utm_campaign=main_page_banner&a=&ac=main_page_banner" target="_blank" rel="noopener noreferrer">
-            <button className="group inline-flex items-center mt-6 gap-1 sm:gap-2 lg:gap-3 px-3 py-1.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 bg-gradient-to-r from-emerald-600 to-emerald-600 hover:from-emerald-500 hover:to-emerald-500 rounded-lg sm:rounded-xl text-[10px] sm:text-base lg:text-lg font-semibold text-white transition-all shadow-lg hover:shadow-green-500/25">
+            <button className="group inline-flex items-center mt-6 gap-1 sm:gap-2 lg:gap-3 px-3 py-1.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 bg-gradient-to-br from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 rounded-lg sm:rounded-xl text-[10px] sm:text-base lg:text-lg font-semibold text-white transition-all shadow-lg hover:shadow-emerald-500/30">
               <span>Selengkapnya</span>
               <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 group-hover:translate-x-1 transition-transform" weight="bold" />
             </button>
@@ -1459,7 +1845,7 @@ export default function LandingPage() {
       </div>
 
       {/* BARIS 2: Platform Profesional - Teks + Gambar SA */}
-      <div className="mb-12 sm:mb-16 lg:mb-24">
+      <div className="gsap-partner-row mb-12 sm:mb-16 lg:mb-24">
         <div className="grid grid-cols-[2fr_1fr] gap-3 sm:gap-6 lg:gap-8 items-center">
           {/* Kiri - Teks (75%) */}
           <div className="space-y-2 sm:space-y-3 lg:space-y-4">
@@ -1487,7 +1873,7 @@ export default function LandingPage() {
       </div>
 
       {/* BARIS 3: Trading 24 Jam - Gambar IL4 + Teks */}
-      <div>
+      <div className="gsap-partner-row">
         <div className="grid grid-cols-[1fr_2fr] gap-3 sm:gap-6 lg:gap-8 items-center">
           {/* Kiri - Gambar (30%) */}
           <div>
@@ -1519,10 +1905,10 @@ export default function LandingPage() {
 
 
             {/* Affiliate Program */}
-<section className="py-16 sm:py-20 relative border-t border-emerald-800/30">
+<section className="py-16 sm:py-20 relative">
   <div className="container mx-auto px-4 sm:px-6">
     {/* Header */}
-    <div className="text-center mb-16 animate-fade-in-up">
+    <div className="gsap-section-header text-center mb-16">
       <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6">
         <span className="text-sm font-medium text-emerald-400">Program Affiliate</span>
       </div>
@@ -1535,10 +1921,15 @@ export default function LandingPage() {
     </div>
 
     {/* Reward Cards - Compact Grid for Mobile */}
-    <div className="grid grid-cols-2 gap-3 sm:gap-6 max-w-4xl mx-auto mb-16">
+      <div className="grid grid-cols-2 gap-3 sm:gap-6 max-w-4xl mx-auto mb-16">
       {/* VIP Card */}
-      <div className="group relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-emerald-500/30 rounded-2xl sm:rounded-3xl p-4 sm:p-8 hover:border-emerald-500/50 transition-all duration-300 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+      <motion.div
+        className="gsap-affiliate-card affiliate-card-premium group relative glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-8 border-emerald-500/20 overflow-hidden"
+                      whileHover={{ scale: 1.025, y: -4 }}
+                      whileTap={{ scale: 0.975 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-emerald-600/15 opacity-100 group-hover:opacity-100 transition-opacity"></div>
         
         <div className="relative z-10">
           <div className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full mb-2 sm:mb-4">
@@ -1555,11 +1946,16 @@ export default function LandingPage() {
             Untuk member VIP/Platinum
           </p>
         </div>
-      </div>
+      </motion.div>
 
       {/* Standard & Gold Card */}
-      <div className="group relative bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-sky-500/30 rounded-2xl sm:rounded-3xl p-4 sm:p-8 hover:border-sky-500/50 transition-all duration-300 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-sky-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+      <motion.div
+        className="gsap-affiliate-card affiliate-card-premium group relative glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-8 border-sky-500/20 overflow-hidden"
+                      whileHover={{ scale: 1.025, y: -4 }}
+                      whileTap={{ scale: 0.975 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-sky-500/20 to-cyan-500/15 opacity-100 group-hover:opacity-100 transition-opacity"></div>
         
         <div className="relative z-10">
           <div className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-sky-500/10 border border-sky-500/30 rounded-full mb-2 sm:mb-4">
@@ -1576,7 +1972,7 @@ export default function LandingPage() {
             Untuk member Standard/Gold
           </p>
         </div>
-      </div>
+      </motion.div>
     </div>
 
     {/* How It Works - Compact Grid for Mobile */}
@@ -1586,7 +1982,7 @@ export default function LandingPage() {
       </h3>
 
       {/* Desktop Timeline - Hidden on Mobile */}
-      <div className="hidden md:grid md:grid-cols-4 gap-6">
+      <div className="gsap-affiliate-steps-grid hidden md:grid md:grid-cols-4 gap-6">
         {[
           {
             num: '1',
@@ -1622,7 +2018,7 @@ export default function LandingPage() {
               <div className="hidden md:block absolute top-12 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-gray-700 to-gray-800"></div>
             )}
             
-            <div className="relative bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-6 hover:border-gray-700 transition-all group">
+            <div className="glass-card gradient-border relative rounded-2xl p-6 group">
               <div className="absolute -top-4 left-6">
                 <div className={`w-8 h-8 bg-${step.color}-500/20 border-2 border-${step.color}-500/50 rounded-full flex items-center justify-center`}>
                   <span className={`text-sm font-bold text-${step.color}-400`}>{step.num}</span>
@@ -1667,10 +2063,10 @@ export default function LandingPage() {
     </div>
 
     {/* Partner CTA */}
-    <div className="relative max-w-4xl mx-auto bg-gradient-to-br from-[#0f1419] to-[#0a0e17] border border-gray-800/50 rounded-3xl overflow-hidden">
+    <div className="gsap-cta-section relative max-w-4xl mx-auto glass-card rounded-3xl overflow-hidden border-emerald-500/15">
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-emerald-500/5"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[100px]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,rgba(16,185,129,0.07),transparent)]" />
         
         {/* AI2 Image Layer */}
         <div className="block absolute left-[-110] md:left-[-140] bottom-50 w-3/5 h-full opacity-20 pointer-events-none z-0 lg:left-[-21%] lg:w-1/2 lg:opacity-20">
@@ -1699,11 +2095,8 @@ export default function LandingPage() {
 
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
           <button
-            onClick={() => {
-              setIsLogin(false)
-              setShowAuthModal(true)
-            }}
-            className="group px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-emerald-600 to-emerald-600 hover:from-emerald-500 hover:to-emerald-500 rounded-xl font-semibold text-white transition-all shadow-lg hover:shadow-emerald-500/25"
+            onClick={() => window.open('https://wa.me/6281339908765', '_blank')}
+            className="group px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-br from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 rounded-xl font-semibold text-white transition-all shadow-lg shadow-emerald-900/40"
           >
             <span className="flex items-center justify-center gap-2">
               Daftar Sekarang
@@ -1750,7 +2143,7 @@ export default function LandingPage() {
     {/* FIXED: Hapus overflow-y-auto dari container utama, gunakan h-full */}
     <div className={`fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-gradient-to-b from-[#0f1419] to-[#0a0e17] z-50 shadow-2xl flex flex-col transition-transform duration-350 ease-in-out ${isClosingModal ? 'translate-x-full' : 'animate-slide-left'}`}>
       {/* Header - Sticky */}
-      <div className="flex-shrink-0 bg-gradient-to-b from-[#0f1419] to-[#0a0e17] backdrop-blur-xl border-b border-gray-800/50 p-6">
+      <div className="flex-shrink-0 bg-[#0f1419] border-b border-gray-800/50 p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative w-10 h-10">
@@ -1916,10 +2309,54 @@ export default function LandingPage() {
               </div>
             )}
 
+            {/* Terms Checkbox — di atas tombol submit */}
+            <label className="flex items-start gap-3 mt-6 mb-1 cursor-pointer group">
+              <div className="relative flex-shrink-0 mt-0.5">
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => {
+                    setAgreedToTerms(e.target.checked)
+                    if (e.target.checked) setShowTermsWarning(false)
+                  }}
+                  className="sr-only"
+                />
+                <div className={`w-5 h-5 rounded border-2 transition-all flex items-center justify-center ${
+                  agreedToTerms
+                    ? 'bg-emerald-500 border-emerald-500'
+                    : showTermsWarning
+                      ? 'border-red-500 bg-transparent'
+                      : 'border-gray-600 bg-transparent group-hover:border-gray-400'
+                }`}>
+                  {agreedToTerms && (
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+              <span className="text-xs text-gray-400 leading-relaxed">
+                Dengan melanjutkan, Anda menyetujui{' '}
+                <a href="/agreement" onClick={e => e.stopPropagation()} className="text-sky-400 hover:text-sky-300 underline">Syarat & Ketentuan</a>
+                {' '}dan{' '}
+                <a href="/privacy" onClick={e => e.stopPropagation()} className="text-sky-400 hover:text-sky-300 underline">Kebijakan Privasi</a> kami
+              </span>
+            </label>
+
+            {/* Peringatan jika belum centang */}
+            {showTermsWarning && (
+              <p className="text-xs text-red-400 mb-3 flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                Harap centang persetujuan Syarat &amp; Ketentuan terlebih dahulu
+              </p>
+            )}
+
             <button
               type="submit"
               disabled={loading}
-              className="w-full px-6 py-3.5 bg-[#1e293b] hover:bg-[#334155] rounded-lg text-lg font-semibold text-white transition-colors border border-gray-700 shadow-lg disabled:opacity-50 mt-6"
+              className="w-full px-6 py-3.5 bg-[#1e293b] hover:bg-[#334155] rounded-lg text-lg font-semibold text-white transition-colors border border-gray-700 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -1971,10 +2408,12 @@ export default function LandingPage() {
             </div>
           </div>
 
+          {/* Terms Checkbox */}
+
           <button
             onClick={handleGoogleSignIn}
             disabled={loading || loadingGoogle}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#0a0e17] border border-gray-800 rounded-lg hover:bg-[#1a1f2e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#0a0e17] border border-gray-800 rounded-lg hover:bg-[#1a1f2e] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {loadingGoogle ? (
               <>
@@ -1994,14 +2433,6 @@ export default function LandingPage() {
               </>
             )}
           </button>
-
-          {/* Terms */}
-          <p className="mt-6 text-xs text-center text-gray-500 leading-relaxed">
-            Dengan melanjutkan, Anda menyetujui{' '}
-            <a href="https://stockity.id/information/agreement " className="text-sky-400 hover:text-sky-300">Syarat & Ketentuan</a>
-            {' '}dan{' '}
-            <a href="https://stockity.id/information/privacy " className="text-sky-400 hover:text-sky-300">Kebijakan Privasi</a> kami
-          </p>
         </div>
       </div>
     </div>
@@ -2009,91 +2440,251 @@ export default function LandingPage() {
 )}
 
       <style jsx>{`
-      .duration-350 {
-        transition-duration: 350ms;
-      }
+      /* ══════════════════════════════════════════════════════
+         PREMIUM CSS — Stouch.id Landing Page
+      ══════════════════════════════════════════════════════ */
 
-      /* ── Navbar logo shimmer overlay ─────────────────────────────── */
+      .duration-350 { transition-duration: 350ms; }
 
+      /* ── Shimmer emerald-blue premium text ────────────────── */
       @keyframes shimmer-sweep {
-        0% { background-position: 100% center; }
-        100% { background-position: -100% center; }
+        0%   { background-position: 200% center; }
+        100% { background-position: -200% center; }
       }
-
       .shimmer-date {
-        background: linear-gradient(
-          90deg,
-          #d97706 0%,
-          #eab308 20%,
-          #fde68a 38%,
-          #fefce8 50%,
-          #fde68a 62%,
-          #eab308 80%,
-          #d97706 100%
+        background: linear-gradient(90deg,
+          #047857 0%, #10b981 15%, #34d399 30%,
+          #99f6e4 45%, #e0fdf4 50%,
+          #99f6e4 55%, #34d399 70%, #10b981 85%, #047857 100%
         );
-        background-size: 200% 100%;
+        background-size: 300% 100%;
         background-clip: text;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        animation: shimmer-sweep 5s linear infinite;
+        animation: shimmer-sweep 4s linear infinite;
       }
 
-      @keyframes marquee-left {
-        0% { transform: translateX(0); }
-        100% { transform: translateX(-50%); }
+      /* ── Gradient text animation ───────────────────────── */
+      @keyframes animate-gradient {
+        0%   { background-position: 0% 50%; }
+        50%  { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
       }
+      .animate-gradient { animation: animate-gradient 4s ease infinite; }
 
-      @keyframes marquee-right {
-        0% { transform: translateX(-50%); }
-        100% { transform: translateX(0); }
-      }
+      /* ── Infinite marquee ──────────────────────────────── */
+      @keyframes marquee-left  { from { transform: translateX(0); }    to { transform: translateX(-50%); } }
+      @keyframes marquee-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+      .animate-marquee-left  { animation: marquee-left  55s linear infinite; width: max-content; }
+      .animate-marquee-right { animation: marquee-right 55s linear infinite; width: max-content; }
 
-      .animate-marquee-left {
-        animation: marquee-left 55s linear infinite;
-        width: max-content;
-      }
+      /* animate-float & animate-pulse-slow removed — these animated large
+         blurred elements causing GPU layer thrashing. */
 
-      .animate-marquee-right {
-        animation: marquee-right 55s linear infinite;
-        width: max-content;
-      }
+      /* ── Modal/slide animations ────────────────────────── */
+      @keyframes slide-left    { from { transform: translateX(100%); } to { transform: translateX(0); } }
+      @keyframes fade-in       { from { opacity: 0; }  to { opacity: 1; } }
+      @keyframes fade-in-up    { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes slide-in-right{ from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+      .animate-slide-left    { animation: slide-left     0.35s ease-out forwards; }
+      .animate-fade-in       { animation: fade-in        0.25s ease-out forwards; }
+      .animate-fade-in-up    { animation: fade-in-up     0.5s  ease-out forwards; }
+      .animate-slide-in-right{ animation: slide-in-right 0.5s  ease-out forwards; }
 
-      .hide-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
+      /* ── Logo animations ───────────────────────────────── */
+      @keyframes logo-bounce-in  { 0% { transform: scale(0.3) rotate(-15deg); opacity: 0; } 60% { transform: scale(1.15) rotate(5deg); opacity: 1; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
+      @keyframes logo-bounce-out { 0% { transform: scale(1) rotate(0deg); opacity: 1; } 40% { transform: scale(1.1) rotate(-5deg); opacity: 0.8; } 100% { transform: scale(0.3) rotate(15deg); opacity: 0; } }
+      @keyframes text-slide-in   { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+      @keyframes text-slide-out  { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(20px); } }
+      .animate-logo-bounce-in  { animation: logo-bounce-in  0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+      .animate-logo-bounce-out { animation: logo-bounce-out 0.5s ease-in forwards; }
+      .animate-text-slide-in   { animation: text-slide-in   0.4s ease-out forwards; }
+      .animate-text-slide-out  { animation: text-slide-out  0.4s ease-in  forwards; }
 
-      .hide-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-
-      ::-webkit-scrollbar-track {
-        background: #0a0e17;
-      }
-
+      /* ── Scrollbar — premium gradient ──────────────────── */
+      ::-webkit-scrollbar { width: 6px; }
+      ::-webkit-scrollbar-track { background: #060911; }
       ::-webkit-scrollbar-thumb {
-        background: linear-gradient(to bottom, #3b82f6, #10b981);
-        border-radius: 4px;
+        background: linear-gradient(to bottom, #0ea5e9, #10b981);
+        border-radius: 3px;
       }
-
       ::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(to bottom, #2563eb, #059669);
+        background: linear-gradient(to bottom, #38bdf8, #34d399);
+      }
+      .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      .hide-scrollbar::-webkit-scrollbar { display: none; }
+
+      /* ── Smooth scroll ─────────────────────────────────── */
+      html { scroll-behavior: smooth; }
+
+      /* ══════════════════════════════════════════════════════
+         PREMIUM EFFECTS
+      ══════════════════════════════════════════════════════ */
+
+      /* Solid dark card — same look, zero backdrop-filter cost */
+      .glass-card {
+        background: linear-gradient(135deg, #0f141f 0%, #0a0e17 100%);
+        border: 1px solid rgba(255,255,255,0.07);
+        box-shadow: 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
+        transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+      }
+      .glass-card:hover {
+        border-color: rgba(255,255,255,0.11);
+        box-shadow: 0 8px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+        transform: translateY(-2px);
       }
 
-          @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(30px, -30px) scale(1.1); }
-      66% { transform: translate(-20px, 20px) scale(0.9); }
-    }
-    
-    .animate-float {
-      animation: float 12s ease-in-out infinite;
-    }
-  
+      /* Simplified button hover — no pseudo-element paint */
+      .btn-glow {
+        transition: transform 0.18s ease, box-shadow 0.2s ease, filter 0.2s ease;
+      }
+      .btn-glow:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 24px rgba(16,185,129,0.4), 0 2px 8px rgba(16,185,129,0.15);
+        filter: brightness(1.08);
+      }
+      .btn-glow:active { transform: scale(0.98); }
+
+      /* Gradient border glow on hover */
+      .gradient-border {
+        position: relative;
+        background-clip: padding-box;
+      }
+      .gradient-border::before {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        border-radius: inherit;
+        background: linear-gradient(135deg, rgba(14,165,233,0.0), rgba(16,185,129,0.0));
+        transition: background 0.4s ease;
+        z-index: -1;
+      }
+      .gradient-border:hover::before {
+        background: linear-gradient(135deg, rgba(14,165,233,0.4), rgba(16,185,129,0.4));
+      }
+
+      /* Section divider glow line */
+      .section-glow-line {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(14,165,233,0.3), rgba(16,185,129,0.3), transparent);
+      }
+
+      /* noise-overlay removed — SVG feTurbulence filter is CPU-intensive */
+
+      /* Premium stat counter glow */
+      .stat-value {
+        background: linear-gradient(135deg, #fff 50%, rgba(255,255,255,0.7) 100%);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: none;
+      }
+
+      /* Step card premium border */
+      .step-card-inner {
+        position: relative;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+      }
+      .step-card-inner:hover {
+        transform: translateY(-4px);
+      }
+
+      /* Animated ring for step numbers */
+      @keyframes ring-pulse {
+        0%   { box-shadow: 0 0 0 0   rgba(139,92,246,0.5); }
+        70%  { box-shadow: 0 0 0 14px rgba(139,92,246,0); }
+        100% { box-shadow: 0 0 0 0   rgba(139,92,246,0); }
+      }
+      .step-ring-violet { animation: ring-pulse 2.5s ease-out infinite; }
+
+      @keyframes ring-pulse-pink {
+        0%   { box-shadow: 0 0 0 0   rgba(236,72,153,0.5); }
+        70%  { box-shadow: 0 0 0 14px rgba(236,72,153,0); }
+        100% { box-shadow: 0 0 0 0   rgba(236,72,153,0); }
+      }
+      .step-ring-pink { animation: ring-pulse-pink 2.5s ease-out 0.4s infinite; }
+
+      @keyframes ring-pulse-sky {
+        0%   { box-shadow: 0 0 0 0   rgba(14,165,233,0.5); }
+        70%  { box-shadow: 0 0 0 14px rgba(14,165,233,0); }
+        100% { box-shadow: 0 0 0 0   rgba(14,165,233,0); }
+      }
+      .step-ring-sky { animation: ring-pulse-sky 2.5s ease-out 0.8s infinite; }
+
+      /* Premium line connector */
+      .timeline-line {
+        background: linear-gradient(to bottom,
+          rgba(139,92,246,0.5),
+          rgba(236,72,153,0.5),
+          rgba(14,165,233,0.5)
+        );
+      }
+
+      /* Affiliate card premium glow */
+      .affiliate-card-premium {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+      .affiliate-card-premium:hover {
+        transform: translateY(-6px) scale(1.01);
+        box-shadow: 0 20px 60px rgba(16,185,129,0.15), 0 0 0 1px rgba(16,185,129,0.2);
+      }
+
+      /* CTA premium gradient border */
+      @keyframes cta-glow {
+        0%, 100% { opacity: 0.5; }
+        50%  { opacity: 1; }
+      }
+      .cta-glow-ring {
+        animation: cta-glow 3s ease-in-out infinite;
+      }
+
+      /* Payment logo card */
+      .payment-card {
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+      }
+      .payment-card:hover {
+        transform: translateY(-3px) scale(1.04);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        border-color: rgba(14,165,233,0.3) !important;
+      }
+
+      /* Partnership image reveal */
+      .partner-image-wrap {
+        position: relative;
+        overflow: hidden;
+      }
+      .partner-image-wrap::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(14,165,233,0.05), rgba(16,185,129,0.05));
+        pointer-events: none;
+      }
+
+      /* ── Word-split perspective for GSAP text animation ───── */
+      .gsap-hero-title-line1,
+      .gsap-hero-title-accent {
+        perspective: 600px;
+        transform-style: preserve-3d;
+      }
+
+      /* ── Decorative orbs — animated by GSAP ─────────────── */
+      .gsap-orb { pointer-events: none; }
+
+      /* ── Counter text pop ────────────────────────────────── */
+      .gsap-counter {
+        font-variant-numeric: tabular-nums;
+        will-change: contents;
+      }
+
+      /* ── Framer Motion will-change hint ─────────────────── */
+      [data-motion-component] { will-change: transform, opacity; }
+
+      /* Fade top/bottom edges for marquee */
+      .marquee-fade {
+        mask-image: linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%);
+        -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%);
+      }
     `}</style>
     </div>
   )

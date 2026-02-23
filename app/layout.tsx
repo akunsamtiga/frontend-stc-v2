@@ -11,7 +11,7 @@ import './globals.css'
 const SITE_URL = 'https://stouch.id'
 const SITE_NAME = 'Stouch.id'
 const SITE_DESCRIPTION =
-  'Platform trading binary option terpercaya di Indonesia. Profit hingga 95%, penarikan kilat, bonus VIP, dan keamanan maksimal. Powered by Stockity.'
+  'Platform trading binary option terpercaya di Indonesia. Profit hingga 100%, penarikan kilat, bonus VIP, dan keamanan maksimal. Powered by Stockity.'
 
 // ─── Root metadata ─────────────────────────────────────────────────────────────
 export const metadata: Metadata = {

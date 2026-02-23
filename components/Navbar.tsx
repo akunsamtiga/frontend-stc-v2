@@ -1,3 +1,4 @@
+// components/Navbar.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -17,7 +18,8 @@ import {
   X,
   ChevronDown,
   User,
-  UserPlus
+  UserPlus,
+  Share2
 } from 'lucide-react'
 
 export default function Navbar() {
@@ -28,6 +30,7 @@ export default function Navbar() {
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [isClosingMenu, setIsClosingMenu] = useState(false)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [isAffiliator, setIsAffiliator] = useState(false)
   const [logoPhase, setLogoPhase] = useState<'stc-logo-in' | 'stc-text-in' | 'stc-hold' | 'stc-text-out' | 'stc-logo-out' | 'stockity-logo-in' | 'stockity-text-in' | 'stockity-hold' | 'stockity-text-out' | 'stockity-logo-out'>('stc-logo-in')
 
   // Fetch user profile
@@ -47,7 +50,18 @@ export default function Navbar() {
       }
     }
 
+    const checkAffiliator = async () => {
+      if (!user?.id) return
+      try {
+        await api.getMyAffiliatorProgram()
+        setIsAffiliator(true)
+      } catch {
+        setIsAffiliator(false)
+      }
+    }
+
     loadUserProfile()
+    checkAffiliator()
   }, [user?.id])
 
   useEffect(() => {
@@ -118,6 +132,7 @@ export default function Navbar() {
     { path: '/history', label: 'Riwayat', icon: History },
     { path: '/balance', label: 'Keuangan', icon: Wallet },
     { path: '/referral', label: 'Undang Teman', icon: UserPlus },
+    ...(isAffiliator ? [{ path: '/affiliate', label: 'Affiliasi', icon: Share2 }] : []),
     { path: '/profile', label: 'Profil', icon: User },
   ]
 
@@ -216,21 +231,8 @@ export default function Navbar() {
             )
           })}
 
-          {/* Admin Link */}
-          {(user.role === 'super_admin' || user.role === 'admin') && (
-            <button
-              onClick={() => router.push('/admin')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                pathname.startsWith('/admin')
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <Shield className="w-4 h-4" />
-              <span>Admin</span>
-            </button>
-          )}
         </div>
+
 
         {/* User Menu */}
         <div className="flex-shrink-0 relative">
@@ -261,12 +263,44 @@ export default function Navbar() {
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
               <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-flat-lg z-50 overflow-hidden">
+                {/* User info */}
                 <div className="px-4 py-3 border-b border-gray-100">
                   <div className="text-sm font-medium text-gray-900 truncate mb-1">{user.email}</div>
                   <div className="text-xs text-gray-500 capitalize">
                     {user.role.replace('_', ' ')} | {user.status.toUpperCase()}
                   </div>
                 </div>
+
+                {/* Affiliate link */}
+                {isAffiliator && (
+                  <button
+                    onClick={() => { router.push('/affiliate'); setShowUserMenu(false) }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 transition-colors text-left ${
+                      isActive('/affiliate') ? 'text-blue-600 bg-blue-50' : 'text-gray-700'
+                    }`}
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <span className="text-sm font-medium">Program Affiliasi</span>
+                  </button>
+                )}
+
+                {/* Admin link */}
+                {(user.role === 'super_admin' || user.role === 'admin') && (
+                  <button
+                    onClick={() => { router.push('/admin'); setShowUserMenu(false) }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 transition-colors text-left ${
+                      pathname.startsWith('/admin') ? 'text-blue-600 bg-blue-50' : 'text-gray-700'
+                    }`}
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span className="text-sm font-medium">Panel Admin</span>
+                  </button>
+                )}
+
+                {/* Divider */}
+                <div className="border-t border-gray-100" />
+
+                {/* Logout */}
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 transition-colors text-left text-red-600"
@@ -415,7 +449,7 @@ export default function Navbar() {
                   }`}
                 >
                   <Shield className="w-5 h-5" />
-                  <span className="font-medium">Admin</span>
+                  <span className="font-medium">Panel Admin</span>
                 </button>
               )}
             </div>

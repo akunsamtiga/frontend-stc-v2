@@ -1,3 +1,4 @@
+// app/admin/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -12,7 +13,8 @@ import {
   Users, TrendUp, CurrencyDollar, Activity, 
   ArrowUpRight, Package, Calendar, Tag, Shield,
   ArrowLineUp,
-  ArrowsClockwise, CaretRight, Target, Info
+  ArrowsClockwise, CaretRight, Target, Info,
+  ShareNetwork
 } from 'phosphor-react'
 
 type AccountFilter = 'real' | 'demo'
@@ -213,6 +215,14 @@ export default function AdminDashboard() {
       href: '/admin/auto-lose',
       color: 'red'
     },
+    {
+      title: 'Affiliator',
+      description: 'Kelola program afiliasi',
+      icon: ShareNetwork,
+      href: '/admin/affiliators',
+      color: 'violet',
+      badge: (stats as any)?.affiliators?.pendingWithdrawals
+    },
   ]
 
   const colorClasses: Record<string, { bg: string, icon: string, hover: string }> = {
@@ -224,6 +234,7 @@ export default function AdminDashboard() {
     orange: { bg: 'bg-orange-500/10', icon: 'text-orange-400', hover: 'hover:bg-orange-500/20' },
     pink: { bg: 'bg-pink-500/10', icon: 'text-pink-400', hover: 'hover:bg-pink-500/20' },
     red: { bg: 'bg-red-500/10', icon: 'text-red-400', hover: 'hover:bg-red-500/20' },
+    violet:  { bg: 'bg-violet-500/10',  icon: 'text-violet-400',  hover: 'hover:bg-violet-500/20'  },
   }
 
   return (

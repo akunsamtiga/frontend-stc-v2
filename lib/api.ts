@@ -1,6 +1,17 @@
-// lib/api.ts
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
+import type {
+  AffiliatorDashboard,
+  AffiliatorInvitesSummary,
+  CommissionDetails,
+  CommissionWithdrawalHistory,
+  RequestCommissionWithdrawalDto,
+  AdminAffiliatorsResponse,
+  AdminCommissionWithdrawalsResponse,
+  AssignAffiliatorDto,
+  UpdateAffiliatorConfigDto,
+  ApproveCommissionWithdrawalDto,
+} from '@/types'
 import type { 
   CreateAssetRequest, 
   UpdateAssetRequest,
@@ -1843,6 +1854,185 @@ async bulkUpdateAssetScheduleStatus(ids: string[], isActive: boolean): Promise<A
       consecutiveErrors: this.consecutiveErrors,
       cacheSize: this.cache.size,
       pendingRequests: this.pendingRequests.size
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // AFFILIATE PROGRAM — USER ENDPOINTS
+  // ─────────────────────────────────────────────────────────
+
+  async getMyAffiliatorProgram(): Promise<ApiResponse<AffiliatorDashboard>> {
+    const cacheKey = this.getCacheKey('/affiliate-program/my-program')
+    const cached = this.getFromCache(cacheKey)
+    if (cached) return cached
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get('/affiliate-program/my-program', {
+        headers: { 'X-Silent-Error': 'true' }
+      })
+      this.setCache(cacheKey, data, 10_000)
+      return data
+    })
+  }
+
+  async getMyAffiliatorInvites(): Promise<ApiResponse<AffiliatorInvitesSummary>> {
+    const cacheKey = this.getCacheKey('/affiliate-program/my-invites')
+    const cached = this.getFromCache(cacheKey)
+    if (cached) return cached
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get('/affiliate-program/my-invites')
+      this.setCache(cacheKey, data, 15_000)
+      return data
+    })
+  }
+
+  async getMyCommissions(): Promise<ApiResponse<CommissionDetails>> {
+    const cacheKey = this.getCacheKey('/affiliate-program/my-commissions')
+    const cached = this.getFromCache(cacheKey)
+    if (cached) return cached
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get('/affiliate-program/my-commissions')
+      this.setCache(cacheKey, data, 10_000)
+      return data
+    })
+  }
+
+  async requestCommissionWithdrawal(dto: RequestCommissionWithdrawalDto): Promise<ApiResponse> {
+    try {
+      const result = await this.client.post('/affiliate-program/commission-withdrawals', dto)
+      this.invalidateCache('/affiliate-program/my-program')
+      this.invalidateCache('/affiliate-program/my-commissions')
+      this.invalidateCache('/affiliate-program/commission-withdrawals')
+      return result
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async getMyCommissionWithdrawals(): Promise<ApiResponse<CommissionWithdrawalHistory>> {
+    const cacheKey = this.getCacheKey('/affiliate-program/commission-withdrawals')
+    const cached = this.getFromCache(cacheKey)
+    if (cached) return cached
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get('/affiliate-program/commission-withdrawals')
+      this.setCache(cacheKey, data, 8_000)
+      return data
+    })
+  }
+
+  async cancelCommissionWithdrawal(withdrawalId: string): Promise<ApiResponse> {
+    try {
+      const result = await this.client.delete(
+        `/affiliate-program/commission-withdrawals/${withdrawalId}/cancel`
+      )
+      this.invalidateCache('/affiliate-program/my-program')
+      this.invalidateCache('/affiliate-program/my-commissions')
+      this.invalidateCache('/affiliate-program/commission-withdrawals')
+      return result
+    } catch (error) {
+      throw error
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // AFFILIATE PROGRAM — ADMIN ENDPOINTS
+  // ─────────────────────────────────────────────────────────
+
+  async adminGetAllAffiliators(params?: {
+    page?: number
+    limit?: number
+    isActive?: boolean
+  }): Promise<ApiResponse<AdminAffiliatorsResponse>> {
+    const query = new URLSearchParams()
+    if (params?.page)    query.append('page', String(params.page))
+    if (params?.limit)   query.append('limit', String(params.limit))
+    if (params?.isActive !== undefined) query.append('isActive', String(params.isActive))
+    const cacheKey = this.getCacheKey('/admin/affiliate-program/affiliators', params)
+    const cached = this.getFromCache(cacheKey)
+    if (cached) return cached
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get(`/admin/affiliate-program/affiliators?${query}`)
+      this.setCache(cacheKey, data, 10_000)
+      return data
+    })
+  }
+
+  async adminGetAffiliatorDetail(userId: string): Promise<ApiResponse> {
+    const cacheKey = this.getCacheKey(`/admin/affiliate-program/affiliators/${userId}`)
+    const cached = this.getFromCache(cacheKey)
+    if (cached) return cached
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get(`/admin/affiliate-program/affiliators/${userId}`)
+      this.setCache(cacheKey, data, 10_000)
+      return data
+    })
+  }
+
+  async adminAssignAffiliator(userId: string, dto: AssignAffiliatorDto): Promise<ApiResponse> {
+    try {
+      const result = await this.client.post(`/admin/affiliate-program/affiliators/${userId}`, dto)
+      this.invalidateCache('/admin/affiliate-program/affiliators')
+      return result
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async adminRevokeAffiliator(userId: string): Promise<ApiResponse> {
+    try {
+      const result = await this.client.delete(`/admin/affiliate-program/affiliators/${userId}/revoke`)
+      this.invalidateCache('/admin/affiliate-program/affiliators')
+      return result
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async adminUpdateAffiliatorConfig(programId: string, dto: UpdateAffiliatorConfigDto): Promise<ApiResponse> {
+    try {
+      const result = await this.client.put(`/admin/affiliate-program/affiliators/${programId}/config`, dto)
+      this.invalidateCache('/admin/affiliate-program/affiliators')
+      return result
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async adminGetCommissionWithdrawals(params?: {
+    page?: number
+    limit?: number
+    status?: string
+  }): Promise<ApiResponse<AdminCommissionWithdrawalsResponse>> {
+    const query = new URLSearchParams()
+    if (params?.page)   query.append('page', String(params.page))
+    if (params?.limit)  query.append('limit', String(params.limit))
+    if (params?.status) query.append('status', params.status)
+    const cacheKey = this.getCacheKey('/admin/affiliate-program/commission-withdrawals', params)
+    const cached = this.getFromCache(cacheKey)
+    if (cached) return cached
+    return this.withDeduplication(cacheKey, async () => {
+      const data = await this.client.get(`/admin/affiliate-program/commission-withdrawals?${query}`)
+      this.setCache(cacheKey, data, 8_000)
+      return data
+    })
+  }
+
+  async adminApproveCommissionWithdrawal(
+    withdrawalId: string,
+    dto: ApproveCommissionWithdrawalDto
+  ): Promise<ApiResponse> {
+    try {
+      if (!dto.approve && !dto.rejectionReason) {
+        throw new Error('Alasan penolakan wajib diisi saat menolak request.')
+      }
+      const result = await this.client.post(
+        `/admin/affiliate-program/commission-withdrawals/${withdrawalId}/approve`,
+        dto
+      )
+      this.invalidateCache('/admin/affiliate-program/commission-withdrawals')
+      this.invalidateCache('/admin/affiliate-program/affiliators')
+      return result
+    } catch (error) {
+      throw error
     }
   }
 }

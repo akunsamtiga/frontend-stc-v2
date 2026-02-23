@@ -1734,3 +1734,180 @@ export function getInformationPriorityColor(priority: InformationPriority): stri
   }
   return colors[priority] || 'bg-gray-100 text-gray-800 border-gray-200'
 }
+
+
+// ============================================
+// AFFILIATE PROGRAM TYPES
+// ============================================
+
+export interface AffiliatorProgram {
+  id: string
+  userId: string
+  userEmail: string
+  affiliateCode: string
+  revenueSharePercentage: number
+  unlockThreshold: number
+  commissionBalance: number
+  lockedCommissionBalance: number
+  isCommissionUnlocked: boolean
+  isActive: boolean
+  assignedBy: string
+  assignedAt: string
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface AffiliatorDashboard {
+  affiliateCode: string
+  isCommissionUnlocked: boolean
+  revenueSharePercentage: number
+  balances: {
+    commissionBalance: number
+    lockedCommissionBalance: number
+    isLocked: boolean
+  }
+  unlockProgress: {
+    current: number
+    required: number
+    percentage: number
+    isUnlocked: boolean
+    message: string
+  }
+  stats: {
+    totalInvited: number
+    depositedInvites: number
+    pendingInvites: number
+    totalCommissionEarned: number
+    totalCommissionWithdrawn: number
+  }
+}
+
+export interface AffiliatorInvite {
+  id: string
+  affiliatorId: string
+  inviteeId: string
+  inviteeEmail: string
+  hasDeposited: boolean
+  firstDepositAt?: string
+  isCountedForUnlock: boolean
+  createdAt: string
+}
+
+export interface AffiliatorInvitesSummary {
+  invites: AffiliatorInvite[]
+  total: number
+  deposited: number
+  pending: number
+}
+
+export interface CommissionLog {
+  id: string
+  affiliatorId: string
+  inviteeId: string
+  orderAmount: number
+  lossAmount: number
+  commissionPercentage: number
+  commissionAmount: number
+  createdAt: string
+}
+
+export interface CommissionDetails {
+  commissionBalance: number
+  lockedCommissionBalance: number
+  isCommissionUnlocked: boolean
+  totalEarned: number
+  totalWithdrawn: number
+  revenueSharePercentage: number
+  commissionLogs: CommissionLog[]
+}
+
+export type CommissionWithdrawalStatus = 'pending' | 'approved' | 'rejected' | 'completed'
+
+export interface CommissionWithdrawal {
+  id: string
+  affiliatorId: string
+  amount: number
+  status: CommissionWithdrawalStatus
+  bankAccount?: {
+    bankName: string
+    accountNumber: string
+    accountHolderName: string
+  }
+  note?: string
+  adminNotes?: string
+  rejectionReason?: string
+  reviewedAt?: string
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface CommissionWithdrawalHistory {
+  commissionBalance: number
+  isCommissionUnlocked: boolean
+  totalWithdrawn: number
+  withdrawals: CommissionWithdrawal[]
+}
+
+export interface RequestCommissionWithdrawalDto {
+  amount: number
+  note?: string
+}
+
+export interface AffiliatorListItem {
+  id: string
+  userId: string
+  userEmail: string
+  affiliateCode: string
+  revenueSharePercentage: number
+  unlockThreshold: number
+  commissionBalance: number
+  isCommissionUnlocked: boolean
+  isActive: boolean
+  totalInvited: number
+  depositedInvites: number
+  totalCommissionEarned: number
+  assignedAt: string
+}
+
+export interface AdminAffiliatorsResponse {
+  affiliators: AffiliatorListItem[]
+  total: number
+  page: number
+  limit: number
+}
+
+export interface AdminCommissionWithdrawal extends CommissionWithdrawal {
+  affiliatorEmail: string
+  userEmail: string
+}
+
+export interface AdminCommissionWithdrawalsResponse {
+  withdrawals: AdminCommissionWithdrawal[]
+  summary: {
+    total: number
+    pending: number
+    approved: number
+    rejected: number
+    completed: number
+    totalAmount: number
+  }
+  page: number
+  limit: number
+}
+
+export interface AssignAffiliatorDto {
+  revenueSharePercentage?: number
+  unlockThreshold?: number
+}
+
+export interface UpdateAffiliatorConfigDto {
+  revenueSharePercentage?: number
+  unlockThreshold?: number
+  isActive?: boolean
+}
+
+export interface ApproveCommissionWithdrawalDto {
+  approve: boolean
+  adminNotes?: string
+  rejectionReason?: string
+}

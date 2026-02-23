@@ -1,4 +1,4 @@
-// app/(authenticated)/admin/withdrawals/page.tsx
+// app/admin/withdrawals/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
