@@ -1,15 +1,10 @@
 // components/CandleCountdown.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Clock } from 'lucide-react'
-import { Timeframe } from '@/types'
+import { memo } from 'react'
+import { Timer } from 'lucide-react'
 
-interface CandleCountdownProps {
-  timeframe: Timeframe
-}
-
-const TIMEFRAME_SECONDS: Record<Timeframe, number> = {
+const TIMEFRAME_SECONDS: Record<string, number> = {
   '1s': 1,
   '1m': 60,
   '5m': 300,
@@ -20,55 +15,49 @@ const TIMEFRAME_SECONDS: Record<Timeframe, number> = {
   '1d': 86400,
 }
 
-const formatCountdown = (seconds: number, timeframe: Timeframe): string => {
-  // For sub-minute timeframes, show seconds only
-  if (timeframe === '1s') {
-    return `00:${seconds.toString().padStart(2, '0')}`
-  }
-  
-  // For minute+ timeframes, show MM:SS format
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+interface CandleCountdownProps {
+  timeframe: string
+  /** nowSeconds dari TradingChart — satu sumber waktu untuk semua. */
+  nowSeconds: number
 }
 
-const CandleCountdown = ({ timeframe }: CandleCountdownProps) => {
-  const [timeRemaining, setTimeRemaining] = useState<number>(0)
+function formatCountdown(secs: number, timeframe: string): string {
+  if (timeframe === '1s') return `00:${String(secs).padStart(2, '0')}`
+  const m = Math.floor(secs / 60)
+  const s = secs % 60
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
 
-  useEffect(() => {
-    const calculateTimeRemaining = () => {
-      const now = Math.floor(Date.now() / 1000) // Current time in seconds
-      const intervalSeconds = TIMEFRAME_SECONDS[timeframe]
-      
-      // Calculate seconds since the start of the current candle
-      const secondsSinceIntervalStart = now % intervalSeconds
-      
-      // Calculate seconds remaining until next candle
-      const remaining = intervalSeconds - secondsSinceIntervalStart
-      
-      setTimeRemaining(remaining)
-    }
+const CandleCountdown = memo(({ timeframe, nowSeconds }: CandleCountdownProps) => {
+  const intervalSeconds = TIMEFRAME_SECONDS[timeframe] ?? 60
+  const remaining = intervalSeconds - (nowSeconds % intervalSeconds)
 
-    // Initial calculation
-    calculateTimeRemaining()
-
-    // Update every second
-    const interval = setInterval(calculateTimeRemaining, 1000)
-
-    return () => clearInterval(interval)
-  }, [timeframe])
+  const isUrgent = remaining <= 5
+  const isCritical = remaining <= 2
 
   return (
-    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20">
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-lg shadow-lg">
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-sm font-light text-white tabular-nums">
-            {formatCountdown(timeRemaining, timeframe)}
-          </span>
-        </div>
-      </div>
+    <div
+      className={`
+        flex items-center gap-1.5
+        px-2.5 py-1.5 rounded-lg
+        backdrop-blur-sm border
+        transition-colors duration-300
+        ${isCritical
+          ? 'bg-red-500/20 border-red-500/50 text-red-400'
+          : isUrgent
+            ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400'
+            : 'bg-black/30 border-white/10 text-gray-300'
+        }
+      `}
+    >
+      <Timer className="w-3.5 h-3.5 flex-shrink-0" />
+      <span className="text-xs font-bold tabular-nums">
+        {formatCountdown(remaining, timeframe)}
+      </span>
     </div>
   )
-}
+})
+
+CandleCountdown.displayName = 'CandleCountdown'
 
 export default CandleCountdown

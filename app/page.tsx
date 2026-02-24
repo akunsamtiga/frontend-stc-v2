@@ -402,6 +402,12 @@ function CryptoIcon({ symbol, size = 32, className = '' }: { symbol: string; siz
   )
 }
 
+// Mask username: tampilkan 4 karakter pertama, sisanya jadi ***
+function maskUsername(name: string): string {
+  if (!name || name.length <= 4) return name
+  return name.slice(0, 4) + '***'
+}
+
 const LiveCryptoTicker = () => {
   const [trades, setTrades] = useState<LiveTradeData[]>([])
   const [totalCount, setTotalCount] = useState(1284)
@@ -498,7 +504,7 @@ const LiveCryptoTicker = () => {
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <CryptoIcon symbol={trade.asset.split('/')[0]} size={24} className="flex-shrink-0" />
               <div className="min-w-0">
-                <div className="text-[11px] font-semibold text-gray-200 truncate">{trade.user}</div>
+                <div className="text-[11px] font-semibold text-gray-200 truncate">{maskUsername(trade.user)}</div>
                 <div className="flex items-center gap-1 mt-0.5">
                   <span className="text-[9px] text-gray-500">{trade.asset}</span>
                   {trade.direction && (
@@ -525,7 +531,7 @@ const LiveCryptoTicker = () => {
 
       {/* Footer */}
       <div className="px-4 py-2.5 border-t border-gray-800/60 flex items-center justify-between mt-1">
-        <span className="text-[9px] text-gray-600">Data dari Binance API</span>
+        <span className="text-[9px] text-gray-600">Data from Binance</span>
         <div className="flex items-center gap-1">
           <div className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse" />
           <span className="text-[9px] text-emerald-500/70">Live</span>
@@ -1608,7 +1614,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content — animated by GSAP hero timeline */}
-            <div className="space-y-8">
+            <div className="space-y-6">
               <div className="space-y-2">
                 <div className="gsap-hero-badge inline-flex items-center gap-2 px-1">
                   <span className="text-xs sm:text-sm font-medium shimmer-date">1 Februari – 31 Maret</span>
@@ -1627,9 +1633,9 @@ export default function LandingPage() {
               </div>
 
               <p className="gsap-hero-desc text-lg sm:text-xl text-gray-400 leading-relaxed">
-                Tersedia berbagai aset <span className="text-emerald-400 font-semibold">global</span>, 
-                dapatkan profit hingga <span className="text-teal-500 font-semibold">100%</span>, 
-                dan penarikan secepat <span className="text-amber-400 font-semibold">kilat.</span>
+                Tersedia berbagai aset <span className="text-emerald-600 font-semibold">global</span>, 
+                dapatkan profit hingga <span className="text-teal-600 font-semibold">100%</span>, 
+                dan penarikan secepat <span className="text-amber-600 font-semibold">kilat.</span>
               </p>
 
               <div className="gsap-hero-buttons flex flex-row gap-3 sm:gap-4">
@@ -2242,7 +2248,7 @@ export default function LandingPage() {
       <div className="gsap-aff-badge inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6">
         <span className="text-sm font-medium text-emerald-400">Program Affiliate</span>
       </div>
-      <h2 className="gsap-aff-title text-4xl sm:text-5xl font-bold mb-6 px-12 tracking-tight">
+      <h2 className="gsap-aff-title text-4xl sm:text-5xl font-bold mb-6 tracking-tight">
         Undang Teman,<br />Dapatkan Hingga <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-emerald-400">Rp 400.000</span>
       </h2>
       <p className="gsap-aff-desc text-lg text-gray-400 max-w-3xl mx-auto leading-relaxed">

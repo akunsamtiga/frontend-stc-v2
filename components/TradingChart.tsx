@@ -731,16 +731,8 @@ async function checkSimulatorStatus(assetPath: string): Promise<{
   }
 }
 
-const RealtimeClock = memo(() => {
-  const [time, setTime] = useState(new Date())
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTime(new Date())
-    }, 100)
-
-    return () => clearInterval(interval)
-  }, [])
+const RealtimeClock = memo(({ nowMs }: { nowMs: number }) => {
+  const time = new Date(nowMs)
 
   const timeStr = time.toLocaleTimeString('id-ID', {
     hour: '2-digit',
@@ -750,18 +742,19 @@ const RealtimeClock = memo(() => {
     timeZone: 'Asia/Jakarta'
   })
 
-  const dateStr = time.toLocaleDateString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'Asia/Jakarta'
-  })
+  // Format tanggal manual pakai ":" sebagai separator
+  const wib = new Date(time.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }))
+  const day = String(wib.getDate()).padStart(2, '0')
+  const monthNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
+  const month = monthNames[wib.getMonth()]
+  const year = wib.getFullYear()
+  const dateStr = `${day} ${month} ${year}`
 
   return (
-    <div className="absolute top-16 left-2 z-10 bg-black/20 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/10">
+    <div className="absolute top-16 left-2 z-10 bg-black/20 backdrop-blur-sm rounded-full px-3 py-1.5 border border-white/10">
       <div className="flex items-center gap-2">
         <div className="text-xs font-light text-white">
-          {timeStr} <span className="text-gray-300">|</span> {dateStr}
+          {timeStr} <span className="text-gray-300"> | </span> {dateStr}
         </div>
       </div>
     </div>
@@ -882,7 +875,7 @@ const PriceDisplay = memo(({
   return (
     <div className="absolute top-2 left-2 z-20">
       {/* Mobile: symbol box (clickable) + price box side by side */}
-      <div className="lg:hidden flex items-center gap-3">
+      <div className="lg:hidden flex items-center">
         <button
           onClick={onClick}
           className="bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-3 py-2 hover:bg-black/50 transition-all flex items-center gap-2"
@@ -892,7 +885,7 @@ const PriceDisplay = memo(({
           <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showMenu ? 'rotate-180' : ''}`} />
         </button>
 
-        <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-3 py-2 flex items-center gap-2">
+        <div className="px-3 py-2 flex items-center gap-2">
           <span className="text-sm font-bold text-white">{formattedPrice}</span>
           {hasChange && (
             <span className={`text-xs font-semibold ${price.change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -902,18 +895,14 @@ const PriceDisplay = memo(({
         </div>
       </div>
 
-      {/* Desktop: symbol box + price box side by side */}
-      <div className="hidden lg:flex items-center gap-3">
-        <button
-          onClick={onClick}
-          className="bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 hover:bg-black/50 transition-all flex items-center gap-2"
-        >
+      {/* Desktop: symbol box + price box side by side — no click/arrow, display only */}
+      <div className="hidden lg:flex items-center gap-1">
+        <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-full px-4 py-2.5 flex items-center gap-2">
           {asset && <AssetIcon asset={asset} size="sm" />}
           <span className="text-sm font-semibold text-white">{asset.symbol}</span>
-          <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showMenu ? 'rotate-180' : ''}`} />
-        </button>
+        </div>
 
-        <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 flex items-center gap-2">
+        <div className="px-4 py-2 flex items-center gap-2">
           <span className="text-xl font-bold text-white">{formattedPrice}</span>
           {hasChange && (
             <span className={`text-sm font-semibold ${price.change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -1148,7 +1137,8 @@ const MobileControls = memo(({
   onChartTypeChange,
   onFitContent,
   onRefresh,
-  onOpenIndicators
+  onOpenIndicators,
+  nowSeconds,
 }: any) => {
   const [showTimeframeMenu, setShowTimeframeMenu] = useState(false)
   const [showChartTypeMenu, setShowChartTypeMenu] = useState(false)
@@ -1172,22 +1162,13 @@ const MobileControls = memo(({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Countdown state (integrated from CandleCountdown)
+  // Countdown — nowSeconds datang dari TradingChart via prop (satu sumber waktu)
   const TIMEFRAME_SECONDS_MAP: Record<string, number> = {
     '1s': 1, '1m': 60, '5m': 300, '15m': 900,
     '30m': 1800, '1h': 3600, '4h': 14400, '1d': 86400,
   }
-  const [countdownSecs, setCountdownSecs] = useState<number>(0)
-  useEffect(() => {
-    const calc = () => {
-      const now = Math.floor(Date.now() / 1000)
-      const interval = TIMEFRAME_SECONDS_MAP[timeframe] ?? 60
-      setCountdownSecs(interval - (now % interval))
-    }
-    calc()
-    const t = setInterval(calc, 1000)
-    return () => clearInterval(t)
-  }, [timeframe])
+  const intervalSecs = TIMEFRAME_SECONDS_MAP[timeframe] ?? 60
+  const countdownSecs = intervalSecs - (nowSeconds % intervalSecs)
 
   const formatCd = (secs: number) => {
     if (timeframe === '1s') return `00:${String(secs).padStart(2, '0')}`
@@ -1357,7 +1338,7 @@ const DesktopControls = memo(({
         <div className="relative" ref={timeframeRef}>
           <button onClick={() => setShowTimeframeMenu(!showTimeframeMenu)} disabled={isLoading} className="p-2.5 bg-black/20 backdrop-blur-md border border-white/10 rounded-full hover:bg-black/30 transition-all flex items-center gap-1.5 disabled:opacity-50" title="Timeframe">
             <Clock className="w-5 h-5 text-gray-300" />
-            <span className="text-base font-extrabold text-white">{timeframe}</span>
+            <span className="text-base font-bold text-white">{timeframe}</span>
             <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showTimeframeMenu ? 'rotate-180' : ''}`} />
           </button>
 
@@ -1416,6 +1397,16 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const lineSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   const candleAnimatorRef = useRef<SmoothCandleAnimator | null>(null)
   const { setChart, setSeries, priceToPixel } = useChartPriceScale()
+
+  // ─── Shared clock ──────────────────────────────────────────────────────────
+  // Satu setInterval untuk seluruh komponen: RealtimeClock, MobileControls
+  // countdown, CandleCountdown, dan OrderPriceTracker — tidak ada drift.
+  const [nowMs, setNowMs] = useState<number>(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 100)
+    return () => clearInterval(id)
+  }, [])
+  const nowSeconds = Math.floor(nowMs / 1000)
   
   // Refs for zoom/scroll preservation on manual refresh
   const savedVisibleRangeRef = useRef<{ from: number; to: number } | null>(null)
@@ -3761,7 +3752,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         assets={availableAssets}
         onSelectAsset={handleAssetSelect}
       />
-      <RealtimeClock />
+      <RealtimeClock nowMs={nowMs} />
 
       {/* Brutalist Button - Powered by GPT-Omni */}
       <div className="absolute top-24 left-1 z-10">
@@ -4011,6 +4002,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         onFitContent={handleFitContent} 
         onRefresh={handleRefresh} 
         onOpenIndicators={handleOpenIndicators}
+        nowSeconds={nowSeconds}
       />
 
       <SimulatorStatus status={simulatorStatus} onRetry={checkSimulator} />
@@ -4029,6 +4021,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
           showPricePath={!isMobile}
           highlightWinning={true}
           compactMode={isMobile}
+          nowSeconds={nowSeconds}
         />
       )}
 
@@ -4040,8 +4033,8 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       )}
 
       {/* Candle Countdown Timer — desktop only; mobile version is inside MobileControls row */}
-      <div className="hidden lg:block">
-        <CandleCountdown timeframe={timeframe} />
+      <div className="hidden lg:block absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
+        <CandleCountdown timeframe={timeframe} nowSeconds={nowSeconds} />
       </div>
     </div>
 

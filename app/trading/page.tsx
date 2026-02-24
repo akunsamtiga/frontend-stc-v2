@@ -1392,7 +1392,7 @@ export default function TradingPage() {
             </button>
 
             <button
-              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              onClick={() => showMobileMenu ? handleCloseMobileMenu() : setShowMobileMenu(true)}
               className="w-10 h-10 lg:w-8 lg:h-8 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity border-2 border-blue-500/30 relative"
             >
               <div className="w-full h-full rounded-full overflow-hidden">
@@ -2072,7 +2072,7 @@ export default function TradingPage() {
                 <div className="relative flex-shrink-0">
                   <Settings className="w-4 h-4" />
                   {isProfileIncomplete && (
-                    <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                       <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
                     </span>

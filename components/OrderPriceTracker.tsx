@@ -16,6 +16,8 @@ interface OrderPriceTrackerProps {
   showPricePath?: boolean
   highlightWinning?: boolean
   compactMode?: boolean
+  /** nowSeconds dari TradingChart — satu sumber waktu untuk semua. */
+  nowSeconds: number
 }
 
 interface TrackerPosition {
@@ -32,6 +34,7 @@ export default function OrderPriceTracker({
   chartContainerRef,
   priceToPixel,
   compactMode = false,
+  nowSeconds,
 }: OrderPriceTrackerProps) {
   const [trackerPositions, setTrackerPositions] = useState<TrackerPosition[]>([])
   const [cardWidth, setCardWidth] = useState(0)
@@ -59,9 +62,8 @@ export default function OrderPriceTracker({
       const activeOrdersToShow = orders.filter(order => {
         if (order.status === 'PENDING' || order.status === 'ACTIVE') return true
         if (order.exit_time) {
-          const exitTime = new Date(order.exit_time).getTime()
-          const now = Date.now()
-          return now < exitTime + 2000
+          const exitTimeSec = new Date(order.exit_time).getTime() / 1000
+          return nowSeconds < exitTimeSec + 2
         }
         return false
       })
@@ -80,9 +82,11 @@ export default function OrderPriceTracker({
           ? (order.amount * order.profitRate) / 100 
           : -order.amount
 
-        const now = Date.now()
-        const exitTime = order.exit_time ? new Date(order.exit_time).getTime() : now
-        const timeLeft = Math.max(0, Math.floor((exitTime - now) / 1000))
+        // ✅ pakai nowSeconds — sinkron dengan clock & countdown
+        const exitTimeSec = order.exit_time
+          ? new Date(order.exit_time).getTime() / 1000
+          : nowSeconds
+        const timeLeft = Math.max(0, Math.floor(exitTimeSec - nowSeconds))
 
         positions.push({
           order,
@@ -104,7 +108,7 @@ export default function OrderPriceTracker({
         cancelAnimationFrame(animationFrameRef.current)
       }
     }
-  }, [orders, currentPrice, priceToPixel, chartContainerRef])
+  }, [orders, currentPrice, nowSeconds, priceToPixel, chartContainerRef])
 
   const formatTime = (seconds: number) => {
     if (seconds <= 0) return '0:00'

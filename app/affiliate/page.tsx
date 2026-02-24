@@ -1,11 +1,10 @@
 'use client'
 
 // ============================================================
-// app/affiliate/page.tsx
-// Dashboard Affiliator untuk user yang sudah di-assign
+// app/affiliate/page.tsx — Enhanced with Framer Motion
 // ============================================================
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Users,
@@ -26,6 +25,12 @@ import {
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import Navbar from '@/components/Navbar'
+import {
+  motion,
+  useInView,
+  AnimatePresence,
+  type Variants,
+} from 'framer-motion'
 import type {
   AffiliatorDashboard,
   AffiliatorInvite,
@@ -35,60 +40,138 @@ import type {
   RequestCommissionWithdrawalDto,
 } from '@/types'
 
-// ── Helpers ──────────────────────────────────────────────────
+// ── Motion config ─────────────────────────────────────────────
+
+const SPRING = { type: 'spring', stiffness: 80, damping: 20 } as const
+
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { ...SPRING } },
+}
+
+const fadeLeft: Variants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { opacity: 1, x: 0, transition: { ...SPRING } },
+}
+
+const scaleIn: Variants = {
+  hidden: { opacity: 0, scale: 0.92 },
+  visible: { opacity: 1, scale: 1, transition: { ...SPRING } },
+}
+
+const stagger = (delay = 0.08): Variants => ({
+  hidden: {},
+  visible: { transition: { staggerChildren: delay, delayChildren: 0.04 } },
+})
+
+// Reveal wrapper
+function Reveal({ children, variants = fadeUp, delay = 0, className = '' }: {
+  children: React.ReactNode; variants?: Variants; delay?: number; className?: string
+}) {
+  return (
+    <motion.div className={className} variants={variants} initial="hidden"
+      whileInView="visible" viewport={{ once: true, margin: '-80px' }}
+      transition={{ delay }}>
+      {children}
+    </motion.div>
+  )
+}
+
+// Word-by-word headline
+function AnimatedHeadline({ text, className, style }: { text: string; className?: string; style?: React.CSSProperties }) {
+  const words = text.split(' ')
+  return (
+    <motion.h1 className={className} style={style}
+      variants={stagger(0.07)} initial="hidden" animate="visible">
+      {words.map((word, i) => (
+        <motion.span key={i}
+          variants={{ hidden: { opacity: 0, y: 30, filter: 'blur(4px)' }, visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { ...SPRING } } }}
+          className="inline-block mr-[0.25em]">{word}
+        </motion.span>
+      ))}
+    </motion.h1>
+  )
+}
+
+// Count-up
+function CountUp({ to, suffix = '', prefix = '', decimals = 0 }: { to: number; suffix?: string; prefix?: string; decimals?: number }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const inView = useInView(ref, { once: true, margin: '-60px' })
+  const [val, setVal] = useState(0)
+  const triggered = useRef(false)
+
+  useEffect(() => {
+    if (!inView || triggered.current) return
+    triggered.current = true
+    let start: number
+    const duration = 900
+    const step = (ts: number) => {
+      if (!start) start = ts
+      const p = Math.min((ts - start) / duration, 1)
+      const eased = 1 - Math.pow(1 - p, 3)
+      setVal(parseFloat((to * eased).toFixed(decimals)))
+      if (p < 1) requestAnimationFrame(step)
+    }
+    requestAnimationFrame(step)
+  }, [inView, to])
+
+  return <span ref={ref}>{prefix}{decimals > 0 ? val.toFixed(decimals) : Math.round(val)}{suffix}</span>
+}
+
+// ── Helpers ────────────────────────────────────────────────────
 
 function formatRupiah(amount: number): string {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-  }).format(amount)
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return new Date(iso).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-function statusLabel(status: CommissionWithdrawal['status']): {
-  label: string
-  cls: string
-  icon: React.ReactNode
-} {
+function statusLabel(status: CommissionWithdrawal['status']): { label: string; cls: string; icon: React.ReactNode } {
   switch (status) {
-    case 'pending':
-      return { label: 'Pending', cls: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30', icon: <Clock className="w-3.5 h-3.5" weight="fill" /> }
-    case 'approved':
-      return { label: 'Approved', cls: 'bg-blue-500/15 text-blue-400 border-blue-500/30', icon: <CheckCircle className="w-3.5 h-3.5" weight="fill" /> }
-    case 'completed':
-      return { label: 'Selesai', cls: 'bg-green-500/15 text-green-400 border-green-500/30', icon: <CheckCircle className="w-3.5 h-3.5" weight="fill" /> }
-    case 'rejected':
-      return { label: 'Ditolak', cls: 'bg-red-500/15 text-red-400 border-red-500/30', icon: <XCircle className="w-3.5 h-3.5" weight="fill" /> }
+    case 'pending':   return { label: 'Pending',  cls: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',  icon: <Clock className="w-3.5 h-3.5" weight="fill" /> }
+    case 'approved':  return { label: 'Approved', cls: 'bg-blue-500/15 text-blue-400 border-blue-500/30',        icon: <CheckCircle className="w-3.5 h-3.5" weight="fill" /> }
+    case 'completed': return { label: 'Selesai',  cls: 'bg-green-500/15 text-green-400 border-green-500/30',    icon: <CheckCircle className="w-3.5 h-3.5" weight="fill" /> }
+    case 'rejected':  return { label: 'Ditolak',  cls: 'bg-red-500/15 text-red-400 border-red-500/30',          icon: <XCircle className="w-3.5 h-3.5" weight="fill" /> }
   }
 }
 
-// ── Component ─────────────────────────────────────────────────
+// ── Stats card component ──────────────────────────────────────
+
+function StatCard({ label, value, numValue, prefix, suffix, icon: Icon, color, isText, delay }: any) {
+  const colorMap: Record<string, string> = {
+    blue: 'bg-blue-500/15 text-blue-400', green: 'bg-green-500/15 text-green-400',
+    purple: 'bg-purple-500/15 text-purple-400', orange: 'bg-orange-500/15 text-orange-400',
+  }
+  return (
+    <motion.div variants={fadeUp}
+      className="bg-slate-800/50 border border-white/10 rounded-xl p-4"
+      whileHover={{ y: -4, boxShadow: '0 16px 40px rgba(139,92,246,0.15)', transition: { duration: 0.2 } }}>
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${colorMap[color]}`}>
+        <Icon className="w-5 h-5" weight="duotone" />
+      </div>
+      <p className={`font-bold ${isText ? 'text-base' : 'text-2xl'} text-white`}>
+        {numValue != null
+          ? <CountUp to={numValue} prefix={prefix} suffix={suffix} />
+          : value}
+      </p>
+      <p className="text-xs text-slate-500 mt-0.5">{label}</p>
+    </motion.div>
+  )
+}
+
+// ── Component ──────────────────────────────────────────────────
 
 export default function AffiliatePage() {
   const router = useRouter()
-
-  // Tab state
   const [activeTab, setActiveTab] = useState<'dashboard' | 'invites' | 'commissions' | 'withdrawals'>('dashboard')
-
-  // Data state
   const [dashboard, setDashboard] = useState<AffiliatorDashboard | null>(null)
   const [invites, setInvites] = useState<AffiliatorInvite[]>([])
   const [inviteSummary, setInviteSummary] = useState({ total: 0, deposited: 0, pending: 0 })
   const [commissions, setCommissions] = useState<CommissionLog[]>([])
-  const [commissionDetails, setCommissionDetails] = useState<Omit<CommissionLog, never> | null>(null)
+  const [commissionDetails, setCommissionDetails] = useState<any>(null)
   const [withdrawalHistory, setWithdrawalHistory] = useState<CommissionWithdrawalHistory | null>(null)
-
-  // UI state
   const [loading, setLoading] = useState(true)
   const [tabLoading, setTabLoading] = useState(false)
   const [error403, setError403] = useState(false)
@@ -99,29 +182,18 @@ export default function AffiliatePage() {
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
-  // ── Fetch dashboard (utama) ───────────────────────────────
-
   const fetchDashboard = useCallback(async () => {
     try {
       setLoading(true)
       const res = await api.getMyAffiliatorProgram()
       setDashboard(res.data ?? null)
     } catch (err: any) {
-      if (err?.response?.status === 403) {
-        setError403(true)
-      } else {
-        toast.error('Gagal memuat data program affiliator.')
-      }
-    } finally {
-      setLoading(false)
-    }
+      if (err?.response?.status === 403) setError403(true)
+      else toast.error('Gagal memuat data program affiliator.')
+    } finally { setLoading(false) }
   }, [])
 
-  useEffect(() => {
-    fetchDashboard()
-  }, [fetchDashboard])
-
-  // ── Fetch per-tab ─────────────────────────────────────────
+  useEffect(() => { fetchDashboard() }, [fetchDashboard])
 
   const fetchInvites = useCallback(async () => {
     setTabLoading(true)
@@ -129,11 +201,8 @@ export default function AffiliatePage() {
       const res = await api.getMyAffiliatorInvites()
       setInvites(res.data!.invites)
       setInviteSummary({ total: res.data!.total, deposited: res.data!.deposited, pending: res.data!.pending })
-    } catch {
-      toast.error('Gagal memuat daftar undangan.')
-    } finally {
-      setTabLoading(false)
-    }
+    } catch { toast.error('Gagal memuat daftar undangan.') }
+    finally { setTabLoading(false) }
   }, [])
 
   const fetchCommissions = useCallback(async () => {
@@ -141,12 +210,9 @@ export default function AffiliatePage() {
     try {
       const res = await api.getMyCommissions()
       setCommissions(res.data!.commissionLogs)
-      setCommissionDetails(res.data as any)
-    } catch {
-      toast.error('Gagal memuat riwayat komisi.')
-    } finally {
-      setTabLoading(false)
-    }
+      setCommissionDetails(res.data)
+    } catch { toast.error('Gagal memuat riwayat komisi.') }
+    finally { setTabLoading(false) }
   }, [])
 
   const fetchWithdrawals = useCallback(async () => {
@@ -154,11 +220,8 @@ export default function AffiliatePage() {
     try {
       const res = await api.getMyCommissionWithdrawals()
       setWithdrawalHistory(res.data ?? null)
-    } catch {
-      toast.error('Gagal memuat riwayat penarikan.')
-    } finally {
-      setTabLoading(false)
-    }
+    } catch { toast.error('Gagal memuat riwayat penarikan.') }
+    finally { setTabLoading(false) }
   }, [])
 
   useEffect(() => {
@@ -166,8 +229,6 @@ export default function AffiliatePage() {
     if (activeTab === 'commissions' && commissions.length === 0) fetchCommissions()
     if (activeTab === 'withdrawals' && !withdrawalHistory) fetchWithdrawals()
   }, [activeTab]) // eslint-disable-line
-
-  // ── Copy referral code ────────────────────────────────────
 
   const copyCode = () => {
     if (!dashboard?.affiliateCode) return
@@ -177,56 +238,42 @@ export default function AffiliatePage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // ── Request withdrawal ────────────────────────────────────
-
   const handleWithdraw = async () => {
     const amount = Number(withdrawAmount)
-    if (!amount || amount < 50000) {
-      toast.error('Minimal penarikan Rp 50.000')
-      return
-    }
+    if (!amount || amount < 50000) { toast.error('Minimal penarikan Rp 50.000'); return }
     setWithdrawLoading(true)
     try {
       await api.requestCommissionWithdrawal({ amount, note: withdrawNote || undefined } as RequestCommissionWithdrawalDto)
       toast.success('Request penarikan berhasil diajukan!')
-      setShowWithdrawModal(false)
-      setWithdrawAmount('')
-      setWithdrawNote('')
-      // refresh
+      setShowWithdrawModal(false); setWithdrawAmount(''); setWithdrawNote('')
       fetchDashboard()
       if (activeTab === 'withdrawals') fetchWithdrawals()
-    } catch {
-      // error toast sudah dari interceptor
-    } finally {
-      setWithdrawLoading(false)
-    }
+    } catch {} finally { setWithdrawLoading(false) }
   }
-
-  // ── Cancel withdrawal ─────────────────────────────────────
 
   const handleCancel = async (id: string) => {
     setCancellingId(id)
     try {
       await api.cancelCommissionWithdrawal(id)
       toast.success('Request penarikan dibatalkan.')
-      fetchWithdrawals()
-      fetchDashboard()
-    } catch {
-      // handled
-    } finally {
-      setCancellingId(null)
-    }
+      fetchWithdrawals(); fetchDashboard()
+    } catch {} finally { setCancellingId(null) }
   }
 
-  // ── Render states ─────────────────────────────────────────
-
+  // Loading
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <ArrowsClockwise className="w-10 h-10 text-purple-400 animate-spin" weight="bold" />
-          <p className="text-slate-400 text-sm">Memuat program affiliator...</p>
-        </div>
+        <motion.div className="flex flex-col items-center gap-4"
+          initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ ...SPRING }}>
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+            <ArrowsClockwise className="w-12 h-12 text-purple-400" weight="bold" />
+          </motion.div>
+          <motion.p className="text-slate-400 text-sm" animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.5, repeat: Infinity }}>
+            Memuat program affiliator...
+          </motion.p>
+        </motion.div>
       </div>
     )
   }
@@ -235,21 +282,22 @@ export default function AffiliatePage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <Navbar />
-        <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 px-4">
-          <div className="w-20 h-20 rounded-full bg-purple-500/10 border border-purple-500/30 flex items-center justify-center">
-            <ShareNetwork className="w-10 h-10 text-purple-400" weight="duotone" />
-          </div>
-          <h2 className="text-xl font-bold text-white">Program Affiliator Belum Aktif</h2>
-          <p className="text-slate-400 text-center max-w-md text-sm">
+        <motion.div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 px-4"
+          initial="hidden" animate="visible" variants={stagger(0.1)}>
+          <motion.div variants={scaleIn}
+            className="w-24 h-24 rounded-full bg-purple-500/10 border border-purple-500/30 flex items-center justify-center">
+            <ShareNetwork className="w-12 h-12 text-purple-400" weight="duotone" />
+          </motion.div>
+          <motion.h2 variants={fadeUp} className="text-2xl font-bold text-white">Program Affiliator Belum Aktif</motion.h2>
+          <motion.p variants={fadeUp} className="text-slate-400 text-center max-w-md text-sm">
             Akun Anda belum terdaftar sebagai affiliator. Hubungi Super Admin untuk mendapatkan kode referral eksklusif.
-          </p>
-          <button
-            onClick={() => router.push('/')}
+          </motion.p>
+          <motion.button variants={scaleIn} onClick={() => router.push('/')}
             className="mt-2 px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold transition-colors text-sm"
-          >
+            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             Kembali ke Beranda
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
       </div>
     )
   }
@@ -257,8 +305,6 @@ export default function AffiliatePage() {
   if (!dashboard) return null
 
   const { affiliateCode, isCommissionUnlocked, revenueSharePercentage, balances, unlockProgress, stats } = dashboard
-
-  // ── Tab config ────────────────────────────────────────────
 
   const tabs = [
     { key: 'dashboard', label: 'Dashboard', icon: ChartBar },
@@ -268,470 +314,480 @@ export default function AffiliatePage() {
   ] as const
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Grid overlay */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[length:24px_24px] pointer-events-none" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
+      {/* Animated grid overlay */}
+      <motion.div
+        className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[length:24px_24px] pointer-events-none"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}
+      />
+      {/* Glow orbs */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
 
       <Navbar />
 
       <div className="max-w-5xl mx-auto px-4 py-6 relative z-10">
 
-        {/* ── Header ─────────────────────────────────────── */}
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <ShareNetwork className="w-7 h-7 text-purple-400" weight="duotone" />
-              Program Affiliator
-            </h1>
-            <p className="text-slate-400 text-sm mt-0.5">
+        {/* Header */}
+        <motion.div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+          initial="hidden" animate="visible" variants={stagger(0.1)}>
+          <motion.div variants={fadeLeft}>
+            <AnimatedHeadline text="Program Affiliator"
+              className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2"
+              style={{ letterSpacing: '-0.03em' }} />
+            <motion.p className="text-slate-400 text-sm mt-1" variants={fadeUp}>
               Undang pengguna baru dan dapatkan komisi dari trading mereka.
-            </p>
-          </div>
+            </motion.p>
+          </motion.div>
 
           {/* Referral code card */}
-          <div className="flex items-center gap-2 bg-slate-800/60 border border-white/10 rounded-xl px-4 py-2.5">
+          <motion.div variants={scaleIn}
+            className="flex items-center gap-3 bg-slate-800/60 border border-white/10 rounded-xl px-4 py-3"
+            whileHover={{ borderColor: 'rgba(139,92,246,0.5)', boxShadow: '0 0 24px rgba(139,92,246,0.15)', transition: { duration: 0.2 } }}>
             <div>
               <p className="text-xs text-slate-500">Kode Referral Anda</p>
-              <p className="text-lg font-bold text-purple-300 tracking-widest">{affiliateCode}</p>
+              <p className="text-xl font-bold text-purple-300 tracking-widest">{affiliateCode}</p>
             </div>
-            <button
-              onClick={copyCode}
+            <motion.button onClick={copyCode}
               className="ml-2 p-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 transition-colors"
-              title="Salin kode"
-            >
-              {copied ? <CheckCircle className="w-5 h-5" weight="fill" /> : <Copy className="w-5 h-5" weight="bold" />}
-            </button>
-          </div>
-        </div>
+              whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+              <AnimatePresence mode="wait">
+                {copied
+                  ? <motion.span key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                      <CheckCircle className="w-5 h-5" weight="fill" />
+                    </motion.span>
+                  : <motion.span key="copy" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                      <Copy className="w-5 h-5" weight="bold" />
+                    </motion.span>}
+              </AnimatePresence>
+            </motion.button>
+          </motion.div>
+        </motion.div>
 
-        {/* ── Tabs ───────────────────────────────────────── */}
-        <div className="flex gap-1 bg-slate-800/40 border border-white/10 rounded-xl p-1 mb-6 overflow-x-auto">
+        {/* Tabs */}
+        <motion.div className="flex gap-1 bg-slate-800/40 border border-white/10 rounded-xl p-1 mb-6 overflow-x-auto"
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING, delay: 0.2 }}>
           {tabs.map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                activeTab === key
-                  ? 'bg-purple-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Icon className="w-4 h-4" weight={activeTab === key ? 'fill' : 'regular'} />
-              {label}
-            </button>
+            <motion.button key={key} onClick={() => setActiveTab(key)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap relative ${
+                activeTab === key ? 'text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              {activeTab === key && (
+                <motion.div className="absolute inset-0 bg-purple-600 rounded-lg shadow-md"
+                  layoutId="activeTab" transition={{ ...SPRING }} />
+              )}
+              <span className="relative z-10 flex items-center gap-2">
+                <Icon className="w-4 h-4" weight={activeTab === key ? 'fill' : 'regular'} />
+                {label}
+              </span>
+            </motion.button>
           ))}
-        </div>
+        </motion.div>
 
-        {/* ── Tab: Dashboard ─────────────────────────────── */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-4">
-            {/* Stats grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              {[
-                { label: 'Total Undangan', value: stats.totalInvited, icon: Users, color: 'blue' },
-                { label: 'Sudah Deposit', value: stats.depositedInvites, icon: CheckCircle, color: 'green' },
-                { label: 'Total Komisi', value: formatRupiah(stats.totalCommissionEarned), icon: CurrencyDollar, color: 'purple', isText: true },
-                { label: 'Sudah Dicairkan', value: formatRupiah(stats.totalCommissionWithdrawn), icon: ArrowLineUp, color: 'orange', isText: true },
-              ].map(({ label, value, icon: Icon, color, isText }) => (
-                <div key={label} className="bg-slate-800/50 border border-white/10 rounded-xl p-4">
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${
-                    color === 'blue'   ? 'bg-blue-500/15 text-blue-400'     :
-                    color === 'green'  ? 'bg-green-500/15 text-green-400'   :
-                    color === 'purple' ? 'bg-purple-500/15 text-purple-400' :
-                                        'bg-orange-500/15 text-orange-400'
-                  }`}>
-                    <Icon className="w-5 h-5" weight="duotone" />
-                  </div>
-                  <p className={`font-bold ${isText ? 'text-base' : 'text-2xl'} text-white`}>{value}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{label}</p>
-                </div>
-              ))}
-            </div>
+        {/* Tab content */}
+        <AnimatePresence mode="wait">
+          {activeTab === 'dashboard' && (
+            <motion.div key="dashboard" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }} transition={{ ...SPRING }} className="space-y-5">
 
-            {/* Commission balance + unlock progress */}
-            <div className="grid lg:grid-cols-2 gap-4">
+              {/* Stats grid */}
+              <motion.div className="grid grid-cols-2 lg:grid-cols-4 gap-3"
+                variants={stagger(0.1)} initial="hidden" animate="visible">
+                <StatCard label="Total Undangan" numValue={stats.totalInvited} icon={Users} color="blue" />
+                <StatCard label="Sudah Deposit" numValue={stats.depositedInvites} icon={CheckCircle} color="green" />
+                <StatCard label="Total Komisi" value={formatRupiah(stats.totalCommissionEarned)} icon={CurrencyDollar} color="purple" isText />
+                <StatCard label="Sudah Dicairkan" value={formatRupiah(stats.totalCommissionWithdrawn)} icon={ArrowLineUp} color="orange" isText />
+              </motion.div>
 
-              {/* Balance card */}
-              <div className="bg-slate-800/50 border border-white/10 rounded-xl p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    {isCommissionUnlocked ? (
-                      <LockOpen className="w-5 h-5 text-green-400" weight="duotone" />
-                    ) : (
-                      <Lock className="w-5 h-5 text-yellow-400" weight="duotone" />
+              {/* Balance + unlock progress */}
+              <div className="grid lg:grid-cols-2 gap-4">
+
+                {/* Balance card */}
+                <Reveal variants={scaleIn}>
+                  <motion.div className="bg-slate-800/50 border border-white/10 rounded-xl p-5 h-full"
+                    whileHover={{ borderColor: 'rgba(139,92,246,0.3)', transition: { duration: 0.2 } }}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <motion.div initial={{ rotate: -90, scale: 0 }} animate={{ rotate: 0, scale: 1 }} transition={{ ...SPRING, delay: 0.3 }}>
+                          {isCommissionUnlocked
+                            ? <LockOpen className="w-5 h-5 text-green-400" weight="duotone" />
+                            : <Lock className="w-5 h-5 text-yellow-400" weight="duotone" />}
+                        </motion.div>
+                        <h3 className="font-semibold text-white">Saldo Komisi</h3>
+                      </div>
+                      <motion.span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${
+                        isCommissionUnlocked
+                          ? 'bg-green-500/15 text-green-400 border-green-500/30'
+                          : 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30'}`}
+                        initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }}
+                        transition={{ ...SPRING, delay: 0.4 }}>
+                        {isCommissionUnlocked ? 'Terbuka' : 'Terkunci'}
+                      </motion.span>
+                    </div>
+
+                    <motion.p className="text-3xl font-bold text-white mb-1"
+                      initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ ...SPRING, delay: 0.35 }}>
+                      {formatRupiah(balances.commissionBalance)}
+                    </motion.p>
+                    <p className="text-xs text-slate-500 mb-4">Saldo tersedia untuk dicairkan</p>
+
+                    {balances.lockedCommissionBalance > 0 && (
+                      <motion.div className="flex items-center gap-2 mb-4 text-sm text-yellow-400/80 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2"
+                        initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} transition={{ duration: 0.3 }}>
+                        <Lock className="w-4 h-4 flex-shrink-0" weight="duotone" />
+                        <span>{formatRupiah(balances.lockedCommissionBalance)} masih terkunci</span>
+                      </motion.div>
                     )}
-                    <h3 className="font-semibold text-white">Saldo Komisi</h3>
-                  </div>
-                  <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${
-                    isCommissionUnlocked
-                      ? 'bg-green-500/15 text-green-400 border-green-500/30'
-                      : 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30'
-                  }`}>
-                    {isCommissionUnlocked ? 'Terbuka' : 'Terkunci'}
-                  </span>
-                </div>
 
-                <p className="text-3xl font-bold text-white mb-1">
-                  {formatRupiah(balances.commissionBalance)}
-                </p>
-                <p className="text-xs text-slate-500 mb-4">Saldo tersedia untuk dicairkan</p>
+                    <p className="text-xs text-slate-500 mb-4">
+                      Revenue share: <span className="text-purple-400 font-semibold">{revenueSharePercentage}%</span> dari kerugian invitee
+                    </p>
 
-                {balances.lockedCommissionBalance > 0 && (
-                  <div className="flex items-center gap-2 mb-4 text-sm text-yellow-400/80 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
-                    <Lock className="w-4 h-4 flex-shrink-0" weight="duotone" />
-                    <span>{formatRupiah(balances.lockedCommissionBalance)} masih terkunci</span>
-                  </div>
-                )}
+                    <motion.button onClick={() => setShowWithdrawModal(true)}
+                      disabled={!isCommissionUnlocked || balances.commissionBalance < 50000}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:bg-white/5 disabled:text-slate-500 text-white rounded-xl font-semibold text-sm transition-colors"
+                      whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <ArrowLineUp className="w-4 h-4" weight="bold" />
+                      Cairkan Komisi
+                    </motion.button>
+                  </motion.div>
+                </Reveal>
 
-                <p className="text-xs text-slate-500 mb-3">
-                  Revenue share: <span className="text-purple-400 font-semibold">{revenueSharePercentage}%</span> dari kerugian invitee
-                </p>
+                {/* Unlock progress */}
+                <Reveal variants={scaleIn} delay={0.1}>
+                  <motion.div className="bg-slate-800/50 border border-white/10 rounded-xl p-5 h-full"
+                    whileHover={{ borderColor: 'rgba(139,92,246,0.3)', transition: { duration: 0.2 } }}>
+                    <h3 className="font-semibold text-white mb-1">Progress Unlock</h3>
+                    <p className="text-xs text-slate-500 mb-5">
+                      Undang {unlockProgress.required} user yang melakukan deposit untuk membuka saldo komisi.
+                    </p>
 
-                <button
-                  onClick={() => setShowWithdrawModal(true)}
-                  disabled={!isCommissionUnlocked || balances.commissionBalance < 50000}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:bg-white/5 disabled:text-slate-500 text-white rounded-xl font-semibold text-sm transition-colors"
-                >
-                  <ArrowLineUp className="w-4 h-4" weight="bold" />
-                  Cairkan Komisi
-                </button>
+                    <div className="flex items-end gap-2 mb-4">
+                      <motion.span className="text-4xl font-bold text-white"
+                        initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ ...SPRING, delay: 0.4 }}>
+                        <CountUp to={unlockProgress.current} />
+                      </motion.span>
+                      <span className="text-slate-400 text-lg mb-1">/ {unlockProgress.required}</span>
+                      <span className="text-xs text-slate-500 mb-1.5">depositor</span>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="h-3 bg-slate-700 rounded-full overflow-hidden mb-3">
+                      <motion.div
+                        className={`h-full rounded-full ${unlockProgress.isUnlocked ? 'bg-green-500' : 'bg-purple-500'}`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(unlockProgress.percentage, 100)}%` }}
+                        transition={{ duration: 1, ease: 'easeOut', delay: 0.5 }}
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm">
+                      {unlockProgress.isUnlocked ? (
+                        <motion.div className="flex items-center gap-2"
+                          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}>
+                          <CheckCircle className="w-4 h-4 text-green-400" weight="fill" />
+                          <span className="text-green-400 font-medium">Komisi sudah terbuka!</span>
+                        </motion.div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Warning className="w-4 h-4 text-yellow-400" weight="fill" />
+                          <span className="text-slate-400 text-xs">{unlockProgress.message}</span>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                </Reveal>
               </div>
+            </motion.div>
+          )}
 
-              {/* Unlock progress card */}
-              <div className="bg-slate-800/50 border border-white/10 rounded-xl p-5">
-                <h3 className="font-semibold text-white mb-1">Progress Unlock</h3>
-                <p className="text-xs text-slate-500 mb-4">
-                  Undang {unlockProgress.required} user yang melakukan deposit untuk membuka saldo komisi.
-                </p>
+          {/* Invites tab */}
+          {activeTab === 'invites' && (
+            <motion.div key="invites" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }} transition={{ ...SPRING }}>
+              <motion.div className="flex gap-3 mb-5 flex-wrap" variants={stagger(0.08)} initial="hidden" animate="visible">
+                {[
+                  { label: 'Total', value: inviteSummary.total, cls: 'bg-slate-700/50 text-slate-300 border-white/10' },
+                  { label: 'Sudah Deposit', value: inviteSummary.deposited, cls: 'bg-green-500/10 text-green-400 border-green-500/30' },
+                  { label: 'Belum Deposit', value: inviteSummary.pending, cls: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' },
+                ].map(({ label, value, cls }) => (
+                  <motion.div key={label} variants={scaleIn}
+                    className={`px-4 py-1.5 rounded-xl border text-sm font-medium ${cls}`}
+                    whileHover={{ scale: 1.05 }}>
+                    {label}: <span className="font-bold">{value}</span>
+                  </motion.div>
+                ))}
+              </motion.div>
 
-                <div className="flex items-end gap-2 mb-3">
-                  <span className="text-4xl font-bold text-white">{unlockProgress.current}</span>
-                  <span className="text-slate-400 text-lg mb-1">/ {unlockProgress.required}</span>
-                  <span className="text-xs text-slate-500 mb-1.5">depositor</span>
+              {tabLoading ? (
+                <div className="flex justify-center py-16">
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                    <ArrowsClockwise className="w-8 h-8 text-purple-400" weight="bold" />
+                  </motion.div>
                 </div>
+              ) : invites.length === 0 ? (
+                <motion.div className="text-center py-16" variants={scaleIn} initial="hidden" animate="visible">
+                  <Users className="w-12 h-12 text-slate-600 mx-auto mb-3" weight="duotone" />
+                  <p className="text-slate-400">Belum ada undangan. Bagikan kode referral Anda!</p>
+                </motion.div>
+              ) : (
+                <motion.div className="bg-slate-800/50 border border-white/10 rounded-xl overflow-hidden"
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING }}>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-white/10 text-xs text-slate-500">
+                          <th className="text-left px-4 py-3">Email (masked)</th>
+                          <th className="text-left px-4 py-3">Tanggal Daftar</th>
+                          <th className="text-left px-4 py-3">Status Deposit</th>
+                          <th className="text-left px-4 py-3">Deposit Pertama</th>
+                          <th className="text-left px-4 py-3">Dihitung</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {invites.map((inv, i) => (
+                          <motion.tr key={inv.id}
+                            className={`border-b border-white/5 hover:bg-white/5 transition-colors ${i % 2 === 0 ? '' : 'bg-white/[0.02]'}`}
+                            initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+                            transition={{ ...SPRING, delay: i * 0.05 }}>
+                            <td className="px-4 py-3 text-slate-300 font-mono text-xs">{inv.inviteeEmail}</td>
+                            <td className="px-4 py-3 text-slate-400 text-xs">{formatDate(inv.createdAt)}</td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border font-medium ${
+                                inv.hasDeposited ? 'bg-green-500/15 text-green-400 border-green-500/30' : 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30'}`}>
+                                {inv.hasDeposited ? <CheckCircle className="w-3.5 h-3.5" weight="fill" /> : <Clock className="w-3.5 h-3.5" weight="fill" />}
+                                {inv.hasDeposited ? 'Deposit' : 'Belum'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-slate-400 text-xs">{inv.firstDepositAt ? formatDate(inv.firstDepositAt) : '—'}</td>
+                            <td className="px-4 py-3">
+                              {inv.isCountedForUnlock
+                                ? <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ ...SPRING, delay: i * 0.05 + 0.2 }}>
+                                    <CheckCircle className="w-4 h-4 text-green-400" weight="fill" />
+                                  </motion.div>
+                                : <span className="text-slate-600">—</span>}
+                            </td>
+                          </motion.tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
 
-                {/* Progress bar */}
-                <div className="h-3 bg-slate-700 rounded-full overflow-hidden mb-3">
-                  <div
-                    className={`h-full rounded-full transition-all duration-700 ${
-                      unlockProgress.isUnlocked ? 'bg-green-500' : 'bg-purple-500'
-                    }`}
-                    style={{ width: `${Math.min(unlockProgress.percentage, 100)}%` }}
-                  />
+          {/* Commissions tab */}
+          {activeTab === 'commissions' && (
+            <motion.div key="commissions" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }} transition={{ ...SPRING }} className="space-y-4">
+              {commissionDetails && (
+                <motion.div className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+                  variants={stagger(0.08)} initial="hidden" animate="visible">
+                  {[
+                    { label: 'Saldo Tersedia', value: formatRupiah(commissionDetails.commissionBalance) },
+                    { label: 'Total Diterima', value: formatRupiah(commissionDetails.totalEarned) },
+                    { label: 'Total Dicairkan', value: formatRupiah(commissionDetails.totalWithdrawn) },
+                    { label: 'Revenue Share', value: `${commissionDetails.revenueSharePercentage}%` },
+                  ].map(({ label, value }) => (
+                    <motion.div key={label} variants={fadeUp}
+                      className="bg-slate-800/50 border border-white/10 rounded-xl p-3"
+                      whileHover={{ y: -3, borderColor: 'rgba(139,92,246,0.3)', transition: { duration: 0.2 } }}>
+                      <p className="text-xs text-slate-500 mb-1">{label}</p>
+                      <p className="text-base font-bold text-white">{value}</p>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              )}
+
+              {tabLoading ? (
+                <div className="flex justify-center py-16">
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                    <ArrowsClockwise className="w-8 h-8 text-purple-400" weight="bold" />
+                  </motion.div>
                 </div>
+              ) : commissions.length === 0 ? (
+                <motion.div className="text-center py-16" variants={scaleIn} initial="hidden" animate="visible">
+                  <CurrencyDollar className="w-12 h-12 text-slate-600 mx-auto mb-3" weight="duotone" />
+                  <p className="text-slate-400">Belum ada riwayat komisi.</p>
+                  <p className="text-slate-600 text-xs mt-1">Komisi masuk saat invitee mengalami loss pada akun real.</p>
+                </motion.div>
+              ) : (
+                <motion.div className="bg-slate-800/50 border border-white/10 rounded-xl overflow-hidden"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-white/10 text-xs text-slate-500">
+                          <th className="text-left px-4 py-3">Tanggal</th>
+                          <th className="text-right px-4 py-3">Order</th>
+                          <th className="text-right px-4 py-3">Loss</th>
+                          <th className="text-right px-4 py-3">%</th>
+                          <th className="text-right px-4 py-3">Komisi</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {commissions.map((log, i) => (
+                          <motion.tr key={log.id}
+                            className={`border-b border-white/5 hover:bg-white/5 ${i % 2 === 0 ? '' : 'bg-white/[0.02]'}`}
+                            initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+                            transition={{ ...SPRING, delay: i * 0.04 }}>
+                            <td className="px-4 py-3 text-slate-400 text-xs">{formatDate(log.createdAt)}</td>
+                            <td className="px-4 py-3 text-right text-slate-300 text-xs">{formatRupiah(log.orderAmount)}</td>
+                            <td className="px-4 py-3 text-right text-red-400 text-xs">{formatRupiah(log.lossAmount)}</td>
+                            <td className="px-4 py-3 text-right text-slate-400 text-xs">{log.commissionPercentage}%</td>
+                            <td className="px-4 py-3 text-right text-green-400 font-semibold text-xs">{formatRupiah(log.commissionAmount)}</td>
+                          </motion.tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
 
-                <div className="flex items-center gap-2 text-sm">
-                  {unlockProgress.isUnlocked ? (
+          {/* Withdrawals tab */}
+          {activeTab === 'withdrawals' && (
+            <motion.div key="withdrawals" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }} transition={{ ...SPRING }} className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4 flex-wrap">
+                  {withdrawalHistory && (
                     <>
-                      <CheckCircle className="w-4 h-4 text-green-400" weight="fill" />
-                      <span className="text-green-400 font-medium">Komisi sudah terbuka!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Warning className="w-4 h-4 text-yellow-400" weight="fill" />
-                      <span className="text-slate-400 text-xs">{unlockProgress.message}</span>
+                      <Reveal><div className="text-sm"><span className="text-slate-500">Saldo: </span><span className="text-white font-semibold">{formatRupiah(withdrawalHistory.commissionBalance)}</span></div></Reveal>
+                      <Reveal delay={0.1}><div className="text-sm"><span className="text-slate-500">Total Dicairkan: </span><span className="text-white font-semibold">{formatRupiah(withdrawalHistory.totalWithdrawn)}</span></div></Reveal>
                     </>
                   )}
                 </div>
+                <motion.button onClick={() => setShowWithdrawModal(true)}
+                  disabled={!isCommissionUnlocked || (withdrawalHistory ? withdrawalHistory.commissionBalance < 50000 : true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-white/5 disabled:text-slate-500 text-white rounded-xl font-semibold text-sm transition-colors"
+                  whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <ArrowLineUp className="w-4 h-4" weight="bold" />
+                  Cairkan
+                </motion.button>
               </div>
-            </div>
-          </div>
-        )}
 
-        {/* ── Tab: Invites ────────────────────────────────── */}
-        {activeTab === 'invites' && (
-          <div>
-            {/* Summary chips */}
-            <div className="flex gap-3 mb-4 flex-wrap">
-              {[
-                { label: 'Total', value: inviteSummary.total, cls: 'bg-slate-700/50 text-slate-300 border-white/10' },
-                { label: 'Sudah Deposit', value: inviteSummary.deposited, cls: 'bg-green-500/10 text-green-400 border-green-500/30' },
-                { label: 'Belum Deposit', value: inviteSummary.pending, cls: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' },
-              ].map(({ label, value, cls }) => (
-                <div key={label} className={`px-4 py-1.5 rounded-xl border text-sm font-medium ${cls}`}>
-                  {label}: <span className="font-bold">{value}</span>
+              {tabLoading ? (
+                <div className="flex justify-center py-16">
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                    <ArrowsClockwise className="w-8 h-8 text-purple-400" weight="bold" />
+                  </motion.div>
                 </div>
-              ))}
-            </div>
-
-            {tabLoading ? (
-              <div className="flex justify-center py-16">
-                <ArrowsClockwise className="w-8 h-8 text-purple-400 animate-spin" weight="bold" />
-              </div>
-            ) : invites.length === 0 ? (
-              <div className="text-center py-16">
-                <Users className="w-12 h-12 text-slate-600 mx-auto mb-3" weight="duotone" />
-                <p className="text-slate-400">Belum ada undangan. Bagikan kode referral Anda!</p>
-              </div>
-            ) : (
-              <div className="bg-slate-800/50 border border-white/10 rounded-xl overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-white/10 text-xs text-slate-500">
-                        <th className="text-left px-4 py-3">Email (masked)</th>
-                        <th className="text-left px-4 py-3">Tanggal Daftar</th>
-                        <th className="text-left px-4 py-3">Status Deposit</th>
-                        <th className="text-left px-4 py-3">Deposit Pertama</th>
-                        <th className="text-left px-4 py-3">Dihitung</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {invites.map((inv, i) => (
-                        <tr key={inv.id} className={`border-b border-white/5 hover:bg-white/5 transition-colors ${i % 2 === 0 ? '' : 'bg-white/[0.02]'}`}>
-                          <td className="px-4 py-3 text-slate-300 font-mono">{inv.inviteeEmail}</td>
-                          <td className="px-4 py-3 text-slate-400">{formatDate(inv.createdAt)}</td>
-                          <td className="px-4 py-3">
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border font-medium ${
-                              inv.hasDeposited
-                                ? 'bg-green-500/15 text-green-400 border-green-500/30'
-                                : 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30'
-                            }`}>
-                              {inv.hasDeposited ? <CheckCircle className="w-3.5 h-3.5" weight="fill" /> : <Clock className="w-3.5 h-3.5" weight="fill" />}
-                              {inv.hasDeposited ? 'Deposit' : 'Belum'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-slate-400">
-                            {inv.firstDepositAt ? formatDate(inv.firstDepositAt) : '—'}
-                          </td>
-                          <td className="px-4 py-3">
-                            {inv.isCountedForUnlock ? (
-                              <CheckCircle className="w-4 h-4 text-green-400" weight="fill" />
-                            ) : (
-                              <span className="text-slate-600">—</span>
+              ) : !withdrawalHistory || withdrawalHistory.withdrawals.length === 0 ? (
+                <motion.div className="text-center py-16" variants={scaleIn} initial="hidden" animate="visible">
+                  <ArrowLineUp className="w-12 h-12 text-slate-600 mx-auto mb-3" weight="duotone" />
+                  <p className="text-slate-400">Belum ada riwayat penarikan.</p>
+                </motion.div>
+              ) : (
+                <motion.div className="space-y-3" variants={stagger(0.07)} initial="hidden" animate="visible">
+                  {withdrawalHistory.withdrawals.map((w) => {
+                    const st = statusLabel(w.status)
+                    return (
+                      <motion.div key={w.id} variants={fadeUp}
+                        className="bg-slate-800/50 border border-white/10 rounded-xl p-4"
+                        whileHover={{ borderColor: 'rgba(139,92,246,0.3)', y: -2, transition: { duration: 0.2 } }}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <span className="text-lg font-bold text-white">{formatRupiah(w.amount)}</span>
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border font-medium ${st.cls}`}>
+                                {st.icon}{st.label}
+                              </span>
+                            </div>
+                            {w.bankAccount && (
+                              <p className="text-xs text-slate-500">{w.bankAccount.bankName} · {w.bankAccount.accountNumber} · {w.bankAccount.accountHolderName}</p>
                             )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Tab: Commissions ────────────────────────────── */}
-        {activeTab === 'commissions' && (
-          <div className="space-y-4">
-            {/* Summary bar */}
-            {commissionDetails && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { label: 'Saldo Tersedia', value: formatRupiah((commissionDetails as any).commissionBalance) },
-                  { label: 'Total Diterima', value: formatRupiah((commissionDetails as any).totalEarned) },
-                  { label: 'Total Dicairkan', value: formatRupiah((commissionDetails as any).totalWithdrawn) },
-                  { label: 'Revenue Share', value: `${(commissionDetails as any).revenueSharePercentage}%` },
-                ].map(({ label, value }) => (
-                  <div key={label} className="bg-slate-800/50 border border-white/10 rounded-xl p-3">
-                    <p className="text-xs text-slate-500 mb-1">{label}</p>
-                    <p className="text-base font-bold text-white">{value}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {tabLoading ? (
-              <div className="flex justify-center py-16">
-                <ArrowsClockwise className="w-8 h-8 text-purple-400 animate-spin" weight="bold" />
-              </div>
-            ) : commissions.length === 0 ? (
-              <div className="text-center py-16">
-                <CurrencyDollar className="w-12 h-12 text-slate-600 mx-auto mb-3" weight="duotone" />
-                <p className="text-slate-400">Belum ada riwayat komisi.</p>
-                <p className="text-slate-600 text-xs mt-1">Komisi masuk saat invitee mengalami loss pada akun real.</p>
-              </div>
-            ) : (
-              <div className="bg-slate-800/50 border border-white/10 rounded-xl overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-white/10 text-xs text-slate-500">
-                        <th className="text-left px-4 py-3">Tanggal</th>
-                        <th className="text-right px-4 py-3">Order</th>
-                        <th className="text-right px-4 py-3">Loss</th>
-                        <th className="text-right px-4 py-3">%</th>
-                        <th className="text-right px-4 py-3">Komisi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {commissions.map((log, i) => (
-                        <tr key={log.id} className={`border-b border-white/5 hover:bg-white/5 ${i % 2 === 0 ? '' : 'bg-white/[0.02]'}`}>
-                          <td className="px-4 py-3 text-slate-400">{formatDate(log.createdAt)}</td>
-                          <td className="px-4 py-3 text-right text-slate-300">{formatRupiah(log.orderAmount)}</td>
-                          <td className="px-4 py-3 text-right text-red-400">{formatRupiah(log.lossAmount)}</td>
-                          <td className="px-4 py-3 text-right text-slate-400">{log.commissionPercentage}%</td>
-                          <td className="px-4 py-3 text-right text-green-400 font-semibold">{formatRupiah(log.commissionAmount)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Tab: Withdrawals ────────────────────────────── */}
-        {activeTab === 'withdrawals' && (
-          <div className="space-y-4">
-            {/* Header + button */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 flex-wrap">
-                {withdrawalHistory && (
-                  <>
-                    <div className="text-sm">
-                      <span className="text-slate-500">Saldo: </span>
-                      <span className="text-white font-semibold">{formatRupiah(withdrawalHistory.commissionBalance)}</span>
-                    </div>
-                    <div className="text-sm">
-                      <span className="text-slate-500">Total Dicairkan: </span>
-                      <span className="text-white font-semibold">{formatRupiah(withdrawalHistory.totalWithdrawn)}</span>
-                    </div>
-                  </>
-                )}
-              </div>
-              <button
-                onClick={() => setShowWithdrawModal(true)}
-                disabled={!isCommissionUnlocked || (withdrawalHistory ? withdrawalHistory.commissionBalance < 50000 : true)}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-white/5 disabled:text-slate-500 text-white rounded-xl font-semibold text-sm transition-colors"
-              >
-                <ArrowLineUp className="w-4 h-4" weight="bold" />
-                Cairkan
-              </button>
-            </div>
-
-            {tabLoading ? (
-              <div className="flex justify-center py-16">
-                <ArrowsClockwise className="w-8 h-8 text-purple-400 animate-spin" weight="bold" />
-              </div>
-            ) : !withdrawalHistory || withdrawalHistory.withdrawals.length === 0 ? (
-              <div className="text-center py-16">
-                <ArrowLineUp className="w-12 h-12 text-slate-600 mx-auto mb-3" weight="duotone" />
-                <p className="text-slate-400">Belum ada riwayat penarikan.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {withdrawalHistory.withdrawals.map((w) => {
-                  const st = statusLabel(w.status)
-                  return (
-                    <div key={w.id} className="bg-slate-800/50 border border-white/10 rounded-xl p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span className="text-lg font-bold text-white">{formatRupiah(w.amount)}</span>
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border font-medium ${st.cls}`}>
-                              {st.icon}{st.label}
-                            </span>
+                            {w.note && <p className="text-xs text-slate-500 mt-0.5">Catatan: {w.note}</p>}
+                            {w.adminNotes && <p className="text-xs text-blue-400/80 mt-0.5">Admin: {w.adminNotes}</p>}
+                            {w.rejectionReason && <p className="text-xs text-red-400 mt-0.5">Ditolak: {w.rejectionReason}</p>}
+                            <p className="text-xs text-slate-600 mt-1">{formatDate(w.createdAt)}</p>
                           </div>
-                          {w.bankAccount && (
-                            <p className="text-xs text-slate-500">
-                              {w.bankAccount.bankName} · {w.bankAccount.accountNumber} · {w.bankAccount.accountHolderName}
-                            </p>
+                          {w.status === 'pending' && (
+                            <motion.button onClick={() => handleCancel(w.id)} disabled={cancellingId === w.id}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                              whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                              {cancellingId === w.id
+                                ? <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}><ArrowsClockwise className="w-3.5 h-3.5" weight="bold" /></motion.span>
+                                : <X className="w-3.5 h-3.5" weight="bold" />}
+                              Batal
+                            </motion.button>
                           )}
-                          {w.note && <p className="text-xs text-slate-500 mt-0.5">Catatan: {w.note}</p>}
-                          {w.adminNotes && <p className="text-xs text-blue-400/80 mt-0.5">Admin: {w.adminNotes}</p>}
-                          {w.rejectionReason && (
-                            <p className="text-xs text-red-400 mt-0.5">Ditolak: {w.rejectionReason}</p>
-                          )}
-                          <p className="text-xs text-slate-600 mt-1">{formatDate(w.createdAt)}</p>
                         </div>
-                        {w.status === 'pending' && (
-                          <button
-                            onClick={() => handleCancel(w.id)}
-                            disabled={cancellingId === w.id}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
-                          >
-                            {cancellingId === w.id ? (
-                              <ArrowsClockwise className="w-3.5 h-3.5 animate-spin" weight="bold" />
-                            ) : (
-                              <X className="w-3.5 h-3.5" weight="bold" />
-                            )}
-                            Batal
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        )}
+                      </motion.div>
+                    )
+                  })}
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* ── Withdraw Modal ────────────────────────────────── */}
-      {showWithdrawModal && (
-        <>
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50" onClick={() => setShowWithdrawModal(false)} />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-slate-900 rounded-2xl border border-white/10 shadow-2xl">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-5">
-                  <h3 className="text-lg font-bold text-white">Cairkan Komisi</h3>
-                  <button onClick={() => setShowWithdrawModal(false)} className="text-slate-400 hover:text-white">
-                    <X className="w-5 h-5" weight="bold" />
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-slate-400 mb-1.5">Jumlah Penarikan</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">Rp</span>
-                      <input
-                        type="number"
-                        value={withdrawAmount}
-                        onChange={(e) => setWithdrawAmount(e.target.value)}
-                        placeholder="50000"
-                        min={50000}
-                        className="w-full bg-slate-800 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-purple-500/50 text-sm"
-                      />
+      {/* Withdraw Modal */}
+      <AnimatePresence>
+        {showWithdrawModal && (
+          <>
+            <motion.div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowWithdrawModal(false)} />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div className="w-full max-w-md bg-slate-900 rounded-2xl border border-white/10 shadow-2xl"
+                initial={{ opacity: 0, scale: 0.8, y: 40 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.8, y: 40 }} transition={{ ...SPRING }}>
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-5">
+                    <h3 className="text-lg font-bold text-white">Cairkan Komisi</h3>
+                    <motion.button onClick={() => setShowWithdrawModal(false)}
+                      className="text-slate-400 hover:text-white"
+                      whileHover={{ rotate: 90, scale: 1.1 }} transition={{ duration: 0.2 }}>
+                      <X className="w-5 h-5" weight="bold" />
+                    </motion.button>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm text-slate-400 mb-1.5">Jumlah Penarikan</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">Rp</span>
+                        <input type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)}
+                          placeholder="50000" min={50000}
+                          className="w-full bg-slate-800 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-purple-500/50 text-sm" />
+                      </div>
+                      <p className="text-xs text-slate-600 mt-1">Minimal Rp 50.000 · Saldo tersedia: {formatRupiah(balances.commissionBalance)}</p>
                     </div>
-                    <p className="text-xs text-slate-600 mt-1">Minimal Rp 50.000 · Saldo tersedia: {formatRupiah(balances.commissionBalance)}</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-slate-400 mb-1.5">Catatan (opsional)</label>
-                    <input
-                      type="text"
-                      value={withdrawNote}
-                      onChange={(e) => setWithdrawNote(e.target.value)}
-                      placeholder="Mis: Penarikan bulan Februari"
-                      className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-purple-500/50 text-sm"
-                    />
-                  </div>
-
-                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-3 text-xs text-blue-300/80">
-                    Penarikan akan masuk ke rekening bank terdaftar di profil Anda. Admin akan memproses dalam 1–3 hari kerja.
-                  </div>
-
-                  <div className="flex gap-3 mt-2">
-                    <button
-                      onClick={() => setShowWithdrawModal(false)}
-                      className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 rounded-xl font-semibold text-sm transition-colors"
-                    >
-                      Batal
-                    </button>
-                    <button
-                      onClick={handleWithdraw}
-                      disabled={withdrawLoading || !withdrawAmount || Number(withdrawAmount) < 50000}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white rounded-xl font-semibold text-sm transition-colors"
-                    >
-                      {withdrawLoading ? (
-                        <ArrowsClockwise className="w-4 h-4 animate-spin" weight="bold" />
-                      ) : (
-                        <ArrowLineUp className="w-4 h-4" weight="bold" />
-                      )}
-                      {withdrawLoading ? 'Memproses...' : 'Ajukan Penarikan'}
-                    </button>
+                    <div>
+                      <label className="block text-sm text-slate-400 mb-1.5">Catatan (opsional)</label>
+                      <input type="text" value={withdrawNote} onChange={(e) => setWithdrawNote(e.target.value)}
+                        placeholder="Mis: Penarikan bulan Februari"
+                        className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-purple-500/50 text-sm" />
+                    </div>
+                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-3 text-xs text-blue-300/80">
+                      Penarikan akan masuk ke rekening bank terdaftar di profil Anda. Admin akan memproses dalam 1–3 hari kerja.
+                    </div>
+                    <div className="flex gap-3 mt-2">
+                      <motion.button onClick={() => setShowWithdrawModal(false)}
+                        className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 rounded-xl font-semibold text-sm transition-colors"
+                        whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        Batal
+                      </motion.button>
+                      <motion.button onClick={handleWithdraw}
+                        disabled={withdrawLoading || !withdrawAmount || Number(withdrawAmount) < 50000}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white rounded-xl font-semibold text-sm transition-colors"
+                        whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        {withdrawLoading
+                          ? <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}><ArrowsClockwise className="w-4 h-4" weight="bold" /></motion.span>
+                          : <ArrowLineUp className="w-4 h-4" weight="bold" />}
+                        {withdrawLoading ? 'Memproses...' : 'Ajukan Penarikan'}
+                      </motion.button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </div>
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

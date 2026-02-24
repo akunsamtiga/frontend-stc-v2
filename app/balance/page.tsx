@@ -89,173 +89,86 @@ function AnimatedBalance({ amount, started }: { amount: number; started: boolean
 
 const StaggerStyles = () => (
   <style jsx global>{`
-    /* ─── Entrances ─── */
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(24px); }
+    /* Entrances — one-shot, GPU only (transform + opacity) */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    @keyframes slideInLeft {
-      from { opacity: 0; transform: translateX(-18px); }
+    @keyframes fadeLeft {
+      from { opacity: 0; transform: translateX(-12px); }
       to   { opacity: 1; transform: translateX(0); }
     }
-    @keyframes scaleIn {
-      from { opacity: 0; transform: scale(0.93); }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.95); }
       to   { opacity: 1; transform: scale(1); }
     }
-    @keyframes sparkle-in {
-      0%   { opacity: 0; transform: scale(0.7) rotate(-8deg); }
-      60%  { transform: scale(1.08) rotate(2deg); }
-      100% { opacity: 1; transform: scale(1) rotate(0deg); }
-    }
+    .stagger-item       { animation: fadeUp  0.4s cubic-bezier(0.22,1,0.36,1) both; opacity:0; }
+    .stagger-item-scale { animation: popIn   0.35s cubic-bezier(0.22,1,0.36,1) both; opacity:0; }
+    .tx-row-enter       { animation: fadeLeft 0.3s cubic-bezier(0.22,1,0.36,1) both; opacity:0; }
+    .sparkle-in         { animation: popIn   0.4s cubic-bezier(0.22,1,0.36,1) both; opacity:0; }
 
-    .stagger-item {
-      animation: fadeInUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-      opacity: 0;
-    }
-    .stagger-item-scale {
-      animation: scaleIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-      opacity: 0;
-    }
-    .tx-row-enter {
-      animation: slideInLeft 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-      opacity: 0;
-    }
-    .sparkle-in {
-      animation: sparkle-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-      opacity: 0;
-    }
+    /* Skeleton — single infinite, simple */
+    @keyframes sk-pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
+    .skeleton-item { animation: sk-pulse 1.8s ease-in-out infinite; opacity:0; animation-fill-mode:forwards; }
 
-    /* ─── Skeleton ─── */
-    @keyframes skeleton-pulse {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.4; }
-    }
-    .skeleton-item {
-      animation: skeleton-pulse 2s ease-in-out infinite;
-      opacity: 0;
-      animation-fill-mode: forwards;
-    }
-
-    /* ─── Card shine ─── */
-    @keyframes card-shine {
-      0%   { transform: translateX(-150%) skewX(-18deg); }
-      100% { transform: translateX(400%)  skewX(-18deg); }
+    /* Card shine — fires ONCE on load, not looping */
+    @keyframes shine-once {
+      0%   { transform: translateX(-100%) skewX(-15deg); opacity:0; }
+      15%  { opacity:1; }
+      85%  { opacity:1; }
+      100% { transform: translateX(300%)  skewX(-15deg); opacity:0; }
     }
     .card-shine {
-      position: absolute; top: 0; left: 0; bottom: 0; width: 30%;
-      background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(255,255,255,0.04) 20%,
-        rgba(255,255,255,0.22) 50%,
-        rgba(255,255,255,0.04) 80%,
-        transparent 100%
-      );
-      animation: card-shine 5s ease-in-out infinite;
-      pointer-events: none; z-index: 5;
+      position:absolute; inset:0;
+      background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.18) 50%, transparent 70%);
+      animation: shine-once 0.7s ease-out 0.4s both;
+      pointer-events:none; z-index:5;
     }
-    .card-shine-delay { animation-delay: 2.5s; }
+    .card-shine-delay { animation-delay: 0.65s; }
 
-    /* ─── Background grid ─── */
-    @keyframes grid-shimmer-up {
-      0%   { background-position: center 130%, center center, center center; }
-      100% { background-position: center -30%,  center center, center center; }
-    }
+    /* Background grid — static, zero cost */
     .bg-pattern-grid {
       background-color: #ffffff;
       background-image:
-        linear-gradient(
-          to top,
-          rgba(255,255,255,1) 0%, rgba(255,255,255,1) 35%,
-          rgba(255,255,255,0.4) 42%, rgba(255,255,255,0) 50%,
-          rgba(255,255,255,0.4) 58%, rgba(255,255,255,1) 65%,
-          rgba(255,255,255,1) 100%
-        ),
-        linear-gradient(rgba(0,0,0,0.07) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,0,0,0.07) 1px, transparent 1px);
-      background-size: 100% 220%, 40px 40px, 40px 40px;
-      background-position: center 130%, center center, center center;
-      animation: grid-shimmer-up 8s linear infinite;
+        linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
     }
 
-    /* ─── Floating glow on card icons ─── */
-    @keyframes icon-float {
-      0%, 100% { transform: translateY(0px);  box-shadow: 0 4px 16px rgba(255,255,255,0.15); }
-      50%       { transform: translateY(-4px); box-shadow: 0 10px 28px rgba(255,255,255,0.25); }
-    }
-    .card-icon-float       { animation: icon-float 3s ease-in-out infinite; }
-    .card-icon-float-delay { animation: icon-float 3s ease-in-out infinite 1.5s; }
-
-    /* ─── 3D lift on balance cards ─── */
+    /* Card hover — pure CSS transition, GPU */
     .balance-card {
-      transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
-                  box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      transition: transform 0.25s cubic-bezier(0.22,1,0.36,1),
+                  box-shadow 0.25s cubic-bezier(0.22,1,0.36,1);
+      will-change: transform;
     }
     .balance-card:hover {
-      transform: translateY(-5px) scale(1.012);
-      box-shadow: 0 24px 48px rgba(0,0,0,0.25);
+      transform: translateY(-4px) scale(1.01);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
     }
 
-    /* ─── Pending badge glow pulse ─── */
-    @keyframes pending-glow {
-      0%, 100% { box-shadow: 0 0 0 0   rgba(245,158,11,0.4); }
-      50%       { box-shadow: 0 0 0 8px rgba(245,158,11,0); }
-    }
-    .pending-glow { animation: pending-glow 2s ease-in-out infinite; }
+    /* Pending dots — minimal blink */
+    @keyframes blink { 0%,80%,100%{opacity:0.3} 40%{opacity:1} }
+    .dot-1 { animation: blink 1.2s infinite 0s;   }
+    .dot-2 { animation: blink 1.2s infinite 0.2s; }
+    .dot-3 { animation: blink 1.2s infinite 0.4s; }
 
-    /* ─── Pending dots bounce ─── */
-    @keyframes dot-bounce {
-      0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
-      40%            { transform: scale(1.2); opacity: 1; }
+    /* Button — transition only */
+    .btn-ripple {
+      transition: transform 0.1s ease, opacity 0.1s ease;
     }
-    .dot-1 { animation: dot-bounce 1.4s infinite ease-in-out 0s;    }
-    .dot-2 { animation: dot-bounce 1.4s infinite ease-in-out 0.2s;  }
-    .dot-3 { animation: dot-bounce 1.4s infinite ease-in-out 0.4s;  }
+    .btn-ripple:hover  { opacity: 0.88; }
+    .btn-ripple:active { transform: scale(0.97); }
 
-    /* ─── Button ripple ─── */
-    .btn-ripple { position: relative; overflow: hidden; }
-    .btn-ripple::after {
-      content: '';
-      position: absolute; inset: 0;
-      background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
-      opacity: 0; transform: scale(0);
-      transition: opacity 0.4s ease, transform 0.4s ease;
-    }
-    .btn-ripple:active::after {
-      opacity: 1; transform: scale(2.5);
-      transition: opacity 0s, transform 0s;
-    }
+    /* TX row hover */
+    .tx-row { transition: transform 0.15s ease; }
+    .tx-row:hover { transform: translateX(2px); }
 
-    /* ─── Transaction row slide on hover ─── */
-    .tx-row {
-      transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
-                  box-shadow 0.2s ease;
-    }
-    .tx-row:hover { transform: translateX(3px); }
+    /* Modal close rotate */
+    .close-btn { transition: transform 0.2s ease; }
+    .close-btn:hover { transform: rotate(90deg); }
 
-    /* ─── Balance amount shimmer text ─── */
-    @keyframes text-shimmer {
-      0%   { background-position: -200% center; }
-      100% { background-position:  200% center; }
-    }
-    .balance-amount {
-      background: linear-gradient(
-        90deg,
-        rgba(255,255,255,0.8) 0%,
-        rgba(255,255,255,1)   40%,
-        rgba(255,255,255,0.8) 60%,
-        rgba(255,255,255,1)   100%
-      );
-      background-size: 200% auto;
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: text-shimmer 3s linear infinite;
-    }
-
-    /* ─── Scrollbar hide ─── */
-    .scrollbar-hide::-webkit-scrollbar { display: none; }
-    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .scrollbar-hide::-webkit-scrollbar { display:none; }
+    .scrollbar-hide { -ms-overflow-style:none; scrollbar-width:none; }
   `}</style>
 )
 
@@ -672,7 +585,7 @@ export default function BalancePage() {
                   </div>
                   <div>
                     <div className="text-[9px] font-semibold text-white/50 uppercase tracking-widest mb-0.5">Saldo</div>
-                    <div className="text-base font-black leading-tight break-all balance-amount">
+                    <div className="text-base font-black text-white leading-tight break-all">
                       <AnimatedBalance amount={realBalance} started={countUpStarted} />
                     </div>
                   </div>
@@ -706,7 +619,7 @@ export default function BalancePage() {
                   </div>
                   <div>
                     <div className="text-[9px] font-semibold text-white/50 uppercase tracking-widest mb-0.5">Saldo</div>
-                    <div className="text-base font-black leading-tight break-all balance-amount">
+                    <div className="text-base font-black text-white leading-tight break-all">
                       <AnimatedBalance amount={demoBalance} started={countUpStarted} />
                     </div>
                   </div>
@@ -749,7 +662,7 @@ export default function BalancePage() {
                         </span>
                       )}
                     </div>
-                    <div className="text-2xl font-black tracking-tight truncate balance-amount">
+                    <div className="text-2xl font-black text-white tracking-tight truncate">
                       <AnimatedBalance amount={realBalance} started={countUpStarted} />
                     </div>
                     <div className="text-[10px] text-white/40 font-semibold tracking-widest mt-0.5 uppercase">Saldo Tersedia</div>
@@ -784,7 +697,7 @@ export default function BalancePage() {
                         Practice
                       </span>
                     </div>
-                    <div className="text-2xl font-black tracking-tight truncate balance-amount">
+                    <div className="text-2xl font-black text-white tracking-tight truncate">
                       <AnimatedBalance amount={demoBalance} started={countUpStarted} />
                     </div>
                     <div className="text-[10px] text-white/40 font-semibold tracking-widest mt-0.5 uppercase">Saldo Latihan</div>
@@ -963,7 +876,7 @@ export default function BalancePage() {
                 <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto stagger-item-scale">
                   <div className="p-5 border-b border-gray-200 flex items-center justify-between">
                     <h2 className="text-lg font-bold text-gray-900">Add Demo Funds</h2>
-                    <button onClick={() => setShowDeposit(false)} className="btn-ripple p-2 hover:bg-gray-100 rounded-lg transition-all hover:rotate-90 duration-200">
+                    <button onClick={() => setShowDeposit(false)} className="close-btn p-2 hover:bg-gray-100 rounded-lg">
                       <X className="w-5 h-5" />
                     </button>
                   </div>
