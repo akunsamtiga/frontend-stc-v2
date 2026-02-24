@@ -41,6 +41,24 @@ if (typeof window !== 'undefined') {
       prompt: 'select_account'
     })
 
+    // ✅ Auto-clear stale redirect state saat module init
+    // Ini mencegah halaman terjebak spinner jika redirect lama tidak selesai
+    try {
+      const redirectTime = localStorage.getItem('google_auth_redirect_time')
+      if (redirectTime) {
+        const timeDiff = Date.now() - parseInt(redirectTime)
+        // Hapus jika redirect sudah lebih dari 2 menit (pasti stale)
+        if (timeDiff > 2 * 60 * 1000) {
+          localStorage.removeItem('google_auth_redirect_pending')
+          localStorage.removeItem('google_auth_redirect_time')
+          sessionStorage.removeItem('google_auth_initiated')
+          console.log('🧹 Cleared stale redirect state (expired)')
+        }
+      }
+    } catch (_) {
+      // Abaikan error localStorage di lingkungan tertentu
+    }
+
     console.log('✅ Firebase Auth initialized successfully')
   } catch (error) {
     console.error('❌ Firebase Auth initialization error:', error)
@@ -100,9 +118,9 @@ export function isRedirectPending(): boolean {
     
     if (!pending || !redirectTime) return false
     
-    // Check if redirect is recent (within 5 minutes)
+    // Check if redirect is recent (within 2 minutes)
     const timeDiff = Date.now() - parseInt(redirectTime)
-    const isRecent = timeDiff < 5 * 60 * 1000
+    const isRecent = timeDiff < 2 * 60 * 1000
     
     if (!isRecent) {
       clearRedirectState()

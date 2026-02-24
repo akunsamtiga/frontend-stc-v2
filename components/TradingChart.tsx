@@ -881,42 +881,46 @@ const PriceDisplay = memo(({
 
   return (
     <div className="absolute top-2 left-2 z-20">
-      <button
-        onClick={onClick}
-        className="lg:hidden bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 hover:bg-black/50 transition-all flex items-center gap-3"
-      >
-        {asset && <AssetIcon asset={asset} size="sm" />}
-        
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-400">{asset.symbol}</span>
-          <span className="text-xl font-bold">{formattedPrice}</span>
-        </div>
-        {hasChange && (
-          <div className={`flex items-center gap-1 text-sm font-semibold ${
-            price.change >= 0 ? 'text-emerald-400' : 'text-rose-400'
-          }`}>
-            {price.change >= 0 ? '▲' : '▼'}
-            <span>{price.change >= 0 ? '+' : ''}{price.change.toFixed(2)}%</span>
-          </div>
-        )}
-        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${
-          showMenu ? 'rotate-180' : ''
-        }`} />
-      </button>
+      {/* Mobile: symbol box (clickable) + price box side by side */}
+      <div className="lg:hidden flex items-center gap-3">
+        <button
+          onClick={onClick}
+          className="bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-3 py-2 hover:bg-black/50 transition-all flex items-center gap-2"
+        >
+          {asset && <AssetIcon asset={asset} size="sm" />}
+          <span className="text-sm font-semibold text-white">{asset.symbol}</span>
+          <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showMenu ? 'rotate-180' : ''}`} />
+        </button>
 
-      <div className="hidden lg:flex bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 items-center gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-400">{asset.symbol}</span>
-          <span className="text-xl font-bold">{formattedPrice}</span>
+        <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-3 py-2 flex items-center gap-2">
+          <span className="text-sm font-bold text-white">{formattedPrice}</span>
+          {hasChange && (
+            <span className={`text-xs font-semibold ${price.change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {price.change >= 0 ? '▲' : '▼'} {price.change >= 0 ? '+' : ''}{price.change.toFixed(2)}%
+            </span>
+          )}
         </div>
-        {hasChange && (
-          <div className={`flex items-center gap-1 text-sm font-semibold ${
-            price.change >= 0 ? 'text-emerald-400' : 'text-rose-400'
-          }`}>
-            {price.change >= 0 ? '▲' : '▼'}
-            <span>{price.change >= 0 ? '+' : ''}{price.change.toFixed(2)}%</span>
-          </div>
-        )}
+      </div>
+
+      {/* Desktop: symbol box + price box side by side */}
+      <div className="hidden lg:flex items-center gap-3">
+        <button
+          onClick={onClick}
+          className="bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 hover:bg-black/50 transition-all flex items-center gap-2"
+        >
+          {asset && <AssetIcon asset={asset} size="sm" />}
+          <span className="text-sm font-semibold text-white">{asset.symbol}</span>
+          <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showMenu ? 'rotate-180' : ''}`} />
+        </button>
+
+        <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-4 py-2 flex items-center gap-2">
+          <span className="text-xl font-bold text-white">{formattedPrice}</span>
+          {hasChange && (
+            <span className={`text-sm font-semibold ${price.change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {price.change >= 0 ? '▲' : '▼'} {price.change >= 0 ? '+' : ''}{price.change.toFixed(2)}%
+            </span>
+          )}
+        </div>
       </div>
 
       {showMenu && (

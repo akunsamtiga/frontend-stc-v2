@@ -136,6 +136,7 @@ export default function EnhancedFooter() {
                     src="/stc-logo1.png"
                     alt="Stouch"
                     fill
+                    sizes="40px"
                     className="object-contain transform group-hover:scale-105 transition-transform rounded-md"
                   />
                 </div>

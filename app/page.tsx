@@ -2,11 +2,11 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence, useInView } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { useAuthStore } from '@/store/auth'
+import { useAuthStore, useAuthHydration } from '@/store/auth'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 const DemoTradingTutorial = dynamic(
@@ -39,10 +39,14 @@ import {
 import {
   subscribeToCryptoPrices,
   generateLiveTrade,
+  getRecentTrades,
+  realTradeToLiveTrade,
+  getMarketStats,
   formatCryptoPrice,
   formatChangePercent,
   CryptoPriceData,
-  LiveTradeData
+  LiveTradeData,
+  MarketStats,
 } from '@/lib/crypto-price'
 import { signInWithGoogle, getIdToken, isRedirectPending } from '@/lib/firebase-auth'
 const EnhancedFooter = dynamic(
@@ -148,13 +152,110 @@ function Reveal({ children, className = '', delay = 0, direction = 'up' }: Revea
 }
 
 // ===================================
+// RANDOM GRID BACKGROUND
+// ===================================
+// Generator pseudo-random deterministik (seed-based) — tidak berubah tiap render
+function seededRandom(seed: number) {
+  let s = seed
+  return () => {
+    s = (s * 1664525 + 1013904223) & 0xffffffff
+    return (s >>> 0) / 0xffffffff
+  }
+}
+
+function generateGridLines(
+  width: number,
+  height: number,
+  seed = 42,
+  minGap = 28,
+  maxGap = 180
+): { xs: number[]; ys: number[] } {
+  const rng = seededRandom(seed)
+  const xs: number[] = [0]
+  const ys: number[] = [0]
+
+  // Pilih ukuran "unit" acak dari 3 skala: kecil / sedang / besar
+  const steps = [minGap, minGap * 2, minGap * 4]
+
+  let x = 0
+  while (x < width) {
+    const r = rng()
+    const step = r < 0.5 ? steps[0] : r < 0.78 ? steps[1] : steps[2]
+    x += step
+    if (x < width) xs.push(x)
+  }
+  xs.push(width)
+
+  let y = 0
+  while (y < height) {
+    const r = rng()
+    const step = r < 0.5 ? steps[0] : r < 0.78 ? steps[1] : steps[2]
+    y += step
+    if (y < height) ys.push(y)
+  }
+  ys.push(height)
+
+  return { xs, ys }
+}
+
+interface RandomGridProps {
+  seed?: number
+  opacity?: number
+  lineColor?: string
+  className?: string
+}
+
+function RandomGrid({
+  seed = 42,
+  opacity = 0.06,
+  lineColor = 'rgba(255,255,255,0.6)',
+  className = '',
+}: RandomGridProps) {
+  // Pakai ukuran virtual besar — SVG akan di-stretch via CSS
+  const W = 1200
+  const H = 900
+  const { xs, ys } = generateGridLines(W, H, seed)
+
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="xMidYMid slice"
+      className={`absolute inset-0 w-full h-full pointer-events-none ${className}`}
+      style={{ opacity }}
+      aria-hidden
+    >
+      {/* Garis vertikal */}
+      {xs.map((x, i) => (
+        <line
+          key={`v${i}`}
+          x1={x} y1={0} x2={x} y2={H}
+          stroke={lineColor}
+          strokeWidth={0.5}
+        />
+      ))}
+      {/* Garis horizontal */}
+      {ys.map((y, i) => (
+        <line
+          key={`h${i}`}
+          x1={0} y1={y} x2={W} y2={y}
+          stroke={lineColor}
+          strokeWidth={0.5}
+        />
+      ))}
+    </svg>
+  )
+}
+
+// ===================================
 // DATA CONSTANTS
 // ===================================
-const stats = [
-  { label: 'Unduhan', value: '1 jt+', rawValue: 1, suffix: 'jt+', displayShort: '1', icon: Users },
-  { label: 'Volume Harian', value: '$10K', rawValue: 10, suffix: 'K', displayShort: '$10', icon: CurrencyDollar },
-  { label: 'Realtime', value: '24/7', rawValue: 24, suffix: '/7', displayShort: '24', icon: Clock },
-  { label: 'Negara', value: '15+', rawValue: 15, suffix: '+', displayShort: '15', icon: Globe },
+// Volume diisi secara dinamis dari Binance 24hr aggregate (lihat useEffect di LandingPage)
+const BASE_STATS = [
+  { label: 'Unduhan', value: '1 jt+', rawValue: 1, suffix: 'jt+', icon: Users },
+  { label: 'Volume Harian', value: '$10B+', rawValue: 10, suffix: 'B+', icon: CurrencyDollar, isVolume: true },
+  { label: 'Realtime', value: '24/7', rawValue: 24, suffix: '/7', icon: Clock },
+  { label: 'Negara', value: '15+', rawValue: 15, suffix: '+', icon: Globe },
 ]
 
 const features = [
@@ -196,131 +297,239 @@ const features = [
   },
 ]
 
-const dummyTrades = [
-  { user: 'kingtrader88', asset: 'BTC/USD', profit: 2450000, time: 'Baru saja' },
-  { user: 'moon_hunter', asset: 'ETH/USD', profit: 1850000, time: '1 menit lalu' },
-  { user: 'trader_pro21', asset: 'BNB/USD', profit: 950000, time: '2 menit lalu' },
-  { user: 'master_mind', asset: 'BTC/USD', profit: 3200000, time: '3 menit lalu' },
-  { user: 'hodl4life', asset: 'ETH/USD', profit: 1650000, time: '4 menit lalu' },
-  { user: 'profit_seeker', asset: 'BNB/USD', profit: 780000, time: '5 menit lalu' },
-  { user: 'diamond_hands', asset: 'BTC/USD', profit: 2980000, time: '6 menit lalu' },
-  { user: 'fire_warrior', asset: 'ETH/USD', profit: 1420000, time: '7 menit lalu' },
-  { user: 'swift_ninja', asset: 'BNB/USD', profit: 890000, time: '8 menit lalu' },
-  { user: 'bullrun2024', asset: 'BTC/USD', profit: 2750000, time: '9 menit lalu' },
 
-  { user: 'satoshi_fan', asset: 'ETH/USD', profit: 1950000, time: '10 menit lalu' },
-  { user: 'whale_alert', asset: 'BNB/USD', profit: 1120000, time: '11 menit lalu' },
-  { user: 'defi_king', asset: 'BTC/USD', profit: 3450000, time: '12 menit lalu' },
-  { user: 'moon_boy', asset: 'ETH/USD', profit: 1680000, time: '13 menit lalu' },
-  { user: 'alpha_trader', asset: 'BNB/USD', profit: 920000, time: '14 menit lalu' },
-  { user: 'lambo_soon', asset: 'BTC/USD', profit: 2850000, time: '15 menit lalu' },
-  { user: 'degen_ape', asset: 'ETH/USD', profit: 1780000, time: '16 menit lalu' },
-  { user: 'paper_hands', asset: 'BNB/USD', profit: 1050000, time: '17 menit lalu' },
-  { user: 'rekt_veteran', asset: 'BTC/USD', profit: 3100000, time: '18 menit lalu' },
-  { user: 'pumpit_up', asset: 'ETH/USD', profit: 1520000, time: '19 menit lalu' },
-
-  { user: 'gem_hunter99', asset: 'BNB/USD', profit: 850000, time: '20 menit lalu' },
-  { user: 'stack_lord', asset: 'BTC/USD', profit: 2650000, time: '21 menit lalu' },
-  { user: 'alt_season', asset: 'ETH/USD', profit: 1890000, time: '22 menit lalu' },
-  { user: 'wagmi_bro', asset: 'BNB/USD', profit: 980000, time: '23 menit lalu' },
-  { user: 'wen_moon', asset: 'BTC/USD', profit: 3350000, time: '24 menit lalu' },
-  { user: 'buy_the_dip', asset: 'ETH/USD', profit: 1720000, time: '25 menit lalu' },
-  { user: 'chart_wizard', asset: 'BNB/USD', profit: 1180000, time: '26 menit lalu' },
-  { user: 'bull_gang', asset: 'BTC/USD', profit: 2920000, time: '27 menit lalu' },
-  { user: 'legendary_ape', asset: 'ETH/USD', profit: 1580000, time: '28 menit lalu' },
-  { user: 'to_the_moon', asset: 'BNB/USD', profit: 890000, time: '29 menit lalu' },
-
-  { user: 'shadow_bull', asset: 'BTC/USD', profit: 3680000, time: '30 menit lalu' },
-  { user: 'eth_phantom', asset: 'ETH/USD', profit: 1940000, time: '31 menit lalu' },
-  { user: 'bnb_reaper', asset: 'BNB/USD', profit: 1010000, time: '32 menit lalu' },
-  { user: 'midnight_trader', asset: 'BTC/USD', profit: 3520000, time: '33 menit lalu' },
-  { user: 'silent_whale', asset: 'ETH/USD', profit: 2080000, time: '34 menit lalu' },
-  { user: 'crypto_knight', asset: 'BNB/USD', profit: 930000, time: '35 menit lalu' },
-  { user: 'bullish_shadow', asset: 'BTC/USD', profit: 3890000, time: '36 menit lalu' },
-  { user: 'ether_blade', asset: 'ETH/USD', profit: 1770000, time: '37 menit lalu' },
-  { user: 'bnb_snake', asset: 'BNB/USD', profit: 990000, time: '38 menit lalu' },
-  { user: 'quantum_bull', asset: 'BTC/USD', profit: 3410000, time: '39 menit lalu' },
-
-  { user: 'atlas_crypto', asset: 'ETH/USD', profit: 1860000, time: '40 menit lalu' },
-  { user: 'delta_hunter', asset: 'BNB/USD', profit: 870000, time: '41 menit lalu' },
-  { user: 'zenith_eth', asset: 'BTC/USD', profit: 3720000, time: '42 menit lalu' },
-  { user: 'orbit_bnb', asset: 'ETH/USD', profit: 1950000, time: '43 menit lalu' },
-  { user: 'velocity_btc', asset: 'BNB/USD', profit: 1120000, time: '44 menit lalu' },
-  { user: 'eth_nomad', asset: 'BTC/USD', profit: 3600000, time: '45 menit lalu' },
-  { user: 'bnb_spartan', asset: 'ETH/USD', profit: 1690000, time: '46 menit lalu' },
-  { user: 'storm_trader', asset: 'BNB/USD', profit: 1040000, time: '47 menit lalu' },
-  { user: 'crypto_rogue', asset: 'BTC/USD', profit: 3940000, time: '48 menit lalu' },
-  { user: 'nebula_eth', asset: 'ETH/USD', profit: 1820000, time: '49 menit lalu' },
-
-  { user: 'phoenix_btc', asset: 'BNB/USD', profit: 910000, time: '50 menit lalu' },
-  { user: 'darkmatter', asset: 'BTC/USD', profit: 3750000, time: '51 menit lalu' },
-  { user: 'liquid_alpha', asset: 'ETH/USD', profit: 1980000, time: '52 menit lalu' },
-  { user: 'gamma_wave', asset: 'BNB/USD', profit: 940000, time: '53 menit lalu' },
-  { user: 'cosmic_trader', asset: 'BTC/USD', profit: 3880000, time: '54 menit lalu' },
-  { user: 'futures_edge', asset: 'ETH/USD', profit: 1790000, time: '55 menit lalu' },
-  { user: 'block_rider', asset: 'BNB/USD', profit: 1020000, time: '56 menit lalu' },
-  { user: 'eth_matrix', asset: 'BTC/USD', profit: 3610000, time: '57 menit lalu' },
-  { user: 'btc_visionary', asset: 'ETH/USD', profit: 1870000, time: '58 menit lalu' },
-  { user: 'bnb_oracle', asset: 'BNB/USD', profit: 970000, time: '59 menit lalu' },
+// ===================================
+// LIVE CRYPTO TRADING TICKER — Real Binance trades
+// ===================================
+const TICKER_SYMBOLS: Array<{ binance: string; display: string }> = [
+  { binance: 'BTCUSDT', display: 'BTC/USD' },
+  { binance: 'ETHUSDT', display: 'ETH/USD' },
+  { binance: 'BNBUSDT', display: 'BNB/USD' },
 ]
 
-// ===================================
-// LIVE CRYPTO TRADING TICKER
-// ===================================
+// ── Mini sparkline bar — menampilkan histogram aktivitas 8 bar terakhir ──────
+function MiniSparkline({ data }: { data: number[] }) {
+  if (data.length < 2) return null
+  const max = Math.max(...data) || 1
+  return (
+    <div className="flex items-end gap-[2px] h-6">
+      {data.map((v, i) => (
+        <div
+          key={i}
+          className="flex-1 rounded-sm transition-all duration-500"
+          style={{
+            height: `${Math.max(15, (v / max) * 100)}%`,
+            background: i === data.length - 1
+              ? 'rgba(52,211,153,0.9)'
+              : `rgba(52,211,153,${0.25 + (i / data.length) * 0.45})`,
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
+// ── Inline SVG logo crypto — zero network request, zero CDN dependency ────────
+const CryptoSVGs: Record<string, (size: number) => React.ReactElement> = {
+  BTC: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="16" fill="#F7931A"/>
+      <path d="M22.3 14.4c.3-2.1-1.3-3.2-3.5-4l.7-2.8-1.7-.4-.7 2.7-1.4-.3.7-2.7-1.7-.4-.7 2.7-1.1-.3-2.3-.6-.4 1.8s1.3.3 1.2.3c.7.2.8.6.8 1l-.8 3.3v.2l-1.1 4.4c-.1.2-.3.5-.7.4-.1 0-1.2-.3-1.2-.3l-.8 2 2.2.5 1.2.3-.7 2.8 1.7.4.7-2.8 1.4.3-.7 2.8 1.7.4.7-2.8c2.9.5 5.1.3 6-2.3.7-2-.1-3.2-1.5-3.9 1.1-.3 1.9-1 2.1-2.5zm-3.8 5.3c-.5 2-4 .9-5.1.7l.9-3.6c1.1.3 4.7.8 4.2 2.9zm.5-5.4c-.5 1.8-3.4.9-4.4.7l.8-3.3c1 .3 4.1.7 3.6 2.6z" fill="white"/>
+    </svg>
+  ),
+  ETH: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="16" fill="#627EEA"/>
+      <path d="M16 5v8.22l6.96 3.11L16 5z" fill="white" fillOpacity="0.6"/>
+      <path d="M16 5L9.04 16.33 16 13.22V5z" fill="white"/>
+      <path d="M16 21.97v5.03l6.96-9.63L16 21.97z" fill="white" fillOpacity="0.6"/>
+      <path d="M16 27v-5.03l-6.96-4.6L16 27z" fill="white"/>
+      <path d="M16 20.67l6.96-4.34L16 13.22v7.45z" fill="white" fillOpacity="0.2"/>
+      <path d="M9.04 16.33L16 20.67V13.22l-6.96 3.11z" fill="white" fillOpacity="0.6"/>
+    </svg>
+  ),
+  BNB: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="16" fill="#F3BA2F"/>
+      <path d="M12.12 14.05L16 10.17l3.89 3.89 2.26-2.26L16 5.65 9.86 11.8l2.26 2.25zM5.65 16l2.26-2.26 2.26 2.26-2.26 2.26L5.65 16zm6.47 1.95L16 21.83l3.89-3.89 2.26 2.25L16 26.35l-6.14-6.14-.01-.01 2.27-2.25zm9.97-1.95l2.26-2.26 2.26 2.26-2.26 2.26L22.09 16zm-3.56 0L16 13.47l-1.91 1.91-.22.22-.45.45.01.01-.01.01 2.58 2.59 2.59-2.59-.01-.01z" fill="white"/>
+    </svg>
+  ),
+  SOL: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="16" fill="#9945FF"/>
+      <path d="M9.5 20.5h13.6l-2.8 2.8H6.7l2.8-2.8zm0-11.8h13.6l-2.8 2.8H6.7l2.8-2.8zm11.1 5.9l2.8-2.8H9.3L6.5 14.6h14.1z" fill="white"/>
+    </svg>
+  ),
+  XRP: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="16" fill="#346AA9"/>
+      <path d="M22 8h2.6l-5.5 5.4c-1.7 1.7-4.5 1.7-6.2 0L7.4 8H10l4.2 4.1c1 1 2.6 1 3.6 0L22 8zm.6 16H20l-4.2-4.1c-1-1-2.6-1-3.6 0L8 24H5.4l5.5-5.4c1.7-1.7 4.5-1.7 6.2 0L22.6 24z" fill="white"/>
+    </svg>
+  ),
+}
+
+// Warna background fallback per coin
+const CRYPTO_COLORS: Record<string, string> = {
+  BTC: '#F7931A', ETH: '#627EEA', BNB: '#F3BA2F',
+  SOL: '#9945FF', XRP: '#346AA9', ADA: '#0033AD',
+  DOT: '#E6007A', MATIC: '#8247E5',
+}
+
+function CryptoIcon({ symbol, size = 32, className = '' }: { symbol: string; size?: number; className?: string }) {
+  const sym = symbol.toUpperCase()
+  const SvgIcon = CryptoSVGs[sym]
+
+  if (SvgIcon) {
+    return (
+      <span
+        className={`inline-flex items-center justify-center rounded-full overflow-hidden flex-shrink-0 ${className}`}
+        style={{ width: size, height: size }}
+      >
+        {SvgIcon(size)}
+      </span>
+    )
+  }
+
+  // Fallback: lingkaran warna + 2 huruf
+  const bg = CRYPTO_COLORS[sym] ?? '#4B5563'
+  return (
+    <span
+      className={`inline-flex items-center justify-center rounded-full text-white font-bold flex-shrink-0 ${className}`}
+      style={{ width: size, height: size, background: bg, fontSize: Math.round(size * 0.36) }}
+    >
+      {sym.slice(0, 2)}
+    </span>
+  )
+}
+
 const LiveCryptoTicker = () => {
   const [trades, setTrades] = useState<LiveTradeData[]>([])
-  const [prices, setPrices] = useState<Record<string, CryptoPriceData>>({})
+  const [totalCount, setTotalCount] = useState(1284)
+  const [activityBars, setActivityBars] = useState<number[]>([40, 55, 38, 70, 52, 65, 48, 60])
 
   useEffect(() => {
-    const unsubscribe = subscribeToCryptoPrices(
-      ['BTC', 'ETH', 'BNB'],
-      (newPrices) => {
-        setPrices(newPrices)
-      },
-      5000
-    )
+    let active = true
 
-    return () => unsubscribe()
+    const fetchAndUpdate = async () => {
+      const sym = TICKER_SYMBOLS[Math.floor(Math.random() * TICKER_SYMBOLS.length)]
+      const realTrades = await getRecentTrades(sym.binance, 3)
+      if (!active) return
+
+      const newTrade = realTrades.length > 0
+        ? realTradeToLiveTrade(realTrades[realTrades.length - 1], sym.display)
+        : generateLiveTrade(sym.display, 0)
+
+      setTrades(prev => [newTrade, ...prev.slice(0, 4)])
+      setTotalCount(prev => prev + Math.floor(Math.random() * 4 + 1))
+      setActivityBars(prev => {
+        const next = [...prev.slice(1), Math.floor(Math.random() * 60 + 30)]
+        return next
+      })
+    }
+
+    fetchAndUpdate()
+    const interval = setInterval(fetchAndUpdate, 4000)
+    return () => { active = false; clearInterval(interval) }
   }, [])
 
-  useEffect(() => {
-    const cryptos = ['BTC/USD', 'ETH/USD', 'BNB/USD']
-    
-    const interval = setInterval(() => {
-      const randomCrypto = cryptos[Math.floor(Math.random() * cryptos.length)]
-      const cryptoKey = randomCrypto.split('/')[0]
-      const currentPrice = prices[cryptoKey]?.price || 0
-      
-      const newTrade = generateLiveTrade(randomCrypto, currentPrice)
-      setTrades(prev => [newTrade, ...prev.slice(0, 2)])
-    }, 3500)
-
-    return () => clearInterval(interval)
-  }, [prices])
+  const buyCount = trades.filter(t => t.direction === 'BUY').length
+  const sellCount = trades.filter(t => t.direction === 'SELL').length
+  const total = buyCount + sellCount || 1
+  const buyPct = Math.round((buyCount / total) * 100)
 
   return (
-    <div className="hidden lg:block absolute bottom-32 right-8 w-72 bg-[#0a0e17] border border-gray-800/50 rounded-2xl p-4 shadow-xl z-10 animate-slide-in-right">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-        <span className="text-xs font-semibold text-gray-300">Transaksi Live</span>
+    <div className="hidden lg:block absolute bottom-28 right-6 w-72 bg-[#080c14] border border-gray-800/60 rounded-2xl shadow-2xl z-10 animate-slide-in-right overflow-hidden">
+
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-gray-800/60">
+        <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse flex-shrink-0" />
+        <span className="text-xs font-bold text-gray-200 tracking-wide">Transaksi Live</span>
+        <span className="ml-auto text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">REAL</span>
       </div>
-      <div className="space-y-2">
+
+      {/* Mini stats row */}
+      <div className="grid grid-cols-3 divide-x divide-gray-800/60 border-b border-gray-800/60">
+        <div className="px-3 py-2 text-center">
+          <div className="text-[10px] text-gray-500 mb-0.5">Transaksi</div>
+          <div className="text-xs font-bold text-white">{totalCount.toLocaleString('id-ID')}</div>
+        </div>
+        <div className="px-3 py-2 text-center">
+          <div className="text-[10px] text-gray-500 mb-0.5">BUY</div>
+          <div className="text-xs font-bold text-emerald-400">{buyPct}%</div>
+        </div>
+        <div className="px-3 py-2 text-center">
+          <div className="text-[10px] text-gray-500 mb-0.5">SELL</div>
+          <div className="text-xs font-bold text-red-400">{100 - buyPct}%</div>
+        </div>
+      </div>
+
+      {/* BUY / SELL dominance bar */}
+      <div className="px-4 pt-3 pb-2">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[9px] text-emerald-400 font-semibold">BUY {buyPct}%</span>
+          <span className="text-[9px] text-red-400 font-semibold">SELL {100 - buyPct}%</span>
+        </div>
+        <div className="w-full h-1.5 bg-red-500/30 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-700"
+            style={{ width: `${buyPct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Activity sparkline */}
+      <div className="px-4 pb-3">
+        <div className="text-[9px] text-gray-600 mb-1">Aktivitas (8 siklus terakhir)</div>
+        <MiniSparkline data={activityBars} />
+      </div>
+
+      {/* Trade list */}
+      <div className="px-4 pb-1 space-y-1.5 max-h-[220px] overflow-hidden">
         {trades.map((trade, i) => (
-          <div 
+          <div
             key={i}
-            className="flex items-center justify-between p-2 bg-emerald-500/5 border border-emerald-500/20 rounded-lg animate-fade-in-up"
-            style={{ animationDelay: `${i * 100}ms` }}
+            className={`flex items-center justify-between p-2 rounded-lg border transition-all duration-300 ${
+              i === 0
+                ? 'bg-emerald-500/8 border-emerald-500/25'
+                : 'bg-white/[0.02] border-white/5'
+            }`}
+            style={{ opacity: 1 - i * 0.15 }}
           >
-            <div className="flex-1">
-              <div className="text-xs font-medium text-gray-200">{trade.user}</div>
-              <div className="text-[10px] text-gray-400">{trade.asset}</div>
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <CryptoIcon symbol={trade.asset.split('/')[0]} size={24} className="flex-shrink-0" />
+              <div className="min-w-0">
+                <div className="text-[11px] font-semibold text-gray-200 truncate">{trade.user}</div>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className="text-[9px] text-gray-500">{trade.asset}</span>
+                  {trade.direction && (
+                    <span className={`text-[8px] font-bold px-1 py-px rounded ${
+                      trade.direction === 'BUY'
+                        ? 'bg-emerald-500/15 text-emerald-400'
+                        : 'bg-red-500/15 text-red-400'
+                    }`}>
+                      {trade.direction}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="text-right">
-              <div className="text-xs font-bold text-emerald-400">+USD {trade.profit.toLocaleString()}</div>
-              <div className="text-[10px] text-gray-500">{trade.time}</div>
+            <div className="text-right flex-shrink-0">
+              <div className="text-[11px] font-bold text-emerald-400">
+                +Rp {(trade.profit / 1000).toFixed(0)}K
+              </div>
+              <div className="text-[9px] text-gray-600">{trade.time}</div>
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Footer */}
+      <div className="px-4 py-2.5 border-t border-gray-800/60 flex items-center justify-between mt-1">
+        <span className="text-[9px] text-gray-600">Data dari Binance API</span>
+        <div className="flex items-center gap-1">
+          <div className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse" />
+          <span className="text-[9px] text-emerald-500/70">Live</span>
+        </div>
       </div>
     </div>
   )
@@ -371,10 +580,13 @@ const FloatingCryptoPriceCard = ({ symbol, delay, style }: FloatingCryptoPriceCa
 
   return (
     <div 
-      className="hidden lg:block absolute bg-[#0a0e17] border border-gray-800/50 rounded-xl p-3 shadow-xl"
+      className="hidden lg:block absolute bg-[#0a0e17] border border-gray-800/50 rounded-xl p-3 shadow-xl min-w-[130px]"
       style={{ animationDelay: `${delay}s`, ...style }}
     >
-      <div className="text-xs text-gray-400 mb-1">{priceData.symbol}</div>
+      <div className="flex items-center gap-2 mb-2">
+        <CryptoIcon symbol={symbol} size={24} />
+        <span className="text-xs text-gray-400 font-medium">{priceData.symbol}</span>
+      </div>
       <div className="text-lg font-bold mb-1">
         ${formatCryptoPrice(priceData.price)}
       </div>
@@ -423,19 +635,32 @@ const LiveCryptoChart = () => {
   }, [selectedCrypto])
 
   useEffect(() => {
-    const cryptos = ['BTC/USD', 'ETH/USD', 'BNB/USD']
+    let active = true
 
-    const interval = setInterval(() => {
-      const randomCrypto = cryptos[Math.floor(Math.random() * cryptos.length)]
-      const cryptoKey = randomCrypto.split('/')[0]
-      const currentPrice = priceData?.price || 0
+    const fetchMobileTrades = async () => {
+      const sym = TICKER_SYMBOLS[Math.floor(Math.random() * TICKER_SYMBOLS.length)]
+      const realTrades = await getRecentTrades(sym.binance, 2)
 
-      const newTrade = generateLiveTrade(randomCrypto, currentPrice)
-      setMobileTrades(prev => [newTrade, ...prev.slice(0, 1)]) // tampilkan 2 trade terbaru
-    }, 3500)
+      if (!active) return
 
-    return () => clearInterval(interval)
-  }, [priceData])
+      if (realTrades.length > 0) {
+        const latest = realTrades[realTrades.length - 1]
+        const liveTrade = realTradeToLiveTrade(latest, sym.display)
+        setMobileTrades(prev => [liveTrade, ...prev.slice(0, 1)])
+      } else {
+        const fallback = generateLiveTrade(sym.display, 0)
+        setMobileTrades(prev => [fallback, ...prev.slice(0, 1)])
+      }
+    }
+
+    fetchMobileTrades()
+    const interval = setInterval(fetchMobileTrades, 4000)
+
+    return () => {
+      active = false
+      clearInterval(interval)
+    }
+  }, [])
 
   const maxPrice = Math.max(...priceHistory, 1)
   const minPrice = Math.min(...priceHistory, 0)
@@ -448,12 +673,13 @@ const LiveCryptoChart = () => {
           <button
             key={crypto}
             onClick={() => setSelectedCrypto(crypto)}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               selectedCrypto === crypto
                 ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
                 : 'bg-gray-800/50 text-gray-400 border border-gray-700/50 hover:bg-gray-700/50'
             }`}
           >
+            <CryptoIcon symbol={crypto} size={16} />
             {crypto}
           </button>
         ))}
@@ -461,8 +687,8 @@ const LiveCryptoChart = () => {
 
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-sky-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30">
-            <TrendUp className="w-6 h-6 text-emerald-400" weight="bold" />
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden bg-[#0a0e17] border border-gray-700/50 p-1.5">
+            <CryptoIcon symbol={selectedCrypto} size={40} className="w-full h-full" />
           </div>
           <div>
             <div className="text-sm text-gray-400">{priceData?.symbol || `${selectedCrypto}/USD`}</div>
@@ -540,12 +766,22 @@ const LiveCryptoChart = () => {
               key={i}
               className="flex items-center justify-between p-2.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/10 transition-all duration-500 animate-fade-in-up"
             >
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-medium text-gray-200 truncate">{trade.user}</div>
-                <div className="text-[10px] text-gray-400">{trade.asset}</div>
+              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                <CryptoIcon symbol={trade.asset.split('/')[0]} size={22} className="flex-shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-xs font-medium text-gray-200 truncate">{trade.user}</div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-gray-400">{trade.asset}</span>
+                    {trade.direction && (
+                      <span className={`text-[9px] font-bold ${trade.direction === 'BUY' ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {trade.direction}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="text-right ml-3">
-                <div className="text-xs font-bold text-emerald-400">+USD {trade.profit.toLocaleString()}</div>
+                <div className="text-xs font-bold text-emerald-400">+Rp {trade.profit.toLocaleString('id-ID')}</div>
                 <div className="text-[9px] text-gray-500">{trade.time}</div>
               </div>
             </div>
@@ -562,20 +798,19 @@ const LiveCryptoChart = () => {
 export default function LandingPage() {
   const router = useRouter()
   const { user, setAuth } = useAuthStore()
-  
-  // ✅ ALL useState hooks at the top
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const hydrated = useAuthHydration()
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [isClosingModal, setIsClosingModal] = useState(false)
 
   const closeAuthModal = () => {
     setIsClosingModal(true)
+    // 380ms = durasi animasi slide-right (0.38s) + sedikit buffer
     setTimeout(() => {
       setShowAuthModal(false)
       setIsClosingModal(false)
       setAgreedToTerms(false)
       setShowTermsWarning(false)
-    }, 350)
+    }, 400)
   }
 
   // ─── GSAP Master Animation Setup ─────────────────────────────────────────────
@@ -940,17 +1175,30 @@ export default function LandingPage() {
     setIsDesktop(window.innerWidth >= 1024)
   }, [])
 
+  // ✅ REAL: Stats dengan volume dari Binance 24hr aggregate
+  const [stats, setStats] = useState(BASE_STATS)
+  useEffect(() => {
+    getMarketStats().then(mktStats => {
+      if (mktStats.totalVolumeUSD > 0) {
+        setStats(prev => prev.map(s =>
+          s.isVolume
+            ? { ...s, value: mktStats.totalVolumeFormatted, rawValue: Math.round(mktStats.totalVolumeUSD / 1_000_000_000) }
+            : s
+        ))
+      }
+    })
+  }, [])
+
   // ✅ NEW: Referral code state
   const [referralCode, setReferralCode] = useState<string>('')
   const [hasReferralCode, setHasReferralCode] = useState(false)
 
-  // ✅ Effect 1: Check auth timeout
+  // ✅ Effect: Redirect if authenticated
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsCheckingAuth(false)
-    }, 100)
-    return () => clearTimeout(timer)
-  }, [])
+    if (hydrated && user) {
+      router.push('/trading')
+    }
+  }, [user, router, hydrated])
 
   // ✅ Scroll lock: kunci scroll body saat modal auth terbuka
   const savedScrollY = useRef(0)
@@ -965,20 +1213,11 @@ export default function LandingPage() {
       document.body.style.overflow = ''
       window.scrollTo(0, savedScrollY.current)
     }
-
     return () => {
       document.documentElement.style.overflow = ''
       document.body.style.overflow = ''
     }
   }, [showAuthModal])
-
-  // ✅ Effect 2: Redirect if authenticated
-  useEffect(() => {
-    if (!isCheckingAuth && user) {
-      console.log('ℹ️ User already authenticated, redirecting...')
-      router.push('/trading')
-    }
-  }, [user, router, isCheckingAuth])
 
   // ✅ NEW Effect 3: Read referral code from URL
   useEffect(() => {
@@ -1055,16 +1294,26 @@ export default function LandingPage() {
   // Mouse parallax removed — no animated elements use it anymore,
   // but the mousemove listener + setState was triggering re-renders on every move.
 
-  // ✅ NOW do conditional rendering AFTER all hooks
-  if (isCheckingAuth || isRedirectPending()) {
+  // ✅ Handle Google redirect result di useEffect, bukan di render guard
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    // Jika redirect pending tapi sudah lebih dari 2 menit → stale, hapus saja
+    if (isRedirectPending()) {
+      const redirectTime = localStorage.getItem('google_auth_redirect_time')
+      const timeDiff = Date.now() - parseInt(redirectTime || '0')
+      if (timeDiff > 2 * 60 * 1000) {
+        localStorage.removeItem('google_auth_redirect_pending')
+        localStorage.removeItem('google_auth_redirect_time')
+        sessionStorage.removeItem('google_auth_initiated')
+      }
+    }
+  }, [])
+
+  // ✅ Hanya blokir render saat store belum di-hydrate dari localStorage
+  if (!hydrated) {
     return (
       <div className="min-h-screen bg-[#0a0e17] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-400 mx-auto mb-4"></div>
-          <p className="text-gray-400">
-            {isRedirectPending() ? 'Menyelesaikan login...' : 'Loading...'}
-          </p>
-        </div>
+        <div className="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -1136,7 +1385,7 @@ export default function LandingPage() {
         toast.success(response.message || 'Login berhasil!')
       }
 
-      window.location.href = '/trading'
+      router.push('/trading')
     } catch (error: any) {
       const errorMessage = 
         error.response?.data?.error || 
@@ -1206,7 +1455,7 @@ export default function LandingPage() {
       }
 
       setShowAuthModal(false)
-      window.location.href = '/trading'
+      router.push('/trading')
 
     } catch (error: any) {
       console.error('❌ Google Sign-In failed:', error)
@@ -1347,11 +1596,8 @@ export default function LandingPage() {
       <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32 overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-[#121824] via-[#0d1320] to-[#080c16]" />
-          {/* Grid line pattern */}
-          <div className="absolute inset-0 opacity-[0.08]" style={{
-            backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-            backgroundSize: '60px 60px'
-          }} />
+          {/* Random grid pattern */}
+          <RandomGrid seed={11} opacity={0.07} />
           {/* Hero bg blurs */}
           <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px]" />
           <div className="absolute top-1/3 -left-24 w-[380px] h-[380px] bg-teal-500/8 rounded-full blur-[90px]" />
@@ -1364,12 +1610,12 @@ export default function LandingPage() {
             {/* Left Content — animated by GSAP hero timeline */}
             <div className="space-y-8">
               <div className="space-y-2">
-                <div className="gsap-hero-badge inline-flex items-center gap-2 px-1" style={{ opacity: 0 }}>
+                <div className="gsap-hero-badge inline-flex items-center gap-2 px-1">
                   <span className="text-xs sm:text-sm font-medium shimmer-date">1 Februari – 31 Maret</span>
                 </div>
-                <h1 className="gsap-hero-title text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight" style={{ opacity: 1 }}>
+                <h1 className="gsap-hero-title text-4xl sm:text-5xl md:text-6xl font-extrabold leading-none" style={{ opacity: 1 }}>
                   <span className="gsap-hero-title-line1 inline">Raih Bonus</span>
-                  <span className="block mt-2" aria-hidden="false">
+                  <span className="block mt-0" aria-hidden="false">
                     <span
                       className="gsap-hero-title-accent font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-400 to-blue-400 animate-gradient bg-[length:200%_auto]"
                       style={{ display: 'inline-block' }}
@@ -1380,13 +1626,13 @@ export default function LandingPage() {
                 </h1>
               </div>
 
-              <p className="gsap-hero-desc text-lg sm:text-xl text-gray-400 leading-relaxed" style={{ opacity: 0 }}>
+              <p className="gsap-hero-desc text-lg sm:text-xl text-gray-400 leading-relaxed">
                 Tersedia berbagai aset <span className="text-emerald-400 font-semibold">global</span>, 
                 dapatkan profit hingga <span className="text-teal-500 font-semibold">100%</span>, 
                 dan penarikan secepat <span className="text-amber-400 font-semibold">kilat.</span>
               </p>
 
-              <div className="gsap-hero-buttons flex flex-row gap-3 sm:gap-4" style={{ opacity: 0 }}>
+              <div className="gsap-hero-buttons flex flex-row gap-3 sm:gap-4">
                 <motion.button
                   onClick={() => {
                     setIsLogin(true)
@@ -1419,7 +1665,7 @@ export default function LandingPage() {
               </div>
 
               {/* Stats Row */}
-              <div className="gsap-hero-stats hidden sm:grid grid-cols-4 gap-4 pt-8" style={{ opacity: 0 }}>
+              <div className="gsap-hero-stats hidden sm:grid grid-cols-4 gap-4 pt-8">
                 {stats.map((stat, index) => (
                   <motion.div 
                     key={index}
@@ -1432,7 +1678,7 @@ export default function LandingPage() {
                     <div
                       className="gsap-counter text-xl font-bold"
                       data-count={stat.rawValue}
-                      data-prefix={stat.label === 'Volume Harian' ? '$' : ''}
+                      data-prefix={stat.isVolume ? '$' : ''}
                       data-suffix={stat.suffix}
                     >
                       {stat.value}
@@ -1444,7 +1690,7 @@ export default function LandingPage() {
             </div>
 
             {/* Right - Real Crypto Components */}
-            <div className="gsap-hero-chart relative" style={{ opacity: 0 }}>
+            <div className="gsap-hero-chart relative">
               {/* Desktop-only: tidak di-mount di mobile agar tidak ada polling sia-sia */}
               {isDesktop && <LiveCryptoTicker />}
 
@@ -1481,6 +1727,7 @@ export default function LandingPage() {
               src="/ai1.png"
               alt=""
               fill
+              sizes="40vw"
               className="object-contain object-left-bottom"
             />
           </div>
@@ -1492,12 +1739,9 @@ export default function LandingPage() {
 
       {/* How It Works */}
       <section id="how-it-works" className="py-16 sm:py-20 relative overflow-hidden">
-        {/* Grid pattern */}
+        {/* Random grid pattern */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute inset-0 opacity-[0.07]" style={{
-            backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-            backgroundSize: '60px 60px'
-          }} />
+          <RandomGrid seed={27} opacity={0.06} />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_50%,rgba(139,92,246,0.05),transparent)]" />
         </div>
         <div className="container mx-auto px-4 sm:px-6">
@@ -1673,11 +1917,8 @@ export default function LandingPage() {
 <section id="payment" className="py-16 sm:py-20 relative overflow-visible">
   {/* Animated gradient background layers - RAINBOW */}
   <div className="absolute inset-0 pointer-events-none overflow-hidden">
-    {/* Grid pattern */}
-    <div className="absolute inset-0 opacity-[0.07]" style={{
-      backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-      backgroundSize: '60px 60px'
-    }} />
+    {/* Random grid pattern */}
+    <RandomGrid seed={79} opacity={0.06} />
     {/* Rainbow blur orbs - 3 warna tajam */}
     <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_45%_at_15%_50%,rgba(239,68,68,0.22),transparent)]" />
     <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_45%_at_50%_50%,rgba(34,197,94,0.20),transparent)]" />
@@ -1867,11 +2108,8 @@ export default function LandingPage() {
 <section className="relative py-12 sm:py-16 lg:py-20 bg-[#0d1422] overflow-hidden">
   {/* Background Effects */}
   <div className="absolute inset-0 pointer-events-none">
-    {/* Grid pattern */}
-    <div className="absolute inset-0 opacity-[0.07]" style={{
-      backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-      backgroundSize: '60px 60px'
-    }} />
+    {/* Random grid pattern */}
+    <RandomGrid seed={63} opacity={0.06} />
 
     <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_30%_50%,rgba(16,185,129,0.06),transparent)]" />
   </div>
@@ -1887,6 +2125,7 @@ export default function LandingPage() {
               src="/v1.webp"
               alt="Stockity x LindungiHutan"
               fill
+              sizes="(max-width: 640px) 45vw, (max-width: 1024px) 45vw, 560px"
               className="object-cover object-top lg:p-0"
             />
           </div>
@@ -1901,6 +2140,7 @@ export default function LandingPage() {
                 src="/lindungihutan.png"
                 alt="LindungiHutan"
                 fill
+                sizes="(max-width: 640px) 64px, (max-width: 1024px) 96px, 128px"
                 className="object-contain object-center p-1 sm:p-1.5 lg:p-2"
               />
             </div>
@@ -1947,6 +2187,7 @@ export default function LandingPage() {
                 src="/sa.webp"
                 alt="Stockity Platform"
                 fill
+                sizes="(max-width: 640px) 30vw, (max-width: 1024px) 25vw, 280px"
                 className="object-contain p-3 sm:p-4 lg:p-6"
               />
             </div>
@@ -1964,6 +2205,7 @@ export default function LandingPage() {
                 src="/il4.png"
                 alt="Stockity Platform"
                 fill
+                sizes="(max-width: 640px) 33vw, (max-width: 1024px) 33vw, 400px"
                 className="object-contain p-3 sm:p-4 lg:p-6"
               />
             </div>
@@ -1990,10 +2232,7 @@ export default function LandingPage() {
 <section className="py-16 sm:py-20 relative overflow-hidden">
   {/* Background */}
   <div className="absolute inset-0 pointer-events-none">
-    <div className="absolute inset-0 opacity-[0.07]" style={{
-      backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-      backgroundSize: '60px 60px'
-    }} />
+    <RandomGrid seed={97} opacity={0.055} />
     <div className="absolute inset-0 bg-[radial-gradient(ellipse_65%_50%_at_70%_40%,rgba(16,185,129,0.05),transparent)]" />
     <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_40%_at_20%_70%,rgba(14,165,233,0.04),transparent)]" />
   </div>
@@ -2205,6 +2444,7 @@ export default function LandingPage() {
             src="/ai2.png"
             alt=""
             fill
+            sizes="(max-width: 768px) 60vw, 50vw"
             className="object-contain object-left-bottom scale-105"
           />
         </div>
@@ -2267,12 +2507,12 @@ export default function LandingPage() {
 {showAuthModal && (
   <>
     <div 
-      className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-50 transition-opacity duration-350 ${isClosingModal ? 'opacity-0' : 'animate-fade-in'}`}
+      className={`fixed inset-0 bg-black/60 backdrop-blur-md z-50 ${isClosingModal ? 'animate-fade-out' : 'animate-fade-in'}`}
       onClick={closeAuthModal}
     />
 
-    {/* FIXED: Hapus overflow-y-auto dari container utama, gunakan h-full */}
-    <div className={`fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-gradient-to-b from-[#0f1419] to-[#0a0e17] z-50 shadow-2xl flex flex-col transition-transform duration-350 ease-in-out ${isClosingModal ? 'translate-x-full' : 'animate-slide-left'}`}>
+    {/* Panel slide dari kanan */}
+    <div className={`fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-gradient-to-b from-[#0f1419] to-[#0a0e17] z-50 shadow-2xl flex flex-col ${isClosingModal ? 'animate-slide-right' : 'animate-slide-left'}`}>
       {/* Header - Sticky */}
       <div className="flex-shrink-0 bg-[#0f1419] border-b border-gray-800/50 p-6">
         <div className="flex items-center justify-between">
@@ -2282,6 +2522,7 @@ export default function LandingPage() {
                 src="/stc-logo1.png"
                 alt="Stouch"
                 fill
+                sizes="40px"
                 className="object-contain rounded-md"
               />
             </div>
@@ -2577,6 +2818,26 @@ export default function LandingPage() {
 
       .duration-350 { transition-duration: 350ms; }
 
+      /* ── GSAP safety fallback ──────────────────────────────
+         Jika GSAP gagal load / timeout, elemen tetap terlihat
+         setelah 2.5 detik via animasi CSS sederhana.          */
+      .gsap-navbar,
+      .gsap-hero-badge,
+      .gsap-hero-desc,
+      .gsap-hero-buttons,
+      .gsap-hero-stats,
+      .gsap-hero-chart,
+      .gsap-section-header,
+      .gsap-step-card,
+      .gsap-partner-row,
+      .gsap-affiliate-card,
+      .gsap-cta-section {
+        animation: gsap-fallback-reveal 0s 2.5s forwards;
+      }
+      @keyframes gsap-fallback-reveal {
+        to { opacity: 1 !important; transform: none !important; }
+      }
+
       /* ── Shimmer emerald-blue premium text ────────────────── */
       @keyframes shimmer-sweep {
         0%   { background-position: 200% center; }
@@ -2614,13 +2875,17 @@ export default function LandingPage() {
 
       /* ── Modal/slide animations ────────────────────────── */
       @keyframes slide-left    { from { transform: translateX(100%); } to { transform: translateX(0); } }
+      @keyframes slide-right   { from { transform: translateX(0); }    to { transform: translateX(100%); } }
       @keyframes fade-in       { from { opacity: 0; }  to { opacity: 1; } }
+      @keyframes fade-out      { from { opacity: 1; }  to { opacity: 0; } }
       @keyframes fade-in-up    { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
       @keyframes slide-in-right{ from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
-      .animate-slide-left    { animation: slide-left     0.35s ease-out forwards; }
-      .animate-fade-in       { animation: fade-in        0.25s ease-out forwards; }
-      .animate-fade-in-up    { animation: fade-in-up     0.5s  ease-out forwards; }
-      .animate-slide-in-right{ animation: slide-in-right 0.5s  ease-out forwards; }
+      .animate-slide-left    { animation: slide-left     0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards; will-change: transform; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+      .animate-slide-right   { animation: slide-right    0.32s cubic-bezier(0.4, 0, 1, 1)    forwards; will-change: transform; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+      .animate-fade-in       { animation: fade-in        0.28s ease-out forwards; will-change: opacity; }
+      .animate-fade-out      { animation: fade-out       0.32s ease-in  forwards; will-change: opacity; }
+      .animate-fade-in-up    { animation: fade-in-up     0.5s  ease-out forwards; will-change: transform, opacity; backface-visibility: hidden; }
+      .animate-slide-in-right{ animation: slide-in-right 0.5s  ease-out forwards; will-change: transform, opacity; backface-visibility: hidden; }
 
       /* ── Logo animations ───────────────────────────────── */
       @keyframes logo-bounce-in  { 0% { transform: scale(0.3) rotate(-15deg); opacity: 0; } 60% { transform: scale(1.15) rotate(5deg); opacity: 1; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
@@ -2631,6 +2896,20 @@ export default function LandingPage() {
       .animate-logo-bounce-out { animation: logo-bounce-out 0.5s ease-in forwards; }
       .animate-text-slide-in   { animation: text-slide-in   0.4s ease-out forwards; }
       .animate-text-slide-out  { animation: text-slide-out  0.4s ease-in  forwards; }
+
+      /* ── Mobile: nonaktifkan backdrop-blur & animasi berat ─ */
+      @media (max-width: 1023px) {
+        /* backdrop-filter + transform animation = flicker di HP */
+        .gsap-affiliate-card > div[class*="backdrop-blur"],
+        .gsap-affiliate-card > .backdrop-blur-xl {
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+        }
+        /* Floating blobs — tidak perlu di mobile */
+        .gsap-float-blob { animation: none !important; }
+        /* Orbs — terlalu berat untuk mobile */
+        .gsap-orb { animation: none !important; transform: none !important; }
+      }
 
       /* ── Scrollbar — premium gradient ──────────────────── */
       ::-webkit-scrollbar { width: 6px; }

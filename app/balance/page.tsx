@@ -1,6 +1,6 @@
 // app/balance/page.tsx
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -54,64 +54,112 @@ interface CombinedTransaction {
   snap_redirect_url?: string
 }
 
+// ============================================================
+// COUNT-UP HOOK — animates a number from 0 → target
+// ============================================================
+function useCountUp(target: number, duration = 1200, started = false) {
+  const [value, setValue] = useState(0)
+  const rafRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (!started || target === 0) { setValue(target); return }
+    const startTime = performance.now()
+
+    const tick = (now: number) => {
+      const elapsed = now - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setValue(Math.round(target * eased))
+      if (progress < 1) rafRef.current = requestAnimationFrame(tick)
+    }
+
+    rafRef.current = requestAnimationFrame(tick)
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
+  }, [target, duration, started])
+
+  return value
+}
+
+// Animated balance component
+function AnimatedBalance({ amount, started }: { amount: number; started: boolean }) {
+  const animatedAmount = useCountUp(amount, 1400, started)
+  return <>{formatCurrency(animatedAmount)}</>
+}
+
 const StaggerStyles = () => (
   <style jsx global>{`
+    /* ─── Entrances ─── */
     @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
+    @keyframes slideInLeft {
+      from { opacity: 0; transform: translateX(-18px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.93); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    @keyframes sparkle-in {
+      0%   { opacity: 0; transform: scale(0.7) rotate(-8deg); }
+      60%  { transform: scale(1.08) rotate(2deg); }
+      100% { opacity: 1; transform: scale(1) rotate(0deg); }
+    }
+
     .stagger-item {
-      animation: fadeInUp 0.5s ease-out forwards;
+      animation: fadeInUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
       opacity: 0;
     }
+    .stagger-item-scale {
+      animation: scaleIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      opacity: 0;
+    }
+    .tx-row-enter {
+      animation: slideInLeft 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      opacity: 0;
+    }
+    .sparkle-in {
+      animation: sparkle-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      opacity: 0;
+    }
+
+    /* ─── Skeleton ─── */
     @keyframes skeleton-pulse {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
+      50%       { opacity: 0.4; }
     }
     .skeleton-item {
       animation: skeleton-pulse 2s ease-in-out infinite;
       opacity: 0;
       animation-fill-mode: forwards;
     }
-    @keyframes shimmer {
-      0% { background-position: -1000px 0; }
-      100% { background-position: 1000px 0; }
-    }
-    .card-shimmer {
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-      background-size: 1000px 100%;
-      animation: shimmer 3s infinite;
-    }
 
+    /* ─── Card shine ─── */
     @keyframes card-shine {
       0%   { transform: translateX(-150%) skewX(-18deg); }
-      100% { transform: translateX(400%) skewX(-18deg); }
+      100% { transform: translateX(400%)  skewX(-18deg); }
     }
     .card-shine {
-      position: absolute;
-      top: 0;
-      left: 0;
-      bottom: 0;
-      width: 30%;
+      position: absolute; top: 0; left: 0; bottom: 0; width: 30%;
       background: linear-gradient(
         90deg,
         transparent 0%,
         rgba(255,255,255,0.04) 20%,
-        rgba(255,255,255,0.20) 50%,
+        rgba(255,255,255,0.22) 50%,
         rgba(255,255,255,0.04) 80%,
         transparent 100%
       );
       animation: card-shine 5s ease-in-out infinite;
-      pointer-events: none;
-      z-index: 5;
+      pointer-events: none; z-index: 5;
     }
-    .card-shine-delay {
-      animation-delay: 2.5s;
-    }
+    .card-shine-delay { animation-delay: 2.5s; }
 
+    /* ─── Background grid ─── */
     @keyframes grid-shimmer-up {
       0%   { background-position: center 130%, center center, center center; }
-      100% { background-position: center -30%, center center, center center; }
+      100% { background-position: center -30%,  center center, center center; }
     }
     .bg-pattern-grid {
       background-color: #ffffff;
@@ -129,6 +177,85 @@ const StaggerStyles = () => (
       background-position: center 130%, center center, center center;
       animation: grid-shimmer-up 8s linear infinite;
     }
+
+    /* ─── Floating glow on card icons ─── */
+    @keyframes icon-float {
+      0%, 100% { transform: translateY(0px);  box-shadow: 0 4px 16px rgba(255,255,255,0.15); }
+      50%       { transform: translateY(-4px); box-shadow: 0 10px 28px rgba(255,255,255,0.25); }
+    }
+    .card-icon-float       { animation: icon-float 3s ease-in-out infinite; }
+    .card-icon-float-delay { animation: icon-float 3s ease-in-out infinite 1.5s; }
+
+    /* ─── 3D lift on balance cards ─── */
+    .balance-card {
+      transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+                  box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .balance-card:hover {
+      transform: translateY(-5px) scale(1.012);
+      box-shadow: 0 24px 48px rgba(0,0,0,0.25);
+    }
+
+    /* ─── Pending badge glow pulse ─── */
+    @keyframes pending-glow {
+      0%, 100% { box-shadow: 0 0 0 0   rgba(245,158,11,0.4); }
+      50%       { box-shadow: 0 0 0 8px rgba(245,158,11,0); }
+    }
+    .pending-glow { animation: pending-glow 2s ease-in-out infinite; }
+
+    /* ─── Pending dots bounce ─── */
+    @keyframes dot-bounce {
+      0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+      40%            { transform: scale(1.2); opacity: 1; }
+    }
+    .dot-1 { animation: dot-bounce 1.4s infinite ease-in-out 0s;    }
+    .dot-2 { animation: dot-bounce 1.4s infinite ease-in-out 0.2s;  }
+    .dot-3 { animation: dot-bounce 1.4s infinite ease-in-out 0.4s;  }
+
+    /* ─── Button ripple ─── */
+    .btn-ripple { position: relative; overflow: hidden; }
+    .btn-ripple::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+      opacity: 0; transform: scale(0);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .btn-ripple:active::after {
+      opacity: 1; transform: scale(2.5);
+      transition: opacity 0s, transform 0s;
+    }
+
+    /* ─── Transaction row slide on hover ─── */
+    .tx-row {
+      transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+                  box-shadow 0.2s ease;
+    }
+    .tx-row:hover { transform: translateX(3px); }
+
+    /* ─── Balance amount shimmer text ─── */
+    @keyframes text-shimmer {
+      0%   { background-position: -200% center; }
+      100% { background-position:  200% center; }
+    }
+    .balance-amount {
+      background: linear-gradient(
+        90deg,
+        rgba(255,255,255,0.8) 0%,
+        rgba(255,255,255,1)   40%,
+        rgba(255,255,255,0.8) 60%,
+        rgba(255,255,255,1)   100%
+      );
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: text-shimmer 3s linear infinite;
+    }
+
+    /* ─── Scrollbar hide ─── */
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
   `}</style>
 )
 
@@ -189,23 +316,13 @@ const SkeletonTransactionRow = ({ index = 0 }: { index?: number }) => (
   </div>
 )
 
-// ✅ FIXED: Skeleton container classes now match the actual content layout
 const LoadingSkeleton = () => (
   <>
     <style jsx global>{`
       .bg-pattern-grid {
         background-color: #ffffff !important;
         background-image:
-          linear-gradient(
-            to top,
-            rgba(255,255,255,1) 0%,
-            rgba(255,255,255,1) 35%,
-            rgba(255,255,255,0.4) 42%,
-            rgba(255,255,255,0)  50%,
-            rgba(255,255,255,0.4) 58%,
-            rgba(255,255,255,1) 65%,
-            rgba(255,255,255,1) 100%
-          ),
+          linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 35%, rgba(255,255,255,0.4) 42%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.4) 58%, rgba(255,255,255,1) 65%, rgba(255,255,255,1) 100%),
           linear-gradient(rgba(0,0,0,0.08) 1px, transparent 1px),
           linear-gradient(90deg, rgba(0,0,0,0.08) 1px, transparent 1px);
         background-size: 100% 220%, 40px 40px, 40px 40px;
@@ -214,19 +331,11 @@ const LoadingSkeleton = () => (
       .scrollbar-hide::-webkit-scrollbar { display: none; }
       .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       body { background-color: #ffffff !important; }
-      @keyframes skeleton-pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.4; }
-      }
-      .skeleton-item {
-        animation: skeleton-pulse 2s ease-in-out infinite;
-        opacity: 0;
-        animation-fill-mode: forwards;
-      }
+      @keyframes skeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+      .skeleton-item { animation: skeleton-pulse 2s ease-in-out infinite; opacity: 0; animation-fill-mode: forwards; }
     `}</style>
     <div className="min-h-screen bg-pattern-grid">
       <Navbar />
-      {/* ✅ Mobile skeleton — px-3 sm:px-4, py-4 sm:py-6, max-w-7xl  (identik dengan konten asli) */}
       <div className="lg:hidden container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl">
         <div className="mb-4 skeleton-item" style={{ animationDelay: '0ms' }}>
           <div className="h-3 bg-gray-200 rounded w-32 mb-2"></div>
@@ -245,7 +354,6 @@ const LoadingSkeleton = () => (
           {[...Array(5)].map((_, i) => <SkeletonTransactionRow key={i} index={i} />)}
         </div>
       </div>
-      {/* ✅ Desktop skeleton — px-3 sm:px-4, py-4 sm:py-6 lg:py-8, max-w-7xl (identik dengan konten asli) */}
       <div className="hidden lg:block container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">
         <div className="mb-6 skeleton-item" style={{ animationDelay: '0ms' }}>
           <div className="h-4 bg-gray-200 rounded w-48 mb-3"></div>
@@ -309,6 +417,8 @@ export default function BalancePage() {
   const [initialLoading, setInitialLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [continuingPaymentId, setContinuingPaymentId] = useState<string | null>(null)
+  // triggers count-up animation after data loads
+  const [countUpStarted, setCountUpStarted] = useState(false)
 
   useEffect(() => {
     if (!user) { router.push('/'); return }
@@ -375,6 +485,8 @@ export default function BalancePage() {
       toast.error('Failed to load wallet data')
     } finally {
       setInitialLoading(false)
+      // slight delay so cards animate in first, then count-up starts
+      setTimeout(() => setCountUpStarted(true), 300)
     }
   }
 
@@ -471,11 +583,11 @@ export default function BalancePage() {
                 </div>
               </div>
               {statusInfo && (
-                <div className={`hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl text-white shadow-2xl border-2 border-white/30 stagger-item ${
+                <div className={`hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl text-white shadow-2xl border-2 border-white/30 sparkle-in ${
                   statusInfo.current === 'standard' ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
                   statusInfo.current === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-orange-600' :
                   'bg-gradient-to-r from-purple-400 to-pink-600'
-                }`} style={{ animationDelay: '50ms' }}>
+                }`} style={{ animationDelay: '250ms' }}>
                   <Image src={STATUS_BADGE_IMG[statusInfo.current] ?? '/std.png'} alt={statusInfo.current} width={44} height={44} className="w-11 h-11 object-contain drop-shadow-lg" />
                   <div className="text-sm">
                     <div className="font-bold">{statusInfo.current.toUpperCase()}</div>
@@ -488,13 +600,18 @@ export default function BalancePage() {
 
           {/* Pending Banner */}
           {pendingDeposits.length > 0 && (
-            <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 stagger-item" style={{ animationDelay: '60ms' }}>
+            <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 stagger-item pending-glow" style={{ animationDelay: '60ms' }}>
               <div className="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Clock className="w-5 h-5 text-amber-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-amber-800">
+                <p className="text-sm font-semibold text-amber-800 flex items-center gap-2">
                   {pendingDeposits.length === 1 ? 'Ada 1 pembayaran yang belum selesai' : `Ada ${pendingDeposits.length} pembayaran yang belum selesai`}
+                  <span className="flex gap-1 ml-1 items-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block dot-1" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block dot-2" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block dot-3" />
+                  </span>
                 </p>
                 <p className="text-xs text-amber-700 mt-0.5">Klik tombol <span className="font-bold">Lanjutkan</span> di riwayat transaksi untuk menyelesaikan pembayaran Anda.</p>
               </div>
@@ -503,7 +620,7 @@ export default function BalancePage() {
 
           {/* Mobile Status Badge */}
           {statusInfo && (
-            <div className="lg:hidden mb-4 sm:mb-6 stagger-item" style={{ animationDelay: '50ms' }}>
+            <div className="lg:hidden mb-4 sm:mb-6 sparkle-in" style={{ animationDelay: '80ms' }}>
               <div className={`p-2 sm:p-3 rounded-xl text-white shadow-lg ${
                 statusInfo.current === 'standard' ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
                 statusInfo.current === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-orange-600' :
@@ -529,20 +646,20 @@ export default function BalancePage() {
           )}
 
           {/* ============================================ */}
-          {/* MOBILE VERSION — compact premium cards      */}
+          {/* MOBILE VERSION                              */}
           {/* ============================================ */}
-          <div className="lg:hidden mb-4 sm:mb-6 stagger-item" style={{ animationDelay: '100ms' }}>
+          <div className="lg:hidden mb-4 sm:mb-6 stagger-item-scale" style={{ animationDelay: '100ms' }}>
             <div className="grid grid-cols-2 gap-2.5">
 
               {/* Real Account — Mobile */}
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-600 to-green-700 shadow-lg">
+              <div className="balance-card relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-600 to-green-700 shadow-lg">
                 <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
                 <div className="absolute -bottom-3 -left-3 w-14 h-14 bg-white/10 rounded-full" />
                 <div className="card-shine" />
                 <div className="relative z-10 p-3 flex flex-col gap-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-5 h-5 bg-white/20 rounded-md flex items-center justify-center">
+                      <div className="w-5 h-5 bg-white/20 rounded-md flex items-center justify-center card-icon-float">
                         <CreditCard className="w-3 h-3 text-white" />
                       </div>
                       <span className="text-[11px] font-bold text-white/90 tracking-wide">REAL</span>
@@ -555,15 +672,15 @@ export default function BalancePage() {
                   </div>
                   <div>
                     <div className="text-[9px] font-semibold text-white/50 uppercase tracking-widest mb-0.5">Saldo</div>
-                    <div className="text-base font-black text-white leading-tight break-all">
-                      {formatCurrency(realBalance)}
+                    <div className="text-base font-black leading-tight break-all balance-amount">
+                      <AnimatedBalance amount={realBalance} started={countUpStarted} />
                     </div>
                   </div>
                   <div className="flex gap-1.5">
-                    <Link href="/payment" className="flex-1 flex items-center justify-center py-1.5 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-lg text-[10px] font-bold transition-colors">
+                    <Link href="/payment" className="btn-ripple flex-1 flex items-center justify-center py-1.5 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-lg text-[10px] font-bold transition-colors">
                       Top Up
                     </Link>
-                    <Link href="/withdrawal" className="flex-1 flex items-center justify-center py-1.5 bg-black/20 hover:bg-black/30 border border-white/20 text-white rounded-lg text-[10px] font-bold transition-colors">
+                    <Link href="/withdrawal" className="btn-ripple flex-1 flex items-center justify-center py-1.5 bg-black/20 hover:bg-black/30 border border-white/20 text-white rounded-lg text-[10px] font-bold transition-colors">
                       Tarik
                     </Link>
                   </div>
@@ -571,14 +688,14 @@ export default function BalancePage() {
               </div>
 
               {/* Demo Account — Mobile */}
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 shadow-lg">
+              <div className="balance-card relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 shadow-lg">
                 <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
                 <div className="absolute -bottom-3 -left-3 w-14 h-14 bg-white/10 rounded-full" />
                 <div className="card-shine card-shine-delay" />
                 <div className="relative z-10 p-3 flex flex-col gap-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-5 h-5 bg-white/20 rounded-md flex items-center justify-center">
+                      <div className="w-5 h-5 bg-white/20 rounded-md flex items-center justify-center card-icon-float-delay">
                         <CreditCard className="w-3 h-3 text-white" />
                       </div>
                       <span className="text-[11px] font-bold text-white/90 tracking-wide">DEMO</span>
@@ -589,13 +706,13 @@ export default function BalancePage() {
                   </div>
                   <div>
                     <div className="text-[9px] font-semibold text-white/50 uppercase tracking-widest mb-0.5">Saldo</div>
-                    <div className="text-base font-black text-white leading-tight break-all">
-                      {formatCurrency(demoBalance)}
+                    <div className="text-base font-black leading-tight break-all balance-amount">
+                      <AnimatedBalance amount={demoBalance} started={countUpStarted} />
                     </div>
                   </div>
                   <button
                     onClick={() => { setTransactionAccount('demo'); setShowDeposit(true) }}
-                    className="w-full flex items-center justify-center gap-1 py-1.5 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-lg text-[10px] font-bold transition-colors"
+                    className="btn-ripple w-full flex items-center justify-center gap-1 py-1.5 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-lg text-[10px] font-bold transition-colors"
                   >
                     Isi Ulang
                   </button>
@@ -606,20 +723,20 @@ export default function BalancePage() {
           </div>
 
           {/* ============================================ */}
-          {/* DESKTOP VERSION — compact horizontal cards  */}
+          {/* DESKTOP VERSION                             */}
           {/* ============================================ */}
-          <div className="hidden lg:block mb-6 stagger-item" style={{ animationDelay: '100ms' }}>
+          <div className="hidden lg:block mb-6 stagger-item-scale" style={{ animationDelay: '100ms' }}>
             <div className="grid grid-cols-2 gap-5">
 
               {/* Real Account Desktop Card */}
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-600 to-green-700 shadow-xl">
+              <div className="balance-card relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-600 to-green-700 shadow-xl">
                 <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full" />
                 <div className="absolute -bottom-8 -left-8 w-36 h-36 bg-white/10 rounded-full" />
                 <div className="absolute top-1/2 right-16 w-24 h-24 bg-white/5 rounded-full -translate-y-1/2" />
                 <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '18px 18px' }} />
                 <div className="card-shine" />
                 <div className="relative z-10 p-5 flex items-center gap-5">
-                  <div className="flex-shrink-0 w-14 h-14 bg-white/15 border border-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                  <div className="flex-shrink-0 w-14 h-14 bg-white/15 border border-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm card-icon-float">
                     <CreditCard className="w-7 h-7 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -632,16 +749,16 @@ export default function BalancePage() {
                         </span>
                       )}
                     </div>
-                    <div className="text-2xl font-black text-white tracking-tight truncate">
-                      {formatCurrency(realBalance)}
+                    <div className="text-2xl font-black tracking-tight truncate balance-amount">
+                      <AnimatedBalance amount={realBalance} started={countUpStarted} />
                     </div>
                     <div className="text-[10px] text-white/40 font-semibold tracking-widest mt-0.5 uppercase">Saldo Tersedia</div>
                   </div>
                   <div className="flex-shrink-0 flex flex-col gap-2">
-                    <Link href="/payment" className="flex items-center justify-center gap-1.5 px-4 py-2 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm">
+                    <Link href="/payment" className="btn-ripple flex items-center justify-center gap-1.5 px-4 py-2 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm">
                       Top Up
                     </Link>
-                    <Link href="/withdrawal" className="flex items-center justify-center gap-1.5 px-4 py-2 bg-black/20 hover:bg-black/30 border border-white/20 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm">
+                    <Link href="/withdrawal" className="btn-ripple flex items-center justify-center gap-1.5 px-4 py-2 bg-black/20 hover:bg-black/30 border border-white/20 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm">
                       Tarik Dana
                     </Link>
                   </div>
@@ -650,14 +767,14 @@ export default function BalancePage() {
               </div>
 
               {/* Demo Account Desktop Card */}
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 shadow-xl">
+              <div className="balance-card relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 shadow-xl">
                 <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full" />
                 <div className="absolute -bottom-8 -left-8 w-36 h-36 bg-white/10 rounded-full" />
                 <div className="absolute top-1/2 right-16 w-24 h-24 bg-white/5 rounded-full -translate-y-1/2" />
                 <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '18px 18px' }} />
                 <div className="card-shine card-shine-delay" />
                 <div className="relative z-10 p-5 flex items-center gap-5">
-                  <div className="flex-shrink-0 w-14 h-14 bg-white/15 border border-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                  <div className="flex-shrink-0 w-14 h-14 bg-white/15 border border-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm card-icon-float-delay">
                     <Wallet className="w-7 h-7 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -667,15 +784,15 @@ export default function BalancePage() {
                         Practice
                       </span>
                     </div>
-                    <div className="text-2xl font-black text-white tracking-tight truncate">
-                      {formatCurrency(demoBalance)}
+                    <div className="text-2xl font-black tracking-tight truncate balance-amount">
+                      <AnimatedBalance amount={demoBalance} started={countUpStarted} />
                     </div>
                     <div className="text-[10px] text-white/40 font-semibold tracking-widest mt-0.5 uppercase">Saldo Latihan</div>
                   </div>
                   <div className="flex-shrink-0">
                     <button
                       onClick={() => { setTransactionAccount('demo'); setShowDeposit(true) }}
-                      className="flex items-center justify-center gap-1.5 px-4 py-2 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm"
+                      className="btn-ripple flex items-center justify-center gap-1.5 px-4 py-2 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm"
                     >
                       Isi Ulang
                     </button>
@@ -703,8 +820,10 @@ export default function BalancePage() {
                   { id: 'demo' as const, label: 'Demo', count: allTransactions.filter(t => t.accountType === 'demo').length },
                 ].map(filter => (
                   <button key={filter.id} onClick={() => setSelectedAccount(filter.id)}
-                    className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors ${
-                      selectedAccount === filter.id ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    className={`btn-ripple px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 ${
+                      selectedAccount === filter.id
+                        ? 'bg-blue-500 text-white scale-105 shadow-md shadow-blue-200'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}>
                     {filter.label} ({filter.count})
                   </button>
@@ -731,15 +850,15 @@ export default function BalancePage() {
                       const isContinuing = continuingPaymentId === tx.id
                       return (
                         <div key={`${tx.source}-${tx.id}`}
-                          className={`flex items-center justify-between p-3 sm:p-4 rounded-xl transition-colors border gap-3 stagger-item ${
+                          className={`tx-row tx-row-enter flex items-center justify-between p-3 sm:p-4 rounded-xl transition-colors border gap-3 ${
                             isPending ? 'bg-amber-50 border-amber-200 hover:bg-amber-100' :
                             isFailed ? 'bg-red-50 border-red-100 hover:bg-red-100' :
                             'hover:bg-gray-50 border-gray-100'
                           }`}
-                          style={{ animationDelay: `${(index + 4) * 50}ms` }}
+                          style={{ animationDelay: `${(index + 4) * 60}ms` }}
                         >
                           <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 hover:scale-110 ${
                               isPending ? 'bg-amber-100' : isFailed ? 'bg-red-100' : tx.type === 'deposit' ? 'bg-green-50' : 'bg-red-50'
                             }`}>
                               {isPending ? <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" /> :
@@ -779,7 +898,7 @@ export default function BalancePage() {
                             </div>
                             {isPending && tx.source === 'midtrans' && (
                               <button onClick={() => handleContinuePayment(tx)} disabled={isContinuing}
-                                className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white rounded-lg text-xs font-bold transition-colors whitespace-nowrap">
+                                className="btn-ripple flex items-center gap-1 px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white rounded-lg text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap">
                                 {isContinuing ? <><Loader2 className="w-3 h-3 animate-spin" /> Memuat...</> : <><Play className="w-3 h-3" /> Lanjutkan</>}
                               </button>
                             )}
@@ -794,21 +913,21 @@ export default function BalancePage() {
                     <div className="mt-6 pt-6 border-t border-gray-200 stagger-item" style={{ animationDelay: `${(displayedTransactions.length + 4) * 50}ms` }}>
                       <div className="flex items-center justify-between gap-4 md:hidden">
                         <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}
-                          className={`flex items-center justify-center gap-1 px-4 py-3 rounded-xl text-sm font-bold flex-1 ${currentPage === 1 ? 'bg-gray-100 text-gray-400' : 'bg-blue-600 text-white'}`}>
+                          className={`btn-ripple flex items-center justify-center gap-1 px-4 py-3 rounded-xl text-sm font-bold flex-1 transition-all ${currentPage === 1 ? 'bg-gray-100 text-gray-400' : 'bg-blue-600 text-white hover:scale-105 active:scale-95'}`}>
                           <ChevronLeft className="w-4 h-4" /> Prev
                         </button>
                         <div className="flex flex-col items-center bg-gray-100 rounded-lg px-4 py-2">
                           <span className="text-xs text-gray-500 font-bold">{currentPage} / {totalPages}</span>
                         </div>
                         <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}
-                          className={`flex items-center justify-center gap-1 px-4 py-3 rounded-xl text-sm font-bold flex-1 ${currentPage === totalPages ? 'bg-gray-100 text-gray-400' : 'bg-blue-600 text-white'}`}>
+                          className={`btn-ripple flex items-center justify-center gap-1 px-4 py-3 rounded-xl text-sm font-bold flex-1 transition-all ${currentPage === totalPages ? 'bg-gray-100 text-gray-400' : 'bg-blue-600 text-white hover:scale-105 active:scale-95'}`}>
                           Next <ChevronRight className="w-4 h-4" />
                         </button>
                       </div>
                       <div className="hidden md:flex items-center justify-between">
                         <div className="text-sm text-gray-600">Menampilkan {startIndex + 1}-{Math.min(startIndex + ITEMS_PER_PAGE, totalItems)} dari {totalItems}</div>
                         <div className="flex items-center gap-2">
-                          <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 text-gray-700">
+                          <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="btn-ripple p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 text-gray-700 transition-all hover:scale-110 active:scale-95">
                             <ChevronLeft className="w-5 h-5" />
                           </button>
                           {[...Array(Math.min(5, totalPages))].map((_, i) => {
@@ -819,12 +938,12 @@ export default function BalancePage() {
                             else pageNum = currentPage - 2 + i
                             return (
                               <button key={pageNum} onClick={() => handlePageChange(pageNum)}
-                                className={`w-10 h-10 rounded-lg text-sm font-medium ${currentPage === pageNum ? 'bg-blue-500 text-white' : 'border border-gray-200 hover:bg-gray-50 text-gray-700'}`}>
+                                className={`btn-ripple w-10 h-10 rounded-lg text-sm font-medium transition-all hover:scale-110 active:scale-95 ${currentPage === pageNum ? 'bg-blue-500 text-white shadow-md shadow-blue-200' : 'border border-gray-200 hover:bg-gray-50 text-gray-700'}`}>
                                 {pageNum}
                               </button>
                             )
                           })}
-                          <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 text-gray-700">
+                          <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="btn-ripple p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 text-gray-700 transition-all hover:scale-110 active:scale-95">
                             <ChevronRight className="w-5 h-5" />
                           </button>
                         </div>
@@ -841,27 +960,29 @@ export default function BalancePage() {
             <>
               <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => setShowDeposit(false)} />
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+                <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto stagger-item-scale">
                   <div className="p-5 border-b border-gray-200 flex items-center justify-between">
                     <h2 className="text-lg font-bold text-gray-900">Add Demo Funds</h2>
-                    <button onClick={() => setShowDeposit(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+                    <button onClick={() => setShowDeposit(false)} className="btn-ripple p-2 hover:bg-gray-100 rounded-lg transition-all hover:rotate-90 duration-200">
+                      <X className="w-5 h-5" />
+                    </button>
                   </div>
                   <div className="p-5 space-y-4">
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Amount (IDR)</label>
                       <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0"
-                        className="w-full text-center text-2xl font-bold bg-gray-50 border-2 border-gray-200 rounded-xl py-3 focus:border-blue-500 focus:bg-white outline-none" />
+                        className="w-full text-center text-2xl font-bold bg-gray-50 border-2 border-gray-200 rounded-xl py-3 focus:border-blue-500 focus:bg-white outline-none transition-all" />
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       {quickAmounts.map((preset) => (
                         <button key={preset} onClick={() => setAmount(preset.toString())}
-                          className={`py-2 rounded-xl text-sm font-semibold ${amount === preset.toString() ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'}`}>
+                          className={`btn-ripple py-2 rounded-xl text-sm font-semibold transition-all hover:scale-105 active:scale-95 ${amount === preset.toString() ? 'bg-blue-500 text-white shadow-md shadow-blue-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
                           {preset >= 1000000 ? `${preset / 1000000}M` : `${preset / 1000}K`}
                         </button>
                       ))}
                     </div>
                     <button onClick={handleDemoDeposit} disabled={loading}
-                      className="w-full bg-blue-500 text-white py-3 rounded-xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2">
+                      className="btn-ripple w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]">
                       {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</> : 'Confirm'}
                     </button>
                   </div>
