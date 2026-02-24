@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence, useInView } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { useAuthStore, useAuthHydration } from '@/store/auth'
+import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 const DemoTradingTutorial = dynamic(
@@ -562,26 +562,9 @@ const LiveCryptoChart = () => {
 export default function LandingPage() {
   const router = useRouter()
   const { user, setAuth } = useAuthStore()
-
-  // ✅ FIX 1: Ganti setTimeout(100ms) dengan zustand hydration yang akurat.
-  // Zustand trigger re-render TEPAT saat localStorage selesai dibaca —
-  // tidak ada "blind window" 100ms yang cause white flash.
-  const hydrated = useAuthHydration()
-
-  // ✅ FIX 2: Overlay dark screen untuk transisi antar halaman.
-  // Teknik: overlay #0a0e17 selalu di-render, opacity dikontrol GPU compositor.
-  // Tidak ada blank frame karena overlay menutupi sebelum navigasi.
-  const [isNavigating, setIsNavigating] = useState(false)
-  const [navMessage, setNavMessage] = useState('Memuat...')
-
-  // Helper: navigasi dengan smooth overlay (gantikan window.location.href langsung)
-  const navigateTo = useCallback((href: string, message = 'Menuju halaman trading...') => {
-    setNavMessage(message)
-    setIsNavigating(true)
-    // Overlay fade-in 320ms dulu, BARU hard navigate → zero white flash
-    setTimeout(() => { window.location.href = href }, 320)
-  }, [])
-
+  
+  // ✅ ALL useState hooks at the top
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [isClosingModal, setIsClosingModal] = useState(false)
 
@@ -961,6 +944,14 @@ export default function LandingPage() {
   const [referralCode, setReferralCode] = useState<string>('')
   const [hasReferralCode, setHasReferralCode] = useState(false)
 
+  // ✅ Effect 1: Check auth timeout
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsCheckingAuth(false)
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [])
+
   // ✅ Scroll lock: kunci scroll body saat modal auth terbuka
   const savedScrollY = useRef(0)
 
@@ -981,14 +972,13 @@ export default function LandingPage() {
     }
   }, [showAuthModal])
 
-  // ✅ FIX 3: Redirect menggunakan navigateTo (overlay dulu, baru navigate)
-  // Overlay opaque → window.location.href → zero white flash
+  // ✅ Effect 2: Redirect if authenticated
   useEffect(() => {
-    if (hydrated && user) {
+    if (!isCheckingAuth && user) {
       console.log('ℹ️ User already authenticated, redirecting...')
-      navigateTo('/trading', 'Menuju halaman trading...')
+      router.push('/trading')
     }
-  }, [user, hydrated, navigateTo])
+  }, [user, router, isCheckingAuth])
 
   // ✅ NEW Effect 3: Read referral code from URL
   useEffect(() => {
@@ -1065,13 +1055,21 @@ export default function LandingPage() {
   // Mouse parallax removed — no animated elements use it anymore,
   // but the mousemove listener + setState was triggering re-renders on every move.
 
-  // ✅ FIX 4: Tidak ada lagi early return yang menyebabkan blank frame.
-  // Dulu: if (isCheckingAuth) return <spinner>  → blank frame
-  //       if (user) return null                 → blank frame sebelum navigasi
-  // Sekarang: overlay dark screen menutupi sementara konten di belakangnya.
-  // Browser tidak pernah melihat layer kosong.
-  const isLoading = !hydrated || isRedirectPending() || isNavigating
-  const showContent = hydrated && !user && !isNavigating
+  // ✅ NOW do conditional rendering AFTER all hooks
+  if (isCheckingAuth || isRedirectPending()) {
+    return (
+      <div className="min-h-screen bg-[#0a0e17] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-400 mx-auto mb-4"></div>
+          <p className="text-gray-400">
+            {isRedirectPending() ? 'Menyelesaikan login...' : 'Loading...'}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (user) return null
 
   // ✅ Event handlers
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -1138,9 +1136,7 @@ export default function LandingPage() {
         toast.success(response.message || 'Login berhasil!')
       }
 
-      // ✅ FIX 5: overlay fade-in dulu 320ms, baru navigate → zero white flash
-      setShowAuthModal(false)
-      navigateTo('/trading', 'Menuju halaman trading...')
+      window.location.href = '/trading'
     } catch (error: any) {
       const errorMessage = 
         error.response?.data?.error || 
@@ -1209,9 +1205,8 @@ export default function LandingPage() {
         toast.success(message)
       }
 
-      // ✅ FIX 6: overlay dulu, baru navigate
       setShowAuthModal(false)
-      navigateTo('/trading', 'Menuju halaman trading...')
+      window.location.href = '/trading'
 
     } catch (error: any) {
       console.error('❌ Google Sign-In failed:', error)
@@ -1238,51 +1233,6 @@ export default function LandingPage() {
   }
 
   return (
-    <>
-      {/* ✅ FIX 7: Dark overlay — SELALU rendered di DOM, tidak pernah return null/blank.
-          Opacity dikontrol via CSS transition (hanya GPU compositor, zero layout/paint).
-          isLoading=true → overlay opaque (user tidak lihat flash)
-          isLoading=false → overlay transparan (konten terlihat)
-          Ini eliminates SEMUA flash: loading flash, redirect flash, navigation flash. */}
-      <div
-        aria-hidden
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 9999,
-          background: '#0a0e17',
-          opacity: isLoading ? 1 : 0,
-          pointerEvents: isLoading ? 'all' : 'none',
-          // ✅ Force GPU compositing layer dari awal — tidak ada promotion mid-animation
-          transform: 'translateZ(0)',
-          willChange: 'opacity',
-          transition: 'opacity 0.3s ease',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'column' as const,
-          gap: 16,
-        }}
-      >
-        {isLoading && (
-          <>
-            <div style={{
-              width: 40, height: 40, borderRadius: '50%',
-              border: '2.5px solid transparent',
-              borderTopColor: '#10b981',
-              borderRightColor: '#0ea5e9',
-              animation: 'overlay-spin 0.7s linear infinite',
-              transform: 'translateZ(0)',
-            }} />
-            <p style={{ color: '#6b7280', fontSize: 14, margin: 0, fontFamily: 'system-ui' }}>
-              {navMessage}
-            </p>
-          </>
-        )}
-      </div>
-
-      {/* Konten utama — hanya render saat showContent=true */}
-      {showContent && (
     <div className="relative min-h-screen bg-[#0a0e17] text-white overflow-hidden">
       {/* Static background tint — single element, no animation, no blur paint */}
       <div className="fixed inset-0 pointer-events-none" aria-hidden>
@@ -2316,30 +2266,13 @@ export default function LandingPage() {
       {/* Auth Modal */}
 {showAuthModal && (
   <>
-    {/* ✅ FIX 8: backdrop-blur HANYA di desktop — mobile pakai solid bg.
-        backdrop-filter di mobile sangat mahal, trigger GPU layer promotion
-        mid-animation yang menyebabkan flicker. */}
     <div 
-      className={`fixed inset-0 z-50 transition-opacity duration-350
-        bg-black/85 lg:bg-black/60 lg:backdrop-blur-sm
-        ${isClosingModal ? 'opacity-0' : 'animate-fade-in'}`}
+      className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-50 transition-opacity duration-350 ${isClosingModal ? 'opacity-0' : 'animate-fade-in'}`}
       onClick={closeAuthModal}
-      style={{ willChange: 'opacity', transform: 'translateZ(0)' }}
     />
 
-    {/* ✅ FIX 9: Modal panel — GPU accelerated, initial state explicit */}
-    <div
-      className={`fixed top-0 right-0 bottom-0 w-full sm:w-[480px]
-        bg-gradient-to-b from-[#0f1419] to-[#0a0e17] z-50 shadow-2xl flex flex-col
-        duration-350
-        ${isClosingModal ? 'translate-x-full' : 'animate-slide-left'}`}
-      style={{
-        willChange: 'transform',
-        backfaceVisibility: 'hidden',
-        WebkitBackfaceVisibility: 'hidden',
-        ...(isClosingModal ? { transform: 'translate3d(100%,0,0)', transition: 'transform 350ms ease-in-out' } : {}),
-      }}
-    >
+    {/* FIXED: Hapus overflow-y-auto dari container utama, gunakan h-full */}
+    <div className={`fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-gradient-to-b from-[#0f1419] to-[#0a0e17] z-50 shadow-2xl flex flex-col transition-transform duration-350 ease-in-out ${isClosingModal ? 'translate-x-full' : 'animate-slide-left'}`}>
       {/* Header - Sticky */}
       <div className="flex-shrink-0 bg-[#0f1419] border-b border-gray-800/50 p-6">
         <div className="flex items-center justify-between">
@@ -2671,112 +2604,33 @@ export default function LandingPage() {
       .animate-gradient { animation: animate-gradient 4s ease infinite; }
 
       /* ── Infinite marquee ──────────────────────────────── */
-      @keyframes marquee-left  { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-50%, 0, 0); } }
-      @keyframes marquee-right { from { transform: translate3d(-50%, 0, 0); } to { transform: translate3d(0, 0, 0); } }
-      .animate-marquee-left {
-        animation: marquee-left 55s linear infinite;
-        width: max-content;
-        will-change: transform;
-        -webkit-backface-visibility: hidden;
-        backface-visibility: hidden;
-      }
-      .animate-marquee-right {
-        animation: marquee-right 55s linear infinite;
-        width: max-content;
-        will-change: transform;
-        -webkit-backface-visibility: hidden;
-        backface-visibility: hidden;
-      }
+      @keyframes marquee-left  { from { transform: translateX(0); }    to { transform: translateX(-50%); } }
+      @keyframes marquee-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+      .animate-marquee-left  { animation: marquee-left  55s linear infinite; width: max-content; }
+      .animate-marquee-right { animation: marquee-right 55s linear infinite; width: max-content; }
 
       /* animate-float & animate-pulse-slow removed — these animated large
          blurred elements causing GPU layer thrashing. */
 
-      /* ── Modal/slide animations — pakai translate3d (GPU compositor only) ── */
-      /* translate3d tidak trigger layout/paint, hanya compositing layer.        */
-      /* will-change + backface-visibility: set SEBELUM animasi → no promotion   */
-      @keyframes slide-left {
-        from { transform: translate3d(100%, 0, 0); opacity: 0.99; }
-        to   { transform: translate3d(0, 0, 0);    opacity: 1; }
-      }
-      @keyframes fade-in {
-        from { opacity: 0; transform: translateZ(0); }
-        to   { opacity: 1; transform: translateZ(0); }
-      }
-      @keyframes fade-in-up {
-        from { opacity: 0; transform: translate3d(0, 20px, 0); }
-        to   { opacity: 1; transform: translate3d(0, 0, 0); }
-      }
-      @keyframes slide-in-right {
-        from { opacity: 0; transform: translate3d(40px, 0, 0); }
-        to   { opacity: 1; transform: translate3d(0, 0, 0); }
-      }
-      .animate-slide-left {
-        animation: slide-left 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-        will-change: transform;
-        -webkit-backface-visibility: hidden;
-        backface-visibility: hidden;
-      }
-      .animate-fade-in {
-        animation: fade-in 0.25s ease-out forwards;
-        will-change: opacity;
-        transform: translateZ(0);
-      }
-      .animate-fade-in-up {
-        animation: fade-in-up 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-        will-change: transform, opacity;
-        -webkit-backface-visibility: hidden;
-        backface-visibility: hidden;
-      }
-      .animate-slide-in-right {
-        animation: slide-in-right 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-        will-change: transform, opacity;
-        -webkit-backface-visibility: hidden;
-        backface-visibility: hidden;
-      }
+      /* ── Modal/slide animations ────────────────────────── */
+      @keyframes slide-left    { from { transform: translateX(100%); } to { transform: translateX(0); } }
+      @keyframes fade-in       { from { opacity: 0; }  to { opacity: 1; } }
+      @keyframes fade-in-up    { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes slide-in-right{ from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+      .animate-slide-left    { animation: slide-left     0.35s ease-out forwards; }
+      .animate-fade-in       { animation: fade-in        0.25s ease-out forwards; }
+      .animate-fade-in-up    { animation: fade-in-up     0.5s  ease-out forwards; }
+      .animate-slide-in-right{ animation: slide-in-right 0.5s  ease-out forwards; }
 
-      /* ── Logo animations — scale3d (GPU, tidak trigger repaint) ───────── */
-      @keyframes logo-bounce-in {
-        0%   { transform: scale3d(0.3, 0.3, 1) rotate(-15deg); opacity: 0; }
-        60%  { transform: scale3d(1.15, 1.15, 1) rotate(5deg); opacity: 1; }
-        100% { transform: scale3d(1, 1, 1) rotate(0deg); opacity: 1; }
-      }
-      @keyframes logo-bounce-out {
-        0%   { transform: scale3d(1, 1, 1) rotate(0deg); opacity: 1; }
-        40%  { transform: scale3d(1.1, 1.1, 1) rotate(-5deg); opacity: 0.8; }
-        100% { transform: scale3d(0.3, 0.3, 1) rotate(15deg); opacity: 0; }
-      }
-      @keyframes text-slide-in {
-        from { opacity: 0; transform: translate3d(-20px, 0, 0); }
-        to   { opacity: 1; transform: translate3d(0, 0, 0); }
-      }
-      @keyframes text-slide-out {
-        from { opacity: 1; transform: translate3d(0, 0, 0); }
-        to   { opacity: 0; transform: translate3d(20px, 0, 0); }
-      }
-      .animate-logo-bounce-in {
-        animation: logo-bounce-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        will-change: transform, opacity;
-        -webkit-backface-visibility: hidden;
-        backface-visibility: hidden;
-      }
-      .animate-logo-bounce-out {
-        animation: logo-bounce-out 0.5s ease-in forwards;
-        will-change: transform, opacity;
-        -webkit-backface-visibility: hidden;
-        backface-visibility: hidden;
-      }
-      .animate-text-slide-in {
-        animation: text-slide-in 0.4s ease-out forwards;
-        will-change: transform, opacity;
-        -webkit-backface-visibility: hidden;
-        backface-visibility: hidden;
-      }
-      .animate-text-slide-out {
-        animation: text-slide-out 0.4s ease-in forwards;
-        will-change: transform, opacity;
-        -webkit-backface-visibility: hidden;
-        backface-visibility: hidden;
-      }
+      /* ── Logo animations ───────────────────────────────── */
+      @keyframes logo-bounce-in  { 0% { transform: scale(0.3) rotate(-15deg); opacity: 0; } 60% { transform: scale(1.15) rotate(5deg); opacity: 1; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
+      @keyframes logo-bounce-out { 0% { transform: scale(1) rotate(0deg); opacity: 1; } 40% { transform: scale(1.1) rotate(-5deg); opacity: 0.8; } 100% { transform: scale(0.3) rotate(15deg); opacity: 0; } }
+      @keyframes text-slide-in   { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+      @keyframes text-slide-out  { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(20px); } }
+      .animate-logo-bounce-in  { animation: logo-bounce-in  0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+      .animate-logo-bounce-out { animation: logo-bounce-out 0.5s ease-in forwards; }
+      .animate-text-slide-in   { animation: text-slide-in   0.4s ease-out forwards; }
+      .animate-text-slide-out  { animation: text-slide-out  0.4s ease-in  forwards; }
 
       /* ── Scrollbar — premium gradient ──────────────────── */
       ::-webkit-scrollbar { width: 6px; }
@@ -2962,12 +2816,7 @@ export default function LandingPage() {
         mask-image: linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%);
         -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%);
       }
-      @keyframes overlay-spin {
-        to { transform: rotate(360deg) translateZ(0); }
-      }
     `}</style>
     </div>
-      )}
-    </>
   )
 }

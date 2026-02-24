@@ -27,6 +27,7 @@ export const useAuthStore = create<AuthState>()(
           tokenLength: token.length
         })
         
+        // Store in localStorage directly as backup
         if (typeof window !== 'undefined') {
           localStorage.setItem('token', token)
           localStorage.setItem('user', JSON.stringify(user))
@@ -70,48 +71,31 @@ export const useAuthStore = create<AuthState>()(
         if (typeof window !== 'undefined') {
           return localStorage
         }
+        // Fallback for SSR
         return {
           getItem: () => null,
           setItem: () => {},
           removeItem: () => {},
         }
       }),
-
-      // ✅ FIX: onRehydrateStorage harus return fungsi yang menerima (state, error)
-      // Signature yang salah = setHydrated tidak pernah dipanggil = isCheckingAuth stuck
-      // 
-      // SALAH (versi lama):
-      //   onRehydrateStorage: () => (state) => {
-      //     return () => { state?.setHydrated() }  ← return fungsi di dalam fungsi = tidak jalan
-      //   }
-      //
-      // BENAR:
-      //   onRehydrateStorage: () => (state, error) => {
-      //     state?.setHydrated()  ← panggil langsung di callback
-      //   }
-      onRehydrateStorage: () => (state, error) => {
-        if (error) {
-          console.error('❌ Auth Store: Rehydration error:', error)
-          // ✅ Tetap set hydrated meskipun error, agar UI tidak stuck loading
+      onRehydrateStorage: () => (state) => {
+        console.log('💧 Auth Store: Rehydration started')
+        
+        return () => {
+          console.log('✅ Auth Store: Rehydration complete', {
+            hasUser: !!state?.user,
+            hasToken: !!state?.token,
+            isAuthenticated: state?.isAuthenticated
+          })
+          
           state?.setHydrated()
-          return
         }
-
-        console.log('✅ Auth Store: Rehydration complete', {
-          hasUser: !!state?.user,
-          hasToken: !!state?.token,
-          isAuthenticated: state?.isAuthenticated
-        })
-
-        // ✅ Panggil setHydrated langsung — tidak di-wrap dalam return function
-        state?.setHydrated()
       },
     }
   )
 )
 
 // Hook to wait for hydration
-// Digunakan di page.tsx untuk menggantikan setTimeout(100ms) yang tidak akurat
 export const useAuthHydration = () => {
   const hydrated = useAuthStore((state) => state.hydrated)
   return hydrated
