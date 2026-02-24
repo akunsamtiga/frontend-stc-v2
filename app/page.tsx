@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence, useInView } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { useAuthStore } from '@/store/auth'
+import { useAuthStore, useAuthHydration } from '@/store/auth'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 const DemoTradingTutorial = dynamic(
@@ -562,9 +562,26 @@ const LiveCryptoChart = () => {
 export default function LandingPage() {
   const router = useRouter()
   const { user, setAuth } = useAuthStore()
-  
-  // ✅ ALL useState hooks at the top
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+
+  // ✅ FIX 1: Ganti setTimeout(100ms) dengan zustand hydration yang akurat.
+  // Zustand trigger re-render TEPAT saat localStorage selesai dibaca —
+  // tidak ada "blind window" 100ms yang cause white flash.
+  const hydrated = useAuthHydration()
+
+  // ✅ FIX 2: Overlay dark screen untuk transisi antar halaman.
+  // Teknik: overlay #0a0e17 selalu di-render, opacity dikontrol GPU compositor.
+  // Tidak ada blank frame karena overlay menutupi sebelum navigasi.
+  const [isNavigating, setIsNavigating] = useState(false)
+  const [navMessage, setNavMessage] = useState('Memuat...')
+
+  // Helper: navigasi dengan smooth overlay (gantikan window.location.href langsung)
+  const navigateTo = useCallback((href: string, message = 'Menuju halaman trading...') => {
+    setNavMessage(message)
+    setIsNavigating(true)
+    // Overlay fade-in 320ms dulu, BARU hard navigate → zero white flash
+    setTimeout(() => { window.location.href = href }, 320)
+  }, [])
+
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [isClosingModal, setIsClosingModal] = useState(false)
 
@@ -580,8 +597,8 @@ export default function LandingPage() {
 
   // ─── GSAP Master Animation Setup ─────────────────────────────────────────────
   useEffect(() => {
-    // ✅ FIX: Skip GSAP entirely on mobile — elements stay visible via CSS
-    if (typeof window !== 'undefined' && window.innerWidth < 1024) return
+    // GSAP aktif di semua device (mobile + desktop)
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024
 
     let ctx: any
     let cleanup: (() => void) | undefined
@@ -609,6 +626,13 @@ export default function LandingPage() {
         const heroTitleEl = document.querySelector<HTMLElement>('.gsap-hero-title-line1')
         const heroAccentEl = document.querySelector<HTMLElement>('.gsap-hero-title-accent')
         
+        // Set initial state semua hero elements (desktop + mobile)
+        gsap.set('.gsap-hero-badge',   { opacity: 0, y: 16, scale: 0.9 })
+        gsap.set('.gsap-hero-desc',    { opacity: 0, y: 30 })
+        gsap.set('.gsap-hero-buttons', { opacity: 0 })
+        gsap.set('.gsap-hero-stats',   { opacity: 0 })
+        gsap.set('.gsap-hero-chart',   { opacity: 0, x: isMobile ? 40 : 60, scale: 0.94 })
+
         const heroTl = gsap.timeline({ defaults: { ease: 'expo.out' } })
         
         if (heroTitleEl && heroAccentEl) {
@@ -731,7 +755,7 @@ export default function LandingPage() {
         gsap.utils.toArray<HTMLElement>('.gsap-section-header').forEach(el => {
           gsap.set(el, { opacity: 0, y: 50 })
           gsap.to(el, { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
-            scrollTrigger: { trigger: el, start: 'top 87%', once: true },
+            scrollTrigger: { trigger: el, start: 'top 92%', once: true },
           })
         })
 
@@ -739,11 +763,12 @@ export default function LandingPage() {
         // HOW IT WORKS — alternating slide in from sides
         // ════════════════════════════════════════════════════════════════════════
         gsap.utils.toArray<HTMLElement>('.gsap-step-card').forEach((card, i) => {
-          gsap.set(card, { opacity: 0, x: i % 2 === 0 ? -80 : 80, y: 30 })
+          const xVal = isMobile ? (i % 2 === 0 ? -40 : 40) : (i % 2 === 0 ? -80 : 80)
+          gsap.set(card, { opacity: 0, x: xVal, y: 30 })
           gsap.to(card, {
             opacity: 1, x: 0, y: 0,
             duration: 1.0, ease: 'power3.out',
-            scrollTrigger: { trigger: card, start: 'top 85%', once: true },
+            scrollTrigger: { trigger: card, start: 'top 88%', once: true },
           })
         })
 
@@ -756,21 +781,89 @@ export default function LandingPage() {
             opacity: 1, y: 0, scale: 1, rotation: 0,
             stagger: { amount: 0.5, from: 'start' },
             duration: 0.65, ease: 'back.out(1.6)',
-            scrollTrigger: { trigger: grid, start: 'top 86%', once: true },
+            scrollTrigger: { trigger: grid, start: 'top 92%', once: true },
           })
         })
 
         // ════════════════════════════════════════════════════════════════════════
-        // PARTNERSHIP ROWS — cinematic slide + fade
+        // PARTNERSHIP ROWS — per-element cinematic animations
         // ════════════════════════════════════════════════════════════════════════
         gsap.utils.toArray<HTMLElement>('.gsap-partner-row').forEach((row, i) => {
-          gsap.set(row, { opacity: 0, x: i % 2 === 0 ? -80 : 80 })
-          gsap.to(row, {
-            opacity: 1, x: 0,
-            duration: 1.1, ease: 'power4.out',
-            scrollTrigger: { trigger: row, start: 'top 83%', once: true },
-          })
+          const isEven = i % 2 === 0
+
+          // Image element
+          const imgWrap = row.querySelector<HTMLElement>('.gsap-partner-img')
+          if (imgWrap) {
+            const xOffset = isMobile ? (isEven ? -50 : 50) : (isEven ? -100 : 100)
+            gsap.set(imgWrap, { opacity: 0, x: xOffset, scale: 0.88, rotation: isEven ? -4 : 4 })
+            gsap.to(imgWrap, {
+              opacity: 1, x: 0, scale: 1, rotation: 0,
+              duration: 1.2, ease: 'power4.out',
+              scrollTrigger: { trigger: row, start: 'top 88%', once: true },
+            })
+          }
+
+          // Logo badge
+          const logoBadge = row.querySelector<HTMLElement>('.gsap-partner-logo')
+          if (logoBadge) {
+            gsap.set(logoBadge, { opacity: 0, x: 30, scale: 0.8 })
+            gsap.to(logoBadge, {
+              opacity: 1, x: 0, scale: 1,
+              duration: 0.7, ease: 'back.out(2)',
+              scrollTrigger: { trigger: row, start: 'top 88%', once: true },
+              delay: 0.25,
+            })
+          }
+
+          // Heading text
+          const heading = row.querySelector<HTMLElement>('.gsap-partner-heading')
+          if (heading) {
+            gsap.set(heading, { opacity: 0, y: 40 })
+            gsap.to(heading, {
+              opacity: 1, y: 0,
+              duration: 0.85, ease: 'power3.out',
+              scrollTrigger: { trigger: row, start: 'top 88%', once: true },
+              delay: 0.35,
+            })
+          }
+
+          // Description text
+          const desc = row.querySelector<HTMLElement>('.gsap-partner-desc')
+          if (desc) {
+            gsap.set(desc, { opacity: 0, y: 25 })
+            gsap.to(desc, {
+              opacity: 1, y: 0,
+              duration: 0.75, ease: 'power3.out',
+              scrollTrigger: { trigger: row, start: 'top 88%', once: true },
+              delay: 0.48,
+            })
+          }
+
+          // Button / CTA
+          const btn = row.querySelector<HTMLElement>('.gsap-partner-btn')
+          if (btn) {
+            gsap.set(btn, { opacity: 0, y: 20, scale: 0.9 })
+            gsap.to(btn, {
+              opacity: 1, y: 0, scale: 1,
+              duration: 0.6, ease: 'back.out(1.8)',
+              scrollTrigger: { trigger: row, start: 'top 88%', once: true },
+              delay: 0.6,
+            })
+          }
         })
+
+        // ════════════════════════════════════════════════════════════════════════
+        // AFFILIATE SECTION HEADER — word-level stagger
+        // ════════════════════════════════════════════════════════════════════════
+        const affiliateHeader = document.querySelector<HTMLElement>('.gsap-affiliate-header')
+        if (affiliateHeader) {
+          const badge = affiliateHeader.querySelector<HTMLElement>('.gsap-aff-badge')
+          const title = affiliateHeader.querySelector<HTMLElement>('.gsap-aff-title')
+          const desc = affiliateHeader.querySelector<HTMLElement>('.gsap-aff-desc')
+          if (badge) { gsap.set(badge, { opacity: 0, y: 20, scale: 0.85 }); gsap.to(badge, { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: 'back.out(2)', scrollTrigger: { trigger: affiliateHeader, start: 'top 92%', once: true } }) }
+          if (title) { gsap.set(title, { opacity: 0, y: 50 }); gsap.to(title, { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out', scrollTrigger: { trigger: affiliateHeader, start: 'top 92%', once: true }, delay: 0.15 }) }
+          if (desc)  { gsap.set(desc,  { opacity: 0, y: 30 }); gsap.to(desc,  { opacity: 1, y: 0, duration: 0.75, ease: 'power3.out', scrollTrigger: { trigger: affiliateHeader, start: 'top 92%', once: true }, delay: 0.3 }) }
+        }
 
         // ════════════════════════════════════════════════════════════════════════
         // AFFILIATE CARDS — scale pop with stagger
@@ -781,24 +874,35 @@ export default function LandingPage() {
           gsap.to(affiliateCards, {
             opacity: 1, y: 0, scale: 1,
             stagger: 0.18, duration: 0.85, ease: 'back.out(1.8)',
-            scrollTrigger: { trigger: affiliateCards[0], start: 'top 86%', once: true },
+            scrollTrigger: { trigger: affiliateCards[0], start: 'top 92%', once: true },
           })
         }
 
         // ════════════════════════════════════════════════════════════════════════
-        // AFFILIATE STEPS — cascade stagger
+        // AFFILIATE STEPS — cascade stagger per card
         // ════════════════════════════════════════════════════════════════════════
         gsap.utils.toArray<HTMLElement>('.gsap-affiliate-steps-grid').forEach(grid => {
-          gsap.set(grid.children as unknown as HTMLElement[], { opacity: 0, y: 45, x: -15 })
-          gsap.to(grid.children as unknown as HTMLElement[], {
-            opacity: 1, y: 0, x: 0,
-            stagger: 0.13, duration: 0.75, ease: 'power3.out',
-            scrollTrigger: { trigger: grid, start: 'top 85%', once: true },
+          const children = Array.from(grid.children) as HTMLElement[]
+          children.forEach((child, idx) => {
+            // icon inside card
+            const icon = child.querySelector<HTMLElement>('.gsap-step-icon')
+            const title = child.querySelector<HTMLElement>('.gsap-step-title')
+            const desc = child.querySelector<HTMLElement>('.gsap-step-desc')
+            gsap.set(child, { opacity: 0, y: 45, x: -15 })
+            gsap.to(child, {
+              opacity: 1, y: 0, x: 0,
+              duration: 0.75, ease: 'power3.out',
+              scrollTrigger: { trigger: grid, start: 'top 92%', once: true },
+              delay: idx * 0.13,
+            })
+            if (icon)  { gsap.set(icon,  { opacity: 0, scale: 0.5, rotation: -20 }); gsap.to(icon,  { opacity: 1, scale: 1, rotation: 0, duration: 0.5, ease: 'back.out(2)', scrollTrigger: { trigger: grid, start: 'top 92%', once: true }, delay: idx * 0.13 + 0.2 }) }
+            if (title) { gsap.set(title, { opacity: 0, y: 10 }); gsap.to(title, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out', scrollTrigger: { trigger: grid, start: 'top 92%', once: true }, delay: idx * 0.13 + 0.3 }) }
+            if (desc)  { gsap.set(desc,  { opacity: 0, y: 8 }); gsap.to(desc,  { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out', scrollTrigger: { trigger: grid, start: 'top 92%', once: true }, delay: idx * 0.13 + 0.38 }) }
           })
         })
 
         // ════════════════════════════════════════════════════════════════════════
-        // CTA — dramatic entrance with scale
+        // CTA — dramatic entrance + inner elements stagger
         // ════════════════════════════════════════════════════════════════════════
         const ctaEl = document.querySelector('.gsap-cta-section') as HTMLElement
         if (ctaEl) {
@@ -806,8 +910,23 @@ export default function LandingPage() {
           gsap.to(ctaEl, {
             opacity: 1, y: 0, scale: 1,
             duration: 1.1, ease: 'power4.out',
-            scrollTrigger: { trigger: ctaEl, start: 'top 82%', once: true },
+            scrollTrigger: { trigger: ctaEl, start: 'top 92%', once: true },
           })
+          // CTA inner children
+          const ctaBadge = ctaEl.querySelector<HTMLElement>('.gsap-cta-badge')
+          const ctaTitle = ctaEl.querySelector<HTMLElement>('.gsap-cta-title')
+          const ctaDesc  = ctaEl.querySelector<HTMLElement>('.gsap-cta-desc')
+          const ctaBtn   = ctaEl.querySelector<HTMLElement>('.gsap-cta-btn')
+          const ctaStats = ctaEl.querySelector<HTMLElement>('.gsap-cta-stats')
+          if (ctaBadge) { gsap.set(ctaBadge, { opacity: 0, scale: 0.8 }); gsap.to(ctaBadge, { opacity: 1, scale: 1, duration: 0.5, ease: 'back.out(2)', scrollTrigger: { trigger: ctaEl, start: 'top 92%', once: true }, delay: 0.4 }) }
+          if (ctaTitle) { gsap.set(ctaTitle, { opacity: 0, y: 35 }); gsap.to(ctaTitle, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out', scrollTrigger: { trigger: ctaEl, start: 'top 92%', once: true }, delay: 0.55 }) }
+          if (ctaDesc)  { gsap.set(ctaDesc,  { opacity: 0, y: 25 }); gsap.to(ctaDesc,  { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out', scrollTrigger: { trigger: ctaEl, start: 'top 92%', once: true }, delay: 0.68 }) }
+          if (ctaBtn)   { gsap.set(ctaBtn,   { opacity: 0, scale: 0.85 }); gsap.to(ctaBtn,   { opacity: 1, scale: 1, duration: 0.5, ease: 'back.out(1.8)', scrollTrigger: { trigger: ctaEl, start: 'top 92%', once: true }, delay: 0.82 }) }
+          if (ctaStats) {
+            const statsItems = Array.from(ctaStats.children) as HTMLElement[]
+            gsap.set(statsItems, { opacity: 0, y: 20 })
+            gsap.to(statsItems, { opacity: 1, y: 0, stagger: 0.12, duration: 0.5, ease: 'power2.out', scrollTrigger: { trigger: ctaEl, start: 'top 92%', once: true }, delay: 1.0 })
+          }
         }
 
       })
@@ -842,14 +961,6 @@ export default function LandingPage() {
   const [referralCode, setReferralCode] = useState<string>('')
   const [hasReferralCode, setHasReferralCode] = useState(false)
 
-  // ✅ Effect 1: Check auth timeout
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsCheckingAuth(false)
-    }, 100)
-    return () => clearTimeout(timer)
-  }, [])
-
   // ✅ Scroll lock: kunci scroll body saat modal auth terbuka
   const savedScrollY = useRef(0)
 
@@ -870,13 +981,14 @@ export default function LandingPage() {
     }
   }, [showAuthModal])
 
-  // ✅ Effect 2: Redirect if authenticated
+  // ✅ FIX 3: Redirect menggunakan navigateTo (overlay dulu, baru navigate)
+  // Overlay opaque → window.location.href → zero white flash
   useEffect(() => {
-    if (!isCheckingAuth && user) {
+    if (hydrated && user) {
       console.log('ℹ️ User already authenticated, redirecting...')
-      router.push('/trading')
+      navigateTo('/trading', 'Menuju halaman trading...')
     }
-  }, [user, router, isCheckingAuth])
+  }, [user, hydrated, navigateTo])
 
   // ✅ NEW Effect 3: Read referral code from URL
   useEffect(() => {
@@ -953,21 +1065,13 @@ export default function LandingPage() {
   // Mouse parallax removed — no animated elements use it anymore,
   // but the mousemove listener + setState was triggering re-renders on every move.
 
-  // ✅ NOW do conditional rendering AFTER all hooks
-  if (isCheckingAuth || isRedirectPending()) {
-    return (
-      <div className="min-h-screen bg-[#0a0e17] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-400 mx-auto mb-4"></div>
-          <p className="text-gray-400">
-            {isRedirectPending() ? 'Menyelesaikan login...' : 'Loading...'}
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  if (user) return null
+  // ✅ FIX 4: Tidak ada lagi early return yang menyebabkan blank frame.
+  // Dulu: if (isCheckingAuth) return <spinner>  → blank frame
+  //       if (user) return null                 → blank frame sebelum navigasi
+  // Sekarang: overlay dark screen menutupi sementara konten di belakangnya.
+  // Browser tidak pernah melihat layer kosong.
+  const isLoading = !hydrated || isRedirectPending() || isNavigating
+  const showContent = hydrated && !user && !isNavigating
 
   // ✅ Event handlers
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -1034,7 +1138,9 @@ export default function LandingPage() {
         toast.success(response.message || 'Login berhasil!')
       }
 
-      window.location.href = '/trading'
+      // ✅ FIX 5: overlay fade-in dulu 320ms, baru navigate → zero white flash
+      setShowAuthModal(false)
+      navigateTo('/trading', 'Menuju halaman trading...')
     } catch (error: any) {
       const errorMessage = 
         error.response?.data?.error || 
@@ -1103,8 +1209,9 @@ export default function LandingPage() {
         toast.success(message)
       }
 
+      // ✅ FIX 6: overlay dulu, baru navigate
       setShowAuthModal(false)
-      window.location.href = '/trading'
+      navigateTo('/trading', 'Menuju halaman trading...')
 
     } catch (error: any) {
       console.error('❌ Google Sign-In failed:', error)
@@ -1131,6 +1238,51 @@ export default function LandingPage() {
   }
 
   return (
+    <>
+      {/* ✅ FIX 7: Dark overlay — SELALU rendered di DOM, tidak pernah return null/blank.
+          Opacity dikontrol via CSS transition (hanya GPU compositor, zero layout/paint).
+          isLoading=true → overlay opaque (user tidak lihat flash)
+          isLoading=false → overlay transparan (konten terlihat)
+          Ini eliminates SEMUA flash: loading flash, redirect flash, navigation flash. */}
+      <div
+        aria-hidden
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9999,
+          background: '#0a0e17',
+          opacity: isLoading ? 1 : 0,
+          pointerEvents: isLoading ? 'all' : 'none',
+          // ✅ Force GPU compositing layer dari awal — tidak ada promotion mid-animation
+          transform: 'translateZ(0)',
+          willChange: 'opacity',
+          transition: 'opacity 0.3s ease',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column' as const,
+          gap: 16,
+        }}
+      >
+        {isLoading && (
+          <>
+            <div style={{
+              width: 40, height: 40, borderRadius: '50%',
+              border: '2.5px solid transparent',
+              borderTopColor: '#10b981',
+              borderRightColor: '#0ea5e9',
+              animation: 'overlay-spin 0.7s linear infinite',
+              transform: 'translateZ(0)',
+            }} />
+            <p style={{ color: '#6b7280', fontSize: 14, margin: 0, fontFamily: 'system-ui' }}>
+              {navMessage}
+            </p>
+          </>
+        )}
+      </div>
+
+      {/* Konten utama — hanya render saat showContent=true */}
+      {showContent && (
     <div className="relative min-h-screen bg-[#0a0e17] text-white overflow-hidden">
       {/* Static background tint — single element, no animation, no blur paint */}
       <div className="fixed inset-0 pointer-events-none" aria-hidden>
@@ -1245,13 +1397,16 @@ export default function LandingPage() {
       <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32 overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-[#121824] via-[#0d1320] to-[#080c16]" />
-          {/* Floating blobs — GSAP infinite drift via gsap-float-blob class */}
-          <div className="gsap-float-blob absolute top-0 left-1/4 w-[500px] h-[500px] bg-emerald-600/10 rounded-full blur-[100px]" style={{ willChange: 'transform' }} />
-          <div className="gsap-float-blob absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-700/8 rounded-full blur-[100px]" style={{ willChange: 'transform' }} />
-          {/* Decorative orbs — GSAP infinite loop */}
-          <div className="gsap-orb absolute top-1/4 left-[60%] w-3 h-3 bg-emerald-400/40 rounded-full blur-[2px]" style={{ willChange: 'transform' }} />
-          <div className="gsap-orb absolute top-1/2 left-[15%] w-2 h-2 bg-teal-400/30 rounded-full blur-[1px]" style={{ willChange: 'transform' }} />
-          <div className="gsap-orb absolute bottom-1/3 right-[20%] w-2.5 h-2.5 bg-blue-400/35 rounded-full blur-[2px]" style={{ willChange: 'transform' }} />
+          {/* Grid line pattern */}
+          <div className="absolute inset-0 opacity-[0.08]" style={{
+            backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+            backgroundSize: '60px 60px'
+          }} />
+          {/* Hero bg blurs */}
+          <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px]" />
+          <div className="absolute top-1/3 -left-24 w-[380px] h-[380px] bg-teal-500/8 rounded-full blur-[90px]" />
+          <div className="absolute bottom-0 right-0 w-[420px] h-[420px] bg-blue-600/8 rounded-full blur-[110px]" />
+          <div className="absolute top-1/2 right-1/4 w-[260px] h-[260px] bg-sky-500/7 rounded-full blur-[80px]" />
         </div>
         
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
@@ -1259,7 +1414,7 @@ export default function LandingPage() {
             {/* Left Content — animated by GSAP hero timeline */}
             <div className="space-y-8">
               <div className="space-y-2">
-                <div className="gsap-hero-badge inline-flex items-center gap-2 px-1" style={{ opacity: isDesktop ? 0 : 1 }}>
+                <div className="gsap-hero-badge inline-flex items-center gap-2 px-1" style={{ opacity: 0 }}>
                   <span className="text-xs sm:text-sm font-medium shimmer-date">1 Februari – 31 Maret</span>
                 </div>
                 <h1 className="gsap-hero-title text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight" style={{ opacity: 1 }}>
@@ -1275,13 +1430,13 @@ export default function LandingPage() {
                 </h1>
               </div>
 
-              <p className="gsap-hero-desc text-lg sm:text-xl text-gray-400 leading-relaxed" style={{ opacity: isDesktop ? 0 : 1, transform: isDesktop ? 'translateY(30px)' : 'none' }}>
+              <p className="gsap-hero-desc text-lg sm:text-xl text-gray-400 leading-relaxed" style={{ opacity: 0 }}>
                 Tersedia berbagai aset <span className="text-emerald-400 font-semibold">global</span>, 
                 dapatkan profit hingga <span className="text-teal-500 font-semibold">100%</span>, 
                 dan penarikan secepat <span className="text-amber-400 font-semibold">kilat.</span>
               </p>
 
-              <div className="gsap-hero-buttons flex flex-row gap-3 sm:gap-4" style={{ opacity: isDesktop ? 0 : 1 }}>
+              <div className="gsap-hero-buttons flex flex-row gap-3 sm:gap-4" style={{ opacity: 0 }}>
                 <motion.button
                   onClick={() => {
                     setIsLogin(true)
@@ -1314,7 +1469,7 @@ export default function LandingPage() {
               </div>
 
               {/* Stats Row */}
-              <div className="gsap-hero-stats hidden sm:grid grid-cols-4 gap-4 pt-8" style={{ opacity: isDesktop ? 0 : 1 }}>
+              <div className="gsap-hero-stats hidden sm:grid grid-cols-4 gap-4 pt-8" style={{ opacity: 0 }}>
                 {stats.map((stat, index) => (
                   <motion.div 
                     key={index}
@@ -1339,7 +1494,7 @@ export default function LandingPage() {
             </div>
 
             {/* Right - Real Crypto Components */}
-            <div className="gsap-hero-chart relative" style={{ opacity: isDesktop ? 0 : 1, transform: isDesktop ? 'translateX(90px) scale(0.94)' : 'none' }}>
+            <div className="gsap-hero-chart relative" style={{ opacity: 0 }}>
               {/* Desktop-only: tidak di-mount di mobile agar tidak ada polling sia-sia */}
               {isDesktop && <LiveCryptoTicker />}
 
@@ -1387,6 +1542,14 @@ export default function LandingPage() {
 
       {/* How It Works */}
       <section id="how-it-works" className="py-16 sm:py-20 relative overflow-hidden">
+        {/* Grid pattern */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute inset-0 opacity-[0.07]" style={{
+            backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+            backgroundSize: '60px 60px'
+          }} />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_50%,rgba(139,92,246,0.05),transparent)]" />
+        </div>
         <div className="container mx-auto px-4 sm:px-6">
           <div className="gsap-section-header text-center mb-20">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-violet-500/10 border border-violet-500/20 rounded-full mb-6">
@@ -1558,11 +1721,17 @@ export default function LandingPage() {
 
 {/* Payment Methods */}
 <section id="payment" className="py-16 sm:py-20 relative overflow-visible">
-  {/* Animated gradient background layers - WARNA LEBIH PEKAT */}
-  <div className="absolute inset-0 pointer-events-none">
-    {/* Static radial gradient — zero per-frame cost */}
-    <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_20%_40%,rgba(14,165,233,0.07),transparent)]" />
-    <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_80%_70%,rgba(16,185,129,0.06),transparent)]" />
+  {/* Animated gradient background layers - RAINBOW */}
+  <div className="absolute inset-0 pointer-events-none overflow-hidden">
+    {/* Grid pattern */}
+    <div className="absolute inset-0 opacity-[0.07]" style={{
+      backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+      backgroundSize: '60px 60px'
+    }} />
+    {/* Rainbow blur orbs - 3 warna tajam */}
+    <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_45%_at_15%_50%,rgba(239,68,68,0.22),transparent)]" />
+    <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_45%_at_50%_50%,rgba(34,197,94,0.20),transparent)]" />
+    <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_45%_at_85%_50%,rgba(99,102,241,0.22),transparent)]" />
   </div>
   
   <div className="container mx-auto px-4 sm:px-6 relative z-10">
@@ -1748,7 +1917,11 @@ export default function LandingPage() {
 <section className="relative py-12 sm:py-16 lg:py-20 bg-[#0d1422] overflow-hidden">
   {/* Background Effects */}
   <div className="absolute inset-0 pointer-events-none">
-
+    {/* Grid pattern */}
+    <div className="absolute inset-0 opacity-[0.07]" style={{
+      backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+      backgroundSize: '60px 60px'
+    }} />
 
     <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_30%_50%,rgba(16,185,129,0.06),transparent)]" />
   </div>
@@ -1759,7 +1932,7 @@ export default function LandingPage() {
       <div className="gsap-partner-row grid grid-cols-2 gap-3 sm:gap-6 lg:gap-12 items-center mb-12 sm:mb-16 lg:mb-24">
         {/* Kiri - Gambar Pohon */}
         <div className="relative">
-          <div className="relative aspect-[1/1] m-8 lg:m-0 rounded-xl sm:rounded-2xl lg:rounded-3xl overflow-hidden gsap-parallax-img">
+          <div className="gsap-partner-img relative aspect-[1/1] m-8 lg:m-0 rounded-xl sm:rounded-2xl lg:rounded-3xl overflow-hidden gsap-parallax-img">
             <Image
               src="/v1.webp"
               alt="Stockity x LindungiHutan"
@@ -1773,7 +1946,7 @@ export default function LandingPage() {
         <div className="space-y-2 sm:space-y-4 lg:space-y-6">
           {/* Logo */}
           <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
-            <div className="relative w-16 h-6 sm:w-24 sm:h-9 lg:w-32 lg:h-12 bg-white rounded-md sm:rounded-lg overflow-hidden">
+            <div className="gsap-partner-logo relative w-16 h-6 sm:w-24 sm:h-9 lg:w-32 lg:h-12 bg-white rounded-md sm:rounded-lg overflow-hidden">
               <Image
                 src="/lindungihutan.png"
                 alt="LindungiHutan"
@@ -1784,18 +1957,18 @@ export default function LandingPage() {
           </div>
 
           {/* Title */}
-          <h2 className="text-sm sm:text-2xl lg:text-4xl xl:text-5xl font-bold leading-tight">
+          <h2 className="gsap-partner-heading text-sm sm:text-2xl lg:text-4xl xl:text-5xl font-bold leading-tight">
             Bersama kita mengubah dunia!
           </h2>
 
           {/* Description */}
-          <p className="text-[10px] sm:text-sm lg:text-lg text-gray-400 leading-relaxed">
+          <p className="gsap-partner-desc text-[10px] sm:text-sm lg:text-lg text-gray-400 leading-relaxed">
             Tahun ini, Stockity telah menanam 9.000 pohon dan 4 terumbu karang bekerja sama dengan LindungiHutan
           </p>
 
           {/* Button */}
           <a href="https://stockity.id/id/ad/ecostockity?utm_source=ecostockity_new&utm_medium=marprod&utm_campaign=main_page_banner&a=&ac=main_page_banner" target="_blank" rel="noopener noreferrer">
-            <button className="group inline-flex items-center mt-6 gap-1 sm:gap-2 lg:gap-3 px-3 py-1.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 bg-gradient-to-br from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 rounded-lg sm:rounded-xl text-[10px] sm:text-base lg:text-lg font-semibold text-white transition-all shadow-lg hover:shadow-emerald-500/30">
+            <button className="gsap-partner-btn group inline-flex items-center mt-6 gap-1 sm:gap-2 lg:gap-3 px-3 py-1.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 bg-gradient-to-br from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 rounded-lg sm:rounded-xl text-[10px] sm:text-base lg:text-lg font-semibold text-white transition-all shadow-lg hover:shadow-emerald-500/30">
               <span>Selengkapnya</span>
               <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 group-hover:translate-x-1 transition-transform" weight="bold" />
             </button>
@@ -1808,18 +1981,18 @@ export default function LandingPage() {
         <div className="grid grid-cols-[2fr_1fr] gap-3 sm:gap-6 lg:gap-8 items-center">
           {/* Kiri - Teks (75%) */}
           <div className="space-y-2 sm:space-y-3 lg:space-y-4">
-            <h3 className="text-sm sm:text-2xl lg:text-4xl xl:text-5xl font-bold leading-tight">
+            <h3 className="gsap-partner-heading text-sm sm:text-2xl lg:text-4xl xl:text-5xl font-bold leading-tight">
               Platform yang diandalkan oleh para profesional!
             </h3>
 
-            <p className="text-[10px] sm:text-sm lg:text-lg text-gray-400 leading-relaxed">
+            <p className="gsap-partner-desc text-[10px] sm:text-sm lg:text-lg text-gray-400 leading-relaxed">
               Penghargaan Platform Perdagangan Paling Andal di Indonesia 2024 berkomitmen terhadap keamanan, efisiensi, dan inovasi.
             </p>
           </div>
 
           {/* Kanan - Gambar (25%) */}
           <div>
-            <div className="relative aspect-square rounded-xl sm:rounded-2xl overflow-hidden">
+            <div className="gsap-partner-img relative aspect-square rounded-xl sm:rounded-2xl overflow-hidden">
               <Image
                 src="/sa.webp"
                 alt="Stockity Platform"
@@ -1836,7 +2009,7 @@ export default function LandingPage() {
         <div className="grid grid-cols-[1fr_2fr] gap-3 sm:gap-6 lg:gap-8 items-center">
           {/* Kiri - Gambar (30%) */}
           <div>
-            <div className="relative aspect-square rounded-xl sm:rounded-2xl overflow-hidden">
+            <div className="gsap-partner-img relative aspect-square rounded-xl sm:rounded-2xl overflow-hidden">
               <Image
                 src="/il4.png"
                 alt="Stockity Platform"
@@ -1848,11 +2021,11 @@ export default function LandingPage() {
 
           {/* Kanan - Teks (70%) */}
           <div className="space-y-2 sm:space-y-3 lg:space-y-4">
-            <h3 className="text-sm sm:text-2xl lg:text-4xl xl:text-5xl font-bold leading-tight">
+            <h3 className="gsap-partner-heading text-sm sm:text-2xl lg:text-4xl xl:text-5xl font-bold leading-tight">
               Akses trading realtime 24 jam tanpa tutup!
             </h3>
 
-            <p className="text-[10px] sm:text-sm lg:text-lg text-gray-400 leading-relaxed">
+            <p className="gsap-partner-desc text-[10px] sm:text-sm lg:text-lg text-gray-400 leading-relaxed">
               Buat setiap antrean, kemacetan lalu lintas, dan minum-minum kopi menjadi produktif untuk Anda!
             </p>
           </div>
@@ -1864,81 +2037,113 @@ export default function LandingPage() {
 
 
             {/* Affiliate Program */}
-<section className="py-16 sm:py-20 relative">
+<section className="py-16 sm:py-20 relative overflow-hidden">
+  {/* Background */}
+  <div className="absolute inset-0 pointer-events-none">
+    <div className="absolute inset-0 opacity-[0.07]" style={{
+      backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+      backgroundSize: '60px 60px'
+    }} />
+    <div className="absolute inset-0 bg-[radial-gradient(ellipse_65%_50%_at_70%_40%,rgba(16,185,129,0.05),transparent)]" />
+    <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_40%_at_20%_70%,rgba(14,165,233,0.04),transparent)]" />
+  </div>
   <div className="container mx-auto px-4 sm:px-6">
     {/* Header */}
-    <div className="gsap-section-header text-center mb-16">
-      <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6">
+    <div className="gsap-affiliate-header gsap-section-header text-center mb-16">
+      <div className="gsap-aff-badge inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6">
         <span className="text-sm font-medium text-emerald-400">Program Affiliate</span>
       </div>
-      <h2 className="text-4xl sm:text-5xl font-bold mb-6 px-12 tracking-tight">
+      <h2 className="gsap-aff-title text-4xl sm:text-5xl font-bold mb-6 px-12 tracking-tight">
         Undang Teman,<br />Dapatkan Hingga <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-emerald-400">Rp 400.000</span>
       </h2>
-      <p className="text-lg text-gray-400 max-w-3xl mx-auto leading-relaxed">
+      <p className="gsap-aff-desc text-lg text-gray-400 max-w-3xl mx-auto leading-relaxed">
         Setelah mendaftar, Anda dapat mengundang teman dan menerima <span className="text-emerald-400 font-semibold">Rp 25.000 hingga Rp 400.000</span> ke akun riil Anda untuk setiap orang.
       </p>
     </div>
 
-    {/* Reward Cards - Compact Grid for Mobile */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-6 max-w-4xl mx-auto mb-16">
+    {/* Reward Cards */}
+    <div className="grid grid-cols-2 gap-3 sm:gap-5 max-w-3xl mx-auto mb-16">
+
       {/* VIP Card */}
       <motion.div
-        className="gsap-affiliate-card affiliate-card-premium group relative glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-8 border-emerald-500/20 overflow-hidden"
-                      whileHover={{ scale: 1.025, y: -4 }}
-                      whileTap={{ scale: 0.975 }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
+        className="gsap-affiliate-card group relative rounded-2xl sm:rounded-3xl overflow-hidden"
+        whileHover={{ scale: 1.02, y: -4 }}
+        whileTap={{ scale: 0.98 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-emerald-600/15 opacity-100 group-hover:opacity-100 transition-opacity"></div>
-        
-        <div className="relative z-10">
-          <div className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full mb-2 sm:mb-4">
-            <Medal className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" weight="bold" />
-            <span className="text-[10px] sm:text-xs font-semibold text-emerald-400">VIP</span>
+        {/* Glass background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.07] via-white/[0.03] to-white/[0.01]" />
+        <div className="absolute inset-0 backdrop-blur-xl" />
+        {/* Emerald ambient glow */}
+        <div className="absolute -top-6 -left-6 w-32 h-32 bg-emerald-500/25 rounded-full blur-2xl" />
+        <div className="absolute bottom-0 right-0 w-24 h-24 bg-emerald-400/10 rounded-full blur-2xl" />
+        {/* Border */}
+        <div className="absolute inset-0 rounded-2xl sm:rounded-3xl border border-white/10 group-hover:border-emerald-400/25 transition-colors duration-400" />
+        {/* Top shine */}
+        <div className="absolute top-0 inset-x-4 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+
+        <div className="relative z-10 p-5 sm:p-7">
+          {/* Icon + tier */}
+          <div className="flex items-center gap-2 mb-5 sm:mb-6">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/20 flex items-center justify-center">
+              <Medal className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-300" weight="fill" />
+            </div>
+            <span className="text-xs sm:text-sm font-semibold text-emerald-300/90 tracking-wider uppercase">VIP</span>
           </div>
-          
-          <div className="flex flex-col sm:flex-row sm:items-baseline gap-0 sm:gap-2 mb-2 sm:mb-4">
-            <span className="text-xl sm:text-4xl font-bold text-emerald-400">Rp 400rb</span>
-            <span className="text-xs sm:text-gray-500">/trader</span>
+
+          {/* Amount */}
+          <div className="mb-1">
+            <span className="text-2xl sm:text-4xl font-black text-white tracking-tight">Rp 400rb</span>
           </div>
-          
-          <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">
-            Untuk member VIP/Platinum
-          </p>
+          <p className="text-[10px] sm:text-xs text-white/35 font-medium mb-5 sm:mb-6">per trader diundang</p>
         </div>
       </motion.div>
 
       {/* Standard & Gold Card */}
       <motion.div
-        className="gsap-affiliate-card affiliate-card-premium group relative glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-8 border-sky-500/20 overflow-hidden"
-                      whileHover={{ scale: 1.025, y: -4 }}
-                      whileTap={{ scale: 0.975 }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
+        className="gsap-affiliate-card group relative rounded-2xl sm:rounded-3xl overflow-hidden"
+        whileHover={{ scale: 1.02, y: -4 }}
+        whileTap={{ scale: 0.98 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-sky-500/20 to-cyan-500/15 opacity-100 group-hover:opacity-100 transition-opacity"></div>
-        
-        <div className="relative z-10">
-          <div className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-sky-500/10 border border-sky-500/30 rounded-full mb-2 sm:mb-4">
-            <Star className="w-3 h-3 sm:w-4 sm:h-4 text-sky-400" weight="bold" />
-            <span className="text-[10px] sm:text-xs font-semibold text-sky-400">Standart & Gold</span>
+        {/* Glass background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.07] via-white/[0.03] to-white/[0.01]" />
+        <div className="absolute inset-0 backdrop-blur-xl" />
+        {/* Sky ambient glow */}
+        <div className="absolute -top-6 -right-6 w-32 h-32 bg-sky-500/20 rounded-full blur-2xl" />
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-sky-400/10 rounded-full blur-2xl" />
+        {/* Border */}
+        <div className="absolute inset-0 rounded-2xl sm:rounded-3xl border border-white/10 group-hover:border-sky-400/25 transition-colors duration-400" />
+        {/* Top shine */}
+        <div className="absolute top-0 inset-x-4 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+
+        <div className="relative z-10 p-5 sm:p-7">
+          {/* Icon + tier */}
+          <div className="flex items-center gap-2 mb-5 sm:mb-6">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-sky-500/20 border border-sky-400/20 flex items-center justify-center">
+              <Star className="w-4 h-4 sm:w-5 sm:h-5 text-sky-300" weight="fill" />
+            </div>
+            <span className="text-xs sm:text-sm font-semibold text-sky-300/90 tracking-wider uppercase">Standart & Gold</span>
           </div>
-          
-          <div className="flex flex-col sm:flex-row sm:items-baseline gap-0 sm:gap-2 mb-2 sm:mb-4">
-            <span className="text-xl sm:text-4xl font-bold text-sky-400">Rp 100rb</span>
-            <span className="text-xs sm:text-gray-500">/trader</span>
+
+          {/* Amount */}
+          <div className="mb-1">
+            <span className="text-2xl sm:text-4xl font-black text-white tracking-tight">Rp 100rb</span>
           </div>
-          
-          <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">
-            Untuk member Standard/Gold
-          </p>
+          <p className="text-[10px] sm:text-xs text-white/35 font-medium mb-5 sm:mb-6">per trader diundang</p>
         </div>
       </motion.div>
+
     </div>
 
     {/* How It Works - Compact Grid for Mobile */}
     <div className="max-w-4xl mx-auto mb-16">
-      <h3 className="text-xl sm:text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">
-        Maksimalkan Keuntungan Anda
-      </h3>
+      <div className="text-center mb-10 sm:mb-12">
+        <h3 className="text-xl sm:text-2xl sm:text-3xl font-bold">
+          Maksimalkan Keuntungan Anda
+        </h3>
+        <p className="text-sm text-gray-500 mt-2">4 langkah mudah untuk mulai menghasilkan</p>
+      </div>
 
       {/* Desktop Timeline - Hidden on Mobile */}
       <div className="gsap-affiliate-steps-grid hidden md:grid md:grid-cols-4 gap-6">
@@ -1984,36 +2189,53 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <div className={`w-12 h-12 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-xl flex items-center justify-center mb-4 mt-2 group-hover:scale-110 transition-transform`}>
+              <div className={`gsap-step-icon w-12 h-12 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-xl flex items-center justify-center mb-4 mt-2 group-hover:scale-110 transition-transform`}>
                 <step.icon className={`w-6 h-6 text-${step.color}-400`} weight="bold" />
               </div>
 
-              <h4 className="font-bold mb-2">{step.title}</h4>
-              <p className="text-sm text-gray-400 leading-relaxed">{step.desc}</p>
+              <h4 className="gsap-step-title font-bold mb-2">{step.title}</h4>
+              <p className="gsap-step-desc text-sm text-gray-400 leading-relaxed">{step.desc}</p>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Mobile Steps - Compact Grid Layout */}
-      <div className="md:hidden grid grid-cols-2 gap-3">
+      {/* Mobile Steps - Clean vertical stepper */}
+      <div className="md:hidden space-y-0">
         {[
-          { num: '1', icon: Users, title: 'Temukan Teman', desc: 'Cari teman trader', color: 'emerald' },
-          { num: '2', icon: UserPlus, title: 'Daftar dengan Link', desc: 'Gunakan link referral', color: 'emerald' },
-          { num: '3', icon: CurrencyDollar, title: 'Deposit & Bonus', desc: 'Rp 25.000 bonus', color: 'emerald' },
-          { num: '4', icon: TrendUp, title: 'Undang & Raih', desc: 'Hingga Rp 400.000', color: 'emerald' }
-        ].map((step, i) => (
-          <div key={i} className="relative bg-[#0a0e17] border border-gray-800/50 rounded-xl p-3 hover:border-gray-700 transition-all group">
-            <div className="flex items-start gap-2">
-              <div className={`flex-shrink-0 w-6 h-6 bg-${step.color}-500/20 border border-${step.color}-500/50 rounded-full flex items-center justify-center`}>
-                <span className={`text-xs font-bold text-${step.color}-400`}>{step.num}</span>
+          { num: '1', icon: Users,          title: 'Temukan Teman',      desc: 'Cari teman yang sudah trading di Stouch',      highlight: null },
+          { num: '2', icon: UserPlus,        title: 'Daftar dengan Link', desc: 'Gunakan tautan referral untuk mendaftar',       highlight: null },
+          { num: '3', icon: CurrencyDollar,  title: 'Deposit & Bonus',   desc: 'Dapatkan bonus Rp 25.000 dari teman yang deposit pertama ', highlight: 'Rp 25.000' },
+          { num: '4', icon: TrendUp,         title: 'Undang & Raih',     desc: 'Kumpulkan hingga Rp 400.000 per trader ',        highlight: 'Rp 400.000' },
+        ].map((step, i, arr) => (
+          <div key={i} className="relative flex gap-4">
+            {/* Left: number + connector line */}
+            <div className="flex flex-col items-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/40 flex items-center justify-center z-10">
+                <span className="text-sm font-bold text-emerald-400">{step.num}</span>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className={`w-8 h-8 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-lg flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform`}>
-                  <step.icon className={`w-4 h-4 text-${step.color}-400`} weight="bold" />
+              {i < arr.length - 1 && (
+                <div className="w-px flex-1 mt-1 mb-1 bg-gradient-to-b from-emerald-500/30 to-transparent min-h-[32px]" />
+              )}
+            </div>
+
+            {/* Right: content card */}
+            <div className={`flex-1 pb-5 ${i === arr.length - 1 ? 'pb-0' : ''}`}>
+              <div className="bg-[#0d1220] border border-white/5 rounded-2xl p-4 hover:border-emerald-500/20 transition-colors group">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-500/20 transition-colors">
+                    <step.icon className="w-4 h-4 text-emerald-400" weight="bold" />
+                  </div>
+                  <h4 className="font-semibold text-sm text-white">{step.title}</h4>
                 </div>
-                <h4 className="font-bold text-sm mb-0.5 truncate">{step.title}</h4>
-                <p className="text-xs text-gray-400 leading-tight">{step.desc}</p>
+                <p className="text-xs text-gray-400 leading-relaxed pl-11">
+                  {step.highlight
+                    ? step.desc.replace(step.highlight, '')
+                    : step.desc}
+                  {step.highlight && (
+                    <span className="text-emerald-400 font-semibold">{step.highlight}</span>
+                  )}
+                </p>
               </div>
             </div>
           </div>
@@ -2039,20 +2261,20 @@ export default function LandingPage() {
       </div>
 
       <div className="relative z-10 p-6 sm:p-8 sm:p-12 text-center">
-        <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-4 sm:mb-6">
+        <div className="gsap-cta-badge inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-4 sm:mb-6">
           <Medal className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" weight="bold" />
           <span className="text-xs sm:text-sm font-medium text-emerald-400">Program Partner</span>
         </div>
 
-        <h3 className="text-xl sm:text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">
+        <h3 className="gsap-cta-title text-xl sm:text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">
           Jadilah Mitra Resmi Stouch
         </h3>
         
-        <p className="text-sm sm:text-lg text-gray-400 mb-6 sm:mb-8 max-w-2xl mx-auto">
+        <p className="gsap-cta-desc text-sm sm:text-lg text-gray-400 mb-6 sm:mb-8 max-w-2xl mx-auto">
           Ajak trader baru ke platform dan dapatkan <span className="text-emerald-400 font-semibold">penghasilan tambahan</span>
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+        <div className="gsap-cta-btn flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
           <button
             onClick={() => window.open('https://wa.me/6281339908765', '_blank')}
             className="group px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-br from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 rounded-xl font-semibold text-white transition-all shadow-lg shadow-emerald-900/40"
@@ -2064,7 +2286,7 @@ export default function LandingPage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 sm:gap-6 mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-gray-800/50">
+        <div className="gsap-cta-stats grid grid-cols-3 gap-3 sm:gap-6 mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-gray-800/50">
           <div className="text-center">
             <div className="text-lg sm:text-2xl font-bold text-emerald-400 mb-1">Free</div>
             <div className="text-[10px] sm:text-xs text-gray-500">No Admin Fees</div>
@@ -2094,13 +2316,30 @@ export default function LandingPage() {
       {/* Auth Modal */}
 {showAuthModal && (
   <>
+    {/* ✅ FIX 8: backdrop-blur HANYA di desktop — mobile pakai solid bg.
+        backdrop-filter di mobile sangat mahal, trigger GPU layer promotion
+        mid-animation yang menyebabkan flicker. */}
     <div 
-      className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-50 transition-opacity duration-350 ${isClosingModal ? 'opacity-0' : 'animate-fade-in'}`}
+      className={`fixed inset-0 z-50 transition-opacity duration-350
+        bg-black/85 lg:bg-black/60 lg:backdrop-blur-sm
+        ${isClosingModal ? 'opacity-0' : 'animate-fade-in'}`}
       onClick={closeAuthModal}
+      style={{ willChange: 'opacity', transform: 'translateZ(0)' }}
     />
 
-    {/* FIXED: Hapus overflow-y-auto dari container utama, gunakan h-full */}
-    <div className={`fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-gradient-to-b from-[#0f1419] to-[#0a0e17] z-50 shadow-2xl flex flex-col transition-transform duration-350 ease-in-out ${isClosingModal ? 'translate-x-full' : 'animate-slide-left'}`}>
+    {/* ✅ FIX 9: Modal panel — GPU accelerated, initial state explicit */}
+    <div
+      className={`fixed top-0 right-0 bottom-0 w-full sm:w-[480px]
+        bg-gradient-to-b from-[#0f1419] to-[#0a0e17] z-50 shadow-2xl flex flex-col
+        duration-350
+        ${isClosingModal ? 'translate-x-full' : 'animate-slide-left'}`}
+      style={{
+        willChange: 'transform',
+        backfaceVisibility: 'hidden',
+        WebkitBackfaceVisibility: 'hidden',
+        ...(isClosingModal ? { transform: 'translate3d(100%,0,0)', transition: 'transform 350ms ease-in-out' } : {}),
+      }}
+    >
       {/* Header - Sticky */}
       <div className="flex-shrink-0 bg-[#0f1419] border-b border-gray-800/50 p-6">
         <div className="flex items-center justify-between">
@@ -2432,33 +2671,112 @@ export default function LandingPage() {
       .animate-gradient { animation: animate-gradient 4s ease infinite; }
 
       /* ── Infinite marquee ──────────────────────────────── */
-      @keyframes marquee-left  { from { transform: translateX(0); }    to { transform: translateX(-50%); } }
-      @keyframes marquee-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
-      .animate-marquee-left  { animation: marquee-left  55s linear infinite; width: max-content; }
-      .animate-marquee-right { animation: marquee-right 55s linear infinite; width: max-content; }
+      @keyframes marquee-left  { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-50%, 0, 0); } }
+      @keyframes marquee-right { from { transform: translate3d(-50%, 0, 0); } to { transform: translate3d(0, 0, 0); } }
+      .animate-marquee-left {
+        animation: marquee-left 55s linear infinite;
+        width: max-content;
+        will-change: transform;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+      }
+      .animate-marquee-right {
+        animation: marquee-right 55s linear infinite;
+        width: max-content;
+        will-change: transform;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+      }
 
       /* animate-float & animate-pulse-slow removed — these animated large
          blurred elements causing GPU layer thrashing. */
 
-      /* ── Modal/slide animations ────────────────────────── */
-      @keyframes slide-left    { from { transform: translateX(100%); } to { transform: translateX(0); } }
-      @keyframes fade-in       { from { opacity: 0; }  to { opacity: 1; } }
-      @keyframes fade-in-up    { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-      @keyframes slide-in-right{ from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
-      .animate-slide-left    { animation: slide-left     0.35s ease-out forwards; }
-      .animate-fade-in       { animation: fade-in        0.25s ease-out forwards; }
-      .animate-fade-in-up    { animation: fade-in-up     0.5s  ease-out forwards; }
-      .animate-slide-in-right{ animation: slide-in-right 0.5s  ease-out forwards; }
+      /* ── Modal/slide animations — pakai translate3d (GPU compositor only) ── */
+      /* translate3d tidak trigger layout/paint, hanya compositing layer.        */
+      /* will-change + backface-visibility: set SEBELUM animasi → no promotion   */
+      @keyframes slide-left {
+        from { transform: translate3d(100%, 0, 0); opacity: 0.99; }
+        to   { transform: translate3d(0, 0, 0);    opacity: 1; }
+      }
+      @keyframes fade-in {
+        from { opacity: 0; transform: translateZ(0); }
+        to   { opacity: 1; transform: translateZ(0); }
+      }
+      @keyframes fade-in-up {
+        from { opacity: 0; transform: translate3d(0, 20px, 0); }
+        to   { opacity: 1; transform: translate3d(0, 0, 0); }
+      }
+      @keyframes slide-in-right {
+        from { opacity: 0; transform: translate3d(40px, 0, 0); }
+        to   { opacity: 1; transform: translate3d(0, 0, 0); }
+      }
+      .animate-slide-left {
+        animation: slide-left 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        will-change: transform;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+      }
+      .animate-fade-in {
+        animation: fade-in 0.25s ease-out forwards;
+        will-change: opacity;
+        transform: translateZ(0);
+      }
+      .animate-fade-in-up {
+        animation: fade-in-up 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        will-change: transform, opacity;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+      }
+      .animate-slide-in-right {
+        animation: slide-in-right 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        will-change: transform, opacity;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+      }
 
-      /* ── Logo animations ───────────────────────────────── */
-      @keyframes logo-bounce-in  { 0% { transform: scale(0.3) rotate(-15deg); opacity: 0; } 60% { transform: scale(1.15) rotate(5deg); opacity: 1; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
-      @keyframes logo-bounce-out { 0% { transform: scale(1) rotate(0deg); opacity: 1; } 40% { transform: scale(1.1) rotate(-5deg); opacity: 0.8; } 100% { transform: scale(0.3) rotate(15deg); opacity: 0; } }
-      @keyframes text-slide-in   { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
-      @keyframes text-slide-out  { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(20px); } }
-      .animate-logo-bounce-in  { animation: logo-bounce-in  0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-      .animate-logo-bounce-out { animation: logo-bounce-out 0.5s ease-in forwards; }
-      .animate-text-slide-in   { animation: text-slide-in   0.4s ease-out forwards; }
-      .animate-text-slide-out  { animation: text-slide-out  0.4s ease-in  forwards; }
+      /* ── Logo animations — scale3d (GPU, tidak trigger repaint) ───────── */
+      @keyframes logo-bounce-in {
+        0%   { transform: scale3d(0.3, 0.3, 1) rotate(-15deg); opacity: 0; }
+        60%  { transform: scale3d(1.15, 1.15, 1) rotate(5deg); opacity: 1; }
+        100% { transform: scale3d(1, 1, 1) rotate(0deg); opacity: 1; }
+      }
+      @keyframes logo-bounce-out {
+        0%   { transform: scale3d(1, 1, 1) rotate(0deg); opacity: 1; }
+        40%  { transform: scale3d(1.1, 1.1, 1) rotate(-5deg); opacity: 0.8; }
+        100% { transform: scale3d(0.3, 0.3, 1) rotate(15deg); opacity: 0; }
+      }
+      @keyframes text-slide-in {
+        from { opacity: 0; transform: translate3d(-20px, 0, 0); }
+        to   { opacity: 1; transform: translate3d(0, 0, 0); }
+      }
+      @keyframes text-slide-out {
+        from { opacity: 1; transform: translate3d(0, 0, 0); }
+        to   { opacity: 0; transform: translate3d(20px, 0, 0); }
+      }
+      .animate-logo-bounce-in {
+        animation: logo-bounce-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        will-change: transform, opacity;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+      }
+      .animate-logo-bounce-out {
+        animation: logo-bounce-out 0.5s ease-in forwards;
+        will-change: transform, opacity;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+      }
+      .animate-text-slide-in {
+        animation: text-slide-in 0.4s ease-out forwards;
+        will-change: transform, opacity;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+      }
+      .animate-text-slide-out {
+        animation: text-slide-out 0.4s ease-in forwards;
+        will-change: transform, opacity;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+      }
 
       /* ── Scrollbar — premium gradient ──────────────────── */
       ::-webkit-scrollbar { width: 6px; }
@@ -2644,7 +2962,12 @@ export default function LandingPage() {
         mask-image: linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%);
         -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%);
       }
+      @keyframes overlay-spin {
+        to { transform: rotate(360deg) translateZ(0); }
+      }
     `}</style>
     </div>
+      )}
+    </>
   )
 }
