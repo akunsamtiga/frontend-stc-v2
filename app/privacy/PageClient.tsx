@@ -1,6 +1,6 @@
 'use client'
 
-// app/privacy/PageClient.tsx
+
 import { useState, useRef } from 'react'
 import { ChevronDown, Menu, X, Shield, Lock, FileText, Eye, Database, Globe, UserCheck, AlertTriangle, Mail } from 'lucide-react'
 import PageNavbar from '@/components/PageNavbar'
@@ -11,7 +11,6 @@ import {
   type Variants,
 } from 'framer-motion'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Clause {
   id: string
@@ -28,7 +27,6 @@ interface Section {
   clauses: Clause[]
 }
 
-// ─── Shared motion variants (all once:true) ───────────────────────────────────
 
 const SPRING = { type: 'spring', stiffness: 80, damping: 20 } as const
 
@@ -52,7 +50,6 @@ const stagger = (delay = 0.08): Variants => ({
   visible: { transition: { staggerChildren: delay, delayChildren: 0.04 } },
 })
 
-// ─── Scroll reveal wrapper ────────────────────────────────────────────────────
 
 function Reveal({
   children,
@@ -79,7 +76,6 @@ function Reveal({
   )
 }
 
-// ─── Word-by-word headline reveal ─────────────────────────────────────────────
 
 function AnimatedHeadline({ text, className, style }: { text: string; className?: string; style?: React.CSSProperties }) {
   const words = text.split(' ')
@@ -111,7 +107,6 @@ function AnimatedHeadline({ text, className, style }: { text: string; className?
   )
 }
 
-// ─── Count-up number ─────────────────────────────────────────────────────────
 
 function CountUp({ to, suffix = '', prefix = '' }: { to: number; suffix?: string; prefix?: string }) {
   const ref = useRef<HTMLSpanElement>(null)
@@ -136,7 +131,6 @@ function CountUp({ to, suffix = '', prefix = '' }: { to: number; suffix?: string
   return <span ref={ref}>{prefix}{val}{suffix}</span>
 }
 
-// ─── Section label ────────────────────────────────────────────────────────────
 
 function SectionLabel({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
@@ -157,7 +151,6 @@ function SectionLabel({ title, subtitle }: { title: string; subtitle?: string })
   )
 }
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
 
 const SECTIONS: Section[] = [
   {
@@ -296,7 +289,6 @@ const SECTIONS: Section[] = [
   },
 ]
 
-// ─── Stats strip ──────────────────────────────────────────────────────────────
 
 function StatsStrip() {
   const stats = [
@@ -332,7 +324,6 @@ function StatsStrip() {
   )
 }
 
-// ─── Section card (animated) ──────────────────────────────────────────────────
 
 function SectionCard({ section, index }: { section: Section; index: number }) {
   const [open, setOpen] = useState(false)
@@ -348,7 +339,7 @@ function SectionCard({ section, index }: { section: Section; index: number }) {
       transition={{ ...SPRING, delay: index * 0.04 }}
       whileHover={{ boxShadow: `0 8px 32px ${section.color}12`, transition: { duration: 0.25 } }}
     >
-      {/* Animated top bar */}
+
       <motion.div
         className="h-0.5"
         style={{ background: `linear-gradient(90deg, ${section.color}, ${section.color}60)` }}
@@ -463,7 +454,6 @@ function SectionCard({ section, index }: { section: Section; index: number }) {
   )
 }
 
-// ─── Table of contents (desktop) ─────────────────────────────────────────────
 
 function TableOfContents({ onNavigate }: { onNavigate: (id: string) => void }) {
   return (
@@ -504,7 +494,6 @@ function TableOfContents({ onNavigate }: { onNavigate: (id: string) => void }) {
   )
 }
 
-// ─── Mobile TOC ───────────────────────────────────────────────────────────────
 
 function MobileTOC({ open, onClose, onNavigate }: { open: boolean; onClose: () => void; onNavigate: (id: string) => void }) {
   return (
@@ -563,7 +552,6 @@ function MobileTOC({ open, onClose, onNavigate }: { open: boolean; onClose: () =
   )
 }
 
-// ─── How we protect (mini section) ───────────────────────────────────────────
 
 function ProtectionHighlights() {
   const items = [
@@ -611,7 +599,6 @@ function ProtectionHighlights() {
   )
 }
 
-// ─── Client page export ───────────────────────────────────────────────────────
 
 export default function PrivacyPageClient() {
   const [tocOpen, setTocOpen] = useState(false)
@@ -620,7 +607,7 @@ export default function PrivacyPageClient() {
     const el = document.getElementById(`section-${id}`)
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      // Small delay to let scroll finish, then open
+
       setTimeout(() => {
         const btn = el.querySelector('button') as HTMLButtonElement | null
         if (btn) btn.click()
@@ -648,7 +635,7 @@ export default function PrivacyPageClient() {
 
       <main className="w-full max-w-screen-xl mx-auto px-4 sm:px-8 lg:px-12 pb-20">
 
-        {/* Hero */}
+
         <div className="py-10 sm:py-12 lg:py-16">
           <Reveal variants={scaleIn}>
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 mb-5">
@@ -697,16 +684,16 @@ export default function PrivacyPageClient() {
           </Reveal>
         </div>
 
-        {/* Stats strip */}
+
         <StatsStrip />
 
-        {/* Protection highlights */}
+
         <section className="mb-10 sm:mb-12">
           <SectionLabel title="Komitmen Kami" subtitle="Empat pilar perlindungan data Anda" />
           <ProtectionHighlights />
         </section>
 
-        {/* Notice banner */}
+
         <Reveal>
           <motion.div
             className="rounded-2xl p-4 sm:p-5 flex items-start gap-3 mb-8"
@@ -729,7 +716,7 @@ export default function PrivacyPageClient() {
           </motion.div>
         </Reveal>
 
-        {/* Body: sidebar + sections */}
+
         <div className="flex gap-8 lg:gap-10 items-start">
           <aside className="hidden lg:block w-52 xl:w-60 flex-shrink-0">
             <TableOfContents onNavigate={scrollToSection} />
@@ -738,7 +725,7 @@ export default function PrivacyPageClient() {
           <div className="flex-1 min-w-0">
             <SectionLabel title="Isi Kebijakan" subtitle="Klik bab untuk membaca detail ketentuan" />
 
-            {/* Data controller card */}
+
             <Reveal className="mb-3">
               <motion.div
                 className="rounded-2xl p-4 flex items-start gap-3 mb-5"
@@ -761,14 +748,14 @@ export default function PrivacyPageClient() {
               </motion.div>
             </Reveal>
 
-            {/* Section cards */}
+
             <div className="space-y-3">
               {SECTIONS.map((section, index) => (
                 <SectionCard key={section.id} section={section} index={index} />
               ))}
             </div>
 
-            {/* Footer card */}
+
             <Reveal className="mt-6">
               <motion.div
                 className="rounded-2xl p-5"

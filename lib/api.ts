@@ -1,3 +1,4 @@
+// lib/api.ts
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
 import type {
@@ -12,8 +13,8 @@ import type {
   UpdateAffiliatorConfigDto,
   ApproveCommissionWithdrawalDto,
 } from '@/types'
-import type { 
-  CreateAssetRequest, 
+import type {
+  CreateAssetRequest,
   UpdateAssetRequest,
   CryptoSchedulerStatus,
   ApiResponse,
@@ -78,21 +79,21 @@ class RequestQueue {
           reject(error)
         }
       })
-      
+
       this.process()
     })
   }
 
   private async process() {
     if (this.processing || this.queue.length === 0) return
-    
+
     this.processing = true
-    
+
     while (this.queue.length > 0) {
       const batch = this.queue.splice(0, this.maxConcurrent)
       await Promise.allSettled(batch.map(fn => fn()))
     }
-    
+
     this.processing = false
   }
 }
@@ -116,7 +117,7 @@ class ApiClient {
     this.cache = new Map()
     this.pendingRequests = new Map()
     this.requestQueue = new RequestQueue()
-    
+
     this.client = axios.create({
       baseURL: API_URL,
       timeout: 15000,
@@ -151,11 +152,11 @@ class ApiClient {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
         }
-        
+
         if (!config.headers['X-Request-ID']) {
           config.headers['X-Request-ID'] = this.generateRequestId(config)
         }
-        
+
         return config
       },
       (error) => {
@@ -174,42 +175,42 @@ class ApiClient {
       },
       async (error: AxiosError<any>) => {
         const config = error.config as AxiosRequestConfig & { _retry?: number; _timeoutRetry?: number }
-        
+
         if (!config) {
           return Promise.reject(error)
         }
-        
+
         if (!error.response && error.code === 'ECONNABORTED') {
           config._timeoutRetry = (config._timeoutRetry || 0) + 1
-          
+
           if (config._timeoutRetry <= this.retryConfig.timeoutRetries) {
             await this.sleep(this.retryConfig.retryDelay)
             return this.client.request(config)
           }
         }
-        
+
         this.consecutiveErrors++
-        
+
         if (this.consecutiveErrors >= this.maxConsecutiveErrors) {
           toast.error('Connection issues detected. Please check your internet connection.')
         }
-        
+
         const shouldRetry = this.shouldRetry(error, config)
-        
+
         if (shouldRetry) {
           config._retry = (config._retry || 0) + 1
           const delay = this.getRetryDelay(config._retry)
-          
+
           await this.sleep(delay)
           return this.client.request(config)
         }
-        
+
         const message = this.getErrorMessage(error)
-        
+
         if (!config.headers?.['X-Silent-Error']) {
           toast.error(message)
         }
-        
+
         return Promise.reject(error)
       }
     )
@@ -259,24 +260,24 @@ class ApiClient {
 
   private shouldRetry(error: AxiosError, config: AxiosRequestConfig & { _retry?: number }): boolean {
     const retryCount = config._retry || 0
-    
+
     if (retryCount >= this.retryConfig.maxRetries) {
       return false
     }
-    
-    if (['post', 'put', 'delete'].includes(config.method?.toLowerCase() || '') && 
+
+    if (['post', 'put', 'delete'].includes(config.method?.toLowerCase() || '') &&
         !config.headers?.['X-Idempotent']) {
       return false
     }
-    
+
     if (!error.response) {
       return true
     }
-    
+
     if (error.response.status >= 400 && error.response.status < 500) {
       return false
     }
-    
+
     return this.retryConfig.retryableStatuses.includes(error.response.status)
   }
 
@@ -321,15 +322,15 @@ class ApiClient {
 
   private getFromCache(key: string): any | null {
     const entry = this.cache.get(key)
-    
+
     if (!entry) return null
-    
+
     const now = Date.now()
     if (now - entry.timestamp > entry.expiresIn) {
       this.cache.delete(key)
       return null
     }
-    
+
     return entry.data
   }
 
@@ -346,7 +347,7 @@ class ApiClient {
       this.cache.clear()
       return
     }
-    
+
     const keys = Array.from(this.cache.keys())
     keys.forEach(key => {
       if (key.includes(pattern)) {
@@ -357,11 +358,11 @@ class ApiClient {
 
   private startCacheCleanup() {
     if (typeof window === 'undefined') return
-    
+
     setInterval(() => {
       const now = Date.now()
       const entries = Array.from(this.cache.entries())
-      
+
       entries.forEach(([key, entry]) => {
         if (now - entry.timestamp > entry.expiresIn) {
           this.cache.delete(key)
@@ -371,22 +372,22 @@ class ApiClient {
   }
 
   private async withDeduplication<T>(
-    key: string, 
+    key: string,
     request: () => Promise<T>
   ): Promise<T> {
     const pending = this.pendingRequests.get(key)
-    
+
     if (pending) {
       return pending.promise as Promise<T>
     }
-    
+
     const promise = this.requestQueue.add(request)
-    
+
     this.pendingRequests.set(key, {
       promise,
       timestamp: Date.now()
     })
-    
+
     try {
       const result = await promise
       return result
@@ -424,15 +425,15 @@ class ApiClient {
 
   async getProfile(): Promise<ApiResponse<UserProfile>> {
     const cacheKey = this.getCacheKey('/user/profile')
-    
+
     try {
       return this.withDeduplication(cacheKey, async () => {
         const data = await this.client.get('/user/profile')
-        
+
         if (!data || typeof data !== 'object') {
           throw new Error('Invalid profile response')
         }
-        
+
         return data
       })
     } catch (error) {
@@ -450,10 +451,10 @@ class ApiClient {
           'X-Idempotent': 'true'
         }
       })
-      
+
       this.invalidateCache('/balance')
       this.invalidateCache('/user/profile')
-      
+
       return result
     } catch (error) {
       throw error
@@ -466,9 +467,9 @@ class ApiClient {
   }>> {
     const cacheKey = this.getCacheKey('/balance/withdrawal/my-requests')
     const cached = this.getFromCache(cacheKey)
-    
+
     if (cached) return cached
-    
+
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get('/balance/withdrawal/my-requests')
       this.setCache(cacheKey, data, 5000)
@@ -479,10 +480,10 @@ class ApiClient {
   async cancelWithdrawalRequest(requestId: string): Promise<ApiResponse> {
     try {
       const result = await this.client.delete(`/balance/withdrawal/cancel/${requestId}`)
-      
+
       this.invalidateCache('/balance/withdrawal')
       this.invalidateCache('/balance')
-      
+
       return result
     } catch (error) {
       throw error
@@ -495,12 +496,12 @@ class ApiClient {
   }>> {
     const params = new URLSearchParams()
     if (status) params.append('status', status)
-    
+
     const cacheKey = this.getCacheKey('/admin/withdrawals', { status })
     const cached = this.getFromCache(cacheKey)
-    
+
     if (cached) return cached
-    
+
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get(`/admin/withdrawals?${params}`)
       this.setCache(cacheKey, data, 3000)
@@ -511,9 +512,9 @@ class ApiClient {
   async getWithdrawalRequestById(requestId: string): Promise<ApiResponse> {
     const cacheKey = this.getCacheKey(`/admin/withdrawals/${requestId}`)
     const cached = this.getFromCache(cacheKey)
-    
+
     if (cached) return cached
-    
+
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get(`/admin/withdrawals/${requestId}`)
       this.setCache(cacheKey, data, 5000)
@@ -535,11 +536,11 @@ class ApiClient {
       }
 
       const result = await this.client.post(`/admin/withdrawals/${requestId}/approve`, data)
-      
+
       this.invalidateCache('/admin/withdrawals')
       this.invalidateCache('/balance')
       this.invalidateCache('/admin/statistics')
-      
+
       return result
     } catch (error) {
       throw error
@@ -557,9 +558,9 @@ class ApiClient {
           'X-Silent-Error': 'false'
         }
       })
-      
+
       this.invalidateCache('/user/profile')
-      
+
       return result
     } catch (error) {
       throw error
@@ -582,16 +583,16 @@ class ApiClient {
           'X-Silent-Error': 'false'
         }
       })
-      
+
       this.invalidateCache('/user/profile')
-      
+
       return result
     } catch (error) {
       throw error
     }
   }
 
-  async uploadKTP(data: { 
+  async uploadKTP(data: {
     photoFront: { url: string; fileSize?: number; mimeType?: string }
     photoBack?: { url: string; fileSize?: number; mimeType?: string }
   }): Promise<ApiResponse> {
@@ -614,9 +615,9 @@ class ApiClient {
           'X-Silent-Error': 'false'
         }
       })
-      
+
       this.invalidateCache('/user/profile')
-      
+
       return result
     } catch (error: any) {
       throw error
@@ -639,9 +640,9 @@ class ApiClient {
           'X-Silent-Error': 'false'
         }
       })
-      
+
       this.invalidateCache('/user/profile')
-      
+
       return result
     } catch (error) {
       throw error
@@ -671,18 +672,14 @@ class ApiClient {
           'X-Silent-Error': 'false'
         }
       })
-      
+
       return result
     } catch (error) {
       throw error
     }
   }
 
-  /**
-   * Verify phone number via Firebase Phone Auth.
-   * Frontend must first use signInWithPhoneNumber (Firebase) → confirm OTP →
-   * get idToken from the resulting Firebase user, then send idToken here.
-   */
+
   async verifyPhone(data: { idToken: string }): Promise<ApiResponse> {
     try {
       if (!data.idToken) {
@@ -694,9 +691,9 @@ class ApiClient {
           'X-Silent-Error': 'false'
         }
       })
-      
+
       this.invalidateCache('/user/profile')
-      
+
       return result
     } catch (error) {
       throw error
@@ -716,9 +713,9 @@ class ApiClient {
   async getBothBalances(): Promise<ApiResponse<BalanceSummary>> {
     const cacheKey = this.getCacheKey('/balance/both')
     const cached = this.getFromCache(cacheKey)
-    
+
     if (cached) return cached
-    
+
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get('/balance/both')
       this.setCache(cacheKey, data, 1000)
@@ -726,13 +723,13 @@ class ApiClient {
     })
   }
 
-  
+
   async getAccountBalance(accountType: 'real' | 'demo'): Promise<ApiResponse> {
     const cacheKey = this.getCacheKey(`/balance/${accountType}`)
     const cached = this.getFromCache(cacheKey)
-    
+
     if (cached) return cached
-    
+
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get(`/balance/${accountType}`)
       this.setCache(cacheKey, data, 1000)
@@ -741,24 +738,24 @@ class ApiClient {
   }
 
   async getBalanceHistory(
-    page = 1, 
-    limit = 20, 
+    page = 1,
+    limit = 20,
     accountType?: 'real' | 'demo'
   ): Promise<ApiResponse> {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString()
     })
-    
+
     if (accountType) {
       params.append('accountType', accountType)
     }
-    
+
     const cacheKey = this.getCacheKey('/balance', { page, limit, accountType })
     const cached = this.getFromCache(cacheKey)
-    
+
     if (cached) return cached
-    
+
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get(`/balance?${params}`)
       this.setCache(cacheKey, data, 5000)
@@ -780,9 +777,9 @@ class ApiClient {
   async getAssets(activeOnly = false): Promise<ApiResponse<{ assets: Asset[]; total: number }>> {
     const cacheKey = this.getCacheKey('/assets', { activeOnly })
     const cached = this.getFromCache(cacheKey)
-    
+
     if (cached) return cached
-    
+
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get(`/assets?activeOnly=${activeOnly}`)
       this.setCache(cacheKey, data, 120000)
@@ -793,9 +790,9 @@ class ApiClient {
   async getAssetById(id: string): Promise<ApiResponse<Asset>> {
     const cacheKey = this.getCacheKey(`/assets/${id}`)
     const cached = this.getFromCache(cacheKey)
-    
+
     if (cached) return cached
-    
+
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get(`/assets/${id}`)
       this.setCache(cacheKey, data, 120000)
@@ -806,9 +803,9 @@ class ApiClient {
   async getCurrentPrice(assetId: string): Promise<ApiResponse<{ price: number; timestamp: number }>> {
     const cacheKey = this.getCacheKey(`/assets/${assetId}/price`)
     const cached = this.getFromCache(cacheKey)
-    
+
     if (cached) return cached
-    
+
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get(`/assets/${assetId}/price`)
       this.setCache(cacheKey, data, 1000)
@@ -841,9 +838,9 @@ class ApiClient {
   async getCryptoSchedulerStatus(): Promise<ApiResponse<CryptoSchedulerStatus>> {
     const cacheKey = this.getCacheKey('/assets/crypto/scheduler/status')
     const cached = this.getFromCache(cacheKey)
-    
+
     if (cached) return cached
-    
+
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get('/assets/crypto/scheduler/status')
       this.setCache(cacheKey, data, 5000)
@@ -863,17 +860,17 @@ class ApiClient {
         'X-Idempotent': 'true'
       }
     })
-    
+
     this.invalidateCache('/binary-orders')
     this.invalidateCache('/balance')
     this.invalidateCache('/user/profile')
-    
+
     return result
   }
 
   async getOrders(
-    status?: string, 
-    page = 1, 
+    status?: string,
+    page = 1,
     limit = 20,
     accountType?: 'real' | 'demo'
   ): Promise<ApiResponse> {
@@ -881,15 +878,15 @@ class ApiClient {
       page: page.toString(),
       limit: limit.toString()
     })
-    
+
     if (status) params.append('status', status)
     if (accountType) params.append('accountType', accountType)
-    
+
     const cacheKey = this.getCacheKey('/binary-orders', { status, page, limit, accountType })
     const cached = this.getFromCache(cacheKey)
-    
+
     if (cached) return cached
-    
+
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get(`/binary-orders?${params}`)
       this.setCache(cacheKey, data, 1000)
@@ -900,9 +897,9 @@ class ApiClient {
   async getOrderById(id: string): Promise<ApiResponse> {
     const cacheKey = this.getCacheKey(`/binary-orders/${id}`)
     const cached = this.getFromCache(cacheKey)
-    
+
     if (cached) return cached
-    
+
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get(`/binary-orders/${id}`)
       this.setCache(cacheKey, data, 2000)
@@ -915,11 +912,11 @@ class ApiClient {
       page: page.toString(),
       limit: limit.toString()
     })
-    
+
     if (withBalance) {
       params.append('withBalance', 'true')
     }
-    
+
     return this.client.get(`/admin/users?${params}`)
   }
 
@@ -974,14 +971,14 @@ class ApiClient {
   async getSystemStatistics(): Promise<ApiResponse<SystemStatistics>> {
     const cacheKey = this.getCacheKey('/admin/statistics')
     const cached = this.getFromCache(cacheKey)
-    
+
     if (cached) {
       const age = Date.now() - (cached as any).timestamp
       if (age < 3000) {
         return cached
       }
     }
-    
+
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get('/admin/statistics')
       this.setCache(cacheKey, data, 3000)
@@ -992,9 +989,9 @@ class ApiClient {
   async getPendingVerifications(): Promise<ApiResponse<PendingVerifications>> {
     const cacheKey = this.getCacheKey('/admin/verifications/pending')
     const cached = this.getFromCache(cacheKey)
-    
+
     if (cached) return cached
-    
+
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get('/admin/verifications/pending')
       this.setCache(cacheKey, data, 30000)
@@ -1005,10 +1002,10 @@ class ApiClient {
   async verifyKTP(userId: string, data: VerifyDocumentRequest): Promise<ApiResponse> {
     try {
       const result = await this.client.post(`/admin/verifications/${userId}/ktp`, data)
-      
+
       this.invalidateCache('/admin/verifications')
       this.invalidateCache('/admin/users')
-      
+
       return result
     } catch (error) {
       throw error
@@ -1018,10 +1015,10 @@ class ApiClient {
   async verifySelfie(userId: string, data: VerifyDocumentRequest): Promise<ApiResponse> {
     try {
       const result = await this.client.post(`/admin/verifications/${userId}/selfie`, data)
-      
+
       this.invalidateCache('/admin/verifications')
       this.invalidateCache('/admin/users')
-      
+
       return result
     } catch (error) {
       throw error
@@ -1043,11 +1040,11 @@ class ApiClient {
           'X-Idempotent': 'true'
         }
       })
-      
+
       this.invalidateCache('/balance')
       this.invalidateCache('/user/profile')
       this.invalidateCache('/vouchers/my/history')
-      
+
       return result
     } catch (error) {
       throw error
@@ -1057,9 +1054,9 @@ class ApiClient {
   async getDepositHistory(): Promise<ApiResponse> {
     const cacheKey = this.getCacheKey('/payment/deposits')
     const cached = this.getFromCache(cacheKey)
-    
+
     if (cached) return cached
-    
+
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get('/payment/deposits')
       this.setCache(cacheKey, data, 5000)
@@ -1080,8 +1077,8 @@ async checkMidtransDepositStatus(orderId: string): Promise<ApiResponse<{
   }
 }>> {
   const cacheKey = this.getCacheKey(`/payment/deposit/${orderId}/status`)
-  
-  // Don't cache this - always fresh check
+
+
   return this.withDeduplication(cacheKey, async () => {
     const data = await this.client.get(`/payment/deposit/${orderId}/status`)
     return data
@@ -1099,21 +1096,21 @@ async checkMidtransDepositStatus(orderId: string): Promise<ApiResponse<{
     }
   }
 
-  async getAllVouchers(options?: { 
+  async getAllVouchers(options?: {
     isActive?: boolean
     page?: number
-    limit?: number 
+    limit?: number
   }): Promise<ApiResponse<{ vouchers: Voucher[]; pagination: any }>> {
     const params = new URLSearchParams()
     if (options?.isActive !== undefined) params.append('isActive', String(options.isActive))
     if (options?.page) params.append('page', String(options.page))
     if (options?.limit) params.append('limit', String(options.limit))
-    
+
     const cacheKey = this.getCacheKey('/vouchers', options)
     const cached = this.getFromCache(cacheKey)
-    
+
     if (cached) return cached
-    
+
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get(`/vouchers?${params}`)
       this.setCache(cacheKey, data, 30000)
@@ -1158,7 +1155,6 @@ async checkMidtransDepositStatus(orderId: string): Promise<ApiResponse<{
     })
   }
 
-
   async createAssetSchedule(data: CreateAssetScheduleRequest): Promise<ApiResponse<AssetSchedule>> {
   try {
     const result = await this.client.post('/asset-schedule', data)
@@ -1169,39 +1165,35 @@ async checkMidtransDepositStatus(orderId: string): Promise<ApiResponse<{
   }
 }
 
-/**
- * Get all asset schedules with pagination and filters
- * ✅ FIXED: Filter out status='all' before sending to backend
- */
 async getAssetSchedules(query?: GetAssetSchedulesQuery): Promise<ApiResponse<{
   data: AssetSchedule[]
   pagination: AssetSchedulePagination
 }>> {
   const params = new URLSearchParams()
-  
+
   if (query?.page) params.append('page', query.page.toString())
   if (query?.limit) params.append('limit', query.limit.toString())
   if (query?.assetSymbol) params.append('assetSymbol', query.assetSymbol)
   if (query?.trend) params.append('trend', query.trend)
   if (query?.timeframe) params.append('timeframe', query.timeframe)
-  
-  // ✅ FIX 1: Only append status if it's not 'all'
-  // Backend only accepts: 'pending' | 'executed' | 'failed' | 'cancelled'
+
+
+
   if (query?.status && query.status !== 'all') {
     params.append('status', query.status)
   }
-  
+
   if (query?.isActive !== undefined) params.append('isActive', query.isActive.toString())
   if (query?.scheduledFrom) params.append('scheduledFrom', query.scheduledFrom)
   if (query?.scheduledTo) params.append('scheduledTo', query.scheduledTo)
   if (query?.sortBy) params.append('sortBy', query.sortBy)
   if (query?.sortOrder) params.append('sortOrder', query.sortOrder)
-  
+
   const cacheKey = this.getCacheKey('/asset-schedule', query)
   const cached = this.getFromCache(cacheKey)
-  
+
   if (cached) return cached
-  
+
   return this.withDeduplication(cacheKey, async () => {
     const data = await this.client.get(`/asset-schedule?${params}`)
     this.setCache(cacheKey, data, 5000)
@@ -1209,15 +1201,12 @@ async getAssetSchedules(query?: GetAssetSchedulesQuery): Promise<ApiResponse<{
   })
 }
 
-/**
- * Get asset schedule by ID
- */
 async getAssetScheduleById(id: string): Promise<ApiResponse<AssetSchedule>> {
   const cacheKey = this.getCacheKey(`/asset-schedule/${id}`)
   const cached = this.getFromCache(cacheKey)
-  
+
   if (cached) return cached
-  
+
   return this.withDeduplication(cacheKey, async () => {
     const data = await this.client.get(`/asset-schedule/${id}`)
     this.setCache(cacheKey, data, 10000)
@@ -1225,15 +1214,12 @@ async getAssetScheduleById(id: string): Promise<ApiResponse<AssetSchedule>> {
   })
 }
 
-/**
- * Get upcoming schedules (next 24 hours)
- */
 async getUpcomingAssetSchedules(): Promise<ApiResponse<AssetSchedule[]>> {
   const cacheKey = this.getCacheKey('/asset-schedule/upcoming/next-24h')
   const cached = this.getFromCache(cacheKey)
-  
+
   if (cached) return cached
-  
+
   return this.withDeduplication(cacheKey, async () => {
     const data = await this.client.get('/asset-schedule/upcoming/next-24h')
     this.setCache(cacheKey, data, 5000)
@@ -1241,15 +1227,12 @@ async getUpcomingAssetSchedules(): Promise<ApiResponse<AssetSchedule[]>> {
   })
 }
 
-/**
- * Get schedules by asset symbol
- */
 async getAssetSchedulesByAsset(assetSymbol: string): Promise<ApiResponse<AssetSchedule[]>> {
   const cacheKey = this.getCacheKey(`/asset-schedule/by-asset/${assetSymbol}`)
   const cached = this.getFromCache(cacheKey)
-  
+
   if (cached) return cached
-  
+
   return this.withDeduplication(cacheKey, async () => {
     const data = await this.client.get(`/asset-schedule/by-asset/${assetSymbol}`)
     this.setCache(cacheKey, data, 5000)
@@ -1257,28 +1240,21 @@ async getAssetSchedulesByAsset(assetSymbol: string): Promise<ApiResponse<AssetSc
   })
 }
 
-/**
- * Get asset schedule statistics
- * ✅ FIXED: Use correct endpoint /stats/overview instead of /statistics
- */
 async getAssetScheduleStatistics(): Promise<ApiResponse<AssetScheduleStatistics>> {
-  // ✅ FIX 2: Changed from '/asset-schedule/statistics' to '/asset-schedule/stats/overview'
+
   const cacheKey = this.getCacheKey('/asset-schedule/stats/overview')
   const cached = this.getFromCache(cacheKey)
-  
+
   if (cached) return cached
-  
+
   return this.withDeduplication(cacheKey, async () => {
-    // ✅ FIX 2: Changed from '/asset-schedule/statistics' to '/asset-schedule/stats/overview'
+
     const data = await this.client.get('/asset-schedule/stats/overview')
     this.setCache(cacheKey, data, 10000)
     return data
   })
 }
 
-/**
- * Update asset schedule
- */
 async updateAssetSchedule(
   id: string,
   data: UpdateAssetScheduleRequest
@@ -1292,9 +1268,6 @@ async updateAssetSchedule(
   }
 }
 
-/**
- * Cancel asset schedule
- */
 async cancelAssetSchedule(id: string): Promise<ApiResponse> {
   try {
     const result = await this.client.delete(`/asset-schedule/${id}/cancel`)
@@ -1305,9 +1278,6 @@ async cancelAssetSchedule(id: string): Promise<ApiResponse> {
   }
 }
 
-/**
- * Delete asset schedule (hard delete)
- */
 async deleteAssetSchedule(id: string): Promise<ApiResponse> {
   try {
     const result = await this.client.delete(`/asset-schedule/${id}`)
@@ -1318,9 +1288,6 @@ async deleteAssetSchedule(id: string): Promise<ApiResponse> {
   }
 }
 
-/**
- * Execute schedule manually (now)
- */
 async executeAssetScheduleNow(id: string): Promise<ApiResponse> {
   try {
     const result = await this.client.post(`/asset-schedule/${id}/execute`, {})
@@ -1331,9 +1298,6 @@ async executeAssetScheduleNow(id: string): Promise<ApiResponse> {
   }
 }
 
-/**
- * Toggle schedule active status
- */
 async toggleAssetScheduleStatus(
   id: string,
   isActive: boolean
@@ -1347,9 +1311,6 @@ async toggleAssetScheduleStatus(
   }
 }
 
-/**
- * Bulk cancel schedules
- */
 async bulkCancelAssetSchedules(ids: string[]): Promise<ApiResponse> {
   try {
     const result = await this.client.post('/asset-schedule/bulk/cancel', { ids })
@@ -1360,9 +1321,6 @@ async bulkCancelAssetSchedules(ids: string[]): Promise<ApiResponse> {
   }
 }
 
-/**
- * Bulk delete schedules
- */
 async bulkDeleteAssetSchedules(ids: string[]): Promise<ApiResponse> {
   try {
     const result = await this.client.post('/asset-schedule/bulk/delete', { ids })
@@ -1376,7 +1334,7 @@ async bulkDeleteAssetSchedules(ids: string[]): Promise<ApiResponse> {
 async getAllInformation(query?: GetInformationQuery): Promise<InformationPagination> {
   try {
     const params = new URLSearchParams()
-    
+
     if (query?.page) params.append('page', query.page.toString())
     if (query?.limit) params.append('limit', query.limit.toString())
     if (query?.isActive !== undefined) params.append('isActive', query.isActive.toString())
@@ -1386,32 +1344,32 @@ async getAllInformation(query?: GetInformationQuery): Promise<InformationPaginat
     if (query?.search) params.append('search', query.search)
     if (query?.sortBy) params.append('sortBy', query.sortBy)
     if (query?.sortOrder) params.append('sortOrder', query.sortOrder)
-    
+
     const queryString = params.toString()
     const url = queryString ? `/admin/information?${queryString}` : '/admin/information'
-    
+
     const response: ApiResponse<Information[]> = await this.client.get(url)
-    
+
     console.log('📊 API getAllInformation raw response:', response)
-    
-    // ✅ FIX: Handle berbagai format response dari backend
+
+
     let items: Information[] = []
     let total = 0
     let page = 1
     let limit = 20
     let totalPages = 0
 
-    // Jika response.data adalah array
+
     if (Array.isArray(response.data)) {
       items = response.data
       total = items.length
       totalPages = 1
-    } 
-    // Jika response.data adalah object dengan property items/data
+    }
+
     else if (response.data && typeof response.data === 'object') {
       const data = response.data as any
-      
-      // Cek berbagai kemungkinan struktur
+
+
       if (Array.isArray(data.items)) {
         items = data.items
         total = data.total || items.length
@@ -1431,16 +1389,16 @@ async getAllInformation(query?: GetInformationQuery): Promise<InformationPaginat
         limit = data.limit || 20
         totalPages = data.totalPages || Math.ceil(total / limit)
       }
-      // Jika data adalah single object, wrap ke array
+
       else if (data.id) {
         items = [data]
         total = 1
         totalPages = 1
       }
     }
-    
+
     console.log('📊 Parsed information:', { items: items.length, total, page, totalPages })
-    
+
     return {
       items,
       total,
@@ -1460,10 +1418,6 @@ async getAllInformation(query?: GetInformationQuery): Promise<InformationPaginat
   }
 }
 
-
-/**
- * Get information by ID (Admin)
- */
 async getInformationById(id: string): Promise<Information> {
   try {
     const response: ApiResponse<Information> = await this.client.get(`/admin/information/${id}`)
@@ -1473,47 +1427,38 @@ async getInformationById(id: string): Promise<Information> {
   }
 }
 
-/**
- * Create new information (Admin)
- */
 async createInformation(data: CreateInformationRequest): Promise<Information> {
   try {
     const response: ApiResponse<Information> = await this.client.post('/admin/information', data)
-    
+
     if (response.success) {
       toast.success('Informasi berhasil dibuat')
     }
-    
+
     return response.data!
   } catch (error) {
     throw error
   }
 }
 
-/**
- * Update information (Admin)
- */
 async updateInformation(id: string, data: UpdateInformationRequest): Promise<Information> {
   try {
     const response: ApiResponse<Information> = await this.client.put(`/admin/information/${id}`, data)
-    
+
     if (response.success) {
       toast.success('Informasi berhasil diperbarui')
     }
-    
+
     return response.data!
   } catch (error) {
     throw error
   }
 }
 
-/**
- * Delete information (Admin)
- */
 async deleteInformation(id: string): Promise<void> {
   try {
     const response: ApiResponse<void> = await this.client.delete(`/admin/information/${id}`)
-    
+
     if (response.success) {
       toast.success('Informasi berhasil dihapus')
     }
@@ -1522,40 +1467,34 @@ async deleteInformation(id: string): Promise<void> {
   }
 }
 
-/**
- * Toggle information active status (Admin)
- */
 async toggleInformationStatus(id: string): Promise<Information> {
   try {
     const response: ApiResponse<Information> = await this.client.patch(`/admin/information/${id}/toggle-active`)
-    
+
     if (response.success) {
       const status = response.data?.isActive ? 'diaktifkan' : 'dinonaktifkan'
       toast.success(`Informasi berhasil ${status}`)
     }
-    
+
     return response.data!
   } catch (error) {
     throw error
   }
 }
 
-/**
- * Get active information for users
- */
 async getActiveInformation(page: number = 1, limit: number = 20): Promise<InformationPagination> {
   try {
     const response: ApiResponse<Information[]> = await this.client.get(`/information?page=${page}&limit=${limit}`)
-    
+
     console.log('📊 API getActiveInformation response:', {
       hasData: !!response.data,
       dataType: Array.isArray(response.data) ? 'array' : typeof response.data,
       dataLength: Array.isArray(response.data) ? response.data.length : 'N/A',
     })
-    
-    // ✅ Backend returns: { success, message, data: [...], pagination: {...} }
+
+
     const items = Array.isArray(response.data) ? response.data : []
-    
+
     return {
       items,
       total: response.pagination?.total || 0,
@@ -1575,32 +1514,28 @@ async getActiveInformation(page: number = 1, limit: number = 20): Promise<Inform
   }
 }
 
-
-/**
- * Get pinned information banner (only 1 pinned item)
- */
 async getPinnedInformation(): Promise<Information | null> {
   try {
     const response: any = await this.client.get('/information/pinned')
-    
+
     console.log('📌 API getPinnedInformation response:', response)
-    
-    // The NestJS ResponseInterceptor wraps the entire response in { success, data, timestamp, path }.
-    // The controller also manually wraps its return in { success, message, data: Information }.
-    // This means the actual Information lives at response.data.data (double-nested).
-    // We handle all possible nesting levels defensively:
+
+
+
+
+
     let info: Information | null = null
 
     if (response?.data?.data && typeof response.data.data === 'object' && response.data.data.title) {
-      // Double-wrapped: ResponseInterceptor({ success, data: controller({ success, message, data: Info }) })
+
       info = response.data.data
       console.log('✅ Unwrapped double-nested response')
     } else if (response?.data && typeof response.data === 'object' && response.data.title) {
-      // Single-wrapped: response.data is the Information directly
+
       info = response.data
       console.log('✅ Unwrapped single-nested response')
     } else if (response?.title) {
-      // Direct response: response is the Information object itself
+
       info = response
       console.log('✅ Direct response, no unwrapping needed')
     }
@@ -1612,17 +1547,13 @@ async getPinnedInformation(): Promise<Information | null> {
 
     console.log('ℹ️ No pinned banner found')
     return null
-    
+
   } catch (error) {
     console.error('❌ getPinnedInformation API error:', error)
     return null
   }
 }
 
-
-/**
- * Get information detail by ID (User)
- */
 async getInformationDetail(id: string): Promise<Information> {
   try {
     const response: ApiResponse<Information> = await this.client.get(`/information/${id}`)
@@ -1632,9 +1563,6 @@ async getInformationDetail(id: string): Promise<Information> {
   }
 }
 
-/**
- * Track information click (User)
- */
 async trackInformationClick(id: string): Promise<void> {
   try {
     await this.client.post(`/information/${id}/click`)
@@ -1654,7 +1582,7 @@ async trackInformationClick(id: string): Promise<void> {
         type: file.type
       });
 
-      // ✅ IMPROVED: Handle response flexibly - backend might return wrapped or unwrapped
+
       const response = await this.client.post(
         '/admin/information/upload-image',
         formData,
@@ -1670,69 +1598,69 @@ async trackInformationClick(id: string): Promise<void> {
       console.log('📥 Response type:', typeof response);
       console.log('📥 Response keys:', response ? Object.keys(response) : 'null');
 
-      // ✅ IMPROVED: Extract result from ANY possible response format
+
       interface UploadImageResponse {
         url: string;
         path: string;
         size: number;
       }
-      
+
       let result: UploadImageResponse | null = null;
 
-      // Helper function to check if object has required fields
+
       const hasRequiredFields = (obj: any): obj is UploadImageResponse => {
-        return obj && 
-               typeof obj === 'object' && 
-               typeof obj.url === 'string' && 
+        return obj &&
+               typeof obj === 'object' &&
+               typeof obj.url === 'string' &&
                typeof obj.path === 'string' &&
                obj.url.length > 0 &&
                obj.path.length > 0;
       };
 
       if (response && typeof response === 'object') {
-        // Case 1: Response is the data directly (url, path, size)
+
         if (hasRequiredFields(response)) {
           result = response;
           console.log('✅ Response format: direct data object');
         }
-        // Case 2: Response has success wrapper -> response.data
+
         else if ('success' in response && 'data' in response && hasRequiredFields(response.data)) {
           result = response.data;
           console.log('✅ Response format: wrapped with success/data');
         }
-        // Case 3: Response has data wrapper only -> response.data
+
         else if ('data' in response && hasRequiredFields(response.data)) {
           result = response.data;
           console.log('✅ Response format: data wrapper');
         }
-        // Case 4: Response might be double-nested -> response.data.data
+
         else if ('data' in response && response.data && typeof response.data === 'object' && 'data' in response.data) {
           if (hasRequiredFields(response.data.data)) {
             result = response.data.data;
             console.log('✅ Response format: double-nested data');
           }
         }
-        // Case 5: Try to find url and path anywhere in the response tree
+
         else {
           console.warn('⚠️ Searching for url/path in response tree...');
           const searchForFields = (obj: any, depth = 0): UploadImageResponse | null => {
-            if (depth > 3) return null; // Prevent infinite recursion
-            
+            if (depth > 3) return null;
+
             if (hasRequiredFields(obj)) {
               return obj;
             }
-            
-            // Search in all object properties
+
+
             for (const key in obj) {
               if (obj[key] && typeof obj[key] === 'object') {
                 const found = searchForFields(obj[key], depth + 1);
                 if (found) return found;
               }
             }
-            
+
             return null;
           };
-          
+
           result = searchForFields(response);
           if (result) {
             console.log('✅ Response format: found via deep search');
@@ -1761,7 +1689,7 @@ async trackInformationClick(id: string): Promise<void> {
         stack: error.stack
       });
 
-      // ✅ FIX: Better error message extraction
+
       let errorMessage = 'Gagal upload gambar';
 
       if (error.response?.data) {
@@ -1777,19 +1705,16 @@ async trackInformationClick(id: string): Promise<void> {
   }
 
 
-  /**
-   * Delete image from storage (Admin)
-   */
   async deleteInformationImage(imagePath: string): Promise<void> {
     try {
       console.log('🗑️ Deleting image:', imagePath);
-      
+
       const response: ApiResponse<void> = await this.client.delete('/admin/information/delete-image', {
         data: { imagePath }
       })
-      
+
       console.log('🗑️ Delete response:', response);
-      
+
       if (response.success) {
         toast.success('Gambar berhasil dihapus')
       }
@@ -1801,10 +1726,6 @@ async trackInformationClick(id: string): Promise<void> {
     }
   }
 
-
-/**
- * Bulk update schedule status
- */
 async bulkUpdateAssetScheduleStatus(ids: string[], isActive: boolean): Promise<ApiResponse> {
   try {
     const result = await this.client.post('/asset-schedule/bulk/status', { ids, isActive })
@@ -1824,9 +1745,9 @@ async bulkUpdateAssetScheduleStatus(ids: string[], isActive: boolean): Promise<A
   }>> {
     const cacheKey = this.getCacheKey('/vouchers/my/history')
     const cached = this.getFromCache(cacheKey)
-    
+
     if (cached) return cached
-    
+
     return this.withDeduplication(cacheKey, async () => {
       const data = await this.client.get('/vouchers/my/history')
       this.setCache(cacheKey, data, 60000)
@@ -1857,9 +1778,9 @@ async bulkUpdateAssetScheduleStatus(ids: string[], isActive: boolean): Promise<A
     }
   }
 
-  // ─────────────────────────────────────────────────────────
-  // AFFILIATE PROGRAM — USER ENDPOINTS
-  // ─────────────────────────────────────────────────────────
+
+
+
 
   async getMyAffiliatorProgram(): Promise<ApiResponse<AffiliatorDashboard>> {
     const cacheKey = this.getCacheKey('/affiliate-program/my-program')
@@ -1933,9 +1854,9 @@ async bulkUpdateAssetScheduleStatus(ids: string[], isActive: boolean): Promise<A
     }
   }
 
-  // ─────────────────────────────────────────────────────────
-  // AFFILIATE PROGRAM — ADMIN ENDPOINTS
-  // ─────────────────────────────────────────────────────────
+
+
+
 
   async adminGetAllAffiliators(params?: {
     page?: number

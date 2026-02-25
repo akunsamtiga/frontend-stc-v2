@@ -17,7 +17,7 @@ const TIMEFRAME_SECONDS: Record<string, number> = {
 
 interface CandleCountdownProps {
   timeframe: string
-  /** nowSeconds dari TradingChart — satu sumber waktu untuk semua. */
+
   nowSeconds: number
 }
 

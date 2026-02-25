@@ -1,4 +1,4 @@
-// components/OrderPriceTracker.tsx - SIMPLIFIED: Thin solid line only
+// components/OrderPriceTracker.tsx 
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
@@ -16,7 +16,7 @@ interface OrderPriceTrackerProps {
   showPricePath?: boolean
   highlightWinning?: boolean
   compactMode?: boolean
-  /** nowSeconds dari TradingChart — satu sumber waktu untuk semua. */
+
   nowSeconds: number
 }
 
@@ -47,10 +47,10 @@ export default function OrderPriceTracker({
         setCardWidth(cardRef.current?.offsetWidth || 0)
       }
       updateWidth()
-      
+
       const observer = new ResizeObserver(updateWidth)
       observer.observe(cardRef.current)
-      
+
       return () => observer.disconnect()
     }
   }, [trackerPositions.length])
@@ -77,12 +77,12 @@ export default function OrderPriceTracker({
         const isCall = order.direction === 'CALL'
         const priceDiff = currentPrice - order.entry_price
         const isWinning = isCall ? priceDiff > 0 : priceDiff < 0
-        
-        const currentProfit = isWinning 
-          ? (order.amount * order.profitRate) / 100 
+
+        const currentProfit = isWinning
+          ? (order.amount * order.profitRate) / 100
           : -order.amount
 
-        // ✅ pakai nowSeconds — sinkron dengan clock & countdown
+
         const exitTimeSec = order.exit_time
           ? new Date(order.exit_time).getTime() / 1000
           : nowSeconds
@@ -119,17 +119,17 @@ export default function OrderPriceTracker({
 
   if (trackerPositions.length === 0) return null
 
-  // ✅ Calculate card offsets to avoid overlap at same Y position
+
   const positionsWithOffset = trackerPositions.map((position, index) => {
-    // Count how many orders above have similar Y position
+
     let offset = 0
     for (let i = 0; i < index; i++) {
       const prevPos = trackerPositions[i]
       if (Math.abs(prevPos.yPosition - position.yPosition) < 5) {
-        offset += 30 // Stack 30px below for each similar position
+        offset += 30
       }
     }
-    
+
     return {
       ...position,
       cardOffset: offset
@@ -154,7 +154,7 @@ export default function OrderPriceTracker({
               transition: 'top 0.15s ease-out',
             }}
           >
-            {/* ✅ Each order has its own line (can duplicate/overlap) */}
+            {}
             <div
               className={`absolute left-0 right-0 h-[2px] ${
                 isCall ? 'bg-green-500/40' : 'bg-red-500/40'
@@ -165,12 +165,12 @@ export default function OrderPriceTracker({
               }}
             />
 
-            {/* ✅ Card with offset to avoid overlap */}
-            <div 
+            {}
+            <div
               className="absolute z-10"
               style={{
                 right: '8px',
-                top: `${cardOffset}px`, // Offset if multiple cards at same Y
+                top: `${cardOffset}px`,
                 transform: 'translateY(-50%)',
               }}
             >
@@ -181,9 +181,9 @@ export default function OrderPriceTracker({
                   rounded-l-lg pointer-events-auto
                   border backdrop-blur-md shadow-lg transition-all
                   ${compactMode ? 'px-2 py-1' : 'px-2 sm:px-2.5 py-1 sm:py-1.5'}
-                  ${isCall 
-                    ? isWinning 
-                      ? 'bg-green-500/20 border-green-500' 
+                  ${isCall
+                    ? isWinning
+                      ? 'bg-green-500/20 border-green-500'
                       : 'bg-green-500/10 border-green-500/50'
                     : isWinning
                       ? 'bg-red-500/20 border-red-500'
@@ -191,7 +191,7 @@ export default function OrderPriceTracker({
                   }
                 `}
               >
-                {/* ✅ Arrow Icon + Direction */}
+                {}
                 <div className="flex items-center gap-1">
                   {isCall ? (
                     <ArrowUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-green-400 flex-shrink-0" strokeWidth={3} />
@@ -206,17 +206,17 @@ export default function OrderPriceTracker({
                   </span>
                 </div>
 
-                {/* Separator */}
+                {}
                 <span className="text-gray-600 text-[10px]">|</span>
 
-                {/* Countdown */}
+                {}
                 <div className={`
-                  flex items-center gap-0.5 sm:gap-1 
+                  flex items-center gap-0.5 sm:gap-1
                   text-[9px] sm:text-[10px] font-bold whitespace-nowrap
-                  ${isCritical 
-                    ? 'text-red-400' 
-                    : isUrgent 
-                      ? 'text-yellow-400' 
+                  ${isCritical
+                    ? 'text-red-400'
+                    : isUrgent
+                      ? 'text-yellow-400'
                       : 'text-white'
                   }
                 `}>
@@ -224,10 +224,10 @@ export default function OrderPriceTracker({
                   <span>{formatTime(timeLeft)}</span>
                 </div>
 
-                {/* Separator */}
+                {}
                 <span className="text-gray-600 text-[10px]">|</span>
 
-                {/* Payout */}
+                {}
                 <span className={`
                   text-[9px] sm:text-[10px] font-bold whitespace-nowrap
                   ${isWinning ? 'text-green-400' : 'text-red-400'}
@@ -235,7 +235,7 @@ export default function OrderPriceTracker({
                   {currentProfit > 0 ? '+' : ''}{formatCurrency(currentProfit)}
                 </span>
 
-                {/* ✅ Winning Pulse Indicator */}
+                {}
                 {isWinning && (
                   <div className="absolute -right-1 top-1/2 -translate-y-1/2 pointer-events-none">
                     <div className="relative w-2 h-2 sm:w-2.5 sm:h-2.5">

@@ -1,25 +1,25 @@
-// hooks/useProfile.ts - ✅ COMPLETE FIXED VERSION with Photo Upload
+// hooks/useProfile.ts 
 
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
-import type { 
-  UserProfile, 
-  UserProfileInfo, 
+import type {
+  UserProfile,
+  UserProfileInfo,
   UpdateProfileRequest,
-  ChangePasswordRequest 
+  ChangePasswordRequest
 } from '@/types'
 
 interface UseProfileReturn {
-  // Data
+
   profile: UserProfile | null
   profileInfo: UserProfileInfo | null
-  
-  // Loading states
+
+
   loading: boolean
   updating: boolean
-  
-  // Actions
+
+
   loadProfile: () => Promise<void>
   updateProfile: (data: UpdateProfileRequest) => Promise<boolean>
   changePassword: (data: ChangePasswordRequest) => Promise<boolean>
@@ -27,10 +27,10 @@ interface UseProfileReturn {
   uploadKTP: (photoFront: File, photoBack?: File) => Promise<boolean>
   uploadSelfie: (file: File) => Promise<boolean>
 
-  // Phone verification (Firebase-based)
+
   verifyPhoneWithFirebaseToken: (idToken: string) => Promise<boolean>
-  
-  // Helper
+
+
   getCompletionPercentage: () => number
 }
 
@@ -40,36 +40,34 @@ export function useProfile(): UseProfileReturn {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
 
-  /**
-   * Load profile data from API
-   */
+
   const loadProfile = useCallback(async () => {
     try {
       setLoading(true)
-      
+
       const response = await api.getProfile()
-      
-      // ✅ FIX: Properly extract UserProfile from ApiResponse
+
+
       let profileData: UserProfile
-      
-      // Check if response has a 'data' property (ApiResponse wrapper)
+
+
       if (response && 'data' in response && response.data) {
         profileData = response.data as UserProfile
       } else {
-        // Response is already UserProfile
+
         profileData = response as UserProfile
       }
-      
+
       if (!profileData) {
         throw new Error('No profile data received')
       }
 
       setProfile(profileData)
-      
+
       if (profileData.profileInfo) {
         setProfileInfo(profileData.profileInfo)
       }
-      
+
     } catch (error: any) {
       console.error('Failed to load profile:', error)
       toast.error(error?.message || 'Failed to load profile')
@@ -79,21 +77,19 @@ export function useProfile(): UseProfileReturn {
     }
   }, [])
 
-  /**
-   * Update profile data
-   */
+
   const updateProfile = useCallback(async (data: UpdateProfileRequest): Promise<boolean> => {
     try {
       setUpdating(true)
-      
+
       await api.updateProfile(data)
-      
-      // Reload profile to get updated data
+
+
       await loadProfile()
-      
+
       toast.success('Profile updated successfully!')
       return true
-      
+
     } catch (error: any) {
       console.error('Failed to update profile:', error)
       toast.error(error?.response?.data?.error || 'Failed to update profile')
@@ -103,30 +99,28 @@ export function useProfile(): UseProfileReturn {
     }
   }, [loadProfile])
 
-  /**
-   * Change password
-   */
+
   const changePassword = useCallback(async (data: ChangePasswordRequest): Promise<boolean> => {
     try {
-      // Validate passwords match
+
       if (data.newPassword !== data.confirmPassword) {
         toast.error('Passwords do not match')
         return false
       }
 
-      // Validate password length
+
       if (data.newPassword.length < 8) {
         toast.error('Password must be at least 8 characters')
         return false
       }
 
       setUpdating(true)
-      
+
       await api.changePassword(data)
-      
+
       toast.success('Password changed successfully!')
       return true
-      
+
     } catch (error: any) {
       console.error('Failed to change password:', error)
       toast.error(error?.response?.data?.error || 'Failed to change password')
@@ -136,57 +130,55 @@ export function useProfile(): UseProfileReturn {
     }
   }, [])
 
-  /**
-   * Upload avatar image
-   */
+
   const uploadAvatar = useCallback(async (file: File): Promise<boolean> => {
     try {
-      // Validate file type
+
       if (!file.type.startsWith('image/')) {
         toast.error('Please select an image file')
         return false
       }
 
-      // Validate file size (max 2MB)
+
       if (file.size > 2 * 1024 * 1024) {
         toast.error('Image size must be less than 2MB')
         return false
       }
 
       setUpdating(true)
-      
-      // Show uploading toast
+
+
       const uploadToast = toast.loading('Uploading avatar...')
 
-      // Convert to base64
+
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
-        
+
         reader.onloadend = () => {
           const result = reader.result as string
           resolve(result)
         }
-        
+
         reader.onerror = () => {
           reject(new Error('Failed to read image file'))
         }
-        
+
         reader.readAsDataURL(file)
       })
 
-      // Upload to API
-      await api.uploadAvatar({ 
+
+      await api.uploadAvatar({
         url: base64,
         fileSize: file.size,
         mimeType: file.type
       })
-      
-      // Reload profile
+
+
       await loadProfile()
-      
+
       toast.success('Avatar uploaded successfully!', { id: uploadToast })
       return true
-      
+
     } catch (error: any) {
       console.error('Failed to upload avatar:', error)
       toast.error(error?.message || 'Failed to upload avatar')
@@ -196,12 +188,10 @@ export function useProfile(): UseProfileReturn {
     }
   }, [loadProfile])
 
-  /**
-   * ✅ NEW: Upload KTP photos (front & back)
-   */
+
   const uploadKTP = useCallback(async (photoFront: File, photoBack?: File): Promise<boolean> => {
     try {
-      // Validate front photo
+
       if (!photoFront.type.startsWith('image/')) {
         toast.error('Front photo must be an image file')
         return false
@@ -211,7 +201,7 @@ export function useProfile(): UseProfileReturn {
         return false
       }
 
-      // Validate back photo if provided
+
       if (photoBack) {
         if (!photoBack.type.startsWith('image/')) {
           toast.error('Back photo must be an image file')
@@ -226,7 +216,7 @@ export function useProfile(): UseProfileReturn {
       setUpdating(true)
       const uploadToast = toast.loading('Uploading KTP photos...')
 
-      // Convert front photo to base64
+
       const photoFrontBase64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
         reader.onloadend = () => resolve(reader.result as string)
@@ -242,7 +232,7 @@ export function useProfile(): UseProfileReturn {
         }
       }
 
-      // Convert back photo to base64 if provided
+
       if (photoBack) {
         const photoBackBase64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader()
@@ -258,15 +248,15 @@ export function useProfile(): UseProfileReturn {
         }
       }
 
-      // Upload to API
+
       await api.uploadKTP(uploadData)
-      
-      // Reload profile
+
+
       await loadProfile()
-      
+
       toast.success('KTP photos uploaded successfully! Waiting for admin verification.', { id: uploadToast })
       return true
-      
+
     } catch (error: any) {
       console.error('Failed to upload KTP:', error)
       toast.error(error?.response?.data?.error || 'Failed to upload KTP photos')
@@ -276,18 +266,16 @@ export function useProfile(): UseProfileReturn {
     }
   }, [loadProfile])
 
-  /**
-   * ✅ NEW: Upload selfie photo
-   */
+
   const uploadSelfie = useCallback(async (file: File): Promise<boolean> => {
     try {
-      // Validate file type
+
       if (!file.type.startsWith('image/')) {
         toast.error('Please select an image file')
         return false
       }
 
-      // Validate file size (max 1MB for selfie)
+
       if (file.size > 1 * 1024 * 1024) {
         toast.error('Selfie size must be less than 1MB')
         return false
@@ -296,7 +284,7 @@ export function useProfile(): UseProfileReturn {
       setUpdating(true)
       const uploadToast = toast.loading('Uploading selfie...')
 
-      // Convert to base64
+
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
         reader.onloadend = () => resolve(reader.result as string)
@@ -304,19 +292,19 @@ export function useProfile(): UseProfileReturn {
         reader.readAsDataURL(file)
       })
 
-      // Upload to API
+
       await api.uploadSelfie({
         url: base64,
         fileSize: file.size,
         mimeType: file.type
       })
-      
-      // Reload profile
+
+
       await loadProfile()
-      
+
       toast.success('Selfie uploaded successfully! Waiting for admin verification.', { id: uploadToast })
       return true
-      
+
     } catch (error: any) {
       console.error('Failed to upload selfie:', error)
       toast.error(error?.response?.data?.error || 'Failed to upload selfie')
@@ -326,10 +314,7 @@ export function useProfile(): UseProfileReturn {
     }
   }, [loadProfile])
 
-  /**
-   * Verify phone number using Firebase ID Token
-   * Flow: Firebase signInWithPhoneNumber → confirm OTP → getIdToken() → call this
-   */
+
   const verifyPhoneWithFirebaseToken = useCallback(async (idToken: string): Promise<boolean> => {
     try {
       if (!idToken) {
@@ -340,7 +325,7 @@ export function useProfile(): UseProfileReturn {
       setUpdating(true)
       await api.verifyPhone({ idToken })
 
-      // Reload profile to reflect verified status
+
       await loadProfile()
 
       toast.success('Nomor telepon berhasil diverifikasi!')
@@ -355,14 +340,12 @@ export function useProfile(): UseProfileReturn {
     }
   }, [loadProfile])
 
-  /**
-   * Get profile completion percentage
-   */
+
   const getCompletionPercentage = useCallback((): number => {
     return profileInfo?.completion || 0
   }, [profileInfo])
 
-  // Load profile on mount
+
   useEffect(() => {
     loadProfile()
   }, [loadProfile])
@@ -376,16 +359,13 @@ export function useProfile(): UseProfileReturn {
     updateProfile,
     changePassword,
     uploadAvatar,
-    uploadKTP,      
+    uploadKTP,
     uploadSelfie,
     verifyPhoneWithFirebaseToken,
     getCompletionPercentage
   }
 }
 
-/**
- * Hook for form validation
- */
 export function useProfileFormValidation() {
   const validateFullName = (name: string): string | null => {
     if (!name || name.trim().length === 0) {
@@ -402,10 +382,10 @@ export function useProfileFormValidation() {
 
   const validatePhoneNumber = (phone: string): string | null => {
     if (!phone || phone.trim().length === 0) {
-      return null // Optional field
+      return null
     }
-    
-    // Indonesian phone number format
+
+
     const phoneRegex = /^(\+62|62|0)[0-9]{9,12}$/
     if (!phoneRegex.test(phone)) {
       return 'Invalid phone number format (e.g., +6281234567890)'
@@ -415,13 +395,13 @@ export function useProfileFormValidation() {
 
   const validateDateOfBirth = (date: string): string | null => {
     if (!date) {
-      return null // Optional field
+      return null
     }
-    
+
     const birthDate = new Date(date)
     const today = new Date()
     const age = today.getFullYear() - birthDate.getFullYear()
-    
+
     if (age < 17) {
       return 'You must be at least 17 years old'
     }
@@ -433,7 +413,7 @@ export function useProfileFormValidation() {
 
   const validateIdentityNumber = (number: string, type: 'ktp' | 'passport' | 'sim'): string | null => {
     if (!number || number.trim().length === 0) {
-      return null // Optional field
+      return null
     }
 
     switch (type) {
@@ -453,19 +433,19 @@ export function useProfileFormValidation() {
         }
         break
     }
-    
+
     return null
   }
 
   const validateBankAccount = (accountNumber: string): string | null => {
     if (!accountNumber || accountNumber.trim().length === 0) {
-      return null // Optional field
+      return null
     }
-    
+
     if (!/^\d{10,16}$/.test(accountNumber)) {
       return 'Bank account number must be 10-16 digits'
     }
-    
+
     return null
   }
 

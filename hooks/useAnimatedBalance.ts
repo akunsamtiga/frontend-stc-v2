@@ -1,3 +1,4 @@
+// hooks/useAnimatedBalance.ts
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
@@ -16,20 +17,20 @@ export function useAnimatedBalance(currentValue: number, duration = 600) {
     if (diff === 0) return
 
     setAnimationState(diff > 0 ? 'increasing' : 'decreasing')
-    
+
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
 
     const startTime = Date.now()
     const startValue = displayValue
-    
+
     const animate = () => {
       const elapsed = Date.now() - startTime
       const progress = Math.min(elapsed / duration, 1)
       const easeOut = 1 - Math.pow(1 - progress, 3)
-      
+
       const currentDisplay = startValue + (currentValue - startValue) * easeOut
       setDisplayValue(currentDisplay)
-      
+
       if (progress < 1) {
         requestAnimationFrame(animate)
       } else {
@@ -37,7 +38,7 @@ export function useAnimatedBalance(currentValue: number, duration = 600) {
         timeoutRef.current = setTimeout(() => setAnimationState('idle'), 1000)
       }
     }
-    
+
     requestAnimationFrame(animate)
     previousValueRef.current = currentValue
 

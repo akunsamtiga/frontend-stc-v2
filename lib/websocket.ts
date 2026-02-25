@@ -2,10 +2,6 @@
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 
-// ============================================================
-// INTERFACES
-// ============================================================
-
 interface PriceUpdate {
   assetId: string;
   price: number;
@@ -24,7 +20,6 @@ interface OrderUpdate {
   priority?: 'high' | 'normal';
 }
 
-/** Shape dari satu OHLC bar yang dikirim backend */
 export interface OHLCBar {
   timestamp: number;
   open: number;
@@ -36,28 +31,17 @@ export interface OHLCBar {
   datetime?: string;
 }
 
-/**
- * Payload `ohlc:update` yang di-broadcast backend tiap ~1 detik
- * ke room `asset:{assetId}`.
- */
 export interface OHLCUpdate {
   assetId: string;
-  /** Bar aktif untuk setiap timeframe (selalu ada) */
+
   currentBars: Record<string, OHLCBar>;
-  /**
-   * Bar yang baru saja DITUTUP (completed) pada tick ini.
-   * null / tidak ada key = tidak ada bar baru yang tutup.
-   */
+
   completedBars: Record<string, OHLCBar | null>;
 }
 
 type PriceCallback = (data: PriceUpdate) => void;
 type OrderCallback = (data: OrderUpdate) => void;
 type OHLCCallback = (data: OHLCUpdate) => void;
-
-// ============================================================
-// SERVICE
-// ============================================================
 
 class WebSocketService {
   private socket: Socket | null = null;
@@ -75,10 +59,7 @@ class WebSocketService {
   private isConnecting = false;
   private isConnected = false;
 
-  /**
-   * Threshold kedaluwarsa data price.
-   * 5 000ms = toleransi latency Indonesia ~1 300ms + buffer
-   */
+
   private readonly MAX_ACCEPTABLE_AGE = 5000;
 
   private highPriorityQueue: OrderUpdate[] = [];
@@ -98,9 +79,9 @@ class WebSocketService {
     }
   }
 
-  // ──────────────────────────────────────────────────────────
-  // CONNECTION
-  // ──────────────────────────────────────────────────────────
+
+
+
 
   async connect(token: string) {
     if (this.isConnecting) {
@@ -149,9 +130,9 @@ class WebSocketService {
     }
   }
 
-  // ──────────────────────────────────────────────────────────
-  // EVENT HANDLERS
-  // ──────────────────────────────────────────────────────────
+
+
+
 
   private setupEventHandlers() {
     if (!this.socket) return;
@@ -184,18 +165,18 @@ class WebSocketService {
       this.handleConnectionError();
     });
 
-    // ── Price ──────────────────────────────────────────────
+
     this.socket.on('price:update', (data: PriceUpdate) => {
       this.handlePriceUpdate(data);
     });
 
-    // ── OHLC ───────────────────────────────────────────────
-    // Backend broadcast tiap ~1s ke room asset:{assetId}
+
+
     this.socket.on('ohlc:update', (data: OHLCUpdate) => {
       this.handleOHLCUpdate(data);
     });
 
-    // ── Orders ─────────────────────────────────────────────
+
     this.socket.on('order:update', (data: OrderUpdate) => {
       if (data.priority === 'high') {
         this.handleHighPriorityOrderUpdate(data);
@@ -238,12 +219,12 @@ class WebSocketService {
     });
   }
 
-  // ──────────────────────────────────────────────────────────
-  // PRICE HANDLING
-  // ──────────────────────────────────────────────────────────
+
+
+
 
   private handlePriceUpdate(data: PriceUpdate) {
-    // Auto-detect unit: backend bisa kirim detik atau ms
+
     const tsInMs =
       data.timestamp < 1e12 ? data.timestamp * 1000 : data.timestamp;
     const dataAge = Date.now() - tsInMs;
@@ -269,9 +250,9 @@ class WebSocketService {
     }
   }
 
-  // ──────────────────────────────────────────────────────────
-  // OHLC HANDLING
-  // ──────────────────────────────────────────────────────────
+
+
+
 
   private handleOHLCUpdate(data: OHLCUpdate) {
     if (!data || !data.assetId) return;
@@ -288,9 +269,9 @@ class WebSocketService {
     }
   }
 
-  // ──────────────────────────────────────────────────────────
-  // ORDER HANDLING
-  // ──────────────────────────────────────────────────────────
+
+
+
 
   private handleHighPriorityOrderUpdate(data: OrderUpdate) {
     console.log('🚀 High-priority order update:', data.event, data.id);
@@ -315,14 +296,11 @@ class WebSocketService {
     });
   }
 
-  // ──────────────────────────────────────────────────────────
-  // PUBLIC SUBSCRIBE API
-  // ──────────────────────────────────────────────────────────
 
-  /**
-   * Subscribe ke price:update untuk satu asset.
-   * @returns unsubscribe function
-   */
+
+
+
+
   subscribeToPrice(assetId: string, callback: PriceCallback) {
     console.log('Subscribing to price stream for:', assetId);
 
@@ -353,15 +331,7 @@ class WebSocketService {
     };
   }
 
-  /**
-   * Subscribe ke ohlc:update untuk satu asset.
-   * Backend broadcast ke room `asset:{assetId}` — pastikan
-   * `price:subscribe` sudah dipanggil terlebih dahulu (yang
-   * membuat socket join ke room asset) ATAU panggil
-   * `asset:join` secara eksplisit.
-   *
-   * @returns unsubscribe function
-   */
+
   subscribeToOHLC(assetId: string, callback: OHLCCallback): () => void {
     console.log('📊 Subscribing to OHLC for:', assetId);
 
@@ -370,7 +340,7 @@ class WebSocketService {
     }
     this.ohlcCallbacks.get(assetId)!.add(callback);
 
-    // Join asset room jika socket sudah connect
+
     if (this.isConnected && this.socket?.connected) {
       this.socket.emit('asset:join', { assetId });
     }
@@ -382,7 +352,7 @@ class WebSocketService {
         callbacks.delete(callback);
         if (callbacks.size === 0) {
           this.ohlcCallbacks.delete(assetId);
-          // Tinggalkan room hanya kalau price juga sudah unsub
+
           if (
             !this.priceCallbacks.has(assetId) &&
             this.isConnected &&
@@ -422,27 +392,27 @@ class WebSocketService {
     };
   }
 
-  // ──────────────────────────────────────────────────────────
-  // RESUBSCRIBE (setelah reconnect)
-  // ──────────────────────────────────────────────────────────
+
+
+
 
   private resubscribeAll() {
     if (!this.isConnected || !this.socket?.connected) return;
 
     console.log('⚡ Resubscribing to all subscriptions...');
 
-    // Price subscriptions
+
     const assetIds = Array.from(this.priceCallbacks.keys());
     if (assetIds.length > 0) {
       this.socket.emit('price:subscribe', { assetIds, highFrequency: true });
       console.log('Resubscribed to prices:', assetIds);
     }
 
-    // OHLC: join rooms
+
     const ohlcAssetIds = Array.from(this.ohlcCallbacks.keys());
     for (const assetId of ohlcAssetIds) {
       if (!assetIds.includes(assetId)) {
-        // Asset belum di-join via price, join secara eksplisit
+
         this.socket.emit('asset:join', { assetId });
       }
     }
@@ -450,7 +420,7 @@ class WebSocketService {
       console.log('Resubscribed to OHLC rooms:', ohlcAssetIds);
     }
 
-    // Order subscriptions
+
     if (this.currentUserId && this.orderCallbacks.size > 0) {
       this.socket.emit('user:subscribe', {
         userId: this.currentUserId,
@@ -461,9 +431,9 @@ class WebSocketService {
     }
   }
 
-  // ──────────────────────────────────────────────────────────
-  // MISC
-  // ──────────────────────────────────────────────────────────
+
+
+
 
   private handleConnectionError() {
     this.isConnected = false;

@@ -1,10 +1,9 @@
+// components/PageNavbar.tsx
 'use client'
 
 import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { ReactNode } from 'react'
-
-// ─── Shimmer brand text ───────────────────────────────────────────────────────
 
 function ShimmerBrand() {
   return (
@@ -44,8 +43,6 @@ function ShimmerBrand() {
   )
 }
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 interface PageNavbarProps {
   title: string
   subtitle?: string
@@ -55,8 +52,6 @@ interface PageNavbarProps {
   rightSlot?: ReactNode
   className?: string
 }
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function PageNavbar({
   title,
@@ -82,7 +77,7 @@ export default function PageNavbar({
     >
       <div className="flex items-center gap-3 px-4 sm:px-8 lg:px-12 py-3 sm:py-4 max-w-screen-xl mx-auto">
 
-        {/* Back button */}
+        {}
         {!hideBack && (
           <button
             onClick={handleBack}
@@ -94,7 +89,7 @@ export default function PageNavbar({
           </button>
         )}
 
-        {/* Title */}
+        {}
         <div className="flex-1 min-w-0">
           <h1
             className="text-sm sm:text-[15px] font-semibold text-gray-900 truncate leading-snug"
@@ -107,7 +102,7 @@ export default function PageNavbar({
           )}
         </div>
 
-        {/* Right: custom slot + brand */}
+        {}
         <div className="flex-shrink-0 flex items-center gap-3">
           {rightSlot && (
             <div className="flex items-center gap-2">{rightSlot}</div>
@@ -118,8 +113,6 @@ export default function PageNavbar({
     </header>
   )
 }
-
-// ─── Right-slot helpers ───────────────────────────────────────────────────────
 
 interface NavIconButtonProps {
   icon: ReactNode

@@ -6,13 +6,12 @@ import { prefetchMultipleTimeframes } from '@/lib/firebase'
 import { useSelectedAsset } from '@/store/trading'
 import { Timeframe } from '@/types'
 
-// ✅ Semua timeframe, tapi hanya untuk asset yang dipilih
 const ALL_TIMEFRAMES: Timeframe[] = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d']
 
 export default function ChartPreloader() {
   const selectedAsset = useSelectedAsset()
 
-  // ✅ Track asset yang sudah di-prefetch, hindari re-fetch saat re-render
+
   const prefetchedRef = useRef<Set<string>>(new Set())
   const abortRef = useRef<boolean>(false)
 
@@ -23,7 +22,7 @@ export default function ChartPreloader() {
 
     const assetPath = selectedAsset.realtimeDbPath
 
-    // ✅ Skip kalau asset ini sudah pernah di-prefetch di sesi ini
+
     if (prefetchedRef.current.has(assetPath)) return
 
     const prefetch = async () => {

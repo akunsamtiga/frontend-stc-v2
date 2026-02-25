@@ -8,7 +8,7 @@ interface StatusBadgeProps {
 }
 
 const STATUS_BADGE_IMAGES: Record<UserStatus, string> = {
-  standard: '/std.png', 
+  standard: '/std.png',
   gold: '/gold.png',
   vip: '/vip.png'
 }

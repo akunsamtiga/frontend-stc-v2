@@ -26,11 +26,11 @@ interface AvailableVouchersProps {
   selectedVoucherCode?: string;
 }
 
-const AvailableVouchers: React.FC<AvailableVouchersProps> = ({ 
-  vouchers, 
-  depositAmount, 
-  onVoucherSelect, 
-  selectedVoucherCode 
+const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
+  vouchers,
+  depositAmount,
+  onVoucherSelect,
+  selectedVoucherCode
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showAll, setShowAll] = useState(false);
@@ -48,36 +48,36 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
     const now = new Date();
     const validFrom = new Date(voucher.validFrom);
     const validUntil = new Date(voucher.validUntil);
-    
+
     if (!voucher.isActive) {
       return { eligible: false, reason: 'Voucher tidak aktif' };
     }
-    
+
     if (now < validFrom) {
       return { eligible: false, reason: 'Belum dimulai' };
     }
     if (now > validUntil) {
       return { eligible: false, reason: 'Kedaluwarsa' };
     }
-    
+
     if (voucher.maxUses && voucher.usedCount >= voucher.maxUses) {
       return { eligible: false, reason: 'Batas tercapai' };
     }
-    
+
     if (depositAmount > 0 && depositAmount < voucher.minDeposit) {
       return { eligible: false, reason: `Min ${formatCurrency(voucher.minDeposit)}` };
     }
-    
+
     if (depositAmount === 0) {
       return { eligible: true, reason: 'Masukkan jumlah untuk mengaktifkan', needsAmount: true };
     }
-    
+
     return { eligible: true, reason: 'Tersedia' };
   };
 
   const calculateBonus = (voucher: Voucher) => {
     if (depositAmount < voucher.minDeposit) return 0;
-    
+
     let bonus = 0;
     if (voucher.type === 'percentage') {
       bonus = Math.floor(depositAmount * (voucher.value / 100));
@@ -87,11 +87,11 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
     } else {
       bonus = voucher.value;
     }
-    
+
     return bonus;
   };
 
-  // Count eligible vouchers
+
   const eligibleCount = vouchers.filter(v => {
     const status = getVoucherStatus(v);
     return status.eligible && !status.needsAmount;
@@ -103,7 +103,7 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* Collapsible Header */}
+      {}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full bg-white border-2 border-gray-300 rounded-lg p-4 hover:border-sky-300 hover:shadow-sm transition-all"
@@ -116,14 +116,14 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
             <div className="text-left">
               <h3 className="font-bold text-base text-gray-900">Voucher Tersedia</h3>
               <p className="text-xs text-gray-500 mt-0.5">
-                {eligibleCount > 0 
-                  ? `${eligibleCount} voucher${eligibleCount > 1 ? '' : ''} tersedia untuk Anda` 
+                {eligibleCount > 0
+                  ? `${eligibleCount} voucher${eligibleCount > 1 ? '' : ''} tersedia untuk Anda`
                   : 'Masukkan jumlah untuk melihat voucher yang tersedia'
                 }
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <span className="bg-sky-100 text-sky-700 text-xs font-bold px-3 py-1.5 rounded-full">
               {vouchers.length}
@@ -137,10 +137,10 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
         </div>
       </button>
 
-      {/* Collapsible Content */}
+      {}
       {isExpanded && (
         <div className="space-y-4 animate-in slide-in-from-top-2 duration-200">
-          {/* Info Banner */}
+          {}
           {depositAmount === 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <div className="flex items-start gap-2">
@@ -152,40 +152,40 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
             </div>
           )}
 
-          {/* Voucher Cards */}
+          {}
           <div className="space-y-3">
             {displayedVouchers.map((voucher) => {
               const status = getVoucherStatus(voucher);
               const bonus = calculateBonus(voucher);
               const isSelected = selectedVoucherCode === voucher.code;
               const isClickable = status.eligible && !status.needsAmount;
-              
+
               return (
                 <button
                   key={voucher.id}
                   onClick={() => isClickable && onVoucherSelect(voucher.code)}
                   disabled={!isClickable}
                   className={`w-full text-left transition-all ${
-                    isClickable 
+                    isClickable
                       ? 'cursor-pointer hover:shadow-md'
                       : 'cursor-not-allowed opacity-70'
                   }`}
                 >
                   <div className={`relative overflow-hidden rounded-lg border-2 ${
-                    isSelected 
-                      ? 'border-sky-500 shadow-lg' 
-                      : isClickable 
-                      ? 'border-gray-300 hover:border-sky-300' 
+                    isSelected
+                      ? 'border-sky-500 shadow-lg'
+                      : isClickable
+                      ? 'border-gray-300 hover:border-sky-300'
                       : 'border-gray-300'
                   } bg-white`}>
-                    
-                    {/* Background Pattern */}
+
+                    {}
                     <div className="absolute inset-0 opacity-[0.03]">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500 rounded-full blur-3xl" />
                       <div className="absolute bottom-0 left-0 w-32 h-32 bg-indigo-500 rounded-full blur-3xl" />
                     </div>
-                    
-                    {/* Lock Icon for Disabled Vouchers */}
+
+                    {}
                     {!isClickable && (
                       <div className="absolute top-3 right-3 z-10">
                         <div className="bg-gray-500 text-white rounded-full p-1.5">
@@ -193,9 +193,9 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
                         </div>
                       </div>
                     )}
-                    
+
                     <div className="relative p-4">
-                      {/* Header Section */}
+                      {}
                       <div className="flex items-start justify-between gap-3 mb-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
@@ -216,11 +216,11 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
                             </p>
                           )}
                         </div>
-                        
-                        {/* Bonus Badge */}
+
+                        {}
                         <div className={`flex-shrink-0 ${
-                          isClickable 
-                            ? 'bg-gradient-to-br from-sky-500 to-indigo-600' 
+                          isClickable
+                            ? 'bg-gradient-to-br from-sky-500 to-indigo-600'
                             : 'bg-gray-400'
                         } text-white rounded-lg px-3 py-2 text-center shadow-sm`}>
                           {voucher.type === 'percentage' ? (
@@ -238,10 +238,10 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
                           )}
                         </div>
                       </div>
-                      
-                      {/* Details Grid */}
+
+                      {}
                       <div className="space-y-2 text-xs mb-3">
-  {/* Row 1: Min Deposit (Left) + Expiry Date (Right) */}
+  {}
   <div className="flex items-center justify-between">
     <div className={`flex items-center gap-1.5 ${
       isClickable ? 'text-gray-600' : 'text-gray-400'
@@ -251,7 +251,7 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
       }`} />
       <span className="font-medium">Min: {formatCurrency(voucher.minDeposit)}</span>
     </div>
-    
+
     <div className={`flex items-center gap-1.5 ${
       isClickable ? 'text-gray-600' : 'text-gray-400'
     }`}>
@@ -259,15 +259,15 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
         isClickable ? 'text-sky-500' : 'text-gray-400'
       }`} />
       <span className="font-medium">
-        Hingga {new Date(voucher.validUntil).toLocaleDateString('id-ID', { 
-          day: '2-digit', 
-          month: 'short' 
+        Hingga {new Date(voucher.validUntil).toLocaleDateString('id-ID', {
+          day: '2-digit',
+          month: 'short'
         })}
       </span>
     </div>
   </div>
-  
-  {/* Row 2: Max Bonus (Left, conditional) + Remaining Uses (Right, conditional) */}
+
+  {}
   {(voucher.type === 'percentage' && voucher.maxBonusAmount) || voucher.maxUses ? (
     <div className="flex items-center justify-between">
       {voucher.type === 'percentage' && voucher.maxBonusAmount ? (
@@ -280,7 +280,7 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
           <span className="font-medium">Maks: {formatCurrency(voucher.maxBonusAmount)}</span>
         </div>
       ) : <div />}
-      
+
       {voucher.maxUses ? (
         <div className={`flex items-center gap-1.5 ${
           isClickable ? 'text-gray-600' : 'text-gray-400'
@@ -294,8 +294,8 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
     </div>
   ) : null}
 </div>
-                      
-                      {/* Status Messages */}
+
+                      {}
                       {!status.eligible && !status.needsAmount && (
                         <div className="pt-3 border-t border-gray-300">
                           <div className="flex items-center gap-2">
@@ -304,7 +304,7 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
                           </div>
                         </div>
                       )}
-                      
+
                       {status.needsAmount && (
                         <div className="pt-3 border-t border-blue-200">
                           <div className="flex items-center gap-2">
@@ -313,8 +313,8 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
                           </div>
                         </div>
                       )}
-                      
-                      {/* Bonus Preview */}
+
+                      {}
                       {bonus > 0 && depositAmount >= voucher.minDeposit && (
                         <div className="pt-3 border-t border-sky-200">
                           <div className="flex items-center justify-between">
@@ -335,7 +335,7 @@ const AvailableVouchers: React.FC<AvailableVouchersProps> = ({
             })}
           </div>
 
-          {/* Show More/Less Button */}
+          {}
           {vouchers.length > 3 && (
             <button
               onClick={() => setShowAll(!showAll)}

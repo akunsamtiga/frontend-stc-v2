@@ -1,4 +1,4 @@
-// hooks/useInstantOrders.ts 
+// hooks/useInstantOrders.ts
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { BinaryOrder } from '@/types'
 import { websocketService } from '@/lib/websocket'
@@ -47,15 +47,15 @@ export function useOptimisticOrders(userId?: string) {
   const rollbackTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
   const orderIdsRef = useRef<Set<string>>(new Set())
   const processedEventsRef = useRef<Set<string>>(new Set())
-  
-  // ✅ FIX: Multiple polling intervals untuk berbagai scenario
-  const wsPollingRef = useRef<NodeJS.Timeout | null>(null)      // WebSocket health check
-  const activeOrdersPollingRef = useRef<NodeJS.Timeout | null>(null) // Active orders polling
-  const allOrdersPollingRef = useRef<NodeJS.Timeout | null>(null)    // All orders polling
+
+
+  const wsPollingRef = useRef<NodeJS.Timeout | null>(null)
+  const activeOrdersPollingRef = useRef<NodeJS.Timeout | null>(null)
+  const allOrdersPollingRef = useRef<NodeJS.Timeout | null>(null)
 
   const addOptimisticOrder = useCallback((orderData: Partial<BinaryOrder>) => {
     const optimisticId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    
+
     const optimisticOrder: OptimisticOrder = {
       id: optimisticId,
       ...orderData,
@@ -128,7 +128,7 @@ export function useOptimisticOrders(userId?: string) {
         console.log('⏭️ Order already exists (skipping):', order.id)
         return prev
       }
-      
+
       orderIdsRef.current.add(order.id)
       console.log('➕ New order added:', order.id)
       return [order, ...prev]
@@ -136,7 +136,7 @@ export function useOptimisticOrders(userId?: string) {
   }, [])
 
   const updateOrder = useCallback((orderId: string, updates: Partial<BinaryOrder>) => {
-    setOrders(prev => prev.map(order => 
+    setOrders(prev => prev.map(order =>
       order.id === orderId ? { ...order, ...updates } : order
     ))
     console.log('🔄 Order updated:', orderId)
@@ -149,7 +149,7 @@ export function useOptimisticOrders(userId?: string) {
         orderIdsRef.current.add(updatedOrder.id)
         return [updatedOrder, ...prev]
       }
-      
+
       const newOrders = [...prev]
       newOrders[index] = updatedOrder
       return newOrders
@@ -165,15 +165,15 @@ export function useOptimisticOrders(userId?: string) {
 
   const setAllOrders = useCallback((newOrders: BinaryOrder[] | ((prev: BinaryOrder[]) => BinaryOrder[])) => {
     const ordersToSet = typeof newOrders === 'function' ? newOrders(orders) : newOrders
-    
+
     orderIdsRef.current.clear()
     ordersToSet.forEach(order => orderIdsRef.current.add(order.id))
-    
+
     setOrders(ordersToSet)
     console.log('📋 All orders set:', ordersToSet.length)
   }, [orders])
 
-  // ✅ FIX: WebSocket Sync dengan better error handling
+
   useEffect(() => {
     if (!userId) return
 
@@ -187,7 +187,7 @@ export function useOptimisticOrders(userId?: string) {
       }
       processedEventsRef.current.add(eventKey)
 
-      // Clean old events
+
       if (processedEventsRef.current.size > 100) {
         const entries = Array.from(processedEventsRef.current)
         entries.slice(0, 50).forEach(key => processedEventsRef.current.delete(key))
@@ -220,7 +220,7 @@ export function useOptimisticOrders(userId?: string) {
     }
   }, [userId, addOrder, replaceOrder])
 
-  // ✅ FIX: Aggressive Polling untuk Active Orders (setiap 2 detik)
+
   useEffect(() => {
     if (!userId) return
 
@@ -229,7 +229,7 @@ export function useOptimisticOrders(userId?: string) {
         const token = localStorage.getItem('token')
         if (!token) return
 
-        // ✅ Poll active orders lebih frequent
+
         const response = await fetch('/api/v1/binary-orders?status=ACTIVE,PENDING&limit=50', {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -242,18 +242,18 @@ export function useOptimisticOrders(userId?: string) {
         const data = await response.json()
         const activeOrders: BinaryOrder[] = data?.data?.orders || []
 
-        // Merge dengan existing orders
+
         setOrders(prev => {
           const existingIds = new Set(prev.map(o => o.id))
           const newOrders = activeOrders.filter(o => !existingIds.has(o.id))
-          
+
           if (newOrders.length > 0) {
             newOrders.forEach(o => orderIdsRef.current.add(o.id))
             console.log('➕ New active orders from polling:', newOrders.length)
             return [...newOrders, ...prev]
           }
 
-          // Update existing active orders jika ada perubahan
+
           let hasChanges = false
           const updatedOrders = prev.map(order => {
             const freshOrder = activeOrders.find(o => o.id === order.id)
@@ -276,9 +276,9 @@ export function useOptimisticOrders(userId?: string) {
       }
     }
 
-    // Poll active orders setiap 2 detik
+
     activeOrdersPollingRef.current = setInterval(pollActiveOrders, 2000)
-    pollActiveOrders() // Initial poll
+    pollActiveOrders()
 
     return () => {
       if (activeOrdersPollingRef.current) {
@@ -287,7 +287,7 @@ export function useOptimisticOrders(userId?: string) {
     }
   }, [userId])
 
-  // ✅ FIX: Polling untuk All Orders (setiap 10 detik, untuk catch up)
+
   useEffect(() => {
     if (!userId) return
 
@@ -311,7 +311,7 @@ export function useOptimisticOrders(userId?: string) {
         setOrders(prev => {
           const existingIds = new Set(prev.map(o => o.id))
           const newOrders = polledOrders.filter(o => !existingIds.has(o.id))
-          
+
           if (newOrders.length > 0) {
             newOrders.forEach(o => orderIdsRef.current.add(o.id))
             console.log('➕ New orders from full poll:', newOrders.length)
@@ -325,7 +325,7 @@ export function useOptimisticOrders(userId?: string) {
       }
     }
 
-    // Poll all orders setiap 10 detik
+
     allOrdersPollingRef.current = setInterval(pollAllOrders, 10000)
 
     return () => {
@@ -335,7 +335,7 @@ export function useOptimisticOrders(userId?: string) {
     }
   }, [userId])
 
-  // Cleanup on unmount
+
   useEffect(() => {
     return () => {
       rollbackTimeoutsRef.current.forEach(timeout => clearTimeout(timeout))
@@ -366,14 +366,13 @@ export function useOptimisticOrders(userId?: string) {
   }
 }
 
-// ✅ FIX: Enhanced aggressive polling untuk order results
 export function useAggressiveResultPolling(
   activeOrders: BinaryOrder[],
   onResult: (order: BinaryOrder) => void
 ) {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastPollRef = useRef<Map<string, number>>(new Map())
-  const isPollingRef = useRef<boolean>(false) // Prevent concurrent polling
+  const isPollingRef = useRef<boolean>(false)
 
   useEffect(() => {
     if (activeOrders.length === 0) {
@@ -386,7 +385,7 @@ export function useAggressiveResultPolling(
     }
 
     const pollResults = async () => {
-      // ✅ Prevent concurrent polling
+
       if (isPollingRef.current) return
       isPollingRef.current = true
 
@@ -399,14 +398,14 @@ export function useAggressiveResultPolling(
           return
         }
 
-        // Batch fetch untuk semua active orders yang mendekati expiry
+
         const ordersToCheck = activeOrders.filter(order => {
           if (!order.exit_time) return false
-          
+
           const exitTime = new Date(order.exit_time).getTime()
           const timeUntilExpiry = exitTime - now
-          
-          // Poll jika dalam window 10 detik sebelum expiry sampai 5 detik setelah
+
+
           return timeUntilExpiry <= 10000 && timeUntilExpiry > -5000
         })
 
@@ -415,7 +414,7 @@ export function useAggressiveResultPolling(
           return
         }
 
-        // Batch request untuk efficiency
+
         const response = await fetch('/api/v1/binary-orders?status=ACTIVE,PENDING,WON,LOST&limit=50', {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -431,14 +430,14 @@ export function useAggressiveResultPolling(
         const data = await response.json()
         const allOrders: BinaryOrder[] = data?.data?.orders || []
 
-        // Check untuk orders yang sudah settled
+
         for (const order of ordersToCheck) {
           const updatedOrder = allOrders.find(o => o.id === order.id)
-          
+
           if (updatedOrder && (updatedOrder.status === 'WON' || updatedOrder.status === 'LOST')) {
             const lastPoll = lastPollRef.current.get(order.id) || 0
-            
-            // Avoid duplicate notifications
+
+
             if (now - lastPoll >= 1000) {
               lastPollRef.current.set(order.id, now)
               console.log('🎯 Result detected via polling:', updatedOrder.id, updatedOrder.status)
@@ -454,9 +453,9 @@ export function useAggressiveResultPolling(
       }
     }
 
-    // ✅ Poll setiap 500ms untuk orders yang mendekati expiry
+
     pollingIntervalRef.current = setInterval(pollResults, 500)
-    pollResults() // Initial poll
+    pollResults()
 
     return () => {
       if (pollingIntervalRef.current) {
@@ -479,7 +478,7 @@ export function useInstantCountdown(orders: BinaryOrder[]) {
         const now = Date.now()
         const exitTime = new Date(order.exit_time).getTime()
         const remaining = Math.max(0, Math.floor((exitTime - now) / 1000))
-        
+
         newTimeLeft.set(order.id, remaining)
       })
 

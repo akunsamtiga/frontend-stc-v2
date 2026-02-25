@@ -1,3 +1,4 @@
+// components/EnhancedFooter.tsx
 'use client'
 
 import { useState } from 'react'
@@ -6,8 +7,6 @@ import Link from 'next/link'
 import { CaretDown, CaretUp } from 'phosphor-react'
 import { toast } from 'sonner'
 
-// ─── Inline SVG icons — menghilangkan 5 HTTP request ke cdn.simpleicons.org ───
-// Sebelumnya setiap ikon memicu fetch eksternal yang memperlambat LCP & TBT.
 const IconFacebook = () => (
   <svg viewBox="0 0 24 24" fill="#60a5fa" className="w-5 h-5" aria-hidden="true">
     <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z" />
@@ -128,7 +127,7 @@ export default function EnhancedFooter() {
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
         <div className="py-12 sm:py-16">
           <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-8 lg:gap-12">
-            {/* Brand */}
+            {}
             <div className="lg:col-span-2">
               <Link href="/" className="inline-flex items-center gap-3 mb-6 group">
                 <div className="relative w-10 h-10 flex-shrink-0">
@@ -158,7 +157,7 @@ export default function EnhancedFooter() {
                 Beralamat di International Business Centre, Suite 8, Pot 820/104, Route Elluk, Port Vila, Vanuatu
               </p>
 
-              {/* Social — ikon inline SVG, nol request HTTP eksternal */}
+              {}
               <div className="flex items-center gap-2">
                 {socialLinks.map(({ href, label, bg, border, hover, Icon }) => (
                   <a
@@ -181,7 +180,7 @@ export default function EnhancedFooter() {
               </div>
             </div>
 
-            {/* Desktop Links */}
+            {}
             <div className="hidden md:block">
               <h4 className="text-sm font-semibold mb-4 text-gray-200">Platform</h4>
               <ul className="space-y-2.5">
@@ -215,7 +214,7 @@ export default function EnhancedFooter() {
             </div>
           </div>
 
-          {/* Mobile Accordion */}
+          {}
           <div className="md:hidden mt-8 space-y-3">
             {Object.entries(footerLinks).map(([key, links]) => (
               <div key={key} className="border-b border-gray-800/50 pb-3 last:border-0">
@@ -254,7 +253,7 @@ export default function EnhancedFooter() {
           </div>
         </div>
 
-        {/* Bottom */}
+        {}
         <div className="pt-1 pb-4 border-t border-gray-800/50">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-sm text-gray-500 text-center md:text-left">

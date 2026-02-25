@@ -1,3 +1,4 @@
+// store/auth.ts
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { User } from '@/types'
@@ -19,7 +20,7 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isAuthenticated: false,
       hydrated: false,
-      
+
       setAuth: (user, token) => {
         if (typeof window !== 'undefined') {
           localStorage.setItem('token', token)
@@ -27,7 +28,7 @@ export const useAuthStore = create<AuthState>()(
         }
         set({ user, token, isAuthenticated: true })
       },
-      
+
       logout: () => {
         if (typeof window !== 'undefined') {
           localStorage.removeItem('token')
@@ -37,7 +38,7 @@ export const useAuthStore = create<AuthState>()(
         }
         set({ user: null, token: null, isAuthenticated: false })
       },
-      
+
       setHydrated: () => {
         set({ hydrated: true })
       }
@@ -48,7 +49,7 @@ export const useAuthStore = create<AuthState>()(
         if (typeof window !== 'undefined') {
           return localStorage
         }
-        // Fallback for SSR
+
         return {
           getItem: () => null,
           setItem: () => {},
@@ -56,14 +57,13 @@ export const useAuthStore = create<AuthState>()(
         }
       }),
       onRehydrateStorage: () => (state) => {
-        // state sudah punya data dari localStorage — langsung set hydrated
+
         state?.setHydrated()
       },
     }
   )
 )
 
-// Hook to wait for hydration
 export const useAuthHydration = () => {
   const hydrated = useAuthStore((state) => state.hydrated)
   return hydrated

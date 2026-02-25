@@ -1,4 +1,4 @@
-// components/HistorySidebar.tsx - Clean & Minimalist Design with Expandable Details
+// components/HistorySidebar.tsx 
 
 'use client'
 
@@ -19,7 +19,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [accountFilter, setAccountFilter] = useState<'all' | 'real' | 'demo'>('all')
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
-  // State untuk mengontrol animasi keluar
+
   const [isClosing, setIsClosing] = useState(false)
   const [shouldRender, setShouldRender] = useState(false)
 
@@ -29,9 +29,9 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
       setShouldRender(true)
       loadOrders()
     } else if (shouldRender) {
-      // Mulai animasi keluar
+
       setIsClosing(true)
-      // Tunggu animasi selesai baru unmount
+
       const timer = setTimeout(() => {
         setShouldRender(false)
       }, 300)
@@ -44,13 +44,13 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
     try {
       const status = statusFilter === 'all' ? undefined : statusFilter
       const response = await api.getOrders(status, 1, 50)
-      
+
       let ordersList = response?.data?.orders || response?.orders || []
-      
+
       if (accountFilter !== 'all') {
         ordersList = ordersList.filter((o: BinaryOrder) => o.accountType === accountFilter)
       }
-      
+
       setOrders(ordersList)
     } catch (error) {
       console.error('Failed to load orders:', error)
@@ -64,7 +64,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
     setExpandedOrder(expandedOrder === orderId ? null : orderId)
   }
 
-  // Handler untuk close dengan animasi
+
   const handleClose = () => {
     setIsClosing(true)
     setTimeout(() => {
@@ -80,26 +80,26 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
     active: orders.filter(o => o.status === 'ACTIVE').length,
   }
 
-  const winRate = stats.won + stats.lost > 0 
+  const winRate = stats.won + stats.lost > 0
     ? ((stats.won / (stats.won + stats.lost)) * 100).toFixed(1)
     : '0.0'
 
   return (
     <>
-      {/* Backdrop dengan animasi keluar */}
-      <div 
+      {}
+      <div
         className={`fixed inset-0 bg-black/70 backdrop-blur-sm z-40 transition-opacity duration-300 ${
           isClosing ? 'opacity-0' : 'opacity-100 animate-fade-in'
-        }`} 
+        }`}
         onClick={handleClose}
       />
 
-      {/* Sidebar dengan animasi slide keluar */}
+      {}
       <div className={`fixed top-0 right-0 bottom-0 w-[90vw] max-w-[380px] bg-[#0a0e17] border-l border-gray-800/30 z-50 flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
         isClosing ? 'translate-x-full' : 'translate-x-0 animate-slide-left'
       }`}>
-        
-        {/* Header - Ultra Minimal */}
+
+        {}
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-800/30">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center border border-blue-500/30">
@@ -128,7 +128,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
           </div>
         </div>
 
-        {/* Stats - Compact & Clean */}
+        {}
         <div className="px-6 py-4 border-b border-gray-800/30 bg-gradient-to-b from-white/[0.02] to-transparent">
           <div className="grid grid-cols-4 gap-3">
             <div className="text-center">
@@ -150,9 +150,9 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
           </div>
         </div>
 
-        {/* Filters - Minimal Pills */}
+        {}
         <div className="px-6 py-3 space-y-3 border-b border-gray-800/30">
-          {/* Account Filter */}
+          {}
           <div className="flex gap-2">
             {[
               { id: 'real', label: 'Real' },
@@ -172,7 +172,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
             ))}
           </div>
 
-          {/* Status Filter */}
+          {}
           <div className="flex gap-2">
             {[
               { id: 'WON', label: 'Menang' },
@@ -194,7 +194,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
           </div>
         </div>
 
-        {/* Orders List - Clean & Compact */}
+        {}
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {loading ? (
             <div className="flex items-center justify-center h-full">
@@ -219,18 +219,18 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                 const isExpanded = expandedOrder === order.id
                 const isUltraFast = order.duration < 1
                 const isActive = order.status === 'ACTIVE'
-                
+
                 return (
                   <div
                     key={order.id}
                     className="group relative"
                   >
-                    {/* Animated Border for Active Orders */}
+                    {}
                     {isActive && (
                       <div className="absolute inset-0 rounded-xl animate-border-glow pointer-events-none" />
                     )}
 
-                    {/* Compact Order Item */}
+                    {}
                     <button
                       onClick={() => toggleExpand(order.id)}
                       className={`w-full rounded-xl p-3.5 transition-all text-left relative ${
@@ -240,14 +240,14 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                       }`}
                     >
                       <div className="flex items-center justify-between gap-3">
-                        {/* Left: Icon + Asset */}
+                        {}
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 relative ${
-                            order.direction === 'CALL' 
-                              ? 'bg-green-500/10 border border-green-500/20' 
+                            order.direction === 'CALL'
+                              ? 'bg-green-500/10 border border-green-500/20'
                               : 'bg-red-500/10 border border-red-500/20'
                           }`}>
-                            {/* Live Indicator for Active Orders */}
+                            {}
                             {isActive && (
                               <span className="absolute -top-1 -right-1 flex h-3 w-3">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
@@ -260,7 +260,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                               <TrendingDown className={`w-4 h-4 ${isActive ? 'text-red-400 animate-pulse-subtle' : 'text-red-400'}`} />
                             )}
                           </div>
-                          
+
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
                               <span className="font-semibold text-sm text-white truncate">
@@ -273,7 +273,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                               }`}>
                                 {order.accountType || 'demo'}
                               </span>
-                              {/* LIVE Badge for Active Orders */}
+                              {}
                               {isActive && (
                                 <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase flex-shrink-0 bg-blue-500 text-white animate-pulse-badge shadow-lg shadow-blue-500/50">
                                   LIVE
@@ -291,12 +291,12 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                           </div>
                         </div>
 
-                        {/* Right: Profit/Loss + Expand Icon */}
+                        {}
                         <div className="flex items-center gap-2 flex-shrink-0">
                           {order.profit !== null && order.profit !== undefined && (
                             <div className={`text-sm font-bold ${
-                              order.profit > 0 ? 'text-green-400' : 
-                              order.profit < 0 ? 'text-red-400' : 
+                              order.profit > 0 ? 'text-green-400' :
+                              order.profit < 0 ? 'text-red-400' :
                               'text-gray-400'
                             }`}>
                               {order.profit > 0 ? '+' : ''}{formatCurrency(order.profit)}
@@ -309,7 +309,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                       </div>
                     </button>
 
-                    {/* Expanded Details */}
+                    {}
                     <div className={`overflow-hidden transition-all duration-300 ${
                       isExpanded ? 'max-h-[500px] opacity-100 mt-2' : 'max-h-0 opacity-0'
                     }`}>
@@ -318,7 +318,7 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                           ? 'bg-gradient-to-br from-blue-500/[0.05] to-purple-500/[0.05] border-2 border-blue-500/20'
                           : 'bg-white/[0.02] border border-white/[0.05]'
                       }`}>
-                        {/* Status Badge */}
+                        {}
                         <div className="flex items-center gap-2 pb-3 border-b border-white/[0.05]">
                           <div className={`px-3 py-1 rounded-full text-xs font-bold ${
                             order.status === 'WON' ? 'bg-green-500/20 text-green-400' :
@@ -331,13 +331,13 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                           <span className="text-xs text-gray-500">{formatDate(order.createdAt)}</span>
                         </div>
 
-                        {/* Details Grid */}
+                        {}
                         <div className="space-y-2 text-xs">
                           <div className="flex items-center justify-between py-1">
                             <span className="text-gray-500">Harga Masuk</span>
                             <span className="font-medium text-white">{order.entry_price.toFixed(3)}</span>
                           </div>
-                          
+
                           {order.exit_price && (
                             <div className="flex items-center justify-between py-1">
                               <span className="text-gray-500">Harga Keluar</span>
@@ -354,8 +354,8 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
                             <div className="flex items-center justify-between py-2 mt-2 pt-3 border-t border-white/[0.05]">
                               <span className="text-gray-400 font-medium">Total P&L</span>
                               <span className={`font-bold text-base ${
-                                order.profit > 0 ? 'text-green-400' : 
-                                order.profit < 0 ? 'text-red-400' : 
+                                order.profit > 0 ? 'text-green-400' :
+                                order.profit < 0 ? 'text-red-400' :
                                 'text-gray-400'
                               }`}>
                                 {order.profit > 0 ? '+' : ''}{formatCurrency(order.profit)}
@@ -375,11 +375,11 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
 
       <style jsx>{`
         @keyframes slide-left {
-          from { 
+          from {
             transform: translateX(100%);
             opacity: 0;
           }
-          to { 
+          to {
             transform: translateX(0);
             opacity: 1;
           }
@@ -391,10 +391,10 @@ export default function HistorySidebar({ isOpen, onClose }: HistorySidebarProps)
         }
 
         @keyframes breathing {
-          0%, 100% { 
+          0%, 100% {
             box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
           }
-          50% { 
+          50% {
             box-shadow: 0 0 30px rgba(59, 130, 246, 0.25), 0 0 40px rgba(168, 85, 247, 0.15);
           }
         }

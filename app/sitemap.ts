@@ -7,7 +7,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date()
 
   return [
-    // ── Halaman utama ──────────────────────────────────────────────────────────
     {
       url: BASE_URL,
       lastModified: now,
@@ -15,8 +14,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1.0,
       alternates: { languages: { id: `${BASE_URL}/` } },
     },
-
-    // ── Halaman publik ─────────────────────────────────────────────────────────
     {
       url: `${BASE_URL}/about`,
       lastModified: now,
@@ -38,8 +35,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
       alternates: { languages: { id: `${BASE_URL}/help-center` } },
     },
-
-    // ── Dokumen legal ──────────────────────────────────────────────────────────
     {
       url: `${BASE_URL}/agreement`,
       lastModified: new Date('2026-01-15'),

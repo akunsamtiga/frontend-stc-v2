@@ -20,7 +20,7 @@ interface WebSocketContextValue {
   reconnectAttempts: number
   subscribeToPrice: (assetId: string, callback: (data: any) => void) => () => void
   subscribeToOrders: (userId: string, callback: (data: any) => void) => () => void
-  /** Subscribe ke OHLC update — tidak perlu Firebase RTDB listener lagi */
+
   subscribeToOHLC: (assetId: string, callback: (data: OHLCUpdate) => void) => () => void
   forceReconnect: () => void
 }
@@ -164,7 +164,7 @@ export function usePriceSubscription(assetId: string | null, enabled = true) {
       console.log('📡 Unsubscribing from price:', assetId)
       unsubscribe()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [assetId, enabled, subscribeToPrice])
 
   return { priceData, lastUpdate }
@@ -190,16 +190,12 @@ export function useOrderSubscription(userId: string | null, enabled = true) {
       console.log('📡 Unsubscribing from orders:', userId)
       unsubscribe()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [userId, enabled, subscribeToOrders])
 
   return { orderUpdate, lastUpdate }
 }
 
-/**
- * Hook untuk subscribe ke OHLC update via WebSocket.
- * Menggantikan Firebase RTDB listener — zero RTDB reads saat live.
- */
 export function useOHLCSubscription(
   assetId: string | null,
   enabled = true
@@ -222,7 +218,7 @@ export function useOHLCSubscription(
       console.log('📊 Unsubscribing from OHLC:', assetId)
       unsubscribe()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [assetId, enabled, subscribeToOHLC])
 
   return { ohlcData, lastUpdate }

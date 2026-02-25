@@ -1,8 +1,9 @@
+// components/admin/AssetFormModal.tsx
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { 
-  X, Save, AlertCircle, Zap, Image as ImageIcon, Upload, Info, 
+import {
+  X, Save, AlertCircle, Zap, Image as ImageIcon, Upload, Info,
   TrendingUp, Database, Settings, Activity, Folder, Globe, Coins,
   DollarSign, Package
 } from 'lucide-react'
@@ -68,8 +69,8 @@ const ALL_DURATIONS = [
 const VALID_DURATIONS = [0.0167, 1, 2, 3, 4, 5, 15, 30, 45, 60]
 
 const BINANCE_COINS = [
-  'BTC', 'ETH', 'BNB', 'XRP', 'ADA', 'SOL', 'DOT', 'DOGE', 
-  'MATIC', 'LTC', 'AVAX', 'LINK', 'UNI', 'ATOM', 'XLM', 
+  'BTC', 'ETH', 'BNB', 'XRP', 'ADA', 'SOL', 'DOT', 'DOGE',
+  'MATIC', 'LTC', 'AVAX', 'LINK', 'UNI', 'ATOM', 'XLM',
   'ALGO', 'VET', 'ICP', 'FIL', 'TRX', 'ETC', 'NEAR', 'APT', 'ARB', 'OP'
 ]
 
@@ -100,7 +101,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     realtimeDbPath: asset?.realtimeDbPath || '',
     apiEndpoint: asset?.apiEndpoint || '',
     description: asset?.description || '',
-    
+
     cryptoBaseCurrency: asset?.cryptoConfig?.baseCurrency || '',
     cryptoQuoteCurrency: asset?.cryptoConfig?.quoteCurrency || 'USDT',
     cryptoExchange: asset?.cryptoConfig?.exchange || '',
@@ -112,7 +113,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     secondVolatilityMax: asset?.simulatorSettings?.secondVolatilityMax || 0.00008,
     minPrice: asset?.simulatorSettings?.minPrice || 0,
     maxPrice: asset?.simulatorSettings?.maxPrice || 0,
-    decimalPlaces: asset?.decimalPlaces || 5,  
+    decimalPlaces: asset?.decimalPlaces || 5,
 
     minOrderAmount: asset?.tradingSettings?.minOrderAmount || 1000,
     maxOrderAmount: asset?.tradingSettings?.maxOrderAmount || 1000000,
@@ -138,7 +139,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
         'ATOM': 'https://cryptologos.cc/logos/cosmos-atom-logo.png',
         'XLM': 'https://cryptologos.cc/logos/stellar-xlm-logo.png',
       }
-      
+
       const autoIcon = iconMap[formData.cryptoBaseCurrency.toUpperCase()]
       if (autoIcon) {
         setFormData(prev => ({ ...prev, icon: autoIcon }))
@@ -172,9 +173,9 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     }
   }, [formData.initialPrice, formData.minPrice, formData.maxPrice])
 
-  // ============================================
-  // ✅ FIXED: handleIconUpload dengan sanitization
-  // ============================================
+
+
+
   const handleIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -195,26 +196,26 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
       const reader = new FileReader()
       reader.onloadend = () => {
         let base64String = reader.result as string
-        
-        // ✅ FIX 1: Remove any whitespace/newlines from base64
-        // This is CRITICAL - backend regex doesn't support newlines!
+
+
+
         base64String = base64String.replace(/\s/g, '')
-        
-        // ✅ FIX 2: Validate format
+
+
         if (!base64String.startsWith('data:image/')) {
           toast.error('Invalid image format')
           setUploadingIcon(false)
           return
         }
-        
-        // ✅ FIX 3: Check final size
-        if (base64String.length > 10000000) { // 10MB string limit
+
+
+        if (base64String.length > 10000000) {
           toast.error('Image too large after encoding. Please use a smaller image.')
           setUploadingIcon(false)
           return
         }
-        
-        // ✅ FIX 4: Log for debugging
+
+
         console.log('📸 Icon uploaded:', {
           originalSize: `${(file.size / 1024).toFixed(2)}KB`,
           base64Length: base64String.length,
@@ -223,20 +224,20 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
           hasWhitespace: /\s/.test(base64String),
           preview: base64String.substring(0, 50) + '...'
         })
-        
+
         setFormData(prev => ({ ...prev, icon: base64String }))
         toast.success(`Icon uploaded (${(file.size / 1024).toFixed(1)}KB)`)
         setUploadingIcon(false)
       }
-      
+
       reader.onerror = () => {
         console.error('FileReader error')
         toast.error('Failed to read image file')
         setUploadingIcon(false)
       }
-      
+
       reader.readAsDataURL(file)
-      
+
     } catch (error) {
       console.error('Icon upload error:', error)
       toast.error('Failed to upload icon')
@@ -249,7 +250,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
-    
+
     if (formData.category === 'crypto' && formData.cryptoBaseCurrency) {
       const iconMap: Record<string, string> = {
         'BTC': 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
@@ -268,7 +269,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
         'ATOM': 'https://cryptologos.cc/logos/cosmos-atom-logo.png',
         'XLM': 'https://cryptologos.cc/logos/stellar-xlm-logo.png',
       }
-      
+
       setTimeout(() => {
         const autoIcon = iconMap[formData.cryptoBaseCurrency.toUpperCase()]
         if (autoIcon) {
@@ -278,9 +279,9 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     }
   }
 
-  // ============================================
-  // ✅ ENHANCED: validateForm with icon validation
-  // ============================================
+
+
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
@@ -291,11 +292,11 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
       newErrors.profitRate = 'Profit rate must be between 0 and 100'
     }
 
-    // ✅ ENHANCED ICON VALIDATION
+
     if (formData.icon) {
-      // Check if base64 data
+
       if (formData.icon.startsWith('data:image/')) {
-        // 1. Check for whitespace (should have been removed)
+
         if (/\s/.test(formData.icon)) {
           newErrors.icon = 'Icon format invalid (contains whitespace). Please re-upload.'
           console.error('❌ Icon has whitespace:', {
@@ -303,8 +304,8 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             whitespaceCount: (formData.icon.match(/\s/g) || []).length
           })
         }
-        
-        // 2. Check size
+
+
         if (formData.icon.length > 10000000) {
           newErrors.icon = 'Icon too large (max 10MB encoded)'
           console.error('❌ Icon too large:', {
@@ -312,8 +313,8 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             sizeMB: (formData.icon.length / 1024 / 1024).toFixed(2)
           })
         }
-        
-        // 3. Log icon info for debugging
+
+
         if (!newErrors.icon) {
           console.log('✅ Icon validation passed:', {
             length: formData.icon.length,
@@ -321,8 +322,8 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             format: formData.icon.split(';')[0].split('/')[1]
           })
         }
-      } 
-      // Check if URL
+      }
+
       else if (formData.icon.startsWith('http://') || formData.icon.startsWith('https://')) {
         try {
           new URL(formData.icon)
@@ -331,7 +332,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
           newErrors.icon = 'Invalid icon URL'
           console.error('❌ Invalid URL:', formData.icon)
         }
-      } 
+      }
       else {
         newErrors.icon = 'Icon must be a valid URL or base64 image'
         console.error('❌ Invalid icon format:', {
@@ -358,7 +359,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
       if (formData.apiEndpoint.trim()) {
         newErrors.apiEndpoint = 'Crypto assets should not have API endpoint (Binance API is used automatically)'
       }
-      const hasSimulatorSettings = formData.initialPrice !== 40.022 || 
+      const hasSimulatorSettings = formData.initialPrice !== 40.022 ||
                                    formData.dailyVolatilityMin !== 0.001 ||
                                    formData.dailyVolatilityMax !== 0.005
       if (hasSimulatorSettings) {
@@ -417,13 +418,13 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     return Object.keys(newErrors).length === 0
   }
 
-  // ============================================
-  // ✅ ENHANCED: handleSubmit with better logging
-  // ============================================
+
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    // Prevent double submit
+
+
     if (loading) {
       console.log('🚫 Prevented double submit - already loading')
       return
@@ -433,8 +434,8 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
       console.log('🚫 Prevented double submit - ref is true')
       return
     }
-    
-    // Debounce
+
+
     const now = Date.now()
     const lastSubmit = (window as any).__lastAssetSubmit || 0
     if (now - lastSubmit < 2000) {
@@ -442,7 +443,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
       return
     }
     (window as any).__lastAssetSubmit = now
-    
+
     if (!validateForm()) {
       toast.error('Please fix the errors in the form')
       return
@@ -468,8 +469,8 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
           cryptoConfig: {
             baseCurrency: formData.cryptoBaseCurrency.trim().toUpperCase(),
             quoteCurrency: formData.cryptoQuoteCurrency.trim().toUpperCase(),
-            ...(formData.cryptoExchange.trim() && { 
-              exchange: formData.cryptoExchange.trim() 
+            ...(formData.cryptoExchange.trim() && {
+              exchange: formData.cryptoExchange.trim()
             })
           },
           ...(formData.realtimeDbPath.trim() && {
@@ -492,7 +493,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
           isActive: Boolean(formData.isActive),
           dataSource: formData.dataSource,
           description: formData.description.trim(),
-          decimalPlaces: Number(formData.decimalPlaces),  
+          decimalPlaces: Number(formData.decimalPlaces),
           simulatorSettings: {
             initialPrice: Number(formData.initialPrice),
             dailyVolatilityMin: Number(formData.dailyVolatilityMin),
@@ -508,7 +509,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             allowedDurations: [...formData.allowedDurations].sort((a, b) => a - b)
           }
         }
-        
+
         if (formData.dataSource === 'realtime_db') {
           payload.realtimeDbPath = formData.realtimeDbPath.trim()
         } else if (formData.dataSource === 'api') {
@@ -516,10 +517,10 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
         }
       }
 
-      // ✅ LOG PAYLOAD INFO BEFORE SENDING
+
       const payloadString = JSON.stringify(payload)
       const payloadSize = payloadString.length
-      
+
       console.log('📦 Submitting payload:', {
         mode: mode,
         assetId: mode === 'edit' ? asset?.id : 'new',
@@ -529,9 +530,9 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
         iconFormat: payload.icon?.substring(0, 30) || 'N/A',
         fields: Object.keys(payload)
       })
-      
-      // Check payload size
-      if (payloadSize > 20 * 1024 * 1024) { // 20MB
+
+
+      if (payloadSize > 20 * 1024 * 1024) {
         toast.error('Payload too large. Please reduce image size.')
         setLoading(false)
         isSubmittingRef.current = false
@@ -542,13 +543,13 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
 
       if (mode === 'create') {
         await api.createAsset(payload)
-        
+
         toast.success(`✅ ${payload.symbol} created successfully!`, {
           description: 'Asset has been added to your trading platform',
           duration: 4000,
         })
-        
-        if (payload.category === 'normal' && 
+
+        if (payload.category === 'normal' &&
             (payload.dataSource === 'realtime_db' || payload.dataSource === 'mock')) {
           setTimeout(() => {
             toast.info('📊 Historical Data Generated', {
@@ -557,7 +558,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             })
           }, 500)
         }
-        
+
         if (payload.category === 'crypto') {
           setTimeout(() => {
             toast.info('💎 Real-time Data Active', {
@@ -566,7 +567,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             })
           }, 500)
         }
-        
+
       } else {
         await api.updateAsset(asset!.id, payload)
         toast.success(`✅ ${payload.symbol} updated successfully!`, {
@@ -576,18 +577,18 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
       }
 
       onSuccess()
-      
+
     } catch (error: any) {
       const statusCode = error.response?.status
       const errorData = error.response?.data
-      const errorMessage = 
+      const errorMessage =
         typeof errorData === 'string' ? errorData :
-        errorData?.error || 
+        errorData?.error ||
         errorData?.message ||
         error.message ||
         `Failed to ${mode} asset`
-      
-      // ✅ ENHANCED ERROR LOGGING
+
+
       console.error('❌ Submit error details:', {
         status: statusCode,
         statusText: error.response?.statusText,
@@ -599,8 +600,8 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
         payloadSize: error.config?.data?.length,
         fullError: error
       })
-      
-      // Check if it's icon related error
+
+
       if (statusCode === 400 && errorData?.message) {
         if (errorData.message.toLowerCase().includes('icon')) {
           console.error('🖼️ Icon validation failed:', {
@@ -609,7 +610,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             hasWhitespace: /\s/.test(formData.icon || ''),
             suggestion: 'Try re-uploading the icon or using a smaller image'
           })
-          
+
           toast.error('Icon Upload Issue', {
             description: 'Try re-uploading with a smaller image (< 500KB) or check format',
             duration: 5000
@@ -621,9 +622,9 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
           })
         }
       } else {
-        // Handle duplicate error
-        const isDuplicateError = 
-          statusCode === 409 || 
+
+        const isDuplicateError =
+          statusCode === 409 ||
           (statusCode === 500 && (
             String(errorMessage).toLowerCase().includes('already exists') ||
             String(errorMessage).toLowerCase().includes('duplicate') ||
@@ -633,14 +634,14 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
 
         if (isDuplicateError) {
           console.log('📝 Detected duplicate error, treating as success...')
-          
+
           onSuccess()
-          
+
           toast.success(`✅ ${formData.symbol.toUpperCase()} ${mode === 'create' ? 'created' : 'updated'} successfully!`, {
             description: 'Asset is ready for trading',
             duration: 4000,
           })
-          
+
           if (formData.category === 'normal' && mode === 'create') {
             setTimeout(() => {
               toast.info('📊 Historical Data Generated', {
@@ -656,7 +657,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
           })
         }
       }
-      
+
     } finally {
       setLoading(false)
       isSubmittingRef.current = false
@@ -667,7 +668,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     setFormData(prev => {
       const currentDurations = [...prev.allowedDurations]
       const index = currentDurations.findIndex(d => Math.abs(d - duration) < 0.0001)
-      
+
       if (index > -1) {
         if (currentDurations.length > 1) {
           currentDurations.splice(index, 1)
@@ -676,7 +677,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
         currentDurations.push(duration)
         currentDurations.sort((a, b) => a - b)
       }
-      
+
       return { ...prev, allowedDurations: currentDurations }
     })
   }
@@ -684,7 +685,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden">
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-purple-600 rounded-lg">
@@ -707,9 +708,9 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
           </button>
         </div>
 
-        {/* Form */}
+        {}
         <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-140px)]">
-          {/* Basic Information */}
+          {}
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Info className="w-5 h-5 text-blue-500" />
@@ -805,7 +806,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             </div>
           </div>
 
-          {/* Icon Upload */}
+          {}
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <ImageIcon className="w-5 h-5 text-green-500" />
@@ -869,7 +870,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             </div>
           </div>
 
-          {/* Data Source */}
+          {}
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Database className="w-5 h-5 text-orange-500" />
@@ -957,7 +958,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             </div>
           </div>
 
-          {/* Crypto Configuration */}
+          {}
           {formData.category === 'crypto' && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -1016,7 +1017,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             </div>
           )}
 
-          {/* Simulator Settings */}
+          {}
           {formData.category === 'normal' && (
             <>
               <div>
@@ -1135,7 +1136,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             </>
           )}
 
-          {/* Trading Settings */}
+          {}
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Settings className="w-5 h-5 text-orange-500" />
@@ -1181,7 +1182,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                 {ALL_DURATIONS.map((duration) => {
                   const isSelected = formData.allowedDurations.includes(duration.value)
                   const isUltraFast = Math.abs(duration.value - 0.0167) < 0.0001
-                  
+
                   return (
                     <button
                       key={duration.value}
@@ -1189,8 +1190,8 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
                       onClick={() => toggleDuration(duration.value)}
                       className={`px-4 py-2.5 rounded-lg font-medium transition-all border-2 ${
                         isSelected
-                          ? isUltraFast 
-                            ? 'bg-orange-600 text-white border-orange-600 shadow-md animate-pulse' 
+                          ? isUltraFast
+                            ? 'bg-orange-600 text-white border-orange-600 shadow-md animate-pulse'
                             : 'bg-purple-600 text-white border-purple-600 shadow-md'
                           : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
                       }`}
@@ -1210,7 +1211,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             </div>
           </div>
 
-          {/* Status Toggle */}
+          {}
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border-2 border-gray-200">
             <div>
               <p className="font-semibold text-gray-900">Active Status</p>
@@ -1231,7 +1232,7 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
             </button>
           </div>
 
-          {/* Action Buttons */}
+          {}
           <div className="flex gap-3 pt-4 border-t border-gray-200">
             <button
               type="button"

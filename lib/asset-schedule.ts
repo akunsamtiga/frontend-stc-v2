@@ -1,4 +1,4 @@
-// lib/asset-schedule.ts - Asset Schedule Utility Functions
+// lib/asset-schedule.ts 
 
 import type {
   AssetSchedule,
@@ -7,12 +7,9 @@ import type {
   AssetScheduleTimeframe,
 } from '@/types'
 
-/**
- * Format scheduled time to readable format
- */
 export function formatScheduledTime(scheduledTime: string): string {
   const date = new Date(scheduledTime)
-  
+
   return date.toLocaleString('id-ID', {
     weekday: 'short',
     year: 'numeric',
@@ -25,12 +22,9 @@ export function formatScheduledTime(scheduledTime: string): string {
   })
 }
 
-/**
- * Format scheduled time to short format (date only)
- */
 export function formatScheduledDate(scheduledTime: string): string {
   const date = new Date(scheduledTime)
-  
+
   return date.toLocaleDateString('id-ID', {
     weekday: 'short',
     year: 'numeric',
@@ -40,12 +34,9 @@ export function formatScheduledDate(scheduledTime: string): string {
   })
 }
 
-/**
- * Format scheduled time to time only
- */
 export function formatScheduledTimeOnly(scheduledTime: string): string {
   const date = new Date(scheduledTime)
-  
+
   return date.toLocaleTimeString('id-ID', {
     hour: '2-digit',
     minute: '2-digit',
@@ -54,9 +45,6 @@ export function formatScheduledTimeOnly(scheduledTime: string): string {
   })
 }
 
-/**
- * Get time until scheduled execution
- */
 export function getTimeUntilExecution(scheduledTime: string): {
   total: number
   days: number
@@ -69,15 +57,15 @@ export function getTimeUntilExecution(scheduledTime: string): {
   const now = new Date()
   const scheduled = new Date(scheduledTime)
   const diff = scheduled.getTime() - now.getTime()
-  
+
   const isPast = diff < 0
   const absDiff = Math.abs(diff)
-  
+
   const days = Math.floor(absDiff / (1000 * 60 * 60 * 24))
   const hours = Math.floor((absDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
   const minutes = Math.floor((absDiff % (1000 * 60 * 60)) / (1000 * 60))
   const seconds = Math.floor((absDiff % (1000 * 60)) / 1000)
-  
+
   let formatted = ''
   if (isPast) {
     formatted = 'Passed'
@@ -90,7 +78,7 @@ export function getTimeUntilExecution(scheduledTime: string): {
   } else {
     formatted = `${seconds}s`
   }
-  
+
   return {
     total: diff,
     days,
@@ -102,35 +90,23 @@ export function getTimeUntilExecution(scheduledTime: string): {
   }
 }
 
-/**
- * Check if schedule is upcoming (future)
- */
 export function isScheduleUpcoming(scheduledTime: string): boolean {
   return new Date(scheduledTime) > new Date()
 }
 
-/**
- * Check if schedule is past
- */
 export function isSchedulePast(scheduledTime: string): boolean {
   return new Date(scheduledTime) < new Date()
 }
 
-/**
- * Check if schedule is soon (within 1 hour)
- */
 export function isScheduleSoon(scheduledTime: string): boolean {
   const diff = new Date(scheduledTime).getTime() - new Date().getTime()
-  return diff > 0 && diff <= 60 * 60 * 1000 // 1 hour
+  return diff > 0 && diff <= 60 * 60 * 1000
 }
 
-/**
- * Check if schedule is today
- */
 export function isScheduleToday(scheduledTime: string): boolean {
   const scheduled = new Date(scheduledTime)
   const today = new Date()
-  
+
   return (
     scheduled.getDate() === today.getDate() &&
     scheduled.getMonth() === today.getMonth() &&
@@ -138,9 +114,6 @@ export function isScheduleToday(scheduledTime: string): boolean {
   )
 }
 
-/**
- * Get schedule status badge info
- */
 export function getStatusBadgeInfo(status: AssetScheduleStatus): {
   label: string
   icon: string
@@ -168,13 +141,10 @@ export function getStatusBadgeInfo(status: AssetScheduleStatus): {
       className: 'bg-gray-100 text-gray-800 border-gray-300',
     },
   }
-  
+
   return statusMap[status] || statusMap.pending
 }
 
-/**
- * Get trend badge info
- */
 export function getTrendBadgeInfo(trend: AssetScheduleTrend): {
   label: string
   icon: string
@@ -192,13 +162,10 @@ export function getTrendBadgeInfo(trend: AssetScheduleTrend): {
       className: 'bg-red-100 text-red-800 border-red-300',
     },
   }
-  
+
   return trendMap[trend]
 }
 
-/**
- * Get timeframe label
- */
 export function getTimeframeLabel(timeframe: AssetScheduleTimeframe): string {
   const timeframeMap: Record<AssetScheduleTimeframe, string> = {
     '1m': '1 Minute',
@@ -209,13 +176,10 @@ export function getTimeframeLabel(timeframe: AssetScheduleTimeframe): string {
     '4h': '4 Hours',
     '1d': '1 Day',
   }
-  
+
   return timeframeMap[timeframe] || timeframe
 }
 
-/**
- * Validate schedule data
- */
 export function validateScheduleData(data: {
   assetSymbol: string
   scheduledTime: string
@@ -223,104 +187,86 @@ export function validateScheduleData(data: {
   timeframe: string
 }): { valid: boolean; errors: string[] } {
   const errors: string[] = []
-  
-  // Validate asset symbol
+
+
   if (!data.assetSymbol || data.assetSymbol.trim().length === 0) {
     errors.push('Asset symbol is required')
   }
-  
-  // Validate scheduled time
+
+
   if (!data.scheduledTime) {
     errors.push('Scheduled time is required')
   } else {
     const scheduledDate = new Date(data.scheduledTime)
     const now = new Date()
-    
+
     if (isNaN(scheduledDate.getTime())) {
       errors.push('Invalid scheduled time format')
     } else if (scheduledDate <= now) {
       errors.push('Scheduled time must be in the future')
     }
   }
-  
-  // Validate trend
+
+
   if (!data.trend || !['buy', 'sell'].includes(data.trend)) {
     errors.push('Invalid trend. Must be "buy" or "sell"')
   }
-  
-  // Validate timeframe
+
+
   const validTimeframes = ['1m', '5m', '15m', '30m', '1h', '4h', '1d']
   if (!data.timeframe || !validTimeframes.includes(data.timeframe)) {
     errors.push('Invalid timeframe')
   }
-  
+
   return {
     valid: errors.length === 0,
     errors,
   }
 }
 
-/**
- * Check if schedule can be edited
- */
 export function canEditSchedule(schedule: AssetSchedule): boolean {
   return schedule.status === 'pending' && isScheduleUpcoming(schedule.scheduledTime)
 }
 
-/**
- * Check if schedule can be cancelled
- */
 export function canCancelSchedule(schedule: AssetSchedule): boolean {
   return schedule.status === 'pending' && isScheduleUpcoming(schedule.scheduledTime)
 }
 
-/**
- * Check if schedule can be executed manually
- */
 export function canExecuteSchedule(schedule: AssetSchedule): boolean {
   return schedule.status === 'pending' && schedule.isActive
 }
 
-/**
- * Check if schedule can be deleted
- */
 export function canDeleteSchedule(schedule: AssetSchedule): boolean {
   return schedule.status !== 'executed' || isSchedulePast(schedule.scheduledTime)
 }
 
-/**
- * Format execution details
- */
 export function formatExecutionDetails(
   executionDetails?: AssetSchedule['executionDetails']
 ): string {
   if (!executionDetails) return 'No execution details'
-  
+
   const parts: string[] = []
-  
+
   if (executionDetails.startPrice !== undefined) {
     parts.push(`Start: $${executionDetails.startPrice.toFixed(2)}`)
   }
-  
+
   if (executionDetails.endPrice !== undefined) {
     parts.push(`End: $${executionDetails.endPrice.toFixed(2)}`)
   }
-  
+
   if (executionDetails.priceChange !== undefined) {
     const sign = executionDetails.priceChange >= 0 ? '+' : ''
     parts.push(`Change: ${sign}${executionDetails.priceChange.toFixed(2)}%`)
   }
-  
+
   if (executionDetails.errorMessage) {
     parts.push(`Error: ${executionDetails.errorMessage}`)
   }
-  
+
   return parts.length > 0 ? parts.join(' | ') : 'Executed successfully'
 }
 
-/**
- * Sort schedules by scheduled time
- */
 export function sortSchedulesByTime(
   schedules: AssetSchedule[],
   order: 'asc' | 'desc' = 'asc'
@@ -332,9 +278,6 @@ export function sortSchedulesByTime(
   })
 }
 
-/**
- * Group schedules by status
- */
 export function groupSchedulesByStatus(schedules: AssetSchedule[]): {
   pending: AssetSchedule[]
   executed: AssetSchedule[]
@@ -349,9 +292,6 @@ export function groupSchedulesByStatus(schedules: AssetSchedule[]): {
   }
 }
 
-/**
- * Group schedules by asset
- */
 export function groupSchedulesByAsset(schedules: AssetSchedule[]): Record<string, AssetSchedule[]> {
   return schedules.reduce((acc, schedule) => {
     if (!acc[schedule.assetSymbol]) {
@@ -362,61 +302,46 @@ export function groupSchedulesByAsset(schedules: AssetSchedule[]): Record<string
   }, {} as Record<string, AssetSchedule[]>)
 }
 
-/**
- * Filter upcoming schedules
- */
 export function filterUpcomingSchedules(schedules: AssetSchedule[]): AssetSchedule[] {
   return schedules.filter(
     (s) => s.status === 'pending' && isScheduleUpcoming(s.scheduledTime)
   )
 }
 
-/**
- * Filter schedules for today
- */
 export function filterTodaySchedules(schedules: AssetSchedule[]): AssetSchedule[] {
   return schedules.filter((s) => isScheduleToday(s.scheduledTime))
 }
 
-/**
- * Get schedule priority (for sorting by urgency)
- */
 export function getSchedulePriority(schedule: AssetSchedule): number {
   if (schedule.status !== 'pending') return 999
   if (!isScheduleUpcoming(schedule.scheduledTime)) return 998
-  
+
   const timeUntil = getTimeUntilExecution(schedule.scheduledTime)
-  
-  // Priority based on time remaining (sooner = higher priority)
-  if (timeUntil.total < 5 * 60 * 1000) return 1 // < 5 minutes
-  if (timeUntil.total < 30 * 60 * 1000) return 2 // < 30 minutes
-  if (timeUntil.total < 60 * 60 * 1000) return 3 // < 1 hour
-  if (timeUntil.total < 6 * 60 * 60 * 1000) return 4 // < 6 hours
-  if (timeUntil.total < 24 * 60 * 60 * 1000) return 5 // < 24 hours
-  
-  return 6 // > 24 hours
+
+
+  if (timeUntil.total < 5 * 60 * 1000) return 1
+  if (timeUntil.total < 30 * 60 * 1000) return 2
+  if (timeUntil.total < 60 * 60 * 1000) return 3
+  if (timeUntil.total < 6 * 60 * 60 * 1000) return 4
+  if (timeUntil.total < 24 * 60 * 60 * 1000) return 5
+
+  return 6
 }
 
-/**
- * Sort schedules by priority
- */
 export function sortSchedulesByPriority(schedules: AssetSchedule[]): AssetSchedule[] {
   return [...schedules].sort((a, b) => {
     const priorityA = getSchedulePriority(a)
     const priorityB = getSchedulePriority(b)
-    
+
     if (priorityA !== priorityB) {
       return priorityA - priorityB
     }
-    
-    // Same priority, sort by scheduled time
+
+
     return new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime()
   })
 }
 
-/**
- * Get schedule countdown timer data
- */
 export function getScheduleCountdown(scheduledTime: string): {
   isActive: boolean
   display: string
@@ -424,7 +349,7 @@ export function getScheduleCountdown(scheduledTime: string): {
   urgency: 'critical' | 'warning' | 'normal' | 'low'
 } {
   const timeUntil = getTimeUntilExecution(scheduledTime)
-  
+
   if (timeUntil.isPast) {
     return {
       isActive: false,
@@ -433,30 +358,30 @@ export function getScheduleCountdown(scheduledTime: string): {
       urgency: 'low',
     }
   }
-  
+
   const totalMs = timeUntil.total
   const oneHourMs = 60 * 60 * 1000
-  
+
   let urgency: 'critical' | 'warning' | 'normal' | 'low'
   let percentage: number
-  
+
   if (totalMs < 5 * 60 * 1000) {
-    // < 5 minutes
+
     urgency = 'critical'
     percentage = 100
   } else if (totalMs < 30 * 60 * 1000) {
-    // < 30 minutes
+
     urgency = 'warning'
     percentage = 75
   } else if (totalMs < oneHourMs) {
-    // < 1 hour
+
     urgency = 'normal'
     percentage = 50
   } else {
     urgency = 'low'
     percentage = 25
   }
-  
+
   return {
     isActive: true,
     display: timeUntil.formatted,
@@ -465,9 +390,6 @@ export function getScheduleCountdown(scheduledTime: string): {
   }
 }
 
-/**
- * Export schedule to CSV format
- */
 export function exportSchedulesToCSV(schedules: AssetSchedule[]): string {
   const headers = [
     'ID',
@@ -481,7 +403,7 @@ export function exportSchedulesToCSV(schedules: AssetSchedule[]): string {
     'Created By',
     'Created At',
   ]
-  
+
   const rows = schedules.map((schedule) => [
     schedule.id,
     schedule.assetSymbol,
@@ -494,23 +416,20 @@ export function exportSchedulesToCSV(schedules: AssetSchedule[]): string {
     schedule.createdByEmail,
     formatScheduledTime(schedule.createdAt),
   ])
-  
+
   const csv = [
     headers.join(','),
     ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
   ].join('\n')
-  
+
   return csv
 }
 
-/**
- * Download schedules as CSV file
- */
 export function downloadSchedulesCSV(schedules: AssetSchedule[], filename = 'schedules.csv') {
   const csv = exportSchedulesToCSV(schedules)
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const link = document.createElement('a')
-  
+
   if (link.download !== undefined) {
     const url = URL.createObjectURL(blob)
     link.setAttribute('href', url)

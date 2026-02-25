@@ -1,6 +1,6 @@
+// app/help-center/PageClient.tsx
 'use client'
 
-// app/help-center/PageClient.tsx
 import { useState, useRef } from 'react'
 import PageNavbar from '@/components/PageNavbar'
 import {
@@ -14,7 +14,6 @@ import {
   type Variants,
 } from 'framer-motion'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Article {
   title: string
@@ -35,7 +34,6 @@ interface Category {
   sections: Section[]
 }
 
-// ─── Motion config ────────────────────────────────────────────────────────────
 
 const SPRING = { type: 'spring', stiffness: 80, damping: 20 } as const
 
@@ -59,7 +57,6 @@ const stagger = (delay = 0.08): Variants => ({
   visible: { transition: { staggerChildren: delay, delayChildren: 0.04 } },
 })
 
-// ─── Scroll reveal wrapper ────────────────────────────────────────────────────
 
 function Reveal({
   children,
@@ -86,7 +83,6 @@ function Reveal({
   )
 }
 
-// ─── Word-by-word headline ─────────────────────────────────────────────────────
 
 function AnimatedHeadline({ text, className, style }: {
   text: string; className?: string; style?: React.CSSProperties
@@ -117,7 +113,6 @@ function AnimatedHeadline({ text, className, style }: {
   )
 }
 
-// ─── Count-up ─────────────────────────────────────────────────────────────────
 
 function CountUp({ to, suffix = '' }: { to: number; suffix?: string }) {
   const ref = useRef<HTMLSpanElement>(null)
@@ -141,7 +136,6 @@ function CountUp({ to, suffix = '' }: { to: number; suffix?: string }) {
   return <span ref={ref}>{val}{suffix}</span>
 }
 
-// ─── Section label ────────────────────────────────────────────────────────────
 
 function SectionLabel({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
@@ -162,7 +156,6 @@ function SectionLabel({ title, subtitle }: { title: string; subtitle?: string })
   )
 }
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
 
 const CATEGORIES: Category[] = [
   {
@@ -343,7 +336,6 @@ const CATEGORIES: Category[] = [
   },
 ]
 
-// ─── Article Accordion ────────────────────────────────────────────────────────
 
 function ArticleItem({ article, index, color }: { article: Article; index: number; color: string }) {
   const [open, setOpen] = useState(false)
@@ -395,7 +387,6 @@ function ArticleItem({ article, index, color }: { article: Article; index: numbe
   )
 }
 
-// ─── Category View ────────────────────────────────────────────────────────────
 
 function CategoryView({ category, onClose }: { category: Category; onClose: () => void }) {
   const totalArticles = category.sections.reduce((acc, s) => acc + s.articles.length, 0)
@@ -406,7 +397,7 @@ function CategoryView({ category, onClose }: { category: Category; onClose: () =
       animate={{ opacity: 1, y: 0 }}
       transition={{ ...SPRING }}
     >
-      {/* Back + header */}
+
       <motion.button
         onClick={onClose}
         className="flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-gray-700 transition-colors mb-6"
@@ -448,7 +439,7 @@ function CategoryView({ category, onClose }: { category: Category; onClose: () =
         </div>
       </div>
 
-      {/* Animated top bar */}
+
       <motion.div
         className="h-0.5 rounded-full mb-8"
         style={{ background: `linear-gradient(90deg, ${category.color}, ${category.color}40)` }}
@@ -471,7 +462,7 @@ function CategoryView({ category, onClose }: { category: Category; onClose: () =
             style={{ border: '1px solid #f0f0f0' }}
             whileHover={{ boxShadow: `0 8px 32px ${category.color}12`, transition: { duration: 0.25 } }}
           >
-            {/* Section header with bar animation */}
+
             <div className="relative px-5 py-3.5 bg-gray-50" style={{ borderBottom: '1px solid #f0f0f0' }}>
               <motion.div
                 className="absolute left-0 top-0 bottom-0 w-0.5 rounded-r"
@@ -493,7 +484,6 @@ function CategoryView({ category, onClose }: { category: Category; onClose: () =
   )
 }
 
-// ─── Search ───────────────────────────────────────────────────────────────────
 
 interface SearchResult {
   categoryLabel: string
@@ -519,7 +509,6 @@ function flatSearch(query: string): SearchResult[] {
   return results.slice(0, 8)
 }
 
-// ─── Stats strip ──────────────────────────────────────────────────────────────
 
 function StatsStrip() {
   const totalArticles = CATEGORIES.reduce((a, c) => a + c.sections.reduce((b, s) => b + s.articles.length, 0), 0)
@@ -555,7 +544,6 @@ function StatsStrip() {
   )
 }
 
-// ─── Category grid ────────────────────────────────────────────────────────────
 
 function CategoryGrid({ onSelect }: { onSelect: (cat: Category) => void }) {
   return (
@@ -576,7 +564,7 @@ function CategoryGrid({ onSelect }: { onSelect: (cat: Category) => void }) {
           whileHover={{ y: -5, boxShadow: `0 16px 40px ${cat.color}20`, transition: { duration: 0.22 } }}
           whileTap={{ scale: 0.97 }}
         >
-          {/* Animated top bar */}
+
           <motion.div
             className="h-0.5 rounded-full mb-4"
             style={{ background: `linear-gradient(90deg, ${cat.color}, ${cat.color}50)` }}
@@ -617,7 +605,6 @@ function CategoryGrid({ onSelect }: { onSelect: (cat: Category) => void }) {
   )
 }
 
-// ─── Popular articles ─────────────────────────────────────────────────────────
 
 function PopularArticles({ onSelect }: { onSelect: (cat: Category) => void }) {
   const popular = [
@@ -670,7 +657,6 @@ function PopularArticles({ onSelect }: { onSelect: (cat: Category) => void }) {
   )
 }
 
-// ─── Contact support ──────────────────────────────────────────────────────────
 
 function ContactSupport() {
   return (
@@ -735,7 +721,6 @@ function ContactSupport() {
   )
 }
 
-// ─── Client page export ───────────────────────────────────────────────────────
 
 export default function HelpCenterPageClient() {
   const [activeCategory, setActiveCategory] = useState<Category | null>(null)
@@ -762,7 +747,7 @@ export default function HelpCenterPageClient() {
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.25 }}
             >
-              {/* ── Hero & search ── */}
+
               <div className="py-10 sm:py-12 lg:py-16 text-center">
                 <Reveal variants={scaleIn}>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 mb-5">
@@ -782,7 +767,7 @@ export default function HelpCenterPageClient() {
                   </p>
                 </Reveal>
 
-                {/* Search box */}
+
                 <Reveal delay={0.4} className="max-w-lg mx-auto">
                   <div className="relative">
                     <motion.div
@@ -862,22 +847,22 @@ export default function HelpCenterPageClient() {
                 </Reveal>
               </div>
 
-              {/* Stats strip */}
+
               <StatsStrip />
 
-              {/* Category grid */}
+
               <section className="mb-10 sm:mb-12">
                 <SectionLabel title="Semua Kategori" subtitle="Pilih topik yang ingin kamu pelajari" />
                 <CategoryGrid onSelect={setActiveCategory} />
               </section>
 
-              {/* Popular articles */}
+
               <section className="mb-10 sm:mb-12">
                 <SectionLabel title="Artikel Populer" subtitle="Pertanyaan yang paling sering ditanyakan" />
                 <PopularArticles onSelect={setActiveCategory} />
               </section>
 
-              {/* Contact support */}
+
               <section>
                 <SectionLabel title="Masih Butuh Bantuan?" subtitle="Tim support kami siap membantu kamu" />
                 <ContactSupport />

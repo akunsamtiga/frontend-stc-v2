@@ -22,7 +22,6 @@ export default function robots(): MetadataRoute.Robots {
           '/referral/',
         ],
       },
-      // Blokir bot yang sering abuse
       {
         userAgent: ['AhrefsBot', 'SemrushBot', 'DotBot', 'MJ12bot'],
         disallow: '/',

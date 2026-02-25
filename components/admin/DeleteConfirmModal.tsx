@@ -1,3 +1,4 @@
+// components/admin/DeleteConfirmModal.tsx
 'use client'
 
 import { AlertTriangle, X } from 'lucide-react'

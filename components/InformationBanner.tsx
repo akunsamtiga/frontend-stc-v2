@@ -1,3 +1,4 @@
+// components/InformationBanner.tsx
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
@@ -8,7 +9,7 @@ import Image from 'next/image'
 
 interface InformationBannerProps {
   onClose?: () => void
-  /** @deprecated tidak lagi digunakan, banner kini fixed popup */
+
   onLoad?: (hasBanner: boolean) => void
   className?: string
 }
@@ -45,7 +46,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
   const [phase, setPhase] = useState<Phase>('idle')
   const [progress, setProgress] = useState(100)
 
-  // Use refs for callbacks so useEffect deps never change
+
   const onCloseRef = useRef(onClose)
   const onLoadRef = useRef(onLoad)
   useEffect(() => { onCloseRef.current = onClose }, [onClose])
@@ -82,7 +83,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
     timerRef.current = setTimeout(dismiss, DISPLAY_DURATION)
   }, [dismiss])
 
-  // Load once on mount — deps intentionally empty, callbacks via refs
+
   useEffect(() => {
     let cancelled = false
 
@@ -95,7 +96,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
           setBanner(pinnedBanner)
           onLoadRef.current?.(true)
 
-          // Two rAF + small timeout so browser paints 'in' transform before switching to 'visible'
+
           requestAnimationFrame(() => {
             if (cancelled) return
             setPhase('in')
@@ -103,8 +104,8 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
               setTimeout(() => {
                 if (cancelled) return
                 setPhase('visible')
-                // Jika tidak ada gambar, langsung mulai timer
-                // Jika ada gambar, timer dimulai setelah gambar selesai load (handleImageLoad)
+
+
                 if (!pinnedBanner.imageUrl) {
                   timerStartedRef.current = true
                   startAutoTimer()
@@ -127,10 +128,10 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
       if (timerRef.current) clearTimeout(timerRef.current)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // intentionally empty
 
-  // Dipanggil saat gambar banner selesai dimuat — baru mulai hitung mundur
+  }, [])
+
+
   const handleImageLoad = useCallback(() => {
     if (!timerStartedRef.current) {
       timerStartedRef.current = true
@@ -164,7 +165,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
         }
       `}</style>
 
-      {/* Backdrop */}
+      {}
       <div
         onClick={dismiss}
         style={{
@@ -180,7 +181,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
         }}
       />
 
-      {/* Center container */}
+      {}
       <div
         style={{
           position: 'fixed',
@@ -193,7 +194,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
           pointerEvents: 'none',
         }}
       >
-        {/* Card wrapper - animated */}
+        {}
         <div
           style={{
             width: '100%',
@@ -210,7 +211,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
               : 'opacity 0.38s cubic-bezier(0.22,1,0.36,1), transform 0.38s cubic-bezier(0.22,1,0.36,1)',
           }}
         >
-          {/* Card */}
+          {}
           <div
             style={{
               position: 'relative',
@@ -221,7 +222,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
               boxShadow: `0 0 0 1px rgba(255,255,255,0.035), 0 20px 60px rgba(0,0,0,0.7), 0 0 50px ${config.accentDim}`,
             }}
           >
-            {/* Top accent line */}
+            {}
             <div
               style={{
                 height: '2px',
@@ -229,11 +230,11 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
               }}
             />
 
-            {/* Optional image - MODIFIED: aspect-ratio auto, object-contain */}
+            {}
             {banner.imageUrl && (
-              <div 
-                style={{ 
-                  position: 'relative', 
+              <div
+                style={{
+                  position: 'relative',
                   width: '100%',
                   maxHeight: '320px',
                   minHeight: '160px',
@@ -253,13 +254,13 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
                     width: '100%',
                     height: 'auto',
                     maxHeight: '320px',
-                    objectFit: 'cover', // Changed from 'cover' to 'contain'
+                    objectFit: 'cover',
                   }}
                   priority
                   onLoad={handleImageLoad}
                   onError={(e) => {
                     e.currentTarget.style.display = 'none'
-                    // Gambar gagal load, tetap jalankan timer
+
                     if (!timerStartedRef.current) {
                       timerStartedRef.current = true
                       startAutoTimer()
@@ -277,7 +278,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
               </div>
             )}
 
-            {/* Footer + progress */}
+            {}
             <div style={{ padding: '0 24px 18px 24px' }}>
               <div
                 style={{
@@ -292,7 +293,7 @@ export default function InformationBanner({ onClose, onLoad }: InformationBanner
                   Menutup otomatis
                 </span>
               </div>
-              {/* Progress bar — driven by rAF, no CSS transition */}
+              {}
               <div
                 style={{
                   height: '2px',

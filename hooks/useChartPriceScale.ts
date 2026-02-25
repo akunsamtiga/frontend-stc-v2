@@ -1,4 +1,4 @@
-// hooks/useChartPriceScale.ts - FINAL COMPLETE VERSION
+// hooks/useChartPriceScale.ts 
 import { useRef, useCallback } from 'react'
 import { IChartApi, ISeriesApi } from 'lightweight-charts'
 
@@ -21,7 +21,7 @@ export function useChartPriceScale() {
 
     try {
       const yCoordinate = seriesRef.current.priceToCoordinate(price)
-      
+
       if (yCoordinate === null || yCoordinate === undefined) {
         return null
       }
@@ -39,9 +39,9 @@ export function useChartPriceScale() {
     }
 
     try {
-      // ✅ FIXED: Call coordinateToPrice directly on series
+
       const price = seriesRef.current.coordinateToPrice(yPixel)
-      
+
       if (price === null || price === undefined) {
         return null
       }
@@ -53,9 +53,7 @@ export function useChartPriceScale() {
     }
   }, [])
 
-  /**
-   * Get visible time range
-   */
+
   const getVisibleRange = useCallback(() => {
     if (!chartRef.current) {
       return null
@@ -64,7 +62,7 @@ export function useChartPriceScale() {
     try {
       const timeScale = chartRef.current.timeScale()
       const visibleRange = timeScale.getVisibleRange()
-      
+
       return visibleRange
     } catch (error) {
       console.error('Get visible range error:', error)

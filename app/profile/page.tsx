@@ -22,7 +22,7 @@ import { getStatusGradient, formatStatusInfo, calculateStatusProgress, formatDep
 import { auth } from '@/lib/firebase-auth'
 import { signInWithPhoneNumber, RecaptchaVerifier, ConfirmationResult } from 'firebase/auth'
 
-// ── Motion primitives — seragam dengan halaman lain ─────────────
+
 const SPRING = { type: 'spring', stiffness: 80, damping: 20 } as const
 
 const fadeInUp: Variants = {
@@ -43,7 +43,7 @@ const staggerContainer: Variants = {
   visible: { transition: { staggerChildren: 0.07, delayChildren: 0.03 } },
 }
 
-// Reveal — trigger animasi saat elemen masuk viewport (scroll)
+
 function Reveal({ children, variants = fadeInUp, delay = 0, className = '' }: {
   children: React.ReactNode; variants?: Variants; delay?: number; className?: string
 }) {
@@ -56,7 +56,7 @@ function Reveal({ children, variants = fadeInUp, delay = 0, className = '' }: {
   )
 }
 
-// AnimatedHeadline — kata per kata fade+blur masuk
+
 function AnimatedHeadline({ text, className }: { text: string; className?: string }) {
   return (
     <motion.h1 className={className}
@@ -71,7 +71,7 @@ function AnimatedHeadline({ text, className }: { text: string; className?: strin
   )
 }
 
-// CountUp — angka naik dari 0 ke target
+
 function CountUp({ to, suffix = '', prefix = '' }: { to: number; suffix?: string; prefix?: string }) {
   const ref = React.useRef<HTMLSpanElement>(null)
   const inView = (require('framer-motion') as any).useInView(ref, { once: true, margin: '-40px' })
@@ -134,7 +134,7 @@ const SkeletonCard = () => (
 
 const LoadingSkeleton = () => (
   <>
-    {/* INJECT STYLE GLOBAL KHUSUS UNTUK SKELETON */}
+
     <style jsx global>{`
       /* Grid Pattern - Background sedikit gelap agar card terlihat */
       .bg-pattern-grid {
@@ -144,7 +144,7 @@ const LoadingSkeleton = () => (
           linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
         background-size: 40px 40px;
       }
-      
+
       /* Scrollbar hide utility */
       .scrollbar-hide::-webkit-scrollbar {
         display: none;
@@ -153,10 +153,10 @@ const LoadingSkeleton = () => (
         -ms-overflow-style: none;
         scrollbar-width: none;
       }
-      
+
       /* Pastikan body tidak hitam saat loading */
       body { background-color: #f5f6f8 !important; }
-      
+
       /* Skeleton animations */
       @keyframes skeleton-pulse {
         0%, 100% { opacity: 1; }
@@ -374,7 +374,7 @@ export default function ProfilePage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({})
 
-  // Firebase Phone Auth state
+
   const [showPhoneOTP, setShowPhoneOTP] = useState(false)
   const [otpCode, setOtpCode] = useState('')
   const [otpLoading, setOtpLoading] = useState(false)
@@ -456,7 +456,6 @@ export default function ProfilePage() {
     }
   }
 
-  // ─── Firebase Phone Auth handlers ────────────────────────────────────────
 
   const startOtpCooldown = useCallback((seconds = 60) => {
     setOtpCooldown(seconds)
@@ -468,15 +467,13 @@ export default function ProfilePage() {
     }, 1000)
   }, [])
 
-  /**
-   * Setup invisible reCAPTCHA and send OTP via Firebase
-   */
+
   const handleSendPhoneOTP = useCallback(async () => {
     const phone = personalData.phoneNumber
     if (!phone) { toast.error('Masukkan nomor telepon terlebih dahulu'); return }
     if (!validatePhone(phone)) { toast.error('Format nomor telepon tidak valid (contoh: +6281234567890)'); return }
 
-    // Guard: pastikan Firebase auth terinisialisasi
+
     if (!auth) {
       toast.error('Firebase belum siap, refresh halaman')
       return
@@ -484,20 +481,20 @@ export default function ProfilePage() {
 
     setOtpLoading(true)
     try {
-      // Cleanup reCAPTCHA lama
+
       if (recaptchaRef.current) {
         try { recaptchaRef.current.clear() } catch (_) {}
         recaptchaRef.current = null
       }
 
-      // Pastikan container ada di DOM
+
       const container = document.getElementById('recaptcha-container')
       if (!container) {
         toast.error('Komponen halaman belum siap, coba lagi')
         return
       }
 
-      // Buat RecaptchaVerifier baru
+
       const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         size: 'invisible',
         callback: () => {},
@@ -507,7 +504,7 @@ export default function ProfilePage() {
         },
       })
 
-      // Render verifier dulu secara eksplisit
+
       await verifier.render()
       recaptchaRef.current = verifier
 
@@ -521,7 +518,7 @@ export default function ProfilePage() {
     } catch (error: any) {
       console.error('Send OTP error:', error)
 
-      // Cleanup reCAPTCHA agar bisa dicoba ulang
+
       if (recaptchaRef.current) {
         try { recaptchaRef.current.clear() } catch (_) {}
         recaptchaRef.current = null
@@ -542,9 +539,7 @@ export default function ProfilePage() {
     }
   }, [personalData.phoneNumber, startOtpCooldown])
 
-  /**
-   * Confirm OTP → ambil Firebase idToken → kirim ke backend
-   */
+
   const handleVerifyPhoneOTP = useCallback(async () => {
     if (!confirmationRef.current) { toast.error('Kirim OTP terlebih dahulu'); return }
     if (otpCode.length !== 6 || !/^\d+$/.test(otpCode)) {
@@ -576,7 +571,6 @@ export default function ProfilePage() {
     }
   }, [otpCode, loadProfile])
 
-  // ─────────────────────────────────────────────────────────────────────────
 
   const validateField = useCallback((field: string, value: string): string => {
     switch (field) {
@@ -1100,21 +1094,21 @@ export default function ProfilePage() {
               animate="visible"
               viewport={{ once: true }}
             >
-              {/* Kolom kiri — Identitas & Status */}
+
               <div className="lg:col-span-1 flex flex-col gap-4">
-                {/* Kartu Profil */}
+
                 <motion.div
                   className="bg-white rounded-xl border border-gray-200 overflow-hidden"
                   variants={fadeInUp}
                 >
-                  {/* Banner header */}
+
                   <div className="h-16 bg-gradient-to-r from-sky-500 to-sky-600 relative">
                     <div className="absolute inset-0 opacity-10"
                       style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 50%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }}
                     />
                   </div>
                   <div className="px-4 pb-4">
-                    {/* Avatar */}
+
                     <div className="flex items-end gap-3 -mt-8 mb-3">
                       <motion.div className="relative flex-shrink-0" whileHover={{ scale: 1.05 }}>
                         <div className="w-16 h-16 rounded-2xl shadow-lg overflow-hidden border-2 border-white">
@@ -1178,7 +1172,7 @@ export default function ProfilePage() {
                   </div>
                 </motion.div>
 
-                {/* Kelengkapan Profil */}
+
                 {profileInfo && profileInfo.completion < 100 && (
                   <motion.div
                     className="bg-gradient-to-br from-sky-50 to-blue-50 border border-sky-200 rounded-xl p-4"
@@ -1213,7 +1207,7 @@ export default function ProfilePage() {
                   </motion.div>
                 )}
 
-                {/* Status Verifikasi */}
+
                 <motion.div
                   className="bg-white rounded-xl border border-gray-200 p-4"
                   variants={fadeInUp}
@@ -1247,9 +1241,9 @@ export default function ProfilePage() {
                 </motion.div>
               </div>
 
-              {/* Kolom kanan — Saldo & Statistik */}
+
               <div className="lg:col-span-2 flex flex-col gap-4">
-                {/* Kartu Saldo */}
+
                 <motion.div
                   className="bg-white rounded-xl border border-gray-200 overflow-hidden"
                   variants={fadeInUp}
@@ -1295,7 +1289,7 @@ export default function ProfilePage() {
                   </div>
                 </motion.div>
 
-                {/* Statistik Trading */}
+
                 <motion.div
                   className="bg-white rounded-xl border border-gray-200 overflow-hidden"
                   variants={fadeInUp}
@@ -1345,7 +1339,7 @@ export default function ProfilePage() {
                   </div>
                 </motion.div>
 
-                {/* Informasi Akun */}
+
                 <motion.div
                   className="bg-white rounded-xl border border-gray-200 overflow-hidden"
                   variants={fadeInUp}
@@ -1554,7 +1548,7 @@ export default function ProfilePage() {
                     ) : (
                       field.key === 'phoneNumber' ? (
                         <div className="space-y-2">
-                          {/* Tampilkan nomor + badge status */}
+
                           <div className="flex flex-wrap items-center gap-2">
                             <div className="flex-1 min-w-0 px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm truncate">
                               {(personalData as any)[field.key] || '-'}
@@ -1575,7 +1569,7 @@ export default function ProfilePage() {
                             )}
                           </div>
 
-                          {/* OTP Panel — Firebase Phone Auth */}
+
                           <AnimatePresence>
                             {showPhoneOTP && !profileInfo?.verification?.phoneVerified && (
                               <motion.div
@@ -1592,7 +1586,7 @@ export default function ProfilePage() {
                                   </p>
 
                                   {!otpSent ? (
-                                    // Step 1 — Kirim OTP
+
                                     <button
                                       onClick={handleSendPhoneOTP}
                                       disabled={otpLoading}
@@ -1604,7 +1598,7 @@ export default function ProfilePage() {
                                       }
                                     </button>
                                   ) : (
-                                    // Step 2 — Input & konfirmasi OTP
+
                                     <div className="space-y-2">
                                       <p className="text-xs text-amber-700">
                                         Masukkan kode 6 digit yang dikirim ke{' '}
@@ -2402,7 +2396,7 @@ export default function ProfilePage() {
             const progress = calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current)
             const statusTheme = {
               standard: {
-                // Coklat / bronze-brown
+
                 heroBg: 'from-stone-600 via-amber-900 to-stone-900',
                 accent: 'from-amber-700 to-stone-600',
                 glow: 'shadow-amber-900/40',
@@ -2417,7 +2411,7 @@ export default function ProfilePage() {
                 unlockBorder: 'border-amber-100',
               },
               gold: {
-                // Emas / golden
+
                 heroBg: 'from-yellow-400 via-amber-400 to-yellow-600',
                 accent: 'from-yellow-300 to-amber-400',
                 glow: 'shadow-yellow-400/50',
@@ -2432,7 +2426,7 @@ export default function ProfilePage() {
                 unlockBorder: 'border-yellow-100',
               },
               vip: {
-                // Silver / perak
+
                 heroBg: 'from-slate-400 via-gray-500 to-slate-700',
                 accent: 'from-slate-300 to-gray-400',
                 glow: 'shadow-slate-400/50',
@@ -2465,18 +2459,18 @@ export default function ProfilePage() {
                 initial="hidden"
                 animate="visible"
               >
-                {/* ── Hero Status Card ── */}
+
                 <motion.div
                   className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${theme.heroBg} p-5 sm:p-7 shadow-xl ${theme.glow}`}
                   variants={fadeInUp}
                 >
-                  {/* decorative circles */}
+
                   <div className="pointer-events-none absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/5" />
                   <div className="pointer-events-none absolute -right-2 bottom-4 w-24 h-24 rounded-full bg-white/5" />
                   <div className="pointer-events-none absolute left-1/2 -bottom-10 w-48 h-48 rounded-full bg-white/5" />
 
                   <div className="relative flex flex-col sm:flex-row sm:items-center gap-5">
-                    {/* icon + name */}
+
                     <div className="flex items-center gap-4 flex-1">
                       <motion.div
                         className={`relative w-16 h-16 rounded-2xl bg-white/15 ring-2 ${theme.ring} flex items-center justify-center shadow-lg backdrop-blur-sm flex-shrink-0`}
@@ -2501,7 +2495,7 @@ export default function ProfilePage() {
                       </div>
                     </div>
 
-                    {/* stats row */}
+
                     <div className="flex items-center gap-4 sm:gap-6 pt-4 sm:pt-0 border-t sm:border-t-0 border-white/10">
                       <div className="text-center">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-white/50 mb-0.5">Total Deposit</p>
@@ -2515,7 +2509,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  {/* progress inside hero */}
+
                   {progress.next && (
                     <div className="relative mt-5 pt-4 border-t border-white/10">
                       <div className="flex items-center justify-between mb-2">
@@ -2548,7 +2542,7 @@ export default function ProfilePage() {
                   )}
                 </motion.div>
 
-                {/* ── Tier Journey ── */}
+
                 <motion.div
                   className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm"
                   variants={fadeInUp}
@@ -2558,7 +2552,7 @@ export default function ProfilePage() {
                     Perjalanan Tier
                   </h3>
 
-                  {/* milestone path */}
+
                   <div className="flex items-start gap-0 mb-6 relative">
                     {(['standard', 'gold', 'vip'] as const).map((tier, i) => {
                       const isReached = STATUS_CONFIG[tier].minDeposit <= statusInfo.totalDeposit
@@ -2625,7 +2619,7 @@ export default function ProfilePage() {
                     })}
                   </div>
 
-                  {/* ── Tier Comparison Cards ── */}
+
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {(['standard', 'gold', 'vip'] as const).map((status, i) => {
                       const config = STATUS_CONFIG[status]
@@ -2660,7 +2654,7 @@ export default function ProfilePage() {
                             </div>
                           )}
 
-                          {/* tier header */}
+
                           <div className={`w-11 h-11 rounded-xl mb-3 flex items-center justify-center bg-gradient-to-br ${cardTheme.accent}`}>
                             <img
                               src={STATUS_IMAGES[status]}
@@ -2675,10 +2669,10 @@ export default function ProfilePage() {
                             {config.profitBonus > 0 ? `+${config.profitBonus}% profit bonus` : 'Tanpa bonus'}
                           </p>
 
-                          {/* divider */}
+
                           <div className="w-full h-px bg-gray-100 mb-3" />
 
-                          {/* benefits */}
+
                           <ul className="space-y-1.5">
                             {tierBenefits[status].map((benefit, bi) => (
                               <motion.li
@@ -2696,7 +2690,7 @@ export default function ProfilePage() {
                             ))}
                           </ul>
 
-                          {/* min deposit badge */}
+
                           <div className={`mt-3 pt-3 border-t border-gray-100 flex items-center justify-between`}>
                             <span className="text-[10px] text-gray-400">Min. Deposit</span>
                             <span className={`text-[11px] font-bold ${isCurrent ? cardTheme.cardAccentText : isUnlocked ? cardTheme.cardSubText : 'text-gray-400'}`}>
@@ -2709,7 +2703,7 @@ export default function ProfilePage() {
                   </div>
                 </motion.div>
 
-                {/* ── Info Banner ── */}
+
                 <motion.div
                   className="rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50 to-blue-50 p-4 flex items-start gap-3"
                   variants={fadeInUp}
@@ -2837,7 +2831,7 @@ export default function ProfilePage() {
             variants={fadeLeft}
           >
             <div className="bg-white rounded-xl border border-gray-200 p-2 sticky top-4 shadow-sm">
-              {/* Mini user card */}
+
               <div className="flex items-center gap-3 px-3 py-3 mb-1 border-b border-gray-100">
                 <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 border border-gray-200">
                   {profileInfo?.avatar?.url ? (
@@ -2935,7 +2929,7 @@ export default function ProfilePage() {
         message="Apakah Anda yakin ingin keluar? Anda akan diarahkan ke beranda."
       />
 
-      {/* Invisible reCAPTCHA container — diperlukan Firebase Phone Auth */}
+
       <div id="recaptcha-container" ref={recaptchaContainerRef} />
     </div>
     </>

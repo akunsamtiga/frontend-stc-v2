@@ -15,10 +15,10 @@ interface BalanceDisplayProps {
   onToggleHide?: () => void
 }
 
-const BalanceDisplay = memo(({ 
-  amount, 
-  label, 
-  isActive = false, 
+const BalanceDisplay = memo(({
+  amount,
+  label,
+  isActive = false,
   onClick,
   isMobile = false,
   hideBalance = false,
@@ -32,8 +32,8 @@ const BalanceDisplay = memo(({
     return (
       <div className={`
         flex flex-col items-end py-1 px-2.5 rounded-lg border transition-all duration-300
-        ${isActive 
-          ? 'bg-[#232936] border-blue-500/50' 
+        ${isActive
+          ? 'bg-[#232936] border-blue-500/50'
           : 'bg-[#1a1f2e] border-gray-800/50'
         }
       `}>
@@ -54,7 +54,7 @@ const BalanceDisplay = memo(({
             `} />
           </button>
         </div>
-        
+
         <button onClick={onClick} className={`
           transition-all duration-500 ease-out
           text-sm font-bold leading-tight whitespace-nowrap
@@ -66,7 +66,7 @@ const BalanceDisplay = memo(({
     )
   }
 
-  // Desktop version
+
   return (
     <div className={`
       flex flex-col items-start gap-0.5
@@ -90,7 +90,7 @@ const BalanceDisplay = memo(({
           `} />
         </button>
       </div>
-      
+
       <button onClick={onClick} className={`
         transition-all duration-500 ease-out
         text-base font-bold

@@ -1,4 +1,4 @@
-// app/(landing)/page.tsx - ✅ FIXED: Referral Code Support
+// app/page.tsx 
 'use client'
 
 import dynamic from 'next/dynamic'
@@ -13,7 +13,7 @@ const DemoTradingTutorial = dynamic(
   () => import('@/components/DemoTradingTutorial'),
   { ssr: false }
 )
-import { 
+import {
   TrendUp,
   TrendDown,
   Lightning,
@@ -54,9 +54,6 @@ const EnhancedFooter = dynamic(
   { ssr: false }
 )
 
-// ===================================
-// FRAMER MOTION VARIANTS
-// ===================================
 const fadeInUp = {
   hidden: { opacity: 0, y: 28 },
   visible: (delay = 0) => ({
@@ -100,9 +97,6 @@ const btnHover = {
   tap: { scale: 0.96, transition: { duration: 0.1 } },
 }
 
-// ===================================
-// GSAP ANIMATION UTILITIES
-// ===================================
 async function loadGSAP() {
   const { gsap } = await import('gsap')
   const { ScrollTrigger } = await import('gsap/ScrollTrigger')
@@ -110,7 +104,6 @@ async function loadGSAP() {
   return { gsap, ScrollTrigger }
 }
 
-// ── Helper: split text node into word <span>s ──────────────────────────────
 function splitTextToWordSpans(el: HTMLElement): HTMLSpanElement[] {
   const originalText = el.textContent || ''
   el.textContent = ''
@@ -124,7 +117,6 @@ function splitTextToWordSpans(el: HTMLElement): HTMLSpanElement[] {
   })
 }
 
-// Reveal wrapper — uses Framer Motion whileInView for performance
 interface RevealProps {
   children: React.ReactNode
   className?: string
@@ -151,10 +143,6 @@ function Reveal({ children, className = '', delay = 0, direction = 'up' }: Revea
   )
 }
 
-// ===================================
-// RANDOM GRID BACKGROUND
-// ===================================
-// Generator pseudo-random deterministik (seed-based) — tidak berubah tiap render
 function seededRandom(seed: number) {
   let s = seed
   return () => {
@@ -174,7 +162,7 @@ function generateGridLines(
   const xs: number[] = [0]
   const ys: number[] = [0]
 
-  // Pilih ukuran "unit" acak dari 3 skala: kecil / sedang / besar
+
   const steps = [minGap, minGap * 2, minGap * 4]
 
   let x = 0
@@ -211,7 +199,7 @@ function RandomGrid({
   lineColor = 'rgba(255,255,255,0.6)',
   className = '',
 }: RandomGridProps) {
-  // Pakai ukuran virtual besar — SVG akan di-stretch via CSS
+
   const W = 1200
   const H = 900
   const { xs, ys } = generateGridLines(W, H, seed)
@@ -225,7 +213,7 @@ function RandomGrid({
       style={{ opacity }}
       aria-hidden
     >
-      {/* Garis vertikal */}
+      {}
       {xs.map((x, i) => (
         <line
           key={`v${i}`}
@@ -234,7 +222,7 @@ function RandomGrid({
           strokeWidth={0.5}
         />
       ))}
-      {/* Garis horizontal */}
+      {}
       {ys.map((y, i) => (
         <line
           key={`h${i}`}
@@ -247,10 +235,6 @@ function RandomGrid({
   )
 }
 
-// ===================================
-// DATA CONSTANTS
-// ===================================
-// Volume diisi secara dinamis dari Binance 24hr aggregate (lihat useEffect di LandingPage)
 const BASE_STATS = [
   { label: 'Unduhan', value: '1 jt+', rawValue: 1, suffix: 'jt+', icon: Users },
   { label: 'Volume Harian', value: '$10B+', rawValue: 10, suffix: 'B+', icon: CurrencyDollar, isVolume: true },
@@ -297,17 +281,12 @@ const features = [
   },
 ]
 
-
-// ===================================
-// LIVE CRYPTO TRADING TICKER — Real Binance trades
-// ===================================
 const TICKER_SYMBOLS: Array<{ binance: string; display: string }> = [
   { binance: 'BTCUSDT', display: 'BTC/USD' },
   { binance: 'ETHUSDT', display: 'ETH/USD' },
   { binance: 'BNBUSDT', display: 'BNB/USD' },
 ]
 
-// ── Mini sparkline bar — menampilkan histogram aktivitas 8 bar terakhir ──────
 function MiniSparkline({ data }: { data: number[] }) {
   if (data.length < 2) return null
   const max = Math.max(...data) || 1
@@ -329,7 +308,6 @@ function MiniSparkline({ data }: { data: number[] }) {
   )
 }
 
-// ── Inline SVG logo crypto — zero network request, zero CDN dependency ────────
 const CryptoSVGs: Record<string, (size: number) => React.ReactElement> = {
   BTC: (size) => (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -368,7 +346,6 @@ const CryptoSVGs: Record<string, (size: number) => React.ReactElement> = {
   ),
 }
 
-// Warna background fallback per coin
 const CRYPTO_COLORS: Record<string, string> = {
   BTC: '#F7931A', ETH: '#627EEA', BNB: '#F3BA2F',
   SOL: '#9945FF', XRP: '#346AA9', ADA: '#0033AD',
@@ -390,7 +367,7 @@ function CryptoIcon({ symbol, size = 32, className = '' }: { symbol: string; siz
     )
   }
 
-  // Fallback: lingkaran warna + 2 huruf
+
   const bg = CRYPTO_COLORS[sym] ?? '#4B5563'
   return (
     <span
@@ -402,7 +379,6 @@ function CryptoIcon({ symbol, size = 32, className = '' }: { symbol: string; siz
   )
 }
 
-// Mask username: tampilkan 4 karakter pertama, sisanya jadi ***
 function maskUsername(name: string): string {
   if (!name || name.length <= 4) return name
   return name.slice(0, 4) + '***'
@@ -446,14 +422,14 @@ const LiveCryptoTicker = () => {
   return (
     <div className="hidden lg:block absolute bottom-28 right-6 w-72 bg-[#080c14] border border-gray-800/60 rounded-2xl shadow-2xl z-10 animate-slide-in-right overflow-hidden">
 
-      {/* Header */}
+      {}
       <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-gray-800/60">
         <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse flex-shrink-0" />
         <span className="text-xs font-bold text-gray-200 tracking-wide">Transaksi Live</span>
         <span className="ml-auto text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">REAL</span>
       </div>
 
-      {/* Mini stats row */}
+      {}
       <div className="grid grid-cols-3 divide-x divide-gray-800/60 border-b border-gray-800/60">
         <div className="px-3 py-2 text-center">
           <div className="text-[10px] text-gray-500 mb-0.5">Transaksi</div>
@@ -469,7 +445,7 @@ const LiveCryptoTicker = () => {
         </div>
       </div>
 
-      {/* BUY / SELL dominance bar */}
+      {}
       <div className="px-4 pt-3 pb-2">
         <div className="flex items-center justify-between mb-1">
           <span className="text-[9px] text-emerald-400 font-semibold">BUY {buyPct}%</span>
@@ -483,13 +459,13 @@ const LiveCryptoTicker = () => {
         </div>
       </div>
 
-      {/* Activity sparkline */}
+      {}
       <div className="px-4 pb-3">
         <div className="text-[9px] text-gray-600 mb-1">Aktivitas (8 siklus terakhir)</div>
         <MiniSparkline data={activityBars} />
       </div>
 
-      {/* Trade list */}
+      {}
       <div className="px-4 pb-1 space-y-1.5 max-h-[220px] overflow-hidden">
         {trades.map((trade, i) => (
           <div
@@ -529,7 +505,7 @@ const LiveCryptoTicker = () => {
         ))}
       </div>
 
-      {/* Footer */}
+      {}
       <div className="px-4 py-2.5 border-t border-gray-800/60 flex items-center justify-between mt-1">
         <span className="text-[9px] text-gray-600">Data from Binance</span>
         <div className="flex items-center gap-1">
@@ -541,9 +517,6 @@ const LiveCryptoTicker = () => {
   )
 }
 
-// ===================================
-// FLOATING CRYPTO PRICE CARD
-// ===================================
 interface FloatingCryptoPriceCardProps {
   symbol: string
   delay: number
@@ -569,7 +542,7 @@ const FloatingCryptoPriceCard = ({ symbol, delay, style }: FloatingCryptoPriceCa
 
   if (!priceData) {
     return (
-      <div 
+      <div
         className="hidden lg:block absolute bg-[#0a0e17] border border-gray-800/50 rounded-xl p-3 shadow-xl"
         style={{ animationDelay: `${delay}s`, ...style }}
       >
@@ -585,7 +558,7 @@ const FloatingCryptoPriceCard = ({ symbol, delay, style }: FloatingCryptoPriceCa
   const isPositive = priceData.changePercent24h >= 0
 
   return (
-    <div 
+    <div
       className="hidden lg:block absolute bg-[#0a0e17] border border-gray-800/50 rounded-xl p-3 shadow-xl min-w-[130px]"
       style={{ animationDelay: `${delay}s`, ...style }}
     >
@@ -606,28 +579,25 @@ const FloatingCryptoPriceCard = ({ symbol, delay, style }: FloatingCryptoPriceCa
   )
 }
 
-// ===================================
-// LIVE CRYPTO CHART
-// ===================================
 const LiveCryptoChart = () => {
   const [selectedCrypto, setSelectedCrypto] = useState('BTC')
   const [priceData, setPriceData] = useState<CryptoPriceData | null>(null)
   const [priceHistory, setPriceHistory] = useState<number[]>([])
   const [mobileTrades, setMobileTrades] = useState<LiveTradeData[]>([])
 
-  // Polling lebih lambat di mobile untuk hemat baterai & CPU
+
   const pollInterval = typeof window !== 'undefined' && window.innerWidth < 1024 ? 10000 : 3000
 
   useEffect(() => {
     setPriceHistory([])
-    
+
     const unsubscribe = subscribeToCryptoPrices(
       [selectedCrypto],
       (newPrices) => {
         if (newPrices[selectedCrypto]) {
           const data = newPrices[selectedCrypto]
           setPriceData(data)
-          
+
           setPriceHistory(prev => {
             const newHistory = [...prev, data.price]
             return newHistory.slice(-30)
@@ -732,7 +702,7 @@ const LiveCryptoChart = () => {
                 <div
                   key={i}
                   className="flex-1 bg-gradient-to-t from-emerald-500/50 to-sky-500/50 rounded-t transition-all duration-500 ease-out"
-                  style={{ 
+                  style={{
                     height: `${height}%`,
                     opacity: i < 5 ? 0.3 : 1
                   }}
@@ -768,7 +738,7 @@ const LiveCryptoChart = () => {
         </div>
         <div className="space-y-2">
           {mobileTrades.map((trade, i) => (
-            <div 
+            <div
               key={i}
               className="flex items-center justify-between p-2.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/10 transition-all duration-500 animate-fade-in-up"
             >
@@ -798,9 +768,6 @@ const LiveCryptoChart = () => {
   )
 }
 
-// ===================================
-// MAIN LANDING PAGE COMPONENT
-// ===================================
 export default function LandingPage() {
   const router = useRouter()
   const { user, setAuth } = useAuthStore()
@@ -810,7 +777,7 @@ export default function LandingPage() {
 
   const closeAuthModal = () => {
     setIsClosingModal(true)
-    // 380ms = durasi animasi slide-right (0.38s) + sedikit buffer
+
     setTimeout(() => {
       setShowAuthModal(false)
       setIsClosingModal(false)
@@ -819,16 +786,16 @@ export default function LandingPage() {
     }, 400)
   }
 
-  // ─── GSAP Master Animation Setup ─────────────────────────────────────────────
+
   useEffect(() => {
-    // GSAP aktif di semua device (mobile + desktop)
+
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024
 
     let ctx: any
     let cleanup: (() => void) | undefined
     loadGSAP().then(({ gsap, ScrollTrigger }) => {
 
-      // ── Helper: safe fromTo that won't leave elements invisible ───────────────
+
       const reveal = (targets: string | HTMLElement | HTMLElement[], vars: gsap.TweenVars, trigger?: Element | string) => {
         gsap.from(targets, {
           ...vars,
@@ -844,13 +811,13 @@ export default function LandingPage() {
 
       ctx = gsap.context(() => {
 
-        // ════════════════════════════════════════════════════════════════════════
-        // HERO — GSAP Text Splitting (per-kata dengan stagger + expo.out)
-        // ════════════════════════════════════════════════════════════════════════
+
+
+
         const heroTitleEl = document.querySelector<HTMLElement>('.gsap-hero-title-line1')
         const heroAccentEl = document.querySelector<HTMLElement>('.gsap-hero-title-accent')
-        
-        // Set initial state semua hero elements (desktop + mobile)
+
+
         gsap.set('.gsap-hero-badge',   { opacity: 0, y: 16, scale: 0.9 })
         gsap.set('.gsap-hero-desc',    { opacity: 0, y: 30 })
         gsap.set('.gsap-hero-buttons', { opacity: 0 })
@@ -858,16 +825,16 @@ export default function LandingPage() {
         gsap.set('.gsap-hero-chart',   { opacity: 0, x: isMobile ? 40 : 60, scale: 0.94 })
 
         const heroTl = gsap.timeline({ defaults: { ease: 'expo.out' } })
-        
+
         if (heroTitleEl && heroAccentEl) {
-          // Split "Raih Bonus" jadi word spans
+
           const titleWords = splitTextToWordSpans(heroTitleEl)
           heroTitleEl.style.opacity = '1'
           heroTitleEl.style.transform = 'none'
 
-          // ⚠️  JANGAN split accent element — bg-clip:text tidak diwariskan ke child spans
-          // → teks jadi transparan tanpa background = invisible.
-          // Animasikan accent sebagai satu unit (whole-element).
+
+
+
           gsap.set(heroAccentEl, { opacity: 0, y: 50, scale: 0.75 })
 
           heroTl
@@ -884,7 +851,7 @@ export default function LandingPage() {
             .to('.gsap-hero-stats',       { opacity: 1, duration: 0.5 }, 0.9)
             .to('.gsap-hero-chart',       { opacity: 1, x: 0, scale: 1, duration: 1.1, ease: 'power3.out' }, 0.2)
         } else {
-          // Fallback jika splitter gagal
+
           heroTl
             .to('.gsap-hero-badge',       { opacity: 1, y: 0, scale: 1, duration: 0.65 }, 0.05)
             .to('.gsap-hero-title',       { opacity: 1, y: 0, duration: 1.05, ease: 'power4.out' }, 0.2)
@@ -895,9 +862,9 @@ export default function LandingPage() {
             .to('.gsap-hero-chart',       { opacity: 1, x: 0, scale: 1, duration: 1.1, ease: 'power3.out' }, 0.2)
         }
 
-        // ════════════════════════════════════════════════════════════════════════
-        // FLOATING BLOBS — infinite slow drift (compositor only, no paint)
-        // ════════════════════════════════════════════════════════════════════════
+
+
+
         gsap.utils.toArray<HTMLElement>('.gsap-float-blob').forEach((blob, i) => {
           const yRange = 18 + i * 8
           const xRange = 12 + i * 5
@@ -913,18 +880,18 @@ export default function LandingPage() {
           })
         })
 
-        // ════════════════════════════════════════════════════════════════════════
-        // FLOATING DECORATIVE ORBS — small rotating glow orbs in background
-        // ════════════════════════════════════════════════════════════════════════
+
+
+
         gsap.utils.toArray<HTMLElement>('.gsap-orb').forEach((orb, i) => {
           const tl = gsap.timeline({ repeat: -1, yoyo: true, delay: i * 1.2 })
           tl.to(orb, { y: -24, x: 12, scale: 1.08, duration: 3.5 + i, ease: 'sine.inOut' })
             .to(orb, { y: 12, x: -8, scale: 0.94, duration: 4 + i, ease: 'sine.inOut' })
         })
 
-        // ════════════════════════════════════════════════════════════════════════
-        // SMOOTH COUNTER — angka naik saat scroll masuk viewport
-        // ════════════════════════════════════════════════════════════════════════
+
+
+
         gsap.utils.toArray<HTMLElement>('.gsap-counter').forEach(el => {
           const end    = parseFloat(el.dataset.count || '0')
           const prefix = el.dataset.prefix || ''
@@ -950,9 +917,9 @@ export default function LandingPage() {
           })
         })
 
-        // ════════════════════════════════════════════════════════════════════════
-        // PARALLAX — gambar partnership bergerak lambat saat scroll
-        // ════════════════════════════════════════════════════════════════════════
+
+
+
         gsap.utils.toArray<HTMLElement>('.gsap-parallax-img').forEach((el, i) => {
           const depth = i % 2 === 0 ? -40 : 40
           gsap.to(el, {
@@ -967,15 +934,15 @@ export default function LandingPage() {
           })
         })
 
-        // ════════════════════════════════════════════════════════════════════════
-        // NAVBAR
-        // ════════════════════════════════════════════════════════════════════════
+
+
+
         gsap.set('.gsap-navbar', { opacity: 0, y: -40 })
         gsap.to('.gsap-navbar', { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', delay: 0.02 })
 
-        // ════════════════════════════════════════════════════════════════════════
-        // SECTION HEADERS — elegant fade + rise
-        // ════════════════════════════════════════════════════════════════════════
+
+
+
         gsap.utils.toArray<HTMLElement>('.gsap-section-header').forEach(el => {
           gsap.set(el, { opacity: 0, y: 50 })
           gsap.to(el, { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
@@ -983,9 +950,9 @@ export default function LandingPage() {
           })
         })
 
-        // ════════════════════════════════════════════════════════════════════════
-        // HOW IT WORKS — alternating slide in from sides
-        // ════════════════════════════════════════════════════════════════════════
+
+
+
         gsap.utils.toArray<HTMLElement>('.gsap-step-card').forEach((card, i) => {
           const xVal = isMobile ? (i % 2 === 0 ? -40 : 40) : (i % 2 === 0 ? -80 : 80)
           gsap.set(card, { opacity: 0, x: xVal, y: 30 })
@@ -996,9 +963,9 @@ export default function LandingPage() {
           })
         })
 
-        // ════════════════════════════════════════════════════════════════════════
-        // PAYMENT GRID — cards stagger with spring pop
-        // ════════════════════════════════════════════════════════════════════════
+
+
+
         gsap.utils.toArray<HTMLElement>('.gsap-payment-grid').forEach(grid => {
           gsap.set(grid.children as unknown as HTMLElement[], { opacity: 0, y: 40, scale: 0.88, rotation: -2 })
           gsap.to(grid.children as unknown as HTMLElement[], {
@@ -1009,13 +976,13 @@ export default function LandingPage() {
           })
         })
 
-        // ════════════════════════════════════════════════════════════════════════
-        // PARTNERSHIP ROWS — per-element cinematic animations
-        // ════════════════════════════════════════════════════════════════════════
+
+
+
         gsap.utils.toArray<HTMLElement>('.gsap-partner-row').forEach((row, i) => {
           const isEven = i % 2 === 0
 
-          // Image element
+
           const imgWrap = row.querySelector<HTMLElement>('.gsap-partner-img')
           if (imgWrap) {
             const xOffset = isMobile ? (isEven ? -50 : 50) : (isEven ? -100 : 100)
@@ -1027,7 +994,7 @@ export default function LandingPage() {
             })
           }
 
-          // Logo badge
+
           const logoBadge = row.querySelector<HTMLElement>('.gsap-partner-logo')
           if (logoBadge) {
             gsap.set(logoBadge, { opacity: 0, x: 30, scale: 0.8 })
@@ -1039,7 +1006,7 @@ export default function LandingPage() {
             })
           }
 
-          // Heading text
+
           const heading = row.querySelector<HTMLElement>('.gsap-partner-heading')
           if (heading) {
             gsap.set(heading, { opacity: 0, y: 40 })
@@ -1051,7 +1018,7 @@ export default function LandingPage() {
             })
           }
 
-          // Description text
+
           const desc = row.querySelector<HTMLElement>('.gsap-partner-desc')
           if (desc) {
             gsap.set(desc, { opacity: 0, y: 25 })
@@ -1063,7 +1030,7 @@ export default function LandingPage() {
             })
           }
 
-          // Button / CTA
+
           const btn = row.querySelector<HTMLElement>('.gsap-partner-btn')
           if (btn) {
             gsap.set(btn, { opacity: 0, y: 20, scale: 0.9 })
@@ -1076,9 +1043,9 @@ export default function LandingPage() {
           }
         })
 
-        // ════════════════════════════════════════════════════════════════════════
-        // AFFILIATE SECTION HEADER — word-level stagger
-        // ════════════════════════════════════════════════════════════════════════
+
+
+
         const affiliateHeader = document.querySelector<HTMLElement>('.gsap-affiliate-header')
         if (affiliateHeader) {
           const badge = affiliateHeader.querySelector<HTMLElement>('.gsap-aff-badge')
@@ -1089,9 +1056,9 @@ export default function LandingPage() {
           if (desc)  { gsap.set(desc,  { opacity: 0, y: 30 }); gsap.to(desc,  { opacity: 1, y: 0, duration: 0.75, ease: 'power3.out', scrollTrigger: { trigger: affiliateHeader, start: 'top 92%', once: true }, delay: 0.3 }) }
         }
 
-        // ════════════════════════════════════════════════════════════════════════
-        // AFFILIATE CARDS — scale pop with stagger
-        // ════════════════════════════════════════════════════════════════════════
+
+
+
         const affiliateCards = gsap.utils.toArray<HTMLElement>('.gsap-affiliate-card')
         if (affiliateCards.length) {
           gsap.set(affiliateCards, { opacity: 0, y: 60, scale: 0.88 })
@@ -1102,13 +1069,13 @@ export default function LandingPage() {
           })
         }
 
-        // ════════════════════════════════════════════════════════════════════════
-        // AFFILIATE STEPS — cascade stagger per card
-        // ════════════════════════════════════════════════════════════════════════
+
+
+
         gsap.utils.toArray<HTMLElement>('.gsap-affiliate-steps-grid').forEach(grid => {
           const children = Array.from(grid.children) as HTMLElement[]
           children.forEach((child, idx) => {
-            // icon inside card
+
             const icon = child.querySelector<HTMLElement>('.gsap-step-icon')
             const title = child.querySelector<HTMLElement>('.gsap-step-title')
             const desc = child.querySelector<HTMLElement>('.gsap-step-desc')
@@ -1125,9 +1092,9 @@ export default function LandingPage() {
           })
         })
 
-        // ════════════════════════════════════════════════════════════════════════
-        // CTA — dramatic entrance + inner elements stagger
-        // ════════════════════════════════════════════════════════════════════════
+
+
+
         const ctaEl = document.querySelector('.gsap-cta-section') as HTMLElement
         if (ctaEl) {
           gsap.set(ctaEl, { opacity: 0, y: 80, scale: 0.94 })
@@ -1136,7 +1103,7 @@ export default function LandingPage() {
             duration: 1.1, ease: 'power4.out',
             scrollTrigger: { trigger: ctaEl, start: 'top 92%', once: true },
           })
-          // CTA inner children
+
           const ctaBadge = ctaEl.querySelector<HTMLElement>('.gsap-cta-badge')
           const ctaTitle = ctaEl.querySelector<HTMLElement>('.gsap-cta-title')
           const ctaDesc  = ctaEl.querySelector<HTMLElement>('.gsap-cta-desc')
@@ -1166,7 +1133,7 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(false)
   const [activeTestimonial, setActiveTestimonial] = useState(0)
   const [activeFeature, setActiveFeature] = useState(0)
-  // mousePosition state removed — was causing re-render on every mousemove
+
   const [touchStart, setTouchStart] = useState(0)
   const [touchEnd, setTouchEnd] = useState(0)
   const [logoPhase, setLogoPhase] = useState<'stc-logo-in' | 'stc-text-in' | 'stc-hold' | 'stc-text-out' | 'stc-logo-out' | 'stockity-logo-in' | 'stockity-text-in' | 'stockity-hold' | 'stockity-text-out' | 'stockity-logo-out'>('stc-logo-in')
@@ -1175,13 +1142,13 @@ export default function LandingPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [showTermsWarning, setShowTermsWarning] = useState(false)
 
-  // ✅ MOBILE PERF: hanya render komponen desktop berat setelah konfirmasi viewport
+
   const [isDesktop, setIsDesktop] = useState(false)
   useEffect(() => {
     setIsDesktop(window.innerWidth >= 1024)
   }, [])
 
-  // ✅ REAL: Stats dengan volume dari Binance 24hr aggregate
+
   const [stats, setStats] = useState(BASE_STATS)
   useEffect(() => {
     getMarketStats().then(mktStats => {
@@ -1195,18 +1162,18 @@ export default function LandingPage() {
     })
   }, [])
 
-  // ✅ NEW: Referral code state
+
   const [referralCode, setReferralCode] = useState<string>('')
   const [hasReferralCode, setHasReferralCode] = useState(false)
 
-  // ✅ Effect: Redirect if authenticated
+
   useEffect(() => {
     if (hydrated && user) {
       router.push('/trading')
     }
   }, [user, router, hydrated])
 
-  // ✅ Scroll lock: kunci scroll body saat modal auth terbuka
+
   const savedScrollY = useRef(0)
 
   useEffect(() => {
@@ -1225,20 +1192,20 @@ export default function LandingPage() {
     }
   }, [showAuthModal])
 
-  // ✅ NEW Effect 3: Read referral code from URL
+
   useEffect(() => {
     if (typeof window === 'undefined') return
-    
-    // Read ?ref=WUTJ8JGX from URL
+
+
     const urlParams = new URLSearchParams(window.location.search)
     const refCode = urlParams.get('ref')
-    
+
     if (refCode && refCode.trim() !== '') {
       setReferralCode(refCode.trim())
       setHasReferralCode(true)
       console.log('✅ Referral code detected:', refCode)
-      
-      // Show toast
+
+
       toast.info(`Kode referral: ${refCode}`, {
         description: 'Anda akan mendapatkan bonus saat mendaftar',
         duration: 5000
@@ -1246,7 +1213,7 @@ export default function LandingPage() {
     }
   }, [])
 
-  // Effect 3: Logo animation
+
   useEffect(() => {
     const phaseTimings = {
       'stc-logo-in': 800,
@@ -1281,7 +1248,7 @@ export default function LandingPage() {
     return () => clearTimeout(timeout)
   }, [logoPhase])
 
-  // Effect 4: Auto carousel for testimonials
+
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveTestimonial((prev) => (prev + 1) % 3)
@@ -1289,7 +1256,7 @@ export default function LandingPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Effect 5: Auto carousel for features
+
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveFeature((prev) => (prev + 1) % features.length)
@@ -1297,13 +1264,13 @@ export default function LandingPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Mouse parallax removed — no animated elements use it anymore,
-  // but the mousemove listener + setState was triggering re-renders on every move.
 
-  // ✅ Handle Google redirect result di useEffect, bukan di render guard
+
+
+
   useEffect(() => {
     if (typeof window === 'undefined') return
-    // Jika redirect pending tapi sudah lebih dari 2 menit → stale, hapus saja
+
     if (isRedirectPending()) {
       const redirectTime = localStorage.getItem('google_auth_redirect_time')
       const timeDiff = Date.now() - parseInt(redirectTime || '0')
@@ -1315,7 +1282,7 @@ export default function LandingPage() {
     }
   }, [])
 
-  // ✅ Hanya blokir render saat store belum di-hydrate dari localStorage
+
   if (!hydrated) {
     return (
       <div className="min-h-screen bg-[#0a0e17] flex items-center justify-center">
@@ -1326,7 +1293,7 @@ export default function LandingPage() {
 
   if (user) return null
 
-  // ✅ Event handlers
+
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.targetTouches[0].clientX)
   }
@@ -1337,7 +1304,7 @@ export default function LandingPage() {
 
   const handleTouchEnd = () => {
     if (!touchStart || !touchEnd) return
-    
+
     const distance = touchStart - touchEnd
     const isLeftSwipe = distance > 50
     const isRightSwipe = distance < -50
@@ -1365,7 +1332,7 @@ export default function LandingPage() {
     try {
       const response = isLogin
         ? await api.login(email, password)
-        : await api.register(email, password, referralCode || undefined) // ✅ KIRIM referralCode!
+        : await api.register(email, password, referralCode || undefined)
 
       const userData = response.user || response.data?.user
       const token = response.token || response.data?.token
@@ -1378,11 +1345,11 @@ export default function LandingPage() {
       setAuth(userData, token)
       api.setToken(token)
 
-      // ✅ Show affiliate info if available
+
       if (!isLogin && response.data?.affiliate) {
         const affiliate = response.data.affiliate
         toast.success('Akun berhasil dibuat!', {
-          description: affiliate.referredBy 
+          description: affiliate.referredBy
             ? `Dirujuk oleh: ${affiliate.referredBy}.`
             : 'Selamat bergabung!',
           duration: 5000
@@ -1393,19 +1360,19 @@ export default function LandingPage() {
 
       router.push('/trading')
     } catch (error: any) {
-      const errorMessage = 
-        error.response?.data?.error || 
+      const errorMessage =
+        error.response?.data?.error ||
         error.response?.data?.message ||
-        error.message || 
+        error.message ||
         'Autentikasi gagal'
-      
+
       toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
   }
 
-  // ✅ FIXED: handleGoogleSignIn sudah OK (sudah ada referralCode)
+
   const handleGoogleSignIn = async () => {
     if (!agreedToTerms) {
       setShowTermsWarning(true)
@@ -1416,23 +1383,23 @@ export default function LandingPage() {
 
     try {
       console.log('🔄 Starting Google Sign-In...')
-      
+
       const result = await signInWithGoogle()
-      
+
       if (!result || !result.user) {
         console.log('🔄 Redirecting to Google...')
         return
       }
 
       console.log('✅ Google authentication successful')
-      
+
       const idToken = await getIdToken(result.user)
       console.log('✅ ID Token obtained')
 
-      // ✅ Use referralCode from state (already read from URL)
+
       console.log('📤 Sending to backend with referral:', referralCode || 'none')
       const response = await api.googleSignIn(idToken, referralCode || undefined)
-      
+
       const userData = response.user || response.data?.user
       const token = response.token || response.data?.token
 
@@ -1445,12 +1412,12 @@ export default function LandingPage() {
       setAuth(userData, token)
       api.setToken(token)
 
-      // ✅ Show affiliate info
+
       const isNewUser = response.data?.isNewUser || false
       const affiliate = response.data?.affiliate
-      
+
       let message = isNewUser ? 'Akun berhasil dibuat! Selamat datang!' : 'Selamat datang kembali!'
-      
+
       if (affiliate?.referredBy) {
         toast.success(message, {
           description: `Dirujuk oleh: ${affiliate.referredBy}.`,
@@ -1465,22 +1432,22 @@ export default function LandingPage() {
 
     } catch (error: any) {
       console.error('❌ Google Sign-In failed:', error)
-      
-      if (error.code === 'auth/popup-blocked' || 
+
+      if (error.code === 'auth/popup-blocked' ||
           error.code === 'auth/popup-closed-by-user' ||
           error.code === 'auth/cancelled-popup-request') {
         console.log('🔄 Redirecting to Google for authentication...')
         return
       }
-      
+
       let errorMessage = 'Login dengan Google gagal'
-      
+
       if (error.response?.data?.error) {
         errorMessage = error.response.data.error
       } else if (error.message) {
         errorMessage = error.message
       }
-      
+
       toast.error(errorMessage)
     } finally {
       setLoadingGoogle(false)
@@ -1489,26 +1456,24 @@ export default function LandingPage() {
 
   return (
     <div className="relative min-h-screen bg-[#0a0e17] text-white overflow-hidden">
-      {/* Static background tint — single element, no animation, no blur paint */}
+      {}
       <div className="fixed inset-0 pointer-events-none" aria-hidden>
         <div className="absolute inset-0 bg-gradient-to-br from-sky-950/40 via-transparent to-emerald-950/30" />
       </div>
 
-
-
-      {/* Navigation */}
+      {}
       <nav className="gsap-navbar fixed top-0 left-0 right-0 z-50 bg-[#1a1f2e]/55 backdrop-blur-xl border-b border-gray-700/50">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-20">
-            
-            {/* Logo with animation */}
+
+            {}
             <div className="relative h-10 w-52 overflow-visible">
-              {/* STC AutoTrade */}
+              {}
               {logoPhase.startsWith('stc-') && (
                 <div className="flex items-center gap-3 absolute left-0 top-0">
                   <div className={`relative w-10 h-10 flex-shrink-0 overflow-visible rounded-md ${
                     logoPhase === 'stc-logo-in' ? 'animate-logo-bounce-in' :
-                    logoPhase === 'stc-logo-out' ? 'animate-logo-bounce-out' : 
+                    logoPhase === 'stc-logo-out' ? 'animate-logo-bounce-out' :
                     'opacity-100'
                   }`}>
                     <Image
@@ -1520,12 +1485,12 @@ export default function LandingPage() {
                       priority
                     />
                   </div>
-                  
+
                   {(logoPhase !== 'stc-logo-in' && logoPhase !== 'stc-logo-out') && (
                     <div className="flex overflow-hidden">
                       <span className={`text-xl font-bold text-white whitespace-nowrap ${
                         logoPhase === 'stc-text-in' ? 'animate-text-slide-in' :
-                        logoPhase === 'stc-text-out' ? 'animate-text-slide-out' : 
+                        logoPhase === 'stc-text-out' ? 'animate-text-slide-out' :
                         'opacity-100 translate-x-0'
                       }`}>
                         Stouch
@@ -1535,12 +1500,12 @@ export default function LandingPage() {
                 </div>
               )}
 
-              {/* By Stockity */}
+              {}
               {logoPhase.startsWith('stockity-') && (
                 <div className="flex items-center gap-3 absolute left-0 top-0">
                   <div className={`relative w-10 h-10 flex-shrink-0 overflow-visible rounded-md ${
                     logoPhase === 'stockity-logo-in' ? 'animate-logo-bounce-in' :
-                    logoPhase === 'stockity-logo-out' ? 'animate-logo-bounce-out' : 
+                    logoPhase === 'stockity-logo-out' ? 'animate-logo-bounce-out' :
                     'opacity-100'
                   }`}>
                     <Image
@@ -1552,12 +1517,12 @@ export default function LandingPage() {
                       priority
                     />
                   </div>
-                  
+
                   {(logoPhase !== 'stockity-logo-in' && logoPhase !== 'stockity-logo-out') && (
                     <div className="flex overflow-hidden">
                       <span className={`text-xl font-semibold text-white whitespace-nowrap ${
                         logoPhase === 'stockity-text-in' ? 'animate-text-slide-in' :
-                        logoPhase === 'stockity-text-out' ? 'animate-text-slide-out' : 
+                        logoPhase === 'stockity-text-out' ? 'animate-text-slide-out' :
                         'opacity-100 translate-x-0'
                       }`}>
                         By Stockity
@@ -1568,7 +1533,7 @@ export default function LandingPage() {
               )}
             </div>
 
-            {/* Desktop Menu */}
+            {}
             <div className="hidden md:flex items-center gap-8">
               <a href="#payment" className="text-sm text-gray-300 hover:text-white transition-colors relative group">
                 Pembayaran
@@ -1580,7 +1545,7 @@ export default function LandingPage() {
               </a>
             </div>
 
-            {/* Auth Button */}
+            {}
             <div className="flex items-center gap-3">
               <button
                 onClick={() => {
@@ -1593,27 +1558,27 @@ export default function LandingPage() {
                 Daftar
               </button>
             </div>
-            
+
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {}
       <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32 overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-[#121824] via-[#0d1320] to-[#080c16]" />
-          {/* Random grid pattern */}
+          {}
           <RandomGrid seed={11} opacity={0.07} />
-          {/* Hero bg blurs */}
+          {}
           <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px]" />
           <div className="absolute top-1/3 -left-24 w-[380px] h-[380px] bg-teal-500/8 rounded-full blur-[90px]" />
           <div className="absolute bottom-0 right-0 w-[420px] h-[420px] bg-blue-600/8 rounded-full blur-[110px]" />
           <div className="absolute top-1/2 right-1/4 w-[260px] h-[260px] bg-sky-500/7 rounded-full blur-[80px]" />
         </div>
-        
+
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left Content — animated by GSAP hero timeline */}
+            {}
             <div className="space-y-6">
               <div className="space-y-2">
                 <div className="gsap-hero-badge inline-flex items-center gap-2 px-1">
@@ -1633,8 +1598,8 @@ export default function LandingPage() {
               </div>
 
               <p className="gsap-hero-desc text-lg sm:text-xl text-gray-400 leading-relaxed">
-                Tersedia berbagai aset <span className="text-emerald-600 font-semibold">global</span>, 
-                dapatkan profit hingga <span className="text-teal-600 font-semibold">100%</span>, 
+                Tersedia berbagai aset <span className="text-emerald-600 font-semibold">global</span>,
+                dapatkan profit hingga <span className="text-teal-600 font-semibold">100%</span>,
                 dan penarikan secepat <span className="text-amber-600 font-semibold">kilat.</span>
               </p>
 
@@ -1670,10 +1635,10 @@ export default function LandingPage() {
                 </motion.button>
               </div>
 
-              {/* Stats Row */}
+              {}
               <div className="gsap-hero-stats hidden sm:grid grid-cols-4 gap-4 pt-8">
                 {stats.map((stat, index) => (
-                  <motion.div 
+                  <motion.div
                     key={index}
                     whileHover={{ scale: 1.05, y: -3 }}
                     whileTap={{ scale: 0.97 }}
@@ -1695,28 +1660,28 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right - Real Crypto Components */}
+            {}
             <div className="gsap-hero-chart relative">
-              {/* Desktop-only: tidak di-mount di mobile agar tidak ada polling sia-sia */}
+              {}
               {isDesktop && <LiveCryptoTicker />}
 
               {isDesktop && (
-                <FloatingCryptoPriceCard 
-                  symbol="BTC" 
+                <FloatingCryptoPriceCard
+                  symbol="BTC"
                   delay={0}
                   style={{ top: '10%', left: '-10%' }}
                 />
               )}
               {isDesktop && (
-                <FloatingCryptoPriceCard 
-                  symbol="ETH" 
+                <FloatingCryptoPriceCard
+                  symbol="ETH"
                   delay={0.5}
                   style={{ top: '60%', left: '-5%' }}
                 />
               )}
               {isDesktop && (
-                <FloatingCryptoPriceCard 
-                  symbol="BNB" 
+                <FloatingCryptoPriceCard
+                  symbol="BNB"
                   delay={1}
                   style={{ bottom: '10%', right: '-10%' }}
                 />
@@ -1726,7 +1691,7 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-        {/* AI Image Layer — desktop only, tidak di-fetch di mobile */}
+        {}
         {isDesktop && (
           <div className="absolute left-0 bottom-0 w-2/5 h-2/5 opacity-15 pointer-events-none z-0">
             <Image
@@ -1740,12 +1705,12 @@ export default function LandingPage() {
         )}
       </section>
 
-      {/* Premium section divider */}
+      {}
       <div className="section-glow-line" />
 
-      {/* How It Works */}
+      {}
       <section id="how-it-works" className="py-16 sm:py-20 relative overflow-hidden">
-        {/* Random grid pattern */}
+        {}
         <div className="absolute inset-0 pointer-events-none">
           <RandomGrid seed={27} opacity={0.06} />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_50%,rgba(139,92,246,0.05),transparent)]" />
@@ -1764,13 +1729,13 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Desktop Timeline */}
+          {}
           <div className="hidden lg:block max-w-5xl mx-auto">
             <div className="relative">
               <div className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 timeline-line"></div>
 
               <div className="space-y-24">
-                {/* Step 1 */}
+                {}
                 <div className="gsap-step-card relative flex items-center">
                   <div className="w-[calc(50%-3rem)] mr-auto">
                     <motion.div
@@ -1807,7 +1772,7 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                {/* Step 2 */}
+                {}
                 <div className="gsap-step-card relative flex items-center flex-row-reverse">
                   <div className="w-[calc(50%-3rem)] ml-auto">
                     <motion.div
@@ -1844,7 +1809,7 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                {/* Step 3 */}
+                {}
                 <div className="gsap-step-card relative flex items-center">
                   <div className="w-[calc(50%-3rem)] mr-auto">
                     <motion.div
@@ -1884,7 +1849,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Mobile */}
+          {}
           <div className="lg:hidden space-y-6">
             {[
               { icon: Users, title: 'Daftar & Verifikasi', desc: 'Buat akun dalam 2 menit dengan verifikasi aman', color: 'violet', num: 1 },
@@ -1893,13 +1858,13 @@ export default function LandingPage() {
             ].map((step, i) => (
               <div key={i} className="flex gap-4 relative">
                 {i < 2 && <div className="absolute left-7 top-16 w-px h-6 bg-gray-800"></div>}
-                
+
                 <div className="flex-shrink-0">
                   <div className={`w-14 h-14 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-full flex items-center justify-center`}>
                     <span className={`text-lg font-bold text-${step.color}-400`}>{step.num}</span>
                   </div>
                 </div>
-                
+
                 <div className="flex-1 bg-[#0a0e17] border border-gray-800/50 rounded-xl p-4">
                   <div className="flex items-center gap-3 mb-2">
                     <div className={`w-10 h-10 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-lg flex items-center justify-center`}>
@@ -1915,24 +1880,23 @@ export default function LandingPage() {
         </div>
       </section>
 
-
-{/* Premium section divider */}
+{}
 <div className="section-glow-line" />
 
-{/* Payment Methods */}
+{}
 <section id="payment" className="py-16 sm:py-20 relative overflow-visible">
-  {/* Animated gradient background layers - RAINBOW */}
+  {}
   <div className="absolute inset-0 pointer-events-none overflow-hidden">
-    {/* Random grid pattern */}
+    {}
     <RandomGrid seed={79} opacity={0.06} />
-    {/* Rainbow blur orbs - 3 warna tajam */}
+    {}
     <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_45%_at_15%_50%,rgba(239,68,68,0.22),transparent)]" />
     <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_45%_at_50%_50%,rgba(34,197,94,0.20),transparent)]" />
     <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_45%_at_85%_50%,rgba(99,102,241,0.22),transparent)]" />
   </div>
-  
+
   <div className="container mx-auto px-4 sm:px-6 relative z-10">
-    {/* Header */}
+    {}
     <div className="gsap-section-header text-center mb-12">
       <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6">
         <span className="text-xs font-medium text-emerald-400">Berbagai Metode Pembayaran</span>
@@ -1945,7 +1909,7 @@ export default function LandingPage() {
       </p>
     </div>
 
-    {/* Desktop Grid */}
+    {}
     <div className="hidden lg:block max-w-5xl mx-auto space-y-3 sm:space-y-4">
       <div className="gsap-payment-grid grid grid-cols-6 gap-4">
         {[
@@ -1957,13 +1921,13 @@ export default function LandingPage() {
           { name: 'DANA', logo: '/dana.webp' },
         ].map((item) => (
           <div key={item.name} className="payment-card group bg-white border border-gray-200 rounded-xl p-6 relative overflow-hidden">
-            {/* Hover glow effect on box */}
+            {}
             <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-lg" />
-            
+
             <div className="relative z-10">
               <div className="relative h-12 flex items-center justify-center">
-                <Image 
-                  src={item.logo} 
+                <Image
+                  src={item.logo}
                   alt={item.name}
                   width={120}
                   height={40}
@@ -1985,13 +1949,13 @@ export default function LandingPage() {
           { name: 'BCA', logo: '/bca.webp' },
         ].map((item) => (
           <div key={item.name} className="payment-card group bg-white border border-gray-200 rounded-xl p-6 relative overflow-hidden">
-            {/* Hover glow effect on box */}
+            {}
             <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-lg" />
-            
+
             <div className="relative z-10">
               <div className="relative h-12 flex items-center justify-center">
-                <Image 
-                  src={item.logo} 
+                <Image
+                  src={item.logo}
                   alt={item.name}
                   width={120}
                   height={40}
@@ -2005,9 +1969,9 @@ export default function LandingPage() {
       </div>
     </div>
 
-    {/* Mobile & Tablet Infinite Marquee */}
+    {}
     <div className="lg:hidden space-y-3 overflow-hidden marquee-fade">
-      {/* Baris 1 - scroll ke kiri */}
+      {}
       <div className="relative">
         <div className="flex overflow-hidden">
           <div className="flex gap-3 animate-marquee-left">
@@ -2023,7 +1987,7 @@ export default function LandingPage() {
               { name: 'Mastercard', logo: '/mastercard.webp' },
               { name: 'Bitcoin', logo: '/bitcoin.webp' },
               { name: 'BCA', logo: '/bca.webp' },
-              /* duplicate for seamless loop */
+
               { name: 'DANA2', logo: '/dana.webp' },
               { name: 'OVO2', logo: '/ovo.webp' },
               { name: 'GoPay2', logo: '/gopay.webp' },
@@ -2038,8 +2002,8 @@ export default function LandingPage() {
             ].map((item) => (
               <div key={item.name} className="flex-shrink-0 w-28 bg-white border border-gray-200 rounded-xl p-4">
                 <div className="relative h-10 flex items-center justify-center">
-                  <Image 
-                    src={item.logo} 
+                  <Image
+                    src={item.logo}
                     alt={item.name.replace(/\d+$/, '')}
                     width={100}
                     height={40}
@@ -2052,7 +2016,7 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Baris 2 - scroll ke kanan */}
+      {}
       <div className="relative">
         <div className="flex overflow-hidden">
           <div className="flex gap-3 animate-marquee-right">
@@ -2068,7 +2032,7 @@ export default function LandingPage() {
               { name: 'GoPay', logo: '/gopay.webp' },
               { name: 'OVO', logo: '/ovo.webp' },
               { name: 'DANA', logo: '/dana.webp' },
-              /* duplicate for seamless loop */
+
               { name: 'BCA2', logo: '/bca.webp' },
               { name: 'Bitcoin2', logo: '/bitcoin.webp' },
               { name: 'Mastercard2', logo: '/mastercard.webp' },
@@ -2083,8 +2047,8 @@ export default function LandingPage() {
             ].map((item) => (
               <div key={item.name} className="flex-shrink-0 w-28 bg-white border border-gray-200 rounded-xl p-4">
                 <div className="relative h-10 flex items-center justify-center">
-                  <Image 
-                    src={item.logo} 
+                  <Image
+                    src={item.logo}
                     alt={item.name.replace(/\d+$/, '')}
                     width={100}
                     height={40}
@@ -2098,10 +2062,10 @@ export default function LandingPage() {
       </div>
     </div>
 
-    {/* Security Badge */}
+    {}
     <div className="mt-12 text-center relative z-10">
       <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-        <ShieldCheckered className="w-3.5 h-3.5 text-emerald-400" weight="bold" />              
+        <ShieldCheckered className="w-3.5 h-3.5 text-emerald-400" weight="bold" />
         <span className="text-xs text-white font-medium">
           Semua transaksi telah dilindungi enkripsi SSL 256-bit
         </span>
@@ -2110,11 +2074,11 @@ export default function LandingPage() {
   </div>
 </section>
 
-      {/* Stockity x LindungiHutan Partnership */}
+      {}
 <section className="relative py-12 sm:py-16 lg:py-20 bg-[#0d1422] overflow-hidden">
-  {/* Background Effects */}
+  {}
   <div className="absolute inset-0 pointer-events-none">
-    {/* Random grid pattern */}
+    {}
     <RandomGrid seed={63} opacity={0.06} />
 
     <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_30%_50%,rgba(16,185,129,0.06),transparent)]" />
@@ -2122,9 +2086,9 @@ export default function LandingPage() {
 
   <div className="container mx-auto px-3 sm:px-4 lg:px-6 relative z-10">
     <div className="max-w-7xl mx-auto">
-      {/* BARIS 1: LindungiHutan - Gambar Pohon + Konten */}
+      {}
       <div className="gsap-partner-row grid grid-cols-2 gap-3 sm:gap-6 lg:gap-12 items-center mb-12 sm:mb-16 lg:mb-24">
-        {/* Kiri - Gambar Pohon */}
+        {}
         <div className="relative">
           <div className="gsap-partner-img relative aspect-[1/1] m-8 lg:m-0 rounded-xl sm:rounded-2xl lg:rounded-3xl overflow-hidden gsap-parallax-img">
             <Image
@@ -2137,9 +2101,9 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Kanan - Konten */}
+        {}
         <div className="space-y-2 sm:space-y-4 lg:space-y-6">
-          {/* Logo */}
+          {}
           <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
             <div className="gsap-partner-logo relative w-16 h-6 sm:w-24 sm:h-9 lg:w-32 lg:h-12 bg-white rounded-md sm:rounded-lg overflow-hidden">
               <Image
@@ -2152,30 +2116,30 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Title */}
+          {}
           <h2 className="gsap-partner-heading text-sm sm:text-2xl lg:text-4xl xl:text-5xl font-bold leading-tight">
             Bersama kita mengubah dunia!
           </h2>
 
-          {/* Description */}
+          {}
           <p className="gsap-partner-desc text-[10px] sm:text-sm lg:text-lg text-gray-400 leading-relaxed">
             Tahun ini, Stockity telah menanam 9.000 pohon dan 4 terumbu karang bekerja sama dengan LindungiHutan
           </p>
 
-          {/* Button */}
+          {}
           <a href="https://stockity.id/id/ad/ecostockity?utm_source=ecostockity_new&utm_medium=marprod&utm_campaign=main_page_banner&a=&ac=main_page_banner" target="_blank" rel="noopener noreferrer">
             <button className="gsap-partner-btn group inline-flex items-center mt-6 gap-1 sm:gap-2 lg:gap-3 px-3 py-1.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 bg-gradient-to-br from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 rounded-lg sm:rounded-xl text-[10px] sm:text-base lg:text-lg font-semibold text-white transition-all shadow-lg hover:shadow-emerald-500/30">
               <span>Selengkapnya</span>
               <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 group-hover:translate-x-1 transition-transform" weight="bold" />
             </button>
-          </a>   
+          </a>
         </div>
       </div>
 
-      {/* BARIS 2: Platform Profesional - Teks + Gambar SA */}
+      {}
       <div className="gsap-partner-row mb-12 sm:mb-16 lg:mb-24">
         <div className="grid grid-cols-[2fr_1fr] gap-3 sm:gap-6 lg:gap-8 items-center">
-          {/* Kiri - Teks (75%) */}
+          {}
           <div className="space-y-2 sm:space-y-3 lg:space-y-4">
             <h3 className="gsap-partner-heading text-sm sm:text-2xl lg:text-4xl xl:text-5xl font-bold leading-tight">
               Platform yang diandalkan oleh para profesional!
@@ -2186,7 +2150,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Kanan - Gambar (25%) */}
+          {}
           <div>
             <div className="gsap-partner-img relative aspect-square rounded-xl sm:rounded-2xl overflow-hidden">
               <Image
@@ -2201,10 +2165,10 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* BARIS 3: Trading 24 Jam - Gambar IL4 + Teks */}
+      {}
       <div className="gsap-partner-row">
         <div className="grid grid-cols-[1fr_2fr] gap-3 sm:gap-6 lg:gap-8 items-center">
-          {/* Kiri - Gambar (30%) */}
+          {}
           <div>
             <div className="gsap-partner-img relative aspect-square rounded-xl sm:rounded-2xl overflow-hidden">
               <Image
@@ -2217,7 +2181,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Kanan - Teks (70%) */}
+          {}
           <div className="space-y-2 sm:space-y-3 lg:space-y-4">
             <h3 className="gsap-partner-heading text-sm sm:text-2xl lg:text-4xl xl:text-5xl font-bold leading-tight">
               Akses trading realtime 24 jam tanpa tutup!
@@ -2233,17 +2197,16 @@ export default function LandingPage() {
   </div>
 </section>
 
-
-            {/* Affiliate Program */}
+            {}
 <section className="py-16 sm:py-20 relative overflow-hidden">
-  {/* Background */}
+  {}
   <div className="absolute inset-0 pointer-events-none">
     <RandomGrid seed={97} opacity={0.055} />
     <div className="absolute inset-0 bg-[radial-gradient(ellipse_65%_50%_at_70%_40%,rgba(16,185,129,0.05),transparent)]" />
     <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_40%_at_20%_70%,rgba(14,165,233,0.04),transparent)]" />
   </div>
   <div className="container mx-auto px-4 sm:px-6">
-    {/* Header */}
+    {}
     <div className="gsap-affiliate-header gsap-section-header text-center mb-16">
       <div className="gsap-aff-badge inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6">
         <span className="text-sm font-medium text-emerald-400">Program Affiliate</span>
@@ -2256,29 +2219,29 @@ export default function LandingPage() {
       </p>
     </div>
 
-    {/* Reward Cards */}
+    {}
     <div className="grid grid-cols-2 gap-3 sm:gap-5 max-w-3xl mx-auto mb-16">
 
-      {/* VIP Card */}
+      {}
       <motion.div
         className="gsap-affiliate-card group relative rounded-2xl sm:rounded-3xl overflow-hidden"
         whileHover={{ scale: 1.02, y: -4 }}
         whileTap={{ scale: 0.98 }}
         transition={{ duration: 0.22, ease: "easeOut" }}
       >
-        {/* Glass background */}
+        {}
         <div className="absolute inset-0 bg-gradient-to-br from-white/[0.07] via-white/[0.03] to-white/[0.01]" />
         <div className="absolute inset-0 backdrop-blur-xl" />
-        {/* Emerald ambient glow */}
+        {}
         <div className="absolute -top-6 -left-6 w-32 h-32 bg-emerald-500/25 rounded-full blur-2xl" />
         <div className="absolute bottom-0 right-0 w-24 h-24 bg-emerald-400/10 rounded-full blur-2xl" />
-        {/* Border */}
+        {}
         <div className="absolute inset-0 rounded-2xl sm:rounded-3xl border border-white/10 group-hover:border-emerald-400/25 transition-colors duration-400" />
-        {/* Top shine */}
+        {}
         <div className="absolute top-0 inset-x-4 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
         <div className="relative z-10 p-5 sm:p-7">
-          {/* Icon + tier */}
+          {}
           <div className="flex items-center gap-2 mb-5 sm:mb-6">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/20 flex items-center justify-center">
               <Medal className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-300" weight="fill" />
@@ -2286,7 +2249,7 @@ export default function LandingPage() {
             <span className="text-xs sm:text-sm font-semibold text-emerald-300/90 tracking-wider uppercase">VIP</span>
           </div>
 
-          {/* Amount */}
+          {}
           <div className="mb-1">
             <span className="text-2xl sm:text-4xl font-black text-white tracking-tight">Rp 400rb</span>
           </div>
@@ -2294,26 +2257,26 @@ export default function LandingPage() {
         </div>
       </motion.div>
 
-      {/* Standard & Gold Card */}
+      {}
       <motion.div
         className="gsap-affiliate-card group relative rounded-2xl sm:rounded-3xl overflow-hidden"
         whileHover={{ scale: 1.02, y: -4 }}
         whileTap={{ scale: 0.98 }}
         transition={{ duration: 0.22, ease: "easeOut" }}
       >
-        {/* Glass background */}
+        {}
         <div className="absolute inset-0 bg-gradient-to-br from-white/[0.07] via-white/[0.03] to-white/[0.01]" />
         <div className="absolute inset-0 backdrop-blur-xl" />
-        {/* Sky ambient glow */}
+        {}
         <div className="absolute -top-6 -right-6 w-32 h-32 bg-sky-500/20 rounded-full blur-2xl" />
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-sky-400/10 rounded-full blur-2xl" />
-        {/* Border */}
+        {}
         <div className="absolute inset-0 rounded-2xl sm:rounded-3xl border border-white/10 group-hover:border-sky-400/25 transition-colors duration-400" />
-        {/* Top shine */}
+        {}
         <div className="absolute top-0 inset-x-4 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
         <div className="relative z-10 p-5 sm:p-7">
-          {/* Icon + tier */}
+          {}
           <div className="flex items-center gap-2 mb-5 sm:mb-6">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-sky-500/20 border border-sky-400/20 flex items-center justify-center">
               <Star className="w-4 h-4 sm:w-5 sm:h-5 text-sky-300" weight="fill" />
@@ -2321,7 +2284,7 @@ export default function LandingPage() {
             <span className="text-xs sm:text-sm font-semibold text-sky-300/90 tracking-wider uppercase">Standart & Gold</span>
           </div>
 
-          {/* Amount */}
+          {}
           <div className="mb-1">
             <span className="text-2xl sm:text-4xl font-black text-white tracking-tight">Rp 100rb</span>
           </div>
@@ -2331,7 +2294,7 @@ export default function LandingPage() {
 
     </div>
 
-    {/* How It Works - Compact Grid for Mobile */}
+    {}
     <div className="max-w-4xl mx-auto mb-16">
       <div className="text-center mb-10 sm:mb-12">
         <h3 className="text-xl sm:text-2xl sm:text-3xl font-bold">
@@ -2340,7 +2303,7 @@ export default function LandingPage() {
         <p className="text-sm text-gray-500 mt-2">4 langkah mudah untuk mulai menghasilkan</p>
       </div>
 
-      {/* Desktop Timeline - Hidden on Mobile */}
+      {}
       <div className="gsap-affiliate-steps-grid hidden md:grid md:grid-cols-4 gap-6">
         {[
           {
@@ -2376,7 +2339,7 @@ export default function LandingPage() {
             {i < 3 && (
               <div className="hidden md:block absolute top-12 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-gray-700 to-gray-800"></div>
             )}
-            
+
             <div className="glass-card gradient-border relative rounded-2xl p-6 group">
               <div className="absolute -top-4 left-6">
                 <div className={`w-8 h-8 bg-${step.color}-500/20 border-2 border-${step.color}-500/50 rounded-full flex items-center justify-center`}>
@@ -2395,7 +2358,7 @@ export default function LandingPage() {
         ))}
       </div>
 
-      {/* Mobile Steps - Clean vertical stepper */}
+      {}
       <div className="md:hidden space-y-0">
         {[
           { num: '1', icon: Users,          title: 'Temukan Teman',      desc: 'Cari teman yang sudah trading di Stouch',      highlight: null },
@@ -2404,7 +2367,7 @@ export default function LandingPage() {
           { num: '4', icon: TrendUp,         title: 'Undang & Raih',     desc: 'Kumpulkan hingga Rp 400.000 per trader ',        highlight: 'Rp 400.000' },
         ].map((step, i, arr) => (
           <div key={i} className="relative flex gap-4">
-            {/* Left: number + connector line */}
+            {}
             <div className="flex flex-col items-center flex-shrink-0">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/40 flex items-center justify-center z-10">
                 <span className="text-sm font-bold text-emerald-400">{step.num}</span>
@@ -2414,7 +2377,7 @@ export default function LandingPage() {
               )}
             </div>
 
-            {/* Right: content card */}
+            {}
             <div className={`flex-1 pb-5 ${i === arr.length - 1 ? 'pb-0' : ''}`}>
               <div className="bg-[#0d1220] border border-white/5 rounded-2xl p-4 hover:border-emerald-500/20 transition-colors group">
                 <div className="flex items-center gap-3 mb-2">
@@ -2438,13 +2401,13 @@ export default function LandingPage() {
       </div>
     </div>
 
-    {/* Partner CTA */}
+    {}
     <div className="gsap-cta-section relative max-w-4xl mx-auto glass-card rounded-3xl overflow-hidden border-emerald-500/15">
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-emerald-500/5"></div>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,rgba(16,185,129,0.07),transparent)]" />
-        
-        {/* AI2 Image Layer */}
+
+        {}
         <div className="block absolute left-[-110] md:left-[-140] bottom-50 w-3/5 h-full opacity-20 pointer-events-none z-0 lg:left-[-21%] lg:w-1/2 lg:opacity-20">
           <Image
             src="/ai2.png"
@@ -2465,7 +2428,7 @@ export default function LandingPage() {
         <h3 className="gsap-cta-title text-xl sm:text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">
           Jadilah Mitra Resmi Stouch
         </h3>
-        
+
         <p className="gsap-cta-desc text-sm sm:text-lg text-gray-400 mb-6 sm:mb-8 max-w-2xl mx-auto">
           Ajak trader baru ke platform dan dapatkan <span className="text-emerald-400 font-semibold">penghasilan tambahan</span>
         </p>
@@ -2501,25 +2464,25 @@ export default function LandingPage() {
   </div>
 </section>
 
-      {/* Footer */}
+      {}
       <EnhancedFooter />
 
       {showDemoTutorial && (
         <DemoTradingTutorial onClose={() => setShowDemoTutorial(false)} />
       )}
-      
-      {/* Auth Modal */}
-      {/* Auth Modal */}
+
+      {}
+      {}
 {showAuthModal && (
   <>
-    <div 
+    <div
       className={`fixed inset-0 bg-black/60 backdrop-blur-md z-50 ${isClosingModal ? 'animate-fade-out' : 'animate-fade-in'}`}
       onClick={closeAuthModal}
     />
 
-    {/* Panel slide dari kanan */}
+    {}
     <div className={`fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-gradient-to-b from-[#0f1419] to-[#0a0e17] z-50 shadow-2xl flex flex-col ${isClosingModal ? 'animate-slide-right' : 'animate-slide-left'}`}>
-      {/* Header - Sticky */}
+      {}
       <div className="flex-shrink-0 bg-[#0f1419] border-b border-gray-800/50 p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -2546,10 +2509,10 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* FIXED: Content area dengan overflow-y-auto tunggal */}
+      {}
       <div className="flex-1 overflow-y-auto scrollbar-hide">
         <div className="p-6">
-          {/* Mode Toggle */}
+          {}
           <div className="flex gap-2 p-1 bg-[#0a0e17] rounded-xl mb-6">
             <button
               onClick={() => setIsLogin(true)}
@@ -2573,7 +2536,7 @@ export default function LandingPage() {
             </button>
           </div>
 
-          {/* ✅ NEW: Referral Code Banner */}
+          {}
           {hasReferralCode && !isLogin && (
             <div className="mb-6 p-4 bg-gradient-to-r from-emerald-500/10 to-emerald-500/10 border border-emerald-500/30 rounded-xl animate-fade-in-up">
               <div className="flex items-start gap-3">
@@ -2595,21 +2558,21 @@ export default function LandingPage() {
             </div>
           )}
 
-          {/* Header Text */}
+          {}
           <div className="mb-6">
             <h3 className="text-2xl font-bold mb-2">
               {isLogin ? 'Selamat Datang Kembali!' : 'Buat Akun'}
             </h3>
             <p className="text-gray-400">
-              {isLogin 
-                ? 'Masuk untuk melanjutkan trading' 
-                : hasReferralCode 
+              {isLogin
+                ? 'Masuk untuk melanjutkan trading'
+                : hasReferralCode
                   ? 'Bergabung dengan bonus referral'
                   : 'Bergabung dengan ribuan trader sukses'}
             </p>
           </div>
 
-          {/* Form */}
+          {}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -2641,7 +2604,7 @@ export default function LandingPage() {
                 className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
                 autoComplete={isLogin ? 'current-password' : 'new-password'}
               />
-              
+
               {!isLogin && (
                 <div className="mt-6 p-3 bg-transparent rounded-lg">
                   <p className="text-xs text-sky-400 font-medium mb-1">Password harus memiliki:</p>
@@ -2666,7 +2629,7 @@ export default function LandingPage() {
               )}
             </div>
 
-            {/* ✅ NEW: Manual Referral Code Input (jika belum ada di URL) */}
+            {}
             {!isLogin && !hasReferralCode && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -2687,7 +2650,7 @@ export default function LandingPage() {
               </div>
             )}
 
-            {/* Terms Checkbox — di atas tombol submit */}
+            {}
             <label className="flex items-start gap-3 mt-6 mb-1 cursor-pointer group">
               <div className="relative flex-shrink-0 mt-0.5">
                 <input
@@ -2721,7 +2684,7 @@ export default function LandingPage() {
               </span>
             </label>
 
-            {/* Peringatan jika belum centang */}
+            {}
             {showTermsWarning && (
               <p className="text-xs text-red-400 mb-3 flex items-center gap-1.5">
                 <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -2776,7 +2739,7 @@ export default function LandingPage() {
             </div>
           )}
 
-          {/* Social Login */}
+          {}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-800"></div>
@@ -2786,7 +2749,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Terms Checkbox */}
+          {}
 
           <button
             onClick={handleGoogleSignIn}
@@ -2801,7 +2764,7 @@ export default function LandingPage() {
             ) : (
               <>
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  {/* Google icon paths */}
+                  {}
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
                   <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>

@@ -1,4 +1,4 @@
-// lib/utils.ts 
+// lib/utils.ts
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns'
@@ -89,17 +89,17 @@ export function getDurationDisplay(minutes: number): string {
     45: '45m',
     60: '1h',
   }
-  
+
   return DISPLAY_MAP[minutes] || formatDuration(minutes)
 }
 
 export function parseDuration(display: string): number {
   const match = display.match(/^(\d+)(m|h)$/)
   if (!match) return 0
-  
+
   const [, value, unit] = match
   const numValue = parseInt(value)
-  
+
   switch (unit) {
     case 'm':
       return numValue
@@ -138,11 +138,11 @@ export function calculateTimeLeft(exitTime: string | Date): string {
   if (hours > 0) {
     return `${hours}h ${minutes}m ${seconds}s`
   }
-  
+
   if (minutes > 0) {
     return `${minutes}m ${seconds}s`
   }
-  
+
   return `${seconds}s`
 }
 
@@ -150,13 +150,13 @@ export function calculateTimeLeftSeconds(exitTime: string | Date): number {
   const now = new Date()
   const exit = new Date(exitTime)
   const diff = exit.getTime() - now.getTime()
-  
+
   return Math.max(0, Math.floor(diff / 1000))
 }
 
 export function calculateTimeLeftShort(exitTime: string | Date): string {
   const seconds = calculateTimeLeftSeconds(exitTime)
-  
+
   if (seconds === 0) return '0s'
   if (seconds < 60) return `${seconds}s`
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
@@ -175,11 +175,11 @@ export function getDuration(startTime: string | Date, endTime: string | Date): s
   if (hours > 0) {
     return `${hours}h ${minutes}m`
   }
-  
+
   if (minutes > 0) {
     return `${minutes}m ${seconds}s`
   }
-  
+
   return `${seconds}s`
 }
 
@@ -187,20 +187,20 @@ const currencyCache = new Map<number, string>()
 const MAX_CACHE_SIZE = 1000
 
 export function formatCurrency(amount: number, compact = false): string {
-  // ✅ FIXED: Validate amount to prevent NaN display
+
   const validAmount = Number(amount)
   if (!isFinite(validAmount) || isNaN(validAmount)) {
     return 'Rp0'
   }
-  
+
   const cacheKey = compact ? `${validAmount}-compact` : validAmount
-  
+
   if (currencyCache.has(cacheKey as any)) {
     return currencyCache.get(cacheKey as any)!
   }
-  
+
   let formatted: string
-  
+
   if (compact && Math.abs(validAmount) >= 1000000) {
     formatted = new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -218,11 +218,11 @@ export function formatCurrency(amount: number, compact = false): string {
       maximumFractionDigits: 0,
     }).format(validAmount)
   }
-  
+
   if (currencyCache.size < MAX_CACHE_SIZE) {
     currencyCache.set(cacheKey as any, formatted)
   }
-  
+
   return formatted
 }
 
@@ -240,7 +240,7 @@ export function formatPrice(price: number, decimals?: number): string {
       decimals = 8
     }
   }
-  
+
   return price.toFixed(decimals)
 }
 
@@ -250,7 +250,7 @@ export function formatPriceAuto(price: number, assetType?: string): string {
     if (price >= 1) return price.toFixed(8)
     return price.toFixed(10)
   }
-  
+
   if (price >= 1000) return price.toFixed(2)
   if (price >= 1) return price.toFixed(6)
   return price.toFixed(8)
@@ -278,17 +278,17 @@ const dateCache = new Map<string, string>()
 
 export function formatDate(date: string | Date, formatStr = 'MMM dd, yyyy HH:mm:ss'): string {
   const key = typeof date === 'string' ? `${date}-${formatStr}` : `${date.toISOString()}-${formatStr}`
-  
+
   if (dateCache.has(key)) {
     return dateCache.get(key)!
   }
-  
+
   const formatted = format(new Date(date), formatStr)
-  
+
   if (dateCache.size < MAX_CACHE_SIZE) {
     dateCache.set(key, formatted)
   }
-  
+
   return formatted
 }
 
@@ -306,15 +306,15 @@ export function formatDateLong(date: string | Date): string {
 
 export function formatRelativeTime(date: string | Date): string {
   const dateObj = new Date(date)
-  
+
   if (isToday(dateObj)) {
     return `Today at ${format(dateObj, 'HH:mm')}`
   }
-  
+
   if (isYesterday(dateObj)) {
     return `Yesterday at ${format(dateObj, 'HH:mm')}`
   }
-  
+
   return formatDistanceToNow(dateObj, { addSuffix: true })
 }
 
@@ -323,7 +323,7 @@ export function debounce<T extends (...args: any[]) => any>(
   wait: number
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout | null = null
-  
+
   return (...args: Parameters<T>) => {
     if (timeout) clearTimeout(timeout)
     timeout = setTimeout(() => func(...args), wait)
@@ -335,7 +335,7 @@ export function throttle<T extends (...args: any[]) => any>(
   limit: number
 ): (...args: Parameters<T>) => void {
   let inThrottle: boolean = false
-  
+
   return (...args: Parameters<T>) => {
     if (!inThrottle) {
       func(...args)
@@ -349,20 +349,20 @@ export function memoize<T extends (...args: any[]) => any>(
   func: T
 ): T {
   const cache = new Map<string, ReturnType<T>>()
-  
+
   return ((...args: Parameters<T>) => {
     const key = JSON.stringify(args)
-    
+
     if (cache.has(key)) {
       return cache.get(key)
     }
-    
+
     const result = func(...args)
-    
+
     if (cache.size < MAX_CACHE_SIZE) {
       cache.set(key, result)
     }
-    
+
     return result
   }) as T
 }
@@ -371,10 +371,10 @@ export function rafThrottle<T extends (...args: any[]) => any>(
   func: T
 ): (...args: Parameters<T>) => void {
   let rafId: number | null = null
-  
+
   return (...args: Parameters<T>) => {
     if (rafId) return
-    
+
     rafId = requestAnimationFrame(() => {
       func(...args)
       rafId = null
@@ -431,8 +431,8 @@ export function getAccountTypeColor(accountType: 'real' | 'demo'): string {
 }
 
 export function getAccountTypeBg(accountType: 'real' | 'demo'): string {
-  return accountType === 'real' 
-    ? 'bg-green-500/20 text-green-400 border-green-500/30' 
+  return accountType === 'real'
+    ? 'bg-green-500/20 text-green-400 border-green-500/30'
     : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
 }
 
@@ -498,7 +498,7 @@ export function unique<T>(array: T[], key?: keyof T): T[] {
   if (!key) {
     return [...new Set(array)]
   }
-  
+
   const seen = new Set()
   return array.filter(item => {
     const value = item[key]
@@ -525,7 +525,7 @@ export function sortBy<T>(array: T[], key: keyof T, order: 'asc' | 'desc' = 'asc
   return [...array].sort((a, b) => {
     const aVal = a[key]
     const bVal = b[key]
-    
+
     if (aVal < bVal) return order === 'asc' ? -1 : 1
     if (aVal > bVal) return order === 'asc' ? 1 : -1
     return 0
@@ -534,7 +534,7 @@ export function sortBy<T>(array: T[], key: keyof T, order: 'asc' | 'desc' = 'asc
 
 export function getLocalStorage<T>(key: string, defaultValue: T): T {
   if (typeof window === 'undefined') return defaultValue
-  
+
   try {
     const item = window.localStorage.getItem(key)
     return item ? JSON.parse(item) : defaultValue
@@ -545,7 +545,7 @@ export function getLocalStorage<T>(key: string, defaultValue: T): T {
 
 export function setLocalStorage<T>(key: string, value: T): void {
   if (typeof window === 'undefined') return
-  
+
   try {
     window.localStorage.setItem(key, JSON.stringify(value))
   } catch (error) {
@@ -555,7 +555,7 @@ export function setLocalStorage<T>(key: string, value: T): void {
 
 export function removeLocalStorage(key: string): void {
   if (typeof window === 'undefined') return
-  
+
   try {
     window.localStorage.removeItem(key)
   } catch (error) {
@@ -565,7 +565,7 @@ export function removeLocalStorage(key: string): void {
 
 export function clearLocalStorage(): void {
   if (typeof window === 'undefined') return
-  
+
   try {
     window.localStorage.clear()
   } catch (error) {
@@ -575,30 +575,30 @@ export function clearLocalStorage(): void {
 
 export function buildQueryString(params: Record<string, any>): string {
   const searchParams = new URLSearchParams()
-  
+
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') {
       searchParams.append(key, String(value))
     }
   })
-  
+
   return searchParams.toString()
 }
 
 export function parseQueryString(queryString: string): Record<string, string> {
   const params = new URLSearchParams(queryString)
   const result: Record<string, string> = {}
-  
+
   params.forEach((value, key) => {
     result[key] = value
   })
-  
+
   return result
 }
 
 export function playSound(soundPath: string, volume: number = 0.3): void {
   if (typeof window === 'undefined') return
-  
+
   try {
     const audio = new Audio(soundPath)
     audio.volume = volume
@@ -610,7 +610,7 @@ export function playSound(soundPath: string, volume: number = 0.3): void {
 
 export async function copyToClipboard(text: string): Promise<boolean> {
   if (typeof window === 'undefined') return false
-  
+
   try {
     await navigator.clipboard.writeText(text)
     return true
@@ -633,7 +633,7 @@ export function randomFloat(min: number, max: number, decimals: number = 2): num
 }
 
 export const DURATIONS = [
-  1, 2, 3, 4, 5, 
+  1, 2, 3, 4, 5,
   10, 15, 30, 45, 60
 ] as const
 

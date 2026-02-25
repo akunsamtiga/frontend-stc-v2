@@ -59,7 +59,7 @@ class PerformanceMonitor {
 
   getAllStats(): Record<string, any> {
     const stats: Record<string, any> = {}
-    
+
     this.metrics.forEach((_, label) => {
       stats[label] = this.getStats(label)
     })
@@ -94,10 +94,10 @@ export function measureAsync<T>(
   fn: () => Promise<T>
 ): Promise<T> {
   performanceMonitor.start(label)
-  
+
   return fn().finally(() => {
     const duration = performanceMonitor.end(label)
-    
+
     if (duration > 1000) {
       console.warn(`⚠️ Slow operation: ${label} took ${duration.toFixed(2)}ms`)
     } else if (duration > 500) {
@@ -111,7 +111,7 @@ export function measureAsync<T>(
 export function logPerformance(label: string, duration: number): void {
   const emoji = duration < 500 ? '✅' : duration < 1000 ? '⏱️' : '⚠️'
   console.log(`${emoji} ${label}: ${duration.toFixed(2)}ms`)
-  
+
   if (duration > 2000) {
     console.warn(`❌ CRITICAL: ${label} is too slow!`)
   }

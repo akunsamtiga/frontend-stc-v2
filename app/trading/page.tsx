@@ -17,7 +17,7 @@ import dynamic from 'next/dynamic'
 import TradingTutorial from '@/components/TradingTutorial'
 import AssetIcon from '@/components/common/AssetIcon'
 import BalanceDisplay from '@/components/BalanceDisplay'
-import { 
+import {
   ArrowUp,
   ArrowDown,
   Clock,
@@ -85,39 +85,29 @@ const EXTENDED_DURATIONS = [
   { value: 60, label: '1 jam', shortLabel: '60m' },
 ]
 
-// ============================================================================
-// ✅ NEW: HELPER FUNCTIONS FOR MIN/MAX ORDER VALIDATION
-// ============================================================================
 
-/**
- * Get min/max order limits from asset tradingSettings
- * Falls back to default values if tradingSettings not available
- */
 const getOrderLimits = (asset: Asset | null) => {
   const defaultMin = 10000
   const defaultMax = 10000000
-  
+
   if (!asset?.tradingSettings) {
     return { min: defaultMin, max: defaultMax }
   }
-  
+
   const min = asset.tradingSettings.minOrderAmount ?? defaultMin
   const max = asset.tradingSettings.maxOrderAmount ?? defaultMax
-  
+
   return { min, max }
 }
 
-/**
- * Generate preset amounts based on min/max limits
- * Returns array of reasonable increment values between min and max
- */
+
 const generatePresetAmounts = (min: number, max: number): number[] => {
   const presets: number[] = []
-  
-  // Start from min
+
+
   presets.push(min)
-  
-  // Generate reasonable increments
+
+
   const increments = [
     min * 2.5,
     min * 5,
@@ -127,25 +117,22 @@ const generatePresetAmounts = (min: number, max: number): number[] => {
     min * 50,
     min * 100,
   ]
-  
+
   increments.forEach(amount => {
     if (amount > min && amount <= max && !presets.includes(amount)) {
       presets.push(Math.floor(amount))
     }
   })
-  
-  // Always add max if not already included
+
+
   if (!presets.includes(max)) {
     presets.push(max)
   }
-  
-  // Sort and return unique values, limit to 8 presets
+
+
   return Array.from(new Set(presets)).sort((a, b) => a - b).slice(0, 8)
 }
 
-// ============================================================================
-// ✅ MODIFIED: ASSET TYPE FILTER WITHOUT ICONS
-// ============================================================================
 
 type AssetTypeFilter = 'all' | 'forex' | 'crypto' | 'stock' | 'commodity' | 'index'
 
@@ -175,8 +162,8 @@ const TypeFilterChips = memo(({
   availableTypes: AssetTypeFilter[]
 }) => {
   const types: AssetTypeFilter[] = ['all', ...availableTypes]
-  
-  // Bagi chips menjadi 2 baris yang seimbang
+
+
   const midPoint = Math.ceil(types.length / 2)
   const row1 = types.slice(0, midPoint)
   const row2 = types.slice(midPoint)
@@ -227,16 +214,15 @@ const TypeFilterChips = memo(({
 
 TypeFilterChips.displayName = 'TypeFilterChips'
 
-// ============================================================================
 
 const formatExpiryTime = (durationMinutes: number): string => {
   const asset = useTradingStore.getState().selectedAsset
   if (!asset) return getDurationDisplay(durationMinutes)
-  
+
   const now = TimezoneUtil.getCurrentTimestamp()
   const timing = CalculationUtil.formatOrderTiming(asset, durationMinutes, now)
-  
-  // Format waktu dan ganti titik dengan colon
+
+
   const formattedTime = TimezoneUtil.formatWIBTime(timing.expiryTimestamp)
   return formattedTime.replace(/\./g, ':')
 }
@@ -264,14 +250,14 @@ export default function TradingPage() {
   } = useOptimisticOrders(user?.id)
 
   const notification = useOrderResultNotification()
-  
+
   const notify = notification.notify
 
   const notifiedOrderIdsRef = useRef<Set<string>>(new Set())
   const updateOrderRef = useRef(updateOrder)
   const notifyRef = useRef(notify)
   const loadOrdersRef = useRef<() => Promise<void>>(async () => {})
-  
+
   useEffect(() => {
     updateOrderRef.current = updateOrder
     notifyRef.current = notify
@@ -284,18 +270,18 @@ export default function TradingPage() {
   const [duration, setDuration] = useState(1)
   const [loading, setLoading] = useState(false)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
-  
+
   const balanceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const balanceRef = useRef({ real: 0, demo: 0 })
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const isPlacingRef = useRef(false) // ✅ Guard sinkron anti double-submit
-  // ✅ FIX: Pastikan banner hanya muncul sekali, meski effect re-run karena assets.length berubah
+  const isPlacingRef = useRef(false)
+
   const bannerShownRef = useRef(false)
-  
+
   const [showAssetMenu, setShowAssetMenu] = useState(false)
   const [isAssetMenuClosing, setIsAssetMenuClosing] = useState(false)
   const [assetSearch, setAssetSearch] = useState('')
-  // ✅ Asset type filter state
+
   const [assetTypeFilter, setAssetTypeFilter] = useState<AssetTypeFilter>('all')
   const [showAccountMenu, setShowAccountMenu] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -327,10 +313,10 @@ export default function TradingPage() {
   const currentBalance = selectedAccountType === 'real' ? realBalance : demoBalance
   const isUltraFastMode = duration === 0.0167
 
-  // ✅ Notif merah jika profil belum 100% complete
+
   const isProfileIncomplete = (userProfile?.profileInfo?.completion ?? 0) < 100
 
-  // ✅ FIX: Sync balanceRef agar handlePlaceOrder tidak stale closure
+
   useEffect(() => {
     balanceRef.current = { real: realBalance, demo: demoBalance }
   }, [realBalance, demoBalance])
@@ -342,7 +328,7 @@ export default function TradingPage() {
 
   const { isConnected, isConnecting, isReconnecting } = useWebSocket()
 
-  // ✅ FIX: Tampilkan toast saat reconnecting tapi TIDAK block tombol
+
   useEffect(() => {
     if (isReconnecting) {
       toast.loading('Menghubungkan ulang...', { id: 'ws-reconnect', duration: Infinity })
@@ -350,7 +336,7 @@ export default function TradingPage() {
       toast.dismiss('ws-reconnect')
     }
   }, [isReconnecting, isConnected])
-  
+
   const { priceData: wsPrice, lastUpdate: priceLastUpdate } = usePriceSubscription(
     selectedAsset?.id || null,
     true
@@ -376,7 +362,7 @@ export default function TradingPage() {
     if (!wsOrder) return
 
     if (wsOrder.event === 'order:created') {
-      // FIXED: Immediately add the order to the list instead of just reloading
+
       if (wsOrder.orderData) {
         setAllOrders((prevOrders: BinaryOrder[]) => {
           if (prevOrders.some((o: BinaryOrder) => o.id === wsOrder.id)) {
@@ -404,7 +390,7 @@ export default function TradingPage() {
 
       loadBalances()
     } else if (wsOrder.event === 'order:updated') {
-      // FIXED: Handle order updates (including status changes to ACTIVE)
+
       if (wsOrder.orderData) {
         setAllOrders((prevOrders: BinaryOrder[]) => {
           const existingIndex = prevOrders.findIndex((o: BinaryOrder) => o.id === wsOrder.id)
@@ -422,16 +408,16 @@ export default function TradingPage() {
 
   const handlePollingResult = useCallback((resultOrder: BinaryOrder) => {
     updateOrderRef.current(resultOrder.id, resultOrder)
-    
+
     if (!notifiedOrderIdsRef.current.has(resultOrder.id)) {
       notifiedOrderIdsRef.current.add(resultOrder.id)
       notifyRef.current(resultOrder)
     }
-    
+
     if (balanceUpdateTimeoutRef.current) {
       clearTimeout(balanceUpdateTimeoutRef.current)
     }
-    
+
     balanceUpdateTimeoutRef.current = setTimeout(() => {
       loadBalances()
     }, 100)
@@ -455,7 +441,7 @@ export default function TradingPage() {
     try {
       const response = await api.getProfile()
       const profile = (response as any)?.data as UserProfile || response as UserProfile
-      
+
       if (profile && 'user' in profile && 'statusInfo' in profile) {
         setUserProfile(profile)
       }
@@ -472,7 +458,7 @@ export default function TradingPage() {
     }
   }, [setAllOrders])
 
-  // Update ref for use in other effects
+
   useEffect(() => {
     loadOrdersRef.current = loadOrders
   }, [loadOrders])
@@ -511,13 +497,13 @@ export default function TradingPage() {
   const handleCompleteTutorial = useCallback(async () => {
     try {
       await api.completeTutorial()
-      
+
       const updatedUser = {
         ...user!,
         tutorialCompleted: true,
         isNewUser: false,
       }
-      
+
       useAuthStore.setState({ user: updatedUser })
       setShowTutorial(false)
       toast.success('Tutorial selesai! Selamat trading!')
@@ -529,13 +515,13 @@ export default function TradingPage() {
   const handleSkipTutorial = useCallback(async () => {
     try {
       await api.completeTutorial()
-      
+
       const updatedUser = {
         ...user!,
         tutorialCompleted: true,
         isNewUser: false,
       }
-      
+
       useAuthStore.setState({ user: updatedUser })
       setShowTutorial(false)
       toast.info('Tutorial dilewati. Akses lagi dari Settings > Show Tutorial')
@@ -549,12 +535,12 @@ export default function TradingPage() {
       api.removeToken()
       api.clearCache()
       logout()
-      
+
       if (typeof window !== 'undefined') {
         localStorage.clear()
         sessionStorage.clear()
       }
-      
+
       await new Promise(resolve => setTimeout(resolve, 100))
       router.replace('/')
     } catch (error) {
@@ -596,17 +582,16 @@ export default function TradingPage() {
     }, 250)
   }, [])
 
-  // ✅ FIX: Effect init hanya jalan sekali saat user berubah (login/logout)
-  // assets.length DIHAPUS dari dependency agar tidak trigger ulang setelah loadData()
+
   useEffect(() => {
     if (!user) {
       router.push('/')
       return
     }
-    
+
     const initializeData = async () => {
       await loadData()
-      
+
       if (selectedAsset && selectedAsset.realtimeDbPath) {
         let basePath = selectedAsset.realtimeDbPath
         if (basePath.endsWith('/current_price')) {
@@ -615,18 +600,18 @@ export default function TradingPage() {
         prefetchDefaultAsset(basePath)
       }
 
-      // ✅ FIX: Guard dengan ref agar banner hanya muncul 1x, tidak ikut re-run effect
+
       if (!bannerShownRef.current) {
         bannerShownRef.current = true
         setTimeout(() => setShowBanner(true), 600)
       }
     }
-    
-    initializeData()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, router]) // assets.length sengaja dihapus dari sini
 
-  // ✅ FIX: Sync assets ke TradingStore dipisah ke effect sendiri
+    initializeData()
+
+  }, [user, router])
+
+
   useEffect(() => {
     if (assets.length > 0) {
       useTradingStore.getState().setAssets(assets)
@@ -636,23 +621,22 @@ export default function TradingPage() {
   useEffect(() => {
     if (!user) return
 
-    const shouldShowTutorial = 
+    const shouldShowTutorial =
       user.isNewUser === true ||
       user.tutorialCompleted === false ||
       (user.tutorialCompleted === undefined &&
-       typeof user.loginCount === 'number' && 
+       typeof user.loginCount === 'number' &&
        user.loginCount <= 2)
 
     if (shouldShowTutorial) {
       const timer = setTimeout(() => {
         setShowTutorial(true)
       }, 1500)
-      
+
       return () => clearTimeout(timer)
     }
   }, [user])
 
-  // Price updates are handled by WebSocket via usePriceSubscription (see wsPrice effect above)
 
   useEffect(() => {
     return () => {
@@ -671,7 +655,7 @@ export default function TradingPage() {
       if (notifiedOrderIdsRef.current.size > 50) {
         const idsArray = Array.from(notifiedOrderIdsRef.current)
         const idsToKeep = idsArray.slice(-50)
-        
+
         notifiedOrderIdsRef.current.clear()
         idsToKeep.forEach(id => notifiedOrderIdsRef.current.add(id))
       }
@@ -686,43 +670,43 @@ export default function TradingPage() {
       return
     }
 
-    // ✅ Guard sinkron: langsung lock sebelum validasi apapun
+
     if (isPlacingRef.current) return
     isPlacingRef.current = true
-    
-    // ✅ NEW: Validate against asset min/max limits
+
+
     const limits = getOrderLimits(selectedAsset)
-    
+
     if (amount < limits.min) {
       toast.error(`Jumlah minimum untuk ${selectedAsset.name} adalah ${formatCurrency(limits.min)}`)
       isPlacingRef.current = false
       return
     }
-    
+
     if (amount > limits.max) {
       toast.error(`Jumlah maksimum untuk ${selectedAsset.name} adalah ${formatCurrency(limits.max)}`)
       isPlacingRef.current = false
       return
     }
-    
+
     if (amount <= 0) {
       toast.error('Invalid amount')
       isPlacingRef.current = false
       return
     }
 
-    // ✅ FIX: Baca balance dari ref agar selalu fresh, hindari stale closure
+
     const latestBalance = selectedAccountType === 'real'
       ? balanceRef.current.real
       : balanceRef.current.demo
-    
+
     if (amount > latestBalance) {
       toast.error(`Saldo ${selectedAccountType} tidak mencukupi`)
       isPlacingRef.current = false
       return
     }
 
-    // ✅ FIX: Safety timeout agar loading tidak pernah stuck
+
     if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current)
     setLoading(true)
     loadingTimeoutRef.current = setTimeout(() => {
@@ -766,7 +750,7 @@ export default function TradingPage() {
 
     } catch (error: any) {
       rollbackOrder(optimisticId)
-      
+
       if (selectedAccountType === 'real') {
         setRealBalance(prev => prev + amount)
       } else {
@@ -776,27 +760,27 @@ export default function TradingPage() {
       const errorMsg = error?.response?.data?.error || 'Failed to place order'
       toast.error(errorMsg)
     } finally {
-      // ✅ FIX: Selalu clear safety timeout dan reset loading
+
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current)
         loadingTimeoutRef.current = null
       }
       setLoading(false)
-      isPlacingRef.current = false // ✅ Unlock setelah selesai
+      isPlacingRef.current = false
     }
   }, [
-    selectedAsset, 
-    amount, 
-    duration, 
-    selectedAccountType, 
-    // ✅ FIX: Hapus realBalance & demoBalance dari deps — pakai balanceRef.current
+    selectedAsset,
+    amount,
+    duration,
+    selectedAccountType,
+
     addOptimisticOrder,
     confirmOrder,
     rollbackOrder,
   ])
 
   const baseProfitRate = Number(selectedAsset?.profitRate) || 0
-  
+
   let statusBonus = 0
   if (userProfile?.statusInfo?.profitBonus) {
     const bonus = userProfile.statusInfo.profitBonus
@@ -810,44 +794,40 @@ export default function TradingPage() {
       statusBonus = parseFloat(bonusStr) || 0
     }
   }
-  
+
   const effectiveProfitRate = Number((baseProfitRate + statusBonus).toFixed(2))
   const validAmount = Number(amount) || 0
   const validProfitRate = Number(effectiveProfitRate) || 0
-  
+
   const potentialProfit = selectedAsset ? (validAmount * validProfitRate) / 100 : 0
   const potentialPayout = validAmount + potentialProfit
 
-  // ============================================================================
-  // ✅ NEW: Order Limits and Preset Amounts based on Asset
-  // ============================================================================
-  
-  // Get min/max limits for current asset
+
   const orderLimits = useMemo(() => getOrderLimits(selectedAsset), [selectedAsset])
-  
-  // Generate preset amounts based on asset limits
-  const presetAmounts = useMemo(() => 
+
+
+  const presetAmounts = useMemo(() =>
     generatePresetAmounts(orderLimits.min, orderLimits.max),
     [orderLimits.min, orderLimits.max]
   )
-  
-  // Auto-adjust amount when asset changes if out of range
+
+
   useEffect(() => {
     if (!selectedAsset) return
-    
+
     const limits = getOrderLimits(selectedAsset)
-    
-    // If current amount is below min, set to min
+
+
     if (amount < limits.min) {
       setAmount(limits.min)
     }
-    // If current amount is above max, set to max
+
     else if (amount > limits.max) {
       setAmount(limits.max)
     }
   }, [selectedAsset?.id, amount])
 
-  // ✅ Count assets per type for chip badges
+
   const assetCountsByType = useMemo(() => {
     const counts: Record<string, number> = {}
     assets.forEach(a => {
@@ -856,14 +836,14 @@ export default function TradingPage() {
     return counts
   }, [assets])
 
-  // ✅ Derive which types actually have assets
+
   const availableAssetTypes = useMemo((): AssetTypeFilter[] => {
     return (Object.keys(assetCountsByType) as AssetTypeFilter[]).filter(
       t => assetCountsByType[t] > 0
     )
   }, [assetCountsByType])
 
-  // ✅ MODIFIED: filteredAssets applies type filter + text search together
+
   const filteredAssets = useMemo(() => {
     let result = assets
 
@@ -885,14 +865,14 @@ export default function TradingPage() {
 
   return (
     <div className="h-screen flex flex-col bg-[#0a0e17] text-white overflow-hidden">
-      {/* Header */}
+
       <div className="h-14 lg:h-16 bg-[#1a1f2e] px-2 lg:px-5 border-b border-gray-800/50 flex items-center justify-between px-2 flex-shrink-0">
         <div className="hidden lg:flex items-center gap-4 w-full">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 relative rounded-md">
-              <Image 
-                src="/stc-logo1.png" 
-                alt="Stouch" 
+              <Image
+                src="/stc-logo1.png"
+                alt="Stouch"
                 fill
                 className="object-contain rounded-md"
               />
@@ -900,7 +880,7 @@ export default function TradingPage() {
             <span className="font-bold text-xl">Stouch</span>
           </div>
 
-          {/* ✅ MODIFIED: Desktop asset dropdown with type filter chips (text only, 2-row wrap) */}
+
           <div className="relative">
             <div
   className="relative rounded-xl group"
@@ -951,7 +931,7 @@ export default function TradingPage() {
                   isAssetMenuClosing ? 'animate-dropdown-out' : 'animate-dropdown-in'
                 }`}>
 
-                  {/* Search Input */}
+
                   <div className="px-3 py-2.5 border-b border-gray-800/50 flex-shrink-0">
                     <div className="flex items-center gap-2 px-2 py-1.5">
                       <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
@@ -970,7 +950,7 @@ export default function TradingPage() {
                     </div>
                   </div>
 
-                  {/* ✅ MODIFIED: Type Filter Chips - text only, 2-row wrap */}
+
                   {availableAssetTypes.length > 1 && (
                     <div
                       className="px-3 py-2 border-b border-gray-800/30 flex-shrink-0"
@@ -985,7 +965,7 @@ export default function TradingPage() {
                     </div>
                   )}
 
-                  {/* Asset List */}
+
                   <div className="overflow-y-auto">
                     {filteredAssets.length === 0 ? (
                       <div className="px-4 py-8 text-center">
@@ -1164,9 +1144,9 @@ export default function TradingPage() {
                     <div className="text-sm font-medium truncate">{user.email}</div>
                     <div className="text-xs text-gray-400 mt-1">{user.role}</div>
                   </div>
-                  
+
                   <div className="p-2 space-y-0.5">
-                  {/* ✅ Status Progress Widget - Desktop */}
+
                   {userProfile?.statusInfo && (() => {
                     const statusInfo = userProfile.statusInfo
                     const progress = calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current)
@@ -1180,7 +1160,7 @@ export default function TradingPage() {
                     const badgeImg = STATUS_BADGE_IMAGES[statusInfo.current]
                     return (
                       <div className="px-3 py-2.5 mb-1 bg-[#0f1419] rounded-lg border border-gray-800/60">
-                        {/* Header: status saat ini */}
+
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-1.5">
                             {badgeImg && (
@@ -1200,14 +1180,14 @@ export default function TradingPage() {
                             {progress.progress}%
                           </span>
                         </div>
-                        {/* Progress bar */}
+
                         <div className="w-full bg-gray-700/60 rounded-full h-1.5 mb-2 overflow-hidden">
                           <div
                             className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500"
                             style={{ width: `${progress.progress}%` }}
                           />
                         </div>
-                        {/* Keterangan naik status */}
+
                         <div className="flex items-center gap-1 flex-wrap">
                           <span className="text-[10px] text-gray-400">Butuh</span>
                           <span className="text-[10px] text-white font-semibold">
@@ -1229,7 +1209,7 @@ export default function TradingPage() {
                     }}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#232936] transition-colors text-left"
                   >
-                    {/* ✅ Icon wrapper dengan badge notif di pojok kanan atas */}
+
                     <div className="relative flex-shrink-0">
                       <Settings className="w-4 h-4" />
                       {isProfileIncomplete && (
@@ -1297,7 +1277,7 @@ export default function TradingPage() {
                     <span className="text-sm">Tutorial</span>
                   </button>
                   </div>
-                  
+
                   <div className="p-2 border-t border-gray-800/30">
                     <button
                       onClick={() => {
@@ -1316,7 +1296,7 @@ export default function TradingPage() {
           </div>
         </div>
 
-        {/* Mobile Header */}
+
         <div className="flex lg:hidden items-center justify-between w-full px-1">
           <div className="flex items-center gap-3">
             <button
@@ -1326,9 +1306,9 @@ export default function TradingPage() {
               <Logs className="w-6 h-6 font-bold text-white" />
             </button>
             <div className="w-8 h-8 relative">
-              <Image 
-                src="/stc-logo1.png" 
-                alt="Stouch" 
+              <Image
+                src="/stc-logo1.png"
+                alt="Stouch"
                 fill
                 className="object-contain rounded-md"
               />
@@ -1418,16 +1398,16 @@ export default function TradingPage() {
         </div>
       </div>
 
-      {/* Banner popup - fixed overlay, tidak mempengaruhi layout */}
+
       {showBanner && (
-        <InformationBanner 
-          onClose={() => setShowBanner(false)} 
+        <InformationBanner
+          onClose={() => setShowBanner(false)}
         />
       )}
 
-      {/* Main Content */}
+
       <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* Desktop Left Sidebar */}
+
         <div className="hidden lg:block w-16 bg-[#0f1419] border-r border-gray-800/50 flex-shrink-0">
           <div className="h-full flex flex-col items-center py-4 gap-2">
             <button
@@ -1471,7 +1451,7 @@ export default function TradingPage() {
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           <div className="flex-1 bg-[#0a0e17] relative overflow-hidden">
             {selectedAsset ? (
-              <TradingChart 
+              <TradingChart
                 activeOrders={activeOrders}
                 currentPrice={currentPrice?.price}
                 assets={assets}
@@ -1487,7 +1467,7 @@ export default function TradingPage() {
           </div>
         </div>
 
-        {/* Desktop Right Sidebar */}
+
         <div className="hidden lg:block w-64 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
           <div className="h-full flex flex-col p-4 space-y-4 overflow-hidden">
             <div className="bg-[#1a1f2e] rounded-xl px-3 py-2">
@@ -1502,15 +1482,15 @@ export default function TradingPage() {
                 >
                   <Minus className="w-4 h-4" />
                 </button>
-                
+
                 <input
                   type="number"
                   value={amount}
                   onChange={(e) => {
                     const newAmount = Number(e.target.value)
                     const limits = getOrderLimits(selectedAsset)
-                    
-                    // Clamp between min and max
+
+
                     if (newAmount >= limits.min && newAmount <= limits.max) {
                       setAmount(newAmount)
                     } else if (newAmount < limits.min) {
@@ -1534,7 +1514,7 @@ export default function TradingPage() {
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
-              {/* Optional: Show limits */}
+
               <div className="text-[9px] text-gray-500 text-center mt-1">
                 Min: {formatCurrency(orderLimits.min)} - Max: {formatCurrency(orderLimits.max)}
               </div>
@@ -1553,14 +1533,14 @@ export default function TradingPage() {
 
               {showDesktopDurationDropdown && (
                 <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setShowDesktopDurationDropdown(false)} 
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowDesktopDurationDropdown(false)}
                   />
                   <div className="absolute top-full left-0 right-0 mt-1 bg-[#232936] border border-gray-700/50 rounded-lg shadow-2xl z-50 overflow-hidden max-h-[280px] overflow-y-auto">
                     {EXTENDED_DURATIONS.map((d) => {
                       const isSelected = duration === d.value
-                      
+
                       return (
                         <button
                           key={d.value}
@@ -1570,8 +1550,8 @@ export default function TradingPage() {
                           }}
                           className={`
                             w-full px-3 py-2.5 text-xs font-medium transition-colors border-b border-gray-800/30 last:border-0
-                            ${isSelected 
-                              ? 'bg-blue-500/20 text-blue-400' 
+                            ${isSelected
+                              ? 'bg-blue-500/20 text-blue-400'
                               : 'text-white hover:bg-[#2a3142]'
                             }
                           `}
@@ -1666,7 +1646,7 @@ export default function TradingPage() {
         </div>
       </div>
 
-      {/* Mobile Bottom Controls */}
+
       <div className="lg:hidden bg-[#0f1419] border-t border-gray-800/50 p-4">
         <div className="space-y-1">
           <div className="grid grid-cols-2 gap-4">
@@ -1687,9 +1667,9 @@ export default function TradingPage() {
                   >
                     <Minus className="w-4 h-4 text-gray-300" />
                   </button>
-                  
+
                   <span className="flex-1">{formatCurrency(amount)}</span>
-                  
+
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
@@ -1705,15 +1685,15 @@ export default function TradingPage() {
 
               {showAmountDropdown && (
                 <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setShowAmountDropdown(false)} 
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowAmountDropdown(false)}
                   />
                   <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden max-h-[280px] overflow-y-auto">
                     {presetAmounts.map((preset) => {
                       const isSelected = amount === preset
                       const isAffordable = preset <= currentBalance
-                      
+
                       return (
                         <button
                           key={preset}
@@ -1724,10 +1704,10 @@ export default function TradingPage() {
                           disabled={!isAffordable}
                           className={`
                             w-full px-4 py-3 text-sm font-medium transition-colors border-b border-gray-800/30 last:border-0
-                            ${isSelected 
-                              ? 'bg-blue-500/20 text-blue-400' 
-                              : isAffordable 
-                                ? 'text-white hover:bg-[#232936]' 
+                            ${isSelected
+                              ? 'bg-blue-500/20 text-blue-400'
+                              : isAffordable
+                                ? 'text-white hover:bg-[#232936]'
                                 : 'text-gray-600 opacity-50 cursor-not-allowed'
                             }
                           `}
@@ -1754,14 +1734,14 @@ export default function TradingPage() {
 
               {showDurationDropdown && (
                 <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setShowDurationDropdown(false)} 
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowDurationDropdown(false)}
                   />
                   <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden max-h-[280px] overflow-y-auto">
                     {EXTENDED_DURATIONS.map((d) => {
                       const isSelected = duration === d.value
-                      
+
                       return (
                         <button
                           key={d.value}
@@ -1771,8 +1751,8 @@ export default function TradingPage() {
                           }}
                           className={`
                             w-full px-4 py-3 text-sm font-medium transition-colors border-b border-gray-800/30 last:border-0
-                            ${isSelected 
-                              ? 'bg-blue-500/20 text-blue-400' 
+                            ${isSelected
+                              ? 'bg-blue-500/20 text-blue-400'
                               : 'text-white hover:bg-[#232936]'
                             }
                           `}
@@ -1866,23 +1846,23 @@ export default function TradingPage() {
         </div>
       </div>
 
-      {/* Mobile Wallet Modal - Clean & Modern */}
+
       {showWalletModal && (
         <>
-          <div 
+          <div
             className={`fixed inset-0 bg-black/70 z-50 backdrop-blur-sm ${
               isWalletModalClosing ? 'animate-fade-out' : 'animate-fade-in'
             }`}
-            onClick={handleCloseWalletModal} 
+            onClick={handleCloseWalletModal}
           />
           <div className={`fixed bottom-0 left-0 right-0 bg-[#0f1419] rounded-t-3xl z-50 border-t border-gray-800/50 shadow-2xl ${
             isWalletModalClosing ? 'animate-slide-down' : 'animate-slide-up'
           }`}>
             <div className="p-6">
-              {/* Handle Bar */}
+
               <div className="w-12 h-1.5 bg-gray-700/50 rounded-full mx-auto mb-6"></div>
-              
-              {/* Header */}
+
+
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <Wallet className="w-5 h-5 text-blue-400" />
@@ -1896,7 +1876,7 @@ export default function TradingPage() {
                 </button>
               </div>
 
-              {/* Real Account Card */}
+
               <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/20 rounded-2xl p-4 mb-3 shadow-lg">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -1931,7 +1911,7 @@ export default function TradingPage() {
                 </div>
               </div>
 
-              {/* Demo Account Card */}
+
               <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-2xl p-4 shadow-lg">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -1959,7 +1939,7 @@ export default function TradingPage() {
         </>
       )}
 
-      {/* Mobile Menu */}
+
       {showMobileMenu && (
         <>
           <div className={`fixed inset-0 bg-black/80 z-50 ${
@@ -1988,7 +1968,7 @@ export default function TradingPage() {
                 <div className="flex-1">
                   <h3 className="font-bold text-sm truncate">{user.email}</h3>
                   <p className="text-xs text-gray-400">{user.role}</p>
-                  {/* ✅ Info kelengkapan profil di header sidebar */}
+
                   {isProfileIncomplete && (
                     <div className="flex items-center gap-1.5 mt-1">
                       <span className="flex h-1.5 w-1.5 flex-shrink-0">
@@ -2003,9 +1983,9 @@ export default function TradingPage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="space-y-2">
-              {/* ✅ Status Progress Widget - Mobile */}
+
               {userProfile?.statusInfo && (() => {
                 const statusInfo = userProfile.statusInfo
                 const progress = calculateStatusProgress(statusInfo.totalDeposit, statusInfo.current)
@@ -2019,7 +1999,7 @@ export default function TradingPage() {
                 const badgeImg = STATUS_BADGE_IMAGES[statusInfo.current]
                 return (
                   <div className="px-4 py-3 bg-[#1a1f2e] rounded-xl border border-gray-700/50">
-                    {/* Header: status saat ini */}
+
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-1.5">
                         {badgeImg && (
@@ -2039,14 +2019,14 @@ export default function TradingPage() {
                         {progress.progress}%
                       </span>
                     </div>
-                    {/* Progress bar */}
+
                     <div className="w-full bg-gray-700/60 rounded-full h-1.5 mb-2 overflow-hidden">
                       <div
                         className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500"
                         style={{ width: `${progress.progress}%` }}
                       />
                     </div>
-                    {/* Keterangan naik status */}
+
                     <div className="flex items-center gap-1 flex-wrap">
                       <span className="text-[10px] text-gray-400">Butuh</span>
                       <span className="text-[10px] text-white font-semibold">
@@ -2068,7 +2048,7 @@ export default function TradingPage() {
                 }}
                 className="w-full flex items-center gap-3.5 px-4 py-3.5 bg-[#1a1f2e] hover:bg-[#232936] rounded-xl transition-colors"
               >
-                {/* ✅ Icon wrapper dengan badge notif di pojok kanan atas */}
+
                 <div className="relative flex-shrink-0">
                   <Settings className="w-4 h-4" />
                   {isProfileIncomplete && (
@@ -2091,7 +2071,7 @@ export default function TradingPage() {
                 <Wallet className="w-4 h-4 flex-shrink-0" />
                 <span>Keuangan</span>
               </button>
-              
+
               <button
                 onClick={() => {
                   setShowHistorySidebar(true)
@@ -2152,7 +2132,7 @@ export default function TradingPage() {
         </>
       )}
 
-      {/* Left Sidebar */}
+
       {showLeftSidebar && (
         <>
           <div className={`fixed inset-0 bg-black/80 z-50 ${
@@ -2164,9 +2144,9 @@ export default function TradingPage() {
             <div className="mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 relative">
-                  <Image 
-                    src="/stc-logo1.png" 
-                    alt="Stouch" 
+                  <Image
+                    src="/stc-logo1.png"
+                    alt="Stouch"
                     fill
                     className="object-contain rounded-md"
                   />
@@ -2174,7 +2154,7 @@ export default function TradingPage() {
                 <span className="text-base font-bold">Stouch</span>
               </div>
             </div>
-            
+
             <div className="space-y-1.5">
               <button
                 onClick={() => {
@@ -2222,7 +2202,7 @@ export default function TradingPage() {
 
             </div>
 
-            {/* Legal Links */}
+
             <div className="mt-auto border-t border-gray-800/50 pt-3 flex flex-col gap-1.5 items-center">
               <a
                 href="https://stockity.id/id/static/aml-policy-stockity.pdf"
@@ -2253,15 +2233,15 @@ export default function TradingPage() {
         </>
       )}
 
-      {/* History Sidebar */}
+
       {showHistorySidebar && (
-        <HistorySidebar 
-          isOpen={showHistorySidebar} 
-          onClose={() => setShowHistorySidebar(false)} 
+        <HistorySidebar
+          isOpen={showHistorySidebar}
+          onClose={() => setShowHistorySidebar(false)}
         />
       )}
 
-      {/* Tutorial */}
+
       {showTutorial && (
         <TradingTutorial
           onComplete={handleCompleteTutorial}
@@ -2269,8 +2249,8 @@ export default function TradingPage() {
         />
       )}
 
-      {/* Batch Notification */}
-      <OrderNotification 
+
+      <OrderNotification
         orders={notification.currentBatch}
         onClose={notification.closeBatch}
       />

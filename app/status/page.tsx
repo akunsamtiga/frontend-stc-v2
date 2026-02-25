@@ -2,8 +2,6 @@
 import type { Metadata } from 'next'
 import StatusPageClient from './PageClient'
 
-// ─── Metadata ─────────────────────────────────────────────────────────────────
-
 const BASE_URL = 'https://stouch.id'
 
 export const metadata: Metadata = {
@@ -45,8 +43,6 @@ export const metadata: Metadata = {
     images: [`${BASE_URL}/og-status.png`],
   },
 }
-
-// ─── JSON-LD ──────────────────────────────────────────────────────────────────
 
 function StatusJsonLd() {
   const data = {
@@ -127,8 +123,6 @@ function StatusJsonLd() {
     />
   )
 }
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function StatusPage() {
   return (

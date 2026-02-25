@@ -7,7 +7,7 @@ import { api } from '@/lib/api'
 import Navbar from '@/components/Navbar'
 import { BinaryOrder } from '@/types'
 import { formatCurrency } from '@/lib/utils'
-import { 
+import {
   TrendingUp, TrendingDown, Clock, Filter,
   Wallet, RefreshCw, BarChart3, CalendarClock,
   ChevronLeft, ChevronRight, Activity, DollarSign, Target
@@ -17,9 +17,7 @@ import { toast, Toaster } from 'sonner'
 
 const ITEMS_PER_PAGE = 10
 
-// ============================================
-// OPTIMIZED STYLES — no infinite animations
-// ============================================
+
 const GlobalStyles = () => (
   <style jsx global>{`
     /* Entrances — one-shot, GPU only */
@@ -111,9 +109,7 @@ const GlobalStyles = () => (
   `}</style>
 )
 
-// ============================================
-// FRAMER MOTION PRIMITIVES
-// ============================================
+
 const SPRING = { type: 'spring', stiffness: 80, damping: 20 } as const
 
 const fadeUp: Variants = {
@@ -179,7 +175,7 @@ function CountUp({ to, prefix = '', suffix = '' }: { to: number; prefix?: string
   return <span ref={ref}>{prefix}{val}{suffix}</span>
 }
 
-// ── Skeleton components ──
+
 const MobileRowSkeleton = ({ i }: { i: number }) => (
   <div className="bg-white border border-gray-100 rounded-xl p-3 flex items-center gap-3 sk" style={{ animationDelay: `${i * 60}ms` }}>
     <div className="w-9 h-9 bg-gray-200 rounded-lg flex-shrink-0" />
@@ -221,7 +217,7 @@ const LoadingSkeleton = () => (
       <Navbar />
       <Toaster position="top-right" />
 
-      {/* Mobile skeleton */}
+
       <div className="md:hidden max-w-5xl mx-auto px-4 py-6">
         <div className="mb-4">
           <div className="h-3 bg-gray-200 rounded w-32 mb-2 sk" />
@@ -237,7 +233,7 @@ const LoadingSkeleton = () => (
           </div>
         </div>
         <div className="flex gap-3 overflow-x-auto pb-2 mb-4 scrollbar-hide snap-x">
-          {/* First card: wider, horizontal layout (P&L) */}
+
           <div className="bg-white rounded-xl p-3 border border-gray-100 flex-shrink-0 w-36 snap-start sk" style={{ animationDelay: '0ms' }}>
             <div className="flex items-center gap-2 mb-1">
               <div className="w-7 h-7 bg-gray-200 rounded-lg" />
@@ -245,7 +241,7 @@ const LoadingSkeleton = () => (
             </div>
             <div className="h-5 bg-gray-200 rounded w-24" />
           </div>
-          {/* Other 4 cards: narrower, centered */}
+
           {[...Array(4)].map((_, i) => (
             <div key={i} className="bg-white rounded-xl p-3 border border-gray-100 flex-shrink-0 w-24 snap-start sk flex flex-col items-center" style={{ animationDelay: `${(i+1)*80}ms` }}>
               <div className="w-7 h-7 bg-gray-200 rounded-lg mb-1" />
@@ -259,7 +255,7 @@ const LoadingSkeleton = () => (
         </div>
       </div>
 
-      {/* Desktop skeleton */}
+
       <div className="hidden md:block max-w-5xl mx-auto px-4 py-6">
         <div className="mb-6">
           <div className="h-3 bg-gray-200 rounded w-48 mb-3 sk" />
@@ -311,7 +307,7 @@ const LoadingSkeleton = () => (
 export default function HistoryPage() {
   const router = useRouter()
   const user = useAuthStore((state) => state.user)
-  
+
   const [allOrders, setAllOrders] = useState<BinaryOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -393,12 +389,10 @@ export default function HistoryPage() {
         <Navbar />
         <Toaster position="top-right" />
 
-        {/* ══════════════════════════════════════════
-            MOBILE VIEW
-        ══════════════════════════════════════════ */}
+
         <div className="md:hidden max-w-5xl mx-auto px-4 py-6 pb-28 anim-fade-up">
 
-          {/* Header */}
+
           <div className="mb-4">
             <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-2">
               <span>Dasbor</span><span>/</span>
@@ -425,7 +419,7 @@ export default function HistoryPage() {
             </div>
           </div>
 
-          {/* Horizontal Stats */}
+
           <div className="flex gap-3 overflow-x-auto mb-4 scrollbar-hide snap-x anim-pop-in" style={{ animationDelay: '60ms' }}>
             <div className="stat-card bg-white rounded-xl p-3 border border-gray-100 flex-shrink-0 w-36 snap-start flex flex-col justify-center">
               <div className="flex items-center gap-2 mb-1">
@@ -453,7 +447,7 @@ export default function HistoryPage() {
             ))}
           </div>
 
-          {/* Filters */}
+
           <div className="mb-4 space-y-3 anim-fade-up" style={{ animationDelay: '100ms' }}>
             <div>
               <div className="flex items-center gap-1.5 mb-2">
@@ -493,7 +487,7 @@ export default function HistoryPage() {
             </div>
           </div>
 
-          {/* Orders list */}
+
           <div className="space-y-2">
             {displayedOrders.length === 0 ? (
               <div className="text-center py-8 px-4 bg-white rounded-xl border border-gray-100 anim-pop-in">
@@ -542,7 +536,7 @@ export default function HistoryPage() {
           </div>
         </div>
 
-        {/* Mobile Pagination */}
+
         {totalPages > 1 && (
           <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 px-4 py-4 shadow-[0_-4px_20px_rgba(0,0,0,0.15)] z-50 md:hidden anim-fade-up">
             <div className="max-w-md mx-auto flex items-center justify-between gap-4">
@@ -572,12 +566,10 @@ export default function HistoryPage() {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════
-            DESKTOP VIEW
-        ══════════════════════════════════════════ */}
+
         <div className="hidden md:block max-w-5xl mx-auto px-4 py-6 relative z-10 anim-fade-up">
 
-          {/* Header */}
+
           <motion.div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
             initial="hidden" animate="visible" variants={stagger(0.1)}>
             <motion.div variants={fadeLeft}>
@@ -608,7 +600,7 @@ export default function HistoryPage() {
             </motion.button>
           </motion.div>
 
-          {/* Stats */}
+
           <Reveal className="bg-white rounded-xl border border-gray-200 p-5 mb-6 shadow-sm">
             <motion.div className="grid grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6"
               variants={stagger(0.08)} initial="hidden" animate="visible">
@@ -635,7 +627,7 @@ export default function HistoryPage() {
             </motion.div>
           </Reveal>
 
-          {/* Filters */}
+
           <Reveal className="bg-white rounded-xl border border-gray-200 shadow-sm mb-6">
             <div className="p-4 sm:p-5">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -679,7 +671,7 @@ export default function HistoryPage() {
             </div>
           </Reveal>
 
-          {/* Table */}
+
           <Reveal className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
             {displayedOrders.length === 0 ? (
               <motion.div className="text-center py-12 px-4" variants={scaleIn} initial="hidden" animate="visible">
@@ -761,7 +753,7 @@ export default function HistoryPage() {
                   </table>
                 </div>
 
-                {/* Desktop Pagination */}
+
                 {totalPages > 1 && (
                   <div className="border-t border-gray-200 px-4 py-5">
                     <div className="flex items-center justify-between">

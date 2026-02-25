@@ -1,4 +1,4 @@
-// lib/calculation.ts 
+// lib/calculation.ts
 import { TimezoneUtil } from './timezone';
 import type { BinaryOrder, Asset } from '@/types';
 
@@ -26,14 +26,14 @@ export class CalculationUtil {
   ): number {
     const date = TimezoneUtil.fromTimestamp(entryTimestamp);
     const secondsFromStart = date.getSeconds();
-    
-    // Backend logic: if seconds > threshold, add extra minute
+
+
     const needsExtraMinute = secondsFromStart > thresholdSeconds;
     const totalMinutesToAdd = durationMinutes + (needsExtraMinute ? 1 : 0);
-    
-    // Set to exact minute:00
+
+
     date.setMinutes(date.getMinutes() + totalMinutesToAdd, 0, 0);
-    
+
     return TimezoneUtil.toTimestamp(date);
   }
 
@@ -52,7 +52,7 @@ export class CalculationUtil {
 
   static isValidDuration(durationMinutes: number, allowedDurations: number[]): boolean {
     const tolerance = 0.0001;
-    return allowedDurations.some(allowed => 
+    return allowedDurations.some(allowed =>
       Math.abs(allowed - durationMinutes) < tolerance
     );
   }
@@ -77,7 +77,7 @@ export class CalculationUtil {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m ${secs}s`;
     } else if (minutes > 0) {
@@ -91,9 +91,7 @@ export class CalculationUtil {
     return amount + this.calculateBinaryProfit(amount, profitRate);
   }
 
-  /**
-   * ✅ FIXED: Format order timing with correct expiry calculation
-   */
+
   static formatOrderTiming(
     asset: Asset,
     duration: number,
@@ -108,11 +106,11 @@ export class CalculationUtil {
   } {
     const entryTimestamp = entryTime || TimezoneUtil.getCurrentTimestamp();
     const expiryTimestamp = this.calculateExpiryTimestamp(entryTimestamp, duration);
-    
+
     const entryDate = TimezoneUtil.fromTimestamp(entryTimestamp);
     const expiryDate = TimezoneUtil.fromTimestamp(expiryTimestamp);
 
-    // For display: check if entry is near end of candle
+
     const secondsFromStart = entryDate.getSeconds();
     const isEndOfCandle = secondsFromStart > 20;
 
@@ -126,9 +124,7 @@ export class CalculationUtil {
     };
   }
 
-  /**
-   * ✅ NEW: Parse duration from display string to minutes
-   */
+
   static parseDurationToMinutes(display: string): number {
     const match = display.match(/^(\d+)(s|m|h)$/);
     if (!match) {
@@ -146,55 +142,40 @@ export class CalculationUtil {
     }
   }
 
-  /**
-   * ✅ NEW: Get current timestamp
-   */
+
   static getCurrentTimestamp(): number {
     return TimezoneUtil.getCurrentTimestamp();
   }
 
-  /**
-   * ✅ NEW: Get current ISO string
-   */
+
   static getCurrentISOString(): string {
     return TimezoneUtil.toISOString();
   }
 
-  /**
-   * ✅ NEW: Format date time
-   */
+
   static formatDateTime(date: Date = new Date()): string {
     return TimezoneUtil.formatDateTime(date);
   }
 
-  /**
-   * ✅ NEW: Check if order is expired
-   */
+
   static isOrderExpired(exitTimestamp: number): boolean {
     return TimezoneUtil.isExpired(exitTimestamp);
   }
 
-  /**
-   * ✅ NEW: Get time until expiry in seconds
-   */
+
   static getTimeUntilExpiry(exitTimestamp: number): number {
     const now = TimezoneUtil.getCurrentTimestamp();
     return Math.max(0, exitTimestamp - now);
   }
 
-  /**
-   * ✅ NEW: Calculate bar period timestamp - CRITICAL for candle alignment
-   * MUST match backend simulator exactly (Math.floor)
-   */
+
   static getBarPeriodTimestamp(timestamp: number, timeframe: string): number {
     const seconds = this.getTimeframeSeconds(timeframe);
-    // CRITICAL: Use Math.floor to match backend (simulator uses Math.floor)
+
     return Math.floor(timestamp / seconds) * seconds;
   }
 
-  /**
-   * ✅ NEW: Get timeframe in seconds
-   */
+
   static getTimeframeSeconds(timeframe: string): number {
     const map: Record<string, number> = {
       '1s': 1,
@@ -210,9 +191,7 @@ export class CalculationUtil {
   }
 }
 
-// ✅ Export instance untuk backward compatibility
 export const calculationUtil = CalculationUtil;
 
-// ✅ NEW: Standalone exports untuk convenience (bisa dipakai langsung di TradingChart)
 export const getBarPeriodTimestamp = CalculationUtil.getBarPeriodTimestamp;
 export const getTimeframeSeconds = CalculationUtil.getTimeframeSeconds;

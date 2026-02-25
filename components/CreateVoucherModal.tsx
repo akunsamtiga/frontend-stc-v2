@@ -1,4 +1,4 @@
-// components/CreateVoucherModal.tsx - FIXED VERSION
+// components/CreateVoucherModal.tsx 
 'use client'
 
 import React, { useState } from 'react'
@@ -9,26 +9,26 @@ import { toast } from 'sonner'
 interface Props {
   onClose: () => void
   onSuccess: () => void
-  voucher?: any // Voucher data for edit mode
+  voucher?: any
 }
 
 export default function CreateVoucherModal({ onClose, onSuccess, voucher }: Props) {
   const isEdit = !!voucher
   const [loading, setLoading] = useState(false)
-  
-  // ✅ FIX: Better handling of eligibleStatuses default value
+
+
   const getInitialEligibleStatuses = () => {
     if (!voucher?.eligibleStatuses) return ['all']
-    
-    // If it's a single string, convert to array
+
+
     if (typeof voucher.eligibleStatuses === 'string') {
       return [voucher.eligibleStatuses]
     }
-    
-    // If it's an array, use it
+
+
     return voucher.eligibleStatuses
   }
-  
+
   const [formData, setFormData] = useState({
     code: voucher?.code || '',
     type: voucher?.type || 'percentage',
@@ -39,11 +39,11 @@ export default function CreateVoucherModal({ onClose, onSuccess, voucher }: Prop
     maxUsesPerUser: voucher?.maxUsesPerUser || 1,
     maxBonusAmount: voucher?.maxBonusAmount || '',
     isActive: voucher?.isActive ?? true,
-    validFrom: voucher?.validFrom 
-      ? new Date(voucher.validFrom).toISOString().split('T')[0] 
+    validFrom: voucher?.validFrom
+      ? new Date(voucher.validFrom).toISOString().split('T')[0]
       : new Date().toISOString().split('T')[0],
-    validUntil: voucher?.validUntil 
-      ? new Date(voucher.validUntil).toISOString().split('T')[0] 
+    validUntil: voucher?.validUntil
+      ? new Date(voucher.validUntil).toISOString().split('T')[0]
       : '',
     description: voucher?.description || ''
   })
@@ -53,14 +53,14 @@ export default function CreateVoucherModal({ onClose, onSuccess, voucher }: Prop
     setLoading(true)
 
     try {
-      // ✅ VALIDATE: Check if dates are valid
+
       if (new Date(formData.validUntil) <= new Date(formData.validFrom)) {
         toast.error('Valid Until must be after Valid From')
         setLoading(false)
         return
       }
 
-      // ✅ VALIDATE: Check if eligibleStatuses is valid
+
       if (formData.eligibleStatuses.length === 0) {
         toast.error('Please select at least one eligible status')
         setLoading(false)
@@ -71,9 +71,9 @@ export default function CreateVoucherModal({ onClose, onSuccess, voucher }: Prop
         ...formData,
         maxUses: formData.maxUses ? parseInt(formData.maxUses as string) : undefined,
         maxBonusAmount: formData.maxBonusAmount ? parseInt(formData.maxBonusAmount as string) : undefined,
-        // ✅ FIX: Ensure eligibleStatuses is always an array
-        eligibleStatuses: Array.isArray(formData.eligibleStatuses) 
-          ? formData.eligibleStatuses 
+
+        eligibleStatuses: Array.isArray(formData.eligibleStatuses)
+          ? formData.eligibleStatuses
           : [formData.eligibleStatuses]
       }
 
@@ -93,24 +93,24 @@ export default function CreateVoucherModal({ onClose, onSuccess, voucher }: Prop
     }
   }
 
-  // ✅ NEW: Handle eligible status selection with better logic
+
   const handleEligibleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const values = Array.from(e.target.selectedOptions, option => option.value)
-    
-    // ✅ LOGIC: If "all" is selected, clear other selections
+
+
     if (values.includes('all') && !formData.eligibleStatuses.includes('all')) {
       setFormData({...formData, eligibleStatuses: ['all']})
-    } 
-    // ✅ LOGIC: If other status is selected while "all" is active, remove "all"
+    }
+
     else if (values.length > 1 && formData.eligibleStatuses.includes('all')) {
       const filtered = values.filter(v => v !== 'all')
       setFormData({...formData, eligibleStatuses: filtered})
-    } 
-    // ✅ LOGIC: Normal multi-select
+    }
+
     else if (values.length > 0) {
       setFormData({...formData, eligibleStatuses: values})
     }
-    // ✅ LOGIC: If no selection, default to "all"
+
     else {
       setFormData({...formData, eligibleStatuses: ['all']})
     }
@@ -129,7 +129,7 @@ export default function CreateVoucherModal({ onClose, onSuccess, voucher }: Prop
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Code & Type */}
+          {}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold mb-1">
@@ -148,7 +148,7 @@ export default function CreateVoucherModal({ onClose, onSuccess, voucher }: Prop
                 Max 20 characters, uppercase only
               </p>
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold mb-1">Type *</label>
               <select
@@ -162,7 +162,7 @@ export default function CreateVoucherModal({ onClose, onSuccess, voucher }: Prop
             </div>
           </div>
 
-          {/* Value & Min Deposit */}
+          {}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold mb-1">
@@ -183,7 +183,7 @@ export default function CreateVoucherModal({ onClose, onSuccess, voucher }: Prop
                 </p>
               )}
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold mb-1">
                 Min Deposit (IDR) *
@@ -202,7 +202,7 @@ export default function CreateVoucherModal({ onClose, onSuccess, voucher }: Prop
             </div>
           </div>
 
-          {/* Max Bonus Amount (Only for Percentage) */}
+          {}
           {formData.type === 'percentage' && (
             <div>
               <label className="block text-sm font-semibold mb-1 flex items-center gap-2">
@@ -223,7 +223,7 @@ export default function CreateVoucherModal({ onClose, onSuccess, voucher }: Prop
             </div>
           )}
 
-          {/* Max Uses & Max Uses Per User */}
+          {}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold mb-1 flex items-center gap-2">
@@ -239,7 +239,7 @@ export default function CreateVoucherModal({ onClose, onSuccess, voucher }: Prop
                 placeholder="Unlimited if empty"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold mb-1">
                 Max Uses Per User *
@@ -255,7 +255,7 @@ export default function CreateVoucherModal({ onClose, onSuccess, voucher }: Prop
             </div>
           </div>
 
-          {/* ✅ IMPROVED: Eligible Statuses with better UI */}
+          {}
           <div>
             <label className="block text-sm font-semibold mb-1">
               Eligible User Statuses *
@@ -284,7 +284,7 @@ export default function CreateVoucherModal({ onClose, onSuccess, voucher }: Prop
             </div>
           </div>
 
-          {/* Valid From & Valid Until */}
+          {}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold mb-1">Valid From *</label>
@@ -296,7 +296,7 @@ export default function CreateVoucherModal({ onClose, onSuccess, voucher }: Prop
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold mb-1">Valid Until *</label>
               <input
@@ -310,7 +310,7 @@ export default function CreateVoucherModal({ onClose, onSuccess, voucher }: Prop
             </div>
           </div>
 
-          {/* Description */}
+          {}
           <div>
             <label className="block text-sm font-semibold mb-1">
               Description
@@ -329,7 +329,7 @@ export default function CreateVoucherModal({ onClose, onSuccess, voucher }: Prop
             </p>
           </div>
 
-          {/* Is Active */}
+          {}
           <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
             <input
               type="checkbox"
@@ -346,7 +346,7 @@ export default function CreateVoucherModal({ onClose, onSuccess, voucher }: Prop
             </label>
           </div>
 
-          {/* ✅ NEW: Preview Section */}
+          {}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h3 className="text-sm font-bold text-blue-900 mb-2">Preview</h3>
             <div className="text-xs space-y-1 text-blue-800">
@@ -364,7 +364,7 @@ export default function CreateVoucherModal({ onClose, onSuccess, voucher }: Prop
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {}
           <div className="flex gap-3 pt-4 sticky bottom-0 bg-white border-t -mx-6 px-6 py-4">
             <button
               type="button"

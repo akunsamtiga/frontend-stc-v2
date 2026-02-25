@@ -1,7 +1,8 @@
+// components/admin/AssetDetailModal.tsx
 'use client'
 
-import { 
-  X, Edit, Package, Activity, TrendingUp, Settings, Database, 
+import {
+  X, Edit, Package, Activity, TrendingUp, Settings, Database,
   Zap, DollarSign, Info, Clock, User, Coins, Globe, CheckCircle, XCircle
 } from 'lucide-react'
 
@@ -75,8 +76,8 @@ export default function AssetDetailModal({ asset, onClose, onEdit }: AssetDetail
         <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-blue-50">
           <div className="flex items-center gap-3">
             <div className={`w-14 h-14 rounded-xl flex items-center justify-center shadow-lg ${
-              asset.isActive 
-                ? 'bg-gradient-to-br from-green-500 to-green-600' 
+              asset.isActive
+                ? 'bg-gradient-to-br from-green-500 to-green-600'
                 : 'bg-gradient-to-br from-gray-400 to-gray-500'
             }`}>
               <Package className="w-7 h-7 text-white" />
@@ -220,7 +221,7 @@ export default function AssetDetailModal({ asset, onClose, onEdit }: AssetDetail
                   </p>
                 </div>
               </div>
-              
+
               {asset.dataSource === 'realtime_db' && asset.realtimeDbPath && (
                 <div className="mt-3 pt-3 border-t border-blue-100">
                   <span className="text-xs text-blue-600 uppercase tracking-wide block mb-2">Realtime DB Path</span>
@@ -229,7 +230,7 @@ export default function AssetDetailModal({ asset, onClose, onEdit }: AssetDetail
                   </code>
                 </div>
               )}
-              
+
               {asset.dataSource === 'api' && asset.apiEndpoint && (
                 <div className="mt-3 pt-3 border-t border-blue-100">
                   <span className="text-xs text-blue-600 uppercase tracking-wide block mb-2">API Endpoint</span>

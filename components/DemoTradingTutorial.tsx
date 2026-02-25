@@ -1,7 +1,8 @@
+// components/DemoTradingTutorial.tsx
 import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  ArrowRight, 
+import {
+  X,
+  ArrowRight,
   ArrowLeft,
   TrendingUp,
   TrendingDown,
@@ -141,23 +142,23 @@ const DemoTradingTutorial: React.FC<DemoTradingTutorialProps> = ({ onClose }) =>
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 animate-fade-in">
-      {/* Backdrop */}
-      <div 
+      {}
+      <div
         className="absolute inset-0 bg-black/80 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* Main Modal */}
+      {}
       <div className="relative w-full max-w-6xl max-h-[95vh] bg-gradient-to-br from-[#0f1419] to-[#0a0e17] rounded-2xl sm:rounded-3xl shadow-2xl border border-gray-800/50 overflow-hidden animate-scale-in flex flex-col">
-        {/* Progress Bar */}
+        {}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gray-800/50 z-10">
-          <div 
+          <div
             className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-500 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
 
-        {/* Close Button */}
+        {}
         <button
           onClick={onClose}
           className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full transition-colors backdrop-blur-sm"
@@ -165,13 +166,13 @@ const DemoTradingTutorial: React.FC<DemoTradingTutorialProps> = ({ onClose }) =>
           <X className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
-        {/* Content Container */}
+        {}
         <div className="flex-1 overflow-y-auto">
           <div className="grid lg:grid-cols-[1.2fr_1fr] gap-0 min-h-full">
-            {/* Left: Content */}
+            {}
             <div className="p-6 sm:p-8 lg:p-12 flex flex-col justify-between">
               <div className={`transition-all duration-300 ${isAnimating ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}>
-                {/* Step Header */}
+                {}
                 <div className="mb-6 sm:mb-8">
                   <div className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-500/10 border border-blue-500/20 rounded-full mb-4 sm:mb-6">
                     <StepIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
@@ -188,12 +189,12 @@ const DemoTradingTutorial: React.FC<DemoTradingTutorialProps> = ({ onClose }) =>
                   </p>
                 </div>
 
-                {/* Tips Section */}
+                {}
                 <div className="space-y-2 sm:space-y-3 mb-6 sm:mb-8">
                   {currentStepData.tips.map((tip, i) => (
-                    <div 
-                      key={i} 
-                      className="flex items-start gap-3 animate-fade-in-up bg-white/5 rounded-lg p-3 sm:p-4 border border-gray-800/50 hover:border-gray-700/50 transition-colors" 
+                    <div
+                      key={i}
+                      className="flex items-start gap-3 animate-fade-in-up bg-white/5 rounded-lg p-3 sm:p-4 border border-gray-800/50 hover:border-gray-700/50 transition-colors"
                       style={{ animationDelay: `${i * 100}ms` }}
                     >
                       <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500/20 to-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -208,7 +209,7 @@ const DemoTradingTutorial: React.FC<DemoTradingTutorialProps> = ({ onClose }) =>
                   ))}
                 </div>
 
-                {/* Warning for Step 3 */}
+                {}
                 {currentStep === 3 && (
                   <div className="mb-6 sm:mb-8 bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
@@ -222,7 +223,7 @@ const DemoTradingTutorial: React.FC<DemoTradingTutorialProps> = ({ onClose }) =>
                 )}
               </div>
 
-              {/* Navigation */}
+              {}
               <div className="flex items-center justify-between pt-4 sm:pt-6 border-t border-gray-800/50 mt-auto">
                 <button
                   onClick={handlePrev}
@@ -245,8 +246,8 @@ const DemoTradingTutorial: React.FC<DemoTradingTutorialProps> = ({ onClose }) =>
                         }, 300);
                       }}
                       className={`h-1.5 sm:h-2 rounded-full transition-all ${
-                        i === currentStep 
-                          ? 'w-6 sm:w-8 bg-gradient-to-r from-blue-500 to-emerald-500' 
+                        i === currentStep
+                          ? 'w-6 sm:w-8 bg-gradient-to-r from-blue-500 to-emerald-500'
                           : 'w-1.5 sm:w-2 bg-gray-700 hover:bg-gray-600'
                       }`}
                     />
@@ -273,9 +274,9 @@ const DemoTradingTutorial: React.FC<DemoTradingTutorialProps> = ({ onClose }) =>
               </div>
             </div>
 
-            {/* Right: Interactive Demo */}
+            {}
             <div className="bg-[#0a0e17] p-6 sm:p-8 lg:p-12 border-t lg:border-t-0 lg:border-l border-gray-800/50 flex flex-col">
-              {/* Demo Balance */}
+              {}
               <div className="mb-6 bg-gradient-to-r from-blue-500/10 to-emerald-500/10 border border-blue-500/20 rounded-xl p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -290,9 +291,9 @@ const DemoTradingTutorial: React.FC<DemoTradingTutorialProps> = ({ onClose }) =>
                 </div>
               </div>
 
-              {/* Interactive Trading Panel */}
+              {}
               <div className="flex-1 flex flex-col gap-4">
-                {/* Amount Selector */}
+                {}
                 <div className={`transition-all duration-300 rounded-xl ${currentStepData.highlight === 'amount' ? 'ring-2 ring-blue-500/50 ring-offset-2 ring-offset-[#0a0e17] shadow-lg shadow-blue-500/20' : ''}`}>
                   <label className="text-xs sm:text-sm text-gray-400 mb-2 block font-medium">Amount</label>
                   <div className="bg-[#1a1f2e] border border-gray-800/50 rounded-xl p-4 sm:p-5">
@@ -303,7 +304,7 @@ const DemoTradingTutorial: React.FC<DemoTradingTutorialProps> = ({ onClose }) =>
                       >
                         <Minus className="w-5 h-5" />
                       </button>
-                      
+
                       <div className="flex-1 text-center">
                         <div className="text-xl sm:text-2xl font-bold">
                           Rp {selectedAmount.toLocaleString()}
@@ -317,7 +318,7 @@ const DemoTradingTutorial: React.FC<DemoTradingTutorialProps> = ({ onClose }) =>
                         <Plus className="w-5 h-5" />
                       </button>
                     </div>
-                    
+
                     <input
                       type="range"
                       min="10000"
@@ -327,7 +328,7 @@ const DemoTradingTutorial: React.FC<DemoTradingTutorialProps> = ({ onClose }) =>
                       onChange={(e) => setSelectedAmount(Number(e.target.value))}
                       className="w-full"
                     />
-                    
+
                     <div className="flex justify-between text-xs text-gray-500 mt-2">
                       <span>10K</span>
                       <span>1M</span>
@@ -335,7 +336,7 @@ const DemoTradingTutorial: React.FC<DemoTradingTutorialProps> = ({ onClose }) =>
                   </div>
                 </div>
 
-                {/* Duration Selector */}
+                {}
                 <div className={`transition-all duration-300 rounded-xl ${currentStepData.highlight === 'duration' ? 'ring-2 ring-blue-500/50 ring-offset-2 ring-offset-[#0a0e17] shadow-lg shadow-blue-500/20' : ''}`}>
                   <label className="text-xs sm:text-sm text-gray-400 mb-2 block font-medium">Duration</label>
                   <div className="grid grid-cols-4 gap-2">
@@ -360,7 +361,7 @@ const DemoTradingTutorial: React.FC<DemoTradingTutorialProps> = ({ onClose }) =>
                   </div>
                 </div>
 
-                {/* Profit Info */}
+                {}
                 <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl p-4 sm:p-5">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs sm:text-sm text-gray-400">Potential Profit</span>
@@ -376,7 +377,7 @@ const DemoTradingTutorial: React.FC<DemoTradingTutorialProps> = ({ onClose }) =>
                   </div>
                 </div>
 
-                {/* Trading Buttons */}
+                {}
                 <div className={`grid grid-cols-2 gap-3 sm:gap-4 transition-all duration-300 rounded-xl ${currentStepData.highlight === 'buttons' ? 'ring-2 ring-blue-500/50 ring-offset-2 ring-offset-[#0a0e17] shadow-lg shadow-blue-500/20' : ''}`}>
                   <button
                     onClick={() => handleDemoTrade('buy')}
@@ -403,7 +404,7 @@ const DemoTradingTutorial: React.FC<DemoTradingTutorialProps> = ({ onClose }) =>
           </div>
         </div>
 
-        {/* Success Notification */}
+        {}
         {showSuccess && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in z-20 p-4">
             <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/50 rounded-2xl p-6 sm:p-8 text-center animate-scale-in max-w-sm w-full">

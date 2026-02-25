@@ -1,15 +1,11 @@
 // components/MidtransDepositPage.tsx
-// ✅ VERSI FINAL - Redirect ke B.com untuk pembayaran Midtrans
+
 import React, { useState, useEffect } from 'react';
 
-// ============================================================
-// CONFIG: URL B.com - isi di .env.local A.com
-// NEXT_PUBLIC_B_COM_URL=https://B.com
-// ============================================================
 const B_COM_URL = process.env.NEXT_PUBLIC_B_COM_URL || '';
-import { 
-  ArrowLeft, CreditCard, Wallet, WarningCircle, CheckCircle, 
-  Clock, X, SpinnerGap, Shield, Tag, TrendUp, 
+import {
+  ArrowLeft, CreditCard, Wallet, WarningCircle, CheckCircle,
+  Clock, X, SpinnerGap, Shield, Tag, TrendUp,
   ClockCounterClockwise, Info, ArrowsClockwise, Plus, Minus,
   Bank, QrCode, DeviceMobile, CreditCard as CreditCardIcon,
   Money, Gift, Check, XCircle, List
@@ -147,7 +143,7 @@ class PaymentAPI {
       throw new Error('Gagal mengambil saldo');
     }
     const data = await response.json();
-    
+
     let balance = 0;
     if (data.balance !== undefined) {
       balance = data.balance;
@@ -156,7 +152,7 @@ class PaymentAPI {
     } else if (data.data?.data?.balance !== undefined) {
       balance = data.data.data.balance;
     }
-    
+
     return balance;
   }
 }
@@ -188,7 +184,7 @@ const MidtransPaymentPage: React.FC = () => {
   const [currentTransaction, setCurrentTransaction] = useState<DepositResponse['data']['deposit'] | null>(null);
   const [transactionHistory, setTransactionHistory] = useState<TransactionHistory[]>([]);
 
-  // State voucher
+
   const [voucherCode, setVoucherCode] = useState('');
   const [voucherBonus, setVoucherBonus] = useState(0);
   const [voucherType, setVoucherType] = useState<'percentage' | 'fixed' | null>(null);
@@ -196,17 +192,17 @@ const MidtransPaymentPage: React.FC = () => {
   const [availableVouchers, setAvailableVouchers] = useState<Voucher[]>([]);
   const [externalVoucherCode, setExternalVoucherCode] = useState('');
 
-  // State verifikasi pembayaran
+
   const [paymentStatus, setPaymentStatus] = useState<'verifying' | 'success' | 'expired'>('verifying');
   const [initialBalance, setInitialBalance] = useState<number>(0);
   const [currentBalance, setCurrentBalance] = useState<number>(0);
   const [verificationStartTime, setVerificationStartTime] = useState<number>(0);
 
-  // State pemantauan real-time
+
   const [isMonitoringBalance, setIsMonitoringBalance] = useState(false);
   const [lastBalanceCheck, setLastBalanceCheck] = useState<number>(0);
 
-  // Preset jumlah cepat
+
   const quickAmounts = [
     { value: 100000, label: '100K' },
     { value: 200000, label: '200K' },
@@ -216,7 +212,7 @@ const MidtransPaymentPage: React.FC = () => {
     { value: 8000000, label: '8000K' }
   ];
 
-  // Ikon metode pembayaran
+
   const paymentMethods = [
     { name: 'Permata', icon: '/permata.webp', category: 'bank' },
     { name: 'BRI', icon: '/bri.webp', category: 'bank' },
@@ -236,7 +232,7 @@ const MidtransPaymentPage: React.FC = () => {
     loadAvailableVouchers();
     loadInitialBalance();
 
-    // Handle return dari B.com via URL params
+
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
       const returnStatus = params.get('status')
@@ -269,12 +265,12 @@ const MidtransPaymentPage: React.FC = () => {
     }
   }, []);
 
-  // Auto-refresh balance jika payment success tapi balance masih 0
+
   useEffect(() => {
     if (paymentStatus === 'success' && (!currentBalance || currentBalance === 0)) {
       let retryCount = 0;
       const maxRetries = 5;
-      
+
       const tryRefreshBalance = async () => {
         try {
           retryCount++;
@@ -288,7 +284,7 @@ const MidtransPaymentPage: React.FC = () => {
           return false;
         }
       };
-      
+
       tryRefreshBalance().then(success => {
         if (success) return;
         const intervalId = setInterval(async () => {
@@ -304,7 +300,7 @@ const MidtransPaymentPage: React.FC = () => {
     }
   }, [paymentStatus, currentBalance]);
 
-  // Sync external voucher code
+
   useEffect(() => {
     if (externalVoucherCode && availableVouchers.length > 0) {
       const selectedVoucher = availableVouchers.find(v => v.code === externalVoucherCode);
@@ -341,7 +337,7 @@ const MidtransPaymentPage: React.FC = () => {
     }
   };
 
-  // Pemantauan status pembayaran
+
   useEffect(() => {
     const shouldMonitor = (step === 'success' && paymentStatus === 'verifying') || isMonitoringBalance;
     if (!shouldMonitor || !currentTransaction) return;
@@ -506,12 +502,12 @@ const MidtransPaymentPage: React.FC = () => {
     setError('');
 
     try {
-      // Ambil saldo awal sebelum redirect
+
       const freshBalance = await PaymentAPI.getRealBalance();
       setInitialBalance(freshBalance);
       setCurrentBalance(freshBalance);
 
-      // ✅ FIX: Ganti "Deposit via Midtrans" dengan deskripsi yang bebas dari kata topup/deposit/saldo
+
       const response = await PaymentAPI.createTransaction(
         depositAmount,
         'Pembelian Layanan',
@@ -532,14 +528,14 @@ const MidtransPaymentPage: React.FC = () => {
       setCurrentTransaction(deposit);
       setStep('payment');
 
-      // Simpan data transaksi ke sessionStorage sebelum redirect ke B.com
+
       sessionStorage.setItem('pending_transaction', JSON.stringify({
         ...deposit,
         voucherBonusAmount: confirmedBonus,
         voucherCode: voucherCode || deposit.voucherCode || '',
       }));
 
-      // Redirect ke B.com dengan snap token
+
       const params = new URLSearchParams({
         token: deposit.snap_token,
         orderId: deposit.order_id,
@@ -579,7 +575,7 @@ const MidtransPaymentPage: React.FC = () => {
     loadTransactionHistory();
   };
 
-  // Tampilan Riwayat Transaksi
+
   if (step === 'history') {
     return (
       <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -687,18 +683,18 @@ const MidtransPaymentPage: React.FC = () => {
     );
   }
 
-  // Form deposit utama
+
   if (step === 'amount') {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
-            {/* KOLOM KIRI - Form */}
+            {}
             <div className="space-y-5">
-              {/* Kartu Input Jumlah */}
+              {}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 sm:p-6">
                 <div className="mb-5">
-                  {/* ✅ FIX: Ganti "Top Up Saldo" dengan "Pembelian Layanan" */}
+                  {}
                   <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Pembelian Layanan</h1>
                 </div>
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -716,7 +712,7 @@ const MidtransPaymentPage: React.FC = () => {
                     className="w-full pl-12 pr-4 py-4 text-2xl font-bold border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
                   />
                 </div>
-                {/* Quick Amount */}
+                {}
                 <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
                   {quickAmounts.map((preset) => (
                     <button
@@ -743,7 +739,7 @@ const MidtransPaymentPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Bagian Voucher */}
+              {}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 sm:p-6 space-y-4">
                 <VoucherInput
                   depositAmount={numericAmount}
@@ -759,7 +755,7 @@ const MidtransPaymentPage: React.FC = () => {
                 />
               </div>
 
-              {/* Tombol CTA */}
+              {}
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={handleSubmit}
@@ -788,7 +784,7 @@ const MidtransPaymentPage: React.FC = () => {
               </div>
             </div>
 
-            {/* KOLOM KANAN - Ringkasan */}
+            {}
             <div className="lg:sticky lg:top-8 h-fit">
               <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
                 <div className="bg-gradient-to-l from-sky-50 to-blue-100 p-4 sm:p-5">
@@ -809,7 +805,7 @@ const MidtransPaymentPage: React.FC = () => {
                           </div>
                           <span className="font-bold text-gray-900">{formatCurrency(numericAmount)}</span>
                         </div>
-                        
+
                         {voucherBonus > 0 && (
                           <div className="flex justify-between items-center text-base bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-3 border-2 border-green-200">
                             <div className="flex items-center gap-2">
@@ -859,7 +855,7 @@ const MidtransPaymentPage: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Keamanan Pembayaran */}
+                  {}
                   <div className="mt-6 pt-6 border-t border-gray-200">
                     <div className="flex items-center gap-3 bg-gradient-to-l from-emerald-500/20 to-transparent rounded-xl p-4">
                       <div className="flex-shrink-0">
@@ -874,14 +870,14 @@ const MidtransPaymentPage: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-gray-900 text-sm mb-1">Pembayaran Aman</h4>
                         <p className="text-xs text-gray-600 leading-relaxed">
-                          Level keamanan tambahan untuk pembayaran. Informasi pembayaran Anda 
+                          Level keamanan tambahan untuk pembayaran. Informasi pembayaran Anda
                           dienkripsi dan aman. Proteksi SSL 2048 bit robust
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Metode Pembayaran */}
+                  {}
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <div className="flex items-center justify-between mb-3">
                       <p className="text-xs font-semibold text-gray-700">Metode Pembayaran</p>
@@ -889,8 +885,8 @@ const MidtransPaymentPage: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-4 gap-2">
                       {paymentMethods.map((method, index) => (
-                        <div 
-                          key={index} 
+                        <div
+                          key={index}
                           className="bg-gray-50 border border-gray-200 rounded-lg p-2 flex items-center justify-center hover:border-sky-300 transition-colors group"
                         >
                           <Image
@@ -914,7 +910,7 @@ const MidtransPaymentPage: React.FC = () => {
     );
   }
 
-  // Layar redirect ke B.com
+
   if (step === 'payment') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -934,7 +930,7 @@ const MidtransPaymentPage: React.FC = () => {
     );
   }
 
-  // Layar sukses
+
   if (step === 'success') {
     const expectedAmount = currentTransaction?.amount || 0;
     const totalWithBonus = expectedAmount + voucherBonus;

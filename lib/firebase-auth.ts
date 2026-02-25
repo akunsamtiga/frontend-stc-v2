@@ -1,7 +1,7 @@
-// lib/firebase-auth.ts - FIXED VERSION with better mobile support
+// lib/firebase-auth.ts 
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
-import { 
-  getAuth, 
+import {
+  getAuth,
   Auth,
   GoogleAuthProvider,
   signInWithPopup,
@@ -33,7 +33,7 @@ if (typeof window !== 'undefined') {
     }
 
     auth = getAuth(app)
-    
+
     googleProvider = new GoogleAuthProvider()
     googleProvider.addScope('email')
     googleProvider.addScope('profile')
@@ -41,13 +41,13 @@ if (typeof window !== 'undefined') {
       prompt: 'select_account'
     })
 
-    // ✅ Auto-clear stale redirect state saat module init
-    // Ini mencegah halaman terjebak spinner jika redirect lama tidak selesai
+
+
     try {
       const redirectTime = localStorage.getItem('google_auth_redirect_time')
       if (redirectTime) {
         const timeDiff = Date.now() - parseInt(redirectTime)
-        // Hapus jika redirect sudah lebih dari 2 menit (pasti stale)
+
         if (timeDiff > 2 * 60 * 1000) {
           localStorage.removeItem('google_auth_redirect_pending')
           localStorage.removeItem('google_auth_redirect_time')
@@ -56,7 +56,7 @@ if (typeof window !== 'undefined') {
         }
       }
     } catch (_) {
-      // Abaikan error localStorage di lingkungan tertentu
+
     }
 
     console.log('✅ Firebase Auth initialized successfully')
@@ -65,23 +65,17 @@ if (typeof window !== 'undefined') {
   }
 }
 
-/**
- * Detect if user is on mobile device
- */
 export function isMobileDevice(): boolean {
   if (typeof window === 'undefined') return false
-  
+
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
     navigator.userAgent
   )
 }
 
-/**
- * ✅ IMPROVED: Store redirect state before initiating redirect
- */
 function setRedirectState() {
   if (typeof window === 'undefined') return
-  
+
   try {
     localStorage.setItem('google_auth_redirect_pending', 'true')
     localStorage.setItem('google_auth_redirect_time', Date.now().toString())
@@ -91,12 +85,9 @@ function setRedirectState() {
   }
 }
 
-/**
- * ✅ IMPROVED: Clear redirect state
- */
 function clearRedirectState() {
   if (typeof window === 'undefined') return
-  
+
   try {
     localStorage.removeItem('google_auth_redirect_pending')
     localStorage.removeItem('google_auth_redirect_time')
@@ -106,36 +97,30 @@ function clearRedirectState() {
   }
 }
 
-/**
- * ✅ IMPROVED: Check if redirect is pending
- */
 export function isRedirectPending(): boolean {
   if (typeof window === 'undefined') return false
-  
+
   try {
     const pending = localStorage.getItem('google_auth_redirect_pending')
     const redirectTime = localStorage.getItem('google_auth_redirect_time')
-    
+
     if (!pending || !redirectTime) return false
-    
-    // Check if redirect is recent (within 2 minutes)
+
+
     const timeDiff = Date.now() - parseInt(redirectTime)
     const isRecent = timeDiff < 2 * 60 * 1000
-    
+
     if (!isRecent) {
       clearRedirectState()
       return false
     }
-    
+
     return true
   } catch (error) {
     return false
   }
 }
 
-/**
- * Sign in with Google using Popup
- */
 export async function signInWithGooglePopup(): Promise<UserCredential> {
   if (!auth || !googleProvider) {
     throw new Error('Firebase Auth not initialized')
@@ -153,9 +138,6 @@ export async function signInWithGooglePopup(): Promise<UserCredential> {
   }
 }
 
-/**
- * ✅ IMPROVED: Sign in with Google using Redirect with state tracking
- */
 export async function signInWithGoogleRedirect(): Promise<void> {
   if (!auth || !googleProvider) {
     throw new Error('Firebase Auth not initialized')
@@ -163,13 +145,13 @@ export async function signInWithGoogleRedirect(): Promise<void> {
 
   try {
     console.log('🔄 Initiating Google Sign-In redirect...')
-    
-    // Set redirect state BEFORE initiating redirect
+
+
     setRedirectState()
-    
-    // Small delay to ensure localStorage is written
+
+
     await new Promise(resolve => setTimeout(resolve, 100))
-    
+
     await signInWithRedirect(auth, googleProvider)
     console.log('✅ Google Sign-In redirect initiated')
   } catch (error: any) {
@@ -179,9 +161,6 @@ export async function signInWithGoogleRedirect(): Promise<void> {
   }
 }
 
-/**
- * ✅ IMPROVED: Get redirect result with better error handling
- */
 export async function handleGoogleRedirectResult(): Promise<UserCredential | null> {
   if (!auth) {
     throw new Error('Firebase Auth not initialized')
@@ -189,21 +168,21 @@ export async function handleGoogleRedirectResult(): Promise<UserCredential | nul
 
   try {
     console.log('🔍 Checking for Google redirect result...')
-    
+
     const result = await getRedirectResult(auth)
-    
+
     if (result) {
       console.log('✅ Google Sign-In successful (redirect result)')
       clearRedirectState()
       return result
     }
-    
-    // Check if we were expecting a redirect result
+
+
     if (isRedirectPending()) {
       console.warn('⚠️ Redirect was pending but no result found')
       clearRedirectState()
     }
-    
+
     return null
   } catch (error: any) {
     console.error('❌ Google redirect result error:', error)
@@ -212,9 +191,6 @@ export async function handleGoogleRedirectResult(): Promise<UserCredential | nul
   }
 }
 
-/**
- * Get ID Token from Firebase User
- */
 export async function getIdToken(user: any): Promise<string> {
   try {
     const token = await user.getIdToken()
@@ -225,24 +201,20 @@ export async function getIdToken(user: any): Promise<string> {
   }
 }
 
-/**
- * ✅ IMPROVED: Main Google Sign-In function with better mobile support
- * Try popup first, fallback to redirect only if popup fails
- */
 export async function signInWithGoogle(): Promise<UserCredential> {
   const isMobile = isMobileDevice()
-  
+
   console.log(`📱 Device type: ${isMobile ? 'Mobile' : 'Desktop'}`)
-  
-  // Try popup first (works better for most cases)
+
+
   try {
     console.log('🔄 Attempting popup sign-in...')
     const result = await signInWithGooglePopup()
     return result
   } catch (error: any) {
     console.error('❌ Popup failed:', error.code)
-    
-    // If popup was blocked or closed, try redirect (especially for mobile)
+
+
     if (
       error.code === 'auth/popup-blocked' ||
       error.code === 'auth/popup-closed-by-user' ||
@@ -251,10 +223,10 @@ export async function signInWithGoogle(): Promise<UserCredential> {
     ) {
       console.log('🔄 Falling back to redirect method...')
       await signInWithGoogleRedirect()
-      // Redirect will happen, return pending promise
+
       return new Promise(() => {})
     }
-    
+
     throw error
   }
 }

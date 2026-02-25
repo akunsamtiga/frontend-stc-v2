@@ -1,3 +1,4 @@
+// app/referral/page.tsx
 'use client'
 
 import React from 'react'
@@ -26,7 +27,6 @@ import {
 import { toast, Toaster } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface AffiliateSummary {
   totalReferrals: number
@@ -51,7 +51,6 @@ interface AffiliateReferral {
   createdAt: string
 }
 
-// ─── Animation variants ───────────────────────────────────────────────────────
 
 const SPRING = { type: 'spring', stiffness: 80, damping: 20 } as const
 
@@ -130,7 +129,6 @@ function CountUp({ to, prefix = '', suffix = '' }: { to: number; prefix?: string
   return <span ref={ref}>{prefix}{val}{suffix}</span>
 }
 
-// ─── Global Styles ────────────────────────────────────────────────────────────
 
 const GlobalStyles = () => (
   <style jsx global>{`
@@ -147,7 +145,6 @@ const GlobalStyles = () => (
   `}</style>
 )
 
-// ─── Skeletons ────────────────────────────────────────────────────────────────
 
 const SkeletonBlock = ({ w = 'w-20', h = 'h-4' }: { w?: string; h?: string }) => (
   <div className={`${h} ${w} bg-gray-200 rounded animate-pulse`} />
@@ -160,10 +157,10 @@ const LoadingSkeleton = () => (
       <Navbar />
       <Toaster position="top-right" />
 
-      {/* Skeleton Mobile */}
+
       <div className="md:hidden max-w-5xl mx-auto px-4 py-6">
         <div className="mb-4">
-          {/* Breadcrumb skeleton */}
+
           <SkeletonBlock w="w-32" h="h-3" />
           <div className="flex items-center gap-2 mt-2">
             <div className="w-8 h-8 bg-gray-200 rounded-xl animate-pulse" />
@@ -199,7 +196,7 @@ const LoadingSkeleton = () => (
         </div>
       </div>
 
-      {/* Skeleton Desktop */}
+
       <div className="hidden md:block max-w-5xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
@@ -211,7 +208,7 @@ const LoadingSkeleton = () => (
           </div>
           <SkeletonBlock w="w-28" h="h-10" />
         </div>
-        {/* Stats */}
+
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
             {[...Array(3)].map((_, i) => (
@@ -225,7 +222,7 @@ const LoadingSkeleton = () => (
             ))}
           </div>
         </div>
-        {/* Referral code card */}
+
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
           <SkeletonBlock w="w-40" h="h-3" />
           <div className="flex items-center gap-3 mt-3 flex-wrap">
@@ -267,7 +264,6 @@ const LoadingSkeleton = () => (
   </>
 )
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const ITEMS_PER_PAGE = 10
 
@@ -294,7 +290,6 @@ const REFEREE_STATUS_BADGE: Record<string, string> = {
   vip: 'bg-purple-100 text-purple-700',
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ReferralPage() {
   const router = useRouter()
@@ -319,7 +314,7 @@ export default function ReferralPage() {
 
   useEffect(() => {
     if (user) fetchAll()
-  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -422,18 +417,16 @@ export default function ReferralPage() {
         <Navbar />
         <Toaster position="top-right" />
 
-        {/* ══════════════════════════════════════════════════
-            MOBILE VIEW
-        ══════════════════════════════════════════════════ */}
+
         <motion.div
           className="md:hidden max-w-5xl mx-auto px-4 py-6 pb-28"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
         >
-          {/* Header */}
+
           <motion.div className="mb-4" variants={fadeIn} initial="hidden" animate="visible">
-            {/* ✅ Breadcrumb Mobile */}
+
             <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-2">
               <span>Dasbor</span>
               <span>/</span>
@@ -463,7 +456,7 @@ export default function ReferralPage() {
             </div>
           </motion.div>
 
-          {/* Referral Code Card */}
+
           <motion.div
             className="bg-white rounded-xl border border-gray-200 p-4 mb-4 shadow-sm"
             variants={fadeIn} initial="hidden" animate="visible"
@@ -505,7 +498,7 @@ export default function ReferralPage() {
             </div>
           </motion.div>
 
-          {/* Stats horizontal scroll */}
+
           <motion.div
             className="flex gap-3 overflow-x-auto mb-4 scrollbar-visible snap-x"
             variants={staggerContainer} initial="hidden" animate="visible"
@@ -552,7 +545,7 @@ export default function ReferralPage() {
             ))}
           </motion.div>
 
-          {/* Commission breakdown */}
+
           {summary && (summary.commissionBreakdown.fromGold > 0 || summary.commissionBreakdown.fromVIP > 0) && (
             <motion.div
               className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-4 text-xs text-blue-700"
@@ -567,7 +560,7 @@ export default function ReferralPage() {
             </motion.div>
           )}
 
-          {/* Filter chips */}
+
           <motion.div className="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-hide" variants={fadeIn} initial="hidden" animate="visible">
             {[['all', 'Semua'], ['completed', 'Selesai'], ['pending', 'Menunggu Deposit']].map(([id, label]) => (
               <motion.button
@@ -583,7 +576,7 @@ export default function ReferralPage() {
             ))}
           </motion.div>
 
-          {/* Referral List */}
+
           <motion.div className="space-y-2" variants={staggerContainer} initial="hidden" animate="visible">
             <AnimatePresence>
               {displayed.length === 0 ? (
@@ -629,7 +622,7 @@ export default function ReferralPage() {
           </motion.div>
         </motion.div>
 
-        {/* Mobile Pagination */}
+
         {totalPages > 1 && (
           <motion.div
             className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 px-4 py-4 shadow-[0_-4px_20px_rgba(0,0,0,0.15)] z-50 md:hidden"
@@ -668,16 +661,14 @@ export default function ReferralPage() {
           </motion.div>
         )}
 
-        {/* ══════════════════════════════════════════════════
-            DESKTOP VIEW
-        ══════════════════════════════════════════════════ */}
+
         <motion.div
           className="hidden md:block max-w-5xl mx-auto px-4 py-6 relative z-10"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
         >
-          {/* Header */}
+
           <motion.div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
             initial="hidden" animate="visible" variants={stagger(0.1)}>
             <motion.div variants={slideIn}>
@@ -709,7 +700,7 @@ export default function ReferralPage() {
             </motion.button>
           </motion.div>
 
-          {/* Stats Row */}
+
           <Reveal className="bg-white rounded-xl border border-gray-200 p-5 mb-6 shadow-sm">
             <motion.div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6"
               variants={stagger(0.08)} initial="hidden" animate="visible">
@@ -735,7 +726,7 @@ export default function ReferralPage() {
             </motion.div>
           </Reveal>
 
-          {/* Referral Code Card */}
+
           <motion.div
             className="bg-white rounded-xl border border-gray-200 p-5 mb-6 shadow-sm"
             variants={fadeIn} initial="hidden" animate="visible"
@@ -794,7 +785,7 @@ export default function ReferralPage() {
             </div>
           </motion.div>
 
-          {/* Table */}
+
           <motion.div
             className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm"
             variants={fadeIn} initial="hidden" animate="visible"
@@ -881,7 +872,7 @@ export default function ReferralPage() {
                   </table>
                 </div>
 
-                {/* Desktop Pagination */}
+
                 {totalPages > 1 && (
                   <motion.div
                     className="border-t border-gray-200 px-4 py-5"

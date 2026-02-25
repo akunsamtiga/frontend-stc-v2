@@ -1,9 +1,4 @@
-// lib/imageCompression.ts - NO LIMITS VERSION
-/**
- * ZERO VALIDATION IMAGE COMPRESSION
- * Accept ALL images without any restrictions!
- * Just compress to make it uploadable
- */
+// lib/imageCompression.ts 
 
 export interface ImageCompressionOptions {
   maxWidth?: number
@@ -13,15 +8,12 @@ export interface ImageCompressionOptions {
 }
 
 const DEFAULT_OPTIONS: ImageCompressionOptions = {
-  maxWidth: 2560,    // Very large limit
-  maxHeight: 2560,   // Very large limit
-  quality: 0.92,     // High quality
-  targetSizeKB: 4500 // Just under 5MB backend limit
+  maxWidth: 2560,
+  maxHeight: 2560,
+  quality: 0.92,
+  targetSizeKB: 4500
 }
 
-/**
- * Compress image - NO VALIDATION, just make it work!
- */
 export async function compressImage(
   file: File,
   options: ImageCompressionOptions = {}
@@ -33,7 +25,7 @@ export async function compressImage(
 
     reader.onerror = () => {
       console.warn('⚠️ FileReader error, returning original file')
-      resolve(file) // Return original instead of reject
+      resolve(file)
     }
 
     reader.onload = (e) => {
@@ -41,7 +33,7 @@ export async function compressImage(
 
       img.onerror = () => {
         console.warn('⚠️ Image load error, returning original file')
-        resolve(file) // Return original instead of reject
+        resolve(file)
       }
 
       img.onload = () => {
@@ -49,7 +41,7 @@ export async function compressImage(
           let { width, height } = img
           const aspectRatio = width / height
 
-          // Resize if too large (but very generous limits)
+
           if (opts.maxWidth && width > opts.maxWidth) {
             width = opts.maxWidth
             height = width / aspectRatio
@@ -75,7 +67,7 @@ export async function compressImage(
           ctx.imageSmoothingQuality = 'high'
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
 
-          // Use JPEG for everything (most compatible)
+
           const outputType = 'image/jpeg'
 
           canvas.toBlob(
@@ -86,7 +78,7 @@ export async function compressImage(
                 return
               }
 
-              // If compressed file is bigger, use original
+
               if (blob.size > file.size) {
                 console.log('✅ Original file is smaller, using original')
                 resolve(file)
@@ -112,7 +104,7 @@ export async function compressImage(
           )
         } catch (error) {
           console.error('⚠️ Compression error:', error)
-          resolve(file) // Return original on any error
+          resolve(file)
         }
       }
 
@@ -123,35 +115,29 @@ export async function compressImage(
   })
 }
 
-/**
- * NO VALIDATION - Accept everything!
- */
 export function validateImageFile(file: File): { valid: boolean; error?: string } {
-  // Accept EVERYTHING - no validation!
+
   return { valid: true }
 }
 
-/**
- * Get image dimensions (optional, non-blocking)
- */
 export async function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    
+
     reader.onerror = () => reject(new Error('Cannot read file'))
-    
+
     reader.onload = (e) => {
       const img = new Image()
-      
+
       img.onerror = () => reject(new Error('Cannot load image'))
-      
+
       img.onload = () => {
         resolve({ width: img.width, height: img.height })
       }
-      
+
       img.src = e.target?.result as string
     }
-    
+
     reader.readAsDataURL(file)
   })
 }

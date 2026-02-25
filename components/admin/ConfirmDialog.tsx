@@ -1,3 +1,4 @@
+// components/admin/ConfirmDialog.tsx
 'use client'
 
 import { Warning, X } from 'phosphor-react'
@@ -24,7 +25,7 @@ export default function ConfirmDialog({
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-slate-800 rounded-2xl max-w-md w-full border border-slate-700 overflow-hidden">
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between p-6 border-b border-slate-700">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-lg ${
@@ -44,12 +45,12 @@ export default function ConfirmDialog({
           </button>
         </div>
 
-        {/* Content */}
+        {}
         <div className="p-6">
           <p className="text-slate-300">{message}</p>
         </div>
 
-        {/* Footer */}
+        {}
         <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-700 bg-slate-900/50">
           <button
             onClick={onCancel}

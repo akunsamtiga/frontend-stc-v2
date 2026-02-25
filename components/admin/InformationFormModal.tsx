@@ -1,10 +1,11 @@
+// components/admin/InformationFormModal.tsx
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import { X, Upload, Trash, Image as ImageIcon, CloudArrowUp, Warning } from 'phosphor-react'
-import { 
-  Information, 
-  InformationType, 
+import {
+  Information,
+  InformationType,
   InformationPriority,
   CreateInformationRequest,
   UpdateInformationRequest,
@@ -25,7 +26,7 @@ export default function InformationFormModal({ information, onClose, onSuccess }
   const isEditing = !!information
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Form State
+
   const [formData, setFormData] = useState({
     title: '',
     subtitle: '',
@@ -48,15 +49,15 @@ export default function InformationFormModal({ information, onClose, onSuccess }
 
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  
-  // Image upload state
+
+
   const [uploadingImage, setUploadingImage] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [deletingImage, setDeletingImage] = useState(false)
   const [compressing, setCompressing] = useState(false)
 
-  // Initialize form with existing data
+
   useEffect(() => {
     if (information) {
       setFormData({
@@ -78,32 +79,32 @@ export default function InformationFormModal({ information, onClose, onSuccess }
         targetUserStatus: information.targetUserStatus || [],
         targetUserRoles: information.targetUserRoles || [],
       })
-      
-      // Set image preview if exists
+
+
       if (information.imageUrl) {
         setImagePreview(information.imageUrl)
       }
     }
   }, [information])
 
-  // Handle input change
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
-    
+
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked
       setFormData(prev => ({ ...prev, [name]: checked }))
     } else {
       setFormData(prev => ({ ...prev, [name]: value }))
     }
-    
-    // Clear error for this field
+
+
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }))
     }
   }
 
-  // Handle multi-select
+
   const handleMultiSelect = (name: 'targetUserStatus' | 'targetUserRoles', value: string) => {
     setFormData(prev => {
       const current = prev[name] as string[]
@@ -114,7 +115,7 @@ export default function InformationFormModal({ information, onClose, onSuccess }
     })
   }
 
-  // ✅ IMPROVED: Better error handling and logging
+
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -129,7 +130,7 @@ export default function InformationFormModal({ information, onClose, onSuccess }
       setUploadingImage(true)
       setUploadProgress(0)
 
-      // Delete old image if exists (non-blocking)
+
       if (formData.imagePath) {
         try {
           await api.deleteInformationImage(formData.imagePath)
@@ -139,10 +140,10 @@ export default function InformationFormModal({ information, onClose, onSuccess }
         }
       }
 
-      // ✅ Compress (but don't reject if fails)
+
       setCompressing(true)
       console.log('🔄 Processing image...')
-      
+
       let fileToUpload = file
       try {
         const compressedFile = await compressImage(file, {
@@ -155,12 +156,12 @@ export default function InformationFormModal({ information, onClose, onSuccess }
         console.log('✅ Image processed successfully')
       } catch (error) {
         console.warn('⚠️ Compression failed, using original file:', error)
-        // Continue with original file
+
       }
-      
+
       setCompressing(false)
 
-      // Simulate progress
+
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
           if (prev >= 90) {
@@ -171,28 +172,28 @@ export default function InformationFormModal({ information, onClose, onSuccess }
         })
       }, 200)
 
-      // Upload
+
       console.log('📤 Uploading...')
       console.log('📤 File to upload:', {
         name: fileToUpload.name,
         size: fileToUpload.size,
         type: fileToUpload.type
       })
-      
+
       const result = await api.uploadInformationImage(fileToUpload)
-      
+
       console.log('✅ Upload success!')
       console.log('✅ Upload result:', result)
 
       clearInterval(progressInterval)
       setUploadProgress(100)
 
-      // ✅ IMPROVED: Validate result before updating state
+
       if (!result || !result.url || !result.path) {
         throw new Error('Invalid upload result: missing url or path')
       }
 
-      // Update form data
+
       setFormData(prev => ({
         ...prev,
         imageUrl: result.url,
@@ -200,13 +201,13 @@ export default function InformationFormModal({ information, onClose, onSuccess }
         imageSize: result.size || fileToUpload.size,
       }))
 
-      // Set preview
+
       setImagePreview(result.url)
 
       setTimeout(() => {
         setUploadProgress(0)
       }, 1000)
-      
+
       toast.success('Gambar berhasil diupload!')
     } catch (error: any) {
       console.error('❌ Upload error:', error)
@@ -215,23 +216,23 @@ export default function InformationFormModal({ information, onClose, onSuccess }
         response: error.response,
         stack: error.stack
       })
-      
+
       setUploadProgress(0)
-      
-      // ✅ IMPROVED: Better error message
+
+
       let errorMessage = 'Gagal mengupload gambar'
-      
+
       if (error.response?.data) {
         const errorData = error.response.data
         errorMessage = errorData.error || errorData.message || errorData.detail || JSON.stringify(errorData)
       } else if (error.message) {
         errorMessage = error.message
       }
-      
+
       console.error('❌ Final error message:', errorMessage)
       toast.error(errorMessage)
-      
-      // Reset file input
+
+
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
@@ -241,21 +242,21 @@ export default function InformationFormModal({ information, onClose, onSuccess }
     }
   }
 
-  // Handle image deletion
+
   const handleDeleteImage = async () => {
     if (!formData.imagePath) return
 
     try {
       setDeletingImage(true)
       await api.deleteInformationImage(formData.imagePath)
-      
+
       setFormData(prev => ({
         ...prev,
         imageUrl: '',
         imagePath: '',
         imageSize: 0,
       }))
-      
+
       setImagePreview(null)
       toast.success('Gambar berhasil dihapus')
     } catch (error) {
@@ -263,14 +264,14 @@ export default function InformationFormModal({ information, onClose, onSuccess }
       toast.error('Gagal menghapus gambar')
     } finally {
       setDeletingImage(false)
-      // Reset file input
+
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
     }
   }
 
-  // Validate form
+
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {}
 
@@ -313,7 +314,7 @@ export default function InformationFormModal({ information, onClose, onSuccess }
     }
   }
 
-  // Handle submit
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -363,7 +364,7 @@ export default function InformationFormModal({ information, onClose, onSuccess }
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-slate-800 rounded-2xl max-w-4xl w-full my-8 border border-slate-700">
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between p-6 border-b border-slate-700 sticky top-0 bg-slate-800 z-10 rounded-t-2xl">
           <h2 className="text-2xl font-bold text-white">
             {isEditing ? '✏️ Edit Informasi' : '➕ Buat Informasi Baru'}
@@ -376,15 +377,15 @@ export default function InformationFormModal({ information, onClose, onSuccess }
           </button>
         </div>
 
-        {/* Form */}
+        {}
         <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[calc(90vh-180px)] overflow-y-auto">
-          {/* Basic Info */}
+          {}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-white border-b border-slate-700 pb-2">
               📝 Informasi Dasar
             </h3>
 
-            {/* Title */}
+            {}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Judul <span className="text-red-400">*</span>
@@ -403,7 +404,7 @@ export default function InformationFormModal({ information, onClose, onSuccess }
               <p className="text-xs text-slate-500 mt-1">{formData.title.length}/200 karakter</p>
             </div>
 
-            {/* Subtitle */}
+            {}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Sub Judul
@@ -424,7 +425,7 @@ export default function InformationFormModal({ information, onClose, onSuccess }
               )}
             </div>
 
-            {/* Description */}
+            {}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Deskripsi <span className="text-red-400">*</span>
@@ -443,7 +444,7 @@ export default function InformationFormModal({ information, onClose, onSuccess }
               <p className="text-xs text-slate-500 mt-1">{formData.description.length} karakter</p>
             </div>
 
-            {/* Type & Priority */}
+            {}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -483,13 +484,13 @@ export default function InformationFormModal({ information, onClose, onSuccess }
             </div>
           </div>
 
-          {/* Image Upload Section */}
+          {}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-white border-b border-slate-700 pb-2">
               🖼️ Gambar Banner
             </h3>
 
-            {/* Image Preview */}
+            {}
             {imagePreview ? (
               <div className="relative group">
                 <div className="relative rounded-lg overflow-hidden border-2 border-slate-700">
@@ -502,7 +503,7 @@ export default function InformationFormModal({ information, onClose, onSuccess }
                       (e.target as HTMLImageElement).src = '/placeholder-image.png';
                     }}
                   />
-                  {/* Overlay */}
+                  {}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                     <button
                       type="button"
@@ -566,7 +567,7 @@ export default function InformationFormModal({ information, onClose, onSuccess }
               </div>
             )}
 
-            {/* Upload Progress */}
+            {}
             {uploadingImage && uploadProgress > 0 && (
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
@@ -582,7 +583,7 @@ export default function InformationFormModal({ information, onClose, onSuccess }
               </div>
             )}
 
-            {/* Hidden File Input */}
+            {}
             <input
               ref={fileInputRef}
               type="file"
@@ -592,7 +593,7 @@ export default function InformationFormModal({ information, onClose, onSuccess }
               disabled={uploadingImage || compressing}
             />
 
-            {/* Info Box */}
+            {}
             <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 flex items-start gap-3">
               <Warning className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" weight="duotone" />
               <div className="text-sm text-blue-300">
@@ -607,7 +608,7 @@ export default function InformationFormModal({ information, onClose, onSuccess }
             </div>
           </div>
 
-          {/* Link Info */}
+          {}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-white border-b border-slate-700 pb-2">
               🔗 Link & Button
@@ -647,7 +648,7 @@ export default function InformationFormModal({ information, onClose, onSuccess }
             </div>
           </div>
 
-          {/* Dates */}
+          {}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-white border-b border-slate-700 pb-2">
               📅 Tanggal
@@ -698,7 +699,7 @@ export default function InformationFormModal({ information, onClose, onSuccess }
             </div>
           </div>
 
-          {/* Toggles */}
+          {}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-white border-b border-slate-700 pb-2">
               ⚙️ Pengaturan
@@ -735,7 +736,7 @@ export default function InformationFormModal({ information, onClose, onSuccess }
             </div>
           </div>
 
-          {/* Target User Status */}
+          {}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-white border-b border-slate-700 pb-2">
               🎯 Target Pengguna
@@ -785,7 +786,7 @@ export default function InformationFormModal({ information, onClose, onSuccess }
           </div>
         </form>
 
-        {/* Footer */}
+        {}
         <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-700 bg-slate-900/50 sticky bottom-0 rounded-b-2xl">
           <button
             type="button"

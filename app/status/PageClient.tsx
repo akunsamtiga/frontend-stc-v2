@@ -1,6 +1,6 @@
+// app/status/PageClient.tsx
 'use client'
 
-// app/status/PageClient.tsx
 import { useState, useRef } from 'react'
 import { Check, Lock, ChevronDown, ChevronUp } from 'lucide-react'
 import PageNavbar from '@/components/PageNavbar'
@@ -12,7 +12,6 @@ import {
   type Variants,
 } from 'framer-motion'
 
-// ─── Types & config ───────────────────────────────────────────────────────────
 
 type Tier = 'standard' | 'gold' | 'vip'
 const TIERS: Tier[] = ['standard', 'gold', 'vip']
@@ -83,7 +82,6 @@ const TIER_META: Record<Tier, {
 const formatIDR = (n: number) =>
   new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', maximumFractionDigits:0 }).format(n)
 
-// ─── Shared motion variants (all once:true — no re-trigger, no infinite) ─────
 
 const SPRING = { type: 'spring', stiffness: 80, damping: 20 } as const
 
@@ -107,7 +105,6 @@ const stagger = (delay = 0.08): Variants => ({
   visible: { transition: { staggerChildren: delay, delayChildren: 0.04 } },
 })
 
-// ─── Scroll reveal wrapper — children animate once when entering viewport ─────
 
 function Reveal({
   children,
@@ -134,7 +131,6 @@ function Reveal({
   )
 }
 
-// ─── Word-by-word headline reveal ─────────────────────────────────────────────
 
 function AnimatedHeadline({ text, className, style }: { text: string; className?: string; style?: React.CSSProperties }) {
   const words = text.split(' ')
@@ -166,7 +162,6 @@ function AnimatedHeadline({ text, className, style }: { text: string; className?
   )
 }
 
-// ─── Count-up number (fires once on scroll into view) ─────────────────────────
 
 function CountUp({ to, suffix = '', prefix = '' }: { to: number; suffix?: string; prefix?: string }) {
   const ref = useRef<HTMLSpanElement>(null)
@@ -187,7 +182,7 @@ function CountUp({ to, suffix = '', prefix = '' }: { to: number; suffix?: string
     requestAnimationFrame(step)
   })
 
-  // Trigger when inView changes
+
   const triggered = useRef(false)
   if (inView && !triggered.current) {
     triggered.current = true
@@ -206,7 +201,6 @@ function CountUp({ to, suffix = '', prefix = '' }: { to: number; suffix?: string
   return <span ref={ref}>{prefix}{val}{suffix}</span>
 }
 
-// ─── Hero ─────────────────────────────────────────────────────────────────────
 
 function PageHero() {
   return (
@@ -233,7 +227,6 @@ function PageHero() {
   )
 }
 
-// ─── Stats strip ──────────────────────────────────────────────────────────────
 
 function StatsStrip() {
   const stats = [
@@ -270,7 +263,6 @@ function StatsStrip() {
   )
 }
 
-// ─── Tier card ────────────────────────────────────────────────────────────────
 
 function TierCard({ tier, index }: { tier: Tier; index: number }) {
   const meta = TIER_META[tier]
@@ -314,7 +306,7 @@ function TierCard({ tier, index }: { tier: Tier; index: number }) {
           </motion.div>
         </div>
 
-        {/* Deposit range */}
+
         <div className="rounded-xl px-4 py-3 mb-4 bg-white" style={{ border:`1px solid ${meta.border}` }}>
           <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Rentang Deposit</p>
           <div className="flex items-center justify-between">
@@ -330,7 +322,7 @@ function TierCard({ tier, index }: { tier: Tier; index: number }) {
           </div>
         </div>
 
-        {/* Key stats grid */}
+
         <motion.div
           className="grid grid-cols-2 gap-2.5 mb-4"
           variants={stagger(0.06)}
@@ -352,13 +344,13 @@ function TierCard({ tier, index }: { tier: Tier; index: number }) {
           ))}
         </motion.div>
 
-        {/* Support note */}
+
         <div className="rounded-xl px-3.5 py-2.5 mb-5 text-[11px] leading-relaxed"
           style={{ background:`${meta.accent}08`, border:`1px solid ${meta.accent}20`, color:meta.accentDark }}>
           {meta.supportDesc}
         </div>
 
-        {/* Perks list */}
+
         <motion.div
           className="space-y-2.5 flex-1 mb-5"
           variants={stagger(0.07)}
@@ -385,7 +377,7 @@ function TierCard({ tier, index }: { tier: Tier; index: number }) {
           ))}
         </motion.div>
 
-        {/* Feature flags */}
+
         <div className="pt-4" style={{ borderTop:'1px solid #f0f0f0' }}>
           <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Fitur Eksklusif</p>
           <motion.div
@@ -423,7 +415,6 @@ function TierCard({ tier, index }: { tier: Tier; index: number }) {
   )
 }
 
-// ─── Comparison table ─────────────────────────────────────────────────────────
 
 function ComparisonTable() {
   const sections = [
@@ -464,7 +455,7 @@ function ComparisonTable() {
 
   return (
     <div className="rounded-2xl overflow-hidden w-full" style={{ border:'1px solid #f0f0f0' }}>
-      {/* Header row */}
+
       <div className="grid grid-cols-4 bg-gray-50 sticky top-[57px] z-10" style={{ borderBottom:'1px solid #ebebeb' }}>
         <div className="p-3 sm:p-4" />
         {TIERS.map(tier => {
@@ -541,7 +532,6 @@ function ComparisonTable() {
   )
 }
 
-// ─── Deposit roadmap ──────────────────────────────────────────────────────────
 
 function DepositRoadmap() {
   return (
@@ -628,7 +618,6 @@ function DepositRoadmap() {
   )
 }
 
-// ─── How it works ─────────────────────────────────────────────────────────────
 
 function HowItWorks() {
   const steps = [
@@ -674,7 +663,6 @@ function HowItWorks() {
   )
 }
 
-// ─── Bonus example ────────────────────────────────────────────────────────────
 
 function BonusExample() {
   const tradeAmount = 100000
@@ -719,7 +707,6 @@ function BonusExample() {
   )
 }
 
-// ─── FAQ ──────────────────────────────────────────────────────────────────────
 
 function FAQ() {
   const [open, setOpen] = useState<number|null>(null)
@@ -776,7 +763,6 @@ function FAQ() {
   )
 }
 
-// ─── Section label ────────────────────────────────────────────────────────────
 
 function SectionLabel({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
@@ -797,7 +783,6 @@ function SectionLabel({ title, subtitle }: { title: string; subtitle?: string })
   )
 }
 
-// ─── Client page export ───────────────────────────────────────────────────────
 
 export default function StatusPageClient() {
   return (

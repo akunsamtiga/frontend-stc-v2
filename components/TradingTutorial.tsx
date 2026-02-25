@@ -1,12 +1,13 @@
+// components/TradingTutorial.tsx
 import React, { useState, useEffect } from 'react'
-import { 
-  X, 
-  ArrowRight, 
+import {
+  X,
+  ArrowRight,
   ArrowLeft,
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Clock, 
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Clock,
   Award,
   Target,
   Check
@@ -123,27 +124,27 @@ export default function TradingTutorial({ onComplete, onSkip }: TradingTutorialP
 
   return (
     <>
-      {/* Overlay */}
-      <div 
+      {}
+      <div
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] animate-fade-in"
         onClick={onSkip}
       />
 
-      {/* Tutorial Modal */}
+      {}
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-full max-w-lg mx-3 sm:mx-4 animate-scale-in">
         <div className="bg-[#0f1419] border border-gray-800/50 rounded-2xl shadow-2xl overflow-hidden">
-          
-          {/* Progress Bar */}
+
+          {}
           <div className="h-1 bg-gray-800/50">
-            <div 
+            <div
               className="h-full bg-blue-500 transition-all duration-500 ease-out"
               style={{ width: `${progress}%` }}
             />
           </div>
 
-          {/* Header */}
+          {}
           <div className="relative px-5 sm:px-6 py-5 sm:py-6 border-b border-gray-800/50">
-            {/* Close Button */}
+            {}
             <button
               onClick={onSkip}
               className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 transition-colors"
@@ -151,7 +152,7 @@ export default function TradingTutorial({ onComplete, onSkip }: TradingTutorialP
               <X className="w-5 h-5 text-gray-400" />
             </button>
 
-            {/* Header Content */}
+            {}
             <div className="flex items-start gap-4 pr-8">
               <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Icon className="w-6 h-6 text-blue-400" />
@@ -167,18 +168,18 @@ export default function TradingTutorial({ onComplete, onSkip }: TradingTutorialP
             </div>
           </div>
 
-          {/* Content */}
+          {}
           <div className="px-5 sm:px-6 py-5 sm:py-6">
             <div className={`transition-all duration-200 ${isAnimating ? 'opacity-0' : 'opacity-100'}`}>
-              {/* Description */}
+              {}
               <p className="text-sm text-gray-400 leading-relaxed mb-5">
                 {step.description}
               </p>
 
-              {/* Tips */}
+              {}
               <div className="space-y-2.5 mb-6">
                 {step.tips.map((tip, i) => (
-                  <div 
+                  <div
                     key={i}
                     className="flex items-start gap-3 text-sm"
                   >
@@ -192,7 +193,7 @@ export default function TradingTutorial({ onComplete, onSkip }: TradingTutorialP
                 ))}
               </div>
 
-              {/* Step Indicators */}
+              {}
               <div className="flex items-center justify-center gap-2 mb-6">
                 {TUTORIAL_STEPS.map((_, index) => (
                   <button
@@ -211,7 +212,7 @@ export default function TradingTutorial({ onComplete, onSkip }: TradingTutorialP
             </div>
           </div>
 
-          {/* Footer */}
+          {}
           <div className="px-5 sm:px-6 py-4 border-t border-gray-800/50 bg-[#0a0e17]">
             <div className="flex gap-3">
               {currentStep > 0 && (

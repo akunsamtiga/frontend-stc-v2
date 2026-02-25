@@ -1,8 +1,5 @@
-'use client'
-
 // components/ClientProviders.tsx
-// Wrapper Client Component — menampung semua komponen yang butuh
-// dynamic import dengan ssr: false, agar layout.tsx tetap Server Component.
+'use client'
 
 import dynamic from 'next/dynamic'
 

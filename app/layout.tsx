@@ -7,21 +7,19 @@ import { WebSocketProvider } from '@/components/providers/WebSocketProvider'
 import ClientProviders from '@/components/ClientProviders'
 import './globals.css'
 
-// ─── Site constants ────────────────────────────────────────────────────────────
 const SITE_URL = 'https://stouch.id'
 const SITE_NAME = 'Stouch.id'
 const SITE_DESCRIPTION =
   'Platform trading binary option terpercaya di Indonesia. Profit hingga 100%, penarikan kilat, bonus VIP, dan keamanan maksimal. Powered by Stockity.'
 
-// ─── Root metadata ─────────────────────────────────────────────────────────────
 export const metadata: Metadata = {
-  // ── Title template ──────────────────────────────────────────────────────────
+
   title: {
     default: `${SITE_NAME}`,
     template: `%s | ${SITE_NAME}`,
   },
 
-  // ── Basic ────────────────────────────────────────────────────────────────────
+
   description: SITE_DESCRIPTION,
   keywords: [
     'binary option indonesia',
@@ -46,14 +44,14 @@ export const metadata: Metadata = {
   applicationName: SITE_NAME,
   generator: 'Next.js',
 
-  // ── Canonical ────────────────────────────────────────────────────────────────
+
   metadataBase: new URL(SITE_URL),
   alternates: {
     canonical: '/',
     languages: { 'id-ID': '/' },
   },
 
-  // ── Open Graph ───────────────────────────────────────────────────────────────
+
   openGraph: {
     type: 'website',
     locale: 'id_ID',
@@ -72,7 +70,7 @@ export const metadata: Metadata = {
     ],
   },
 
-  // ── Twitter / X ──────────────────────────────────────────────────────────────
+
   twitter: {
     card: 'summary_large_image',
     title: `${SITE_NAME} — Platform Trading Binary Option Terpercaya`,
@@ -82,7 +80,7 @@ export const metadata: Metadata = {
     site: '@stockity_id',
   },
 
-  // ── Icons ────────────────────────────────────────────────────────────────────
+
   icons: {
     icon: [
       { url: '/stc.ico', sizes: 'any' },
@@ -95,10 +93,10 @@ export const metadata: Metadata = {
     ],
   },
 
-  // ── Manifest (PWA) ───────────────────────────────────────────────────────────
+
   manifest: '/manifest.json',
 
-  // ── Apple PWA ────────────────────────────────────────────────────────────────
+
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -106,7 +104,7 @@ export const metadata: Metadata = {
     startupImage: '/apple-splash.png',
   },
 
-  // ── Robots ───────────────────────────────────────────────────────────────────
+
   robots: {
     index: true,
     follow: true,
@@ -119,11 +117,11 @@ export const metadata: Metadata = {
     },
   },
 
-  // ── Verification (isi sesuai Google/Bing Search Console) ─────────────────────
+
   verification: {
     google: 'GANTI_DENGAN_GOOGLE_VERIFICATION_CODE',
-    // yandex: '...',
-    // bing: '...',
+
+
   },
 }
 
@@ -134,7 +132,6 @@ export const viewport: Viewport = {
   themeColor: '#0f1419',
 }
 
-// ─── JSON-LD structured data ───────────────────────────────────────────────────
 function OrganizationJsonLd() {
   const data = {
     '@context': 'https://schema.org',
@@ -207,31 +204,30 @@ function WebSiteJsonLd() {
   )
 }
 
-// ─── Root layout ───────────────────────────────────────────────────────────────
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <head>
-        {/* Icons */}
+        {}
         <link rel="icon" href="/stc.ico" sizes="any" />
 
-        {/* Apple PWA */}
+        {}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
-        {/* Android PWA */}
+        {}
         <meta name="mobile-web-app-capable" content="yes" />
 
-        {/* MS Tiles */}
+        {}
         <meta name="msapplication-TileColor" content="#0f1419" />
         <meta name="msapplication-navbutton-color" content="#0f1419" />
         <meta name="msapplication-TileImage" content="/icon-192.png" />
 
-        {/* Preconnect untuk performa */}
+        {}
         <link rel="preconnect" href="https://storage.googleapis.com" />
         <link rel="dns-prefetch" href="https://storage.googleapis.com" />
 
-        {/* Structured data */}
+        {}
         <OrganizationJsonLd />
         <WebSiteJsonLd />
       </head>

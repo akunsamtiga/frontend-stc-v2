@@ -1,4 +1,4 @@
-// components/TradingChart.tsx 
+// components/TradingChart.tsx
 'use client'
 
 import { useEffect, useRef, useState, useCallback, memo, useMemo } from 'react'
@@ -19,10 +19,10 @@ import AssetIcon from '@/components/common/AssetIcon'
 import OrderPriceTracker from '@/components/OrderPriceTracker'
 import CandleCountdown from '@/components/CandleCountdown'
 import { useChartPriceScale } from '@/hooks/useChartPriceScale'
-import { 
-  calculateRSI, 
-  calculateMACD, 
-  calculateStochastic, 
+import {
+  calculateRSI,
+  calculateMACD,
+  calculateStochastic,
   calculateATR,
   calculateWMA,
   calculateADX,
@@ -42,15 +42,6 @@ import {
   CandleData as IndicatorCandleData
 } from '@/lib/indicators'
 
-// ============================================================================
-// WIB TIMEZONE HELPER FUNCTIONS
-// ============================================================================
-
-/**
- * Konversi UTC timestamp ke WIB timestamp
- * @param timestamp - Unix timestamp dalam seconds (UTC)
- * @returns Unix timestamp dalam seconds (WIB equivalent)
- */
 function toWIBTimestamp(timestamp: number): number {
   const date = new Date(timestamp * 1000);
   const wibString = date.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' });
@@ -58,48 +49,29 @@ function toWIBTimestamp(timestamp: number): number {
   return Math.floor(wibDate.getTime() / 1000);
 }
 
-/**
- * Format timestamp ke format waktu WIB (HH:MM atau HH:MM:SS)
- * @param timestamp - Unix timestamp dalam seconds
- * @param showSeconds - Tampilkan detik atau tidak
- * @returns String waktu dalam format WIB
- */
 function formatWIBTime(timestamp: number, showSeconds: boolean = false): string {
   const date = new Date(timestamp * 1000);
   const wibDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
-  
+
   const hours = String(wibDate.getHours()).padStart(2, '0');
   const minutes = String(wibDate.getMinutes()).padStart(2, '0');
   const seconds = String(wibDate.getSeconds()).padStart(2, '0');
-  
+
   return showSeconds ? `${hours}:${minutes}:${seconds}` : `${hours}:${minutes}`;
 }
 
-/**
- * Format timestamp ke format tanggal dan waktu lengkap WIB
- * @param timestamp - Unix timestamp dalam seconds
- * @returns String tanggal waktu dalam format DD/MM/YYYY HH:MM
- */
 function formatWIBDateTime(timestamp: number): string {
   const date = new Date(timestamp * 1000);
   const wibDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
-  
+
   const day = String(wibDate.getDate()).padStart(2, '0');
   const month = String(wibDate.getMonth() + 1).padStart(2, '0');
   const year = wibDate.getFullYear();
   const hours = String(wibDate.getHours()).padStart(2, '0');
   const minutes = String(wibDate.getMinutes()).padStart(2, '0');
-  
+
   return `${day}/${month}/${year} ${hours}:${minutes}`;
 }
-
-// ============================================================================
-// END WIB HELPER FUNCTIONS
-// ============================================================================
-
-// ============================================================================
-// ASSET TYPE FILTER WITHOUT ICONS
-// ============================================================================
 
 type AssetTypeFilter = 'all' | 'forex' | 'crypto' | 'stock' | 'commodity' | 'index'
 
@@ -129,8 +101,8 @@ const TypeFilterChips = memo(({
   availableTypes: AssetTypeFilter[]
 }) => {
   const types: AssetTypeFilter[] = ['all', ...availableTypes]
-  
-  // Bagi chips menjadi 2 baris yang seimbang
+
+
   const midPoint = Math.ceil(types.length / 2)
   const row1 = types.slice(0, midPoint)
   const row2 = types.slice(midPoint)
@@ -181,9 +153,6 @@ const TypeFilterChips = memo(({
 
 TypeFilterChips.displayName = 'TypeFilterChips'
 
-// ============================================================================
-
-
 const IndicatorControls = dynamic(() => import('./IndicatorControls'), { ssr: false })
 
 type ChartType = 'line' | 'candle'
@@ -197,7 +166,7 @@ interface TradingChartProps {
 }
 
 interface IndicatorConfig {
-  // Overlay Indicators
+
   sma?: { enabled: boolean; period: number; color: string }
   ema?: { enabled: boolean; period: number; color: string }
   wma?: { enabled: boolean; period: number; color: string }
@@ -208,8 +177,8 @@ interface IndicatorConfig {
   vwap?: { enabled: boolean; color: string }
   parabolicSar?: { enabled: boolean; accelerationFactor: number; maxAF: number }
   supertrend?: { enabled: boolean; period: number; multiplier: number }
-  
-  // Oscillator Indicators
+
+
   rsi?: { enabled: boolean; period: number; overbought: number; oversold: number }
   macd?: { enabled: boolean; fastPeriod: number; slowPeriod: number; signalPeriod: number }
   stochastic?: { enabled: boolean; kPeriod: number; dPeriod: number; overbought: number; oversold: number }
@@ -223,7 +192,6 @@ interface IndicatorConfig {
   obv?: { enabled: boolean }
   elderRay?: { enabled: boolean; period: number }
 }
-
 
 const DEFAULT_INDICATOR_CONFIG: IndicatorConfig = {
   sma: { enabled: false, period: 20, color: '#3b82f6' },
@@ -249,7 +217,6 @@ const DEFAULT_INDICATOR_CONFIG: IndicatorConfig = {
   obv: { enabled: false },
   elderRay: { enabled: false, period: 13 }
 }
-
 
 interface CandleData {
   timestamp: number
@@ -297,7 +264,7 @@ const ChartSkeleton = memo(({ timeframe, assetSymbol }: { timeframe: Timeframe; 
 
         <div className="absolute inset-0 flex items-end justify-center pb-20 px-10 gap-1">
           {Array.from({ length: 20 }).map((_, i) => (
-            <div 
+            <div
               key={i}
               className="bg-gray-800/60 rounded-sm animate-pulse"
               style={{
@@ -315,7 +282,7 @@ const ChartSkeleton = memo(({ timeframe, assetSymbol }: { timeframe: Timeframe; 
             <div className="absolute inset-0 w-16 h-16 border-4 border-blue-500/30 rounded-full border-t-blue-500 animate-spin" />
             <div className="absolute inset-0 m-auto w-8 h-8 bg-blue-500/20 rounded-full animate-ping" />
           </div>
-          
+
           <div className="mt-6 text-center space-y-2">
             <p className="text-sm font-medium text-gray-300">
               Loading {timeframe} Chart
@@ -341,11 +308,11 @@ const ChartSkeleton = memo(({ timeframe, assetSymbol }: { timeframe: Timeframe; 
           animation: shimmer 2s infinite;
         }
         @keyframes scale-in {
-          0% { 
+          0% {
             opacity: 0;
             transform: scale(0.95);
           }
-          100% { 
+          100% {
             opacity: 1;
             transform: scale(1);
           }
@@ -362,7 +329,7 @@ ChartSkeleton.displayName = 'ChartSkeleton'
 
 function calculateSMA(data: Array<{ time: UTCTimestamp; close: number }>, period: number): Array<{ time: UTCTimestamp; value: number }> {
   const result: Array<{ time: UTCTimestamp; value: number }> = []
-  
+
   for (let i = period - 1; i < data.length; i++) {
     let sum = 0
     for (let j = 0; j < period; j++) {
@@ -370,35 +337,35 @@ function calculateSMA(data: Array<{ time: UTCTimestamp; close: number }>, period
     }
     result.push({ time: data[i].time, value: sum / period })
   }
-  
+
   return result
 }
 
 function calculateEMA(data: Array<{ time: UTCTimestamp; close: number }>, period: number): Array<{ time: UTCTimestamp; value: number }> {
   const result: Array<{ time: UTCTimestamp; value: number }> = []
   const multiplier = 2 / (period + 1)
-  
+
   let sum = 0
   for (let i = 0; i < Math.min(period, data.length); i++) {
     sum += data[i].close
   }
   let ema = sum / Math.min(period, data.length)
-  
+
   if (data.length >= period) {
     result.push({ time: data[period - 1].time, value: ema })
   }
-  
+
   for (let i = period; i < data.length; i++) {
     ema = (data[i].close - ema) * multiplier + ema
     result.push({ time: data[i].time, value: ema })
   }
-  
+
   return result
 }
 
 function calculateBollingerBands(
-  data: Array<{ time: UTCTimestamp; close: number }>, 
-  period: number, 
+  data: Array<{ time: UTCTimestamp; close: number }>,
+  period: number,
   stdDev: number
 ): {
   upper: Array<{ time: UTCTimestamp; value: number }>
@@ -408,27 +375,27 @@ function calculateBollingerBands(
   const upper: Array<{ time: UTCTimestamp; value: number }> = []
   const middle: Array<{ time: UTCTimestamp; value: number }> = []
   const lower: Array<{ time: UTCTimestamp; value: number }> = []
-  
+
   for (let i = period - 1; i < data.length; i++) {
     let sum = 0
     for (let j = 0; j < period; j++) {
       sum += data[i - j].close
     }
     const sma = sum / period
-    
+
     let squaredDiffSum = 0
     for (let j = 0; j < period; j++) {
       const diff = data[i - j].close - sma
       squaredDiffSum += diff * diff
     }
     const sd = Math.sqrt(squaredDiffSum / period)
-    
+
     const time = data[i].time
     upper.push({ time, value: sma + (stdDev * sd) })
     middle.push({ time, value: sma })
     lower.push({ time, value: sma - (stdDev * sd) })
   }
-  
+
   return { upper, middle, lower }
 }
 
@@ -500,7 +467,7 @@ class SmoothCandleAnimator {
         targetClose: newCandle.close,
         isAnimating: false,
       }
-      
+
       this.onUpdate({
         timestamp: newCandle.timestamp,
         open: newCandle.open,
@@ -509,11 +476,11 @@ class SmoothCandleAnimator {
         close: newCandle.close,
         volume: newCandle.volume,
       })
-      
+
       return
     }
 
-    const hasChanges = 
+    const hasChanges =
       this.currentCandle.high !== newCandle.high ||
       this.currentCandle.low !== newCandle.low ||
       this.currentCandle.close !== newCandle.close
@@ -546,7 +513,7 @@ class SmoothCandleAnimator {
       const elapsed = currentTime - this.startTime
       const progress = Math.min(elapsed / this.duration, 1)
       const easedProgress = this.easeOutCubic(progress)
-      
+
       const newHigh = this.lerp(this.initialHigh, this.currentCandle.targetHigh, easedProgress)
       const newLow = this.lerp(this.initialLow, this.currentCandle.targetLow, easedProgress)
       const newClose = this.lerp(this.initialClose, this.currentCandle.targetClose, easedProgress)
@@ -569,11 +536,11 @@ class SmoothCandleAnimator {
       } else {
         this.currentCandle.isAnimating = false
         this.animationFrame = null
-        
+
         this.currentCandle.high = this.currentCandle.targetHigh
         this.currentCandle.low = this.currentCandle.targetLow
         this.currentCandle.close = this.currentCandle.targetClose
-        
+
         this.onUpdate({
           timestamp: this.currentCandle.timestamp,
           open: this.currentCandle.open,
@@ -620,7 +587,7 @@ function getCachedData(assetId: string, timeframe: Timeframe): any[] | null {
   if (!cached) return null
   const now = Date.now()
   const age = now - cached.timestamp
-  
+
   if (age > CACHE_TTL) {
     if (age > STALE_CACHE_TTL) {
       GLOBAL_DATA_CACHE.delete(key)
@@ -638,7 +605,7 @@ function setCachedData(assetId: string, timeframe: Timeframe, data: any[]) {
     timestamp: Date.now(),
     timeframe
   })
-  
+
   if (GLOBAL_DATA_CACHE.size > 100) {
     const entries = Array.from(GLOBAL_DATA_CACHE.entries())
     entries.sort((a, b) => a[1].timestamp - b[1].timestamp)
@@ -675,9 +642,9 @@ function getTimeframeSeconds(timeframe: Timeframe): number {
 
 function getBarPeriodTimestamp(timestamp: number, timeframe: Timeframe): number {
   const seconds = getTimeframeSeconds(timeframe)
-  
-  // 🔧 FIX: Pastikan menggunakan Math.floor seperti backend
-  // Backend menggunakan: Math.floor(timestamp / seconds) * seconds
+
+
+
   return Math.floor(timestamp / seconds) * seconds
 }
 
@@ -688,27 +655,27 @@ async function checkSimulatorStatus(assetPath: string): Promise<{
   message: string
 }> {
   if (typeof window === 'undefined' || !database) {
-    return { 
-      isRunning: false, 
-      hasCurrentPrice: false, 
+    return {
+      isRunning: false,
+      hasCurrentPrice: false,
       hasOHLC: false,
-      message: 'Firebase not initialized' 
+      message: 'Firebase not initialized'
     }
   }
 
   try {
     const basePath = cleanAssetPath(assetPath)
-    
+
     const priceRef = ref(database, `${basePath}/current_price`)
     const priceSnapshot = await get(priceRef)
     const hasCurrentPrice = priceSnapshot.exists()
-    
+
     const ohlcRef = ref(database, `${basePath}/ohlc_1m`)
     const ohlcSnapshot = await get(ohlcRef)
     const hasOHLC = ohlcSnapshot.exists()
-    
+
     const isRunning = hasCurrentPrice && hasOHLC
-    
+
     let message = ''
     if (!hasCurrentPrice && !hasOHLC) {
       message = 'Market offline - no data found'
@@ -719,14 +686,14 @@ async function checkSimulatorStatus(assetPath: string): Promise<{
     } else {
       message = 'Market online'
     }
-    
+
     return { isRunning, hasCurrentPrice, hasOHLC, message }
   } catch (error) {
-    return { 
-      isRunning: false, 
-      hasCurrentPrice: false, 
+    return {
+      isRunning: false,
+      hasCurrentPrice: false,
       hasOHLC: false,
-      message: 'Check failed: ' + (error as Error).message 
+      message: 'Check failed: ' + (error as Error).message
     }
   }
 }
@@ -742,7 +709,7 @@ const RealtimeClock = memo(({ nowMs }: { nowMs: number }) => {
     timeZone: 'Asia/Jakarta'
   })
 
-  // Format tanggal manual pakai ":" sebagai separator
+
   const wib = new Date(time.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }))
   const day = String(wib.getDate()).padStart(2, '0')
   const monthNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
@@ -763,13 +730,13 @@ const RealtimeClock = memo(({ nowMs }: { nowMs: number }) => {
 
 RealtimeClock.displayName = 'RealtimeClock'
 
-const PriceDisplay = memo(({ 
-  asset, 
-  price, 
-  onClick, 
-  showMenu, 
-  assets, 
-  onSelectAsset 
+const PriceDisplay = memo(({
+  asset,
+  price,
+  onClick,
+  showMenu,
+  assets,
+  onSelectAsset
 }: any) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -782,7 +749,7 @@ const PriceDisplay = memo(({
   const hasChange = price.change !== undefined && price.change !== 0
   const formattedPrice = formatPriceAuto(price.price, asset.type)
 
-  // Count assets per type for chip badges
+
   const assetCountsByType = useMemo(() => {
     const counts: Record<string, number> = {}
     assets.forEach((a: any) => {
@@ -791,35 +758,35 @@ const PriceDisplay = memo(({
     return counts
   }, [assets])
 
-  // Derive which types actually have assets
+
   const availableAssetTypes = useMemo((): AssetTypeFilter[] => {
     return (Object.keys(assetCountsByType) as AssetTypeFilter[]).filter(
       t => assetCountsByType[t] > 0
     )
   }, [assetCountsByType])
 
-  // Filter assets based on type filter and search query
+
   const filteredAssets = useMemo(() => {
     let result = assets
 
-    // Apply type filter
+
     if (assetTypeFilter !== 'all') {
       result = result.filter((a: any) => a.type === assetTypeFilter)
     }
 
-    // Apply search filter
+
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
-      result = result.filter((assetItem: any) => 
+      result = result.filter((assetItem: any) =>
         assetItem.symbol?.toLowerCase().includes(query) ||
         assetItem.name?.toLowerCase().includes(query)
       )
     }
-    
+
     return result
   }, [assets, searchQuery, assetTypeFilter])
 
-  // Handle menu close with animation
+
   const handleClose = useCallback(() => {
     setIsClosing(true)
     setTimeout(() => {
@@ -830,7 +797,7 @@ const PriceDisplay = memo(({
     }, 200)
   }, [onClick])
 
-  // Reset search when menu closes
+
   useEffect(() => {
     if (!showMenu) {
       setSearchQuery('')
@@ -839,19 +806,19 @@ const PriceDisplay = memo(({
     }
   }, [showMenu])
 
-  // Reset selected index when filtered assets change
+
   useEffect(() => {
     setSelectedIndex(0)
   }, [filteredAssets.length])
 
-  // Keyboard navigation
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (filteredAssets.length === 0) return
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault()
-        setSelectedIndex(prev => 
+        setSelectedIndex(prev =>
           prev < filteredAssets.length - 1 ? prev + 1 : prev
         )
         break
@@ -874,7 +841,7 @@ const PriceDisplay = memo(({
 
   return (
     <div className="absolute top-2 left-2 z-20">
-      {/* Mobile: symbol box (clickable) + price box side by side */}
+      {}
       <div className="lg:hidden flex items-center">
         <button
           onClick={onClick}
@@ -895,7 +862,7 @@ const PriceDisplay = memo(({
         </div>
       </div>
 
-      {/* Desktop: symbol box + price box side by side — no click/arrow, display only */}
+      {}
       <div className="hidden lg:flex items-center gap-1">
         <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-full px-4 py-2.5 flex items-center gap-2">
           {asset && <AssetIcon asset={asset} size="sm" />}
@@ -914,19 +881,19 @@ const PriceDisplay = memo(({
 
       {showMenu && (
         <>
-          {/* Overlay with animation */}
-          <div 
+          {}
+          <div
             className={`fixed inset-0 z-[62] lg:hidden ${
               isClosing ? 'animate-fade-out' : 'animate-fade-in'
             }`}
-            onClick={handleClose} 
+            onClick={handleClose}
           />
-          
-          {/* Dropdown with animation */}
+
+          {}
           <div className={`absolute top-full left-0 mt-2 w-72 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl z-[63] lg:hidden flex flex-col max-h-[calc(100vh-120px)] ${
             isClosing ? 'animate-dropdown-out' : 'animate-dropdown-in'
           }`}>
-            {/* Search Input */}
+            {}
             <div className="p-3 border-b border-gray-800/50 sticky top-0 bg-[#0f1419] z-10">
               <div className="relative flex items-center gap-2 mb-2 px-2 py-1.5">
                 <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
@@ -953,8 +920,8 @@ const PriceDisplay = memo(({
                   </button>
                 )}
               </div>
-              
-              {/* Type Filter Chips */}
+
+              {}
               {availableAssetTypes.length > 1 && (
                 <div onClick={(e) => e.stopPropagation()}>
                   <TypeFilterChips
@@ -966,8 +933,8 @@ const PriceDisplay = memo(({
                 </div>
               )}
             </div>
-            
-            {/* Assets List - Scrollable */}
+
+            {}
             <div className="overflow-y-auto max-h-[300px]">
               {filteredAssets.length > 0 ? (
                 filteredAssets.map((assetItem: any, index: number) => (
@@ -1030,18 +997,18 @@ const PriceDisplay = memo(({
 
 PriceDisplay.displayName = 'PriceDisplay'
 
-const OHLCDisplay = memo(({ 
+const OHLCDisplay = memo(({
   data,
-  visible 
-}: { 
-  data: { 
+  visible
+}: {
+  data: {
     time: number
     open: number
     high: number
     low: number
     close: number
   } | null
-  visible: boolean 
+  visible: boolean
 }) => {
   if (!visible || !data) return null
 
@@ -1090,34 +1057,34 @@ const OHLCDisplay = memo(({
 
 OHLCDisplay.displayName = 'OHLCDisplay'
 
-const SimulatorStatus = memo(({ 
-  status, 
-  onRetry 
-}: { 
+const SimulatorStatus = memo(({
+  status,
+  onRetry
+}: {
   status: { isRunning: boolean; message: string } | null
   onRetry: () => void
 }) => {
   if (!status || status.isRunning) return null
-  
+
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-[#0a0e17]/95 z-20">
       <div className="text-center max-w-md px-6">
         <div className="w-16 h-16 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mx-auto mb-4">
           <Server className="w-8 h-8 text-rose-400" />
         </div>
-        
+
         <div className="text-lg font-bold text-rose-400 mb-2">
           Market Not Available
         </div>
-        
+
         <div className="text-sm text-gray-400 mb-1">
           {status.message}
         </div>
-        
+
         <div className="text-xs text-gray-500 mb-6">
           Loading to view real-time data
         </div>
-        
+
         <button onClick={onRetry} className="px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2 mx-auto">
           <RefreshCw className="w-4 h-4" />
           Check Again
@@ -1129,9 +1096,9 @@ const SimulatorStatus = memo(({
 
 SimulatorStatus.displayName = 'SimulatorStatus'
 
-const MobileControls = memo(({ 
-  timeframe, 
-  chartType, 
+const MobileControls = memo(({
+  timeframe,
+  chartType,
   isLoading,
   onTimeframeChange,
   onChartTypeChange,
@@ -1147,7 +1114,7 @@ const MobileControls = memo(({
 
   const timeframes: Timeframe[] = ['1s', '1m', '5m', '15m', '30m', '1h', '4h', '1d']
 
-  // Close menus on click outside
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (timeframeRef.current && !timeframeRef.current.contains(event.target as Node)) {
@@ -1162,7 +1129,7 @@ const MobileControls = memo(({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Countdown — nowSeconds datang dari TradingChart via prop (satu sumber waktu)
+
   const TIMEFRAME_SECONDS_MAP: Record<string, number> = {
     '1s': 1, '1m': 60, '5m': 300, '15m': 900,
     '30m': 1800, '1h': 3600, '4h': 14400, '1d': 86400,
@@ -1177,9 +1144,9 @@ const MobileControls = memo(({
 
   return (
     <div className="lg:hidden absolute bottom-10 left-2 z-10 flex items-center gap-2">
-      {/* Timeframe Control */}
+      {}
       <div className="relative" ref={timeframeRef}>
-        <button 
+        <button
           onClick={() => {
             setShowTimeframeMenu(!showTimeframeMenu)
             setShowChartTypeMenu(false)
@@ -1199,16 +1166,16 @@ const MobileControls = memo(({
               <div className="text-[10px] font-semibold text-gray-400 mb-1.5 px-1">SELECT TIMEFRAME</div>
               <div className="grid grid-cols-2 gap-1">
                 {timeframes.map((tf) => (
-                  <button 
-                    key={tf} 
-                    onClick={() => { 
+                  <button
+                    key={tf}
+                    onClick={() => {
                       onTimeframeChange(tf)
                       setShowTimeframeMenu(false)
-                    }} 
+                    }}
                     disabled={isLoading}
                     className={`px-2 py-1.5 text-xs font-bold rounded transition-all ${
-                      timeframe === tf 
-                        ? 'bg-blue-500 text-white shadow-sm' 
+                      timeframe === tf
+                        ? 'bg-blue-500 text-white shadow-sm'
                         : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#232936]'
                     } disabled:opacity-50`}
                   >
@@ -1221,9 +1188,9 @@ const MobileControls = memo(({
         )}
       </div>
 
-      {/* Chart Type Control */}
+      {}
       <div className="relative" ref={chartTypeRef}>
-        <button 
+        <button
           onClick={() => {
             setShowChartTypeMenu(!showChartTypeMenu)
             setShowTimeframeMenu(false)
@@ -1244,30 +1211,30 @@ const MobileControls = memo(({
             <div className="p-2">
               <div className="text-[10px] font-semibold text-gray-400 mb-1.5 px-1">CHART TYPE</div>
               <div className="flex flex-col gap-1">
-                <button 
-                  onClick={() => { 
+                <button
+                  onClick={() => {
                     onChartTypeChange('candle')
                     setShowChartTypeMenu(false)
-                  }} 
+                  }}
                   disabled={isLoading}
                   className={`px-3 py-2 text-xs font-semibold rounded transition-all flex items-center gap-2 ${
-                    chartType === 'candle' 
-                      ? 'bg-blue-500 text-white shadow-sm' 
+                    chartType === 'candle'
+                      ? 'bg-blue-500 text-white shadow-sm'
                       : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#232936]'
                   }`}
                 >
                   <BarChart2 className="w-3.5 h-3.5" />
                   Candlestick
                 </button>
-                <button 
-                  onClick={() => { 
+                <button
+                  onClick={() => {
                     onChartTypeChange('line')
                     setShowChartTypeMenu(false)
-                  }} 
+                  }}
                   disabled={isLoading}
                   className={`px-3 py-2 text-xs font-semibold rounded transition-all flex items-center gap-2 ${
-                    chartType === 'line' 
-                      ? 'bg-blue-500 text-white shadow-sm' 
+                    chartType === 'line'
+                      ? 'bg-blue-500 text-white shadow-sm'
                       : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#232936]'
                   }`}
                 >
@@ -1280,8 +1247,8 @@ const MobileControls = memo(({
         )}
       </div>
 
-      {/* Indicators Control */}
-      <button 
+      {}
+      <button
         onClick={onOpenIndicators}
         disabled={isLoading}
         className="h-10 w-10 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-full hover:bg-gray-800/80 transition-all disabled:opacity-50 flex items-center justify-center"
@@ -1290,7 +1257,7 @@ const MobileControls = memo(({
         <Sliders className="w-4 h-4 text-gray-300" />
       </button>
 
-      {/* Candle Countdown — integrated inline */}
+      {}
       <div className="h-10 px-3 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-full flex items-center gap-1">
         <span className="text-sm font-light text-white tabular-nums">
           {formatCd(countdownSecs)}
@@ -1302,9 +1269,9 @@ const MobileControls = memo(({
 
 MobileControls.displayName = 'MobileControls'
 
-const DesktopControls = memo(({ 
-  timeframe, 
-  chartType, 
+const DesktopControls = memo(({
+  timeframe,
+  chartType,
   isLoading,
   onTimeframeChange,
   onChartTypeChange,
@@ -1398,36 +1365,33 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
   const candleAnimatorRef = useRef<SmoothCandleAnimator | null>(null)
   const { setChart, setSeries, priceToPixel } = useChartPriceScale()
 
-  // ─── Shared clock ──────────────────────────────────────────────────────────
-  // Satu setInterval untuk seluruh komponen: RealtimeClock, MobileControls
-  // countdown, CandleCountdown, dan OrderPriceTracker — tidak ada drift.
+
+
+
   const [nowMs, setNowMs] = useState<number>(() => Date.now())
   useEffect(() => {
     const id = setInterval(() => setNowMs(Date.now()), 100)
     return () => clearInterval(id)
   }, [])
   const nowSeconds = Math.floor(nowMs / 1000)
-  
-  // Refs for zoom/scroll preservation on manual refresh
+
+
   const savedVisibleRangeRef = useRef<{ from: number; to: number } | null>(null)
   const targetVisibleRangeRef = useRef<{ from: number; to: number } | null>(null)
   const preservePositionModeRef = useRef<boolean>(false)
   const positionRestoreAttemptsRef = useRef<number>(0)
-  
-  /**
-   * ✅ Helper function: Safely update chart data while preserving zoom/scroll position
-   * This prevents the chart from "jumping" during updates
-   */
+
+
   const safeSetChartData = useCallback((
     candleData: Array<{ time: UTCTimestamp; open: number; high: number; low: number; close: number }>,
-    options: { 
-      preservePosition?: boolean; 
+    options: {
+      preservePosition?: boolean;
       skipDefaultZoom?: boolean;
     } = {}
   ) => {
-    const { 
-      preservePosition = true, 
-      skipDefaultZoom = false 
+    const {
+      preservePosition = true,
+      skipDefaultZoom = false
     } = options;
 
     if (!chartRef.current || !candleSeriesRef.current || !lineSeriesRef.current) {
@@ -1436,7 +1400,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
 
     let savedRange: { from: number; to: number } | null = null;
 
-    // Save current position if preserve is enabled
+
     if (preservePosition) {
       try {
         const timeScale = chartRef.current.timeScale();
@@ -1452,19 +1416,19 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       }
     }
 
-    // Update chart data
+
     try {
       candleSeriesRef.current.setData(candleData);
-      lineSeriesRef.current.setData(candleData.map(bar => ({ 
-        time: bar.time, 
-        value: bar.close 
+      lineSeriesRef.current.setData(candleData.map(bar => ({
+        time: bar.time,
+        value: bar.close
       })));
     } catch (error) {
       console.error('Failed to update chart data:', error);
       return;
     }
 
-    // Restore position with multiple attempts
+
     const attemptRestore = (attempt: number = 0) => {
       const timeScale = chartRef.current?.timeScale();
       if (!timeScale) return;
@@ -1473,7 +1437,7 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
         if (savedRange && preservePosition) {
           timeScale.setVisibleLogicalRange(savedRange);
         } else if (!skipDefaultZoom && !preservePositionModeRef.current) {
-          // Apply default zoom (last 60 candles) only if NOT in preserve mode
+
           if (candleData.length > 60) {
             timeScale.setVisibleLogicalRange({
               from: candleData.length - 60,
@@ -1488,10 +1452,10 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       }
     };
 
-    // Attempt 1: Immediate (requestAnimationFrame)
+
     requestAnimationFrame(() => attemptRestore(0));
-    
-    // Attempt 2 & 3: Staggered for render safety
+
+
     if (preservePosition && savedRange) {
       setTimeout(() => attemptRestore(1), 100);
       setTimeout(() => {
@@ -1500,39 +1464,39 @@ const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAss
       }, 300);
     }
   }, []);
-  
+
   const smaSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   const emaSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   const bollingerUpperRef = useRef<ISeriesApi<"Line"> | null>(null)
   const bollingerMiddleRef = useRef<ISeriesApi<"Line"> | null>(null)
   const bollingerLowerRef = useRef<ISeriesApi<"Line"> | null>(null)
-  
-  // Oscillator charts & series
+
+
   const rsiChartRef = useRef<IChartApi | null>(null)
   const rsiSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
   const rsiOverboughtRef = useRef<ISeriesApi<"Line"> | null>(null)
   const rsiOversoldRef = useRef<ISeriesApi<"Line"> | null>(null)
-  
+
   const macdChartRef = useRef<IChartApi | null>(null)
   const macdLineRef = useRef<ISeriesApi<"Line"> | null>(null)
   const macdSignalRef = useRef<ISeriesApi<"Line"> | null>(null)
   const macdHistogramRef = useRef<ISeriesApi<"Histogram"> | null>(null)
-  
+
   const stochasticChartRef = useRef<IChartApi | null>(null)
   const stochasticKRef = useRef<ISeriesApi<"Line"> | null>(null)
   const stochasticDRef = useRef<ISeriesApi<"Line"> | null>(null)
   const stochasticOverboughtRef = useRef<ISeriesApi<"Line"> | null>(null)
   const stochasticOversoldRef = useRef<ISeriesApi<"Line"> | null>(null)
-  
+
   const atrChartRef = useRef<IChartApi | null>(null)
   const atrSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
-  
+
   const rsiContainerRef = useRef<HTMLDivElement>(null)
   const macdContainerRef = useRef<HTMLDivElement>(null)
   const stochasticContainerRef = useRef<HTMLDivElement>(null)
   const atrContainerRef = useRef<HTMLDivElement>(null)
 
-  // ✅ NEW OVERLAY INDICATOR REFS
+
 const wmaSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
 const keltnerUpperRef = useRef<ISeriesApi<"Line"> | null>(null)
 const keltnerMiddleRef = useRef<ISeriesApi<"Line"> | null>(null)
@@ -1548,7 +1512,6 @@ const vwapSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
 const parabolicSarSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
 const supertrendSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
 
-// ✅ NEW OSCILLATOR CHARTS & SERIES
 const adxChartRef = useRef<IChartApi | null>(null)
 const adxSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
 const adxContainerRef = useRef<HTMLDivElement>(null)
@@ -1589,14 +1552,14 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
   const lastUpdateTimeRef = useRef<number>(0)
   const previousAssetIdRef = useRef<string | null>(null)
   const previousTimeframeRef = useRef<Timeframe>('1m')
-  
+
   const loadingManagerRef = useRef(new LoadingStateManager())
-  
+
   const { selectedAsset } = useTradingStore()
   const { setSelectedAsset } = useTradingActions()
   const storeAssets = useTradingStore(state => state.assets)
   const availableAssets = assets.length > 0 ? assets : storeAssets || []
-  
+
   const [chartType, setChartType] = useState<ChartType>('candle')
   const [timeframe, setTimeframe] = useState<Timeframe>('1m')
   const [isLoading, setIsLoading] = useState(false)
@@ -1610,7 +1573,7 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
   const [ohlcData, setOhlcData] = useState<any>(null)
   const [showOhlc, setShowOhlc] = useState(false)
   const [showAssetMenu, setShowAssetMenu] = useState(false)
-  
+
   const [prefetchedAssets, setPrefetchedAssets] = useState<Set<string>>(new Set())
   const [currentChartData, setCurrentChartData] = useState<any[]>([])
   const [isMobile, setIsMobile] = useState(false)
@@ -1624,16 +1587,16 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768)
     }
-    
+
     checkMobile()
     window.addEventListener('resize', checkMobile)
-    
+
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
   useEffect(() => {
     loadingManagerRef.current.setCallback(setIsLoading)
-    
+
     return () => {
       loadingManagerRef.current.reset()
     }
@@ -1645,7 +1608,7 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
 
   const cleanupAll = useCallback(() => {
     loadingManagerRef.current.reset()
-    
+
     cleanupFunctionsRef.current.forEach(fn => {
       try {
         fn()
@@ -1654,7 +1617,7 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
       }
     })
     cleanupFunctionsRef.current = []
-    
+
     currentBarRef.current = null
     lastUpdateTimeRef.current = 0
   }, [])
@@ -1663,7 +1626,7 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
 
   const checkSimulator = useCallback(async () => {
     if (!selectedAsset?.realtimeDbPath) return
-    
+
     const status = await checkSimulatorStatus(selectedAsset.realtimeDbPath)
     setSimulatorStatus(status)
   }, [selectedAsset?.realtimeDbPath])
@@ -1702,8 +1665,8 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
     try {
       const allTimeframes = [...TIMEFRAMES]
       const timeframesToPrefetch = allTimeframes.filter(tf => tf !== timeframe)
-      
-      const prefetchPromises = timeframesToPrefetch.map(tf => 
+
+      const prefetchPromises = timeframesToPrefetch.map(tf =>
         fetchHistoricalData(assetPath, tf as Timeframe)
           .then(data => {
             if (data.length > 0) {
@@ -1717,9 +1680,9 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
       )
 
       await Promise.allSettled(prefetchPromises)
-      
+
       setPrefetchedAssets(prev => new Set(prev).add(assetId))
-      
+
     } catch (error) {
       console.error('Full prefetch error:', error)
     }
@@ -1731,7 +1694,7 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
     const prefetch = async () => {
       const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath!)
       const criticalTimeframes = ['1m', '5m', '15m']
-      
+
       await prefetchMultipleTimeframes(assetPath, criticalTimeframes as Timeframe[])
         .catch(err => console.log('Critical prefetch failed:', err.message))
     }
@@ -1742,11 +1705,11 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
 
   const fetchCurrentPriceImmediately = useCallback(async () => {
     if (!selectedAsset?.realtimeDbPath) return
-    
+
     try {
       const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath)
       const priceData = await get(ref(database, `${assetPath}/current_price`))
-      
+
       if (priceData.exists()) {
         const data = priceData.val()
         setLastPrice(data.price)
@@ -1764,31 +1727,31 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
     }
   }, [selectedAsset?.id, isInitialized, fetchCurrentPriceImmediately])
 
-  // REALTIME OHLC SUBSCRIPTION (via WebSocket)
+
   useEffect(() => {
     if (!selectedAsset?.id || !isInitialized) return
     if (!candleSeriesRef.current || !lineSeriesRef.current) return
 
     const assetId = selectedAsset.id
     let lastCompletedTimestamp: number | null = null
-    
-    // Track ALL completed bar timestamps to prevent re-updates
+
+
     const completedBarsSet = new Set<number>()
 
     const handleOHLCUpdate = (data: OHLCUpdate) => {
       const currentBar = data.currentBars?.[timeframe]
       const completedBar = data.completedBars?.[timeframe]
 
-      // Process completed bar first
+
       if (completedBar && completedBar.timestamp !== lastCompletedTimestamp) {
         lastCompletedTimestamp = completedBar.timestamp
         completedBarsSet.add(completedBar.timestamp)
 
-        // Invalidate cache for fresh data on next manual refresh
+
         const cacheKey = `${assetId}-${timeframe}`
         GLOBAL_DATA_CACHE.delete(cacheKey)
 
-        // Render final completed bar
+
         try {
           const completedChartCandle = {
             time: completedBar.timestamp as UTCTimestamp,
@@ -1807,12 +1770,12 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
         }
       }
 
-      // Process live (current) bar
+
       if (!currentBar) return
 
       const barTimestamp = currentBar.timestamp
 
-      // Never update a locked completed bar
+
       if (completedBarsSet.has(barTimestamp)) return
 
       const isNewBar = !currentBarRef.current || currentBarRef.current.timestamp !== barTimestamp
@@ -1870,10 +1833,10 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
     }
   }, [selectedAsset?.id, timeframe, isInitialized])
 
-  // INITIALIZE CHART
+
   useEffect(() => {
     if (isMountedRef.current) return
-    
+
     const container = chartContainerRef.current
     if (!container) return
 
@@ -1898,17 +1861,17 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
           timeVisible: true,
           secondsVisible: timeframe === '1s' || timeframe === '1m',
           tickMarkFormatter: (time: UTCTimestamp, tickMarkType: any, locale: string) => {
-            // Konversi ke WIB untuk ditampilkan
+
             const date = new Date((time as number) * 1000);
             const wibDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
-            
+
             const hours = String(wibDate.getHours()).padStart(2, '0');
             const minutes = String(wibDate.getMinutes()).padStart(2, '0');
             const seconds = String(wibDate.getSeconds()).padStart(2, '0');
             const day = String(wibDate.getDate()).padStart(2, '0');
             const month = String(wibDate.getMonth() + 1).padStart(2, '0');
-            
-            // Format berbeda berdasarkan timeframe
+
+
             if (timeframe === '1s' || timeframe === '1m' || timeframe === '5m') {
               return `${hours}:${minutes}${timeframe === '1s' ? ':' + seconds : ''}`;
             } else if (timeframe === '1d') {
@@ -1921,7 +1884,7 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
         localization: {
           locale: 'id-ID',
           dateFormat: 'dd/MM/yyyy',
-          // Format time di crosshair
+
           timeFormatter: (time: UTCTimestamp) => {
             return formatWIBTime(time as number, timeframe === '1s');
           }
@@ -1962,12 +1925,12 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
 
         const data = candleSeries.dataByIndex(Math.round(param.logical as number))
         if (data && 'open' in data && 'high' in data && 'low' in data && 'close' in data) {
-          setOhlcData({ 
-            time: param.time as number, 
-            open: (data as any).open, 
-            high: (data as any).high, 
-            low: (data as any).low, 
-            close: (data as any).close 
+          setOhlcData({
+            time: param.time as number,
+            open: (data as any).open,
+            high: (data as any).high,
+            low: (data as any).low,
+            close: (data as any).close
           })
           setShowOhlc(true)
         } else {
@@ -1978,7 +1941,7 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
       chartRef.current = chart
       candleSeriesRef.current = candleSeries
       lineSeriesRef.current = lineSeries
-      
+
       setChart(chart)
       setSeries(chartType === 'candle' ? candleSeries : lineSeries)
 
@@ -1991,7 +1954,7 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
             low: animatedCandle.low,
             close: animatedCandle.close,
           }
-          
+
           try {
             candleSeriesRef.current?.update(chartCandle)
             lineSeriesRef.current?.update({
@@ -2023,13 +1986,13 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
         cleanupAll()
         isMountedRef.current = false
         setIsInitialized(false)
-        
+
         if (smaSeriesRef.current) chart.removeSeries(smaSeriesRef.current)
         if (emaSeriesRef.current) chart.removeSeries(emaSeriesRef.current)
         if (bollingerUpperRef.current) chart.removeSeries(bollingerUpperRef.current)
         if (bollingerMiddleRef.current) chart.removeSeries(bollingerMiddleRef.current)
         if (bollingerLowerRef.current) chart.removeSeries(bollingerLowerRef.current)
-        
+
         try {
           candleAnimatorRef.current?.stop()
           chart.remove()
@@ -2043,11 +2006,11 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
     }
   }, [chartType, addCleanup, cleanupAll, setChart, setSeries])
 
-  // INITIALIZE OSCILLATOR CHARTS
+
   useEffect(() => {
     if (!isInitialized) return
 
-    const hasOscillators = 
+    const hasOscillators =
       indicatorConfig.rsi?.enabled ||
       indicatorConfig.macd?.enabled ||
       indicatorConfig.stochastic?.enabled ||
@@ -2062,7 +2025,7 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
       indicatorConfig.elderRay?.enabled
 
     if (!hasOscillators) {
-      // Cleanup oscillator charts
+
       if (rsiChartRef.current) {
         rsiChartRef.current.remove()
         rsiChartRef.current = null
@@ -2107,17 +2070,17 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
         secondsVisible: timeframe === '1s' || timeframe === '1m',
         visible: false,
         tickMarkFormatter: (time: UTCTimestamp, tickMarkType: any, locale: string) => {
-          // Konversi ke WIB untuk ditampilkan
+
           const date = new Date((time as number) * 1000);
           const wibDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
-          
+
           const hours = String(wibDate.getHours()).padStart(2, '0');
           const minutes = String(wibDate.getMinutes()).padStart(2, '0');
           const seconds = String(wibDate.getSeconds()).padStart(2, '0');
           const day = String(wibDate.getDate()).padStart(2, '0');
           const month = String(wibDate.getMonth() + 1).padStart(2, '0');
-          
-          // Format berbeda berdasarkan timeframe
+
+
           if (timeframe === '1s' || timeframe === '1m' || timeframe === '5m') {
             return `${hours}:${minutes}${timeframe === '1s' ? ':' + seconds : ''}`;
           } else if (timeframe === '1d') {
@@ -2130,14 +2093,14 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
       localization: {
         locale: 'id-ID',
         dateFormat: 'dd/MM/yyyy',
-        // Format time di crosshair
+
         timeFormatter: (time: UTCTimestamp) => {
           return formatWIBTime(time as number, timeframe === '1s');
         }
       }
     }
 
-    // RSI Chart
+
     if (indicatorConfig.rsi?.enabled && rsiContainerRef.current && !rsiChartRef.current) {
       const { width } = rsiContainerRef.current.getBoundingClientRect()
       const rsiChart = createChart(rsiContainerRef.current, {
@@ -2185,7 +2148,7 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
       rsiOversoldRef.current = oversoldLine
     }
 
-    // MACD Chart
+
     if (indicatorConfig.macd?.enabled && macdContainerRef.current && !macdChartRef.current) {
       const { width } = macdContainerRef.current.getBoundingClientRect()
       const macdChart = createChart(macdContainerRef.current, {
@@ -2230,7 +2193,7 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
       macdHistogramRef.current = histogram
     }
 
-    // Stochastic Chart
+
     if (indicatorConfig.stochastic?.enabled && stochasticContainerRef.current && !stochasticChartRef.current) {
       const { width } = stochasticContainerRef.current.getBoundingClientRect()
       const stochChart = createChart(stochasticContainerRef.current, {
@@ -2286,7 +2249,7 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
       stochasticOversoldRef.current = oversoldLine
     }
 
-    // ATR Chart
+
     if (indicatorConfig.atr?.enabled && atrContainerRef.current && !atrChartRef.current) {
       const { width } = atrContainerRef.current.getBoundingClientRect()
       const atrChart = createChart(atrContainerRef.current, {
@@ -2345,7 +2308,6 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
   adxSeriesRef.current = adxSeries
 }
 
-// ✅ CCI Chart
 if (indicatorConfig.cci?.enabled && cciContainerRef.current && !cciChartRef.current) {
   const { width } = cciContainerRef.current.getBoundingClientRect()
   const cciChart = createChart(cciContainerRef.current, {
@@ -2375,7 +2337,6 @@ if (indicatorConfig.cci?.enabled && cciContainerRef.current && !cciChartRef.curr
   cciSeriesRef.current = cciSeries
 }
 
-// ✅ Williams %R Chart
 if (indicatorConfig.williamsR?.enabled && williamsRContainerRef.current && !williamsRChartRef.current) {
   const { width } = williamsRContainerRef.current.getBoundingClientRect()
   const williamsRChart = createChart(williamsRContainerRef.current, {
@@ -2405,7 +2366,6 @@ if (indicatorConfig.williamsR?.enabled && williamsRContainerRef.current && !will
   williamsRSeriesRef.current = williamsRSeries
 }
 
-// ✅ MFI Chart
 if (indicatorConfig.mfi?.enabled && mfiContainerRef.current && !mfiChartRef.current) {
   const { width } = mfiContainerRef.current.getBoundingClientRect()
   const mfiChart = createChart(mfiContainerRef.current, {
@@ -2435,7 +2395,6 @@ if (indicatorConfig.mfi?.enabled && mfiContainerRef.current && !mfiChartRef.curr
   mfiSeriesRef.current = mfiSeries
 }
 
-// ✅ Aroon Chart
 if (indicatorConfig.aroon?.enabled && aroonContainerRef.current && !aroonChartRef.current) {
   const { width } = aroonContainerRef.current.getBoundingClientRect()
   const aroonChart = createChart(aroonContainerRef.current, {
@@ -2473,7 +2432,6 @@ if (indicatorConfig.aroon?.enabled && aroonContainerRef.current && !aroonChartRe
   aroonDownRef.current = aroonDownSeries
 }
 
-// ✅ TRIX Chart
 if (indicatorConfig.trix?.enabled && trixContainerRef.current && !trixChartRef.current) {
   const { width } = trixContainerRef.current.getBoundingClientRect()
   const trixChart = createChart(trixContainerRef.current, {
@@ -2503,7 +2461,6 @@ if (indicatorConfig.trix?.enabled && trixContainerRef.current && !trixChartRef.c
   trixSeriesRef.current = trixSeries
 }
 
-// ✅ OBV Chart
 if (indicatorConfig.obv?.enabled && obvContainerRef.current && !obvChartRef.current) {
   const { width } = obvContainerRef.current.getBoundingClientRect()
   const obvChart = createChart(obvContainerRef.current, {
@@ -2533,7 +2490,6 @@ if (indicatorConfig.obv?.enabled && obvContainerRef.current && !obvChartRef.curr
   obvSeriesRef.current = obvSeries
 }
 
-// ✅ Elder Ray Chart
 if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderRayChartRef.current) {
   const { width } = elderRayContainerRef.current.getBoundingClientRect()
   const elderRayChart = createChart(elderRayContainerRef.current, {
@@ -2568,7 +2524,6 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
 }
 
 
-    // Resize handler for oscillator charts
     const handleResize = () => {
       if (rsiChartRef.current && rsiContainerRef.current) {
         const { width } = rsiContainerRef.current.getBoundingClientRect()
@@ -2626,10 +2581,10 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       window.removeEventListener('resize', handleResize)
     }
   }, [
-    isInitialized, 
-    indicatorConfig.rsi?.enabled, 
-    indicatorConfig.macd?.enabled, 
-    indicatorConfig.stochastic?.enabled, 
+    isInitialized,
+    indicatorConfig.rsi?.enabled,
+    indicatorConfig.macd?.enabled,
+    indicatorConfig.stochastic?.enabled,
     indicatorConfig.atr?.enabled,
     indicatorConfig.adx?.enabled,
     indicatorConfig.cci?.enabled,
@@ -2641,7 +2596,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
     indicatorConfig.elderRay?.enabled
   ])
 
-  // CHART TYPE CHANGES - MODIFIED FOR 60 CANDLE ZOOM
+
   useEffect(() => {
     if (!candleSeriesRef.current || !lineSeriesRef.current || !chartRef.current) return
     if (currentChartData.length === 0) return
@@ -2651,21 +2606,21 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         lineSeriesRef.current.applyOptions({ visible: false })
         candleSeriesRef.current.setData(currentChartData as any)
         candleSeriesRef.current.applyOptions({ visible: true })
-        
+
         setSeries(candleSeriesRef.current)
       } else {
         candleSeriesRef.current.applyOptions({ visible: false })
-        const lineData = currentChartData.map(bar => ({ 
-          time: bar.time, 
-          value: bar.close 
+        const lineData = currentChartData.map(bar => ({
+          time: bar.time,
+          value: bar.close
         }))
         lineSeriesRef.current.setData(lineData as any)
         lineSeriesRef.current.applyOptions({ visible: true })
-        
+
         setSeries(lineSeriesRef.current)
       }
-      
-      // MODIFIED: Zoom to last 60 candles instead of fitContent
+
+
       requestAnimationFrame(() => {
         if (chartRef.current && currentChartData.length > 60) {
           const timeScale = chartRef.current.timeScale()
@@ -2687,12 +2642,12 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       const timer = setTimeout(() => {
         setChartType(prev => prev)
       }, 150)
-      
+
       return () => clearTimeout(timer)
     }
   }, [showIndicators])
 
-  // APPLY INDICATORS TO CHART
+
   useEffect(() => {
     if (!chartRef.current || currentChartData.length === 0) return
 
@@ -2707,10 +2662,10 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
           lastValueVisible: false
         })
       }
-      
+
       const smaData = calculateSMA(currentChartData, indicatorConfig.sma.period)
       smaSeriesRef.current.setData(smaData)
-      smaSeriesRef.current.applyOptions({ 
+      smaSeriesRef.current.applyOptions({
         color: indicatorConfig.sma.color,
         visible: true
       })
@@ -2727,10 +2682,10 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
           lastValueVisible: false
         })
       }
-      
+
       const emaData = calculateEMA(currentChartData, indicatorConfig.ema.period)
       emaSeriesRef.current.setData(emaData)
-      emaSeriesRef.current.applyOptions({ 
+      emaSeriesRef.current.applyOptions({
         color: indicatorConfig.ema.color,
         visible: true
       })
@@ -2740,7 +2695,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
 
     if (indicatorConfig.bollinger?.enabled) {
       const { upper, middle, lower } = calculateBollingerBands(
-        currentChartData, 
+        currentChartData,
         indicatorConfig.bollinger.period,
         indicatorConfig.bollinger.stdDev
       )
@@ -2774,7 +2729,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       bollingerUpperRef.current.setData(upper)
       bollingerMiddleRef.current.setData(middle)
       bollingerLowerRef.current.setData(lower)
-      
+
       bollingerUpperRef.current.applyOptions({ visible: true, color: indicatorConfig.bollinger.colorUpper })
       bollingerMiddleRef.current.applyOptions({ visible: true, color: indicatorConfig.bollinger.colorMiddle })
       bollingerLowerRef.current.applyOptions({ visible: true, color: indicatorConfig.bollinger.colorLower })
@@ -2784,7 +2739,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       if (bollingerLowerRef.current) bollingerLowerRef.current.applyOptions({ visible: false })
     }
 
-    // WMA
+
     if (indicatorConfig.wma?.enabled) {
       if (!wmaSeriesRef.current) {
         wmaSeriesRef.current = chart.addLineSeries({
@@ -2795,7 +2750,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         })
       }
 
-      // Convert chart data to indicator format
+
       const wmaIndicatorData: IndicatorCandleData[] = currentChartData.map(d => ({
         time: d.time,
         open: d.open,
@@ -2804,7 +2759,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         close: d.close,
         volume: d.volume
       }))
-      
+
       const wmaData = calculateWMA(wmaIndicatorData, indicatorConfig.wma.period)
       const wmaChartData = wmaData.map(d => ({
         time: d.time as UTCTimestamp,
@@ -2812,7 +2767,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       }))
 
       wmaSeriesRef.current.setData(wmaChartData)
-      wmaSeriesRef.current.applyOptions({ 
+      wmaSeriesRef.current.applyOptions({
         color: indicatorConfig.wma.color,
         visible: true
       })
@@ -2820,7 +2775,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       wmaSeriesRef.current.applyOptions({ visible: false })
     }
 
-    // Keltner Channels
+
     if (indicatorConfig.keltner?.enabled) {
       const keltnerIndicatorData: IndicatorCandleData[] = currentChartData.map(d => ({
         time: d.time,
@@ -2880,7 +2835,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       keltnerUpperRef.current.setData(upperData)
       keltnerMiddleRef.current.setData(middleData)
       keltnerLowerRef.current.setData(lowerData)
-      
+
       keltnerUpperRef.current.applyOptions({ visible: true })
       keltnerMiddleRef.current.applyOptions({ visible: true })
       keltnerLowerRef.current.applyOptions({ visible: true })
@@ -2890,7 +2845,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       if (keltnerLowerRef.current) keltnerLowerRef.current.applyOptions({ visible: false })
     }
 
-    // Donchian Channels
+
     if (indicatorConfig.donchian?.enabled) {
       const donchianIndicatorData: IndicatorCandleData[] = currentChartData.map(d => ({
         time: d.time,
@@ -2948,7 +2903,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       donchianUpperRef.current.setData(upperData)
       donchianMiddleRef.current.setData(middleData)
       donchianLowerRef.current.setData(lowerData)
-      
+
       donchianUpperRef.current.applyOptions({ visible: true })
       donchianMiddleRef.current.applyOptions({ visible: true })
       donchianLowerRef.current.applyOptions({ visible: true })
@@ -2958,7 +2913,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       if (donchianLowerRef.current) donchianLowerRef.current.applyOptions({ visible: false })
     }
 
-    // Ichimoku Cloud
+
     if (indicatorConfig.ichimoku?.enabled) {
       const ichimokuIndicatorData: IndicatorCandleData[] = currentChartData.map(d => ({
         time: d.time,
@@ -3030,7 +2985,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       ichimokuKijunRef.current.setData(kijunData)
       ichimokuSpanARef.current.setData(spanAData)
       ichimokuSpanBRef.current.setData(spanBData)
-      
+
       ichimokuTenkanRef.current.applyOptions({ visible: true })
       ichimokuKijunRef.current.applyOptions({ visible: true })
       ichimokuSpanARef.current.applyOptions({ visible: true })
@@ -3042,7 +2997,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       if (ichimokuSpanBRef.current) ichimokuSpanBRef.current.applyOptions({ visible: false })
     }
 
-    // VWAP
+
     if (indicatorConfig.vwap?.enabled) {
       if (!vwapSeriesRef.current) {
         vwapSeriesRef.current = chart.addLineSeries({
@@ -3061,7 +3016,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         close: d.close,
         volume: d.volume
       }))
-      
+
       const vwapData = calculateVWAP(vwapIndicatorData)
       const vwapChartData = vwapData.map(d => ({
         time: d.time as UTCTimestamp,
@@ -3069,7 +3024,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       }))
 
       vwapSeriesRef.current.setData(vwapChartData)
-      vwapSeriesRef.current.applyOptions({ 
+      vwapSeriesRef.current.applyOptions({
         color: indicatorConfig.vwap.color,
         visible: true
       })
@@ -3077,7 +3032,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       vwapSeriesRef.current.applyOptions({ visible: false })
     }
 
-    // Parabolic SAR
+
     if (indicatorConfig.parabolicSar?.enabled) {
       if (!parabolicSarSeriesRef.current) {
         parabolicSarSeriesRef.current = chart.addLineSeries({
@@ -3097,7 +3052,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         close: d.close,
         volume: d.volume
       }))
-      
+
       const sarData = calculateParabolicSAR(
         sarIndicatorData,
         indicatorConfig.parabolicSar.accelerationFactor,
@@ -3114,7 +3069,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       parabolicSarSeriesRef.current.applyOptions({ visible: false })
     }
 
-    // Supertrend
+
     if (indicatorConfig.supertrend?.enabled) {
       if (!supertrendSeriesRef.current) {
         supertrendSeriesRef.current = chart.addLineSeries({
@@ -3133,7 +3088,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         close: d.close,
         volume: d.volume
       }))
-      
+
       const supertrendData = calculateSupertrend(
         supertrendIndicatorData,
         indicatorConfig.supertrend.period,
@@ -3150,10 +3105,9 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       supertrendSeriesRef.current.applyOptions({ visible: false })
     }
 
-
   }, [indicatorConfig, currentChartData])
 
-  // APPLY OSCILLATOR INDICATORS
+
   useEffect(() => {
     if (currentChartData.length === 0) return
 
@@ -3166,7 +3120,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       volume: d.volume
     }))
 
-    // RSI
+
     if (indicatorConfig.rsi?.enabled && rsiSeriesRef.current) {
       const rsiData = calculateRSI(indicatorData, indicatorConfig.rsi.period)
       const rsiChartData = rsiData.map(d => ({
@@ -3176,7 +3130,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
 
       rsiSeriesRef.current.setData(rsiChartData)
 
-      // Overbought/Oversold lines
+
       if (rsiChartData.length > 0 && rsiOverboughtRef.current && rsiOversoldRef.current) {
         const overboughtData = rsiChartData.map(d => ({
           time: d.time,
@@ -3194,7 +3148,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       rsiChartRef.current?.timeScale().fitContent()
     }
 
-    // MACD
+
     if (indicatorConfig.macd?.enabled && macdLineRef.current && macdSignalRef.current && macdHistogramRef.current) {
       const macdData = calculateMACD(
         indicatorData,
@@ -3226,7 +3180,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       macdChartRef.current?.timeScale().fitContent()
     }
 
-    // Stochastic
+
     if (indicatorConfig.stochastic?.enabled && stochasticKRef.current && stochasticDRef.current) {
       const stochData = calculateStochastic(
         indicatorData,
@@ -3247,7 +3201,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       stochasticKRef.current.setData(kData)
       stochasticDRef.current.setData(dData)
 
-      // Overbought/Oversold lines
+
       if (kData.length > 0 && stochasticOverboughtRef.current && stochasticOversoldRef.current) {
         const overboughtData = kData.map(d => ({
           time: d.time,
@@ -3265,7 +3219,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       stochasticChartRef.current?.timeScale().fitContent()
     }
 
-    // ATR
+
     if (indicatorConfig.atr?.enabled && atrSeriesRef.current) {
       const atrData = calculateATR(indicatorData, indicatorConfig.atr.period)
       const atrChartData = atrData.map(d => ({
@@ -3277,7 +3231,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       atrChartRef.current?.timeScale().fitContent()
     }
 
-    // ADX
+
     if (indicatorConfig.adx?.enabled && adxSeriesRef.current) {
       const adxData = calculateADX(indicatorData, indicatorConfig.adx.period)
       const adxChartData = adxData.map(d => ({
@@ -3289,7 +3243,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       adxChartRef.current?.timeScale().fitContent()
     }
 
-    // CCI
+
     if (indicatorConfig.cci?.enabled && cciSeriesRef.current) {
       const cciData = calculateCCI(indicatorData, indicatorConfig.cci.period)
       const cciChartData = cciData.map(d => ({
@@ -3301,7 +3255,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       cciChartRef.current?.timeScale().fitContent()
     }
 
-    // Williams %R
+
     if (indicatorConfig.williamsR?.enabled && williamsRSeriesRef.current) {
       const williamsRData = calculateWilliamsR(indicatorData, indicatorConfig.williamsR.period)
       const williamsRChartData = williamsRData.map(d => ({
@@ -3313,7 +3267,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       williamsRChartRef.current?.timeScale().fitContent()
     }
 
-    // MFI
+
     if (indicatorConfig.mfi?.enabled && mfiSeriesRef.current) {
       const mfiData = calculateMFI(indicatorData, indicatorConfig.mfi.period)
       const mfiChartData = mfiData.map(d => ({
@@ -3325,15 +3279,15 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       mfiChartRef.current?.timeScale().fitContent()
     }
 
-    // Aroon
+
     if (indicatorConfig.aroon?.enabled && aroonUpRef.current && aroonDownRef.current) {
       const aroonData = calculateAroon(indicatorData, indicatorConfig.aroon.period)
-      
+
       const aroonUpData = aroonData.map(d => ({
         time: d.time as UTCTimestamp,
         value: d.aroonUp
       }))
-      
+
       const aroonDownData = aroonData.map(d => ({
         time: d.time as UTCTimestamp,
         value: d.aroonDown
@@ -3344,7 +3298,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       aroonChartRef.current?.timeScale().fitContent()
     }
 
-    // TRIX
+
     if (indicatorConfig.trix?.enabled && trixSeriesRef.current) {
       const trixData = calculateTRIX(indicatorData, indicatorConfig.trix.period)
       const trixChartData = trixData.map(d => ({
@@ -3356,7 +3310,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       trixChartRef.current?.timeScale().fitContent()
     }
 
-    // OBV
+
     if (indicatorConfig.obv?.enabled && obvSeriesRef.current) {
       const obvData = calculateOBV(indicatorData)
       const obvChartData = obvData.map(d => ({
@@ -3368,16 +3322,16 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       obvChartRef.current?.timeScale().fitContent()
     }
 
-    // Elder Ray
+
     if (indicatorConfig.elderRay?.enabled && elderRayBullRef.current && elderRayBearRef.current) {
       const elderRayData = calculateElderRay(indicatorData, indicatorConfig.elderRay.period)
-      
+
       const bullData = elderRayData.map(d => ({
         time: d.time as UTCTimestamp,
         value: d.bullPower,
         color: d.bullPower >= 0 ? '#10b981' : '#ef4444'
       }))
-      
+
       const bearData = elderRayData.map(d => ({
         time: d.time as UTCTimestamp,
         value: d.bearPower,
@@ -3391,7 +3345,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
 
   }, [indicatorConfig, currentChartData])
 
-  // LOAD HISTORICAL DATA - with Live Bar Merging
+
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
       return
@@ -3399,38 +3353,38 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
 
     const isAssetChange = previousAssetIdRef.current !== selectedAsset.id
     const isTimeframeChange = previousTimeframeRef.current !== timeframe
-    
+
     if (isAssetChange || isTimeframeChange) {
       setIsLoading(true)
       previousAssetIdRef.current = selectedAsset.id
       previousTimeframeRef.current = timeframe
-      
-      // 🔧 FIX: Clear cache untuk asset/timeframe ini agar data fresh
+
+
       if (isAssetChange) {
         setCurrentChartData([])
         candleSeriesRef.current.setData([])
         lineSeriesRef.current.setData([])
-        currentBarRef.current = null // Reset live bar
-        
-        // ✅ FIX BUG CANDLE PANJANG: Reset animator agar tidak menginterpolasi
-        // dari harga aset lama ke harga aset baru (keduanya bisa di timestamp
-        // yang sama tapi price range berbeda jauh → candle stretched)
+        currentBarRef.current = null
+
+
+
+
         candleAnimatorRef.current?.reset()
-        
-        // Clear semua cache untuk asset ini
+
+
         TIMEFRAMES.forEach(tf => {
           const cacheKey = `${selectedAsset.id}-${tf}`
           GLOBAL_DATA_CACHE.delete(cacheKey)
         })
       }
-      
+
       if (isTimeframeChange) {
-        // Clear cache untuk timeframe spesifik
+
         const cacheKey = `${selectedAsset.id}-${timeframe}`
         GLOBAL_DATA_CACHE.delete(cacheKey)
-        currentBarRef.current = null // Reset live bar untuk timeframe baru
-        
-        // ✅ FIX: Stop animasi saat ganti timeframe juga
+        currentBarRef.current = null
+
+
         candleAnimatorRef.current?.stop()
       }
     }
@@ -3440,43 +3394,43 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
 
     const processAndDisplayData = (data: any[]) => {
       if (data.length > 0 && !isCancelled) {
-        // ✅ FIX BUG CANDLE PANJANG: Hentikan animasi yang sedang berjalan
-        // sebelum data baru di-set. Tanpa ini, frame animasi berikutnya masih
-        // bisa memanggil candleSeries.update() dengan nilai lerp dari aset lama.
+
+
+
         candleAnimatorRef.current?.stop()
 
-        // 🔧 FIX: Sort data untuk memastikan urutan benar
+
         const sortedData = [...data].sort((a, b) => a.timestamp - b.timestamp)
-        
-        // 🔧 FIX: Merge dengan live bar jika ada dan timestamp sama
+
+
         if (currentBarRef.current && sortedData.length > 0) {
           const lastHistoricalTimestamp = sortedData[sortedData.length - 1].timestamp
           const liveBarTimestamp = currentBarRef.current.timestamp
-          
+
           if (lastHistoricalTimestamp === liveBarTimestamp) {
-            // Merge: gunakan high/low tertinggi, close terbaru dari live
+
             const mergedBar = {
               ...sortedData[sortedData.length - 1],
               high: Math.max(
-                sortedData[sortedData.length - 1].high, 
+                sortedData[sortedData.length - 1].high,
                 currentBarRef.current.high
               ),
               low: Math.min(
-                sortedData[sortedData.length - 1].low, 
+                sortedData[sortedData.length - 1].low,
                 currentBarRef.current.low
               ),
-              close: currentBarRef.current.close, // Prioritaskan close live
-              // ✅ FIX: Ambil volume terbesar, jangan dijumlah (sudah kumulatif)
+              close: currentBarRef.current.close,
+
               volume: Math.max(
                 sortedData[sortedData.length - 1].volume || 0,
                 currentBarRef.current.volume || 0
               )
             }
-            
+
             sortedData[sortedData.length - 1] = mergedBar
             console.log('✅ Merged live bar with historical:', mergedBar.close)
           } else if (liveBarTimestamp > lastHistoricalTimestamp) {
-            // 🔧 FIX: Jika live bar lebih baru, append ke historical
+
             sortedData.push({
               timestamp: currentBarRef.current.timestamp,
               open: currentBarRef.current.open,
@@ -3487,7 +3441,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
             })
           }
         }
-        
+
         const candleData = sortedData.map((bar: any) => ({
           time: bar.timestamp as UTCTimestamp,
           open: bar.open,
@@ -3498,15 +3452,15 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
 
         setCurrentChartData(candleData)
 
-        // Preserve position only on manual refresh (when user clicked Refresh)
+
         const isManualRefresh = savedVisibleRangeRef.current !== null;
-        
+
         safeSetChartData(candleData, {
           preservePosition: isManualRefresh,
           skipDefaultZoom: false
         });
-        
-        // Clear saved range after use
+
+
         if (isManualRefresh) {
           savedVisibleRangeRef.current = null;
         }
@@ -3522,7 +3476,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
             volume: lastBar.volume || 0
           }
         }
-        
+
         setOpeningPrice(sortedData[0].open)
         setLastPrice(lastBar.close)
       }
@@ -3531,13 +3485,13 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
     const loadHistoricalData = async () => {
       try {
         const assetPath = cleanAssetPath(selectedAsset.realtimeDbPath || `/${selectedAsset.symbol.toLowerCase()}`)
-        
+
         const cachedData = getCachedData(selectedAsset.id, timeframe)
-        
+
         if (cachedData && cachedData.length > 0 && !isAssetChange) {
           processAndDisplayData(cachedData)
           setIsLoading(false)
-          
+
           setTimeout(async () => {
             if (isCancelled) return
             const freshData = await fetchHistoricalData(assetPath, timeframe)
@@ -3551,9 +3505,9 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         } else {
           const minLoadTime = new Promise(resolve => setTimeout(resolve, 600))
           const dataPromise = fetchHistoricalData(assetPath, timeframe)
-          
+
           const [data] = await Promise.all([dataPromise, minLoadTime])
-          
+
           if (!isCancelled) {
             setCachedData(selectedAsset.id, timeframe, data)
             processAndDisplayData(data)
@@ -3589,7 +3543,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
           setIsLoading(false)
         }
       }, 10000)
-      
+
       return () => clearTimeout(safetyTimeout)
     }
   }, [isLoading])
@@ -3610,8 +3564,8 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
 
   const handleRefresh = useCallback(() => {
     if (!selectedAsset) return
-    
-    // ✅ Save current zoom/scroll position before refresh
+
+
     if (chartRef.current) {
       try {
         const visibleRange = chartRef.current.timeScale().getVisibleLogicalRange()
@@ -3627,23 +3581,23 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         savedVisibleRangeRef.current = null
       }
     }
-    
-    // 🔧 FIX: Clear cache lebih agresif
+
+
     const cacheKey = `${selectedAsset.id}-${timeframe}`
     GLOBAL_DATA_CACHE.delete(cacheKey)
-    
-    // Reset current bar agar tidak merge dengan data lama
+
+
     currentBarRef.current = null
-    
+
     setPrefetchedAssets(prev => {
       const newSet = new Set(prev)
       newSet.delete(selectedAsset.id)
       return newSet
     })
-    
+
     checkSimulator()
-    
-    // Trigger reload data
+
+
     const currentAsset = selectedAsset
     useTradingStore.setState({ selectedAsset: null })
     setTimeout(() => {
@@ -3671,7 +3625,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
 
   const handleCloseIndicators = useCallback(() => {
     setShowIndicators(false)
-    
+
     setTimeout(() => {
       if (chartRef.current) {
         chartRef.current.timeScale().fitContent()
@@ -3707,7 +3661,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
     datetime: new Date().toISOString()
   }
 
-  const hasOscillators = 
+  const hasOscillators =
     indicatorConfig.rsi?.enabled ||
     indicatorConfig.macd?.enabled ||
     indicatorConfig.stochastic?.enabled ||
@@ -3736,17 +3690,17 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
     indicatorConfig.elderRay?.enabled
   ].filter(Boolean).length
 
-  const mainChartHeight = hasOscillators 
-    ? `calc(100% - ${oscillatorCount * 140}px)` 
+  const mainChartHeight = hasOscillators
+    ? `calc(100% - ${oscillatorCount * 140}px)`
     : '100%'
 
   return (
     <>
     <div ref={fullscreenContainerRef} className={`relative h-full flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : ''}`} style={showReferralModal ? { filter: 'blur(5px)', transition: 'filter 0.25s ease' } : { filter: 'none', transition: 'filter 0.25s ease' }}>
       <div className="relative" style={{ height: mainChartHeight }}>
-        <PriceDisplay 
-        asset={selectedAsset} 
-        price={currentPriceData} 
+        <PriceDisplay
+        asset={selectedAsset}
+        price={currentPriceData}
         onClick={() => setShowAssetMenu(!showAssetMenu)}
         showMenu={showAssetMenu}
         assets={availableAssets}
@@ -3754,7 +3708,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       />
       <RealtimeClock nowMs={nowMs} />
 
-      {/* Brutalist Button - Powered by GPT-Omni */}
+      {}
       <div className="absolute top-24 left-1 z-10">
         <style jsx>{`
           .gpt-omni-brutalist-btn {
@@ -3954,7 +3908,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
           </div>
         </button>
 
-        {/* Referral Modal Animations - injected globally */}
+        {}
         <style jsx global>{`
           @keyframes ref-backdrop-in {
             from { opacity: 0; }
@@ -3980,27 +3934,27 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         `}</style>
       </div>
 
-      <DesktopControls 
-        timeframe={timeframe} 
-        chartType={chartType} 
-        isLoading={isLoading} 
-        onTimeframeChange={handleTimeframeChange} 
-        onChartTypeChange={handleChartTypeChange} 
-        onFitContent={handleFitContent} 
-        onRefresh={handleRefresh} 
-        onToggleFullscreen={toggleFullscreen} 
+      <DesktopControls
+        timeframe={timeframe}
+        chartType={chartType}
+        isLoading={isLoading}
+        onTimeframeChange={handleTimeframeChange}
+        onChartTypeChange={handleChartTypeChange}
+        onFitContent={handleFitContent}
+        onRefresh={handleRefresh}
+        onToggleFullscreen={toggleFullscreen}
         onOpenIndicators={handleOpenIndicators}
-        isFullscreen={isFullscreen} 
+        isFullscreen={isFullscreen}
       />
 
-      <MobileControls 
-        timeframe={timeframe} 
-        chartType={chartType} 
-        isLoading={isLoading} 
-        onTimeframeChange={handleTimeframeChange} 
-        onChartTypeChange={handleChartTypeChange} 
-        onFitContent={handleFitContent} 
-        onRefresh={handleRefresh} 
+      <MobileControls
+        timeframe={timeframe}
+        chartType={chartType}
+        isLoading={isLoading}
+        onTimeframeChange={handleTimeframeChange}
+        onChartTypeChange={handleChartTypeChange}
+        onFitContent={handleFitContent}
+        onRefresh={handleRefresh}
         onOpenIndicators={handleOpenIndicators}
         nowSeconds={nowSeconds}
       />
@@ -4026,19 +3980,19 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       )}
 
       {isLoading && (
-        <ChartSkeleton 
-          timeframe={timeframe} 
-          assetSymbol={selectedAsset?.symbol || ''} 
+        <ChartSkeleton
+          timeframe={timeframe}
+          assetSymbol={selectedAsset?.symbol || ''}
         />
       )}
 
-      {/* Candle Countdown Timer — desktop only; mobile version is inside MobileControls row */}
+      {}
       <div className="hidden lg:block absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
         <CandleCountdown timeframe={timeframe} nowSeconds={nowSeconds} />
       </div>
     </div>
 
-    {/* Oscillator Charts */}
+    {}
     {indicatorConfig.rsi?.enabled && (
       <div className="border-t border-gray-800/30">
         <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">RSI ({indicatorConfig.rsi.period})</div>
@@ -4123,15 +4077,15 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       </div>
     )}
 
-    <IndicatorControls 
-        isOpen={showIndicators} 
+    <IndicatorControls
+        isOpen={showIndicators}
         onClose={handleCloseIndicators}
-        config={indicatorConfig} 
-        onChange={setIndicatorConfig} 
+        config={indicatorConfig}
+        onChange={setIndicatorConfig}
       />
     </div>
 
-    {/* Referral Modal - rendered via portal to document.body to escape stacking contexts */}
+    {}
     {typeof document !== 'undefined' && showReferralModal && createPortal(
       <div
         className="ref-backdrop"
@@ -4155,7 +4109,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Close */}
+          {}
           <button
             className="ref-close-btn"
             onClick={() => setShowReferralModal(false)}
@@ -4169,7 +4123,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
             }}
           >✕</button>
 
-          {/* Header */}
+          {}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
             <div style={{
               width: '46px', height: '46px', borderRadius: '13px', flexShrink: 0,
@@ -4190,15 +4144,15 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
             </div>
           </div>
 
-          {/* Divider */}
+          {}
           <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,107,53,0.35), transparent)', marginBottom: '18px' }} />
 
-          {/* Label */}
+          {}
           <div style={{ color: '#777', fontSize: '10.5px', fontWeight: 700, letterSpacing: '1.8px', marginBottom: '10px' }}>
             KODE REFERRAL KAMU
           </div>
 
-          {/* Code Box */}
+          {}
           <div
             className="ref-code-box"
             style={{
@@ -4251,7 +4205,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
             </button>
           </div>
 
-          {/* Referral Link */}
+          {}
           {referralCode && (
             <div style={{
               background: 'rgba(255,107,53,0.07)',
@@ -4280,7 +4234,6 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
 
 TradingChart.displayName = 'TradingChart'
 
-// Add global styles for dropdown animations
 if (typeof document !== 'undefined') {
   const styleId = 'trading-chart-animations'
   if (!document.getElementById(styleId)) {
@@ -4288,21 +4241,21 @@ if (typeof document !== 'undefined') {
     style.id = styleId
     style.textContent = `
       @keyframes dropdown-in {
-        from { 
+        from {
           opacity: 0;
           transform: translateY(-8px) scale(0.96);
         }
-        to { 
+        to {
           opacity: 1;
           transform: translateY(0) scale(1);
         }
       }
       @keyframes dropdown-out {
-        from { 
+        from {
           opacity: 1;
           transform: translateY(0) scale(1);
         }
-        to { 
+        to {
           opacity: 0;
           transform: translateY(-8px) scale(0.96);
         }

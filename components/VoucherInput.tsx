@@ -27,8 +27,8 @@ interface ValidationResult {
   }
 }
 
-export default function VoucherInput({ 
-  depositAmount, 
+export default function VoucherInput({
+  depositAmount,
   onVoucherApplied,
   disabled = false,
   externalCode = ''
@@ -38,7 +38,7 @@ export default function VoucherInput({
   const [result, setResult] = useState<ValidationResult | null>(null)
   const isExternalRef = useRef(false)
 
-  // Sync with external code
+
   useEffect(() => {
     if (externalCode && externalCode !== code) {
       setCode(externalCode)
@@ -66,16 +66,16 @@ export default function VoucherInput({
       try {
         const res = await api.validateVoucher(voucherCode.toUpperCase(), amount)
         const data = res.data || res
-        
+
         const validationResult: ValidationResult = {
           valid: data.valid,
           message: data.message,
           bonusAmount: data.bonusAmount,
           voucher: data.voucher
         }
-        
+
         setResult(validationResult)
-        
+
         if (data.valid && data.voucher) {
           onVoucherApplied({
             code: voucherCode.toUpperCase(),
@@ -112,7 +112,7 @@ export default function VoucherInput({
     const value = e.target.value.toUpperCase()
     setCode(value)
     isExternalRef.current = false
-    
+
     if (value.length >= 3) {
       debouncedValidate(value, depositAmount)
     } else {
@@ -143,7 +143,7 @@ export default function VoucherInput({
         <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">
           Kode Voucher
         </label>
-        
+
         <div className="relative flex-1">
           <input
             type="text"
@@ -152,8 +152,8 @@ export default function VoucherInput({
             disabled={disabled || loading}
             placeholder="Opsional"
             className={`w-full pl-9 pr-9 py-2.5 rounded-lg border-2 font-medium uppercase tracking-wide transition-all text-sm ${
-              result?.valid 
-                ? 'border-emerald-500 bg-emerald-50 text-emerald-700' 
+              result?.valid
+                ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
                 : result && !result.valid
                 ? 'border-red-400 bg-red-50 text-red-700'
                 : 'border-gray-200 bg-white text-gray-900 hover:border-gray-300 focus:border-blue-500'
@@ -165,24 +165,24 @@ export default function VoucherInput({
                 : 'focus:ring-blue-200'
             } disabled:opacity-50 disabled:cursor-not-allowed placeholder:normal-case placeholder:tracking-normal placeholder:font-normal placeholder:text-gray-400`}
           />
-          
+
           <Tag className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 ${
-            result?.valid 
-              ? 'text-emerald-600' 
+            result?.valid
+              ? 'text-emerald-600'
               : result && !result.valid
               ? 'text-red-500'
               : 'text-gray-400'
           }`} />
-          
+
           <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
             {loading && (
               <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
             )}
-            
+
             {!loading && result?.valid && (
               <Check className="w-4 h-4 text-emerald-600" />
             )}
-            
+
             {!loading && code && !result && (
               <button
                 onClick={clearVoucher}
@@ -192,7 +192,7 @@ export default function VoucherInput({
                 <X className="w-3.5 h-3.5 text-gray-400" />
               </button>
             )}
-            
+
             {!loading && result && !result.valid && (
               <button
                 onClick={clearVoucher}
@@ -206,7 +206,7 @@ export default function VoucherInput({
         </div>
       </div>
 
-      {/* Compact Validation Feedback */}
+      {}
       {result && result.valid && result.bonusAmount && !isExternalRef.current && (
         <div className="flex items-center justify-between px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg ml-[110px]">
           <div className="flex items-center gap-2">
@@ -220,7 +220,7 @@ export default function VoucherInput({
           </span>
         </div>
       )}
-      
+
       {result && !result.valid && (
         <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg ml-[110px]">
           <X className="w-3.5 h-3.5 text-red-600" />

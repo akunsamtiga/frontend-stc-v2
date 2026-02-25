@@ -2,8 +2,6 @@
 import type { Metadata } from 'next'
 import HelpCenterPageClient from './PageClient'
 
-// ─── Metadata ─────────────────────────────────────────────────────────────────
-
 const BASE_URL = 'https://stouch.id'
 
 export const metadata: Metadata = {
@@ -45,8 +43,6 @@ export const metadata: Metadata = {
     images: [`${BASE_URL}/og-help.png`],
   },
 }
-
-// ─── JSON-LD ──────────────────────────────────────────────────────────────────
 
 function HelpCenterJsonLd() {
   const data = {
@@ -154,8 +150,6 @@ function HelpCenterJsonLd() {
     />
   )
 }
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function HelpCenterPage() {
   return (

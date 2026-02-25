@@ -1,6 +1,6 @@
+// app/copytrading-agreement/PageClient.tsx
 'use client'
 
-// app/copytrading-agreement/PageClient.tsx
 import { useState, useRef } from 'react'
 import PageNavbar from '@/components/PageNavbar'
 import { Menu, X, Scale, AlertTriangle, ChevronDown, Copy, TrendingUp, Shield, Clock, DollarSign } from 'lucide-react'

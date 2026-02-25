@@ -1,3 +1,4 @@
+// app/runner-up/page.tsx
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
@@ -64,7 +65,6 @@ const emailDomains = [
   'icloud.com', 'aol.com', 'mail.com', 'zoho.com', 'live.com'
 ]
 
-// Indonesia 70%, other countries 30%
 const countries = [
   '🇮🇩 Indonesia', '🇮🇩 Indonesia', '🇮🇩 Indonesia', '🇮🇩 Indonesia', '🇮🇩 Indonesia',
   '🇮🇩 Indonesia', '🇮🇩 Indonesia', '🇮🇩 Indonesia', '🇮🇩 Indonesia', '🇮🇩 Indonesia',
@@ -77,7 +77,6 @@ const seededRandom = (seed: number): number => {
   return x - Math.floor(x)
 }
 
-// Censor only the last name - show only first 1 char, rest is asterisks
 const censorLastName = (firstName: string, lastName: string): string => {
   if (lastName.length <= 1) return `${firstName} ${lastName}`
   const visibleChars = 1
@@ -159,7 +158,6 @@ const getMonthName = (date: Date) => {
   return months[date.getMonth()]
 }
 
-// Rank badge component
 const RankBadge = ({ rank }: { rank: number }) => {
   if (rank === 1) return <Trophy className="w-5 h-5 text-yellow-500" />
   if (rank === 2) return <Medal className="w-5 h-5 text-gray-400" />

@@ -1,11 +1,11 @@
-// components/IndicatorControls.tsx - Enhanced with 25+ Indicators (Phosphor Icons)
+// components/IndicatorControls.tsx 
 'use client'
 
 import { useState, memo } from 'react'
-import { 
-  TrendUp, 
-  Activity, 
-  ChartLine, 
+import {
+  TrendUp,
+  Activity,
+  ChartLine,
   Waves,
   X,
   Sliders,
@@ -28,7 +28,7 @@ import {
 } from 'phosphor-react'
 
 export interface IndicatorConfig {
-  // Overlay Indicators
+
   sma?: { enabled: boolean; period: number; color: string }
   ema?: { enabled: boolean; period: number; color: string }
   wma?: { enabled: boolean; period: number; color: string }
@@ -39,8 +39,8 @@ export interface IndicatorConfig {
   vwap?: { enabled: boolean; color: string }
   parabolicSar?: { enabled: boolean; accelerationFactor: number; maxAF: number }
   supertrend?: { enabled: boolean; period: number; multiplier: number }
-  
-  // Oscillator Indicators
+
+
   rsi?: { enabled: boolean; period: number; overbought: number; oversold: number }
   macd?: { enabled: boolean; fastPeriod: number; slowPeriod: number; signalPeriod: number }
   stochastic?: { enabled: boolean; kPeriod: number; dPeriod: number; overbought: number; oversold: number }
@@ -85,14 +85,14 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
     })
   }
 
-  const IndicatorRow = ({ 
-    icon: Icon, 
-    name, 
-    indicator, 
+  const IndicatorRow = ({
+    icon: Icon,
+    name,
+    indicator,
     description,
     children,
     tags = []
-  }: { 
+  }: {
     icon: any
     name: string
     indicator: keyof IndicatorConfig
@@ -103,8 +103,8 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
     const isEnabled = config[indicator]?.enabled || false
     const isExpanded = expandedIndicator === indicator
 
-    // Filter by search
-    if (searchQuery && !name.toLowerCase().includes(searchQuery.toLowerCase()) && 
+
+    if (searchQuery && !name.toLowerCase().includes(searchQuery.toLowerCase()) &&
         !description.toLowerCase().includes(searchQuery.toLowerCase()) &&
         !tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))) {
       return null
@@ -114,10 +114,10 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
       <div className="border-b border-gray-800/50 last:border-0">
         <div className="flex items-center justify-between p-3 hover:bg-[#232936] transition-colors">
           <div className="flex items-center gap-3 flex-1">
-            <Icon 
-              size={18} 
+            <Icon
+              size={18}
               weight={isEnabled ? "duotone" : "regular"}
-              className={`flex-shrink-0 ${isEnabled ? 'text-blue-400' : 'text-gray-500'}`} 
+              className={`flex-shrink-0 ${isEnabled ? 'text-blue-400' : 'text-gray-500'}`}
             />
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium">{name}</div>
@@ -133,10 +133,10 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 }}
                 className="p-1 hover:bg-[#2a3142] rounded transition-colors"
               >
-                <Sliders 
-                  size={16} 
+                <Sliders
+                  size={16}
                   weight="regular"
-                  className={`text-gray-400 ${isExpanded ? 'rotate-90' : ''} transition-transform`} 
+                  className={`text-gray-400 ${isExpanded ? 'rotate-90' : ''} transition-transform`}
                 />
               </button>
             )}
@@ -154,7 +154,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
             </button>
           </div>
         </div>
-        
+
         {isExpanded && children && (
           <div className="px-3 pb-3 bg-[#1a1f2e] space-y-3">
             {children}
@@ -168,15 +168,15 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
 
   return (
     <>
-      {/* Backdrop */}
-      <div 
+      {}
+      <div
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 animate-fade-in"
         onClick={onClose}
       />
-      
-      {/* Panel */}
+
+      {}
       <div className="fixed top-0 right-0 bottom-0 w-full sm:w-96 bg-[#0f1419] border-l border-gray-800/50 z-50 flex flex-col animate-slide-left overflow-hidden">
-        {/* Header */}
+        {}
         <div className="bg-[#1a1f2e] border-b border-gray-800/50 flex-shrink-0">
           <div className="h-14 flex items-center justify-between px-4">
             <div className="flex items-center gap-2">
@@ -195,8 +195,8 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
               <X size={20} weight="regular" />
             </button>
           </div>
-          
-          {/* Search */}
+
+          {}
           <div className="px-4 pb-3">
             <input
               type="text"
@@ -208,13 +208,13 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
           </div>
         </div>
 
-        {/* Tabs */}
+        {}
         <div className="bg-[#1a1f2e] border-b border-gray-800/50 flex flex-shrink-0">
           <button
             onClick={() => setActiveTab('overlay')}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors relative ${
-              activeTab === 'overlay' 
-                ? 'text-blue-400' 
+              activeTab === 'overlay'
+                ? 'text-blue-400'
                 : 'text-gray-400 hover:text-white'
             }`}
           >
@@ -226,8 +226,8 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
           <button
             onClick={() => setActiveTab('oscillator')}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors relative ${
-              activeTab === 'oscillator' 
-                ? 'text-blue-400' 
+              activeTab === 'oscillator'
+                ? 'text-blue-400'
                 : 'text-gray-400 hover:text-white'
             }`}
           >
@@ -238,11 +238,11 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
           </button>
         </div>
 
-        {/* Content */}
+        {}
         <div className="flex-1 overflow-y-auto">
           {activeTab === 'overlay' ? (
             <div>
-              {/* SMA */}
+              {}
               <IndicatorRow
                 icon={TrendUp}
                 name="SMA"
@@ -274,7 +274,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 </div>
               </IndicatorRow>
 
-              {/* EMA */}
+              {}
               <IndicatorRow
                 icon={ChartLineUp}
                 name="EMA"
@@ -306,7 +306,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 </div>
               </IndicatorRow>
 
-              {/* WMA */}
+              {}
               <IndicatorRow
                 icon={ChartLine}
                 name="WMA"
@@ -338,7 +338,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 </div>
               </IndicatorRow>
 
-              {/* Bollinger Bands */}
+              {}
               <IndicatorRow
                 icon={Stack}
                 name="Bollinger Bands"
@@ -375,7 +375,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 </div>
               </IndicatorRow>
 
-              {/* Keltner Channels */}
+              {}
               <IndicatorRow
                 icon={ArrowsOutLineVertical}
                 name="Keltner Channels"
@@ -423,7 +423,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 </div>
               </IndicatorRow>
 
-              {/* Donchian Channels */}
+              {}
               <IndicatorRow
                 icon={GridFour}
                 name="Donchian Channels"
@@ -444,7 +444,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 </div>
               </IndicatorRow>
 
-              {/* Ichimoku Cloud */}
+              {}
               <IndicatorRow
                 icon={Stack}
                 name="Ichimoku Cloud"
@@ -491,7 +491,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 </div>
               </IndicatorRow>
 
-              {/* VWAP */}
+              {}
               <IndicatorRow
                 icon={ChartBar}
                 name="VWAP"
@@ -510,7 +510,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 </div>
               </IndicatorRow>
 
-              {/* Parabolic SAR */}
+              {}
               <IndicatorRow
                 icon={CircleDashed}
                 name="Parabolic SAR"
@@ -548,7 +548,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 </div>
               </IndicatorRow>
 
-              {/* Supertrend */}
+              {}
               <IndicatorRow
                 icon={Lightning}
                 name="Supertrend"
@@ -587,7 +587,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
             </div>
           ) : (
             <div>
-              {/* RSI */}
+              {}
               <IndicatorRow
                 icon={Activity}
                 name="RSI"
@@ -634,7 +634,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 </div>
               </IndicatorRow>
 
-              {/* MACD */}
+              {}
               <IndicatorRow
                 icon={TrendUp}
                 name="MACD"
@@ -681,7 +681,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 </div>
               </IndicatorRow>
 
-              {/* Stochastic */}
+              {}
               <IndicatorRow
                 icon={Waves}
                 name="Stochastic"
@@ -717,7 +717,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 </div>
               </IndicatorRow>
 
-              {/* ATR */}
+              {}
               <IndicatorRow
                 icon={ChartBar}
                 name="ATR"
@@ -738,7 +738,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 </div>
               </IndicatorRow>
 
-              {/* ADX */}
+              {}
               <IndicatorRow
                 icon={Compass}
                 name="ADX"
@@ -759,7 +759,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 </div>
               </IndicatorRow>
 
-              {/* CCI */}
+              {}
               <IndicatorRow
                 icon={Target}
                 name="CCI"
@@ -780,7 +780,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 </div>
               </IndicatorRow>
 
-              {/* Williams %R */}
+              {}
               <IndicatorRow
                 icon={TrendDown}
                 name="Williams %R"
@@ -801,7 +801,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 </div>
               </IndicatorRow>
 
-              {/* MFI */}
+              {}
               <IndicatorRow
                 icon={Drop}
                 name="MFI"
@@ -822,7 +822,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 </div>
               </IndicatorRow>
 
-              {/* Aroon */}
+              {}
               <IndicatorRow
                 icon={Wind}
                 name="Aroon"
@@ -843,7 +843,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 </div>
               </IndicatorRow>
 
-              {/* TRIX */}
+              {}
               <IndicatorRow
                 icon={Spiral}
                 name="TRIX"
@@ -864,7 +864,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 </div>
               </IndicatorRow>
 
-              {/* OBV */}
+              {}
               <IndicatorRow
                 icon={Database}
                 name="OBV"
@@ -873,7 +873,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 tags={["volume", "accumulation", "distribution"]}
               />
 
-              {/* Elder Ray */}
+              {}
               <IndicatorRow
                 icon={ArrowFatLinesUp}
                 name="Elder Ray"
@@ -897,7 +897,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
           )}
         </div>
 
-        {/* Footer */}
+        {}
         <div className="h-14 bg-[#1a1f2e] border-t border-gray-800/50 flex items-center justify-between px-4 flex-shrink-0">
           <button
             onClick={() => {

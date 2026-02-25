@@ -1,3 +1,4 @@
+// app/not-found.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -17,7 +18,7 @@ export default function NotFound() {
     return () => clearTimeout(timer)
   }, [countdown, router])
 
-  // Circumference lingkaran SVG (r=20 → 2π×20 ≈ 125.66)
+
   const CIRCUMFERENCE = 2 * Math.PI * 20
   const strokeDashoffset = CIRCUMFERENCE * (1 - countdown / 10)
 
@@ -25,7 +26,7 @@ export default function NotFound() {
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
       <div className="flex flex-col items-center gap-8 text-center max-w-sm w-full">
 
-        {/* 404 */}
+        {}
         <div className="relative select-none">
           <span className="text-[120px] sm:text-[160px] font-black text-white/[0.04] leading-none tracking-tighter">
             404
@@ -35,7 +36,7 @@ export default function NotFound() {
           </span>
         </div>
 
-        {/* Pesan */}
+        {}
         <div className="flex flex-col gap-2">
           <p className="text-white/80 text-base font-medium">
             Halaman tidak ditemukan
@@ -45,21 +46,21 @@ export default function NotFound() {
           </p>
         </div>
 
-        {/* Divider */}
+        {}
         <div className="w-px h-8 bg-white/10" />
 
-        {/* Countdown ring */}
+        {}
         <div className="flex flex-col items-center gap-4">
           <div className="relative w-14 h-14">
             <svg className="absolute inset-0 -rotate-90 w-full h-full">
-              {/* Track */}
+              {}
               <circle
                 cx="28" cy="28" r="20"
                 fill="none"
                 stroke="rgba(255,255,255,0.06)"
                 strokeWidth="2"
               />
-              {/* Progress */}
+              {}
               <circle
                 cx="28" cy="28" r="20"
                 fill="none"
@@ -71,7 +72,7 @@ export default function NotFound() {
                 style={{ transition: 'stroke-dashoffset 0.9s linear' }}
               />
             </svg>
-            {/* Angka */}
+            {}
             <span className="absolute inset-0 flex items-center justify-center text-white text-lg font-semibold tabular-nums">
               {countdown}
             </span>
@@ -82,7 +83,7 @@ export default function NotFound() {
           </p>
         </div>
 
-        {/* Tombol manual */}
+        {}
         <button
           onClick={() => router.push('/')}
           className="mt-2 px-6 py-2.5 rounded-full border border-white/10 text-white/50 text-sm

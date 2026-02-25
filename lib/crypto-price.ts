@@ -1,4 +1,4 @@
-// lib/crypto-price.ts - Binance API Integration (axios → native fetch, -14KB bundle)
+// lib/crypto-price.ts
 const BINANCE_API_BASE = 'https://api.binance.com/api/v3'
 
 export interface CryptoPriceData {
@@ -18,15 +18,15 @@ export interface LiveTradeData {
   asset: string
   profit: number
   time: string
-  isReal?: boolean       // true = berasal dari Binance real trade
+  isReal?: boolean
   direction?: 'BUY' | 'SELL'
 }
 
 export interface RealTradeData {
   price: number
-  quoteQty: number       // nilai trade dalam USDT
-  time: number           // unix ms
-  isBuyerMaker: boolean  // true = SELL, false = BUY
+  quoteQty: number
+  time: number
+  isBuyerMaker: boolean
 }
 
 export interface MarketStats {
@@ -35,17 +35,13 @@ export interface MarketStats {
   timestamp: number
 }
 
-// Cache untuk menghindari rate limit
 const priceCache = new Map<string, { data: CryptoPriceData; timestamp: number }>()
-const CACHE_DURATION = 10_000 // 10 detik
+const CACHE_DURATION = 10_000
 
 function toBinanceSymbol(symbol: string, currency = 'USDT') {
   return `${symbol}${currency}`
 }
 
-/**
- * Fetch dengan timeout — pengganti axios.get + timeout config
- */
 async function fetchWithTimeout(url: string, timeoutMs = 5000): Promise<Response> {
   const controller = new AbortController()
   const id = setTimeout(() => controller.abort(new DOMException('Request timeout', 'AbortError')), timeoutMs)
@@ -59,9 +55,6 @@ async function fetchWithTimeout(url: string, timeoutMs = 5000): Promise<Response
   }
 }
 
-/**
- * Ambil harga beberapa kripto dari Binance sekaligus
- */
 export async function getCryptoPrices(
   symbols: string[] = ['BTC', 'ETH', 'BNB'],
   currency = 'USDT'
@@ -117,7 +110,7 @@ export async function getCryptoPrices(
 
     return result
   } catch (error: any) {
-    // AbortError = timeout atau komponen unmount — bukan error sebenarnya, tidak perlu di-log
+
     if (error?.name !== 'AbortError') {
       if (process.env.NODE_ENV !== 'production') {
         console.warn('[crypto-price] Fetch failed, using mock prices:', error?.message ?? error)
@@ -127,9 +120,6 @@ export async function getCryptoPrices(
   }
 }
 
-/**
- * Ambil harga satu kripto
- */
 export async function getSingleCryptoPrice(
   symbol: string,
   currency = 'USDT'
@@ -165,9 +155,6 @@ export async function getSingleCryptoPrice(
   }
 }
 
-/**
- * Subscribe ke pembaruan harga (polling)
- */
 export function subscribeToCryptoPrices(
   symbols: string[],
   callback: (prices: Record<string, CryptoPriceData>) => void,
@@ -182,7 +169,7 @@ export function subscribeToCryptoPrices(
       const prices = await getCryptoPrices(symbols)
       if (isActive) callback(prices)
     } catch (error: any) {
-      // Abaikan AbortError (timeout/unmount) — hanya log error tak terduga
+
       if (error?.name !== 'AbortError' && process.env.NODE_ENV !== 'production') {
         console.warn('[crypto-price] Subscribe fetch error:', error?.message ?? error)
       }
@@ -199,7 +186,6 @@ export function subscribeToCryptoPrices(
   }
 }
 
-// ─── Pseudonym pool (privasi tetap terjaga) ──────────────────────────────────
 const PSEUDONYMS = [
   'trader_id', 'budi_s',   'andi_t',   'sari_w',   'agus_p',
   'dewi_r',    'reza_f',   'nisa_k',   'fajar_m',  'indra_l',
@@ -209,18 +195,13 @@ const PSEUDONYMS = [
   'ayu_a',     'haris_d',  'tia_w',    'ilham_r',  'sinta_m',
 ]
 
-const IDR_RATE = 16_300 // fallback rate USD → IDR
+const IDR_RATE = 16_300
 
-// Cache recent trades agar tidak spam API
 const tradesCache = new Map<string, { data: RealTradeData[]; timestamp: number }>()
-const TRADES_CACHE_DURATION = 3_000 // 3 detik
+const TRADES_CACHE_DURATION = 3_000
 
-/**
- * ✅ REAL: Ambil recent trades dari Binance public API
- * Tidak butuh API key — fully public endpoint
- */
 export async function getRecentTrades(
-  symbol: string,   // e.g. 'BTCUSDT'
+  symbol: string,
   limit = 10
 ): Promise<RealTradeData[]> {
   const cacheKey = symbol + '-trades'
@@ -249,21 +230,17 @@ export async function getRecentTrades(
   }
 }
 
-/**
- * ✅ REAL: Konversi Binance real trade → LiveTradeData untuk ticker landing page
- * quoteQty (USD) × IDR rate × profit_rate = estimasi profit IDR
- */
 export function realTradeToLiveTrade(
   trade: RealTradeData,
   asset: string,
   idrRate = IDR_RATE
 ): LiveTradeData {
-  // Profit = 10–95% dari nilai trade (simulasi binary option payout)
+
   const profitRate = 0.10 + Math.random() * 0.85
   const profitUSD  = trade.quoteQty * profitRate
   const profitIDR  = Math.round(profitUSD * idrRate)
 
-  // Waktu relatif
+
   const elapsedSec = Math.floor((Date.now() - trade.time) / 1000)
   let timeLabel = 'baru saja'
   if (elapsedSec > 60)     timeLabel = Math.floor(elapsedSec / 60) + ' menit lalu'
@@ -274,16 +251,13 @@ export function realTradeToLiveTrade(
   return {
     user:      pseudonym,
     asset,
-    profit:    Math.max(25_000, Math.min(profitIDR, 15_000_000)), // clamp 25rb–15jt IDR
+    profit:    Math.max(25_000, Math.min(profitIDR, 15_000_000)),
     time:      timeLabel,
     isReal:    true,
     direction: trade.isBuyerMaker ? 'SELL' : 'BUY',
   }
 }
 
-/**
- * ✅ REAL: Ambil total market volume BTC+ETH+BNB dari Binance 24hr ticker
- */
 export async function getMarketStats(): Promise<MarketStats> {
   const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT']
   try {
@@ -312,9 +286,6 @@ export async function getMarketStats(): Promise<MarketStats> {
   }
 }
 
-/**
- * Fallback: generate trade dengan pseudonym (dipakai jika Binance API gagal)
- */
 export function generateLiveTrade(cryptoSymbol: string, _price: number): LiveTradeData {
   return {
     user:    PSEUDONYMS[Math.floor(Math.random() * PSEUDONYMS.length)],

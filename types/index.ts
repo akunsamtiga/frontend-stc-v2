@@ -1,4 +1,4 @@
-// types/index.ts 
+// types/index.ts
 export interface User {
   id: string
   email: string
@@ -7,9 +7,9 @@ export interface User {
   isActive: boolean
   referralCode: string
   referredBy?: string
-  isNewUser: boolean  
-  tutorialCompleted: boolean 
-  loginCount: number   
+  isNewUser: boolean
+  tutorialCompleted: boolean
+  loginCount: number
   createdAt: string
   updatedAt?: string
 }
@@ -35,7 +35,7 @@ export interface UserProfile {
   user: User
   statusInfo: StatusInfo
   affiliate: AffiliateInfo
-  profileInfo?: UserProfileInfo  
+  profileInfo?: UserProfileInfo
   balances: {
     real: number
     demo: number
@@ -58,15 +58,13 @@ export interface UserProfile {
   }
 }
 
-// Update this function in types/index.ts
-
 export function formatWithdrawalStatus(request: { status: WithdrawalStatus } | WithdrawalRequest): {
   label: string;
   bgClass: string;
   canCancel: boolean;
 } {
   const status = request.status;
-  
+
   switch (status) {
     case 'pending':
       return {
@@ -121,14 +119,13 @@ export function getWithdrawalStatusBg(status: WithdrawalStatus): string {
   return bgClasses[status] || 'bg-gray-100 text-gray-800 border-gray-200';
 }
 
-
 export interface WithdrawalRequest {
   id: string
   user_id: string
   amount: number
   status: 'pending' | 'approved' | 'rejected' | 'completed'
   description?: string
-  
+
   userEmail: string
   userName?: string
   bankAccount?: {
@@ -136,16 +133,16 @@ export interface WithdrawalRequest {
     accountNumber: string
     accountHolderName: string
   }
-  
+
   ktpVerified: boolean
   selfieVerified: boolean
   currentBalance: number
-  
+
   reviewedBy?: string
   reviewedAt?: string
   rejectionReason?: string
   adminNotes?: string
-  
+
   createdAt: string
   updatedAt?: string
 }
@@ -308,9 +305,6 @@ export interface VerifyDocumentRequest {
   rejectionReason?: string
 }
 
-// ============================================
-// ASSET TYPES - Binance Support
-// ============================================
 export interface Asset {
   id: string
   name: string
@@ -401,9 +395,6 @@ export function getAssetTypeColor(type: AssetType): string {
   return ASSET_TYPE_INFO[type]?.color || 'gray'
 }
 
-// ============================================
-// BINARY ORDER TYPES
-// ============================================
 export interface BinaryOrder {
   id: string
   user_id: string
@@ -441,9 +432,6 @@ export interface Balance {
   createdAt: string
 }
 
-// ============================================
-// BALANCE & SUMMARY
-// ============================================
 export interface BalanceSummary {
   realBalance: number
   demoBalance: number
@@ -451,9 +439,6 @@ export interface BalanceSummary {
   demoTransactions: number
 }
 
-// ============================================
-// TRADING STATS
-// ============================================
 export interface TradingStats {
   totalOrders: number
   activeOrders: number
@@ -463,9 +448,6 @@ export interface TradingStats {
   totalProfit: number
 }
 
-// ============================================
-// PRICE & OHLC DATA
-// ============================================
 export interface PriceData {
   price: number
   timestamp: number
@@ -508,9 +490,6 @@ export interface BinancePrice {
   pair?: string
 }
 
-// ============================================
-// API RESPONSES
-// ============================================
 export interface ApiResponse<T = any> {
   success?: boolean
   message?: string
@@ -526,9 +505,6 @@ export interface AuthResponse {
   token: string
 }
 
-// ============================================
-// PROFILE & PREFERENCES
-// ============================================
 export interface UpdateProfileRequest {
   fullName?: string
   phoneNumber?: string
@@ -573,9 +549,6 @@ export interface UpdateProfileRequest {
   }
 }
 
-// ============================================
-// SYSTEM STATS & ADMIN
-// ============================================
 export interface SystemStatistics {
   users: {
     total: number
@@ -645,9 +618,6 @@ export interface SystemStatistics {
   timestamp: string
 }
 
-// ============================================
-// CRYPTO SCHEDULER STATUS
-// ============================================
 export interface CryptoSchedulerStatus {
   isRunning: boolean
   schedulerActive: boolean
@@ -665,13 +635,10 @@ export interface CryptoSchedulerStatus {
   ohlcStats?: any
 }
 
-// ============================================
-// CREATE/UPDATE ASSET REQUESTS
-// ============================================
 export interface CreateAssetRequest {
   name: string
   symbol: string
-  type: 'forex' | 'stock' | 'commodity' | 'crypto' | 'index'  // ✅ TAMBAHAN
+  type: 'forex' | 'stock' | 'commodity' | 'crypto' | 'index'
   category: 'normal' | 'crypto'
   profitRate: number
   icon?: string
@@ -685,7 +652,7 @@ export interface CreateAssetRequest {
     exchange?: string
   }
   description?: string
-  decimalPlaces?: number  // ✅ TAMBAHAN
+  decimalPlaces?: number
   simulatorSettings?: {
     initialPrice: number
     dailyVolatilityMin: number
@@ -704,9 +671,6 @@ export interface CreateAssetRequest {
 
 export interface UpdateAssetRequest extends Partial<CreateAssetRequest> {}
 
-// ============================================
-// UTILITY TYPES
-// ============================================
 export interface OrderStats {
   total: number
   active: number
@@ -760,13 +724,9 @@ export interface UserPreferences {
   }
 }
 
-// ============================================
-// DURATION CONSTANTS - With 1s Support
-// ============================================
-
 export const DURATIONS = [
   0.0167,
-  1, 2, 3, 4, 5, 
+  1, 2, 3, 4, 5,
   10, 15, 30, 45, 60
 ] as const
 
@@ -799,10 +759,6 @@ export type BalanceType = Balance['type']
 export type AssetDataSource = 'realtime_db' | 'api' | 'mock' | 'binance'
 export type AssetCategory = Asset['category']
 
-// ============================================
-// UTILITY FUNCTIONS - Enhanced for 1s
-// ============================================
-
 export function formatDurationDisplay(durationMinutes: number): string {
   return DURATION_DISPLAY_MAP[durationMinutes] || `${durationMinutes}m`
 }
@@ -814,7 +770,7 @@ export function parseDurationFromDisplay(display: string): number | null {
 
 export function isDurationAllowed(duration: number, allowedDurations?: number[]): boolean {
   if (!allowedDurations || allowedDurations.length === 0) return true
-  
+
   const tolerance = 0.0001
   return allowedDurations.some(allowed => Math.abs(allowed - duration) < tolerance)
 }
@@ -893,13 +849,13 @@ export function getRecommendedDurations(assetType: string): number[] {
     'commodity': [15, 30, 60],
     'index': [15, 30, 60]
   }
-  
+
   return recommendations[assetType] || DEFAULT_TRADING_SETTINGS.allowedDurations
 }
 
 export function supports1sTradingInternal(asset: Asset): boolean {
   if (!asset.tradingSettings?.allowedDurations) return false
-  
+
   const tolerance = 0.0001
   return asset.tradingSettings.allowedDurations.some(
     duration => Math.abs(duration - 0.0167) < tolerance
@@ -934,7 +890,7 @@ export function getDataSourceLabel(dataSource: AssetDataSource): string {
 
 export function getCryptoPairDisplay(asset: Asset): string | null {
   if (!isCryptoAsset(asset) || !asset.cryptoConfig) return null
-  
+
   const { baseCurrency, quoteCurrency } = asset.cryptoConfig
   return `${baseCurrency}/${quoteCurrency}`
 }
@@ -948,8 +904,8 @@ export function getAssetDisplayName(asset: Asset): string {
 }
 
 export const BINANCE_SUPPORTED_COINS = [
-  'BTC', 'ETH', 'BNB', 'XRP', 'ADA', 'SOL', 'DOT', 'DOGE', 
-  'MATIC', 'LTC', 'AVAX', 'LINK', 'UNI', 'ATOM', 'XLM', 
+  'BTC', 'ETH', 'BNB', 'XRP', 'ADA', 'SOL', 'DOT', 'DOGE',
+  'MATIC', 'LTC', 'AVAX', 'LINK', 'UNI', 'ATOM', 'XLM',
   'ALGO', 'VET', 'ICP', 'FIL', 'TRX', 'ETC', 'NEAR', 'APT', 'ARB', 'OP'
 ] as const
 
@@ -965,9 +921,6 @@ export function isBinanceSupported(baseCurrency: string, quoteCurrency: string):
          BINANCE_SUPPORTED_QUOTE_CURRENCIES.includes(quoteCurrency.toUpperCase() as any)
 }
 
-// ============================================
-// STATUS CONFIGURATION
-// ============================================
 export const STATUS_CONFIG = {
   standard: {
     label: 'Standard',
@@ -995,9 +948,6 @@ export const STATUS_CONFIG = {
   }
 } as const
 
-// ============================================
-// VALIDATION UTILITIES
-// ============================================
 export function validatePhoneNumber(phone: string): boolean {
   const phoneRegex = /^(\+62|62|0)[0-9]{9,12}$/
   return phoneRegex.test(phone)
@@ -1010,23 +960,23 @@ export function validateEmail(email: string): boolean {
 
 export function validatePassword(password: string): { valid: boolean; errors: string[] } {
   const errors: string[] = []
-  
+
   if (password.length < 8) {
     errors.push('Password must be at least 8 characters')
   }
-  
+
   if (!/[A-Z]/.test(password)) {
     errors.push('Password must contain at least one uppercase letter')
   }
-  
+
   if (!/[a-z]/.test(password)) {
     errors.push('Password must contain at least one lowercase letter')
   }
-  
+
   if (!/[0-9]/.test(password)) {
     errors.push('Password must contain at least one number')
   }
-  
+
   return {
     valid: errors.length === 0,
     errors
@@ -1035,13 +985,13 @@ export function validatePassword(password: string): { valid: boolean; errors: st
 
 export function formatPhoneNumber(phone: string): string {
   let cleaned = phone.replace(/\D/g, '')
-  
+
   if (cleaned.startsWith('62')) {
     return '+' + cleaned
   } else if (cleaned.startsWith('0')) {
     return '+62' + cleaned.substring(1)
   }
-  
+
   return '+62' + cleaned
 }
 
@@ -1074,7 +1024,7 @@ export function calculateProfileCompletion(profile?: UserProfileInfo): number {
 export function maskIdentityNumber(number?: string): string {
   if (!number) return '****'
   if (number.length <= 4) return '****'
-  
+
   const visible = number.slice(-4)
   const masked = '*'.repeat(number.length - 4)
   return masked + visible
@@ -1083,7 +1033,7 @@ export function maskIdentityNumber(number?: string): string {
 export function maskBankAccount(accountNumber?: string): string {
   if (!accountNumber) return '****'
   if (accountNumber.length <= 4) return '****'
-  
+
   const visible = accountNumber.slice(-4)
   const masked = '*'.repeat(accountNumber.length - 4)
   return masked + visible
@@ -1092,15 +1042,12 @@ export function maskBankAccount(accountNumber?: string): string {
 export function maskPhoneNumber(phone?: string): string {
   if (!phone) return '****'
   if (phone.length <= 4) return '****'
-  
+
   const visible = phone.slice(-4)
   const masked = '*'.repeat(Math.min(phone.length - 4, 8))
   return masked + visible
 }
 
-// ============================================
-// API REQUEST TYPES
-// ============================================
 export interface CreateOrderRequest {
   accountType: AccountType
   asset_id: string
@@ -1142,9 +1089,6 @@ export interface PaginatedResponse<T> {
   totalPages: number
 }
 
-// ============================================
-// WEBSOCKET & REAL-TIME
-// ============================================
 export interface WSMessage {
   type: 'price_update' | 'order_update' | 'balance_update' | 'notification'
   data: any
@@ -1173,9 +1117,6 @@ export interface WSBalanceUpdate {
   timestamp: number
 }
 
-// ============================================
-// CHART & INDICATOR TYPES
-// ============================================
 export interface CandlestickData {
   time: number
   open: number
@@ -1196,9 +1137,6 @@ export interface HistogramData {
   color?: string
 }
 
-// ============================================
-// STATE MANAGEMENT
-// ============================================
 export interface AuthState {
   user: User | null
   token: string | null
@@ -1229,9 +1167,6 @@ export interface OrderState {
   lastUpdate: number
 }
 
-// ============================================
-// FORM TYPES
-// ============================================
 export interface LoginFormData {
   email: string
   password: string
@@ -1344,7 +1279,7 @@ export interface VoucherStatistics {
 export interface AssetSchedule {
   id: string
   assetSymbol: string
-  scheduledTime: string // ISO 8601 format
+  scheduledTime: string
   trend: 'buy' | 'sell'
   timeframe: '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d'
   notes?: string
@@ -1366,7 +1301,7 @@ export interface AssetSchedule {
 
 export interface CreateAssetScheduleRequest {
   assetSymbol: string
-  scheduledTime: string // ISO 8601 format
+  scheduledTime: string
   trend: 'buy' | 'sell'
   timeframe: '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d'
   notes?: string
@@ -1374,7 +1309,7 @@ export interface CreateAssetScheduleRequest {
 }
 
 export interface UpdateAssetScheduleRequest {
-  scheduledTime?: string // ISO 8601 format
+  scheduledTime?: string
   trend?: 'buy' | 'sell'
   timeframe?: '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d'
   notes?: string
@@ -1417,12 +1352,10 @@ export type AssetScheduleTrend = 'buy' | 'sell'
 export type AssetScheduleTimeframe = '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d'
 export type AssetScheduleStatus = 'pending' | 'executed' | 'failed' | 'cancelled'
 
-// Helper constants
 export const ASSET_SCHEDULE_TRENDS = ['buy', 'sell'] as const
 export const ASSET_SCHEDULE_TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d'] as const
 export const ASSET_SCHEDULE_STATUSES = ['pending', 'executed', 'failed', 'cancelled'] as const
 
-// Trend info
 export const TREND_INFO = {
   buy: {
     label: 'Buy (Naik)',
@@ -1442,7 +1375,6 @@ export const TREND_INFO = {
   },
 } as const
 
-// Status info
 export const SCHEDULE_STATUS_INFO = {
   pending: {
     label: 'Pending',
@@ -1478,7 +1410,6 @@ export const SCHEDULE_STATUS_INFO = {
   },
 } as const
 
-// Timeframe info
 export const TIMEFRAME_INFO = {
   '1m': { label: '1 Minute', duration: 60 },
   '5m': { label: '5 Minutes', duration: 300 },
@@ -1488,10 +1419,6 @@ export const TIMEFRAME_INFO = {
   '4h': { label: '4 Hours', duration: 14400 },
   '1d': { label: '1 Day', duration: 86400 },
 } as const
-
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
 
 export function formatScheduleTrend(trend: AssetScheduleTrend): string {
   return TREND_INFO[trend].label
@@ -1558,8 +1485,6 @@ export function canExecuteSchedule(schedule: AssetSchedule): boolean {
   return schedule.status === 'pending' && schedule.isActive
 }
 
-
-
 export enum InformationType {
   ANNOUNCEMENT = 'announcement',
   PROMOTION = 'promotion',
@@ -1583,37 +1508,37 @@ export interface Information {
   description: string
   type: InformationType
   priority: InformationPriority
-  
-  // Display settings
+
+
   imageUrl?: string
-  imagePath?: string      // ✅ TAMBAHKAN INI
-  imageSize?: number      // ✅ TAMBAHKAN INI
-  
+  imagePath?: string
+  imageSize?: number
+
   linkUrl?: string
   linkText?: string
-  
-  // Scheduling
+
+
   startDate?: string
   endDate?: string
   publishDate?: string
-  
-  // Status
+
+
   isActive: boolean
   isPinned: boolean
-  
-  // Targeting
+
+
   targetUserStatus?: ('standard' | 'gold' | 'vip')[]
   targetUserRoles?: ('user' | 'admin' | 'super_admin')[]
-  
-  // Metadata
+
+
   createdBy: string
   createdByEmail?: string
   updatedBy?: string
   updatedByEmail?: string
   createdAt: string
   updatedAt?: string
-  
-  // Analytics
+
+
   viewCount?: number
   clickCount?: number
 }
@@ -1625,8 +1550,8 @@ export interface CreateInformationRequest {
   type: InformationType
   priority?: InformationPriority
   imageUrl?: string
-  imagePath?: string      // ✅ TAMBAHKAN INI
-  imageSize?: number      // ✅ TAMBAHKAN INI
+  imagePath?: string
+  imageSize?: number
   linkUrl?: string
   linkText?: string
   startDate?: string
@@ -1646,8 +1571,8 @@ export interface UpdateInformationRequest {
   priority?: InformationPriority
   imageUrl?: string
   linkUrl?: string
-  imagePath?: string      // ✅ TAMBAHKAN INI
-  imageSize?: number      // ✅ TAMBAHKAN INI
+  imagePath?: string
+  imageSize?: number
   linkText?: string
   startDate?: string
   endDate?: string
@@ -1678,7 +1603,6 @@ export interface InformationPagination {
   totalPages: number
 }
 
-// Utility functions for Information
 export function getInformationTypeLabel(type: InformationType): string {
   const labels: Record<InformationType, string> = {
     [InformationType.ANNOUNCEMENT]: 'Pengumuman',
@@ -1734,11 +1658,6 @@ export function getInformationPriorityColor(priority: InformationPriority): stri
   }
   return colors[priority] || 'bg-gray-100 text-gray-800 border-gray-200'
 }
-
-
-// ============================================
-// AFFILIATE PROGRAM TYPES
-// ============================================
 
 export interface AffiliatorProgram {
   id: string

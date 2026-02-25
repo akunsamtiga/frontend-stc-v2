@@ -1,4 +1,4 @@
-// components/common/AssetIcon.tsx - NEW FILE
+// components/common/AssetIcon.tsx 
 
 'use client'
 import { useState } from 'react'
@@ -35,11 +35,10 @@ const ICON_SIZE_CLASSES = {
   xl: 'w-10 h-10'
 }
 
-// Default crypto icons (CryptoCompare or CryptoLogos)
 const getCryptoIconUrl = (baseCurrency: string): string => {
   const currency = baseCurrency.toUpperCase()
-  
-  // Using CryptoLogos (free CDN)
+
+
   const iconMap: Record<string, string> = {
     'BTC': 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
     'ETH': 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
@@ -57,31 +56,31 @@ const getCryptoIconUrl = (baseCurrency: string): string => {
     'ATOM': 'https://cryptologos.cc/logos/cosmos-atom-logo.png',
     'XLM': 'https://cryptologos.cc/logos/stellar-xlm-logo.png',
   }
-  
+
   return iconMap[currency] || `https://via.placeholder.com/64?text=${currency}`
 }
 
-export default function AssetIcon({ 
-  asset, 
-  size = 'md', 
+export default function AssetIcon({
+  asset,
+  size = 'md',
   className = '',
-  showFallback = true 
+  showFallback = true
 }: AssetIconProps) {
   const [imageError, setImageError] = useState(false)
-  
-  // Determine icon URL
+
+
   let iconUrl = asset.icon
-  
-  // Auto-fallback for crypto assets
+
+
   if (!iconUrl && asset.category === 'crypto' && asset.cryptoConfig?.baseCurrency) {
     iconUrl = getCryptoIconUrl(asset.cryptoConfig.baseCurrency)
   }
 
-  // If we have a valid icon URL
+
   if (iconUrl && !imageError) {
     return (
       <div className={`${SIZE_CLASSES[size]} rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 ${className}`}>
-        <img 
+        <img
           src={iconUrl}
           alt={`${asset.name} icon`}
           className="w-full h-full object-contain"
@@ -91,12 +90,12 @@ export default function AssetIcon({
     )
   }
 
-  // Fallback to emoji/icon
+
   if (showFallback) {
     return (
       <div className={`${SIZE_CLASSES[size]} rounded-lg bg-gradient-to-br ${
-        asset.category === 'crypto' 
-          ? 'from-orange-400 to-yellow-500' 
+        asset.category === 'crypto'
+          ? 'from-orange-400 to-yellow-500'
           : 'from-blue-400 to-purple-500'
       } flex items-center justify-center text-white flex-shrink-0 ${className}`}>
         {asset.category === 'crypto' ? (

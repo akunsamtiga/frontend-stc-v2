@@ -1,4 +1,4 @@
-// lib/toast-manager.ts - Toast Deduplication & Connection Manager
+// lib/toast-manager.ts 
 import { toast } from 'sonner'
 
 interface ToastEntry {
@@ -17,7 +17,7 @@ type ConnectionCallback = (isOnline: boolean) => void
 
 class ToastManager {
   private recentToasts: Map<string, ToastEntry> = new Map()
-  private readonly DEDUP_WINDOW = 5000 // 5 seconds
+  private readonly DEDUP_WINDOW = 5000
   private connectionState: ConnectionState = {
     isOnline: true,
     lastOnlineTime: Date.now(),
@@ -38,11 +38,11 @@ class ToastManager {
     if (this.isInitialized) return
     this.isInitialized = true
 
-    // Listen for online/offline events
+
     window.addEventListener('online', () => this.handleOnline())
     window.addEventListener('offline', () => this.handleOffline())
 
-    // Initial state
+
     this.connectionState.isOnline = navigator.onLine
   }
 
@@ -52,13 +52,13 @@ class ToastManager {
     this.connectionState.lastOnlineTime = Date.now()
     this.connectionState.wasOffline = wasOffline
 
-    // Dismiss offline toast if exists
+
     if (this.offlineToastId) {
       toast.dismiss(this.offlineToastId)
       this.offlineToastId = null
     }
 
-    // Show reconnected toast only if we were offline
+
     if (wasOffline) {
       if (this.reconnectToastId) {
         toast.dismiss(this.reconnectToastId)
@@ -68,7 +68,7 @@ class ToastManager {
         duration: 3000,
       })
 
-      // Notify all listeners
+
       this.connectionCallbacks.forEach(callback => {
         try {
           callback(true)
@@ -83,21 +83,21 @@ class ToastManager {
     this.connectionState.isOnline = false
     this.connectionState.wasOffline = true
 
-    // Dismiss reconnect toast if exists
+
     if (this.reconnectToastId) {
       toast.dismiss(this.reconnectToastId)
       this.reconnectToastId = null
     }
 
-    // Show offline toast (only one)
+
     if (!this.offlineToastId) {
       this.offlineToastId = toast.error('Koneksi terputus', {
         description: 'Menunggu koneksi internet...',
-        duration: Infinity, // Keep until dismissed
+        duration: Infinity,
       })
     }
 
-    // Notify all listeners
+
     this.connectionCallbacks.forEach(callback => {
       try {
         callback(false)
@@ -107,46 +107,42 @@ class ToastManager {
     })
   }
 
-  /**
-   * Show error toast with deduplication
-   */
+
   showError(message: string, options?: { description?: string; duration?: number }): void {
     const now = Date.now()
     const key = this.getToastKey(message, options?.description)
 
-    // Check for recent duplicate
+
     const existing = this.recentToasts.get(key)
     if (existing && (now - existing.timestamp) < this.DEDUP_WINDOW) {
       console.log(`🚫 Duplicate toast blocked: ${message}`)
       return
     }
 
-    // Don't show connection errors if we're offline (offline toast already shown)
+
     if (!this.connectionState.isOnline && this.isConnectionError(message)) {
       console.log(`🚫 Connection error suppressed (offline): ${message}`)
       return
     }
 
-    // Show toast
+
     const toastId = toast.error(message, {
       ...options,
       duration: options?.duration || 5000,
     })
 
-    // Track it
+
     this.recentToasts.set(key, {
       message,
       timestamp: now,
       toastId,
     })
 
-    // Clean up old entries periodically
+
     this.cleanupOldEntries()
   }
 
-  /**
-   * Show success toast with deduplication
-   */
+
   showSuccess(message: string, options?: { description?: string; duration?: number }): void {
     const now = Date.now()
     const key = this.getToastKey(message, options?.description)
@@ -171,9 +167,7 @@ class ToastManager {
     this.cleanupOldEntries()
   }
 
-  /**
-   * Show info toast with deduplication
-   */
+
   showInfo(message: string, options?: { description?: string; duration?: number }): void {
     const now = Date.now()
     const key = this.getToastKey(message, options?.description)
@@ -197,9 +191,7 @@ class ToastManager {
     this.cleanupOldEntries()
   }
 
-  /**
-   * Show warning toast with deduplication
-   */
+
   showWarning(message: string, options?: { description?: string; duration?: number }): void {
     const now = Date.now()
     const key = this.getToastKey(message, options?.description)
@@ -223,9 +215,7 @@ class ToastManager {
     this.cleanupOldEntries()
   }
 
-  /**
-   * Subscribe to connection state changes
-   */
+
   onConnectionChange(callback: ConnectionCallback): () => void {
     this.connectionCallbacks.add(callback)
     return () => {
@@ -233,27 +223,21 @@ class ToastManager {
     }
   }
 
-  /**
-   * Get current connection state
-   */
+
   getConnectionState(): ConnectionState {
     return { ...this.connectionState }
   }
 
-  /**
-   * Check if currently online
-   */
+
   isOnline(): boolean {
     return this.connectionState.isOnline
   }
 
-  /**
-   * Check if we were offline and just came back online
-   */
+
   shouldAutoRefresh(): boolean {
     const shouldRefresh = this.connectionState.wasOffline && this.connectionState.isOnline
     if (shouldRefresh) {
-      // Reset the flag
+
       this.connectionState.wasOffline = false
     }
     return shouldRefresh
@@ -275,7 +259,7 @@ class ToastManager {
       'ECONNABORTED',
       'ERR_NETWORK',
     ]
-    return connectionErrors.some(err => 
+    return connectionErrors.some(err =>
       message.toLowerCase().includes(err.toLowerCase())
     )
   }
@@ -293,31 +277,27 @@ class ToastManager {
     keysToDelete.forEach(key => this.recentToasts.delete(key))
   }
 
-  /**
-   * Clear all tracked toasts
-   */
+
   clear() {
     this.recentToasts.clear()
   }
 }
 
-// Singleton instance
 export const toastManager = new ToastManager()
 
-// Convenience exports
-export const showError = (message: string, options?: { description?: string; duration?: number }) => 
+export const showError = (message: string, options?: { description?: string; duration?: number }) =>
   toastManager.showError(message, options)
 
-export const showSuccess = (message: string, options?: { description?: string; duration?: number }) => 
+export const showSuccess = (message: string, options?: { description?: string; duration?: number }) =>
   toastManager.showSuccess(message, options)
 
-export const showInfo = (message: string, options?: { description?: string; duration?: number }) => 
+export const showInfo = (message: string, options?: { description?: string; duration?: number }) =>
   toastManager.showInfo(message, options)
 
-export const showWarning = (message: string, options?: { description?: string; duration?: number }) => 
+export const showWarning = (message: string, options?: { description?: string; duration?: number }) =>
   toastManager.showWarning(message, options)
 
-export const onConnectionChange = (callback: ConnectionCallback) => 
+export const onConnectionChange = (callback: ConnectionCallback) =>
   toastManager.onConnectionChange(callback)
 
 export const isOnline = () => toastManager.isOnline()

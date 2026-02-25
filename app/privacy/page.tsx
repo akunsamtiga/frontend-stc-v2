@@ -2,8 +2,6 @@
 import type { Metadata } from 'next'
 import PrivacyPageClient from './PageClient'
 
-// ─── Metadata ─────────────────────────────────────────────────────────────────
-
 const BASE_URL = 'https://stouch.id'
 
 export const metadata: Metadata = {
@@ -28,8 +26,6 @@ export const metadata: Metadata = {
     images: [{ url: `${BASE_URL}/og-image.png`, width: 1200, height: 630, alt: 'Kebijakan Privasi Stouch.id' }],
   },
 }
-
-// ─── JSON-LD ──────────────────────────────────────────────────────────────────
 
 function PrivacyJsonLd() {
   const data = {
@@ -64,8 +60,6 @@ function PrivacyJsonLd() {
     />
   )
 }
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PrivacyPage() {
   return (

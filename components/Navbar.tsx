@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import { UserProfile } from '@/types'
 import Image from 'next/image'
-import { 
+import {
   History,
   Wallet,
   Settings,
@@ -24,12 +24,9 @@ import {
 
 type LogoPhase = 'stc-logo-in' | 'stc-text-in' | 'stc-hold' | 'stc-text-out' | 'stc-logo-out' | 'stockity-logo-in' | 'stockity-text-in' | 'stockity-hold' | 'stockity-text-out' | 'stockity-logo-out'
 
-// ── Module-level cache ─────────────────────────────────────────
-// Persists across component re-mounts (navigasi antar halaman),
-// sehingga tidak ada flash/jump saat Navbar di-mount ulang.
 const _cache: {
   userProfile: UserProfile | null
-  profileFetched: string | null   // simpan user.id yang sudah di-fetch
+  profileFetched: string | null
   isAffiliator: boolean
   affiliatorChecked: string | null
   logoPhase: LogoPhase
@@ -49,18 +46,18 @@ export default function Navbar() {
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [isClosingMenu, setIsClosingMenu] = useState(false)
 
-  // Init dari cache → tidak ada flash/jump saat re-mount
+
   const [userProfile, setUserProfile] = useState<UserProfile | null>(_cache.userProfile)
   const [isAffiliator, setIsAffiliator] = useState(_cache.isAffiliator)
   const [logoPhase, setLogoPhase] = useState<LogoPhase>(_cache.logoPhase)
 
-  // Setter yang sekaligus update cache
+
   const updateLogoPhase = (phase: LogoPhase) => {
     _cache.logoPhase = phase
     setLogoPhase(phase)
   }
 
-  // Fetch profile & affiliator — hanya sekali per user (skip jika cache valid)
+
   useEffect(() => {
     if (!user?.id) return
 
@@ -131,7 +128,7 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
-      // Reset navbar cache agar user berikutnya tidak lihat data lama
+
       _cache.userProfile = null
       _cache.profileFetched = null
       _cache.isAffiliator = false
@@ -141,12 +138,12 @@ export default function Navbar() {
       api.removeToken()
       api.clearCache()
       logout()
-      
+
       if (typeof window !== 'undefined') {
         localStorage.clear()
         sessionStorage.clear()
       }
-      
+
       await new Promise(resolve => setTimeout(resolve, 100))
       router.replace('/')
     } catch (error) {
@@ -160,13 +157,13 @@ export default function Navbar() {
     setTimeout(() => {
       setShowMobileMenu(false)
       setIsClosingMenu(false)
-    }, 280) // sedikit kurang dari durasi animasi 0.3s
+    }, 280)
   }
 
   const isActive = (path: string) => pathname === path
   const isAdmin = pathname.startsWith('/admin')
 
-  // ── Theme tokens — swap seluruh palette saat di panel admin ──
+
   const t = isAdmin ? {
     nav:            'border-b border-white/10 bg-[#080c1e]',
     logoText:       'text-slate-100',
@@ -245,20 +242,20 @@ export default function Navbar() {
   return (
     <>
     <nav className={`${t.nav}`}>
-      {/* Desktop: full-width layout tanpa container constraint */}
+      {}
       <div className="hidden md:flex items-center h-16 px-6 gap-4">
 
-        {/* Logo */}
-        <div 
+        {}
+        <div
           className="relative h-10 w-44 flex-shrink-0 overflow-visible cursor-pointer"
           onClick={() => router.push('/trading')}
         >
-          {/* Stouch - hanya visible di fase STC */}
+          {}
           {logoPhase.startsWith('stc-') && (
             <div className="flex items-center gap-3 absolute left-0 top-0">
               <div className={`relative w-10 h-10 flex-shrink-0 overflow-visible ${
                 logoPhase === 'stc-logo-in' ? 'animate-logo-bounce-in' :
-                logoPhase === 'stc-logo-out' ? 'animate-logo-bounce-out' : 
+                logoPhase === 'stc-logo-out' ? 'animate-logo-bounce-out' :
                 'opacity-100'
               }`}>
                 <Image
@@ -269,12 +266,12 @@ export default function Navbar() {
                   priority
                 />
               </div>
-              
+
               {(logoPhase !== 'stc-logo-in' && logoPhase !== 'stc-logo-out') && (
                 <div className="flex overflow-hidden">
                   <span className={`text-lg font-bold ${t.logoText} whitespace-nowrap ${
                     logoPhase === 'stc-text-in' ? 'animate-text-slide-in' :
-                    logoPhase === 'stc-text-out' ? 'animate-text-slide-out' : 
+                    logoPhase === 'stc-text-out' ? 'animate-text-slide-out' :
                     'opacity-100 translate-x-0'
                   }`}>
                     Stouch
@@ -284,12 +281,12 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* By Stockity - hanya visible di fase Stockity */}
+          {}
           {logoPhase.startsWith('stockity-') && (
             <div className="flex items-center gap-3 absolute left-0 top-1">
               <div className={`relative w-8 h-8 flex-shrink-0 overflow-visible ${
                 logoPhase === 'stockity-logo-in' ? 'animate-logo-bounce-in' :
-                logoPhase === 'stockity-logo-out' ? 'animate-logo-bounce-out' : 
+                logoPhase === 'stockity-logo-out' ? 'animate-logo-bounce-out' :
                 'opacity-100'
               }`}>
                 <Image
@@ -300,12 +297,12 @@ export default function Navbar() {
                   priority
                 />
               </div>
-              
+
               {(logoPhase !== 'stockity-logo-in' && logoPhase !== 'stockity-logo-out') && (
                 <div className="flex overflow-hidden">
                   <span className={`text-lg font-bold ${t.logoText} whitespace-nowrap ${
                     logoPhase === 'stockity-text-in' ? 'animate-text-slide-in' :
-                    logoPhase === 'stockity-text-out' ? 'animate-text-slide-out' : 
+                    logoPhase === 'stockity-text-out' ? 'animate-text-slide-out' :
                     'opacity-100 translate-x-0'
                   }`}>
                     By Stockity
@@ -316,7 +313,7 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Nav Links — flex-1 agar mengisi semua ruang tengah, merata */}
+        {}
         <div className="flex-1 flex items-center justify-evenly">
           {navLinks.map((link) => {
             const Icon = link.icon
@@ -334,8 +331,7 @@ export default function Navbar() {
 
         </div>
 
-
-        {/* User Menu */}
+        {}
         <div className="flex-shrink-0 relative">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
@@ -364,7 +360,7 @@ export default function Navbar() {
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
               <div className={`absolute top-full right-0 mt-2 w-64 rounded-lg z-50 overflow-hidden ${t.dropdown}`}>
-                {/* User info */}
+                {}
                 <div className={`px-4 py-3 ${t.dropHeader}`}>
                   <div className={`text-sm font-medium ${t.dropTitle} truncate mb-1`}>{user.email}</div>
                   <div className={`text-xs ${t.dropSub} capitalize`}>
@@ -372,7 +368,7 @@ export default function Navbar() {
                   </div>
                 </div>
 
-                {/* Affiliate link */}
+                {}
                 {isAffiliator && (
                   <button
                     onClick={() => { router.push('/affiliate'); setShowUserMenu(false) }}
@@ -383,7 +379,7 @@ export default function Navbar() {
                   </button>
                 )}
 
-                {/* Admin link */}
+                {}
                 {(user.role === 'super_admin' || user.role === 'admin') && (
                   <button
                     onClick={() => { router.push('/admin'); setShowUserMenu(false) }}
@@ -394,10 +390,10 @@ export default function Navbar() {
                   </button>
                 )}
 
-                {/* Divider */}
+                {}
                 <div className={t.dropDivider} />
 
-                {/* Logout */}
+                {}
                 <button
                   onClick={handleLogout}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 transition-colors text-left ${t.dropLogout}`}
@@ -411,10 +407,10 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile: layout asli tetap dipertahankan */}
+      {}
       <div className="md:hidden flex items-center justify-between h-16 px-4">
-        {/* Logo */}
-        <div 
+        {}
+        <div
           className="relative h-10 w-48 overflow-visible cursor-pointer"
           onClick={() => router.push('/trading')}
         >
@@ -422,7 +418,7 @@ export default function Navbar() {
             <div className="flex items-center gap-3 absolute left-0 top-0">
               <div className={`relative w-10 h-10 flex-shrink-0 overflow-visible ${
                 logoPhase === 'stc-logo-in' ? 'animate-logo-bounce-in' :
-                logoPhase === 'stc-logo-out' ? 'animate-logo-bounce-out' : 
+                logoPhase === 'stc-logo-out' ? 'animate-logo-bounce-out' :
                 'opacity-100'
               }`}>
                 <Image src="/stc-logo1.png" alt="Stouch" fill className="object-contain rounded-md" priority />
@@ -431,7 +427,7 @@ export default function Navbar() {
                 <div className="flex overflow-hidden">
                   <span className={`text-lg font-bold ${t.logoText} whitespace-nowrap ${
                     logoPhase === 'stc-text-in' ? 'animate-text-slide-in' :
-                    logoPhase === 'stc-text-out' ? 'animate-text-slide-out' : 
+                    logoPhase === 'stc-text-out' ? 'animate-text-slide-out' :
                     'opacity-100 translate-x-0'
                   }`}>Stouch</span>
                 </div>
@@ -442,7 +438,7 @@ export default function Navbar() {
             <div className="flex items-center gap-3 absolute left-0 top-1">
               <div className={`relative w-8 h-8 flex-shrink-0 overflow-visible ${
                 logoPhase === 'stockity-logo-in' ? 'animate-logo-bounce-in' :
-                logoPhase === 'stockity-logo-out' ? 'animate-logo-bounce-out' : 
+                logoPhase === 'stockity-logo-out' ? 'animate-logo-bounce-out' :
                 'opacity-100'
               }`}>
                 <Image src="/stockity.png" alt="Stockity" fill className="object-contain rounded-md" priority />
@@ -451,7 +447,7 @@ export default function Navbar() {
                 <div className="flex overflow-hidden">
                   <span className={`text-lg font-bold ${t.logoText} whitespace-nowrap ${
                     logoPhase === 'stockity-text-in' ? 'animate-text-slide-in' :
-                    logoPhase === 'stockity-text-out' ? 'animate-text-slide-out' : 
+                    logoPhase === 'stockity-text-out' ? 'animate-text-slide-out' :
                     'opacity-100 translate-x-0'
                   }`}>By Stockity</span>
                 </div>
@@ -460,7 +456,7 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile Menu Button */}
+        {}
         <button
           onClick={() => setShowMobileMenu(true)}
           className={`p-2 rounded-lg transition-colors ${t.mobileMenuBtn}`}
@@ -471,17 +467,17 @@ export default function Navbar() {
 
     </nav>
 
-      {/* Mobile Menu Drawer — outside <nav> to escape stacking context */}
+      {}
       {showMobileMenu && (
         <>
-          <div 
+          <div
             className={`fixed inset-0 bg-black/50 z-[50] ${isClosingMenu ? 'animate-fade-out' : 'animate-fade-in'}`}
-            onClick={closeMobileMenu} 
+            onClick={closeMobileMenu}
           />
           <div className={`fixed top-0 right-0 bottom-0 w-80 z-[60] overflow-y-auto ${t.mobileDrawer} ${isClosingMenu ? 'animate-slide-right' : 'animate-slide-left'}`}>
             <div className={`flex items-center justify-between p-4 ${t.mobileHeader}`}>
               <h3 className={`font-bold ${t.mobileTitle}`}>Menu</h3>
-              <button 
+              <button
                 onClick={closeMobileMenu}
                 className={`p-2 rounded-lg transition-colors ${t.mobileClose}`}
               >
@@ -545,7 +541,7 @@ export default function Navbar() {
               )}
             </div>
 
-            <div className={`p-4 space-y-1 ${t.mobileFooter}`}>              
+            <div className={`p-4 space-y-1 ${t.mobileFooter}`}>
               <button
                 onClick={handleLogout}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${t.mobileLogout}`}
