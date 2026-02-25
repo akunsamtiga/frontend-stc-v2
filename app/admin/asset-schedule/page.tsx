@@ -2,6 +2,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
+import React from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { assetScheduleApi, assetsApi } from '@/lib/api-wrapper'
@@ -32,6 +33,159 @@ import {
   validateScheduleData,
   downloadSchedulesCSV
 } from '@/lib/asset-schedule'
+import { motion, type Variants } from 'framer-motion'
+
+// ── Global Styles ──────────────────────────────────────────────
+const GlobalStyles = () => (
+  <style jsx global>{`
+    :root {
+      --glass-bg: rgba(255,255,255,0.04);
+      --glass-bg-hover: rgba(255,255,255,0.08);
+      --glass-border: rgba(255,255,255,0.09);
+      --glass-border-hover: rgba(255,255,255,0.18);
+      --glass-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      --glass-shadow-hover: 0 16px 48px rgba(0,0,0,0.5);
+    }
+    .bg-pattern-grid {
+      background-color: #060918;
+      background-image: none;
+      position: relative;
+    }
+    .bg-pattern-grid::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 10% 20%, rgba(99,102,241,0.16) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 85% 10%, rgba(6,182,212,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 60% at 70% 80%, rgba(139,92,246,0.08) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 20% 85%, rgba(16,185,129,0.07) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bg-pattern-grid::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(148,163,184,0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148,163,184,0.07) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body { background-color: #060918 !important; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .stat-card { transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s ease; }
+    .stat-card:hover { transform: translateY(-2px); }
+    .stat-icon { transition: transform 0.2s ease; }
+    .stat-card:hover .stat-icon { transform: scale(1.12); }
+    .glow-indigo { box-shadow: 0 0 20px rgba(99,102,241,0.25), var(--glass-shadow); }
+    .glow-green  { box-shadow: 0 0 20px rgba(16,185,129,0.20), var(--glass-shadow); }
+    .glow-red    { box-shadow: 0 0 20px rgba(239,68,68,0.20),  var(--glass-shadow); }
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,0.06);
+      transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .glass-card:hover {
+      background: var(--glass-bg-hover);
+      border-color: var(--glass-border-hover);
+      box-shadow: var(--glass-shadow-hover), inset 0 1px 0 rgba(255,255,255,0.10);
+    }
+    .glass-sub {
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+    .glass-input {
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.10);
+      color: white;
+    }
+    .glass-input:focus { outline: none; border-color: rgba(99,102,241,0.5); }
+    .glass-modal {
+      background: rgba(6,9,24,0.92);
+      backdrop-filter: blur(28px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+    select.glass-input option, select option { background: #0f1229; }
+  `}</style>
+)
+
+const SPRING = { type: 'spring', stiffness: 80, damping: 20 } as const
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { ...SPRING } },
+}
+const fadeLeft: Variants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { opacity: 1, x: 0, transition: { ...SPRING } },
+}
+const scaleIn: Variants = {
+  hidden: { opacity: 0, scale: 0.92 },
+  visible: { opacity: 1, scale: 1, transition: { ...SPRING } },
+}
+const stagger = (d = 0.06): Variants => ({
+  hidden: {},
+  visible: { transition: { staggerChildren: d, delayChildren: 0.04 } },
+})
+
+function Reveal({ children, variants = fadeUp, delay = 0, className = '' }: {
+  children: React.ReactNode; variants?: Variants; delay?: number; className?: string
+}) {
+  return (
+    <motion.div className={className} variants={variants} initial="hidden"
+      whileInView="visible" viewport={{ once: true, margin: '-60px' }}
+      transition={{ delay }}>
+      {children}
+    </motion.div>
+  )
+}
+
+function AnimatedHeadline({ text, className, style }: { text: string; className?: string; style?: React.CSSProperties }) {
+  return (
+    <motion.h1 className={className} style={style}
+      variants={stagger(0.07)} initial="hidden" animate="visible">
+      {text.split(' ').map((word, i) => (
+        <motion.span key={i}
+          variants={{ hidden: { opacity: 0, y: 30, filter: 'blur(4px)' }, visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { ...SPRING } } }}
+          className="inline-block mr-[0.25em]">{word}
+        </motion.span>
+      ))}
+    </motion.h1>
+  )
+}
+
+function CountUp({ to, suffix = '' }: { to: number; suffix?: string }) {
+  const ref = React.useRef<HTMLSpanElement>(null)
+  const [val, setVal] = React.useState(0)
+  const triggered = React.useRef(false)
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting || triggered.current) return
+      triggered.current = true
+      const start = performance.now()
+      const tick = (now: number) => {
+        const p = Math.min((now - start) / 900, 1)
+        const ease = 1 - Math.pow(1 - p, 3)
+        setVal(Math.round(ease * to))
+        if (p < 1) requestAnimationFrame(tick)
+        else setVal(to)
+      }
+      requestAnimationFrame(tick)
+    }, { threshold: 0.3 })
+    if (ref.current) observer.observe(ref.current)
+    return () => observer.disconnect()
+  }, [to])
+  return <span ref={ref}>{val.toLocaleString('id-ID')}{suffix}</span>
+}
 
 // ============================================
 // BULK SCHEDULE PARSER (Inline)
@@ -260,8 +414,8 @@ function BulkScheduleModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={!submitting ? onClose : undefined} />
-      <div className="relative bg-slate-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/10 shadow-2xl">
-        <div className="sticky top-0 bg-slate-900 border-b border-white/10 p-6 z-10">
+      <div className="relative glass-modal rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 glass-modal border-b border-white/10 p-6 z-10">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
@@ -270,7 +424,7 @@ function BulkScheduleModal({
               </h2>
               <p className="text-sm text-slate-400 mt-1">Buat multiple jadwal sekaligus</p>
             </div>
-            <button onClick={onClose} disabled={submitting} className="p-2 hover:bg-white/5 text-slate-400 rounded-lg disabled:opacity-50">
+            <button onClick={onClose} disabled={submitting} className="p-2 glass-sub hover:border-white/20 text-slate-400 rounded-lg disabled:opacity-50 transition-all">
               <X className="w-5 h-5" weight="bold" />
             </button>
           </div>
@@ -521,7 +675,7 @@ const LoadingSkeleton = () => (
   <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
     <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"></div>
     <Navbar />
-    <div className="max-w-6xl mx-auto px-4 py-6">
+    <div className="max-w-5xl mx-auto px-4 py-6">
       <div className="mb-6 animate-pulse">
         <div className="h-7 bg-white/10 rounded w-48 mb-2"></div>
         <div className="h-4 bg-white/10 rounded w-64"></div>
@@ -798,97 +952,105 @@ export default function AssetSchedulePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"></div>
+    <>
+      <GlobalStyles />
+      <div className="bg-pattern-grid min-h-screen relative">
       <Navbar />
       
-      <div className="max-w-6xl mx-auto px-4 py-6 relative z-10">
+      <div className="max-w-5xl mx-auto px-4 py-6 relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Manajemen Jadwal Aset</h1>
-            <p className="text-sm text-slate-400 mt-1">Kelola jadwal trading otomatis untuk aset</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Delete All Button */}
+        <motion.div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+          initial="hidden" animate="visible" variants={stagger(0.1)}>
+          <motion.div variants={fadeLeft}>
+            <motion.div className="flex items-center gap-1.5 text-xs text-slate-400 mb-1" variants={fadeUp}>
+              <span>Dasbor</span><span>/</span><span>Admin</span><span>/</span>
+              <span className="text-slate-100 font-medium">Jadwal Aset</span>
+            </motion.div>
+            <div className="flex items-center gap-3">
+              <motion.div
+                className="w-9 h-9 bg-gradient-to-br from-indigo-400/80 to-cyan-500/80 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-500/30 border border-white/20"
+                whileHover={{ rotate: 90, scale: 1.1 }} transition={{ ...SPRING }}>
+                <Calendar className="w-5 h-5 text-white" weight="duotone" />
+              </motion.div>
+              <div>
+                <AnimatedHeadline
+                  text="Manajemen Jadwal Aset"
+                  className="text-2xl sm:text-3xl font-bold text-slate-100"
+                  style={{ letterSpacing: '-0.03em' }}
+                />
+                <motion.p className="text-slate-400 text-sm mt-0.5" variants={fadeUp}>
+                  {lastUpdated ? `Diperbarui ${TimezoneUtil.formatDateTime(lastUpdated)}` : 'Kelola jadwal trading otomatis untuk aset'}
+                </motion.p>
+              </div>
+            </div>
+          </motion.div>
+          <motion.div variants={scaleIn} className="flex items-center gap-2 flex-wrap">
             {schedules.length > 0 && (
-              <button 
+              <motion.button 
                 onClick={handleDeleteAll} 
                 disabled={deletingAll}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-400 rounded-lg font-medium transition-colors text-sm disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-red-600/15 hover:bg-red-600/25 border border-red-500/30 text-red-400 rounded-xl font-medium transition-all text-sm disabled:opacity-50"
+                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
               >
                 {deletingAll ? (
-                  <><div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" /> Menghapus...</>
+                  <><ArrowsClockwise className="w-4 h-4 animate-spin" weight="bold" /> Menghapus...</>
                 ) : (
                   <><TrashSimple className="w-4 h-4" weight="bold" /> Hapus Semua</>
                 )}
-              </button>
+              </motion.button>
             )}
-            
-            <button onClick={handleRefresh} disabled={refreshing || deletingAll} className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors text-sm disabled:opacity-50">
+            <button onClick={handleRefresh} disabled={refreshing || deletingAll} className="flex items-center gap-2 px-4 py-2 glass-input rounded-xl transition-all text-sm disabled:opacity-50 text-slate-200 hover:bg-white/10">
               <ArrowsClockwise className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} weight="bold" />
               <span className="hidden sm:inline">Refresh</span>
             </button>
-            <button onClick={handleExportCSV} disabled={schedules.length === 0 || deletingAll} className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors text-sm disabled:opacity-50">
+            <button onClick={handleExportCSV} disabled={schedules.length === 0 || deletingAll} className="flex items-center gap-2 px-4 py-2 glass-input rounded-xl transition-all text-sm disabled:opacity-50 text-slate-200 hover:bg-white/10">
               <DownloadSimple className="w-4 h-4" weight="bold" />
               <span className="hidden sm:inline">Ekspor</span>
             </button>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setShowCreateModal(true)} disabled={deletingAll} className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg font-medium transition-colors text-sm disabled:opacity-50">
-                <Plus className="w-4 h-4" weight="bold" />
-                <span className="hidden sm:inline">Single</span>
-              </button>
-              <button onClick={() => setShowBulkModal(true)} disabled={deletingAll} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors text-sm disabled:opacity-50">
-                <Plus className="w-4 h-4" weight="bold" />
-                Bulk
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Last Updated */}
-        {lastUpdated && <div className="text-xs text-slate-500 mb-4">Terakhir diperbarui: {TimezoneUtil.formatDateTime(lastUpdated)}</div>}
+            <button onClick={() => setShowCreateModal(true)} disabled={deletingAll} className="flex items-center gap-2 px-4 py-2 glass-input text-slate-200 rounded-xl font-medium transition-all text-sm disabled:opacity-50 hover:bg-white/10">
+              <Plus className="w-4 h-4" weight="bold" />
+              <span className="hidden sm:inline">Single</span>
+            </button>
+            <motion.button onClick={() => setShowBulkModal(true)} disabled={deletingAll} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-all text-sm disabled:opacity-50 shadow-lg shadow-indigo-500/20"
+              whileHover={{ scale: 1.04, boxShadow: '0 0 20px rgba(99,102,241,0.4)' }} whileTap={{ scale: 0.96 }}>
+              <Plus className="w-4 h-4" weight="bold" />
+              Bulk
+            </motion.button>
+          </motion.div>
+        </motion.div>
 
         {/* Statistics */}
         {statistics && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded bg-blue-500/10 flex items-center justify-center"><Calendar className="w-5 h-5 text-blue-400" weight="duotone" /></div>
-                <span className="text-xs text-slate-400">Total</span>
-              </div>
-              <div className="text-2xl font-bold text-white">{statistics.total}</div>
-            </div>
-            <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded bg-yellow-500/10 flex items-center justify-center"><Clock className="w-5 h-5 text-yellow-400" weight="duotone" /></div>
-                <span className="text-xs text-slate-400">Menunggu</span>
-              </div>
-              <div className="text-2xl font-bold text-yellow-400">{statistics.pending}</div>
-            </div>
-            <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded bg-green-500/10 flex items-center justify-center"><CheckCircle className="w-5 h-5 text-green-400" weight="duotone" /></div>
-                <span className="text-xs text-slate-400">Dijalankan</span>
-              </div>
-              <div className="text-2xl font-bold text-green-400">{statistics.executed}</div>
-            </div>
-            <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded bg-red-500/10 flex items-center justify-center"><XCircle className="w-5 h-5 text-red-400" weight="duotone" /></div>
-                <span className="text-xs text-slate-400">Gagal</span>
-              </div>
-              <div className="text-2xl font-bold text-red-400">{statistics.failed}</div>
-            </div>
-          </div>
+          <Reveal className="glass-card rounded-2xl p-5 mb-6">
+            <motion.div className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+              variants={stagger(0.07)} initial="hidden" animate="visible">
+              {[
+                { icon: <Calendar className="w-5 h-5 text-blue-400" weight="duotone" />, bg: 'bg-blue-500/15', label: 'Total', value: statistics.total, color: 'text-slate-100' },
+                { icon: <Clock className="w-5 h-5 text-yellow-400" weight="duotone" />, bg: 'bg-yellow-500/15', label: 'Menunggu', value: statistics.pending, color: 'text-yellow-400' },
+                { icon: <CheckCircle className="w-5 h-5 text-green-400" weight="duotone" />, bg: 'bg-green-500/15', label: 'Dijalankan', value: statistics.executed, color: 'text-emerald-400' },
+                { icon: <XCircle className="w-5 h-5 text-red-400" weight="duotone" />, bg: 'bg-red-500/15', label: 'Gagal', value: statistics.failed, color: 'text-red-400' },
+              ].map((s) => (
+                <motion.div key={s.label} variants={fadeUp}
+                  className="flex items-center gap-3"
+                  whileHover={{ y: -2, transition: { duration: 0.15 } }}>
+                  <div className={`w-10 h-10 rounded-lg ${s.bg} flex items-center justify-center flex-shrink-0`}>{s.icon}</div>
+                  <div>
+                    <div className="text-xs font-medium text-slate-400 mb-0.5">{s.label}</div>
+                    <div className={`text-lg font-bold ${s.color}`}><CountUp to={s.value} /></div>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </Reveal>
         )}
 
         {/* Schedules Table */}
-        <div className="bg-white/5 rounded-lg border border-white/10 backdrop-blur-sm overflow-hidden">
+        <motion.div className="glass-card rounded-2xl overflow-hidden"
+          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING, delay: 0.1 }}>
           <div className="p-4 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-slate-400" weight="duotone" />
-              <h2 className="text-base font-semibold text-white">Daftar Jadwal</h2>
+              <h2 className="text-sm font-semibold text-slate-100">Daftar Jadwal</h2>
               <span className="text-xs text-slate-500 ml-2">({totalItems} total)</span>
             </div>
             
@@ -897,17 +1059,14 @@ export default function AssetSchedulePage() {
               <span className="text-xs text-slate-400">Tampilkan:</span>
               <select
                 value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value))
-                  setCurrentPage(1)
-                }}
-                className="px-2 py-1 bg-white/5 border border-white/10 rounded text-xs text-white"
+                onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1) }}
+                className="px-2 py-1 glass-input rounded text-xs"
               >
-                <option value={5} className="bg-slate-900">5</option>
-                <option value={10} className="bg-slate-900">10</option>
-                <option value={20} className="bg-slate-900">20</option>
-                <option value={50} className="bg-slate-900">50</option>
-                <option value={100} className="bg-slate-900">100</option>
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
               </select>
             </div>
           </div>
@@ -923,7 +1082,7 @@ export default function AssetSchedulePage() {
                 <div className="w-16 h-16 bg-white/5 rounded-xl flex items-center justify-center mx-auto mb-4 border border-white/10">
                   <Calendar className="w-8 h-8 text-slate-500" weight="duotone" />
                 </div>
-                <h3 className="text-base font-semibold text-white mb-2">Tidak ada jadwal</h3>
+                <h3 className="text-sm font-semibold text-slate-100 mb-2">Tidak ada jadwal</h3>
                 <p className="text-sm text-slate-400 mb-6">Buat jadwal pertama Anda untuk memulai</p>
                 <div className="flex items-center justify-center gap-3">
                   <button onClick={() => setShowCreateModal(true)} className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg font-medium transition-colors text-sm">
@@ -938,7 +1097,7 @@ export default function AssetSchedulePage() {
               <>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-white/5 border-b border-white/10">
+                    <thead className="glass-sub border-b border-white/10">
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Aset</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Waktu</th>
@@ -1038,19 +1197,20 @@ export default function AssetSchedulePage() {
               </>
             )}
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Single Create Modal */}
       {showCreateModal && (
         <>
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={() => setShowCreateModal(false)} />
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50" onClick={() => setShowCreateModal(false)} />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-900 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-white/10 shadow-2xl">
+            <motion.div className="glass-modal rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ ...SPRING }}>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold text-white">Buat Jadwal Baru</h2>
-                  <button onClick={() => setShowCreateModal(false)} className="p-1 hover:bg-white/5 text-slate-400 rounded transition-colors"><X className="w-5 h-5" weight="bold" /></button>
+                  <button onClick={() => setShowCreateModal(false)} className="p-1 glass-sub hover:border-white/20 text-slate-400 rounded-lg transition-all"><X className="w-5 h-5" weight="bold" /></button>
                 </div>
 
                 {formErrors.length > 0 && (
@@ -1087,7 +1247,7 @@ export default function AssetSchedulePage() {
                       value={isoToDatetimeLocal(formData.scheduledTime)}
                       min={isoToDatetimeLocal(new Date().toISOString())}
                       onChange={(e) => setFormData({ ...formData, scheduledTime: datetimeLocalToISO(e.target.value) })}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:border-indigo-500 focus:bg-white/10 transition-all text-white text-sm"
+                      className="w-full px-3 py-2 glass-input rounded-lg transition-all text-sm"
                     />
                   </div>
 
@@ -1096,10 +1256,10 @@ export default function AssetSchedulePage() {
                     <select
                       value={formData.trend}
                       onChange={(e) => setFormData({ ...formData, trend: e.target.value as any })}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:border-indigo-500 focus:bg-white/10 transition-all text-white text-sm"
+                      className="w-full px-3 py-2 glass-input rounded-lg transition-all text-sm"
                     >
-                      <option value="buy" className="bg-slate-900">📈 Beli</option>
-                      <option value="sell" className="bg-slate-900">📉 Jual</option>
+                      <option value="buy">📈 Beli</option>
+                      <option value="sell">📉 Jual</option>
                     </select>
                   </div>
 
@@ -1108,15 +1268,15 @@ export default function AssetSchedulePage() {
                     <select
                       value={formData.timeframe}
                       onChange={(e) => setFormData({ ...formData, timeframe: e.target.value as any })}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:border-indigo-500 focus:bg-white/10 transition-all text-white text-sm"
+                      className="w-full px-3 py-2 glass-input rounded-lg transition-all text-sm"
                     >
-                      <option value="1m" className="bg-slate-900">1 Menit</option>
-                      <option value="5m" className="bg-slate-900">5 Menit</option>
-                      <option value="15m" className="bg-slate-900">15 Menit</option>
-                      <option value="30m" className="bg-slate-900">30 Menit</option>
-                      <option value="1h" className="bg-slate-900">1 Jam</option>
-                      <option value="4h" className="bg-slate-900">4 Jam</option>
-                      <option value="1d" className="bg-slate-900">1 Hari</option>
+                      <option value="1m">1 Menit</option>
+                      <option value="5m">5 Menit</option>
+                      <option value="15m">15 Menit</option>
+                      <option value="30m">30 Menit</option>
+                      <option value="1h">1 Jam</option>
+                      <option value="4h">4 Jam</option>
+                      <option value="1d">1 Hari</option>
                     </select>
                   </div>
 
@@ -1127,19 +1287,19 @@ export default function AssetSchedulePage() {
                       onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                       rows={3}
                       placeholder="Tambahkan catatan..."
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:border-indigo-500 focus:bg-white/10 transition-all text-white placeholder-slate-500 text-sm resize-none"
+                      className="w-full px-3 py-2 glass-input rounded-lg transition-all text-sm resize-none placeholder:text-slate-600"
                     />
                   </div>
                 </div>
 
                 <div className="flex gap-3 mt-6">
-                  <button onClick={() => setShowCreateModal(false)} className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 rounded-lg transition-colors">Batal</button>
-                  <button onClick={handleCreateSchedule} disabled={submitting} className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors disabled:opacity-50">
+                  <button onClick={() => setShowCreateModal(false)} className="flex-1 px-4 py-2 glass-sub hover:border-white/20 text-slate-300 rounded-xl transition-all">Batal</button>
+                  <button onClick={handleCreateSchedule} disabled={submitting} className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all disabled:opacity-50 shadow-lg shadow-indigo-500/20">
                     {submitting ? 'Membuat...' : 'Buat'}
                   </button>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </>
       )}
@@ -1153,5 +1313,6 @@ export default function AssetSchedulePage() {
         submitting={bulkSubmitting}
       />
     </div>
+    </>
   )
 }

@@ -6,6 +6,7 @@
 // ============================================================
 
 import { useState, useEffect, useCallback } from 'react'
+import React from 'react'
 import {
   Users,
   CurrencyDollar,
@@ -27,6 +28,7 @@ import {
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import Navbar from '@/components/Navbar'
+import { motion, type Variants } from 'framer-motion'
 import type {
   AffiliatorListItem,
   AdminCommissionWithdrawal,
@@ -34,6 +36,159 @@ import type {
   UpdateAffiliatorConfigDto,
   ApproveCommissionWithdrawalDto,
 } from '@/types'
+
+// ── Global Styles ──────────────────────────────────────────────
+const GlobalStyles = () => (
+  <style jsx global>{`
+    :root {
+      --glass-bg: rgba(255,255,255,0.04);
+      --glass-bg-hover: rgba(255,255,255,0.08);
+      --glass-border: rgba(255,255,255,0.09);
+      --glass-border-hover: rgba(255,255,255,0.18);
+      --glass-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      --glass-shadow-hover: 0 16px 48px rgba(0,0,0,0.5);
+    }
+    .bg-pattern-grid {
+      background-color: #060918;
+      background-image: none;
+      position: relative;
+    }
+    .bg-pattern-grid::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 10% 20%, rgba(139,92,246,0.16) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 85% 10%, rgba(99,102,241,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 60% at 70% 80%, rgba(6,182,212,0.08) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 20% 85%, rgba(168,85,247,0.07) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bg-pattern-grid::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(148,163,184,0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148,163,184,0.07) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body { background-color: #060918 !important; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .stat-card { transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s ease; }
+    .stat-card:hover { transform: translateY(-2px); }
+    .stat-icon { transition: transform 0.2s ease; }
+    .stat-card:hover .stat-icon { transform: scale(1.12); }
+    .glow-indigo { box-shadow: 0 0 20px rgba(99,102,241,0.25), var(--glass-shadow); }
+    .glow-green  { box-shadow: 0 0 20px rgba(16,185,129,0.20), var(--glass-shadow); }
+    .glow-red    { box-shadow: 0 0 20px rgba(239,68,68,0.20),  var(--glass-shadow); }
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,0.06);
+      transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s cubic-bezier(0.22,1,0.36,1);
+    }
+    .glass-card:hover {
+      background: var(--glass-bg-hover);
+      border-color: var(--glass-border-hover);
+      box-shadow: var(--glass-shadow-hover), inset 0 1px 0 rgba(255,255,255,0.10);
+    }
+    .glass-sub {
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+    .glass-input {
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+    .glass-modal {
+      background: rgba(6,9,24,0.92);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+  `}</style>
+)
+
+// ── Motion primitives ──────────────────────────────────────────
+const SPRING = { type: 'spring', stiffness: 80, damping: 20 } as const
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { ...SPRING } },
+}
+const fadeLeft: Variants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { opacity: 1, x: 0, transition: { ...SPRING } },
+}
+const scaleIn: Variants = {
+  hidden: { opacity: 0, scale: 0.92 },
+  visible: { opacity: 1, scale: 1, transition: { ...SPRING } },
+}
+const stagger = (delay = 0.06): Variants => ({
+  hidden: {},
+  visible: { transition: { staggerChildren: delay, delayChildren: 0.04 } },
+})
+
+function Reveal({ children, variants = fadeUp, delay = 0, className = '' }: {
+  children: React.ReactNode; variants?: Variants; delay?: number; className?: string
+}) {
+  return (
+    <motion.div className={className} variants={variants} initial="hidden"
+      whileInView="visible" viewport={{ once: true, margin: '-60px' }}
+      transition={{ delay }}>
+      {children}
+    </motion.div>
+  )
+}
+
+function AnimatedHeadline({ text, className, style }: { text: string; className?: string; style?: React.CSSProperties }) {
+  return (
+    <motion.h1 className={className} style={style}
+      variants={stagger(0.07)} initial="hidden" animate="visible">
+      {text.split(' ').map((word, i) => (
+        <motion.span key={i}
+          variants={{ hidden: { opacity: 0, y: 30, filter: 'blur(4px)' }, visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { ...SPRING } } }}
+          className="inline-block mr-[0.25em]">{word}
+        </motion.span>
+      ))}
+    </motion.h1>
+  )
+}
+
+function CountUp({ to, suffix = '', prefix = '', decimals = 0 }: { to: number; suffix?: string; prefix?: string; decimals?: number }) {
+  const ref = React.useRef<HTMLSpanElement>(null)
+  const [val, setVal] = React.useState(0)
+  const triggered = React.useRef(false)
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting || triggered.current) return
+      triggered.current = true
+      const duration = 900
+      const start = performance.now()
+      const tick = (now: number) => {
+        const p = Math.min((now - start) / duration, 1)
+        const ease = 1 - Math.pow(1 - p, 3)
+        setVal(parseFloat((ease * to).toFixed(decimals)))
+        if (p < 1) requestAnimationFrame(tick)
+        else setVal(to)
+      }
+      requestAnimationFrame(tick)
+    }, { threshold: 0.3 })
+    if (ref.current) observer.observe(ref.current)
+    return () => observer.disconnect()
+  }, [to, decimals])
+  return <span ref={ref}>{prefix}{val.toLocaleString('id-ID')}{suffix}</span>
+}
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -95,15 +250,22 @@ function AssignModal({
     <>
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-slate-900 rounded-2xl border border-white/10 shadow-2xl">
+        <motion.div
+          className="w-full max-w-md glass-modal rounded-2xl shadow-2xl"
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ ...SPRING }}
+        >
           <div className="p-6">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Plus className="w-5 h-5 text-purple-400" weight="bold" />
+                <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                  <Plus className="w-4 h-4 text-purple-400" weight="bold" />
+                </div>
                 Assign Affiliator
               </h3>
-              <button onClick={onClose} className="text-slate-400 hover:text-white">
-                <X className="w-5 h-5" weight="bold" />
+              <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg glass-sub hover:border-white/20 text-slate-400 hover:text-white transition-all">
+                <X className="w-4 h-4" weight="bold" />
               </button>
             </div>
 
@@ -114,7 +276,7 @@ function AssignModal({
                   value={userId}
                   onChange={(e) => setUserId(e.target.value)}
                   placeholder="user_abc123"
-                  className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-slate-600 focus:outline-none focus:border-purple-500/50 text-sm font-mono"
+                  className="w-full glass-input rounded-xl px-4 py-2.5 text-white placeholder:text-slate-600 focus:outline-none focus:border-purple-500/50 text-sm font-mono transition-all"
                 />
               </div>
 
@@ -126,7 +288,7 @@ function AssignModal({
                     value={revenueShare}
                     onChange={(e) => setRevenueShare(e.target.value)}
                     min={1} max={100}
-                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500/50 text-sm"
+                    className="w-full glass-input rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500/50 text-sm transition-all"
                   />
                   <p className="text-xs text-slate-600 mt-1">Default: 50%</p>
                 </div>
@@ -137,7 +299,7 @@ function AssignModal({
                     value={unlockThreshold}
                     onChange={(e) => setUnlockThreshold(e.target.value)}
                     min={1}
-                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500/50 text-sm"
+                    className="w-full glass-input rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500/50 text-sm transition-all"
                   />
                   <p className="text-xs text-slate-600 mt-1">Min. depositor</p>
                 </div>
@@ -150,14 +312,14 @@ function AssignModal({
               <div className="flex gap-3 mt-2">
                 <button
                   onClick={onClose}
-                  className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 rounded-xl font-semibold text-sm transition-colors"
+                  className="flex-1 px-4 py-2.5 glass-sub hover:border-white/20 text-slate-300 rounded-xl font-semibold text-sm transition-all"
                 >
                   Batal
                 </button>
                 <button
                   onClick={handleAssign}
                   disabled={loading}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-xl font-semibold text-sm transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white rounded-xl font-semibold text-sm transition-all shadow-lg shadow-purple-500/20"
                 >
                   {loading ? <ArrowsClockwise className="w-4 h-4 animate-spin" weight="bold" /> : <Plus className="w-4 h-4" weight="bold" />}
                   {loading ? 'Memproses...' : 'Assign'}
@@ -165,7 +327,7 @@ function AssignModal({
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </>
   )
@@ -209,15 +371,22 @@ function EditConfigModal({
     <>
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-slate-900 rounded-2xl border border-white/10 shadow-2xl">
+        <motion.div
+          className="w-full max-w-md glass-modal rounded-2xl shadow-2xl"
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ ...SPRING }}
+        >
           <div className="p-6">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <PencilSimple className="w-5 h-5 text-blue-400" weight="bold" />
+                <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                  <PencilSimple className="w-4 h-4 text-blue-400" weight="bold" />
+                </div>
                 Edit Konfigurasi
               </h3>
-              <button onClick={onClose} className="text-slate-400 hover:text-white">
-                <X className="w-5 h-5" weight="bold" />
+              <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg glass-sub hover:border-white/20 text-slate-400 hover:text-white transition-all">
+                <X className="w-4 h-4" weight="bold" />
               </button>
             </div>
 
@@ -231,7 +400,7 @@ function EditConfigModal({
                     type="number" value={revenueShare}
                     onChange={(e) => setRevenueShare(e.target.value)}
                     min={1} max={100}
-                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50 text-sm"
+                    className="w-full glass-input rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50 text-sm transition-all"
                   />
                 </div>
                 <div>
@@ -240,16 +409,16 @@ function EditConfigModal({
                     type="number" value={unlockThreshold}
                     onChange={(e) => setUnlockThreshold(e.target.value)}
                     min={1}
-                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50 text-sm"
+                    className="w-full glass-input rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50 text-sm transition-all"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-slate-800 border border-white/10 rounded-xl">
+              <div className="flex items-center justify-between p-3 glass-sub rounded-xl">
                 <span className="text-sm text-slate-300">Status Program</span>
                 <button
                   onClick={() => setIsActive(!isActive)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                     isActive ? 'bg-green-500/15 text-green-400 border border-green-500/30' : 'bg-red-500/15 text-red-400 border border-red-500/30'
                   }`}
                 >
@@ -261,14 +430,14 @@ function EditConfigModal({
               <div className="flex gap-3">
                 <button
                   onClick={onClose}
-                  className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 rounded-xl font-semibold text-sm transition-colors"
+                  className="flex-1 px-4 py-2.5 glass-sub hover:border-white/20 text-slate-300 rounded-xl font-semibold text-sm transition-all"
                 >
                   Batal
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={loading}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-semibold text-sm transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl font-semibold text-sm transition-all shadow-lg shadow-blue-500/20"
                 >
                   {loading ? <ArrowsClockwise className="w-4 h-4 animate-spin" weight="bold" /> : <CheckCircle className="w-4 h-4" weight="bold" />}
                   {loading ? 'Menyimpan...' : 'Simpan'}
@@ -276,7 +445,7 @@ function EditConfigModal({
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </>
   )
@@ -323,14 +492,19 @@ function ApproveWithdrawModal({
     <>
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-slate-900 rounded-2xl border border-white/10 shadow-2xl">
+        <motion.div
+          className="w-full max-w-md glass-modal rounded-2xl shadow-2xl"
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ ...SPRING }}
+        >
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-white">Review Penarikan Komisi</h3>
-              <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="w-5 h-5" weight="bold" /></button>
+              <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg glass-sub hover:border-white/20 text-slate-400 hover:text-white transition-all"><X className="w-4 h-4" weight="bold" /></button>
             </div>
 
-            <div className="bg-slate-800/60 border border-white/10 rounded-xl p-4 mb-4 space-y-1.5 text-sm">
+            <div className="glass-sub rounded-xl p-4 mb-4 space-y-1.5 text-sm">
               <div className="flex justify-between">
                 <span className="text-slate-500">Affiliator</span>
                 <span className="text-slate-300">{withdrawal.affiliatorEmail || withdrawal.userEmail}</span>
@@ -360,7 +534,7 @@ function ApproveWithdrawModal({
                   value={adminNotes}
                   onChange={(e) => setAdminNotes(e.target.value)}
                   placeholder="Approved and transferred"
-                  className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-slate-600 focus:outline-none focus:border-white/20 text-sm"
+                  className="w-full glass-input rounded-xl px-4 py-2.5 text-white placeholder:text-slate-600 focus:outline-none focus:border-white/20 text-sm transition-all"
                 />
               </div>
               <div>
@@ -370,7 +544,7 @@ function ApproveWithdrawModal({
                   onChange={(e) => setRejectionReason(e.target.value)}
                   rows={2}
                   placeholder="Dokumen tidak valid / saldo tidak cukup"
-                  className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500/40 text-sm resize-none"
+                  className="w-full glass-input rounded-xl px-4 py-2.5 text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500/40 text-sm resize-none transition-all"
                 />
               </div>
             </div>
@@ -379,7 +553,7 @@ function ApproveWithdrawModal({
               <button
                 onClick={() => handle(false)}
                 disabled={loading || !rejectionReason.trim()}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/15 hover:bg-red-500/25 disabled:opacity-30 text-red-400 border border-red-500/30 rounded-xl font-semibold text-sm transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/15 hover:bg-red-500/25 disabled:opacity-30 text-red-400 border border-red-500/30 rounded-xl font-semibold text-sm transition-all"
               >
                 <XCircle className="w-4 h-4" weight="bold" />
                 Tolak
@@ -387,14 +561,14 @@ function ApproveWithdrawModal({
               <button
                 onClick={() => handle(true)}
                 disabled={loading}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-500/15 hover:bg-green-500/25 disabled:opacity-30 text-green-400 border border-green-500/30 rounded-xl font-semibold text-sm transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-500/15 hover:bg-green-500/25 disabled:opacity-30 text-green-400 border border-green-500/30 rounded-xl font-semibold text-sm transition-all"
               >
                 {loading ? <ArrowsClockwise className="w-4 h-4 animate-spin" weight="bold" /> : <CheckCircle className="w-4 h-4" weight="bold" />}
                 Setujui
               </button>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </>
   )
@@ -486,34 +660,80 @@ export default function AdminAffiliatorsPage() {
   // ── Render ───────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[length:24px_24px] pointer-events-none" />
+    <>
+      <GlobalStyles />
+      <div className="bg-pattern-grid min-h-screen relative">
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-4 py-6 relative z-10">
+      <div className="max-w-5xl mx-auto px-4 py-6 relative z-10">
 
         {/* ── Header ──────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <ShareNetwork className="w-7 h-7 text-purple-400" weight="duotone" />
-              Manajemen Affiliator
-            </h1>
-            <p className="text-slate-400 text-sm mt-0.5">
-              Assign, monitor, dan kelola penarikan komisi affiliator.
-            </p>
-          </div>
-          <button
-            onClick={() => setShowAssignModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold text-sm transition-colors"
-          >
-            <Plus className="w-4 h-4" weight="bold" />
-            Assign Affiliator
-          </button>
-        </div>
+        <motion.div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+          initial="hidden" animate="visible" variants={stagger(0.1)}>
+          <motion.div variants={fadeLeft}>
+            <motion.div className="flex items-center gap-1.5 text-xs text-slate-400 mb-1" variants={fadeUp}>
+              <span>Dasbor</span><span>/</span><span>Admin</span><span>/</span>
+              <span className="text-slate-100 font-medium">Affiliator</span>
+            </motion.div>
+            <div className="flex items-center gap-3">
+              <motion.div
+                className="w-9 h-9 bg-gradient-to-br from-purple-400/80 to-violet-500/80 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-500/30 border border-white/20"
+                whileHover={{ rotate: 90, scale: 1.1 }} transition={{ ...SPRING }}>
+                <ShareNetwork className="w-5 h-5 text-white" weight="duotone" />
+              </motion.div>
+              <div>
+                <AnimatedHeadline
+                  text="Manajemen Affiliator"
+                  className="text-2xl sm:text-3xl font-bold text-slate-100"
+                  style={{ letterSpacing: '-0.03em' }}
+                />
+                <motion.p className="text-slate-400 text-sm mt-0.5" variants={fadeUp}>
+                  Assign, monitor, dan kelola penarikan komisi affiliator
+                </motion.p>
+              </div>
+            </div>
+          </motion.div>
+          <motion.div variants={scaleIn}>
+            <motion.button
+              onClick={() => setShowAssignModal(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-semibold text-sm transition-all shadow-lg shadow-purple-500/20"
+              whileHover={{ scale: 1.04, boxShadow: '0 0 20px rgba(168,85,247,0.4)' }} whileTap={{ scale: 0.96 }}
+            >
+              <Plus className="w-4 h-4" weight="bold" />
+              Assign Affiliator
+            </motion.button>
+          </motion.div>
+        </motion.div>
+
+        {/* ── Stats Summary ─────────────────────────────── */}
+        <Reveal className="glass-card rounded-2xl p-5 mb-6">
+          <motion.div className="grid grid-cols-2 sm:grid-cols-4 gap-4"
+            variants={stagger(0.08)} initial="hidden" animate="visible">
+            {[
+              { icon: <ShareNetwork className="w-5 h-5 text-purple-400" weight="duotone" />, bg: 'bg-purple-500/15', label: 'Total Affiliator', val: affiliators.length },
+              { icon: <ToggleRight className="w-5 h-5 text-green-400" weight="duotone" />, bg: 'bg-green-500/15', label: 'Aktif', val: affiliators.filter(a => a.isActive).length },
+              { icon: <ToggleLeft className="w-5 h-5 text-slate-400" weight="duotone" />, bg: 'bg-slate-500/15', label: 'Nonaktif', val: affiliators.filter(a => !a.isActive).length },
+              { icon: <ArrowLineUp className="w-5 h-5 text-yellow-400" weight="duotone" />, bg: 'bg-yellow-500/15', label: 'Pending Withdraw', val: withdrawSummary?.pending ?? 0 },
+            ].map((s, i) => (
+              <motion.div key={i} className="flex items-center gap-3" variants={fadeUp}
+                whileHover={{ y: -2, transition: { duration: 0.15 } }}>
+                <div className={`w-10 h-10 ${s.bg} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                  {s.icon}
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-slate-400 mb-0.5">{s.label}</div>
+                  <div className="text-lg font-bold text-slate-100"><CountUp to={s.val} /></div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </Reveal>
 
         {/* ── Tabs ────────────────────────────────────────── */}
-        <div className="flex gap-1 bg-slate-800/40 border border-white/10 rounded-xl p-1 mb-6 w-fit">
+        <motion.div
+          className="flex gap-1 glass-input rounded-xl p-1 mb-6 w-fit"
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING, delay: 0.15 }}
+        >
           {[
             { key: 'affiliators', label: 'Affiliators', icon: ShareNetwork },
             { key: 'withdrawals', label: 'Penarikan Komisi', icon: ArrowLineUp },
@@ -521,20 +741,26 @@ export default function AdminAffiliatorsPage() {
             <button
               key={key}
               onClick={() => setActiveTab(key as any)}
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === key ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'
+              className={`relative flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === key ? 'text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'
               }`}
             >
-              <Icon className="w-4 h-4" weight={activeTab === key ? 'fill' : 'regular'} />
-              {label}
-              {key === 'withdrawals' && withdrawSummary?.pending > 0 && (
-                <span className="ml-1 w-5 h-5 flex items-center justify-center rounded-full bg-yellow-400 text-yellow-900 text-xs font-bold">
-                  {withdrawSummary.pending}
-                </span>
+              {activeTab === key && (
+                <motion.div className="absolute inset-0 rounded-lg bg-purple-600 shadow-md"
+                  layoutId="affiliatorTabPill" transition={{ ...SPRING }} />
               )}
+              <span className="relative z-10 flex items-center gap-2">
+                <Icon className="w-4 h-4" weight={activeTab === key ? 'fill' : 'regular'} />
+                {label}
+                {key === 'withdrawals' && withdrawSummary?.pending > 0 && (
+                  <span className="w-5 h-5 flex items-center justify-center rounded-full bg-yellow-400 text-yellow-900 text-xs font-bold">
+                    {withdrawSummary.pending}
+                  </span>
+                )}
+              </span>
             </button>
           ))}
-        </div>
+        </motion.div>
 
         {/* ════════════════════════════════════════════════ */}
         {/* Tab: Affiliators                                 */}
@@ -549,13 +775,13 @@ export default function AdminAffiliatorsPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Cari email atau kode..."
-                  className="w-full bg-slate-800/50 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-purple-500/50"
+                  className="w-full glass-input rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-purple-500/50 transition-all"
                 />
               </div>
               <select
                 value={filterActive === undefined ? '' : String(filterActive)}
                 onChange={(e) => setFilterActive(e.target.value === '' ? undefined : e.target.value === 'true')}
-                className="bg-slate-800/50 border border-white/10 text-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500/50"
+                className="glass-input text-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500/50 transition-all"
               >
                 <option value="">Semua Status</option>
                 <option value="true">Aktif</option>
@@ -573,17 +799,20 @@ export default function AdminAffiliatorsPage() {
                 <p className="text-slate-400">Belum ada affiliator.</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <motion.div className="space-y-3"
+                variants={stagger(0.04)} initial="hidden" animate="visible">
                 {filteredAffiliators.map((aff) => (
-                  <div
+                  <motion.div
                     key={aff.id}
-                    className="bg-slate-800/50 border border-white/10 rounded-xl p-4 hover:border-white/20 transition-colors"
+                    variants={fadeUp}
+                    className="glass-card rounded-2xl p-4"
+                    whileHover={{ y: -1, transition: { duration: 0.15 } }}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                       {/* Left info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="text-white font-semibold truncate">{aff.userEmail}</span>
+                          <span className="text-slate-100 font-semibold truncate">{aff.userEmail}</span>
                           <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
                             aff.isActive
                               ? 'bg-green-500/15 text-green-400 border-green-500/30'
@@ -647,9 +876,9 @@ export default function AdminAffiliatorsPage() {
                         </button>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
-              </div>
+              </motion.div>
             )}
           </div>
         )}
@@ -706,11 +935,13 @@ export default function AdminAffiliatorsPage() {
                 <p className="text-slate-400">Tidak ada request penarikan.</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <motion.div className="space-y-3"
+                variants={stagger(0.04)} initial="hidden" animate="visible">
                 {withdrawals.map((w) => {
                   const st = withdrawStatusMeta(w.status)
                   return (
-                    <div key={w.id} className="bg-slate-800/50 border border-white/10 rounded-xl p-4">
+                    <motion.div key={w.id} variants={fadeUp} className="glass-card rounded-2xl p-4"
+                      whileHover={{ y: -1, transition: { duration: 0.15 } }}>
                       <div className="flex items-start gap-3 justify-between">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -740,21 +971,22 @@ export default function AdminAffiliatorsPage() {
                         {w.status === 'pending' && (
                           <button
                             onClick={() => setReviewTarget(w)}
-                            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/15 hover:bg-purple-500/25 text-purple-400 border border-purple-500/30 rounded-lg text-xs font-medium transition-colors"
+                            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/15 hover:bg-purple-500/25 text-purple-400 border border-purple-500/30 rounded-lg text-xs font-medium transition-all"
                           >
                             <CheckCircle className="w-3.5 h-3.5" weight="bold" />
                             Review
                           </button>
                         )}
                       </div>
-                    </div>
+                    </motion.div>
                   )
                 })}
-              </div>
+              </motion.div>
             )}
           </div>
         )}
       </div>
+    </div>
 
       {/* Modals */}
       {showAssignModal && (
@@ -777,6 +1009,6 @@ export default function AdminAffiliatorsPage() {
           onSuccess={fetchWithdrawals}
         />
       )}
-    </div>
+    </>
   )
 }

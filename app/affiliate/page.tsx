@@ -40,6 +40,23 @@ import type {
   RequestCommissionWithdrawalDto,
 } from '@/types'
 
+// ── Global Styles ─────────────────────────────────────────────
+
+const GlobalStyles = () => (
+  <style jsx global>{`
+    .bg-pattern-grid {
+      background-color: #f5f6f8;
+      background-image:
+        linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    body { background-color: #f5f6f8 !important; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  `}</style>
+)
+
 // ── Motion config ─────────────────────────────────────────────
 
 const SPRING = { type: 'spring', stiffness: 80, damping: 20 } as const
@@ -130,10 +147,10 @@ function formatDate(iso: string): string {
 
 function statusLabel(status: CommissionWithdrawal['status']): { label: string; cls: string; icon: React.ReactNode } {
   switch (status) {
-    case 'pending':   return { label: 'Pending',  cls: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',  icon: <Clock className="w-3.5 h-3.5" weight="fill" /> }
-    case 'approved':  return { label: 'Approved', cls: 'bg-blue-500/15 text-blue-400 border-blue-500/30',        icon: <CheckCircle className="w-3.5 h-3.5" weight="fill" /> }
-    case 'completed': return { label: 'Selesai',  cls: 'bg-green-500/15 text-green-400 border-green-500/30',    icon: <CheckCircle className="w-3.5 h-3.5" weight="fill" /> }
-    case 'rejected':  return { label: 'Ditolak',  cls: 'bg-red-500/15 text-red-400 border-red-500/30',          icon: <XCircle className="w-3.5 h-3.5" weight="fill" /> }
+    case 'pending':   return { label: 'Pending',  cls: 'bg-yellow-100 text-yellow-700 border-yellow-200',  icon: <Clock className="w-3.5 h-3.5" weight="fill" /> }
+    case 'approved':  return { label: 'Approved', cls: 'bg-blue-100 text-blue-700 border-blue-200',        icon: <CheckCircle className="w-3.5 h-3.5" weight="fill" /> }
+    case 'completed': return { label: 'Selesai',  cls: 'bg-green-100 text-green-700 border-green-200',    icon: <CheckCircle className="w-3.5 h-3.5" weight="fill" /> }
+    case 'rejected':  return { label: 'Ditolak',  cls: 'bg-red-100 text-red-600 border-red-200',          icon: <XCircle className="w-3.5 h-3.5" weight="fill" /> }
   }
 }
 
@@ -141,22 +158,22 @@ function statusLabel(status: CommissionWithdrawal['status']): { label: string; c
 
 function StatCard({ label, value, numValue, prefix, suffix, icon: Icon, color, isText, delay }: any) {
   const colorMap: Record<string, string> = {
-    blue: 'bg-blue-500/15 text-blue-400', green: 'bg-green-500/15 text-green-400',
-    purple: 'bg-purple-500/15 text-purple-400', orange: 'bg-orange-500/15 text-orange-400',
+    blue: 'bg-blue-100 text-blue-700', green: 'bg-green-100 text-green-700',
+    purple: 'bg-purple-100 text-purple-700', orange: 'bg-orange-100 text-orange-700',
   }
   return (
     <motion.div variants={fadeUp}
-      className="bg-slate-800/50 border border-white/10 rounded-xl p-4"
+      className="bg-white border border-gray-200 shadow-sm rounded-xl p-4"
       whileHover={{ y: -4, boxShadow: '0 16px 40px rgba(139,92,246,0.15)', transition: { duration: 0.2 } }}>
       <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${colorMap[color]}`}>
         <Icon className="w-5 h-5" weight="duotone" />
       </div>
-      <p className={`font-bold ${isText ? 'text-base' : 'text-2xl'} text-white`}>
+      <p className={`font-bold ${isText ? 'text-base' : 'text-2xl'} text-gray-900`}>
         {numValue != null
           ? <CountUp to={numValue} prefix={prefix} suffix={suffix} />
           : value}
       </p>
-      <p className="text-xs text-slate-500 mt-0.5">{label}</p>
+      <p className="text-xs text-gray-400 mt-0.5">{label}</p>
     </motion.div>
   )
 }
@@ -260,45 +277,114 @@ export default function AffiliatePage() {
     } catch {} finally { setCancellingId(null) }
   }
 
-  // Loading
+  // Loading — skeleton mirrors real layout
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <motion.div className="flex flex-col items-center gap-4"
-          initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ ...SPRING }}>
-          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-            <ArrowsClockwise className="w-12 h-12 text-purple-400" weight="bold" />
-          </motion.div>
-          <motion.p className="text-slate-400 text-sm" animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 1.5, repeat: Infinity }}>
-            Memuat program affiliator...
-          </motion.p>
-        </motion.div>
-      </div>
+      <>
+        <GlobalStyles />
+        <style jsx global>{`
+          @keyframes sk-pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
+          .sk { animation: sk-pulse 1.8s ease-in-out infinite; }
+        `}</style>
+        <div className="min-h-screen bg-pattern-grid">
+          <Navbar />
+          <div className="max-w-5xl mx-auto px-4 py-6">
+
+            {/* Header: title + referral code card */}
+            <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="sk">
+                <div className="h-8 bg-gray-200 rounded w-52 mb-2" />
+                <div className="h-4 bg-gray-200 rounded w-72" />
+              </div>
+              <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 sk">
+                <div>
+                  <div className="h-3 bg-gray-200 rounded w-24 mb-2" />
+                  <div className="h-6 bg-gray-200 rounded w-28" />
+                </div>
+                <div className="w-9 h-9 bg-gray-200 rounded-lg ml-2" />
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-1 bg-gray-100 border border-gray-200 rounded-xl p-1 mb-6 overflow-x-auto">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-9 bg-gray-200 rounded-lg flex-shrink-0 w-32 sk" style={{ animationDelay: `${i * 60}ms` }} />
+              ))}
+            </div>
+
+            {/* Dashboard tab content */}
+            {/* Stats grid: grid-cols-2 lg:grid-cols-4 */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 sk" style={{ animationDelay: `${i * 80}ms` }}>
+                  <div className="w-9 h-9 bg-gray-200 rounded-lg mb-3" />
+                  <div className="h-7 bg-gray-200 rounded w-20 mb-1" />
+                  <div className="h-3 bg-gray-200 rounded w-24" />
+                </div>
+              ))}
+            </div>
+
+            {/* Balance + unlock progress: grid lg:grid-cols-2 */}
+            <div className="grid lg:grid-cols-2 gap-4">
+              {/* Balance card */}
+              <div className="bg-white border border-gray-200 rounded-xl p-5 sk" style={{ animationDelay: '320ms' }}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 bg-gray-200 rounded" />
+                    <div className="h-5 bg-gray-200 rounded w-28" />
+                  </div>
+                  <div className="h-6 bg-gray-200 rounded-full w-20" />
+                </div>
+                <div className="h-9 bg-gray-200 rounded w-36 mb-1" />
+                <div className="h-3 bg-gray-200 rounded w-40 mb-4" />
+                <div className="h-3 bg-gray-200 rounded w-48 mb-6" />
+                <div className="h-10 bg-gray-200 rounded-xl w-full" />
+              </div>
+
+              {/* Unlock progress card */}
+              <div className="bg-white border border-gray-200 rounded-xl p-5 sk" style={{ animationDelay: '400ms' }}>
+                <div className="h-5 bg-gray-200 rounded w-36 mb-1" />
+                <div className="h-3 bg-gray-200 rounded w-56 mb-5" />
+                <div className="flex items-end gap-2 mb-4">
+                  <div className="h-10 bg-gray-200 rounded w-12" />
+                  <div className="h-6 bg-gray-200 rounded w-8" />
+                  <div className="h-4 bg-gray-200 rounded w-16" />
+                </div>
+                <div className="h-3 bg-gray-200 rounded-full w-full mb-3" />
+                <div className="h-4 bg-gray-200 rounded w-40" />
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </>
     )
   }
 
   if (error403) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Navbar />
-        <motion.div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 px-4"
-          initial="hidden" animate="visible" variants={stagger(0.1)}>
-          <motion.div variants={scaleIn}
-            className="w-24 h-24 rounded-full bg-purple-500/10 border border-purple-500/30 flex items-center justify-center">
-            <ShareNetwork className="w-12 h-12 text-purple-400" weight="duotone" />
+      <>
+        <GlobalStyles />
+        <div className="min-h-screen bg-pattern-grid">
+          <Navbar />
+          <motion.div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 px-4"
+            initial="hidden" animate="visible" variants={stagger(0.1)}>
+            <motion.div variants={scaleIn}
+              className="w-24 h-24 rounded-full bg-purple-100 border border-purple-200 flex items-center justify-center">
+              <ShareNetwork className="w-12 h-12 text-purple-500" weight="duotone" />
+            </motion.div>
+            <motion.h2 variants={fadeUp} className="text-2xl font-bold text-gray-900">Program Affiliator Belum Aktif</motion.h2>
+            <motion.p variants={fadeUp} className="text-gray-500 text-center max-w-md text-sm">
+              Akun Anda belum terdaftar sebagai affiliator. Hubungi Super Admin untuk mendapatkan kode referral eksklusif.
+            </motion.p>
+            <motion.button variants={scaleIn} onClick={() => router.push('/')}
+              className="mt-2 px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold transition-colors text-sm"
+              whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              Kembali ke Beranda
+            </motion.button>
           </motion.div>
-          <motion.h2 variants={fadeUp} className="text-2xl font-bold text-white">Program Affiliator Belum Aktif</motion.h2>
-          <motion.p variants={fadeUp} className="text-slate-400 text-center max-w-md text-sm">
-            Akun Anda belum terdaftar sebagai affiliator. Hubungi Super Admin untuk mendapatkan kode referral eksklusif.
-          </motion.p>
-          <motion.button variants={scaleIn} onClick={() => router.push('/')}
-            className="mt-2 px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold transition-colors text-sm"
-            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            Kembali ke Beranda
-          </motion.button>
-        </motion.div>
-      </div>
+        </div>
+      </>
     )
   }
 
@@ -314,16 +400,9 @@ export default function AffiliatePage() {
   ] as const
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
-      {/* Animated grid overlay */}
-      <motion.div
-        className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[length:24px_24px] pointer-events-none"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}
-      />
-      {/* Glow orbs */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
-
+    <>
+      <GlobalStyles />
+      <div className="min-h-screen bg-pattern-grid relative">
       <Navbar />
 
       <div className="max-w-5xl mx-auto px-4 py-6 relative z-10">
@@ -333,23 +412,23 @@ export default function AffiliatePage() {
           initial="hidden" animate="visible" variants={stagger(0.1)}>
           <motion.div variants={fadeLeft}>
             <AnimatedHeadline text="Program Affiliator"
-              className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2"
+              className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2"
               style={{ letterSpacing: '-0.03em' }} />
-            <motion.p className="text-slate-400 text-sm mt-1" variants={fadeUp}>
+            <motion.p className="text-gray-500 text-sm mt-1" variants={fadeUp}>
               Undang pengguna baru dan dapatkan komisi dari trading mereka.
             </motion.p>
           </motion.div>
 
           {/* Referral code card */}
           <motion.div variants={scaleIn}
-            className="flex items-center gap-3 bg-slate-800/60 border border-white/10 rounded-xl px-4 py-3"
-            whileHover={{ borderColor: 'rgba(139,92,246,0.5)', boxShadow: '0 0 24px rgba(139,92,246,0.15)', transition: { duration: 0.2 } }}>
+            className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3"
+            whileHover={{ borderColor: 'rgb(139,92,246)', boxShadow: '0 0 24px rgba(139,92,246,0.15)', transition: { duration: 0.2 } }}>
             <div>
-              <p className="text-xs text-slate-500">Kode Referral Anda</p>
-              <p className="text-xl font-bold text-purple-300 tracking-widest">{affiliateCode}</p>
+              <p className="text-xs text-gray-400">Kode Referral Anda</p>
+              <p className="text-xl font-bold text-purple-600 tracking-widest">{affiliateCode}</p>
             </div>
             <motion.button onClick={copyCode}
-              className="ml-2 p-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 transition-colors"
+              className="ml-2 p-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 transition-colors"
               whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
               <AnimatePresence mode="wait">
                 {copied
@@ -365,12 +444,12 @@ export default function AffiliatePage() {
         </motion.div>
 
         {/* Tabs */}
-        <motion.div className="flex gap-1 bg-slate-800/40 border border-white/10 rounded-xl p-1 mb-6 overflow-x-auto"
+        <motion.div className="flex gap-1 bg-gray-100 border border-gray-200 rounded-xl p-1 mb-6 overflow-x-auto"
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING, delay: 0.2 }}>
           {tabs.map(({ key, label, icon: Icon }) => (
             <motion.button key={key} onClick={() => setActiveTab(key)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap relative ${
-                activeTab === key ? 'text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                activeTab === key ? 'text-white' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}
               whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               {activeTab === key && (
                 <motion.div className="absolute inset-0 bg-purple-600 rounded-lg shadow-md"
@@ -404,48 +483,48 @@ export default function AffiliatePage() {
 
                 {/* Balance card */}
                 <Reveal variants={scaleIn}>
-                  <motion.div className="bg-slate-800/50 border border-white/10 rounded-xl p-5 h-full"
-                    whileHover={{ borderColor: 'rgba(139,92,246,0.3)', transition: { duration: 0.2 } }}>
+                  <motion.div className="bg-white border border-gray-200 shadow-sm rounded-xl p-5 h-full"
+                    whileHover={{ borderColor: 'rgba(139,92,246,0.4)', transition: { duration: 0.2 } }}>
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <motion.div initial={{ rotate: -90, scale: 0 }} animate={{ rotate: 0, scale: 1 }} transition={{ ...SPRING, delay: 0.3 }}>
                           {isCommissionUnlocked
-                            ? <LockOpen className="w-5 h-5 text-green-400" weight="duotone" />
-                            : <Lock className="w-5 h-5 text-yellow-400" weight="duotone" />}
+                            ? <LockOpen className="w-5 h-5 text-green-600" weight="duotone" />
+                            : <Lock className="w-5 h-5 text-yellow-600" weight="duotone" />}
                         </motion.div>
-                        <h3 className="font-semibold text-white">Saldo Komisi</h3>
+                        <h3 className="font-semibold text-gray-900">Saldo Komisi</h3>
                       </div>
                       <motion.span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${
                         isCommissionUnlocked
-                          ? 'bg-green-500/15 text-green-400 border-green-500/30'
-                          : 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30'}`}
+                          ? 'bg-green-100 text-green-700 border-green-200'
+                          : 'bg-yellow-100 text-yellow-700 border-yellow-200'}`}
                         initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }}
                         transition={{ ...SPRING, delay: 0.4 }}>
                         {isCommissionUnlocked ? 'Terbuka' : 'Terkunci'}
                       </motion.span>
                     </div>
 
-                    <motion.p className="text-3xl font-bold text-white mb-1"
+                    <motion.p className="text-3xl font-bold text-gray-900 mb-1"
                       initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ ...SPRING, delay: 0.35 }}>
                       {formatRupiah(balances.commissionBalance)}
                     </motion.p>
-                    <p className="text-xs text-slate-500 mb-4">Saldo tersedia untuk dicairkan</p>
+                    <p className="text-xs text-gray-400 mb-4">Saldo tersedia untuk dicairkan</p>
 
                     {balances.lockedCommissionBalance > 0 && (
-                      <motion.div className="flex items-center gap-2 mb-4 text-sm text-yellow-400/80 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2"
+                      <motion.div className="flex items-center gap-2 mb-4 text-sm text-yellow-600/80 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2"
                         initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} transition={{ duration: 0.3 }}>
                         <Lock className="w-4 h-4 flex-shrink-0" weight="duotone" />
                         <span>{formatRupiah(balances.lockedCommissionBalance)} masih terkunci</span>
                       </motion.div>
                     )}
 
-                    <p className="text-xs text-slate-500 mb-4">
-                      Revenue share: <span className="text-purple-400 font-semibold">{revenueSharePercentage}%</span> dari kerugian invitee
+                    <p className="text-xs text-gray-400 mb-4">
+                      Revenue share: <span className="text-purple-500 font-semibold">{revenueSharePercentage}%</span> dari kerugian invitee
                     </p>
 
                     <motion.button onClick={() => setShowWithdrawModal(true)}
                       disabled={!isCommissionUnlocked || balances.commissionBalance < 50000}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:bg-white/5 disabled:text-slate-500 text-white rounded-xl font-semibold text-sm transition-colors"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-100 disabled:text-gray-400 text-white rounded-xl font-semibold text-sm transition-colors"
                       whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                       <ArrowLineUp className="w-4 h-4" weight="bold" />
                       Cairkan Komisi
@@ -455,24 +534,24 @@ export default function AffiliatePage() {
 
                 {/* Unlock progress */}
                 <Reveal variants={scaleIn} delay={0.1}>
-                  <motion.div className="bg-slate-800/50 border border-white/10 rounded-xl p-5 h-full"
-                    whileHover={{ borderColor: 'rgba(139,92,246,0.3)', transition: { duration: 0.2 } }}>
-                    <h3 className="font-semibold text-white mb-1">Progress Unlock</h3>
-                    <p className="text-xs text-slate-500 mb-5">
+                  <motion.div className="bg-white border border-gray-200 shadow-sm rounded-xl p-5 h-full"
+                    whileHover={{ borderColor: 'rgba(139,92,246,0.4)', transition: { duration: 0.2 } }}>
+                    <h3 className="font-semibold text-gray-900 mb-1">Progress Unlock</h3>
+                    <p className="text-xs text-gray-400 mb-5">
                       Undang {unlockProgress.required} user yang melakukan deposit untuk membuka saldo komisi.
                     </p>
 
                     <div className="flex items-end gap-2 mb-4">
-                      <motion.span className="text-4xl font-bold text-white"
+                      <motion.span className="text-4xl font-bold text-gray-900"
                         initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ ...SPRING, delay: 0.4 }}>
                         <CountUp to={unlockProgress.current} />
                       </motion.span>
-                      <span className="text-slate-400 text-lg mb-1">/ {unlockProgress.required}</span>
-                      <span className="text-xs text-slate-500 mb-1.5">depositor</span>
+                      <span className="text-gray-500 text-lg mb-1">/ {unlockProgress.required}</span>
+                      <span className="text-xs text-gray-400 mb-1.5">depositor</span>
                     </div>
 
                     {/* Progress bar */}
-                    <div className="h-3 bg-slate-700 rounded-full overflow-hidden mb-3">
+                    <div className="h-3 bg-gray-200 rounded-full overflow-hidden mb-3">
                       <motion.div
                         className={`h-full rounded-full ${unlockProgress.isUnlocked ? 'bg-green-500' : 'bg-purple-500'}`}
                         initial={{ width: 0 }}
@@ -485,13 +564,13 @@ export default function AffiliatePage() {
                       {unlockProgress.isUnlocked ? (
                         <motion.div className="flex items-center gap-2"
                           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}>
-                          <CheckCircle className="w-4 h-4 text-green-400" weight="fill" />
-                          <span className="text-green-400 font-medium">Komisi sudah terbuka!</span>
+                          <CheckCircle className="w-4 h-4 text-green-600" weight="fill" />
+                          <span className="text-green-600 font-medium">Komisi sudah terbuka!</span>
                         </motion.div>
                       ) : (
                         <div className="flex items-center gap-2">
-                          <Warning className="w-4 h-4 text-yellow-400" weight="fill" />
-                          <span className="text-slate-400 text-xs">{unlockProgress.message}</span>
+                          <Warning className="w-4 h-4 text-yellow-600" weight="fill" />
+                          <span className="text-gray-500 text-xs">{unlockProgress.message}</span>
                         </div>
                       )}
                     </div>
@@ -507,9 +586,9 @@ export default function AffiliatePage() {
               exit={{ opacity: 0, y: -16 }} transition={{ ...SPRING }}>
               <motion.div className="flex gap-3 mb-5 flex-wrap" variants={stagger(0.08)} initial="hidden" animate="visible">
                 {[
-                  { label: 'Total', value: inviteSummary.total, cls: 'bg-slate-700/50 text-slate-300 border-white/10' },
-                  { label: 'Sudah Deposit', value: inviteSummary.deposited, cls: 'bg-green-500/10 text-green-400 border-green-500/30' },
-                  { label: 'Belum Deposit', value: inviteSummary.pending, cls: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' },
+                  { label: 'Total', value: inviteSummary.total, cls: 'bg-gray-100 text-gray-700 border-gray-200' },
+                  { label: 'Sudah Deposit', value: inviteSummary.deposited, cls: 'bg-green-100 text-green-700 border-green-200' },
+                  { label: 'Belum Deposit', value: inviteSummary.pending, cls: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
                 ].map(({ label, value, cls }) => (
                   <motion.div key={label} variants={scaleIn}
                     className={`px-4 py-1.5 rounded-xl border text-sm font-medium ${cls}`}
@@ -522,21 +601,21 @@ export default function AffiliatePage() {
               {tabLoading ? (
                 <div className="flex justify-center py-16">
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                    <ArrowsClockwise className="w-8 h-8 text-purple-400" weight="bold" />
+                    <ArrowsClockwise className="w-8 h-8 text-purple-500" weight="bold" />
                   </motion.div>
                 </div>
               ) : invites.length === 0 ? (
                 <motion.div className="text-center py-16" variants={scaleIn} initial="hidden" animate="visible">
-                  <Users className="w-12 h-12 text-slate-600 mx-auto mb-3" weight="duotone" />
-                  <p className="text-slate-400">Belum ada undangan. Bagikan kode referral Anda!</p>
+                  <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" weight="duotone" />
+                  <p className="text-gray-500">Belum ada undangan. Bagikan kode referral Anda!</p>
                 </motion.div>
               ) : (
-                <motion.div className="bg-slate-800/50 border border-white/10 rounded-xl overflow-hidden"
+                <motion.div className="bg-white border border-gray-200 shadow-sm rounded-xl overflow-hidden"
                   initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING }}>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-white/10 text-xs text-slate-500">
+                        <tr className="border-b border-gray-200 text-xs text-gray-400">
                           <th className="text-left px-4 py-3">Email (masked)</th>
                           <th className="text-left px-4 py-3">Tanggal Daftar</th>
                           <th className="text-left px-4 py-3">Status Deposit</th>
@@ -547,25 +626,25 @@ export default function AffiliatePage() {
                       <tbody>
                         {invites.map((inv, i) => (
                           <motion.tr key={inv.id}
-                            className={`border-b border-white/5 hover:bg-white/5 transition-colors ${i % 2 === 0 ? '' : 'bg-white/[0.02]'}`}
+                            className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50'}`}
                             initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
                             transition={{ ...SPRING, delay: i * 0.05 }}>
-                            <td className="px-4 py-3 text-slate-300 font-mono text-xs">{inv.inviteeEmail}</td>
-                            <td className="px-4 py-3 text-slate-400 text-xs">{formatDate(inv.createdAt)}</td>
+                            <td className="px-4 py-3 text-gray-700 font-mono text-xs">{inv.inviteeEmail}</td>
+                            <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(inv.createdAt)}</td>
                             <td className="px-4 py-3">
                               <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border font-medium ${
-                                inv.hasDeposited ? 'bg-green-500/15 text-green-400 border-green-500/30' : 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30'}`}>
+                                inv.hasDeposited ? 'bg-green-100 text-green-700 border-green-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200'}`}>
                                 {inv.hasDeposited ? <CheckCircle className="w-3.5 h-3.5" weight="fill" /> : <Clock className="w-3.5 h-3.5" weight="fill" />}
                                 {inv.hasDeposited ? 'Deposit' : 'Belum'}
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-slate-400 text-xs">{inv.firstDepositAt ? formatDate(inv.firstDepositAt) : '—'}</td>
+                            <td className="px-4 py-3 text-gray-500 text-xs">{inv.firstDepositAt ? formatDate(inv.firstDepositAt) : '—'}</td>
                             <td className="px-4 py-3">
                               {inv.isCountedForUnlock
                                 ? <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ ...SPRING, delay: i * 0.05 + 0.2 }}>
-                                    <CheckCircle className="w-4 h-4 text-green-400" weight="fill" />
+                                    <CheckCircle className="w-4 h-4 text-green-600" weight="fill" />
                                   </motion.div>
-                                : <span className="text-slate-600">—</span>}
+                                : <span className="text-gray-400">—</span>}
                             </td>
                           </motion.tr>
                         ))}
@@ -591,10 +670,10 @@ export default function AffiliatePage() {
                     { label: 'Revenue Share', value: `${commissionDetails.revenueSharePercentage}%` },
                   ].map(({ label, value }) => (
                     <motion.div key={label} variants={fadeUp}
-                      className="bg-slate-800/50 border border-white/10 rounded-xl p-3"
-                      whileHover={{ y: -3, borderColor: 'rgba(139,92,246,0.3)', transition: { duration: 0.2 } }}>
-                      <p className="text-xs text-slate-500 mb-1">{label}</p>
-                      <p className="text-base font-bold text-white">{value}</p>
+                      className="bg-white border border-gray-200 shadow-sm rounded-xl p-3"
+                      whileHover={{ y: -3, borderColor: 'rgba(139,92,246,0.4)', transition: { duration: 0.2 } }}>
+                      <p className="text-xs text-gray-400 mb-1">{label}</p>
+                      <p className="text-base font-bold text-gray-900">{value}</p>
                     </motion.div>
                   ))}
                 </motion.div>
@@ -603,22 +682,22 @@ export default function AffiliatePage() {
               {tabLoading ? (
                 <div className="flex justify-center py-16">
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                    <ArrowsClockwise className="w-8 h-8 text-purple-400" weight="bold" />
+                    <ArrowsClockwise className="w-8 h-8 text-purple-500" weight="bold" />
                   </motion.div>
                 </div>
               ) : commissions.length === 0 ? (
                 <motion.div className="text-center py-16" variants={scaleIn} initial="hidden" animate="visible">
-                  <CurrencyDollar className="w-12 h-12 text-slate-600 mx-auto mb-3" weight="duotone" />
-                  <p className="text-slate-400">Belum ada riwayat komisi.</p>
-                  <p className="text-slate-600 text-xs mt-1">Komisi masuk saat invitee mengalami loss pada akun real.</p>
+                  <CurrencyDollar className="w-12 h-12 text-gray-400 mx-auto mb-3" weight="duotone" />
+                  <p className="text-gray-500">Belum ada riwayat komisi.</p>
+                  <p className="text-gray-400 text-xs mt-1">Komisi masuk saat invitee mengalami loss pada akun real.</p>
                 </motion.div>
               ) : (
-                <motion.div className="bg-slate-800/50 border border-white/10 rounded-xl overflow-hidden"
+                <motion.div className="bg-white border border-gray-200 shadow-sm rounded-xl overflow-hidden"
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-white/10 text-xs text-slate-500">
+                        <tr className="border-b border-gray-200 text-xs text-gray-400">
                           <th className="text-left px-4 py-3">Tanggal</th>
                           <th className="text-right px-4 py-3">Order</th>
                           <th className="text-right px-4 py-3">Loss</th>
@@ -629,14 +708,14 @@ export default function AffiliatePage() {
                       <tbody>
                         {commissions.map((log, i) => (
                           <motion.tr key={log.id}
-                            className={`border-b border-white/5 hover:bg-white/5 ${i % 2 === 0 ? '' : 'bg-white/[0.02]'}`}
+                            className={`border-b border-gray-100 hover:bg-gray-50 ${i % 2 === 0 ? '' : 'bg-gray-50'}`}
                             initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
                             transition={{ ...SPRING, delay: i * 0.04 }}>
-                            <td className="px-4 py-3 text-slate-400 text-xs">{formatDate(log.createdAt)}</td>
-                            <td className="px-4 py-3 text-right text-slate-300 text-xs">{formatRupiah(log.orderAmount)}</td>
-                            <td className="px-4 py-3 text-right text-red-400 text-xs">{formatRupiah(log.lossAmount)}</td>
-                            <td className="px-4 py-3 text-right text-slate-400 text-xs">{log.commissionPercentage}%</td>
-                            <td className="px-4 py-3 text-right text-green-400 font-semibold text-xs">{formatRupiah(log.commissionAmount)}</td>
+                            <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(log.createdAt)}</td>
+                            <td className="px-4 py-3 text-right text-gray-700 text-xs">{formatRupiah(log.orderAmount)}</td>
+                            <td className="px-4 py-3 text-right text-red-500 text-xs">{formatRupiah(log.lossAmount)}</td>
+                            <td className="px-4 py-3 text-right text-gray-500 text-xs">{log.commissionPercentage}%</td>
+                            <td className="px-4 py-3 text-right text-green-600 font-semibold text-xs">{formatRupiah(log.commissionAmount)}</td>
                           </motion.tr>
                         ))}
                       </tbody>
@@ -655,14 +734,14 @@ export default function AffiliatePage() {
                 <div className="flex items-center gap-4 flex-wrap">
                   {withdrawalHistory && (
                     <>
-                      <Reveal><div className="text-sm"><span className="text-slate-500">Saldo: </span><span className="text-white font-semibold">{formatRupiah(withdrawalHistory.commissionBalance)}</span></div></Reveal>
-                      <Reveal delay={0.1}><div className="text-sm"><span className="text-slate-500">Total Dicairkan: </span><span className="text-white font-semibold">{formatRupiah(withdrawalHistory.totalWithdrawn)}</span></div></Reveal>
+                      <Reveal><div className="text-sm"><span className="text-gray-400">Saldo: </span><span className="text-gray-900 font-semibold">{formatRupiah(withdrawalHistory.commissionBalance)}</span></div></Reveal>
+                      <Reveal delay={0.1}><div className="text-sm"><span className="text-gray-400">Total Dicairkan: </span><span className="text-gray-900 font-semibold">{formatRupiah(withdrawalHistory.totalWithdrawn)}</span></div></Reveal>
                     </>
                   )}
                 </div>
                 <motion.button onClick={() => setShowWithdrawModal(true)}
                   disabled={!isCommissionUnlocked || (withdrawalHistory ? withdrawalHistory.commissionBalance < 50000 : true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-white/5 disabled:text-slate-500 text-white rounded-xl font-semibold text-sm transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-100 disabled:text-gray-400 text-white rounded-xl font-semibold text-sm transition-colors"
                   whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <ArrowLineUp className="w-4 h-4" weight="bold" />
                   Cairkan
@@ -672,13 +751,13 @@ export default function AffiliatePage() {
               {tabLoading ? (
                 <div className="flex justify-center py-16">
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                    <ArrowsClockwise className="w-8 h-8 text-purple-400" weight="bold" />
+                    <ArrowsClockwise className="w-8 h-8 text-purple-500" weight="bold" />
                   </motion.div>
                 </div>
               ) : !withdrawalHistory || withdrawalHistory.withdrawals.length === 0 ? (
                 <motion.div className="text-center py-16" variants={scaleIn} initial="hidden" animate="visible">
-                  <ArrowLineUp className="w-12 h-12 text-slate-600 mx-auto mb-3" weight="duotone" />
-                  <p className="text-slate-400">Belum ada riwayat penarikan.</p>
+                  <ArrowLineUp className="w-12 h-12 text-gray-400 mx-auto mb-3" weight="duotone" />
+                  <p className="text-gray-500">Belum ada riwayat penarikan.</p>
                 </motion.div>
               ) : (
                 <motion.div className="space-y-3" variants={stagger(0.07)} initial="hidden" animate="visible">
@@ -686,27 +765,27 @@ export default function AffiliatePage() {
                     const st = statusLabel(w.status)
                     return (
                       <motion.div key={w.id} variants={fadeUp}
-                        className="bg-slate-800/50 border border-white/10 rounded-xl p-4"
-                        whileHover={{ borderColor: 'rgba(139,92,246,0.3)', y: -2, transition: { duration: 0.2 } }}>
+                        className="bg-white border border-gray-200 shadow-sm rounded-xl p-4"
+                        whileHover={{ borderColor: 'rgba(139,92,246,0.4)', y: -2, transition: { duration: 0.2 } }}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap mb-1">
-                              <span className="text-lg font-bold text-white">{formatRupiah(w.amount)}</span>
+                              <span className="text-lg font-bold text-gray-900">{formatRupiah(w.amount)}</span>
                               <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border font-medium ${st.cls}`}>
                                 {st.icon}{st.label}
                               </span>
                             </div>
                             {w.bankAccount && (
-                              <p className="text-xs text-slate-500">{w.bankAccount.bankName} · {w.bankAccount.accountNumber} · {w.bankAccount.accountHolderName}</p>
+                              <p className="text-xs text-gray-400">{w.bankAccount.bankName} · {w.bankAccount.accountNumber} · {w.bankAccount.accountHolderName}</p>
                             )}
-                            {w.note && <p className="text-xs text-slate-500 mt-0.5">Catatan: {w.note}</p>}
-                            {w.adminNotes && <p className="text-xs text-blue-400/80 mt-0.5">Admin: {w.adminNotes}</p>}
-                            {w.rejectionReason && <p className="text-xs text-red-400 mt-0.5">Ditolak: {w.rejectionReason}</p>}
-                            <p className="text-xs text-slate-600 mt-1">{formatDate(w.createdAt)}</p>
+                            {w.note && <p className="text-xs text-gray-400 mt-0.5">Catatan: {w.note}</p>}
+                            {w.adminNotes && <p className="text-xs text-blue-500/80 mt-0.5">Admin: {w.adminNotes}</p>}
+                            {w.rejectionReason && <p className="text-xs text-red-500 mt-0.5">Ditolak: {w.rejectionReason}</p>}
+                            <p className="text-xs text-gray-400 mt-1">{formatDate(w.createdAt)}</p>
                           </div>
                           {w.status === 'pending' && (
                             <motion.button onClick={() => handleCancel(w.id)} disabled={cancellingId === w.id}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                              className="flex items-center gap-1 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
                               whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                               {cancellingId === w.id
                                 ? <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}><ArrowsClockwise className="w-3.5 h-3.5" weight="bold" /></motion.span>
@@ -733,41 +812,41 @@ export default function AffiliatePage() {
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowWithdrawModal(false)} />
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <motion.div className="w-full max-w-md bg-slate-900 rounded-2xl border border-white/10 shadow-2xl"
+              <motion.div className="w-full max-w-md bg-white rounded-2xl border border-gray-200 shadow-2xl"
                 initial={{ opacity: 0, scale: 0.8, y: 40 }} animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.8, y: 40 }} transition={{ ...SPRING }}>
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-5">
-                    <h3 className="text-lg font-bold text-white">Cairkan Komisi</h3>
+                    <h3 className="text-lg font-bold text-gray-900">Cairkan Komisi</h3>
                     <motion.button onClick={() => setShowWithdrawModal(false)}
-                      className="text-slate-400 hover:text-white"
+                      className="text-gray-400 hover:text-gray-700"
                       whileHover={{ rotate: 90, scale: 1.1 }} transition={{ duration: 0.2 }}>
                       <X className="w-5 h-5" weight="bold" />
                     </motion.button>
                   </div>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm text-slate-400 mb-1.5">Jumlah Penarikan</label>
+                      <label className="block text-sm text-gray-600 mb-1.5">Jumlah Penarikan</label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">Rp</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rp</span>
                         <input type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)}
                           placeholder="50000" min={50000}
-                          className="w-full bg-slate-800 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-purple-500/50 text-sm" />
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-purple-400 text-sm" />
                       </div>
-                      <p className="text-xs text-slate-600 mt-1">Minimal Rp 50.000 · Saldo tersedia: {formatRupiah(balances.commissionBalance)}</p>
+                      <p className="text-xs text-gray-400 mt-1">Minimal Rp 50.000 · Saldo tersedia: {formatRupiah(balances.commissionBalance)}</p>
                     </div>
                     <div>
-                      <label className="block text-sm text-slate-400 mb-1.5">Catatan (opsional)</label>
+                      <label className="block text-sm text-gray-600 mb-1.5">Catatan (opsional)</label>
                       <input type="text" value={withdrawNote} onChange={(e) => setWithdrawNote(e.target.value)}
                         placeholder="Mis: Penarikan bulan Februari"
-                        className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-purple-500/50 text-sm" />
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-purple-400 text-sm" />
                     </div>
-                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-3 text-xs text-blue-300/80">
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-700">
                       Penarikan akan masuk ke rekening bank terdaftar di profil Anda. Admin akan memproses dalam 1–3 hari kerja.
                     </div>
                     <div className="flex gap-3 mt-2">
                       <motion.button onClick={() => setShowWithdrawModal(false)}
-                        className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 rounded-xl font-semibold text-sm transition-colors"
+                        className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 rounded-xl font-semibold text-sm transition-colors"
                         whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                         Batal
                       </motion.button>
@@ -789,5 +868,6 @@ export default function AffiliatePage() {
         )}
       </AnimatePresence>
     </div>
+    </>
   )
 }

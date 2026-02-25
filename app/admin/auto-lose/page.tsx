@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import React from 'react'
 import { toast } from 'sonner'
 import axios from 'axios'
 import Navbar from '@/components/Navbar'
@@ -23,6 +24,128 @@ import {
   Percent,
   Eye,
 } from 'phosphor-react'
+import { motion, type Variants } from 'framer-motion'
+
+// ── Global Styles ──────────────────────────────────────────────
+const GlobalStyles = () => (
+  <style jsx global>{`
+    :root {
+      --glass-bg: rgba(255,255,255,0.04);
+      --glass-bg-hover: rgba(255,255,255,0.08);
+      --glass-border: rgba(255,255,255,0.09);
+      --glass-border-hover: rgba(255,255,255,0.18);
+      --glass-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      --glass-shadow-hover: 0 16px 48px rgba(0,0,0,0.5);
+    }
+    .bg-pattern-grid {
+      background-color: #060918;
+      background-image: none;
+      position: relative;
+    }
+    .bg-pattern-grid::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 10% 20%, rgba(239,68,68,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 85% 10%, rgba(99,102,241,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 60% at 70% 80%, rgba(245,158,11,0.07) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 20% 85%, rgba(16,185,129,0.07) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bg-pattern-grid::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(148,163,184,0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148,163,184,0.07) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body { background-color: #060918 !important; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .stat-card { transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s ease; }
+    .stat-card:hover { transform: translateY(-2px); }
+    .stat-icon { transition: transform 0.2s ease; }
+    .stat-card:hover .stat-icon { transform: scale(1.12); }
+    .glow-indigo { box-shadow: 0 0 20px rgba(99,102,241,0.25), var(--glass-shadow); }
+    .glow-green  { box-shadow: 0 0 20px rgba(16,185,129,0.20), var(--glass-shadow); }
+    .glow-red    { box-shadow: 0 0 20px rgba(239,68,68,0.20),  var(--glass-shadow); }
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,0.06);
+      transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .glass-card:hover {
+      background: var(--glass-bg-hover);
+      border-color: var(--glass-border-hover);
+    }
+    .glass-sub {
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+    .glass-input {
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.10);
+      color: white;
+    }
+    .glass-input:focus { outline: none; border-color: rgba(99,102,241,0.5); }
+  `}</style>
+)
+
+const SPRING = { type: 'spring', stiffness: 80, damping: 20 } as const
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { ...SPRING } },
+}
+const fadeLeft: Variants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { opacity: 1, x: 0, transition: { ...SPRING } },
+}
+const scaleIn: Variants = {
+  hidden: { opacity: 0, scale: 0.92 },
+  visible: { opacity: 1, scale: 1, transition: { ...SPRING } },
+}
+const stagger = (d = 0.06): Variants => ({
+  hidden: {},
+  visible: { transition: { staggerChildren: d, delayChildren: 0.04 } },
+})
+
+function Reveal({ children, variants = fadeUp, delay = 0, className = '' }: {
+  children: React.ReactNode; variants?: Variants; delay?: number; className?: string
+}) {
+  return (
+    <motion.div className={className} variants={variants} initial="hidden"
+      whileInView="visible" viewport={{ once: true, margin: '-60px' }}
+      transition={{ delay }}>
+      {children}
+    </motion.div>
+  )
+}
+
+function AnimatedHeadline({ text, className, style }: { text: string; className?: string; style?: React.CSSProperties }) {
+  return (
+    <motion.h1 className={className} style={style}
+      variants={stagger(0.07)} initial="hidden" animate="visible">
+      {text.split(' ').map((word, i) => (
+        <motion.span key={i}
+          variants={{ hidden: { opacity: 0, y: 30, filter: 'blur(4px)' }, visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { ...SPRING } } }}
+          className="inline-block mr-[0.25em]">{word}
+        </motion.span>
+      ))}
+    </motion.h1>
+  )
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -501,7 +624,7 @@ function ConfigForm({ config, onSaved }: { config: AutoLoseConfig; onSaved: () =
         <button
           onClick={handleSave}
           disabled={saving || form.targetUserStatus.length === 0}
-          className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-lg transition-all"
+          className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-xl transition-all shadow-lg shadow-indigo-500/20"
         >
           {saving && <Spinner size={4} />}
           {saving ? 'Menyimpan...' : 'Simpan Konfigurasi'}
@@ -527,7 +650,7 @@ function TrackerPanel({ stats }: { stats: TrackerStats }) {
 
       {/* Summary stats */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+        <div className="glass-sub rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">
             <Timer className="w-4 h-4 text-blue-400" weight="duotone" />
             <span className="text-xs text-slate-500">Active Windows</span>
@@ -538,7 +661,7 @@ function TrackerPanel({ stats }: { stats: TrackerStats }) {
             {stats.activeWindows === 0 ? 'Tidak ada window aktif saat ini' : `${stats.activeWindows} jendela waktu sedang memantau`}
           </p>
         </div>
-        <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+        <div className="glass-sub rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">
             <Eye className="w-4 h-4 text-indigo-400" weight="duotone" />
             <span className="text-xs text-slate-500">Tracked Orders</span>
@@ -560,7 +683,7 @@ function TrackerPanel({ stats }: { stats: TrackerStats }) {
           </div>
           <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
             {stats.windows.map((w) => (
-              <div key={w.windowKey} className="bg-white/5 border border-white/10 rounded-lg p-3 hover:border-white/20 transition-colors">
+              <div key={w.windowKey} className="glass-sub rounded-xl p-3 hover:border-white/15 transition-all">
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <code className="text-xs text-slate-400 font-mono">{w.windowKey}</code>
@@ -815,11 +938,13 @@ export default function AutoLoseSystemPage() {
   }
 
   const BgWrapper = ({ children }: { children: React.ReactNode }) => (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none" />
-      <Navbar />
-      {children}
-    </div>
+    <>
+      <GlobalStyles />
+      <div className="bg-pattern-grid min-h-screen relative">
+        <Navbar />
+        {children}
+      </div>
+    </>
   )
 
   if (loading) {
@@ -857,37 +982,57 @@ export default function AutoLoseSystemPage() {
 
   return (
     <BgWrapper>
-      <div className="max-w-6xl mx-auto px-4 py-6 relative z-10">
+      <div className="max-w-5xl mx-auto px-4 py-6 relative z-10">
 
         {/* ── Header ── */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Lightning className="w-7 h-7 text-red-400" weight="duotone" />
-              AutoLose System
-            </h1>
-            <div className="flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-500">
+        <motion.div className="mb-8"
+          initial="hidden" animate="visible" variants={stagger(0.1)}>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <motion.div variants={fadeLeft}>
+              <motion.div className="flex items-center gap-1.5 text-xs text-slate-400 mb-1" variants={fadeUp}>
+                <span>Dasbor</span><span>/</span><span>Admin</span><span>/</span>
+                <span className="text-slate-100 font-medium">AutoLose System</span>
+              </motion.div>
+              <div className="flex items-center gap-3">
+                <motion.div
+                  className="w-9 h-9 bg-gradient-to-br from-red-400/80 to-orange-500/80 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-red-500/30 border border-white/20"
+                  whileHover={{ rotate: 90, scale: 1.1 }} transition={{ ...SPRING }}>
+                  <Lightning className="w-5 h-5 text-white" weight="duotone" />
+                </motion.div>
+                <div>
+                  <AnimatedHeadline
+                    text="AutoLose System"
+                    className="text-2xl sm:text-3xl font-bold text-slate-100"
+                    style={{ letterSpacing: '-0.03em' }}
+                  />
+                  <motion.p className="text-slate-400 text-sm mt-0.5" variants={fadeUp}>
+                    Super Admin Control Panel — Semua perubahan berlaku secara real-time
+                  </motion.p>
+                </div>
+              </div>
+            </motion.div>
+            <motion.div variants={scaleIn} className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 glass-input px-3 py-1.5 rounded-xl">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Live — diperbarui setiap 10 detik
               </div>
-              <button
+              <motion.button
                 onClick={() => loadStatus()}
-                className="p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all"
+                className="flex items-center gap-2 px-4 py-2.5 glass-input rounded-xl text-sm font-medium text-slate-200 hover:bg-white/10 transition-colors"
                 title="Refresh data sekarang"
+                whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
               >
-                <ArrowsClockwise className="w-5 h-5 text-slate-300" weight="bold" />
-              </button>
-            </div>
+                <ArrowsClockwise className="w-4 h-4 text-slate-400" weight="bold" />
+                Perbarui
+              </motion.button>
+            </motion.div>
           </div>
-          <p className="text-slate-400 text-sm">
-            Super Admin Control Panel — Kelola sistem AutoLose trading. Semua perubahan berlaku secara real-time.
-          </p>
-        </div>
+        </motion.div>
 
         {/* ── Killer Mode Banner ── */}
         {config.killerMode && (
-          <div className="relative overflow-hidden rounded-xl border border-red-500/40 bg-red-950/30 p-4 mb-6">
+          <motion.div className="relative overflow-hidden rounded-xl border border-red-500/40 bg-red-950/30 p-4 mb-6"
+            initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ ...SPRING }}>
             <div className="absolute inset-0 bg-gradient-to-r from-red-900/20 to-transparent pointer-events-none" />
             <div className="relative flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
@@ -904,19 +1049,21 @@ export default function AutoLoseSystemPage() {
               <button
                 onClick={handleKillerMode}
                 disabled={togglingKiller}
-                className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition-colors"
+                className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-all"
               >
                 {togglingKiller && <Spinner size={4} />}
                 Nonaktifkan
               </button>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* ── Stats Cards ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <Reveal className="glass-card rounded-2xl p-5 mb-6">
+          <motion.div className="grid grid-cols-2 lg:grid-cols-4 gap-3"
+            variants={stagger(0.06)} initial="hidden" animate="visible">
           {/* AutoLose Toggle */}
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm col-span-2">
+          <motion.div variants={fadeUp} className="glass-card rounded-xl p-4 col-span-2">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
@@ -941,10 +1088,10 @@ export default function AutoLoseSystemPage() {
                 <span className="text-[10px] text-slate-600">{config.isEnabled ? 'Klik untuk OFF' : 'Klik untuk ON'}</span>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Killer Mode */}
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
+          <motion.div variants={fadeUp} className="glass-card rounded-xl p-4">
             <div className="flex items-start justify-between gap-2">
               <div>
                 <div className="flex items-center gap-1.5 mb-1">
@@ -971,10 +1118,10 @@ export default function AutoLoseSystemPage() {
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Priority Mode */}
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm">
+          <motion.div variants={fadeUp} className="glass-card rounded-xl p-4">
             <div className="flex items-center gap-1.5 mb-1">
               <p className="text-xs text-slate-400 uppercase tracking-widest">Priority Mode</p>
               <Tooltip text="Mode seleksi order aktif. 'Highest' = hanya order terbesar yang di-lose. 'All' = semua order yang lolos filter di-lose." />
@@ -987,11 +1134,14 @@ export default function AutoLoseSystemPage() {
                 ? `Top ${config.losePercentage}% order terbesar per window`
                 : 'Semua order yang lolos filter di-lose'}
             </p>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
+        </Reveal>
 
         {/* ── Quick Info ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        <Reveal className="glass-card rounded-2xl p-5 mb-4">
+          <motion.div className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+            variants={stagger(0.05)} initial="hidden" animate="visible">
           {[
             {
               label: 'Target Akun',
@@ -1016,25 +1166,26 @@ export default function AutoLoseSystemPage() {
               tip: 'Nominal maksimum order agar diproses. Order di atas ini dilewati.',
             },
           ].map(({ label, value, tip }) => (
-            <div key={label} className="bg-white/5 border border-white/10 rounded-lg px-4 py-3 backdrop-blur-sm">
+            <motion.div key={label} variants={fadeUp} className="glass-sub rounded-xl px-4 py-3"
+              whileHover={{ y: -1, transition: { duration: 0.15 } }}>
               <div className="flex items-center gap-1 mb-1">
                 <div className="text-xs text-slate-400 uppercase tracking-widest">{label}</div>
                 <Tooltip text={tip} />
               </div>
               <p className="text-sm font-semibold text-white truncate">{value}</p>
-            </div>
+            </motion.div>
           ))}
-        </div>
-
-        {/* Last Updated */}
-        <div className="text-xs text-slate-600 mb-6">
-          Terakhir diubah: {formatDate(config.updatedAt)}
-          {config.updatedByEmail && <span className="text-slate-700"> oleh {config.updatedByEmail}</span>}
-        </div>
+          </motion.div>
+          <div className="text-xs text-slate-600 mt-3">
+            Terakhir diubah: {formatDate(config.updatedAt)}
+            {config.updatedByEmail && <span className="text-slate-700"> oleh {config.updatedByEmail}</span>}
+          </div>
+        </Reveal>
 
         {/* ── Tabs ── */}
         <div>
-          <div className="flex gap-1 bg-white/5 border border-white/10 rounded-xl p-1 w-fit mb-1">
+          <motion.div className="flex gap-1 glass-input rounded-xl p-1 w-fit mb-1"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
             {([
               { key: 'config', label: 'Konfigurasi', icon: Gear, desc: 'Atur target & filter' },
               { key: 'tracker', label: 'Tracker', icon: ChartBar, desc: 'Monitor window aktif' },
@@ -1043,15 +1194,21 @@ export default function AutoLoseSystemPage() {
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === key ? 'bg-white/10 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'
+                className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === key ? 'text-white' : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
-                <Icon className="w-4 h-4" weight="duotone" />
-                {label}
+                {activeTab === key && (
+                  <motion.div className="absolute inset-0 rounded-lg bg-white/10 shadow-sm"
+                    layoutId="autoLoseTabPill" transition={{ ...SPRING }} />
+                )}
+                <span className="relative z-10 flex items-center gap-2">
+                  <Icon className="w-4 h-4" weight="duotone" />
+                  {label}
+                </span>
               </button>
             ))}
-          </div>
+          </motion.div>
           <p className="text-xs text-slate-600 mb-4 pl-1">
             {activeTab === 'config' && 'Atur siapa dan order mana yang akan dikenai sistem AutoLose.'}
             {activeTab === 'tracker' && 'Pantau order yang sedang aktif diproses dalam jendela waktu (window).'}
@@ -1060,7 +1217,8 @@ export default function AutoLoseSystemPage() {
 
           {/* Config Tab */}
           {activeTab === 'config' && (
-            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
+            <motion.div className="glass-card rounded-2xl p-5"
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING }}>
               <div className="flex items-center gap-2 mb-1">
                 <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-widest">Konfigurasi AutoLose</h2>
               </div>
@@ -1069,7 +1227,7 @@ export default function AutoLoseSystemPage() {
                 Konfigurasi ini disimpan ke database dan berlaku segera setelah tombol Simpan ditekan.
               </p>
               {!config.isEnabled && (
-                <div className="mb-6 flex items-start gap-2.5 bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 text-xs text-yellow-400">
+                <div className="mb-6 flex items-start gap-2.5 bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 text-xs text-yellow-400">
                   <Warning className="w-4 h-4 mt-0.5 flex-shrink-0" weight="bold" />
                   <span>
                     AutoLose System sedang <strong>nonaktif</strong>. Kamu tetap bisa mengubah konfigurasi di sini — 
@@ -1078,12 +1236,13 @@ export default function AutoLoseSystemPage() {
                 </div>
               )}
               <ConfigForm config={config} onSaved={() => loadStatus(true)} />
-            </div>
+            </motion.div>
           )}
 
           {/* Tracker Tab */}
           {activeTab === 'tracker' && (
-            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
+            <motion.div className="glass-card rounded-2xl p-5"
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING }}>
               <div className="flex items-center justify-between mb-1">
                 <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-widest">
                   Order Tracker (Real-time)
@@ -1101,12 +1260,13 @@ export default function AutoLoseSystemPage() {
                 Data ini diperbarui otomatis setiap 10 detik.
               </p>
               <TrackerPanel stats={trackerStats} />
-            </div>
+            </motion.div>
           )}
 
           {/* Logs Tab */}
           {activeTab === 'logs' && (
-            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border border-white/10">
+            <motion.div className="glass-card rounded-2xl p-5"
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING }}>
               <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-widest mb-1">
                 Riwayat AutoLose Logs
               </h2>
@@ -1115,7 +1275,7 @@ export default function AutoLoseSystemPage() {
                 Data ini berguna untuk audit, monitoring pola, dan verifikasi bahwa sistem bekerja sesuai konfigurasi.
               </p>
               <LogsTable />
-            </div>
+            </motion.div>
           )}
         </div>
       </div>

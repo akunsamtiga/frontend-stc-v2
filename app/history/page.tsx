@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
@@ -12,6 +12,7 @@ import {
   Wallet, RefreshCw, BarChart3, CalendarClock,
   ChevronLeft, ChevronRight, Activity, DollarSign, Target
 } from 'lucide-react'
+import { motion, AnimatePresence, useInView, type Variants } from 'framer-motion'
 import { toast, Toaster } from 'sonner'
 
 const ITEMS_PER_PAGE = 10
@@ -43,14 +44,15 @@ const GlobalStyles = () => (
     @keyframes sk-pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
     .sk { animation: sk-pulse 1.8s ease-in-out infinite; }
 
-    /* Static grid background — zero animation cost */
+    /* Static grid background — matches affiliate page */
     .bg-pattern-grid {
-      background-color: #ffffff;
+      background-color: #f5f6f8;
       background-image:
-        linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px);
+        linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
       background-size: 40px 40px;
     }
+    body { background-color: #f5f6f8 !important; }
 
     /* Stat card hover — pure CSS transition */
     .stat-card {
@@ -109,6 +111,74 @@ const GlobalStyles = () => (
   `}</style>
 )
 
+// ============================================
+// FRAMER MOTION PRIMITIVES
+// ============================================
+const SPRING = { type: 'spring', stiffness: 80, damping: 20 } as const
+
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { ...SPRING } },
+}
+const fadeLeft: Variants = {
+  hidden: { opacity: 0, x: -16 },
+  visible: { opacity: 1, x: 0, transition: { ...SPRING } },
+}
+const scaleIn: Variants = {
+  hidden: { opacity: 0, scale: 0.93 },
+  visible: { opacity: 1, scale: 1, transition: { ...SPRING } },
+}
+const stagger = (delay = 0.07): Variants => ({
+  hidden: {},
+  visible: { transition: { staggerChildren: delay, delayChildren: 0.03 } },
+})
+
+function Reveal({ children, variants = fadeUp, delay = 0, className = '' }: {
+  children: React.ReactNode; variants?: Variants; delay?: number; className?: string
+}) {
+  return (
+    <motion.div className={className} variants={variants} initial="hidden"
+      whileInView="visible" viewport={{ once: true, margin: '-60px' }}
+      transition={{ delay }}>
+      {children}
+    </motion.div>
+  )
+}
+
+function AnimatedHeadline({ text, className }: { text: string; className?: string }) {
+  return (
+    <motion.h1 className={className}
+      variants={stagger(0.07)} initial="hidden" animate="visible">
+      {text.split(' ').map((word, i) => (
+        <motion.span key={i} className="inline-block mr-[0.25em]"
+          variants={{ hidden: { opacity: 0, y: 24, filter: 'blur(4px)' }, visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { ...SPRING } } }}>
+          {word}
+        </motion.span>
+      ))}
+    </motion.h1>
+  )
+}
+
+function CountUp({ to, prefix = '', suffix = '' }: { to: number; prefix?: string; suffix?: string }) {
+  const ref = React.useRef<HTMLSpanElement>(null)
+  const inView = useInView(ref, { once: true, margin: '-40px' })
+  const [val, setVal] = React.useState(0)
+  const triggered = React.useRef(false)
+  React.useEffect(() => {
+    if (!inView || triggered.current) return
+    triggered.current = true
+    let start: number
+    const step = (ts: number) => {
+      if (!start) start = ts
+      const p = Math.min((ts - start) / 800, 1)
+      setVal(Math.round(to * (1 - Math.pow(1 - p, 3))))
+      if (p < 1) requestAnimationFrame(step)
+    }
+    requestAnimationFrame(step)
+  }, [inView, to])
+  return <span ref={ref}>{prefix}{val}{suffix}</span>
+}
+
 // ── Skeleton components ──
 const MobileRowSkeleton = ({ i }: { i: number }) => (
   <div className="bg-white border border-gray-100 rounded-xl p-3 flex items-center gap-3 sk" style={{ animationDelay: `${i * 60}ms` }}>
@@ -134,12 +204,12 @@ const DesktopTableRowSkeleton = ({ i }: { i: number }) => (
 const LoadingSkeleton = () => (
   <>
     <style jsx global>{`
-      body { background-color:#ffffff !important; }
+      body { background-color:#f5f6f8 !important; }
       .bg-pattern-grid {
-        background-color:#ffffff;
+        background-color:#f5f6f8;
         background-image:
-          linear-gradient(rgba(0,0,0,0.05) 1px,transparent 1px),
-          linear-gradient(90deg,rgba(0,0,0,0.05) 1px,transparent 1px);
+          linear-gradient(rgba(0,0,0,0.04) 1px,transparent 1px),
+          linear-gradient(90deg,rgba(0,0,0,0.04) 1px,transparent 1px);
         background-size:40px 40px;
       }
       @keyframes sk-pulse{0%,100%{opacity:1}50%{opacity:0.45}}
@@ -152,7 +222,7 @@ const LoadingSkeleton = () => (
       <Toaster position="top-right" />
 
       {/* Mobile skeleton */}
-      <div className="md:hidden container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl">
+      <div className="md:hidden max-w-5xl mx-auto px-4 py-6">
         <div className="mb-4">
           <div className="h-3 bg-gray-200 rounded w-32 mb-2 sk" />
           <div className="flex items-center justify-between">
@@ -166,12 +236,21 @@ const LoadingSkeleton = () => (
             <div className="h-9 bg-gray-200 rounded-lg w-20 sk" />
           </div>
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl p-3 border border-gray-100 flex-shrink-0 w-28 sk" style={{ animationDelay: `${i*80}ms` }}>
-              <div className="w-5 h-5 bg-gray-200 rounded-lg mx-auto mb-2" />
-              <div className="h-4 bg-gray-200 rounded w-12 mx-auto mb-1" />
-              <div className="h-3 bg-gray-200 rounded w-8 mx-auto" />
+        <div className="flex gap-3 overflow-x-auto pb-2 mb-4 scrollbar-hide snap-x">
+          {/* First card: wider, horizontal layout (P&L) */}
+          <div className="bg-white rounded-xl p-3 border border-gray-100 flex-shrink-0 w-36 snap-start sk" style={{ animationDelay: '0ms' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-7 h-7 bg-gray-200 rounded-lg" />
+              <div className="h-3 bg-gray-200 rounded w-12" />
+            </div>
+            <div className="h-5 bg-gray-200 rounded w-24" />
+          </div>
+          {/* Other 4 cards: narrower, centered */}
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-xl p-3 border border-gray-100 flex-shrink-0 w-24 snap-start sk flex flex-col items-center" style={{ animationDelay: `${(i+1)*80}ms` }}>
+              <div className="w-7 h-7 bg-gray-200 rounded-lg mb-1" />
+              <div className="h-5 bg-gray-200 rounded w-10 mb-1" />
+              <div className="h-3 bg-gray-200 rounded w-12" />
             </div>
           ))}
         </div>
@@ -181,7 +260,7 @@ const LoadingSkeleton = () => (
       </div>
 
       {/* Desktop skeleton */}
-      <div className="hidden md:block container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">
+      <div className="hidden md:block max-w-5xl mx-auto px-4 py-6">
         <div className="mb-6">
           <div className="h-3 bg-gray-200 rounded w-48 mb-3 sk" />
           <div className="flex items-center justify-between">
@@ -196,7 +275,7 @@ const LoadingSkeleton = () => (
           </div>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-          <div className="grid grid-cols-5 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="flex items-center gap-4 sk" style={{ animationDelay: `${i*80}ms` }}>
                 <div className="w-10 h-10 bg-gray-200 rounded-lg" />
@@ -310,14 +389,14 @@ export default function HistoryPage() {
   return (
     <>
       <GlobalStyles />
-      <div className="min-h-screen bg-pattern-grid">
+      <div className="min-h-screen bg-pattern-grid relative">
         <Navbar />
         <Toaster position="top-right" />
 
         {/* ══════════════════════════════════════════
             MOBILE VIEW
         ══════════════════════════════════════════ */}
-        <div className="md:hidden container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl pb-28 anim-fade-up">
+        <div className="md:hidden max-w-5xl mx-auto px-4 py-6 pb-28 anim-fade-up">
 
           {/* Header */}
           <div className="mb-4">
@@ -383,11 +462,14 @@ export default function HistoryPage() {
               </div>
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {[{ id:'all', label:'Semua' }, { id:'real', label:'Real' }, { id:'demo', label:'Demo' }].map(a => (
-                  <button
+                  <motion.button
                     key={a.id}
                     onClick={() => handleFilterChange(a.id, 'account')}
-                    className={`filter-btn px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0 ${accountFilter === a.id ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'}`}
-                  >{a.label}</button>
+                    className={`relative filter-btn px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0 overflow-hidden ${accountFilter === a.id ? 'text-white' : 'bg-gray-100 text-gray-700'}`}
+                    whileTap={{ scale: 0.95 }}>
+                    {accountFilter === a.id && <motion.div className="absolute inset-0 bg-blue-500 rounded-lg" layoutId="mobileAccountPill" transition={{ ...SPRING }} />}
+                    <span className="relative z-10">{a.label}</span>
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -398,11 +480,14 @@ export default function HistoryPage() {
               </div>
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {[{ id:'all', label:'Semua' }, { id:'ACTIVE', label:'Aktif' }, { id:'WON', label:'Menang' }, { id:'LOST', label:'Kalah' }].map(f => (
-                  <button
+                  <motion.button
                     key={f.id}
                     onClick={() => handleFilterChange(f.id, 'status')}
-                    className={`filter-btn px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0 ${statusFilter === f.id ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-700'}`}
-                  >{f.label}</button>
+                    className={`relative filter-btn px-3 py-1.5 rounded-lg text-xs font-medium flex-shrink-0 overflow-hidden ${statusFilter === f.id ? 'text-white' : 'bg-gray-100 text-gray-700'}`}
+                    whileTap={{ scale: 0.95 }}>
+                    {statusFilter === f.id && <motion.div className="absolute inset-0 bg-gray-700 rounded-lg" layoutId="mobileStatusPill" transition={{ ...SPRING }} />}
+                    <span className="relative z-10">{f.label}</span>
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -490,102 +575,118 @@ export default function HistoryPage() {
         {/* ══════════════════════════════════════════
             DESKTOP VIEW
         ══════════════════════════════════════════ */}
-        <div className="hidden md:block container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl anim-fade-up">
+        <div className="hidden md:block max-w-5xl mx-auto px-4 py-6 relative z-10 anim-fade-up">
 
           {/* Header */}
-          <div className="mb-6">
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
-              <span>Dasbor</span><span>/</span>
-              <span className="text-gray-900 font-medium">Riwayat</span>
-            </div>
-            <div className="flex items-center justify-between">
+          <motion.div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+            initial="hidden" animate="visible" variants={stagger(0.1)}>
+            <motion.div variants={fadeLeft}>
+              <motion.div className="flex items-center gap-2 text-xs text-gray-500 mb-1" variants={fadeUp}>
+                <span>Dasbor</span><span>/</span>
+                <span className="text-gray-900 font-medium">Riwayat</span>
+              </motion.div>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
+                <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
                   <BarChart3 className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Riwayat Trading</h1>
-                  <p className="text-sm text-gray-500">
-                    Menampilkan {startIndex + 1}–{Math.min(endIndex, totalItems)} dari {totalItems} transaksi • Halaman {currentPage} dari {totalPages}
-                  </p>
+                  <AnimatedHeadline text="Riwayat Trading" className="text-2xl sm:text-3xl font-bold text-gray-900" />
+                  <motion.p className="text-gray-500 text-sm mt-0.5" variants={fadeUp}>
+                    Menampilkan {startIndex + 1}–{Math.min(endIndex, totalItems)} dari {totalItems} transaksi
+                  </motion.p>
                 </div>
               </div>
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="btn-press flex items-center gap-2 px-4 py-2 bg-white text-black border border-gray-200 rounded-lg hover:bg-gray-50 text-sm font-medium"
-              >
-                <RefreshCw className={`w-4 h-4 text-gray-600 ${refreshing ? 'spin' : ''}`} />
-                {refreshing ? 'Memperbarui...' : 'Perbarui'}
-              </button>
-            </div>
-          </div>
+            </motion.div>
+            <motion.button variants={scaleIn}
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
+              whileHover={{ scale: 1.04, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+              whileTap={{ scale: 0.96 }}>
+              <RefreshCw className={`w-4 h-4 text-gray-500 ${refreshing ? 'spin' : ''}`} />
+              {refreshing ? 'Memperbarui...' : 'Perbarui'}
+            </motion.button>
+          </motion.div>
 
           {/* Stats */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6 shadow-sm anim-pop-in" style={{ animationDelay: '60ms' }}>
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6">
+          <Reveal className="bg-white rounded-xl border border-gray-200 p-5 mb-6 shadow-sm">
+            <motion.div className="grid grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6"
+              variants={stagger(0.08)} initial="hidden" animate="visible">
               {[
-                { icon: <DollarSign className={`w-5 h-5 ${totalProfit>=0?'text-green-600':'text-red-600'}`} />, bg: totalProfit>=0?'bg-green-100':'bg-red-100', label:'Total P&L', val: `${totalProfit>=0?'+':''}${formatCurrency(totalProfit)}`, color: totalProfit>=0?'text-green-600':'text-red-600' },
+                { icon: <DollarSign className={`w-5 h-5 ${totalProfit>=0?'text-green-600':'text-red-600'}`} />, bg: totalProfit>=0?'bg-green-100':'bg-red-100', label:'Total P&L', val: `${totalProfit>=0?'+':''}${formatCurrency(totalProfit)}`, color: totalProfit>=0?'text-green-600':'text-red-600', isText: true },
                 { icon: <Activity className="w-5 h-5 text-blue-600" />, bg:'bg-blue-100', label:'Total Transaksi', val: stats.total, color:'text-gray-900' },
                 { icon: <TrendingUp className="w-5 h-5 text-green-600" />, bg:'bg-green-100', label:'Menang', val: stats.won, color:'text-green-600' },
                 { icon: <TrendingDown className="w-5 h-5 text-red-600" />, bg:'bg-red-100', label:'Kalah', val: stats.lost, color:'text-red-600' },
-                { icon: <Target className="w-5 h-5 text-yellow-600" />, bg:'bg-yellow-100', label:'Win Rate', val: `${winRate}%`, color:'text-yellow-600' },
+                { icon: <Target className="w-5 h-5 text-yellow-600" />, bg:'bg-yellow-100', label:'Win Rate', val: winRate, suffix: '%', color:'text-yellow-600' },
               ].map((s, i) => (
-                <div key={i} className="stat-card flex items-center gap-4" style={{ animationDelay: `${i*50}ms` }}>
+                <motion.div key={i} className="stat-card flex items-center gap-4" variants={fadeUp}
+                  whileHover={{ y: -3, boxShadow: '0 8px 24px rgba(0,0,0,0.08)', transition: { duration: 0.2 } }}>
                   <div className={`stat-icon w-10 h-10 ${s.bg} rounded-lg flex items-center justify-center flex-shrink-0`}>
                     {s.icon}
                   </div>
                   <div>
                     <div className="text-xs font-medium text-gray-500 mb-1">{s.label}</div>
-                    <div className={`text-lg font-bold ${s.color}`}>{s.val}</div>
+                    <div className={`text-lg font-bold ${s.color}`}>
+                      {s.isText ? s.val : <CountUp to={s.val as number} suffix={(s as any).suffix} />}
+                    </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
-          </div>
+            </motion.div>
+          </Reveal>
 
           {/* Filters */}
-          <div className="bg-white rounded-xl p-5 border border-gray-200 mb-6 shadow-sm anim-fade-up" style={{ animationDelay: '100ms' }}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <Wallet className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm text-gray-600 font-medium">Akun:</span>
+          <Reveal className="bg-white rounded-xl border border-gray-200 shadow-sm mb-6">
+            <div className="p-4 sm:p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Wallet className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm text-gray-600 font-medium">Akun:</span>
+                  </div>
+                  <div className="flex gap-1 bg-gray-100 border border-gray-200 rounded-xl p-1">
+                    {[{ id:'all', label:'Semua' }, { id:'real', label:'Real' }, { id:'demo', label:'Demo' }].map(a => (
+                      <motion.button key={a.id} onClick={() => handleFilterChange(a.id, 'account')}
+                        className={`relative px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${accountFilter===a.id ? 'text-white' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}
+                        whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        {accountFilter===a.id && (
+                          <motion.div className="absolute inset-0 bg-blue-600 rounded-lg shadow-md" layoutId="accountPill" transition={{ ...SPRING }} />
+                        )}
+                        <span className="relative z-10">{a.label}</span>
+                      </motion.button>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  {[{ id:'all', label:'Semua' }, { id:'real', label:'Real' }, { id:'demo', label:'Demo' }].map(a => (
-                    <button key={a.id} onClick={() => handleFilterChange(a.id, 'account')}
-                      className={`filter-btn px-4 py-2 rounded-lg text-sm font-medium ${accountFilter===a.id ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'}`}>
-                      {a.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm text-gray-600 font-medium">Status:</span>
-                </div>
-                <div className="flex gap-2">
-                  {[{ id:'all', label:'Semua' }, { id:'ACTIVE', label:'Aktif' }, { id:'WON', label:'Menang' }, { id:'LOST', label:'Kalah' }].map(f => (
-                    <button key={f.id} onClick={() => handleFilterChange(f.id, 'status')}
-                      className={`filter-btn px-4 py-2 rounded-lg text-sm font-medium ${statusFilter===f.id ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-700'}`}>
-                      {f.label}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm text-gray-600 font-medium">Status:</span>
+                  </div>
+                  <div className="flex gap-1 bg-gray-100 border border-gray-200 rounded-xl p-1">
+                    {[{ id:'all', label:'Semua' }, { id:'ACTIVE', label:'Aktif' }, { id:'WON', label:'Menang' }, { id:'LOST', label:'Kalah' }].map(f => (
+                      <motion.button key={f.id} onClick={() => handleFilterChange(f.id, 'status')}
+                        className={`relative px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${statusFilter===f.id ? 'text-white' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}
+                        whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        {statusFilter===f.id && (
+                          <motion.div className="absolute inset-0 bg-gray-700 rounded-lg shadow-md" layoutId="statusPill" transition={{ ...SPRING }} />
+                        )}
+                        <span className="relative z-10">{f.label}</span>
+                      </motion.button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </Reveal>
 
           {/* Table */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm anim-fade-up" style={{ animationDelay: '150ms' }}>
+          <Reveal className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
             {displayedOrders.length === 0 ? (
-              <div className="text-center py-12 px-4">
+              <motion.div className="text-center py-12 px-4" variants={scaleIn} initial="hidden" animate="visible">
                 <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Tidak ada transaksi</h3>
                 <p className="text-gray-500 mb-4">Coba sesuaikan filter Anda</p>
-              </div>
+              </motion.div>
             ) : (
               <>
                 <div className="overflow-x-auto">
@@ -598,12 +699,17 @@ export default function HistoryPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {displayedOrders.map((order, index) => (
-                        <tr
-                          key={order.id}
-                          className="tr-hover anim-fade-left border-b border-gray-100"
-                          style={{ animationDelay: `${index * 35}ms` }}
-                        >
+                      <AnimatePresence>
+                        {displayedOrders.map((order, index) => (
+                          <motion.tr
+                            key={order.id}
+                            className="tr-hover border-b border-gray-100"
+                            initial={{ opacity: 0, x: -12 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 12 }}
+                            transition={{ ...SPRING, delay: index * 0.03 }}
+                            whileHover={{ backgroundColor: 'rgb(249,250,251)' }}
+                          >
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-2 text-xs text-gray-600">
                               <CalendarClock className="w-4 h-4 text-gray-400" />
@@ -648,8 +754,9 @@ export default function HistoryPage() {
                                 </span>
                               : <span className="text-gray-400">—</span>}
                           </td>
-                        </tr>
-                      ))}
+                        </motion.tr>
+                        ))}
+                      </AnimatePresence>
                     </tbody>
                   </table>
                 </div>
@@ -693,7 +800,7 @@ export default function HistoryPage() {
                 )}
               </>
             )}
-          </div>
+          </Reveal>
         </div>
       </div>
     </>

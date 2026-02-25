@@ -22,6 +22,25 @@ import {
   Share2
 } from 'lucide-react'
 
+type LogoPhase = 'stc-logo-in' | 'stc-text-in' | 'stc-hold' | 'stc-text-out' | 'stc-logo-out' | 'stockity-logo-in' | 'stockity-text-in' | 'stockity-hold' | 'stockity-text-out' | 'stockity-logo-out'
+
+// ── Module-level cache ─────────────────────────────────────────
+// Persists across component re-mounts (navigasi antar halaman),
+// sehingga tidak ada flash/jump saat Navbar di-mount ulang.
+const _cache: {
+  userProfile: UserProfile | null
+  profileFetched: string | null   // simpan user.id yang sudah di-fetch
+  isAffiliator: boolean
+  affiliatorChecked: string | null
+  logoPhase: LogoPhase
+} = {
+  userProfile: null,
+  profileFetched: null,
+  isAffiliator: false,
+  affiliatorChecked: null,
+  logoPhase: 'stc-logo-in',
+}
+
 export default function Navbar() {
   const router = useRouter()
   const pathname = usePathname()
@@ -29,43 +48,55 @@ export default function Navbar() {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [isClosingMenu, setIsClosingMenu] = useState(false)
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
-  const [isAffiliator, setIsAffiliator] = useState(false)
-  const [logoPhase, setLogoPhase] = useState<'stc-logo-in' | 'stc-text-in' | 'stc-hold' | 'stc-text-out' | 'stc-logo-out' | 'stockity-logo-in' | 'stockity-text-in' | 'stockity-hold' | 'stockity-text-out' | 'stockity-logo-out'>('stc-logo-in')
 
-  // Fetch user profile
+  // Init dari cache → tidak ada flash/jump saat re-mount
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(_cache.userProfile)
+  const [isAffiliator, setIsAffiliator] = useState(_cache.isAffiliator)
+  const [logoPhase, setLogoPhase] = useState<LogoPhase>(_cache.logoPhase)
+
+  // Setter yang sekaligus update cache
+  const updateLogoPhase = (phase: LogoPhase) => {
+    _cache.logoPhase = phase
+    setLogoPhase(phase)
+  }
+
+  // Fetch profile & affiliator — hanya sekali per user (skip jika cache valid)
   useEffect(() => {
-    const loadUserProfile = async () => {
-      if (!user?.id) return
-      
-      try {
-        const response = await api.getProfile()
-        const profile = (response as any)?.data as UserProfile || response as UserProfile
-        
-        if (profile && 'user' in profile && 'statusInfo' in profile) {
-          setUserProfile(profile)
+    if (!user?.id) return
+
+    if (_cache.profileFetched !== user.id) {
+      _cache.profileFetched = user.id
+      ;(async () => {
+        try {
+          const response = await api.getProfile()
+          const profile = (response as any)?.data as UserProfile || response as UserProfile
+          if (profile && 'user' in profile && 'statusInfo' in profile) {
+            _cache.userProfile = profile
+            setUserProfile(profile)
+          }
+        } catch (error) {
+          console.error('Failed to load user profile:', error)
         }
-      } catch (error) {
-        console.error('Failed to load user profile:', error)
-      }
+      })()
     }
 
-    const checkAffiliator = async () => {
-      if (!user?.id) return
-      try {
-        await api.getMyAffiliatorProgram()
-        setIsAffiliator(true)
-      } catch {
-        setIsAffiliator(false)
-      }
+    if (_cache.affiliatorChecked !== user.id) {
+      _cache.affiliatorChecked = user.id
+      ;(async () => {
+        try {
+          await api.getMyAffiliatorProgram()
+          _cache.isAffiliator = true
+          setIsAffiliator(true)
+        } catch {
+          _cache.isAffiliator = false
+          setIsAffiliator(false)
+        }
+      })()
     }
-
-    loadUserProfile()
-    checkAffiliator()
   }, [user?.id])
 
   useEffect(() => {
-    const phaseTimings = {
+    const phaseTimings: Record<LogoPhase, number> = {
       'stc-logo-in': 800,
       'stc-text-in': 800,
       'stc-hold': 8000,
@@ -78,7 +109,7 @@ export default function Navbar() {
       'stockity-logo-out': 800,
     }
 
-    const nextPhase = {
+    const nextPhase: Record<LogoPhase, LogoPhase> = {
       'stc-logo-in': 'stc-text-in',
       'stc-text-in': 'stc-hold',
       'stc-hold': 'stc-text-out',
@@ -89,10 +120,10 @@ export default function Navbar() {
       'stockity-hold': 'stockity-text-out',
       'stockity-text-out': 'stockity-logo-out',
       'stockity-logo-out': 'stc-logo-in',
-    } as const
+    }
 
     const timeout = setTimeout(() => {
-      setLogoPhase(nextPhase[logoPhase])
+      updateLogoPhase(nextPhase[logoPhase])
     }, phaseTimings[logoPhase])
 
     return () => clearTimeout(timeout)
@@ -100,6 +131,13 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
+      // Reset navbar cache agar user berikutnya tidak lihat data lama
+      _cache.userProfile = null
+      _cache.profileFetched = null
+      _cache.isAffiliator = false
+      _cache.affiliatorChecked = null
+      _cache.logoPhase = 'stc-logo-in'
+
       api.removeToken()
       api.clearCache()
       logout()
@@ -126,6 +164,72 @@ export default function Navbar() {
   }
 
   const isActive = (path: string) => pathname === path
+  const isAdmin = pathname.startsWith('/admin')
+
+  // ── Theme tokens — swap seluruh palette saat di panel admin ──
+  const t = isAdmin ? {
+    nav:            'border-b border-white/10 bg-[#080c1e]',
+    logoText:       'text-slate-100',
+    navBtn:         'text-slate-200 hover:text-white hover:bg-white/[0.08]',
+    navBtnActive:   'bg-indigo-500/20 text-indigo-300',
+    userBtn:        '',
+    userEmail:      'text-slate-100',
+    chevron:        'text-slate-500',
+    dropdown:       'bg-[rgba(10,14,30,0.96)] backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.6)]',
+    dropHeader:     'border-b border-white/[0.08]',
+    dropTitle:      'text-slate-100',
+    dropSub:        'text-slate-400',
+    dropItem:       'text-slate-300 hover:bg-white/[0.08] hover:text-slate-100',
+    dropItemActive: 'text-indigo-300 bg-indigo-500/15',
+    dropDivider:    'border-t border-white/[0.08]',
+    dropLogout:     'text-red-400 hover:bg-red-500/10',
+    mobileMenuBtn:  'hover:bg-white/[0.08]',
+    mobileIcon:     'text-slate-300',
+    mobileDrawer:   'bg-[#080c1e] border-l border-white/10',
+    mobileHeader:   'border-b border-white/10',
+    mobileTitle:    'text-slate-100',
+    mobileClose:    'hover:bg-white/[0.08]',
+    mobileCloseIcon:'text-slate-400',
+    mobileProfile:  'bg-[#0d1120] border-b border-white/10',
+    mobileEmail:    'text-slate-100',
+    mobileRole:     'text-slate-400',
+    mobileLinkBtn:  'text-slate-200 bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.10] hover:text-white hover:border-white/[0.18]',
+    mobileLinkActive:'bg-indigo-500/25 text-indigo-200 border border-indigo-400/30',
+    mobileFooter:   'border-t border-white/[0.08]',
+    mobileLogout:   'text-red-300 bg-red-500/[0.10] border border-red-400/20 hover:bg-red-500/20 hover:border-red-400/40',
+    ring:           'ring-white/15',
+  } : {
+    nav:            'bg-white border-b border-gray-200',
+    logoText:       'text-gray-900',
+    navBtn:         'text-gray-600 hover:text-gray-900 hover:bg-gray-50',
+    navBtnActive:   'bg-blue-50 text-blue-600',
+    userBtn:        'hover:bg-gray-50',
+    userEmail:      'text-gray-900',
+    chevron:        'text-gray-400',
+    dropdown:       'bg-white border border-gray-200 shadow-flat-lg',
+    dropHeader:     'border-b border-gray-100',
+    dropTitle:      'text-gray-900',
+    dropSub:        'text-gray-500',
+    dropItem:       'text-gray-700 hover:bg-blue-50',
+    dropItemActive: 'text-blue-600 bg-blue-50',
+    dropDivider:    'border-t border-gray-100',
+    dropLogout:     'text-red-600 hover:bg-red-50',
+    mobileMenuBtn:  'hover:bg-gray-50',
+    mobileIcon:     'text-gray-700',
+    mobileDrawer:   'bg-white border-l border-gray-200',
+    mobileHeader:   'border-b border-gray-200',
+    mobileTitle:    'text-gray-900',
+    mobileClose:    'hover:bg-gray-50',
+    mobileCloseIcon:'text-gray-500',
+    mobileProfile:  'bg-gray-50 border-b border-gray-200',
+    mobileEmail:    'text-gray-900',
+    mobileRole:     'text-gray-500',
+    mobileLinkBtn:  'text-gray-700 hover:bg-gray-50',
+    mobileLinkActive:'bg-blue-50 text-blue-600',
+    mobileFooter:   'border-t border-gray-200',
+    mobileLogout:   'text-red-600 bg-red-50 hover:bg-red-100',
+    ring:           'ring-gray-200',
+  }
 
   const navLinks = [
     { path: '/trading', label: 'Trading', icon: BarChart3 },
@@ -139,7 +243,8 @@ export default function Navbar() {
   if (!user) return null
 
   return (
-    <nav className="bg-white border-b border-gray-200">
+    <>
+    <nav className={`${t.nav}`}>
       {/* Desktop: full-width layout tanpa container constraint */}
       <div className="hidden md:flex items-center h-16 px-6 gap-4">
 
@@ -167,7 +272,7 @@ export default function Navbar() {
               
               {(logoPhase !== 'stc-logo-in' && logoPhase !== 'stc-logo-out') && (
                 <div className="flex overflow-hidden">
-                  <span className={`text-lg font-bold text-gray-900 whitespace-nowrap ${
+                  <span className={`text-lg font-bold ${t.logoText} whitespace-nowrap ${
                     logoPhase === 'stc-text-in' ? 'animate-text-slide-in' :
                     logoPhase === 'stc-text-out' ? 'animate-text-slide-out' : 
                     'opacity-100 translate-x-0'
@@ -198,7 +303,7 @@ export default function Navbar() {
               
               {(logoPhase !== 'stockity-logo-in' && logoPhase !== 'stockity-logo-out') && (
                 <div className="flex overflow-hidden">
-                  <span className={`text-lg font-bold text-gray-900 whitespace-nowrap ${
+                  <span className={`text-lg font-bold ${t.logoText} whitespace-nowrap ${
                     logoPhase === 'stockity-text-in' ? 'animate-text-slide-in' :
                     logoPhase === 'stockity-text-out' ? 'animate-text-slide-out' : 
                     'opacity-100 translate-x-0'
@@ -219,11 +324,7 @@ export default function Navbar() {
               <button
                 key={link.path}
                 onClick={() => router.push(link.path)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive(link.path)
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isActive(link.path) ? t.navBtnActive : t.navBtn}`}
               >
                 <Icon className="w-4 h-4" />
                 <span>{link.label}</span>
@@ -238,11 +339,11 @@ export default function Navbar() {
         <div className="flex-shrink-0 relative">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${t.userBtn}`}
           >
-            <div className="text-sm font-medium text-gray-900">{user.email.split('@')[0]}</div>
+            <div className={`text-sm font-medium ${t.userEmail}`}>{user.email.split('@')[0]}</div>
             {userProfile?.profileInfo?.avatar?.url ? (
-              <div className="relative w-8 h-8 rounded-full overflow-hidden ring-2 ring-gray-200">
+              <div className={`relative w-8 h-8 rounded-full overflow-hidden ring-2 ${t.ring}`}>
                 <Image
                   src={userProfile.profileInfo.avatar.url}
                   alt={user.email}
@@ -256,17 +357,17 @@ export default function Navbar() {
                 {user.email[0].toUpperCase()}
               </div>
             )}
-            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-4 h-4 ${t.chevron} transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
           </button>
 
           {showUserMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
-              <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-flat-lg z-50 overflow-hidden">
+              <div className={`absolute top-full right-0 mt-2 w-64 rounded-lg z-50 overflow-hidden ${t.dropdown}`}>
                 {/* User info */}
-                <div className="px-4 py-3 border-b border-gray-100">
-                  <div className="text-sm font-medium text-gray-900 truncate mb-1">{user.email}</div>
-                  <div className="text-xs text-gray-500 capitalize">
+                <div className={`px-4 py-3 ${t.dropHeader}`}>
+                  <div className={`text-sm font-medium ${t.dropTitle} truncate mb-1`}>{user.email}</div>
+                  <div className={`text-xs ${t.dropSub} capitalize`}>
                     {user.role.replace('_', ' ')} | {user.status.toUpperCase()}
                   </div>
                 </div>
@@ -275,9 +376,7 @@ export default function Navbar() {
                 {isAffiliator && (
                   <button
                     onClick={() => { router.push('/affiliate'); setShowUserMenu(false) }}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 transition-colors text-left ${
-                      isActive('/affiliate') ? 'text-blue-600 bg-blue-50' : 'text-gray-700'
-                    }`}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 transition-colors text-left ${isActive('/affiliate') ? t.dropItemActive : t.dropItem}`}
                   >
                     <Share2 className="w-4 h-4" />
                     <span className="text-sm font-medium">Program Affiliasi</span>
@@ -288,9 +387,7 @@ export default function Navbar() {
                 {(user.role === 'super_admin' || user.role === 'admin') && (
                   <button
                     onClick={() => { router.push('/admin'); setShowUserMenu(false) }}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 transition-colors text-left ${
-                      pathname.startsWith('/admin') ? 'text-blue-600 bg-blue-50' : 'text-gray-700'
-                    }`}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 transition-colors text-left ${pathname.startsWith('/admin') ? t.dropItemActive : t.dropItem}`}
                   >
                     <Shield className="w-4 h-4" />
                     <span className="text-sm font-medium">Panel Admin</span>
@@ -298,12 +395,12 @@ export default function Navbar() {
                 )}
 
                 {/* Divider */}
-                <div className="border-t border-gray-100" />
+                <div className={t.dropDivider} />
 
                 {/* Logout */}
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 transition-colors text-left text-red-600"
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 transition-colors text-left ${t.dropLogout}`}
                 >
                   <LogOut className="w-4 h-4" />
                   <span className="text-sm font-medium">Keluar</span>
@@ -332,7 +429,7 @@ export default function Navbar() {
               </div>
               {(logoPhase !== 'stc-logo-in' && logoPhase !== 'stc-logo-out') && (
                 <div className="flex overflow-hidden">
-                  <span className={`text-lg font-bold text-gray-900 whitespace-nowrap ${
+                  <span className={`text-lg font-bold ${t.logoText} whitespace-nowrap ${
                     logoPhase === 'stc-text-in' ? 'animate-text-slide-in' :
                     logoPhase === 'stc-text-out' ? 'animate-text-slide-out' : 
                     'opacity-100 translate-x-0'
@@ -352,7 +449,7 @@ export default function Navbar() {
               </div>
               {(logoPhase !== 'stockity-logo-in' && logoPhase !== 'stockity-logo-out') && (
                 <div className="flex overflow-hidden">
-                  <span className={`text-lg font-bold text-gray-900 whitespace-nowrap ${
+                  <span className={`text-lg font-bold ${t.logoText} whitespace-nowrap ${
                     logoPhase === 'stockity-text-in' ? 'animate-text-slide-in' :
                     logoPhase === 'stockity-text-out' ? 'animate-text-slide-out' : 
                     'opacity-100 translate-x-0'
@@ -366,34 +463,36 @@ export default function Navbar() {
         {/* Mobile Menu Button */}
         <button
           onClick={() => setShowMobileMenu(true)}
-          className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
+          className={`p-2 rounded-lg transition-colors ${t.mobileMenuBtn}`}
         >
-          <Menu className="w-6 h-6 text-gray-700" />
+          <Menu className={`w-6 h-6 ${t.mobileIcon}`} />
         </button>
       </div>
 
-      {/* Mobile Menu Drawer */}
+    </nav>
+
+      {/* Mobile Menu Drawer — outside <nav> to escape stacking context */}
       {showMobileMenu && (
         <>
           <div 
-            className={`fixed inset-0 bg-black/20 z-50 ${isClosingMenu ? 'animate-fade-out' : 'animate-fade-in'}`}
+            className={`fixed inset-0 bg-black/50 z-[50] ${isClosingMenu ? 'animate-fade-out' : 'animate-fade-in'}`}
             onClick={closeMobileMenu} 
           />
-          <div className={`fixed top-0 right-0 bottom-0 w-80 bg-white border-l border-gray-200 z-50 overflow-y-auto ${isClosingMenu ? 'animate-slide-right' : 'animate-slide-left'}`}>
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="font-bold text-gray-900">Menu</h3>
+          <div className={`fixed top-0 right-0 bottom-0 w-80 z-[60] overflow-y-auto ${t.mobileDrawer} ${isClosingMenu ? 'animate-slide-right' : 'animate-slide-left'}`}>
+            <div className={`flex items-center justify-between p-4 ${t.mobileHeader}`}>
+              <h3 className={`font-bold ${t.mobileTitle}`}>Menu</h3>
               <button 
                 onClick={closeMobileMenu}
-                className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                className={`p-2 rounded-lg transition-colors ${t.mobileClose}`}
               >
-                <X className="w-5 h-5 text-gray-500" />
+                <X className={`w-5 h-5 ${t.mobileCloseIcon}`} />
               </button>
             </div>
 
-            <div className="p-4 bg-gray-50 border-b border-gray-200">
+            <div className={`p-4 ${t.mobileProfile}`}>
               <div className="flex items-center gap-3">
                 {userProfile?.profileInfo?.avatar?.url ? (
-                  <div className="relative w-10 h-10 rounded-full overflow-hidden ring-2 ring-gray-200">
+                  <div className={`relative w-10 h-10 rounded-full overflow-hidden ring-2 ${t.ring}`}>
                     <Image
                       src={userProfile.profileInfo.avatar.url}
                       alt={user.email}
@@ -408,8 +507,8 @@ export default function Navbar() {
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900 truncate">{user.email}</div>
-                  <div className="text-xs text-gray-500 capitalize">{user.role.replace('_', ' ')}</div>
+                  <div className={`text-sm font-medium ${t.mobileEmail} truncate`}>{user.email}</div>
+                  <div className={`text-xs ${t.dropSub} capitalize`}>{user.role.replace('_', ' ')}</div>
                 </div>
               </div>
             </div>
@@ -424,11 +523,7 @@ export default function Navbar() {
                       router.push(link.path)
                       closeMobileMenu()
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                      isActive(link.path)
-                        ? 'bg-blue-50 text-blue-600'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive(link.path) ? t.mobileLinkActive : t.mobileLinkBtn}`}
                   >
                     <Icon className="w-5 h-5" />
                     <span className="font-medium">{link.label}</span>
@@ -442,11 +537,7 @@ export default function Navbar() {
                     router.push('/admin')
                     closeMobileMenu()
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    pathname.startsWith('/admin')
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${pathname.startsWith('/admin') ? t.mobileLinkActive : t.mobileLinkBtn}`}
                 >
                   <Shield className="w-5 h-5" />
                   <span className="font-medium">Panel Admin</span>
@@ -454,10 +545,10 @@ export default function Navbar() {
               )}
             </div>
 
-            <div className="p-4 border-t border-gray-200 space-y-1">              
+            <div className={`p-4 space-y-1 ${t.mobileFooter}`}>              
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-red-50 hover:bg-red-100 rounded-lg transition-colors text-red-600"
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${t.mobileLogout}`}
               >
                 <LogOut className="w-5 h-5" />
                 <span className="font-medium">Keluar</span>
@@ -467,7 +558,7 @@ export default function Navbar() {
         </>
       )}
 
-      <style jsx>{`
+      <style jsx global>{`
         @keyframes slide-left {
           from { transform: translateX(100%); }
           to { transform: translateX(0); }
@@ -497,6 +588,6 @@ export default function Navbar() {
           animation: fade-out 0.3s ease-in forwards;
         }
       `}</style>
-    </nav>
+    </>
   )
 }

@@ -22,24 +22,74 @@ import { getStatusGradient, formatStatusInfo, calculateStatusProgress, formatDep
 import { auth } from '@/lib/firebase-auth'
 import { signInWithPhoneNumber, RecaptchaVerifier, ConfirmationResult } from 'firebase/auth'
 
+// ── Motion primitives — seragam dengan halaman lain ─────────────
+const SPRING = { type: 'spring', stiffness: 80, damping: 20 } as const
+
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.3, ease: "easeOut" }
-  }
+  visible: { opacity: 1, y: 0, transition: { ...SPRING } },
+}
+const fadeLeft: Variants = {
+  hidden: { opacity: 0, x: -16 },
+  visible: { opacity: 1, x: 0, transition: { ...SPRING } },
+}
+const scaleIn: Variants = {
+  hidden: { opacity: 0, scale: 0.93 },
+  visible: { opacity: 1, scale: 1, transition: { ...SPRING } },
 }
 
 const staggerContainer: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.05,
-      delayChildren: 0.1
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.07, delayChildren: 0.03 } },
+}
+
+// Reveal — trigger animasi saat elemen masuk viewport (scroll)
+function Reveal({ children, variants = fadeInUp, delay = 0, className = '' }: {
+  children: React.ReactNode; variants?: Variants; delay?: number; className?: string
+}) {
+  return (
+    <motion.div className={className} variants={variants} initial="hidden"
+      whileInView="visible" viewport={{ once: true, margin: '-60px' }}
+      transition={{ delay }}>
+      {children}
+    </motion.div>
+  )
+}
+
+// AnimatedHeadline — kata per kata fade+blur masuk
+function AnimatedHeadline({ text, className }: { text: string; className?: string }) {
+  return (
+    <motion.h1 className={className}
+      variants={staggerContainer} initial="hidden" animate="visible">
+      {text.split(' ').map((word, i) => (
+        <motion.span key={i} className="inline-block mr-[0.25em]"
+          variants={{ hidden: { opacity: 0, y: 24, filter: 'blur(4px)' }, visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { ...SPRING } } }}>
+          {word}
+        </motion.span>
+      ))}
+    </motion.h1>
+  )
+}
+
+// CountUp — angka naik dari 0 ke target
+function CountUp({ to, suffix = '', prefix = '' }: { to: number; suffix?: string; prefix?: string }) {
+  const ref = React.useRef<HTMLSpanElement>(null)
+  const inView = (require('framer-motion') as any).useInView(ref, { once: true, margin: '-40px' })
+  const [val, setVal] = React.useState(0)
+  const triggered = React.useRef(false)
+  React.useEffect(() => {
+    if (!inView || triggered.current) return
+    triggered.current = true
+    let start: number
+    const step = (ts: number) => {
+      if (!start) start = ts
+      const p = Math.min((ts - start) / 800, 1)
+      setVal(Math.round(to * (1 - Math.pow(1 - p, 3))))
+      if (p < 1) requestAnimationFrame(step)
     }
-  }
+    requestAnimationFrame(step)
+  }, [inView, to])
+  return <span ref={ref}>{prefix}{val}{suffix}</span>
 }
 
 const SkeletonTabs = () => (
@@ -88,12 +138,11 @@ const LoadingSkeleton = () => (
     <style jsx global>{`
       /* Grid Pattern - Background sedikit gelap agar card terlihat */
       .bg-pattern-grid {
-        background-color: #f0f2f5 !important;
-        background-image: 
-          linear-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+        background-color: #f5f6f8 !important;
+        background-image:
+          linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
         background-size: 40px 40px;
-        background-position: center center;
       }
       
       /* Scrollbar hide utility */
@@ -106,9 +155,7 @@ const LoadingSkeleton = () => (
       }
       
       /* Pastikan body tidak hitam saat loading */
-      body {
-        background-color: #f0f2f5 !important;
-      }
+      body { background-color: #f5f6f8 !important; }
       
       /* Skeleton animations */
       @keyframes skeleton-pulse {
@@ -133,7 +180,7 @@ const LoadingSkeleton = () => (
 
     <div className="min-h-screen bg-pattern-grid">
       <Navbar />
-      <div className="container mx-auto px-4 py-6 md:py-8 max-w-7xl">
+      <div className="max-w-5xl mx-auto px-4 py-6">
         <motion.div
           className="mb-6"
           initial={{ opacity: 0 }}
@@ -1040,10 +1087,10 @@ export default function ProfilePage() {
       <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.2 }}
+          transition={{ ...SPRING }}
         >
           {activeTab === 'overview' && (
             <motion.div
@@ -1051,6 +1098,7 @@ export default function ProfilePage() {
               variants={staggerContainer}
               initial="hidden"
               animate="visible"
+              viewport={{ once: true }}
             >
               {/* Kolom kiri — Identitas & Status */}
               <div className="lg:col-span-1 flex flex-col gap-4">
@@ -1344,9 +1392,10 @@ export default function ProfilePage() {
           )}
           {activeTab === 'personal' && (
             <motion.div
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-xl border border-gray-200 overflow-hidden profile-card"
+              initial="hidden"
+              animate="visible"
+              variants={scaleIn}
             >
               <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-sky-50 to-white">
                 <div>
@@ -1627,9 +1676,10 @@ export default function ProfilePage() {
           )}
           {activeTab === 'address' && (
             <motion.div
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-xl border border-gray-200 overflow-hidden profile-card"
+              initial="hidden"
+              animate="visible"
+              variants={scaleIn}
             >
               <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-white">
                 <div>
@@ -1835,9 +1885,10 @@ export default function ProfilePage() {
           )}
           {activeTab === 'identity' && (
             <motion.div
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-xl border border-gray-200 overflow-hidden profile-card"
+              initial="hidden"
+              animate="visible"
+              variants={scaleIn}
             >
               <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-violet-50 to-white">
                 <div>
@@ -2162,9 +2213,10 @@ export default function ProfilePage() {
           )}
           {activeTab === 'bank' && (
             <motion.div
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-xl border border-gray-200 overflow-hidden profile-card"
+              initial="hidden"
+              animate="visible"
+              variants={scaleIn}
             >
               <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-white">
                 <div>
@@ -2681,74 +2733,68 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen" style={{
-      backgroundImage: `
-    linear-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.06) 1px, transparent 1px)
-  `,
-      backgroundSize: '40px 40px',
-      backgroundPosition: 'center center',
-      backgroundColor: '#f0f2f5'
-    }}>
+    <>
+    <style jsx global>{`
+      .bg-pattern-grid {
+        background-color: #f5f6f8;
+        background-image:
+          linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+        background-size: 40px 40px;
+      }
+      body { background-color: #f5f6f8 !important; }
+      .flat-avatar {
+        background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+        color: white;
+      }
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+      .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      .profile-card {
+        transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s ease;
+      }
+      .profile-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      }
+      .btn-press {
+        transition: transform 0.1s ease, opacity 0.1s ease;
+      }
+      .btn-press:active { transform: scale(0.97); }
+    `}</style>
+    <div className="min-h-screen bg-pattern-grid relative">
       <Navbar />
       <Toaster position="top-right" expand={true} />
-      <div className="container mx-auto px-3 py-8 max-w-7xl">
-        <motion.div
-          className="mb-4"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-2">
-            <motion.span
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              Dasbor
-            </motion.span>
-            <span>/</span>
-            <motion.span
-              className="text-gray-900 font-medium"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              Profil
-            </motion.span>
-          </div>
-          <motion.div
-            className="flex mt-2 items-center gap-3"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <motion.div
-              className="w-10 h-10 bg-sky-500 rounded-xl flex items-center justify-center shadow-md"
-              whileHover={{ rotate: 90, scale: 1.05 }}
-              transition={{ type: "spring" }}
-            >
-              <Settings className="w-6 h-6 text-white" />
+      <div className="max-w-5xl mx-auto px-4 py-6 relative z-10">
+        <motion.div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+          initial="hidden" animate="visible" variants={staggerContainer}>
+          <motion.div variants={fadeLeft}>
+            <motion.div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1" variants={fadeInUp}>
+              <span>Dasbor</span><span>/</span>
+              <span className="text-gray-900 font-medium">Profil</span>
             </motion.div>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900">Profil Saya</h1>
-              <motion.p
-                className="text-xs text-gray-500"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
+            <div className="flex items-center gap-3">
+              <motion.div
+                className="w-9 h-9 bg-sky-500 rounded-xl flex items-center justify-center shadow-md flex-shrink-0"
+                whileHover={{ rotate: 90, scale: 1.1 }}
+                transition={{ ...SPRING }}
               >
-                Kelengkapan profil: <span className="font-semibold">{profileInfo?.completion ?? 0}%</span>
-              </motion.p>
+                <Settings className="w-5 h-5 text-white" />
+              </motion.div>
+              <div>
+                <AnimatedHeadline text="Profil Saya" className="text-2xl sm:text-3xl font-bold text-gray-900" />
+                <motion.p className="text-gray-500 text-sm mt-0.5" variants={fadeInUp}>
+                  Kelengkapan profil: <span className="font-semibold text-gray-700"><CountUp to={profileInfo?.completion ?? 0} suffix="%" /></span>
+                </motion.p>
+              </div>
             </div>
           </motion.div>
         </motion.div>
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           <motion.div
             className="col-span-1 md:hidden"
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
+            transition={{ ...SPRING, delay: 0.15 }}
           >
             <div className="bg-white rounded-xl border border-gray-200 p-2 shadow-sm mb-4 overflow-hidden">
               <div className="overflow-x-auto">
@@ -2759,17 +2805,24 @@ export default function ProfilePage() {
                       <motion.button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs flex-shrink-0 ${activeTab === tab.id
-                            ? 'bg-sky-500 text-white shadow-md'
+                        className={`relative flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-xs flex-shrink-0 ${activeTab === tab.id
+                            ? 'text-white'
                             : 'text-gray-600 hover:bg-gray-50'
                           }`}
                         whileTap={{ scale: 0.95 }}
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.6 + i * 0.05 }}
+                        transition={{ ...SPRING, delay: 0.15 + i * 0.04 }}
                       >
-                        <Icon className="w-4 h-4 flex-shrink-0" />
-                        <span className="font-medium">{tab.label}</span>
+                        {activeTab === tab.id && (
+                          <motion.div
+                            className="absolute inset-0 bg-sky-500 rounded-lg shadow-md"
+                            layoutId="mobileTabPill"
+                            transition={{ ...SPRING }}
+                          />
+                        )}
+                        <Icon className="relative z-10 w-4 h-4 flex-shrink-0" />
+                        <span className="relative z-10 font-medium">{tab.label}</span>
                       </motion.button>
                     )
                   })}
@@ -2779,9 +2832,9 @@ export default function ProfilePage() {
           </motion.div>
           <motion.div
             className="hidden md:block md:col-span-4 lg:col-span-3"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
+            initial="hidden"
+            animate="visible"
+            variants={fadeLeft}
           >
             <div className="bg-white rounded-xl border border-gray-200 p-2 sticky top-4 shadow-sm">
               {/* Mini user card */}
@@ -2826,17 +2879,23 @@ export default function ProfilePage() {
                     <motion.button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left ${activeTab === tab.id
-                          ? 'bg-sky-500 text-white shadow-md'
+                      className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left ${activeTab === tab.id
+                          ? 'text-white'
                           : 'text-gray-600 hover:bg-gray-50'
                         }`}
-                      whileHover={{ x: activeTab === tab.id ? 0 : 5 }}
-                      whileTap={{ scale: 0.98 }}
+                      whileHover={{ x: activeTab === tab.id ? 0 : 4, transition: { ...SPRING } }}
+                      whileTap={{ scale: 0.97 }}
                       variants={fadeInUp}
-                      transition={{ delay: i * 0.05 }}
                     >
-                      <Icon className="w-5 h-5 flex-shrink-0" />
-                      <span className="font-medium text-sm">{tab.label}</span>
+                      {activeTab === tab.id && (
+                        <motion.div
+                          className="absolute inset-0 bg-sky-500 rounded-lg shadow-md"
+                          layoutId="sidebarTabPill"
+                          transition={{ ...SPRING }}
+                        />
+                      )}
+                      <Icon className="relative z-10 w-5 h-5 flex-shrink-0" />
+                      <span className="relative z-10 font-medium text-sm">{tab.label}</span>
                     </motion.button>
                   )
                 })}
@@ -2860,9 +2919,9 @@ export default function ProfilePage() {
           </motion.div>
           <motion.div
             className="col-span-1 md:col-span-8 lg:col-span-9"
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: 16 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.5 }}
+            transition={{ ...SPRING, delay: 0.1 }}
           >
             {renderTabContent()}
           </motion.div>
@@ -2879,5 +2938,6 @@ export default function ProfilePage() {
       {/* Invisible reCAPTCHA container — diperlukan Firebase Phone Auth */}
       <div id="recaptcha-container" ref={recaptchaContainerRef} />
     </div>
+    </>
   )
 }

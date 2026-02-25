@@ -1,6 +1,5 @@
-// app/balance/page.tsx
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -15,6 +14,7 @@ import {
   CreditCard, Loader2, ChevronLeft, ChevronRight, Clock,
   Play
 } from 'lucide-react'
+import { motion, AnimatePresence, useInView, type Variants } from 'framer-motion'
 
 const STATUS_BADGE_IMG: Record<string, string> = {
   standard: '/std.png',
@@ -22,6 +22,51 @@ const STATUS_BADGE_IMG: Record<string, string> = {
   vip: '/vip.png',
 }
 import { toast } from 'sonner'
+
+// ── Framer Motion Primitives ──────────────────────────────────
+const SPRING = { type: 'spring', stiffness: 80, damping: 20 } as const
+
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 18 },
+  visible: { opacity: 1, y: 0, transition: { ...SPRING } },
+}
+const fadeLeft: Variants = {
+  hidden: { opacity: 0, x: -14 },
+  visible: { opacity: 1, x: 0, transition: { ...SPRING } },
+}
+const scaleIn: Variants = {
+  hidden: { opacity: 0, scale: 0.93 },
+  visible: { opacity: 1, scale: 1, transition: { ...SPRING } },
+}
+const stagger = (delay = 0.07): Variants => ({
+  hidden: {},
+  visible: { transition: { staggerChildren: delay, delayChildren: 0.03 } },
+})
+
+function Reveal({ children, variants = fadeUp, delay = 0, className = '' }: {
+  children: React.ReactNode; variants?: Variants; delay?: number; className?: string
+}) {
+  return (
+    <motion.div className={className} variants={variants} initial="hidden"
+      whileInView="visible" viewport={{ once: true, margin: '-60px' }}
+      transition={{ delay }}>
+      {children}
+    </motion.div>
+  )
+}
+
+function AnimatedHeadline({ text, className }: { text: string; className?: string }) {
+  return (
+    <motion.h1 className={className} variants={stagger(0.08)} initial="hidden" animate="visible">
+      {text.split(' ').map((word, i) => (
+        <motion.span key={i} className="inline-block mr-[0.25em]"
+          variants={{ hidden: { opacity: 0, y: 22, filter: 'blur(4px)' }, visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { ...SPRING } } }}>
+          {word}
+        </motion.span>
+      ))}
+    </motion.h1>
+  )
+}
 
 const ITEMS_PER_PAGE = 10
 
@@ -87,9 +132,19 @@ function AnimatedBalance({ amount, started }: { amount: number; started: boolean
   return <>{formatCurrency(animatedAmount)}</>
 }
 
-const StaggerStyles = () => (
+const GlobalStyles = () => (
   <style jsx global>{`
-    /* Entrances — one-shot, GPU only (transform + opacity) */
+    /* ── Background grid — matches affiliate page ─────────────── */
+    .bg-pattern-grid {
+      background-color: #f5f6f8;
+      background-image:
+        linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    body { background-color: #f5f6f8 !important; }
+
+    /* ── Entrance animations ─────────────────────────────────── */
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -107,11 +162,11 @@ const StaggerStyles = () => (
     .tx-row-enter       { animation: fadeLeft 0.3s cubic-bezier(0.22,1,0.36,1) both; opacity:0; }
     .sparkle-in         { animation: popIn   0.4s cubic-bezier(0.22,1,0.36,1) both; opacity:0; }
 
-    /* Skeleton — single infinite, simple */
+    /* ── Skeleton ────────────────────────────────────────────── */
     @keyframes sk-pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
     .skeleton-item { animation: sk-pulse 1.8s ease-in-out infinite; opacity:0; animation-fill-mode:forwards; }
 
-    /* Card shine — fires ONCE on load, not looping */
+    /* ── Card shine (fires once on load) ─────────────────────── */
     @keyframes shine-once {
       0%   { transform: translateX(-100%) skewX(-15deg); opacity:0; }
       15%  { opacity:1; }
@@ -126,16 +181,7 @@ const StaggerStyles = () => (
     }
     .card-shine-delay { animation-delay: 0.65s; }
 
-    /* Background grid — static, zero cost */
-    .bg-pattern-grid {
-      background-color: #ffffff;
-      background-image:
-        linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px);
-      background-size: 40px 40px;
-    }
-
-    /* Card hover — pure CSS transition, GPU */
+    /* ── Balance card hover ───────────────────────────────────── */
     .balance-card {
       transition: transform 0.25s cubic-bezier(0.22,1,0.36,1),
                   box-shadow 0.25s cubic-bezier(0.22,1,0.36,1);
@@ -143,27 +189,25 @@ const StaggerStyles = () => (
     }
     .balance-card:hover {
       transform: translateY(-4px) scale(1.01);
-      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.22);
     }
 
-    /* Pending dots — minimal blink */
+    /* ── Pending dots ─────────────────────────────────────────── */
     @keyframes blink { 0%,80%,100%{opacity:0.3} 40%{opacity:1} }
     .dot-1 { animation: blink 1.2s infinite 0s;   }
     .dot-2 { animation: blink 1.2s infinite 0.2s; }
     .dot-3 { animation: blink 1.2s infinite 0.4s; }
 
-    /* Button — transition only */
-    .btn-ripple {
-      transition: transform 0.1s ease, opacity 0.1s ease;
-    }
+    /* ── Buttons ──────────────────────────────────────────────── */
+    .btn-ripple { transition: transform 0.1s ease, opacity 0.1s ease; }
     .btn-ripple:hover  { opacity: 0.88; }
     .btn-ripple:active { transform: scale(0.97); }
 
-    /* TX row hover */
+    /* ── TX row hover ─────────────────────────────────────────── */
     .tx-row { transition: transform 0.15s ease; }
     .tx-row:hover { transform: translateX(2px); }
 
-    /* Modal close rotate */
+    /* ── Modal close rotate ───────────────────────────────────── */
     .close-btn { transition: transform 0.2s ease; }
     .close-btn:hover { transform: rotate(90deg); }
 
@@ -191,28 +235,22 @@ const SkeletonCard = ({ index = 0 }: { index?: number }) => (
   </div>
 )
 
-const SkeletonDesktopCard = ({ index = 0 }: { index?: number }) => (
-  <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-3xl border-2 border-gray-200 p-6 shadow-xl skeleton-item" style={{ animationDelay: `${index * 250}ms` }}>
-    <div className="flex items-center justify-between mb-6">
-      <div className="flex items-center gap-2">
-        <div className="w-5 h-5 bg-gray-300 rounded"></div>
-        <div className="h-5 bg-gray-300 rounded w-32"></div>
+// SkeletonBalanceCard — mirrors the actual gradient balance card layout
+const SkeletonBalanceCard = ({ index = 0 }: { index?: number }) => (
+  <div className="skeleton-item rounded-2xl shadow-xl overflow-hidden" style={{ animationDelay: `${index * 250}ms` }}>
+    <div className="bg-gray-200 p-5 flex items-center gap-4">
+      <div className="w-12 h-12 bg-gray-300 rounded-2xl flex-shrink-0"></div>
+      <div className="flex-1 space-y-2">
+        <div className="h-3 bg-gray-300 rounded w-20"></div>
+        <div className="h-7 bg-gray-300 rounded w-36"></div>
+        <div className="h-2 bg-gray-300 rounded w-24"></div>
       </div>
-      <div className="flex gap-2">
-        <div className="h-10 bg-gray-300 rounded-lg w-24"></div>
-        <div className="h-10 bg-gray-300 rounded-lg w-24"></div>
-      </div>
-    </div>
-    <div className="bg-gray-300 rounded-2xl p-6 min-h-[280px]">
-      <div className="flex justify-between mb-6">
-        <div className="w-12 h-10 bg-gray-400 rounded-lg opacity-30"></div>
-        <div className="h-8 bg-gray-400 rounded-lg w-16 opacity-30"></div>
-      </div>
-      <div className="space-y-4">
-        <div className="h-4 bg-gray-400 rounded w-24 opacity-30"></div>
-        <div className="h-10 bg-gray-400 rounded w-48 opacity-30"></div>
+      <div className="flex flex-col gap-2 flex-shrink-0">
+        <div className="h-8 bg-gray-300 rounded-xl w-20"></div>
+        <div className="h-8 bg-gray-300 rounded-xl w-20"></div>
       </div>
     </div>
+    <div className="h-1 bg-gray-300"></div>
   </div>
 )
 
@@ -233,66 +271,60 @@ const LoadingSkeleton = () => (
   <>
     <style jsx global>{`
       .bg-pattern-grid {
-        background-color: #ffffff !important;
+        background-color: #f5f6f8 !important;
         background-image:
-          linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 35%, rgba(255,255,255,0.4) 42%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.4) 58%, rgba(255,255,255,1) 65%, rgba(255,255,255,1) 100%),
-          linear-gradient(rgba(0,0,0,0.08) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(0,0,0,0.08) 1px, transparent 1px);
-        background-size: 100% 220%, 40px 40px, 40px 40px;
-        background-position: center 130%, center center, center center;
+          linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+        background-size: 40px 40px;
       }
       .scrollbar-hide::-webkit-scrollbar { display: none; }
       .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-      body { background-color: #ffffff !important; }
+      body { background-color: #f5f6f8 !important; }
       @keyframes skeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-      .skeleton-item { animation: skeleton-pulse 2s ease-in-out infinite; opacity: 0; animation-fill-mode: forwards; }
+      .skeleton-item { animation: skeleton-pulse 1.8s ease-in-out infinite; opacity: 0; animation-fill-mode: forwards; }
     `}</style>
     <div className="min-h-screen bg-pattern-grid">
       <Navbar />
-      <div className="lg:hidden container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl">
-        <div className="mb-4 skeleton-item" style={{ animationDelay: '0ms' }}>
-          <div className="h-3 bg-gray-200 rounded w-32 mb-2"></div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gray-200 rounded-xl"></div>
-            <div className="h-5 bg-gray-200 rounded w-28"></div>
-          </div>
-        </div>
-        <div className="h-20 bg-gray-200 rounded-xl mb-4 skeleton-item" style={{ animationDelay: '100ms' }}></div>
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <SkeletonCard index={1} />
-          <SkeletonCard index={2} />
-        </div>
-        <div className="h-12 bg-gray-200 rounded-xl mb-3 skeleton-item" style={{ animationDelay: '600ms' }}></div>
-        <div className="space-y-2">
-          {[...Array(5)].map((_, i) => <SkeletonTransactionRow key={i} index={i} />)}
-        </div>
-      </div>
-      <div className="hidden lg:block container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">
-        <div className="mb-6 skeleton-item" style={{ animationDelay: '0ms' }}>
-          <div className="h-4 bg-gray-200 rounded w-48 mb-3"></div>
-          <div className="flex items-center justify-between">
+      {/* Same container as real content: max-w-5xl px-4 py-6 */}
+      <div className="max-w-5xl mx-auto px-4 py-6">
+
+        {/* Header — matches: breadcrumb + icon + title */}
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="skeleton-item" style={{ animationDelay: '0ms' }}>
+            <div className="h-3 bg-gray-200 rounded w-40 mb-2"></div>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gray-200 rounded-xl"></div>
-              <div className="h-6 bg-gray-200 rounded w-32"></div>
-            </div>
-            <div className="h-12 bg-gray-200 rounded-xl w-40"></div>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-6 mb-6">
-          <SkeletonDesktopCard index={1} />
-          <SkeletonDesktopCard index={2} />
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden skeleton-item" style={{ animationDelay: '800ms' }}>
-          <div className="p-6 border-b border-gray-200">
-            <div className="h-6 bg-gray-200 rounded w-48 mb-4"></div>
-            <div className="flex gap-2">
-              {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-gray-200 rounded-xl w-24"></div>)}
+              <div className="w-9 h-9 bg-gray-200 rounded-xl flex-shrink-0"></div>
+              <div>
+                <div className="h-7 bg-gray-200 rounded w-40 mb-1"></div>
+                <div className="h-3 bg-gray-200 rounded w-52"></div>
+              </div>
             </div>
           </div>
-          <div className="p-6 space-y-3">
-            {[...Array(5)].map((_, i) => <SkeletonTransactionRow key={i} index={i + 5} />)}
+          <div className="h-14 w-36 bg-gray-200 rounded-xl skeleton-item" style={{ animationDelay: '100ms' }}></div>
+        </div>
+
+        {/* Balance cards — matches: grid-cols-1 sm:grid-cols-2 gap-4 mb-6 */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <SkeletonBalanceCard index={0} />
+          <SkeletonBalanceCard index={1} />
+        </div>
+
+        {/* Transaction section — matches: bg-white rounded-xl border */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden skeleton-item" style={{ animationDelay: '600ms' }}>
+          <div className="p-4 sm:p-5 border-b border-gray-200">
+            <div className="h-6 bg-gray-200 rounded w-44 mb-4"></div>
+            {/* Filter tabs */}
+            <div className="flex gap-1 bg-gray-100 border border-gray-200 rounded-xl p-1">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-9 bg-gray-200 rounded-lg w-24"></div>
+              ))}
+            </div>
+          </div>
+          <div className="p-4 sm:p-5 space-y-2 sm:space-y-3">
+            {[...Array(5)].map((_, i) => <SkeletonTransactionRow key={i} index={i} />)}
           </div>
         </div>
+
       </div>
     </div>
   </>
@@ -474,46 +506,51 @@ export default function BalancePage() {
 
   return (
     <>
-      <StaggerStyles />
-      <div className="min-h-screen bg-pattern-grid">
+      <GlobalStyles />
+      <div className="min-h-screen bg-pattern-grid relative">
         <Navbar />
-        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">
+        <div className="max-w-5xl mx-auto px-4 py-6 relative z-10">
 
           {/* Header */}
-          <div className="mb-4 sm:mb-6 stagger-item" style={{ animationDelay: '0ms' }}>
-            <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-500 mb-2 sm:mb-3">
-              <span>Dashboard</span><span>/</span>
-              <span className="text-gray-900 font-medium">Keuangan</span>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
+          <motion.div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+            initial="hidden" animate="visible" variants={stagger(0.1)}>
+            <motion.div variants={fadeLeft}>
+              <motion.div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1" variants={fadeUp}>
+                <span>Dashboard</span><span>/</span>
+                <span className="text-gray-900 font-medium">Keuangan</span>
+              </motion.div>
+              <div className="flex items-center gap-3">
+                <motion.div className="w-9 h-9 bg-blue-500 rounded-xl flex items-center justify-center flex-shrink-0"
+                  whileHover={{ scale: 1.1, rotate: 8 }} transition={{ duration: 0.2 }}>
+                  <Wallet className="w-5 h-5 text-white" />
+                </motion.div>
                 <div>
-                  <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">Dompet Saya</h1>
-                  <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Kelola Dana Real Dan Demo Anda</p>
+                  <AnimatedHeadline text="Dompet Saya" className="text-2xl sm:text-3xl font-bold text-gray-900" />
+                  <motion.p className="text-gray-500 text-sm mt-0.5" variants={fadeUp}>Kelola Dana Real Dan Demo Anda</motion.p>
                 </div>
               </div>
-              {statusInfo && (
-                <div className={`hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl text-white shadow-2xl border-2 border-white/30 sparkle-in ${
+            </motion.div>
+            {statusInfo && (
+              <motion.div variants={scaleIn}
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl text-white shadow-xl border border-white/30 ${
                   statusInfo.current === 'standard' ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
                   statusInfo.current === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-orange-600' :
                   'bg-gradient-to-r from-purple-400 to-pink-600'
-                }`} style={{ animationDelay: '250ms' }}>
-                  <Image src={STATUS_BADGE_IMG[statusInfo.current] ?? '/std.png'} alt={statusInfo.current} width={44} height={44} className="w-11 h-11 object-contain drop-shadow-lg" />
-                  <div className="text-sm">
-                    <div className="font-bold">{statusInfo.current.toUpperCase()}</div>
-                    <div className="text-xs opacity-90">+{profitBonus}% Bonus</div>
-                  </div>
+                }`}
+                whileHover={{ scale: 1.04, boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
+                <Image src={STATUS_BADGE_IMG[statusInfo.current] ?? '/std.png'} alt={statusInfo.current} width={44} height={44} className="w-10 h-10 object-contain drop-shadow-lg" />
+                <div className="text-sm">
+                  <div className="font-bold">{statusInfo.current.toUpperCase()}</div>
+                  <div className="text-xs opacity-90">+{profitBonus}% Bonus</div>
                 </div>
-              )}
-            </div>
-          </div>
+              </motion.div>
+            )}
+          </motion.div>
 
           {/* Pending Banner */}
           {pendingDeposits.length > 0 && (
-            <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 stagger-item pending-glow" style={{ animationDelay: '60ms' }}>
+            <motion.div className="mb-5 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3"
+              initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING }}>
               <div className="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Clock className="w-5 h-5 text-amber-600" />
               </div>
@@ -528,224 +565,126 @@ export default function BalancePage() {
                 </p>
                 <p className="text-xs text-amber-700 mt-0.5">Klik tombol <span className="font-bold">Lanjutkan</span> di riwayat transaksi untuk menyelesaikan pembayaran Anda.</p>
               </div>
-            </div>
+            </motion.div>
           )}
 
-          {/* Mobile Status Badge */}
-          {statusInfo && (
-            <div className="lg:hidden mb-4 sm:mb-6 sparkle-in" style={{ animationDelay: '80ms' }}>
-              <div className={`p-2 sm:p-3 rounded-xl text-white shadow-lg ${
-                statusInfo.current === 'standard' ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
-                statusInfo.current === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-orange-600' :
-                'bg-gradient-to-r from-purple-400 to-pink-600'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <Image src={STATUS_BADGE_IMG[statusInfo.current] ?? '/std.png'} alt={statusInfo.current} width={56} height={56} className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-lg" />
-                    <div>
-                      <div className="text-base sm:text-lg font-bold">{statusInfo.current.toUpperCase()} Status</div>
-                      <div className="text-xs sm:text-sm opacity-90">Profit Bonus: +{profitBonus}%</div>
-                    </div>
-                  </div>
-                  {statusInfo.nextStatus && (
-                    <div className="text-right">
-                      <div className="text-[10px] sm:text-xs opacity-80">Next: {statusInfo.nextStatus.toUpperCase()}</div>
-                      <div className="text-sm font-bold">{statusInfo.progress}%</div>
-                    </div>
-                  )}
+
+          {/* ============================================ */}
+          {/* BALANCE CARDS — unified responsive grid     */}
+          {/* ============================================ */}
+          <motion.div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6"
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING, delay: 0.2 }}>
+
+            {/* Real Account */}
+            <div className="balance-card relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-600 to-green-700 shadow-xl">
+              <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full" />
+              <div className="absolute -bottom-8 -left-8 w-36 h-36 bg-white/10 rounded-full" />
+              <div className="absolute top-1/2 right-16 w-24 h-24 bg-white/5 rounded-full -translate-y-1/2" />
+              <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '18px 18px' }} />
+              <div className="card-shine" />
+              <div className="relative z-10 p-5 flex items-center gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-white/15 border border-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                  <CreditCard className="w-6 h-6 text-white" />
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* ============================================ */}
-          {/* MOBILE VERSION                              */}
-          {/* ============================================ */}
-          <div className="lg:hidden mb-4 sm:mb-6 stagger-item-scale" style={{ animationDelay: '100ms' }}>
-            <div className="grid grid-cols-2 gap-2.5">
-
-              {/* Real Account — Mobile */}
-              <div className="balance-card relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-600 to-green-700 shadow-lg">
-                <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
-                <div className="absolute -bottom-3 -left-3 w-14 h-14 bg-white/10 rounded-full" />
-                <div className="card-shine" />
-                <div className="relative z-10 p-3 flex flex-col gap-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-5 h-5 bg-white/20 rounded-md flex items-center justify-center card-icon-float">
-                        <CreditCard className="w-3 h-3 text-white" />
-                      </div>
-                      <span className="text-[11px] font-bold text-white/90 tracking-wide">REAL</span>
-                    </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-black text-white/70 tracking-widest uppercase">Akun Real</span>
                     {profitBonus > 0 && (
-                      <span className="text-[9px] font-black text-emerald-300 bg-white/10 px-1.5 py-0.5 rounded-full border border-white/20">
-                        +{profitBonus}%
+                      <span className="flex items-center gap-1 text-[10px] font-black text-emerald-200 bg-white/10 border border-white/20 px-2 py-0.5 rounded-full">
+                        <Image src={STATUS_BADGE_IMG[statusInfo?.current ?? 'standard'] ?? '/std.png'} alt="status" width={14} height={14} className="w-3.5 h-3.5 object-contain" />
+                        +{profitBonus}% Bonus
                       </span>
                     )}
                   </div>
-                  <div>
-                    <div className="text-[9px] font-semibold text-white/50 uppercase tracking-widest mb-0.5">Saldo</div>
-                    <div className="text-base font-black text-white leading-tight break-all">
-                      <AnimatedBalance amount={realBalance} started={countUpStarted} />
-                    </div>
+                  <div className="text-xl sm:text-2xl font-black text-white tracking-tight truncate">
+                    <AnimatedBalance amount={realBalance} started={countUpStarted} />
                   </div>
-                  <div className="flex gap-1.5">
-                    <Link href="/payment" className="btn-ripple flex-1 flex items-center justify-center py-1.5 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-lg text-[10px] font-bold transition-colors">
-                      Top Up
-                    </Link>
-                    <Link href="/withdrawal" className="btn-ripple flex-1 flex items-center justify-center py-1.5 bg-black/20 hover:bg-black/30 border border-white/20 text-white rounded-lg text-[10px] font-bold transition-colors">
-                      Tarik
-                    </Link>
-                  </div>
+                  <div className="text-[10px] text-white/40 font-semibold tracking-widest mt-0.5 uppercase">Saldo Tersedia</div>
+                </div>
+                <div className="flex-shrink-0 flex flex-col gap-2">
+                  <Link href="/payment" className="btn-ripple flex items-center justify-center gap-1.5 px-3 py-2 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm">
+                    Top Up
+                  </Link>
+                  <Link href="/withdrawal" className="btn-ripple flex items-center justify-center gap-1.5 px-3 py-2 bg-black/20 hover:bg-black/30 border border-white/20 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm">
+                    Tarik Dana
+                  </Link>
                 </div>
               </div>
+              <div className="h-1 bg-gradient-to-r from-white/0 via-white/30 to-white/0" />
+            </div>
 
-              {/* Demo Account — Mobile */}
-              <div className="balance-card relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 shadow-lg">
-                <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
-                <div className="absolute -bottom-3 -left-3 w-14 h-14 bg-white/10 rounded-full" />
-                <div className="card-shine card-shine-delay" />
-                <div className="relative z-10 p-3 flex flex-col gap-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-5 h-5 bg-white/20 rounded-md flex items-center justify-center card-icon-float-delay">
-                        <CreditCard className="w-3 h-3 text-white" />
-                      </div>
-                      <span className="text-[11px] font-bold text-white/90 tracking-wide">DEMO</span>
-                    </div>
-                    <span className="text-[9px] font-black text-blue-200 bg-white/10 px-1.5 py-0.5 rounded-full border border-white/20">
+            {/* Demo Account */}
+            <div className="balance-card relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 shadow-xl">
+              <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full" />
+              <div className="absolute -bottom-8 -left-8 w-36 h-36 bg-white/10 rounded-full" />
+              <div className="absolute top-1/2 right-16 w-24 h-24 bg-white/5 rounded-full -translate-y-1/2" />
+              <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '18px 18px' }} />
+              <div className="card-shine card-shine-delay" />
+              <div className="relative z-10 p-5 flex items-center gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-white/15 border border-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                  <Wallet className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-black text-white/70 tracking-widest uppercase">Akun Demo</span>
+                    <span className="text-[10px] font-black text-blue-200 bg-white/10 border border-white/20 px-2 py-0.5 rounded-full">
                       Latihan
                     </span>
                   </div>
-                  <div>
-                    <div className="text-[9px] font-semibold text-white/50 uppercase tracking-widest mb-0.5">Saldo</div>
-                    <div className="text-base font-black text-white leading-tight break-all">
-                      <AnimatedBalance amount={demoBalance} started={countUpStarted} />
-                    </div>
+                  <div className="text-xl sm:text-2xl font-black text-white tracking-tight truncate">
+                    <AnimatedBalance amount={demoBalance} started={countUpStarted} />
                   </div>
+                  <div className="text-[10px] text-white/40 font-semibold tracking-widest mt-0.5 uppercase">Saldo Latihan</div>
+                </div>
+                <div className="flex-shrink-0">
                   <button
                     onClick={() => { setTransactionAccount('demo'); setShowDeposit(true) }}
-                    className="btn-ripple w-full flex items-center justify-center gap-1 py-1.5 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-lg text-[10px] font-bold transition-colors"
+                    className="btn-ripple flex items-center justify-center gap-1.5 px-3 py-2 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm"
                   >
                     Isi Ulang
                   </button>
                 </div>
               </div>
-
+              <div className="h-1 bg-gradient-to-r from-white/0 via-white/30 to-white/0" />
             </div>
-          </div>
 
-          {/* ============================================ */}
-          {/* DESKTOP VERSION                             */}
-          {/* ============================================ */}
-          <div className="hidden lg:block mb-6 stagger-item-scale" style={{ animationDelay: '100ms' }}>
-            <div className="grid grid-cols-2 gap-5">
-
-              {/* Real Account Desktop Card */}
-              <div className="balance-card relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-600 to-green-700 shadow-xl">
-                <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full" />
-                <div className="absolute -bottom-8 -left-8 w-36 h-36 bg-white/10 rounded-full" />
-                <div className="absolute top-1/2 right-16 w-24 h-24 bg-white/5 rounded-full -translate-y-1/2" />
-                <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '18px 18px' }} />
-                <div className="card-shine" />
-                <div className="relative z-10 p-5 flex items-center gap-5">
-                  <div className="flex-shrink-0 w-14 h-14 bg-white/15 border border-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm card-icon-float">
-                    <CreditCard className="w-7 h-7 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-black text-white/70 tracking-widest uppercase">Akun Real</span>
-                      {profitBonus > 0 && (
-                        <span className="flex items-center gap-1 text-[10px] font-black text-emerald-200 bg-white/10 border border-white/20 px-2 py-0.5 rounded-full">
-                          <Image src={STATUS_BADGE_IMG[statusInfo?.current ?? 'standard'] ?? '/std.png'} alt="status" width={14} height={14} className="w-3.5 h-3.5 object-contain" />
-                          +{profitBonus}% Bonus
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-2xl font-black text-white tracking-tight truncate">
-                      <AnimatedBalance amount={realBalance} started={countUpStarted} />
-                    </div>
-                    <div className="text-[10px] text-white/40 font-semibold tracking-widest mt-0.5 uppercase">Saldo Tersedia</div>
-                  </div>
-                  <div className="flex-shrink-0 flex flex-col gap-2">
-                    <Link href="/payment" className="btn-ripple flex items-center justify-center gap-1.5 px-4 py-2 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm">
-                      Top Up
-                    </Link>
-                    <Link href="/withdrawal" className="btn-ripple flex items-center justify-center gap-1.5 px-4 py-2 bg-black/20 hover:bg-black/30 border border-white/20 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm">
-                      Tarik Dana
-                    </Link>
-                  </div>
-                </div>
-                <div className="h-1 bg-gradient-to-r from-white/0 via-white/30 to-white/0" />
-              </div>
-
-              {/* Demo Account Desktop Card */}
-              <div className="balance-card relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 shadow-xl">
-                <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/10 rounded-full" />
-                <div className="absolute -bottom-8 -left-8 w-36 h-36 bg-white/10 rounded-full" />
-                <div className="absolute top-1/2 right-16 w-24 h-24 bg-white/5 rounded-full -translate-y-1/2" />
-                <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '18px 18px' }} />
-                <div className="card-shine card-shine-delay" />
-                <div className="relative z-10 p-5 flex items-center gap-5">
-                  <div className="flex-shrink-0 w-14 h-14 bg-white/15 border border-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm card-icon-float-delay">
-                    <Wallet className="w-7 h-7 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-black text-white/70 tracking-widest uppercase">Akun Demo</span>
-                      <span className="text-[10px] font-black text-blue-200 bg-white/10 border border-white/20 px-2 py-0.5 rounded-full">
-                        Practice
-                      </span>
-                    </div>
-                    <div className="text-2xl font-black text-white tracking-tight truncate">
-                      <AnimatedBalance amount={demoBalance} started={countUpStarted} />
-                    </div>
-                    <div className="text-[10px] text-white/40 font-semibold tracking-widest mt-0.5 uppercase">Saldo Latihan</div>
-                  </div>
-                  <div className="flex-shrink-0">
-                    <button
-                      onClick={() => { setTransactionAccount('demo'); setShowDeposit(true) }}
-                      className="btn-ripple flex items-center justify-center gap-1.5 px-4 py-2 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm"
-                    >
-                      Isi Ulang
-                    </button>
-                  </div>
-                </div>
-                <div className="h-1 bg-gradient-to-r from-white/0 via-white/30 to-white/0" />
-              </div>
-
-            </div>
-          </div>
+          </motion.div>
 
           {/* TRANSACTION HISTORY */}
-          <div id="transaction-list" className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm stagger-item" style={{ animationDelay: '300ms' }}>
-            <div className="p-4 sm:p-5 lg:p-6 border-b border-gray-200">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
-                Riwayat Transaksi
-                {allTransactions.length > 0 && (
-                  <span className="text-sm font-normal text-gray-500 ml-auto">({filteredTransactions.length} transaksi)</span>
-                )}
-              </h2>
-              <div className="flex gap-2 flex-wrap">
+          <Reveal className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+            <div className="p-4 sm:p-5 border-b border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  Riwayat Transaksi
+                  {allTransactions.length > 0 && (
+                    <span className="text-xs font-normal text-gray-400 ml-1">({filteredTransactions.length})</span>
+                  )}
+                </h2>
+              </div>
+              {/* Filter tabs — affiliate pill style */}
+              <div className="flex gap-1 bg-gray-100 border border-gray-200 rounded-xl p-1 overflow-x-auto">
                 {[
                   { id: 'all' as const, label: 'Semua', count: allTransactions.length },
                   { id: 'real' as const, label: 'Real', count: allTransactions.filter(t => t.accountType === 'real').length },
                   { id: 'demo' as const, label: 'Demo', count: allTransactions.filter(t => t.accountType === 'demo').length },
                 ].map(filter => (
-                  <button key={filter.id} onClick={() => setSelectedAccount(filter.id)}
-                    className={`btn-ripple px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 ${
-                      selectedAccount === filter.id
-                        ? 'bg-blue-500 text-white scale-105 shadow-md shadow-blue-200'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}>
-                    {filter.label} ({filter.count})
-                  </button>
+                  <motion.button key={filter.id} onClick={() => setSelectedAccount(filter.id)}
+                    className={`relative flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                      selectedAccount === filter.id ? 'text-white' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    {selectedAccount === filter.id && (
+                      <motion.div className="absolute inset-0 bg-blue-600 rounded-lg shadow-md"
+                        layoutId="txFilterPill" transition={{ ...SPRING }} />
+                    )}
+                    <span className="relative z-10">{filter.label} ({filter.count})</span>
+                  </motion.button>
                 ))}
               </div>
             </div>
-            <div className="p-4 sm:p-5 lg:p-6">
+            <div className="p-4 sm:p-5">
               {displayedTransactions.length === 0 ? (
-                <div className="text-center py-12 px-4 stagger-item" style={{ animationDelay: '400ms' }}>
+                <motion.div className="text-center py-12 px-4" variants={scaleIn} initial="hidden" animate="visible">
                   <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
                     <Wallet className="w-8 h-8 text-gray-300" />
                   </div>
@@ -753,22 +692,25 @@ export default function BalancePage() {
                   <p className="text-sm text-gray-500">
                     {selectedAccount === 'all' ? 'Aktivitas dompet Anda akan muncul di sini' : `Belum ada transaksi akun ${selectedAccount}`}
                   </p>
-                </div>
+                </motion.div>
               ) : (
                 <>
-                  <div className="space-y-2 sm:space-y-3">
+                  <motion.div className="space-y-2 sm:space-y-3"
+                    variants={stagger(0.04)} initial="hidden" animate="visible">
+                    <AnimatePresence>
                     {displayedTransactions.map((tx, index) => {
                       const isPending = tx.status === 'pending'
                       const isFailed = tx.status === 'failed' || tx.status === 'expired'
                       const isContinuing = continuingPaymentId === tx.id
                       return (
-                        <div key={`${tx.source}-${tx.id}`}
-                          className={`tx-row tx-row-enter flex items-center justify-between p-3 sm:p-4 rounded-xl transition-colors border gap-3 ${
+                        <motion.div key={`${tx.source}-${tx.id}`}
+                          variants={fadeLeft}
+                          whileHover={{ x: 3, transition: { duration: 0.15 } }}
+                          className={`tx-row flex items-center justify-between p-3 sm:p-4 rounded-xl transition-colors border gap-3 ${
                             isPending ? 'bg-amber-50 border-amber-200 hover:bg-amber-100' :
                             isFailed ? 'bg-red-50 border-red-100 hover:bg-red-100' :
                             'hover:bg-gray-50 border-gray-100'
                           }`}
-                          style={{ animationDelay: `${(index + 4) * 60}ms` }}
                         >
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 hover:scale-110 ${
@@ -816,10 +758,11 @@ export default function BalancePage() {
                               </button>
                             )}
                           </div>
-                        </div>
+                        </motion.div>
                       )
                     })}
-                  </div>
+                    </AnimatePresence>
+                  </motion.div>
 
                   {/* Pagination */}
                   {totalPages > 1 && (
@@ -866,43 +809,61 @@ export default function BalancePage() {
                 </>
               )}
             </div>
-          </div>
+          </Reveal>
 
           {/* Demo Modal */}
+          <AnimatePresence>
           {showDeposit && transactionAccount === 'demo' && (
             <>
-              <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => setShowDeposit(false)} />
+              <motion.div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setShowDeposit(false)} />
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto stagger-item-scale">
-                  <div className="p-5 border-b border-gray-200 flex items-center justify-between">
-                    <h2 className="text-lg font-bold text-gray-900">Add Demo Funds</h2>
-                    <button onClick={() => setShowDeposit(false)} className="close-btn p-2 hover:bg-gray-100 rounded-lg">
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                  <div className="p-5 space-y-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Amount (IDR)</label>
-                      <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0"
-                        className="w-full text-center text-2xl font-bold bg-gray-50 border-2 border-gray-200 rounded-xl py-3 focus:border-blue-500 focus:bg-white outline-none transition-all" />
+                <motion.div className="w-full max-w-md bg-white rounded-2xl border border-gray-200 shadow-2xl max-h-[90vh] overflow-y-auto"
+                  initial={{ opacity: 0, scale: 0.8, y: 40 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.8, y: 40 }} transition={{ ...SPRING }}>
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-5">
+                      <h2 className="text-lg font-bold text-gray-900">Add Demo Funds</h2>
+                      <motion.button onClick={() => setShowDeposit(false)} className="text-gray-400 hover:text-gray-700"
+                        whileHover={{ rotate: 90, scale: 1.1 }} transition={{ duration: 0.2 }}>
+                        <X className="w-5 h-5" />
+                      </motion.button>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      {quickAmounts.map((preset) => (
-                        <button key={preset} onClick={() => setAmount(preset.toString())}
-                          className={`btn-ripple py-2 rounded-xl text-sm font-semibold transition-all hover:scale-105 active:scale-95 ${amount === preset.toString() ? 'bg-blue-500 text-white shadow-md shadow-blue-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
-                          {preset >= 1000000 ? `${preset / 1000000}M` : `${preset / 1000}K`}
-                        </button>
-                      ))}
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1.5">Amount (IDR)</label>
+                        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0"
+                          className="w-full text-center text-2xl font-bold bg-gray-50 border border-gray-200 rounded-xl py-3 focus:border-blue-400 focus:bg-white outline-none transition-all" />
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {quickAmounts.map((preset) => (
+                          <motion.button key={preset} onClick={() => setAmount(preset.toString())}
+                            className={`btn-ripple py-2 rounded-xl text-sm font-semibold ${amount === preset.toString() ? 'bg-blue-500 text-white shadow-md shadow-blue-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                            {preset >= 1000000 ? `${preset / 1000000}M` : `${preset / 1000}K`}
+                          </motion.button>
+                        ))}
+                      </div>
+                      <div className="flex gap-3 mt-2">
+                        <motion.button onClick={() => setShowDeposit(false)}
+                          className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 rounded-xl font-semibold text-sm transition-colors"
+                          whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                          Batal
+                        </motion.button>
+                        <motion.button onClick={handleDemoDeposit} disabled={loading}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white rounded-xl font-semibold text-sm transition-colors"
+                          whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                          {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</> : 'Confirm'}
+                        </motion.button>
+                      </div>
                     </div>
-                    <button onClick={handleDemoDeposit} disabled={loading}
-                      className="btn-ripple w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                      {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</> : 'Confirm'}
-                    </button>
                   </div>
-                </div>
+                </motion.div>
               </div>
             </>
           )}
+          </AnimatePresence>
 
         </div>
       </div>

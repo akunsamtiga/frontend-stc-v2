@@ -2,6 +2,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import React from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
@@ -25,6 +26,151 @@ import {
 import { toast } from 'sonner'
 import { TimezoneUtil } from '@/lib/utils'
 import type { Asset } from '@/types'
+import { motion, type Variants } from 'framer-motion'
+
+// ── Global Styles ──────────────────────────────────────────────
+const GlobalStyles = () => (
+  <style jsx global>{`
+    :root {
+      --glass-bg: rgba(255,255,255,0.04);
+      --glass-bg-hover: rgba(255,255,255,0.08);
+      --glass-border: rgba(255,255,255,0.09);
+      --glass-border-hover: rgba(255,255,255,0.18);
+      --glass-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      --glass-shadow-hover: 0 16px 48px rgba(0,0,0,0.5);
+    }
+    .bg-pattern-grid {
+      background-color: #060918;
+      background-image: none;
+      position: relative;
+    }
+    .bg-pattern-grid::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 10% 20%, rgba(99,102,241,0.16) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 85% 10%, rgba(16,185,129,0.10) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 60% at 70% 80%, rgba(6,182,212,0.08) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 20% 85%, rgba(245,158,11,0.07) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bg-pattern-grid::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(148,163,184,0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148,163,184,0.07) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body { background-color: #060918 !important; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .stat-card { transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s ease; }
+    .stat-card:hover { transform: translateY(-2px); }
+    .stat-icon { transition: transform 0.2s ease; }
+    .stat-card:hover .stat-icon { transform: scale(1.12); }
+    .glow-indigo { box-shadow: 0 0 20px rgba(99,102,241,0.25), var(--glass-shadow); }
+    .glow-green  { box-shadow: 0 0 20px rgba(16,185,129,0.20), var(--glass-shadow); }
+    .glow-red    { box-shadow: 0 0 20px rgba(239,68,68,0.20),  var(--glass-shadow); }
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,0.06);
+      transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s cubic-bezier(0.22,1,0.36,1);
+    }
+    .glass-card:hover {
+      background: var(--glass-bg-hover);
+      border-color: var(--glass-border-hover);
+      box-shadow: var(--glass-shadow-hover), inset 0 1px 0 rgba(255,255,255,0.10);
+    }
+    .glass-sub {
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+    .glass-input {
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+  `}</style>
+)
+
+const SPRING = { type: 'spring', stiffness: 80, damping: 20 } as const
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { ...SPRING } },
+}
+const fadeLeft: Variants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { opacity: 1, x: 0, transition: { ...SPRING } },
+}
+const scaleIn: Variants = {
+  hidden: { opacity: 0, scale: 0.92 },
+  visible: { opacity: 1, scale: 1, transition: { ...SPRING } },
+}
+const stagger = (d = 0.06): Variants => ({
+  hidden: {},
+  visible: { transition: { staggerChildren: d, delayChildren: 0.04 } },
+})
+
+function Reveal({ children, variants = fadeUp, delay = 0, className = '' }: {
+  children: React.ReactNode; variants?: Variants; delay?: number; className?: string
+}) {
+  return (
+    <motion.div className={className} variants={variants} initial="hidden"
+      whileInView="visible" viewport={{ once: true, margin: '-60px' }}
+      transition={{ delay }}>
+      {children}
+    </motion.div>
+  )
+}
+
+function AnimatedHeadline({ text, className, style }: { text: string; className?: string; style?: React.CSSProperties }) {
+  return (
+    <motion.h1 className={className} style={style}
+      variants={stagger(0.07)} initial="hidden" animate="visible">
+      {text.split(' ').map((word, i) => (
+        <motion.span key={i}
+          variants={{ hidden: { opacity: 0, y: 30, filter: 'blur(4px)' }, visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { ...SPRING } } }}
+          className="inline-block mr-[0.25em]">{word}
+        </motion.span>
+      ))}
+    </motion.h1>
+  )
+}
+
+function CountUp({ to, suffix = '' }: { to: number; suffix?: string }) {
+  const ref = React.useRef<HTMLSpanElement>(null)
+  const [val, setVal] = React.useState(0)
+  const triggered = React.useRef(false)
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting || triggered.current) return
+      triggered.current = true
+      const start = performance.now()
+      const tick = (now: number) => {
+        const p = Math.min((now - start) / 900, 1)
+        const ease = 1 - Math.pow(1 - p, 3)
+        setVal(Math.round(ease * to))
+        if (p < 1) requestAnimationFrame(tick)
+        else setVal(to)
+      }
+      requestAnimationFrame(tick)
+    }, { threshold: 0.3 })
+    if (ref.current) observer.observe(ref.current)
+    return () => observer.disconnect()
+  }, [to])
+  return <span ref={ref}>{val.toLocaleString('id-ID')}{suffix}</span>
+}
 
 const StatCardSkeleton = () => (
   <div className="bg-white/5 rounded-xl p-3 border border-white/10 animate-pulse">
@@ -50,10 +196,10 @@ const AssetCardSkeleton = () => (
 )
 
 const LoadingSkeleton = () => (
-  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
-    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] pointer-events-none" />
+  <div className="bg-pattern-grid min-h-screen relative">
+    <GlobalStyles />
     <Navbar />
-    <div className="max-w-6xl mx-auto px-4 py-6">
+    <div className="max-w-5xl mx-auto px-4 py-6">
       <div className="mb-5 animate-pulse">
         <div className="h-6 bg-white/10 rounded w-40 mb-1.5"></div>
         <div className="h-3 bg-white/10 rounded w-56"></div>
@@ -149,73 +295,88 @@ export default function AdminAssetsPage() {
   if (loading && !refreshing) return <LoadingSkeleton />
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] pointer-events-none" />
+    <>
+      <GlobalStyles />
+      <div className="bg-pattern-grid min-h-screen relative">
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-4 py-6 relative z-10">
+      <div className="max-w-5xl mx-auto px-4 py-6 relative z-10">
 
         {/* ── HEADER ── */}
-        <div className="flex items-start justify-between gap-3 mb-5">
-          <div>
-            <h1 className="text-xl font-bold text-white leading-tight">Manajemen Aset</h1>
-            <p className="text-sm text-slate-400 mt-0.5">Konfigurasi aset trading dan pengaturan</p>
-            {lastUpdated && (
-              <p className="text-sm text-slate-600 mt-0.5">
-                Update: {TimezoneUtil.formatDateTime(lastUpdated)}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button
+        <motion.div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+          initial="hidden" animate="visible" variants={stagger(0.1)}>
+          <motion.div variants={fadeLeft}>
+            <motion.div className="flex items-center gap-1.5 text-xs text-slate-400 mb-1" variants={fadeUp}>
+              <span>Dasbor</span><span>/</span><span>Admin</span><span>/</span>
+              <span className="text-slate-100 font-medium">Aset</span>
+            </motion.div>
+            <div className="flex items-center gap-3">
+              <motion.div
+                className="w-9 h-9 bg-gradient-to-br from-indigo-400/80 to-emerald-500/80 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-500/30 border border-white/20"
+                whileHover={{ rotate: 90, scale: 1.1 }} transition={{ ...SPRING }}>
+                <Package className="w-5 h-5 text-white" weight="duotone" />
+              </motion.div>
+              <div>
+                <AnimatedHeadline
+                  text="Manajemen Aset"
+                  className="text-2xl sm:text-3xl font-bold text-slate-100"
+                  style={{ letterSpacing: '-0.03em' }}
+                />
+                <motion.p className="text-slate-400 text-sm mt-0.5" variants={fadeUp}>
+                  {lastUpdated ? `Diperbarui ${TimezoneUtil.formatDateTime(lastUpdated)}` : 'Konfigurasi aset trading dan pengaturan'}
+                </motion.p>
+              </div>
+            </div>
+          </motion.div>
+          <motion.div variants={scaleIn} className="flex items-center gap-2">
+            <motion.button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="w-9 h-9 flex items-center justify-center bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50"
-              title="Refresh"
+              className="flex items-center gap-2 px-4 py-2.5 glass-input rounded-xl text-sm font-medium text-slate-200 hover:bg-white/10 transition-colors disabled:opacity-50"
+              whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
             >
-              <ArrowsClockwise
-                className={`w-4 h-4 text-slate-300 ${refreshing ? 'animate-spin' : ''}`}
-                weight="bold"
-              />
-            </button>
-            {/* DISABLED: Tombol Create Asset
-            {user.role === 'super_admin' && (
-              <button
-                onClick={handleCreate}
-                className="flex items-center gap-1.5 h-9 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors text-sm"
-              >
-                <Plus className="w-4 h-4" weight="bold" />
-                Tambah
-              </button>
-            )}
-            */}
-          </div>
-        </div>
+              <ArrowsClockwise className={`w-4 h-4 text-slate-400 ${refreshing ? 'animate-spin' : ''}`} weight="bold" />
+              {refreshing ? 'Memperbarui...' : 'Perbarui'}
+            </motion.button>
+            <motion.button
+              onClick={handleCreate}
+              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-indigo-500/20"
+              whileHover={{ scale: 1.04, boxShadow: '0 0 20px rgba(99,102,241,0.4)' }} whileTap={{ scale: 0.96 }}
+            >
+              <Plus className="w-4 h-4" weight="bold" />
+              Tambah Aset
+            </motion.button>
+          </motion.div>
+        </motion.div>
 
         {/* ── STATS — 4 kolom, 1 baris ── */}
-        <div className="grid grid-cols-4 gap-2 mb-5">
-          {[
-            { label: 'Total',      value: stats.total,     color: 'text-white',      iconBg: 'bg-blue-500/10',   icon: <Package              className="w-3.5 h-3.5 text-blue-400"    weight="duotone" /> },
-            { label: 'Aktif',      value: stats.active,    color: 'text-green-400',  iconBg: 'bg-green-500/10',  icon: <CheckCircle          className="w-3.5 h-3.5 text-green-400"   weight="duotone" /> },
-            { label: 'Crypto',     value: stats.crypto,    color: 'text-orange-400', iconBg: 'bg-orange-500/10', icon: <CurrencyCircleDollar className="w-3.5 h-3.5 text-orange-400"  weight="duotone" /> },
-            { label: 'Ultra-Fast', value: stats.ultraFast, color: 'text-yellow-400', iconBg: 'bg-yellow-500/10', icon: <Lightning            className="w-3.5 h-3.5 text-yellow-400"  weight="duotone" /> },
-          ].map((s) => (
-            <div key={s.label} className="bg-white/5 rounded-xl p-3 border border-white/10">
-              <div className="flex items-center gap-1.5 mb-2">
-                <div className={`w-5 h-5 rounded flex items-center justify-center ${s.iconBg}`}>
+        <Reveal className="glass-card rounded-2xl p-5 mb-6">
+          <motion.div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6"
+            variants={stagger(0.08)} initial="hidden" animate="visible">
+            {[
+              { label: 'Total',      value: stats.total,     color: 'text-slate-100',  iconBg: 'bg-blue-500/15',   icon: <Package              className="w-5 h-5 text-blue-400"    weight="duotone" /> },
+              { label: 'Aktif',      value: stats.active,    color: 'text-emerald-400', iconBg: 'bg-green-500/15',  icon: <CheckCircle          className="w-5 h-5 text-emerald-400"   weight="duotone" /> },
+              { label: 'Crypto',     value: stats.crypto,    color: 'text-orange-400', iconBg: 'bg-orange-500/15', icon: <CurrencyCircleDollar className="w-5 h-5 text-orange-400"  weight="duotone" /> },
+              { label: 'Ultra-Fast', value: stats.ultraFast, color: 'text-yellow-400', iconBg: 'bg-yellow-500/15', icon: <Lightning            className="w-5 h-5 text-yellow-400"  weight="duotone" /> },
+            ].map((s) => (
+              <motion.div key={s.label} className="flex items-center gap-4" variants={fadeUp}
+                whileHover={{ y: -3, transition: { duration: 0.2 } }}>
+                <div className={`w-10 h-10 ${s.iconBg} rounded-lg flex items-center justify-center flex-shrink-0`}>
                   {s.icon}
                 </div>
-                <span className="text-sm text-slate-500 font-medium truncate">{s.label}</span>
-              </div>
-              <div className={`text-xl font-bold leading-none ${s.color}`}>{s.value}</div>
-            </div>
-          ))}
-        </div>
+                <div>
+                  <div className="text-xs font-medium text-slate-400 mb-0.5">{s.label}</div>
+                  <div className={`text-lg font-bold ${s.color}`}><CountUp to={s.value} /></div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </Reveal>
 
         {/* ── FILTERS ── */}
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           {/* Filter Kategori */}
-          <div className="flex items-center gap-0.5 bg-white/5 rounded-lg p-1 border border-white/10">
+          <div className="flex items-center gap-0.5 glass-input rounded-xl p-1">
             {(['all', 'normal', 'crypto'] as const).map((cat) => (
               <button
                 key={cat}
@@ -233,7 +394,7 @@ export default function AdminAssetsPage() {
           </div>
 
           {/* Filter Status */}
-          <div className="flex items-center gap-0.5 bg-white/5 rounded-lg p-1 border border-white/10">
+          <div className="flex items-center gap-0.5 glass-input rounded-xl p-1">
             {(['all', 'active', 'inactive'] as const).map((st) => (
               <button
                 key={st}
@@ -286,15 +447,18 @@ export default function AdminAssetsPage() {
             */}
           </div>
         ) : (
-          <div className="space-y-2">
+          <motion.div className="space-y-2"
+            variants={stagger(0.04)} initial="hidden" animate="visible">
             {filteredAssets.map((asset) => {
               const hasUltraFast  = asset.tradingSettings?.allowedDurations.includes(0.0167)
               const assetCategory = getAssetCategory(asset)
 
               return (
-                <div
+                <motion.div
                   key={asset.id}
-                  className="bg-white/5 border border-white/10 rounded-xl overflow-hidden hover:bg-white/[0.08] transition-colors"
+                  variants={fadeUp}
+                  className="glass-card rounded-2xl overflow-hidden"
+                  whileHover={{ y: -1, transition: { duration: 0.15 } }}
                 >
                   {/* Baris utama */}
                   <div className="flex items-center gap-3 p-3">
@@ -406,10 +570,10 @@ export default function AdminAssetsPage() {
                       ))}
                     </div>
                   )}
-                </div>
+                </motion.div>
               )
             })}
-          </div>
+          </motion.div>
         )}
       </div>
 
@@ -436,5 +600,6 @@ export default function AdminAssetsPage() {
         />
       )}
     </div>
+    </>
   )
 }

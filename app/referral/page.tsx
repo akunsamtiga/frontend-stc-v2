@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
@@ -52,6 +53,8 @@ interface AffiliateReferral {
 
 // ─── Animation variants ───────────────────────────────────────────────────────
 
+const SPRING = { type: 'spring', stiffness: 80, damping: 20 } as const
+
 const fadeIn: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.25, ease: 'easeOut' } },
@@ -64,34 +67,83 @@ const slideIn: Variants = {
   hidden: { x: -15, opacity: 0 },
   visible: { x: 0, opacity: 1, transition: { duration: 0.25 } },
 }
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 18 },
+  visible: { opacity: 1, y: 0, transition: { ...SPRING } },
+}
+const scaleIn: Variants = {
+  hidden: { opacity: 0, scale: 0.93 },
+  visible: { opacity: 1, scale: 1, transition: { ...SPRING } },
+}
+const stagger = (delay = 0.07): Variants => ({
+  hidden: {},
+  visible: { transition: { staggerChildren: delay, delayChildren: 0.03 } },
+})
+
+function Reveal({ children, variants = fadeUp, delay = 0, className = '' }: {
+  children: React.ReactNode; variants?: Variants; delay?: number; className?: string
+}) {
+  return (
+    <motion.div className={className} variants={variants} initial="hidden"
+      whileInView="visible" viewport={{ once: true, margin: '-60px' }}
+      transition={{ delay }}>
+      {children}
+    </motion.div>
+  )
+}
+
+function AnimatedHeadline({ text, className }: { text: string; className?: string }) {
+  return (
+    <motion.h1 className={className} variants={stagger(0.07)} initial="hidden" animate="visible">
+      {text.split(' ').map((word, i) => (
+        <motion.span key={i} className="inline-block mr-[0.25em]"
+          variants={{ hidden: { opacity: 0, y: 22, filter: 'blur(4px)' }, visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { ...SPRING } } }}>
+          {word}
+        </motion.span>
+      ))}
+    </motion.h1>
+  )
+}
+
+function CountUp({ to, prefix = '', suffix = '' }: { to: number; prefix?: string; suffix?: string }) {
+  const ref = React.useRef<HTMLSpanElement>(null)
+  const [inView, setInView] = React.useState(false)
+  const [val, setVal] = React.useState(0)
+  const triggered = React.useRef(false)
+  React.useEffect(() => {
+    const el = ref.current; if (!el) return
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setInView(true) }, { threshold: 0.1 })
+    obs.observe(el); return () => obs.disconnect()
+  }, [])
+  React.useEffect(() => {
+    if (!inView || triggered.current) return
+    triggered.current = true
+    let start: number
+    const step = (ts: number) => {
+      if (!start) start = ts
+      const p = Math.min((ts - start) / 800, 1)
+      setVal(Math.round(to * (1 - Math.pow(1 - p, 3))))
+      if (p < 1) requestAnimationFrame(step)
+    }
+    requestAnimationFrame(step)
+  }, [inView, to])
+  return <span ref={ref}>{prefix}{val}{suffix}</span>
+}
 
 // ─── Global Styles ────────────────────────────────────────────────────────────
 
 const GlobalStyles = () => (
   <style jsx global>{`
-    @keyframes grid-shimmer-up {
-      0%   { background-position: center 130%, center center, center center; }
-      100% { background-position: center -30%, center center, center center; }
-    }
     .bg-pattern-grid {
-      background-color: #ffffff;
+      background-color: #f5f6f8;
       background-image:
-        linear-gradient(
-          to top,
-          rgba(255,255,255,1) 0%, rgba(255,255,255,1) 35%,
-          rgba(255,255,255,0.4) 42%, rgba(255,255,255,0) 50%,
-          rgba(255,255,255,0.4) 58%, rgba(255,255,255,1) 65%,
-          rgba(255,255,255,1) 100%
-        ),
-        linear-gradient(rgba(0,0,0,0.07) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,0,0,0.07) 1px, transparent 1px);
-      background-size: 100% 220%, 40px 40px, 40px 40px;
-      background-position: center 130%, center center, center center;
-      animation: grid-shimmer-up 8s linear infinite;
+        linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
     }
+    body { background-color: #f5f6f8 !important; }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-    body { background-color: #ffffff !important; }
   `}</style>
 )
 
@@ -109,7 +161,7 @@ const LoadingSkeleton = () => (
       <Toaster position="top-right" />
 
       {/* Skeleton Mobile */}
-      <div className="md:hidden container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl">
+      <div className="md:hidden max-w-5xl mx-auto px-4 py-6">
         <div className="mb-4">
           {/* Breadcrumb skeleton */}
           <SkeletonBlock w="w-32" h="h-3" />
@@ -122,9 +174,15 @@ const LoadingSkeleton = () => (
           </div>
         </div>
         <div className="h-28 bg-gray-200 rounded-xl animate-pulse mb-4" />
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+        <div className="flex gap-3 overflow-x-auto pb-2 mb-4 scrollbar-hide snap-x">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-100 animate-pulse flex-shrink-0 w-28 h-20" />
+            <div key={i} className="bg-white rounded-xl p-3 border border-gray-100 animate-pulse flex-shrink-0 w-32 snap-start">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 bg-gray-200 rounded-lg flex-shrink-0" />
+                <div className="h-3 bg-gray-200 rounded w-14" />
+              </div>
+              <div className="h-5 bg-gray-200 rounded w-16" />
+            </div>
           ))}
         </div>
         <div className="space-y-2">
@@ -142,10 +200,10 @@ const LoadingSkeleton = () => (
       </div>
 
       {/* Skeleton Desktop */}
-      <div className="hidden md:block container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl">
-        <div className="flex items-center justify-between mb-6">
+      <div className="hidden md:block max-w-5xl mx-auto px-4 py-6">
+        <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gray-200 rounded-xl animate-pulse" />
+            <div className="w-9 h-9 bg-gray-200 rounded-xl animate-pulse" />
             <div className="space-y-2">
               <SkeletonBlock w="w-40" h="h-6" />
               <SkeletonBlock w="w-52" />
@@ -153,9 +211,10 @@ const LoadingSkeleton = () => (
           </div>
           <SkeletonBlock w="w-28" h="h-10" />
         </div>
+        {/* Stats */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-          <div className="grid grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => (
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+            {[...Array(3)].map((_, i) => (
               <div key={i} className="flex items-center gap-4">
                 <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse" />
                 <div className="space-y-2">
@@ -164,6 +223,16 @@ const LoadingSkeleton = () => (
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+        {/* Referral code card */}
+        <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+          <SkeletonBlock w="w-40" h="h-3" />
+          <div className="flex items-center gap-3 mt-3 flex-wrap">
+            <div className="h-10 bg-gray-200 rounded-lg w-36 animate-pulse" />
+            <div className="h-9 bg-gray-200 rounded-lg w-24 animate-pulse" />
+            <div className="h-9 bg-gray-200 rounded-lg w-24 animate-pulse" />
+            <div className="h-9 bg-gray-200 rounded-lg w-32 animate-pulse" />
           </div>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -349,7 +418,7 @@ export default function ReferralPage() {
   return (
     <>
       <GlobalStyles />
-      <div className="min-h-screen bg-pattern-grid">
+      <div className="min-h-screen bg-pattern-grid relative">
         <Navbar />
         <Toaster position="top-right" />
 
@@ -357,7 +426,7 @@ export default function ReferralPage() {
             MOBILE VIEW
         ══════════════════════════════════════════════════ */}
         <motion.div
-          className="md:hidden container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl pb-28"
+          className="md:hidden max-w-5xl mx-auto px-4 py-6 pb-28"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
@@ -603,82 +672,68 @@ export default function ReferralPage() {
             DESKTOP VIEW
         ══════════════════════════════════════════════════ */}
         <motion.div
-          className="hidden md:block container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8 max-w-7xl"
+          className="hidden md:block max-w-5xl mx-auto px-4 py-6 relative z-10"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
         >
-          {/* Breadcrumb + Header */}
-          <motion.div className="mb-6" variants={fadeIn} initial="hidden" animate="visible">
-            <motion.div className="flex items-center gap-2 text-sm text-gray-500 mb-3" variants={staggerContainer}>
-              <motion.span variants={fadeIn}>Dasbor</motion.span>
-              <span>/</span>
-              <motion.span variants={fadeIn} className="text-gray-900 font-medium">Undang Teman</motion.span>
-            </motion.div>
-            <div className="flex items-center justify-between">
+          {/* Header */}
+          <motion.div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+            initial="hidden" animate="visible" variants={stagger(0.1)}>
+            <motion.div variants={slideIn}>
+              <motion.div className="flex items-center gap-2 text-xs text-gray-500 mb-1" variants={fadeUp}>
+                <span>Dasbor</span><span>/</span>
+                <span className="text-gray-900 font-medium">Undang Teman</span>
+              </motion.div>
               <div className="flex items-center gap-3">
                 <motion.div
-                  className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md"
-                  whileHover={{ rotate: 90 }}
-                >
+                  className="w-9 h-9 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0"
+                  whileHover={{ rotate: 90, scale: 1.1 }} transition={{ duration: 0.3 }}>
                   <UserPlus className="w-5 h-5 text-white" />
                 </motion.div>
                 <div>
-                  <motion.h1 className="text-2xl font-bold text-gray-900" variants={fadeIn}>Program Referral</motion.h1>
-                  <motion.p className="text-sm text-gray-500" variants={fadeIn}>
-                    {summary?.totalReferrals ?? 0} total referral · {summary?.completedReferrals ?? 0} selesai · {summary?.pendingReferrals ?? 0} menunggu deposit
+                  <AnimatedHeadline text="Program Referral" className="text-2xl sm:text-3xl font-bold text-gray-900" />
+                  <motion.p className="text-gray-500 text-sm mt-0.5" variants={fadeUp}>
+                    <CountUp to={summary?.totalReferrals ?? 0} /> referral · <CountUp to={summary?.completedReferrals ?? 0} /> selesai
                   </motion.p>
                 </div>
               </div>
-              <motion.button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="flex items-center gap-2 px-4 py-2 bg-white text-black border border-gray-200 rounded-lg hover:bg-gray-50 text-sm font-medium"
-                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-              >
-                <RefreshCw className={`w-4 h-4 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
-                {refreshing ? 'Memperbarui...' : 'Perbarui'}
-              </motion.button>
-            </div>
+            </motion.div>
+            <motion.button variants={scaleIn}
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
+              whileHover={{ scale: 1.04, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} whileTap={{ scale: 0.96 }}>
+              <RefreshCw className={`w-4 h-4 text-gray-500 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Memperbarui...' : 'Perbarui'}
+            </motion.button>
           </motion.div>
 
           {/* Stats Row */}
-          <motion.div
-            className="bg-white rounded-xl border border-gray-200 p-5 mb-6 shadow-sm"
-            variants={staggerContainer} initial="hidden" animate="visible"
-          >
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-              <motion.div className="flex items-center gap-4" variants={fadeIn} whileHover={{ scale: 1.02 }}>
-                <motion.div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center" whileHover={{ rotate: 360 }}>
-                  <CircleDollarSign className="w-5 h-5 text-green-600" />
+          <Reveal className="bg-white rounded-xl border border-gray-200 p-5 mb-6 shadow-sm">
+            <motion.div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6"
+              variants={stagger(0.08)} initial="hidden" animate="visible">
+              {[
+                { icon: <CircleDollarSign className="w-5 h-5 text-green-600" />, bg: 'bg-green-100', label: 'Total Komisi', val: formatCurrency(summary?.totalCommission ?? 0), color: 'text-green-600', isText: true },
+                { icon: <Users className="w-5 h-5 text-blue-600" />, bg: 'bg-blue-100', label: 'Total Referral', val: summary?.totalReferrals ?? 0, color: 'text-gray-900' },
+                { icon: <TrendingUp className="w-5 h-5 text-purple-600" />, bg: 'bg-purple-100', label: 'Referral Selesai', val: summary?.completedReferrals ?? 0, color: 'text-purple-600' },
+              ].map((s, i) => (
+                <motion.div key={i} className="flex items-center gap-4" variants={fadeUp}
+                  whileHover={{ y: -3, transition: { duration: 0.2 } }}>
+                  <motion.div className={`w-10 h-10 ${s.bg} rounded-lg flex items-center justify-center`}
+                    whileHover={{ scale: 1.15, rotate: 8 }} transition={{ duration: 0.2 }}>
+                    {s.icon}
+                  </motion.div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-500 mb-1">{s.label}</div>
+                    <div className={`text-lg font-bold ${s.color}`}>
+                      {s.isText ? s.val : <CountUp to={s.val as number} />}
+                    </div>
+                  </div>
                 </motion.div>
-                <div>
-                  <div className="text-xs font-medium text-gray-500 mb-1">Total Komisi</div>
-                  <div className="text-lg font-bold text-green-600">{formatCurrency(summary?.totalCommission ?? 0)}</div>
-                </div>
-              </motion.div>
-
-              <motion.div className="flex items-center gap-4" variants={fadeIn} whileHover={{ scale: 1.02 }}>
-                <motion.div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center" whileHover={{ rotate: 360 }}>
-                  <Users className="w-5 h-5 text-blue-600" />
-                </motion.div>
-                <div>
-                  <div className="text-xs font-medium text-gray-500 mb-1">Total Referral</div>
-                  <div className="text-lg font-bold text-gray-900">{String(summary?.totalReferrals ?? 0)}</div>
-                </div>
-              </motion.div>
-
-              <motion.div className="flex items-center gap-4" variants={fadeIn} whileHover={{ scale: 1.02 }}>
-                <motion.div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center" whileHover={{ rotate: 360 }}>
-                  <TrendingUp className="w-5 h-5 text-purple-600" />
-                </motion.div>
-                <div>
-                  <div className="text-xs font-medium text-gray-500 mb-1">Referral Selesai</div>
-                  <div className="text-lg font-bold text-purple-600">{String(summary?.completedReferrals ?? 0)}</div>
-                </div>
-              </motion.div>
-            </div>
-          </motion.div>
+              ))}
+            </motion.div>
+          </Reveal>
 
           {/* Referral Code Card */}
           <motion.div
@@ -744,22 +799,30 @@ export default function ReferralPage() {
             className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm"
             variants={fadeIn} initial="hidden" animate="visible"
           >
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
-              <p className="text-sm font-semibold text-gray-900">Daftar Referral ({totalItems})</p>
+            <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between flex-wrap gap-3">
+              <p className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                Daftar Referral
+                <span className="text-xs font-normal text-gray-400">({totalItems})</span>
+              </p>
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-gray-400" />
-                {[['all', 'Semua'], ['completed', 'Selesai'], ['pending', 'Menunggu Deposit']].map(([id, label]) => (
-                  <motion.button
-                    key={id}
-                    onClick={() => setStatusFilter(id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      statusFilter === id ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-700'
-                    }`}
-                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  >
-                    {label}
-                  </motion.button>
-                ))}
+                <div className="flex gap-1 bg-gray-100 border border-gray-200 rounded-xl p-1">
+                  {[['all', 'Semua'], ['completed', 'Selesai'], ['pending', 'Menunggu']].map(([id, label]) => (
+                    <motion.button
+                      key={id}
+                      onClick={() => setStatusFilter(id)}
+                      className={`relative px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                        statusFilter === id ? 'text-white' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                      }`}
+                      whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                    >
+                      {statusFilter === id && (
+                        <motion.div className="absolute inset-0 bg-gray-700 rounded-lg shadow-md" layoutId="desktopStatusPill2" transition={{ type: 'spring', stiffness: 80, damping: 20 }} />
+                      )}
+                      <span className="relative z-10">{label}</span>
+                    </motion.button>
+                  ))}
+                </div>
               </div>
             </div>
 

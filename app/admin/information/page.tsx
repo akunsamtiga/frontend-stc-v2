@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import React from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { 
@@ -37,6 +38,155 @@ import { TimezoneUtil } from '@/lib/utils'
 import InformationFormModal from '@/components/admin/InformationFormModal'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
 import Navbar from '@/components/Navbar'
+import { motion, type Variants } from 'framer-motion'
+
+// ── Global Styles ──────────────────────────────────────────────
+const GlobalStyles = () => (
+  <style jsx global>{`
+    :root {
+      --glass-bg: rgba(255,255,255,0.04);
+      --glass-bg-hover: rgba(255,255,255,0.08);
+      --glass-border: rgba(255,255,255,0.09);
+      --glass-border-hover: rgba(255,255,255,0.18);
+      --glass-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      --glass-shadow-hover: 0 16px 48px rgba(0,0,0,0.5);
+    }
+    .bg-pattern-grid {
+      background-color: #060918;
+      background-image: none;
+      position: relative;
+    }
+    .bg-pattern-grid::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 10% 20%, rgba(99,102,241,0.16) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 85% 10%, rgba(139,92,246,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 60% at 70% 80%, rgba(6,182,212,0.08) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 20% 85%, rgba(168,85,247,0.07) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bg-pattern-grid::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(148,163,184,0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148,163,184,0.07) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body { background-color: #060918 !important; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .stat-card { transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s ease; }
+    .stat-card:hover { transform: translateY(-2px); }
+    .stat-icon { transition: transform 0.2s ease; }
+    .stat-card:hover .stat-icon { transform: scale(1.12); }
+    .glow-indigo { box-shadow: 0 0 20px rgba(99,102,241,0.25), var(--glass-shadow); }
+    .glow-green  { box-shadow: 0 0 20px rgba(16,185,129,0.20), var(--glass-shadow); }
+    .glow-red    { box-shadow: 0 0 20px rgba(239,68,68,0.20),  var(--glass-shadow); }
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,0.06);
+      transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s cubic-bezier(0.22,1,0.36,1);
+    }
+    .glass-card:hover {
+      background: var(--glass-bg-hover);
+      border-color: var(--glass-border-hover);
+      box-shadow: var(--glass-shadow-hover), inset 0 1px 0 rgba(255,255,255,0.10);
+    }
+    .glass-sub {
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+    .glass-input {
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.10);
+      color: white;
+    }
+    .glass-input::placeholder { color: rgba(148,163,184,0.4); }
+    .glass-input:focus { outline: none; border-color: rgba(99,102,241,0.5); }
+    select.glass-input option { background: #0f1229; }
+  `}</style>
+)
+
+const SPRING = { type: 'spring', stiffness: 80, damping: 20 } as const
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { ...SPRING } },
+}
+const fadeLeft: Variants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { opacity: 1, x: 0, transition: { ...SPRING } },
+}
+const scaleIn: Variants = {
+  hidden: { opacity: 0, scale: 0.92 },
+  visible: { opacity: 1, scale: 1, transition: { ...SPRING } },
+}
+const stagger = (d = 0.06): Variants => ({
+  hidden: {},
+  visible: { transition: { staggerChildren: d, delayChildren: 0.04 } },
+})
+
+function Reveal({ children, variants = fadeUp, delay = 0, className = '' }: {
+  children: React.ReactNode; variants?: Variants; delay?: number; className?: string
+}) {
+  return (
+    <motion.div className={className} variants={variants} initial="hidden"
+      whileInView="visible" viewport={{ once: true, margin: '-60px' }}
+      transition={{ delay }}>
+      {children}
+    </motion.div>
+  )
+}
+
+function AnimatedHeadline({ text, className, style }: { text: string; className?: string; style?: React.CSSProperties }) {
+  return (
+    <motion.h1 className={className} style={style}
+      variants={stagger(0.07)} initial="hidden" animate="visible">
+      {text.split(' ').map((word, i) => (
+        <motion.span key={i}
+          variants={{ hidden: { opacity: 0, y: 30, filter: 'blur(4px)' }, visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { ...SPRING } } }}
+          className="inline-block mr-[0.25em]">{word}
+        </motion.span>
+      ))}
+    </motion.h1>
+  )
+}
+
+function CountUp({ to, suffix = '' }: { to: number; suffix?: string }) {
+  const ref = React.useRef<HTMLSpanElement>(null)
+  const [val, setVal] = React.useState(0)
+  const triggered = React.useRef(false)
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting || triggered.current) return
+      triggered.current = true
+      const start = performance.now()
+      const tick = (now: number) => {
+        const p = Math.min((now - start) / 900, 1)
+        const ease = 1 - Math.pow(1 - p, 3)
+        setVal(Math.round(ease * to))
+        if (p < 1) requestAnimationFrame(tick)
+        else setVal(to)
+      }
+      requestAnimationFrame(tick)
+    }, { threshold: 0.3 })
+    if (ref.current) observer.observe(ref.current)
+    return () => observer.disconnect()
+  }, [to])
+  return <span ref={ref}>{val.toLocaleString('id-ID')}{suffix}</span>
+}
 
 // ✅ Type helpers
 const getInformationTypeLabel = (type: string): string => {
@@ -243,62 +393,88 @@ export default function AdminInformationPage() {
   const hasActiveFilters = searchQuery || filterType || filterPriority || filterActive !== undefined || filterPinned !== undefined
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
-      {/* Pattern Overlay */}
-      <div 
-        className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px] bg-center pointer-events-none"
-      ></div>
+    <>
+      <GlobalStyles />
+      <div className="bg-pattern-grid min-h-screen relative">
+      {/* Pattern Overlay removed - handled by CSS */}
 
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-4 py-6 relative z-10">
+      <div className="max-w-5xl mx-auto px-4 py-6 relative z-10">
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Megaphone className="w-7 h-7 text-indigo-400" weight="duotone" />
-              Kelola Informasi
-            </h1>
-            <button
+        <motion.div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+          initial="hidden" animate="visible" variants={stagger(0.1)}>
+          <motion.div variants={fadeLeft}>
+            <motion.div className="flex items-center gap-1.5 text-xs text-slate-400 mb-1" variants={fadeUp}>
+              <span>Dasbor</span><span>/</span><span>Admin</span><span>/</span>
+              <span className="text-slate-100 font-medium">Informasi</span>
+            </motion.div>
+            <div className="flex items-center gap-3">
+              <motion.div
+                className="w-9 h-9 bg-gradient-to-br from-pink-400/80 to-indigo-500/80 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-pink-500/30 border border-white/20"
+                whileHover={{ rotate: 90, scale: 1.1 }} transition={{ ...SPRING }}>
+                <Megaphone className="w-5 h-5 text-white" weight="duotone" />
+              </motion.div>
+              <div>
+                <AnimatedHeadline
+                  text="Kelola Informasi"
+                  className="text-2xl sm:text-3xl font-bold text-slate-100"
+                  style={{ letterSpacing: '-0.03em' }}
+                />
+                <motion.p className="text-slate-400 text-sm mt-0.5" variants={fadeUp}>
+                  Buat dan kelola pengumuman, promosi, dan informasi untuk pengguna
+                </motion.p>
+              </div>
+            </div>
+          </motion.div>
+          <motion.div variants={scaleIn} className="flex items-center gap-2">
+            <motion.button
               onClick={fetchInformation}
               disabled={loading}
-              className="p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all disabled:opacity-50"
-              title="Refresh"
+              className="flex items-center gap-2 px-4 py-2.5 glass-input rounded-xl text-sm font-medium text-slate-200 hover:bg-white/10 transition-colors disabled:opacity-50"
+              whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
             >
-              <ArrowsClockwise className={`w-5 h-5 text-slate-300 ${loading ? 'animate-spin' : ''}`} weight="bold" />
-            </button>
-          </div>
-          <p className="text-slate-400 text-sm">
-            Buat dan kelola pengumuman, promosi, dan informasi untuk pengguna
-          </p>
-        </div>
+              <ArrowsClockwise className={`w-4 h-4 text-slate-400 ${loading ? 'animate-spin' : ''}`} weight="bold" />
+              {loading ? 'Memuat...' : 'Perbarui'}
+            </motion.button>
+            <motion.button
+              onClick={handleCreate}
+              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-indigo-500/20"
+              whileHover={{ scale: 1.04, boxShadow: '0 0 20px rgba(99,102,241,0.4)' }} whileTap={{ scale: 0.96 }}
+            >
+              <Plus className="w-4 h-4" weight="bold" />
+              Buat Baru
+            </motion.button>
+          </motion.div>
+        </motion.div>
 
         {/* Stats Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <div className="bg-white/5 rounded-lg p-3 border border-white/10 backdrop-blur-sm">
-            <div className="text-xs text-slate-400 mb-1">Total Informasi</div>
-            <div className="text-2xl font-bold text-white">{totalItems}</div>
-          </div>
-          <div className="bg-white/5 rounded-lg p-3 border border-white/10 backdrop-blur-sm">
-            <div className="text-xs text-slate-400 mb-1">Aktif</div>
-            <div className="text-2xl font-bold text-green-400">
-              {information.filter(i => i.isActive).length}
-            </div>
-          </div>
-          <div className="bg-white/5 rounded-lg p-3 border border-white/10 backdrop-blur-sm">
-            <div className="text-xs text-slate-400 mb-1">Pinned</div>
-            <div className="text-2xl font-bold text-yellow-400">
-              {information.filter(i => i.isPinned).length}
-            </div>
-          </div>
-          <div className="bg-white/5 rounded-lg p-3 border border-white/10 backdrop-blur-sm">
-            <div className="text-xs text-slate-400 mb-1">Halaman</div>
-            <div className="text-2xl font-bold text-indigo-400">{currentPage}/{totalPages}</div>
-          </div>
-        </div>
+        <Reveal className="glass-card rounded-2xl p-5 mb-6">
+          <motion.div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6"
+            variants={stagger(0.07)} initial="hidden" animate="visible">
+            {[
+              { label: 'Total Informasi', value: totalItems, color: 'text-slate-100', icon: <Newspaper className="w-5 h-5 text-indigo-400" weight="duotone" />, bg: 'bg-indigo-500/15' },
+              { label: 'Aktif', value: information.filter(i => i.isActive).length, color: 'text-emerald-400', icon: <Eye className="w-5 h-5 text-emerald-400" weight="duotone" />, bg: 'bg-green-500/15' },
+              { label: 'Pinned', value: information.filter(i => i.isPinned).length, color: 'text-yellow-400', icon: <PushPin className="w-5 h-5 text-yellow-400" weight="duotone" />, bg: 'bg-yellow-500/15' },
+              { label: 'Halaman', value: totalPages, color: 'text-purple-400', icon: <Target className="w-5 h-5 text-purple-400" weight="duotone" />, bg: 'bg-purple-500/15' },
+            ].map((s) => (
+              <motion.div key={s.label} className="flex items-center gap-3" variants={fadeUp}
+                whileHover={{ y: -2, transition: { duration: 0.15 } }}>
+                <div className={`w-10 h-10 ${s.bg} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                  {s.icon}
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-slate-400 mb-0.5">{s.label}</div>
+                  <div className={`text-lg font-bold ${s.color}`}><CountUp to={s.value} /></div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </Reveal>
 
         {/* Actions Bar */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 mb-6 border border-white/10">
+        <motion.div className="glass-card rounded-2xl p-5 mb-6"
+          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING, delay: 0.15 }}>
           <div className="flex flex-col lg:flex-row gap-3">
             {/* Search */}
             <div className="flex-1">
@@ -309,7 +485,7 @@ export default function AdminInformationPage() {
                   placeholder="Cari judul atau deskripsi..."
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2.5 glass-input rounded-lg transition-all"
                 />
               </div>
             </div>
@@ -320,43 +496,40 @@ export default function AdminInformationPage() {
                 onClick={() => setShowFilters(!showFilters)}
                 className={`px-4 py-2.5 rounded-lg font-medium transition-all flex items-center gap-2 ${
                   showFilters || hasActiveFilters
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                    : 'glass-sub hover:border-white/20 text-slate-300'
                 }`}
               >
                 <Funnel className="w-5 h-5" weight="bold" />
                 <span className="hidden sm:inline">Filter</span>
                 {hasActiveFilters && (
-                  <span className="bg-white text-indigo-600 text-xs px-1.5 py-0.5 rounded-full font-bold">
-                    •
-                  </span>
+                  <span className="bg-white text-indigo-600 text-xs px-1.5 py-0.5 rounded-full font-bold">•</span>
                 )}
               </button>
               
-              <button
+              <motion.button
                 onClick={handleCreate}
-                className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg font-medium hover:from-indigo-700 hover:to-indigo-800 transition-all flex items-center gap-2"
+                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
               >
                 <Plus className="w-5 h-5" weight="bold" />
                 <span className="hidden sm:inline">Buat Baru</span>
-              </button>
+              </motion.button>
             </div>
           </div>
 
           {/* Filters Panel */}
           {showFilters && (
-            <div className="mt-4 pt-4 border-t border-white/10">
+            <motion.div className="mt-4 pt-4 border-t border-white/10"
+              initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 {/* Type Filter */}
                 <div>
                   <label className="block text-xs text-slate-400 mb-1.5">Tipe</label>
                   <select
                     value={filterType}
-                    onChange={(e) => {
-                      setFilterType(e.target.value as InformationType | '')
-                      setCurrentPage(1)
-                    }}
-                    className="w-full px-3 py-2 bg-slate-900/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    onChange={(e) => { setFilterType(e.target.value as InformationType | ''); setCurrentPage(1) }}
+                    className="w-full px-3 py-2 glass-input rounded-lg text-sm"
                   >
                     <option value="">Semua Tipe</option>
                     <option value="announcement">Pengumuman</option>
@@ -373,11 +546,8 @@ export default function AdminInformationPage() {
                   <label className="block text-xs text-slate-400 mb-1.5">Prioritas</label>
                   <select
                     value={filterPriority}
-                    onChange={(e) => {
-                      setFilterPriority(e.target.value as InformationPriority | '')
-                      setCurrentPage(1)
-                    }}
-                    className="w-full px-3 py-2 bg-slate-900/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    onChange={(e) => { setFilterPriority(e.target.value as InformationPriority | ''); setCurrentPage(1) }}
+                    className="w-full px-3 py-2 glass-input rounded-lg text-sm"
                   >
                     <option value="">Semua Prioritas</option>
                     <option value="low">Rendah</option>
@@ -396,7 +566,7 @@ export default function AdminInformationPage() {
                       setFilterActive(e.target.value === '' ? undefined : e.target.value === 'true')
                       setCurrentPage(1)
                     }}
-                    className="w-full px-3 py-2 bg-slate-900/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 glass-input rounded-lg text-sm"
                   >
                     <option value="">Semua Status</option>
                     <option value="true">Aktif</option>
@@ -413,7 +583,7 @@ export default function AdminInformationPage() {
                       setFilterPinned(e.target.value === '' ? undefined : e.target.value === 'true')
                       setCurrentPage(1)
                     }}
-                    className="w-full px-3 py-2 bg-slate-900/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 glass-input rounded-lg text-sm"
                   >
                     <option value="">Semua</option>
                     <option value="true">Ya</option>
@@ -425,15 +595,15 @@ export default function AdminInformationPage() {
               {hasActiveFilters && (
                 <button
                   onClick={handleClearFilters}
-                  className="mt-3 text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+                  className="mt-3 text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
                 >
                   <X className="w-4 h-4" weight="bold" />
                   Reset Filter
                 </button>
               )}
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
 
         {/* Information List */}
         {loading ? (
@@ -442,33 +612,38 @@ export default function AdminInformationPage() {
             <p className="text-slate-400 text-sm">Memuat data...</p>
           </div>
         ) : !Array.isArray(information) || information.length === 0 ? (
-          <div className="bg-white/5 backdrop-blur-sm rounded-lg p-12 border border-white/10 text-center">
+          <motion.div className="glass-card rounded-2xl p-12 text-center"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <Megaphone className="w-16 h-16 text-slate-600 mx-auto mb-4" weight="duotone" />
             <p className="text-slate-400 mb-4">
               {hasActiveFilters ? 'Tidak ada informasi yang sesuai dengan filter' : 'Belum ada informasi'}
             </p>
             {!hasActiveFilters && (
-              <button
+              <motion.button
                 onClick={handleCreate}
-                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg font-medium hover:from-indigo-700 hover:to-indigo-800 transition-all inline-flex items-center gap-2"
+                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-all inline-flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
               >
                 <Plus className="w-5 h-5" weight="bold" />
                 Buat Informasi Pertama
-              </button>
+              </motion.button>
             )}
-          </div>
+          </motion.div>
         ) : (
-          <div className="space-y-3">
+          <motion.div className="space-y-3"
+            variants={stagger(0.05)} initial="hidden" animate="visible">
             {Array.isArray(information) && information.map((info) => (
-              <InformationCard
-                key={info.id}
-                information={info}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onToggleStatus={handleToggleStatus}
-              />
+              <motion.div key={info.id} variants={fadeUp}
+                whileHover={{ y: -1, transition: { duration: 0.15 } }}>
+                <InformationCard
+                  information={info}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onToggleStatus={handleToggleStatus}
+                />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
 
         {/* Pagination */}
@@ -477,7 +652,7 @@ export default function AdminInformationPage() {
             <button
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
-              className="px-4 py-2 bg-white/5 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10 transition-all border border-white/10"
+              className="px-4 py-2 glass-sub hover:border-white/20 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               Previous
             </button>
@@ -501,8 +676,8 @@ export default function AdminInformationPage() {
                     onClick={() => setCurrentPage(pageNum)}
                     className={`px-4 py-2 rounded-lg transition-all ${
                       currentPage === pageNum
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10'
+                        ? 'bg-indigo-600 text-white shadow-md'
+                        : 'glass-sub hover:border-white/20 text-slate-300'
                     }`}
                   >
                     {pageNum}
@@ -514,7 +689,7 @@ export default function AdminInformationPage() {
             <button
               onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage === totalPages}
-              className="px-4 py-2 bg-white/5 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10 transition-all border border-white/10"
+              className="px-4 py-2 glass-sub hover:border-white/20 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               Next
             </button>
@@ -549,6 +724,7 @@ export default function AdminInformationPage() {
         />
       )}
     </div>
+    </>
   )
 }
 
@@ -564,7 +740,7 @@ function InformationCard({ information, onEdit, onDelete, onToggleStatus }: Info
   const TypeIcon = getInformationTypeIcon(information.type)
   
   return (
-    <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 hover:border-white/20 transition-all group">
+    <div className="glass-card rounded-2xl p-5 group">
       <div className="flex flex-col lg:flex-row gap-4">
         {/* Left: Main Content */}
         <div className="flex-1 min-w-0">
