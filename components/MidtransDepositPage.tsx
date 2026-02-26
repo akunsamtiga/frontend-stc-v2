@@ -504,10 +504,10 @@ const MidtransPaymentPage: React.FC = () => {
                 </motion.button>
                 <div className="flex items-center gap-3">
                   <motion.div
-                    className="w-9 h-9 bg-gradient-to-r from-sky-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md"
-                    whileHover={{ rotate: 90, scale: 1.1 }} transition={{ duration: 0.3 }}
+                    className="w-14 h-14 flex items-center justify-center"
+                    whileHover={{ scale: 1.1 }} transition={{ duration: 0.3 }}
                   >
-                    <ClockCounterClockwise size={20} weight="bold" className="text-white" />
+                    <Image src="/dompet.png" alt="Dompet" width={56} height={56} className="w-14 h-14 object-contain" />
                   </motion.div>
                   <div>
                     <AnimatedHeadline text="Riwayat Transaksi" className="text-2xl font-bold text-gray-900" />
@@ -518,16 +518,7 @@ const MidtransPaymentPage: React.FC = () => {
                 </div>
               </motion.div>
 
-              <motion.button
-                variants={scaleIn}
-                onClick={loadTransactionHistory}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
-                whileHover={{ scale: 1.04, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
-                whileTap={{ scale: 0.96 }}
-              >
-                <RefreshCw className="w-4 h-4 text-gray-500" />
-                Segarkan
-              </motion.button>
+
             </motion.div>
 
             {/* History list */}
@@ -539,7 +530,7 @@ const MidtransPaymentPage: React.FC = () => {
                       <ClockCounterClockwise size={40} weight="light" className="text-gray-400" />
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">Belum ada transaksi</h3>
-                    <p className="text-gray-500 mb-6">Riwayat pembelian layanan Anda akan muncul di sini</p>
+                    <p className="text-gray-500 mb-6">Riwayat Top Up Anda akan muncul di sini</p>
                     <motion.button
                       onClick={() => setStep('amount')}
                       className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-sky-500 to-indigo-600 text-white rounded-xl font-semibold shadow-md"
@@ -547,7 +538,7 @@ const MidtransPaymentPage: React.FC = () => {
                       whileTap={{ scale: 0.98 }}
                     >
                       <Wallet size={20} weight="bold" />
-                      Lakukan Pembelian
+                      Lakukan Top Up
                     </motion.button>
                   </motion.div>
                 ) : (
@@ -562,9 +553,32 @@ const MidtransPaymentPage: React.FC = () => {
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-2">
-                              <div className="w-9 h-9 bg-sky-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <Wallet size={18} weight="bold" className="text-sky-600" />
-                              </div>
+                              {(() => {
+                                const pt = (transaction.payment_type || '').toLowerCase()
+                                const paymentImg =
+                                  pt.includes('dana')    ? '/dana.png' :
+                                  pt.includes('gopay')   ? '/gopay.webp' :
+                                  pt.includes('permata') ? '/permata.webp' :
+                                  pt.includes('bri')     ? '/bri.webp' :
+                                  pt.includes('mandiri') ? '/mandiri.webp' :
+                                  pt.includes('cimb')    ? '/cimb.webp' :
+                                  pt.includes('bni')     ? '/bni.webp' :
+                                  pt.includes('bsi')     ? '/bsi.webp' :
+                                  pt.includes('qris')    ? '/qris1.png' :
+                                  null
+                                if (paymentImg) {
+                                  return (
+                                    <div className="w-9 h-9 bg-white border border-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                      <Image src={paymentImg} alt={transaction.payment_type || ''} width={36} height={36} className="w-full h-full object-contain p-0.5" />
+                                    </div>
+                                  )
+                                }
+                                return (
+                                  <div className="w-9 h-9 bg-white border border-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                    <Image src="/pembayaran.png" alt="pembayaran" width={36} height={36} className="w-full h-full object-contain p-0.5" />
+                                  </div>
+                                )
+                              })()}
                               <div>
                                 <h3 className="font-bold text-gray-900 text-base">{formatCurrency(transaction.amount)}</h3>
                                 <TransactionStatusBadge status={transaction.status} />
@@ -632,17 +646,17 @@ const MidtransPaymentPage: React.FC = () => {
                 <motion.div className="flex items-center gap-2 text-xs text-gray-500 mb-1" variants={fadeUp}>
                   <span>Dasbor</span>
                   <ChevronRight className="w-3 h-3" />
-                  <span className="text-gray-900 font-medium">Pembelian Layanan</span>
+                  <span className="text-gray-900 font-medium">Top Up Saldo</span>
                 </motion.div>
                 <div className="flex items-center gap-3">
                   <motion.div
-                    className="w-9 h-9 bg-gradient-to-r from-sky-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0"
-                    whileHover={{ rotate: 90, scale: 1.1 }} transition={{ duration: 0.3 }}
+                    className="w-14 h-14 flex items-center justify-center flex-shrink-0"
+                    whileHover={{ scale: 1.1 }} transition={{ duration: 0.3 }}
                   >
-                    <Wallet size={20} weight="bold" className="text-white" />
+                    <Image src="/pembayaran.png" alt="Pembayaran" width={56} height={56} className="w-14 h-14 object-contain" />
                   </motion.div>
                   <div>
-                    <AnimatedHeadline text="Pembelian Layanan" className="text-2xl sm:text-3xl font-bold text-gray-900" />
+                    <AnimatedHeadline text="Top Up Saldo" className="text-2xl sm:text-3xl font-bold text-gray-900" />
                     <motion.p className="text-gray-500 text-sm mt-0.5" variants={fadeUp}>
                       Pilih jumlah dan metode pembayaran Anda
                     </motion.p>
@@ -669,7 +683,7 @@ const MidtransPaymentPage: React.FC = () => {
                 {/* Amount card */}
                 <Reveal>
                   <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Jumlah Pembelian</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Jumlah Top Up</p>
                     <div className="relative mb-4">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-semibold text-lg">Rp</span>
                       <input
@@ -779,7 +793,7 @@ const MidtransPaymentPage: React.FC = () => {
                                 <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center">
                                   <Money size={16} weight="bold" className="text-sky-600" />
                                 </div>
-                                <span className="text-sm font-semibold text-gray-700">Jumlah Pembelian</span>
+                                <span className="text-sm font-semibold text-gray-700">Jumlah Top Up</span>
                               </div>
                               <span className="font-bold text-gray-900">{formatCurrency(numericAmount)}</span>
                             </motion.div>

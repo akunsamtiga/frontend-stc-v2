@@ -423,19 +423,25 @@ export default function HistoryPage() {
 
           <div className="flex gap-3 overflow-x-auto mb-4 scrollbar-hide snap-x anim-pop-in" style={{ animationDelay: '60ms' }}>
             <div className="stat-card bg-gray-100 rounded-xl p-3 border border-gray-200 flex-shrink-0 w-36 snap-start flex flex-col justify-center">
-              <div className="text-[10px] font-medium text-gray-500 mb-1">Total P&L</div>
+              <div className="flex items-center gap-2 mb-1">
+                <div className={`stat-icon w-7 h-7 rounded-lg flex items-center justify-center ${totalProfit >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+                  <DollarSign className={`w-4 h-4 ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+                </div>
+                <span className="text-[10px] font-medium text-gray-500">Total P&L</span>
+              </div>
               <div className={`text-base font-bold ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {totalProfit >= 0 ? '+' : ''}{formatCurrency(totalProfit)}
               </div>
             </div>
 
             {[
-              { val: stats.total, label: 'Transaksi', color: 'text-gray-900' },
-              { val: stats.won, label: 'Menang', color: 'text-green-600' },
-              { val: stats.lost, label: 'Kalah', color: 'text-red-600' },
-              { val: `${winRate}%`, label: 'Win Rate', color: 'text-yellow-600' },
+              { icon: <Activity className="w-5 h-5 text-blue-600" />, bg: 'bg-blue-50', val: stats.total, label: 'Transaksi', color: 'text-gray-900' },
+              { icon: <TrendingUp className="w-5 h-5 text-green-600" />, bg: 'bg-green-50', val: stats.won, label: 'Menang', color: 'text-green-600' },
+              { icon: <TrendingDown className="w-5 h-5 text-red-600" />, bg: 'bg-red-50', val: stats.lost, label: 'Kalah', color: 'text-red-600' },
+              { icon: <Target className="w-5 h-5 text-yellow-600" />, bg: 'bg-yellow-50', val: `${winRate}%`, label: 'Win Rate', color: 'text-yellow-600' },
             ].map((s, i) => (
               <div key={i} className="stat-card bg-gray-100 rounded-xl p-3 border border-gray-200 flex-shrink-0 w-24 snap-start flex flex-col justify-center items-center text-center">
+                <div className={`stat-icon w-7 h-7 rounded-lg ${s.bg} flex items-center justify-center mb-1`}>{s.icon}</div>
                 <div className={`text-lg font-bold ${s.color}`}>{s.val}</div>
                 <div className="text-[10px] text-gray-500">{s.label}</div>
               </div>
@@ -496,10 +502,12 @@ export default function HistoryPage() {
                 className="order-row anim-fade-left bg-white border border-gray-100 rounded-xl p-3 flex items-center justify-between gap-3"
                 style={{ animationDelay: `${index * 40}ms` }}
               >
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${order.direction === 'CALL' ? 'bg-green-100' : 'bg-red-100'}`}>
-                  {order.direction === 'CALL'
-                    ? <TrendingUp className="w-4 h-4 text-green-600" />
-                    : <TrendingDown className="w-4 h-4 text-red-600" />}
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden border ${order.direction === 'CALL' ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
+                  <Image
+                    src={order.direction === 'CALL' ? '/buy.png' : '/sell.png'}
+                    alt={order.direction === 'CALL' ? 'Buy' : 'Sell'}
+                    width={36} height={36} className="w-full h-full object-contain p-0.5"
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5">
@@ -709,8 +717,8 @@ export default function HistoryPage() {
                           </td>
                           <td className="py-4 px-4 text-center">
                             {order.direction === 'CALL'
-                              ? <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-bold"><TrendingUp className="w-3 h-3" />CALL</span>
-                              : <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-700 rounded text-xs font-bold"><TrendingDown className="w-3 h-3" />PUT</span>}
+                              ? <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-bold"><Image src="/buy.png" alt="Buy" width={12} height={12} className="w-3 h-3 object-contain" />CALL</span>
+                              : <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-700 rounded text-xs font-bold"><Image src="/sell.png" alt="Sell" width={12} height={12} className="w-3 h-3 object-contain" />PUT</span>}
                           </td>
                           <td className="py-4 px-4 text-right text-sm font-semibold text-gray-900">{formatCurrency(order.amount)}</td>
                           <td className="py-4 px-4 text-center"><span className="text-sm font-semibold">{order.entry_price.toFixed(3)}</span></td>

@@ -504,44 +504,33 @@ export default function ReferralPage() {
             className="flex gap-3 overflow-x-auto mb-4 scrollbar-visible snap-x"
             variants={staggerContainer} initial="hidden" animate="visible"
           >
+            {/* Total Komisi — lebar seperti P&L di history */}
+            <motion.div
+              className="stat-card bg-gray-100 rounded-xl p-3 border border-gray-200 flex-shrink-0 w-36 snap-start flex flex-col justify-center"
+              variants={fadeIn} whileTap={{ scale: 0.98 }}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-7 h-7 bg-green-100 rounded-lg flex items-center justify-center">
+                  <CircleDollarSign className="w-4 h-4 text-green-600" />
+                </div>
+                <span className="text-[10px] font-medium text-gray-500">Total Komisi</span>
+              </div>
+              <p className="text-base font-bold text-green-600">{formatCurrency(summary?.totalCommission ?? 0)}</p>
+            </motion.div>
+
             {[
-              {
-                icon: <CircleDollarSign className="w-4 h-4 text-green-600" />,
-                bg: 'bg-green-100',
-                label: 'Total Komisi',
-                value: formatCurrency(summary?.totalCommission ?? 0),
-                color: 'text-green-600',
-              },
-              {
-                icon: <Users className="w-4 h-4 text-blue-600" />,
-                bg: 'bg-blue-100',
-                label: 'Total Referral',
-                value: String(summary?.totalReferrals ?? 0),
-                color: 'text-blue-600',
-              },
-              {
-                icon: <TrendingUp className="w-4 h-4 text-purple-600" />,
-                bg: 'bg-purple-100',
-                label: 'Selesai',
-                value: String(summary?.completedReferrals ?? 0),
-                color: 'text-purple-600',
-              },
-              {
-                icon: <Clock className="w-4 h-4 text-yellow-600" />,
-                bg: 'bg-yellow-100',
-                label: 'Pending',
-                value: String(summary?.pendingReferrals ?? 0),
-                color: 'text-yellow-600',
-              },
+              { icon: <Users className="w-4 h-4 text-blue-600" />, bg: 'bg-blue-100', label: 'Total Referral', value: String(summary?.totalReferrals ?? 0), color: 'text-blue-600' },
+              { icon: <TrendingUp className="w-4 h-4 text-purple-600" />, bg: 'bg-purple-100', label: 'Selesai', value: String(summary?.completedReferrals ?? 0), color: 'text-purple-600' },
+              { icon: <Clock className="w-4 h-4 text-yellow-600" />, bg: 'bg-yellow-100', label: 'Pending', value: String(summary?.pendingReferrals ?? 0), color: 'text-yellow-600' },
             ].map((s, i) => (
               <motion.div
                 key={i}
-                className="bg-white rounded-xl p-3 border border-gray-100 flex-shrink-0 w-32 snap-start"
+                className="stat-card bg-gray-100 rounded-xl p-3 border border-gray-200 flex-shrink-0 w-24 snap-start flex flex-col justify-center items-center text-center"
                 variants={fadeIn} whileTap={{ scale: 0.98 }}
               >
-                <div className={`w-7 h-7 ${s.bg} rounded-lg flex items-center justify-center mb-2`}>{s.icon}</div>
-                <p className={`text-sm font-bold ${s.color}`}>{s.value}</p>
-                <p className="text-[10px] text-gray-500 mt-0.5">{s.label}</p>
+                <div className={`w-7 h-7 ${s.bg} rounded-lg flex items-center justify-center mb-1`}>{s.icon}</div>
+                <p className={`text-lg font-bold ${s.color}`}>{s.value}</p>
+                <p className="text-[10px] text-gray-500">{s.label}</p>
               </motion.div>
             ))}
           </motion.div>

@@ -1931,7 +1931,7 @@ export default function TradingPage() {
                   }}
                   className="w-full flex items-center justify-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 py-2.5 rounded-xl font-medium transition-all active:scale-95"
                 >
-                  <span className="text-sm">Top Up Demo</span>
+                  <span className="text-sm">Isi Ulang</span>
                 </button>
               </div>
             </div>
