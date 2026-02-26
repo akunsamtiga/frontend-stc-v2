@@ -2516,20 +2516,20 @@ export default function LandingPage() {
           <div className="flex gap-2 p-1 bg-[#0a0e17] rounded-xl mb-6">
             <button
               onClick={() => setIsLogin(true)}
-              className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
+              className={`flex-1 py-3 rounded-lg font-semibold transition-colors ${
                 isLogin
                   ? 'bg-[#1e293b] text-white shadow-lg border border-gray-700'
-                  : 'text-gray-400 hover:text-white'
+                  : 'text-gray-400 hover:text-white border border-transparent'
               }`}
             >
               Masuk
             </button>
             <button
               onClick={() => setIsLogin(false)}
-              className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
+              className={`flex-1 py-3 rounded-lg font-semibold transition-colors ${
                 !isLogin
                   ? 'bg-[#1e293b] text-white shadow-lg border border-gray-700'
-                  : 'text-gray-400 hover:text-white'
+                  : 'text-gray-400 hover:text-white border border-transparent'
               }`}
             >
               Daftar

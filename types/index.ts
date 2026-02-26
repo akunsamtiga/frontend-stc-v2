@@ -1830,3 +1830,15 @@ export interface ApproveCommissionWithdrawalDto {
   adminNotes?: string
   rejectionReason?: string
 }
+
+export interface RSSNewsItem {
+  id: string
+  title: string
+  excerpt: string
+  category: 'announcement' | 'update' | 'promotion' | 'education' | 'market'
+  date: string
+  link: string
+  image: string   
+  featured: boolean
+  source: string
+}
