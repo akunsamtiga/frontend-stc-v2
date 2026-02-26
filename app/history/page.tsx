@@ -12,6 +12,7 @@ import {
   Wallet, RefreshCw, BarChart3, CalendarClock,
   ChevronLeft, ChevronRight, Activity, DollarSign, Target
 } from 'lucide-react'
+import Image from 'next/image'
 import { motion, AnimatePresence, useInView, type Variants } from 'framer-motion'
 import { toast, Toaster } from 'sonner'
 
@@ -400,8 +401,8 @@ export default function HistoryPage() {
             </div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-                  <BarChart3 className="w-4 h-4 text-white" />
+                <div className="w-14 h-14 flex items-center justify-center">
+                  <Image src="/riwayat.png" alt="Riwayat" width={56} height={56} className="w-14 h-14 object-contain" />
                 </div>
                 <div>
                   <h1 className="text-lg font-bold text-gray-900">Riwayat Trading</h1>
@@ -421,26 +422,20 @@ export default function HistoryPage() {
 
 
           <div className="flex gap-3 overflow-x-auto mb-4 scrollbar-hide snap-x anim-pop-in" style={{ animationDelay: '60ms' }}>
-            <div className="stat-card bg-white rounded-xl p-3 border border-gray-100 flex-shrink-0 w-36 snap-start flex flex-col justify-center">
-              <div className="flex items-center gap-2 mb-1">
-                <div className={`stat-icon w-7 h-7 rounded-lg flex items-center justify-center ${totalProfit >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
-                  <DollarSign className={`w-4 h-4 ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`} />
-                </div>
-                <span className="text-[10px] font-medium text-gray-500">Total P&L</span>
-              </div>
+            <div className="stat-card bg-gray-100 rounded-xl p-3 border border-gray-200 flex-shrink-0 w-36 snap-start flex flex-col justify-center">
+              <div className="text-[10px] font-medium text-gray-500 mb-1">Total P&L</div>
               <div className={`text-base font-bold ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {totalProfit >= 0 ? '+' : ''}{formatCurrency(totalProfit)}
               </div>
             </div>
 
             {[
-              { icon: <Activity className="w-5 h-5 text-blue-600" />, bg: 'bg-blue-50', val: stats.total, label: 'Transaksi', color: 'text-gray-900' },
-              { icon: <TrendingUp className="w-5 h-5 text-green-600" />, bg: 'bg-green-50', val: stats.won, label: 'Menang', color: 'text-green-600' },
-              { icon: <TrendingDown className="w-5 h-5 text-red-600" />, bg: 'bg-red-50', val: stats.lost, label: 'Kalah', color: 'text-red-600' },
-              { icon: <Target className="w-5 h-5 text-yellow-600" />, bg: 'bg-yellow-50', val: `${winRate}%`, label: 'Win Rate', color: 'text-yellow-600' },
+              { val: stats.total, label: 'Transaksi', color: 'text-gray-900' },
+              { val: stats.won, label: 'Menang', color: 'text-green-600' },
+              { val: stats.lost, label: 'Kalah', color: 'text-red-600' },
+              { val: `${winRate}%`, label: 'Win Rate', color: 'text-yellow-600' },
             ].map((s, i) => (
-              <div key={i} className="stat-card bg-white rounded-xl p-3 border border-gray-100 flex-shrink-0 w-24 snap-start flex flex-col justify-center items-center text-center">
-                <div className={`stat-icon w-7 h-7 rounded-lg ${s.bg} flex items-center justify-center mb-1`}>{s.icon}</div>
+              <div key={i} className="stat-card bg-gray-100 rounded-xl p-3 border border-gray-200 flex-shrink-0 w-24 snap-start flex flex-col justify-center items-center text-center">
                 <div className={`text-lg font-bold ${s.color}`}>{s.val}</div>
                 <div className="text-[10px] text-gray-500">{s.label}</div>
               </div>
@@ -578,8 +573,8 @@ export default function HistoryPage() {
                 <span className="text-gray-900 font-medium">Riwayat</span>
               </motion.div>
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
-                  <BarChart3 className="w-5 h-5 text-white" />
+                <div className="w-14 h-14 flex items-center justify-center flex-shrink-0">
+                  <Image src="/riwayat.png" alt="Riwayat" width={56} height={56} className="w-14 h-14 object-contain" />
                 </div>
                 <div>
                   <AnimatedHeadline text="Riwayat Trading" className="text-2xl sm:text-3xl font-bold text-gray-900" />
@@ -605,22 +600,17 @@ export default function HistoryPage() {
             <motion.div className="grid grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6"
               variants={stagger(0.08)} initial="hidden" animate="visible">
               {[
-                { icon: <DollarSign className={`w-5 h-5 ${totalProfit>=0?'text-green-600':'text-red-600'}`} />, bg: totalProfit>=0?'bg-green-100':'bg-red-100', label:'Total P&L', val: `${totalProfit>=0?'+':''}${formatCurrency(totalProfit)}`, color: totalProfit>=0?'text-green-600':'text-red-600', isText: true },
-                { icon: <Activity className="w-5 h-5 text-blue-600" />, bg:'bg-blue-100', label:'Total Transaksi', val: stats.total, color:'text-gray-900' },
-                { icon: <TrendingUp className="w-5 h-5 text-green-600" />, bg:'bg-green-100', label:'Menang', val: stats.won, color:'text-green-600' },
-                { icon: <TrendingDown className="w-5 h-5 text-red-600" />, bg:'bg-red-100', label:'Kalah', val: stats.lost, color:'text-red-600' },
-                { icon: <Target className="w-5 h-5 text-yellow-600" />, bg:'bg-yellow-100', label:'Win Rate', val: winRate, suffix: '%', color:'text-yellow-600' },
+                { label:'Total P&L', val: `${totalProfit>=0?'+':''}${formatCurrency(totalProfit)}`, color: totalProfit>=0?'text-green-600':'text-red-600', isText: true },
+                { label:'Total Transaksi', val: stats.total, color:'text-gray-900' },
+                { label:'Menang', val: stats.won, color:'text-green-600' },
+                { label:'Kalah', val: stats.lost, color:'text-red-600' },
+                { label:'Win Rate', val: winRate, suffix: '%', color:'text-yellow-600' },
               ].map((s, i) => (
-                <motion.div key={i} className="stat-card flex items-center gap-4" variants={fadeUp}
+                <motion.div key={i} className="stat-card bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 flex flex-col justify-center" variants={fadeUp}
                   whileHover={{ y: -3, boxShadow: '0 8px 24px rgba(0,0,0,0.08)', transition: { duration: 0.2 } }}>
-                  <div className={`stat-icon w-10 h-10 ${s.bg} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                    {s.icon}
-                  </div>
-                  <div>
-                    <div className="text-xs font-medium text-gray-500 mb-1">{s.label}</div>
-                    <div className={`text-lg font-bold ${s.color}`}>
-                      {s.isText ? s.val : <CountUp to={s.val as number} suffix={(s as any).suffix} />}
-                    </div>
+                  <div className="text-xs font-medium text-gray-500 mb-1">{s.label}</div>
+                  <div className={`text-lg font-bold ${s.color}`}>
+                    {s.isText ? s.val : <CountUp to={s.val as number} suffix={(s as any).suffix} />}
                   </div>
                 </motion.div>
               ))}

@@ -33,12 +33,15 @@ function ShimmerBrand() {
           animation: shimmer-slide 3.2s linear infinite;
         }
       `}</style>
-      <span
+      <a
+        href="https://stouch.id"
+        target="_blank"
+        rel="noopener noreferrer"
         className="shimmer-brand text-lg font-bold tracking-tight select-none"
         style={{ letterSpacing: '-0.02em' }}
       >
         Stouch.id
-      </span>
+      </a>
     </>
   )
 }

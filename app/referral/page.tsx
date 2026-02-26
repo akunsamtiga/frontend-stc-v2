@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import Navbar from '@/components/Navbar'
+import Image from 'next/image'
 import { motion, AnimatePresence, Variants } from 'framer-motion'
 import {
   UserPlus,
@@ -434,8 +435,8 @@ export default function ReferralPage() {
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-                  <UserPlus className="w-4 h-4 text-white" />
+                <div className="w-14 h-14 flex items-center justify-center">
+                  <Image src="/referral.png" alt="Referral" width={56} height={56} className="w-14 h-14 object-contain" />
                 </div>
                 <div>
                   <h1 className="text-lg font-bold text-gray-900">Undang Teman</h1>
@@ -678,9 +679,9 @@ export default function ReferralPage() {
               </motion.div>
               <div className="flex items-center gap-3">
                 <motion.div
-                  className="w-9 h-9 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0"
-                  whileHover={{ rotate: 90, scale: 1.1 }} transition={{ duration: 0.3 }}>
-                  <UserPlus className="w-5 h-5 text-white" />
+                  className="w-14 h-14 flex items-center justify-center flex-shrink-0"
+                  whileHover={{ scale: 1.1 }} transition={{ duration: 0.3 }}>
+                  <Image src="/referral.png" alt="Referral" width={56} height={56} className="w-14 h-14 object-contain" />
                 </motion.div>
                 <div>
                   <AnimatedHeadline text="Program Referral" className="text-2xl sm:text-3xl font-bold text-gray-900" />

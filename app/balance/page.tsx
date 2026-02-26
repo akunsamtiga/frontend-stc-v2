@@ -520,9 +520,9 @@ export default function BalancePage() {
                 <span className="text-gray-900 font-medium">Keuangan</span>
               </motion.div>
               <div className="flex items-center gap-3">
-                <motion.div className="w-9 h-9 bg-blue-500 rounded-xl flex items-center justify-center flex-shrink-0"
+                <motion.div className="w-14 h-14 flex items-center justify-center flex-shrink-0"
                   whileHover={{ scale: 1.1, rotate: 8 }} transition={{ duration: 0.2 }}>
-                  <Wallet className="w-5 h-5 text-white" />
+                  <Image src="/dompet.png" alt="Dompet" width={56} height={56} className="w-14 h-14 object-contain" />
                 </motion.div>
                 <div>
                   <AnimatedHeadline text="Dompet Saya" className="text-2xl sm:text-3xl font-bold text-gray-900" />
@@ -583,9 +583,6 @@ export default function BalancePage() {
               <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '18px 18px' }} />
               <div className="card-shine" />
               <div className="relative z-10 p-5 flex items-center gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-white/15 border border-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                  <CreditCard className="w-6 h-6 text-white" />
-                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs font-black text-white/70 tracking-widest uppercase">Akun Real</span>
@@ -621,9 +618,6 @@ export default function BalancePage() {
               <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '18px 18px' }} />
               <div className="card-shine card-shine-delay" />
               <div className="relative z-10 p-5 flex items-center gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-white/15 border border-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                  <Wallet className="w-6 h-6 text-white" />
-                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs font-black text-white/70 tracking-widest uppercase">Akun Demo</span>
@@ -713,13 +707,32 @@ export default function BalancePage() {
                           }`}
                         >
                           <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 hover:scale-110 ${
-                              isPending ? 'bg-amber-100' : isFailed ? 'bg-red-100' : tx.type === 'deposit' ? 'bg-green-50' : 'bg-red-50'
-                            }`}>
-                              {isPending ? <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" /> :
-                               tx.type === 'deposit' ? <ArrowDownToLine className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" /> :
-                               <ArrowUpFromLine className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />}
-                            </div>
+                            {(() => {
+                              const pt = (tx.payment_type || '').toLowerCase()
+                              const paymentImg =
+                                pt.includes('dana')    ? '/dana.png' :
+                                pt.includes('gopay')   ? '/gopay.webp' :
+                                pt.includes('permata') ? '/permata.webp' :
+                                pt.includes('bri')     ? '/bri.webp' :
+                                pt.includes('mandiri') ? '/mandiri.webp' :
+                                pt.includes('cimb')    ? '/cimb.webp' :
+                                pt.includes('bni')     ? '/bni.webp' :
+                                pt.includes('bsi')     ? '/bsi.webp' :
+                                pt.includes('qris')    ? '/qris1.png' :
+                                null
+                              if (paymentImg && !isPending) {
+                                return (
+                                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-white border border-gray-100 overflow-hidden transition-transform duration-200 hover:scale-110">
+                                    <Image src={paymentImg} alt={tx.payment_type || ''} width={48} height={48} className="w-full h-full object-contain p-1" />
+                                  </div>
+                                )
+                              }
+                              return (
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-white border border-gray-100 overflow-hidden transition-transform duration-200 hover:scale-110">
+                                  <Image src="/dompet.png" alt="dompet" width={48} height={48} className="w-full h-full object-contain p-1" />
+                                </div>
+                              )
+                            })()}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                                 <div className="font-semibold text-gray-900 capitalize text-sm">{tx.type === 'deposit' ? 'Top Up' : 'Withdraw'}</div>

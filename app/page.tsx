@@ -2064,10 +2064,9 @@ export default function LandingPage() {
 
     {}
     <div className="mt-12 text-center relative z-10">
-      <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-        <ShieldCheckered className="w-3.5 h-3.5 text-emerald-400" weight="bold" />
-        <span className="text-xs text-white font-medium">
-          Semua transaksi telah dilindungi enkripsi SSL 256-bit
+      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full">
+        <span className="text-xs text-gray-400 font-light">
+          Seluruh transaksi Anda kini diproteksi maksimal dengan teknologi enkripsi SSL 256-bit
         </span>
       </div>
     </div>
@@ -2090,7 +2089,7 @@ export default function LandingPage() {
       <div className="gsap-partner-row grid grid-cols-2 gap-3 sm:gap-6 lg:gap-12 items-center mb-12 sm:mb-16 lg:mb-24">
         {}
         <div className="relative">
-          <div className="gsap-partner-img relative aspect-[1/1] m-8 lg:m-0 rounded-xl sm:rounded-2xl lg:rounded-3xl overflow-hidden gsap-parallax-img">
+          <div className="gsap-partner-img relative aspect-[1/1] m-1 sm:m-4 lg:m-0 rounded-xl sm:rounded-2xl lg:rounded-3xl overflow-hidden gsap-parallax-img">
             <Image
               src="/v1.webp"
               alt="Stockity x LindungiHutan"
@@ -2117,12 +2116,22 @@ export default function LandingPage() {
           </div>
 
           {}
-          <h2 className="gsap-partner-heading text-sm sm:text-2xl lg:text-4xl xl:text-5xl font-bold leading-tight">
+          {/* Mobile heading */}
+          <h2 className="gsap-partner-heading block sm:hidden text-base font-bold leading-tight">
+            Bersama ubah dunia!
+          </h2>
+          {/* Desktop heading */}
+          <h2 className="gsap-partner-heading hidden sm:block sm:text-2xl lg:text-4xl xl:text-5xl font-bold leading-tight">
             Bersama kita mengubah dunia!
           </h2>
 
           {}
-          <p className="gsap-partner-desc text-[10px] sm:text-sm lg:text-lg text-gray-400 leading-relaxed">
+          {/* Mobile desc */}
+          <p className="gsap-partner-desc block sm:hidden text-xs text-gray-400 leading-relaxed">
+            9.000 pohon & 4 terumbu karang ditanam bersama LindungiHutan.
+          </p>
+          {/* Desktop desc */}
+          <p className="gsap-partner-desc hidden sm:block sm:text-sm lg:text-lg text-gray-400 leading-relaxed">
             Tahun ini, Stockity telah menanam 9.000 pohon dan 4 terumbu karang bekerja sama dengan LindungiHutan
           </p>
 
@@ -2138,27 +2147,37 @@ export default function LandingPage() {
 
       {}
       <div className="gsap-partner-row mb-12 sm:mb-16 lg:mb-24">
-        <div className="grid grid-cols-[2fr_1fr] gap-3 sm:gap-6 lg:gap-8 items-center">
+        <div className="grid grid-cols-[1fr_1fr] sm:grid-cols-[2fr_1fr] gap-3 sm:gap-6 lg:gap-8 items-center">
           {}
-          <div className="space-y-2 sm:space-y-3 lg:space-y-4">
-            <h3 className="gsap-partner-heading text-sm sm:text-2xl lg:text-4xl xl:text-5xl font-bold leading-tight">
+          <div className="space-y-2 sm:space-y-3 lg:space-y-4 text-right sm:text-left">
+            {/* Mobile heading */}
+            <h3 className="gsap-partner-heading block sm:hidden text-base font-bold leading-tight">
+              Platform andalan profesional!
+            </h3>
+            {/* Desktop heading */}
+            <h3 className="gsap-partner-heading hidden sm:block sm:text-2xl lg:text-4xl xl:text-5xl font-bold leading-tight">
               Platform yang diandalkan oleh para profesional!
             </h3>
 
-            <p className="gsap-partner-desc text-[10px] sm:text-sm lg:text-lg text-gray-400 leading-relaxed">
+            {/* Mobile desc */}
+            <p className="gsap-partner-desc block sm:hidden text-xs text-gray-400 leading-relaxed">
+              Penghargaan Platform Terpercaya Indonesia 2024.
+            </p>
+            {/* Desktop desc */}
+            <p className="gsap-partner-desc hidden sm:block sm:text-sm lg:text-lg text-gray-400 leading-relaxed">
               Penghargaan Platform Perdagangan Paling Andal di Indonesia 2024 berkomitmen terhadap keamanan, efisiensi, dan inovasi.
             </p>
           </div>
 
           {}
-          <div>
+          <div className="p-4 sm:p-0">
             <div className="gsap-partner-img relative aspect-square rounded-xl sm:rounded-2xl overflow-hidden">
               <Image
                 src="/sa.webp"
                 alt="Stockity Platform"
                 fill
                 sizes="(max-width: 640px) 30vw, (max-width: 1024px) 25vw, 280px"
-                className="object-contain p-3 sm:p-4 lg:p-6"
+                className="object-contain p-6"
               />
             </div>
           </div>
@@ -2167,27 +2186,37 @@ export default function LandingPage() {
 
       {}
       <div className="gsap-partner-row">
-        <div className="grid grid-cols-[1fr_2fr] gap-3 sm:gap-6 lg:gap-8 items-center">
+        <div className="grid grid-cols-[1fr_1fr] sm:grid-cols-[1fr_2fr] gap-3 sm:gap-6 lg:gap-8 items-center">
           {}
-          <div>
+          <div className="p-4 sm:p-0">
             <div className="gsap-partner-img relative aspect-square rounded-xl sm:rounded-2xl overflow-hidden">
               <Image
                 src="/il4.png"
                 alt="Stockity Platform"
                 fill
-                sizes="(max-width: 640px) 33vw, (max-width: 1024px) 33vw, 400px"
-                className="object-contain p-3 sm:p-4 lg:p-6"
+                sizes="(max-width: 640px) 45vw, (max-width: 1024px) 33vw, 400px"
+                className="object-contain p-0 sm:p-4 lg:p-4"
               />
             </div>
           </div>
 
           {}
           <div className="space-y-2 sm:space-y-3 lg:space-y-4">
-            <h3 className="gsap-partner-heading text-sm sm:text-2xl lg:text-4xl xl:text-5xl font-bold leading-tight">
+            {/* Mobile heading */}
+            <h3 className="gsap-partner-heading block sm:hidden text-base font-bold leading-tight">
+              Trading realtime 24 jam!
+            </h3>
+            {/* Desktop heading */}
+            <h3 className="gsap-partner-heading hidden sm:block sm:text-2xl lg:text-4xl xl:text-5xl font-bold leading-tight">
               Akses trading realtime 24 jam tanpa tutup!
             </h3>
 
-            <p className="gsap-partner-desc text-[10px] sm:text-sm lg:text-lg text-gray-400 leading-relaxed">
+            {/* Mobile desc */}
+            <p className="gsap-partner-desc block sm:hidden text-xs text-gray-400 leading-relaxed">
+              Produktif kapan saja & di mana saja!
+            </p>
+            {/* Desktop desc */}
+            <p className="gsap-partner-desc hidden sm:block sm:text-sm lg:text-lg text-gray-400 leading-relaxed">
               Buat setiap antrean, kemacetan lalu lintas, dan minum-minum kopi menjadi produktif untuk Anda!
             </p>
           </div>
