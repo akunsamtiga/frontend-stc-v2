@@ -1207,6 +1207,8 @@ export default function LandingPage() {
       setHasReferralCode(true)
       console.log('✅ Referral code detected:', refCode)
 
+      setIsLogin(false)
+      setShowAuthModal(true)
 
       toast.info(`Kode referral: ${refCode}`, {
         description: 'Anda akan mendapatkan bonus saat mendaftar',
