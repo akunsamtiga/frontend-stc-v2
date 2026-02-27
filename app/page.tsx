@@ -2688,19 +2688,30 @@ export default function LandingPage() {
             {!isLogin && !hasReferralCode && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Kode Referral <span className="text-gray-500">(Opsional)</span>
+                  Kode Referral / Affiliate <span className="text-gray-500">(Opsional)</span>
                 </label>
                 <input
                   type="text"
-                  value={referralCode}
-                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                  placeholder="Contoh: WUTJ8JGX"
+                  value={affiliateCode || referralCode}
+                  onChange={(e) => {
+                    const val = e.target.value.toUpperCase()
+                    if (val.startsWith('AFF')) {
+                      setAffiliateCode(val)
+                      setReferralCode('')
+                    } else {
+                      setReferralCode(val)
+                      setAffiliateCode('')
+                    }
+                  }}
+                  placeholder="Contoh: WUTJ8JGX atau AFFAB12CD34"
                   disabled={loading}
                   className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                  maxLength={8}
+                  maxLength={affiliateCode ? 11 : 8}
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Masukkan kode referral dari teman Anda untuk mendapatkan bonus
+                  {affiliateCode
+                    ? '🔗 Kode affiliate terdeteksi — Anda akan terdaftar sebagai undangan affiliator'
+                    : 'Masukkan kode referral dari teman Anda untuk mendapatkan bonus'}
                 </p>
               </div>
             )}
