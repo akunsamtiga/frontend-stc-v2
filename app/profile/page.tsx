@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/auth'
 import { api } from '@/lib/api'
 import Navbar from '@/components/Navbar'
 import { motion, AnimatePresence, Variants } from 'framer-motion'
+import Image from 'next/image'
 import {
   User, Mail, Shield, Calendar, Bell, Save, LogOut,
   CheckCircle2, Settings, Award, Crown, TrendingUp, Copy, Check,
@@ -627,7 +628,7 @@ export default function ProfilePage() {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = (e) => {
-        const img = new Image()
+        const img = new window.Image()
         img.onload = () => {
           const canvas = document.createElement('canvas')
           let width = img.width
@@ -1102,10 +1103,19 @@ export default function ProfilePage() {
                   variants={fadeInUp}
                 >
 
-                  <div className="h-16 bg-gradient-to-r from-sky-500 to-sky-600 relative">
-                    <div className="absolute inset-0 opacity-10"
-                      style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 50%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }}
-                    />
+                  <div className="h-16 bg-gradient-to-r from-sky-500 to-sky-600 relative overflow-hidden">
+                    {profileInfo?.avatar?.url ? (
+                      <img
+                        src={profileInfo.avatar.url}
+                        alt="cover"
+                        className="absolute inset-0 w-full h-full object-cover"
+                        style={{ filter: 'blur(12px)', transform: 'scale(1.2)' }}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 opacity-10"
+                        style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 50%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+                      />
+                    )}
                   </div>
                   <div className="px-4 pb-4">
 
@@ -1139,9 +1149,10 @@ export default function ProfilePage() {
                           }} />
                         </label>
                       </motion.div>
+                      {/* Desktop: status di samping kanan foto */}
                       {statusInfo && (
                         <motion.div
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-white text-xs font-semibold shadow bg-gradient-to-r ${getStatusGradient(statusInfo.current)}`}
+                          className={`hidden lg:inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-white text-sm font-bold shadow bg-gradient-to-r ${getStatusGradient(statusInfo.current)}`}
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ delay: 0.3, type: 'spring' }}
@@ -1149,24 +1160,42 @@ export default function ProfilePage() {
                           <img
                             src={{ standard: '/std.png', gold: '/gold.png', vip: '/vip.png' }[statusInfo.current]}
                             alt={statusInfo.current}
-                            className="w-3.5 h-3.5 object-contain"
+                            className="w-5 h-5 object-contain"
                           />
                           {statusInfo.current.toUpperCase()}
                         </motion.div>
                       )}
                     </div>
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <h2 className="text-base font-bold text-gray-900 leading-tight truncate">
-                          {profileInfo?.personal?.fullName || user?.email}
-                        </h2>
-                        {profileInfo?.verification?.identityVerified && (
-                          <ShieldCheck className="w-4 h-4 text-sky-500 flex-shrink-0" />
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                          <h2 className="text-base font-bold text-gray-900 leading-tight truncate">
+                            {profileInfo?.personal?.fullName || user?.email}
+                          </h2>
+                          {profileInfo?.verification?.identityVerified && (
+                            <ShieldCheck className="w-4 h-4 text-sky-500 flex-shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 break-all">{user?.email}</p>
+                        {statusInfo && (
+                          <p className="text-xs text-emerald-600 font-medium mt-1">Bonus Profit: {statusInfo.profitBonus}</p>
                         )}
                       </div>
-                      <p className="text-xs text-gray-500 break-all">{user?.email}</p>
+                      {/* Mobile/tablet: status pojok kanan */}
                       {statusInfo && (
-                        <p className="text-xs text-emerald-600 font-medium mt-1">Bonus Profit: {statusInfo.profitBonus}</p>
+                        <motion.div
+                          className={`lg:hidden inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-white text-sm font-bold shadow bg-gradient-to-r flex-shrink-0 ${getStatusGradient(statusInfo.current)}`}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.3, type: 'spring' }}
+                        >
+                          <img
+                            src={{ standard: '/std.png', gold: '/gold.png', vip: '/vip.png' }[statusInfo.current]}
+                            alt={statusInfo.current}
+                            className="w-5 h-5 object-contain"
+                          />
+                          {statusInfo.current.toUpperCase()}
+                        </motion.div>
                       )}
                     </div>
                   </div>
@@ -2768,11 +2797,11 @@ export default function ProfilePage() {
             </motion.div>
             <div className="flex items-center gap-3">
               <motion.div
-                className="w-9 h-9 bg-sky-500 rounded-xl flex items-center justify-center shadow-md flex-shrink-0"
-                whileHover={{ rotate: 90, scale: 1.1 }}
+                className="w-14 h-14 flex items-center justify-center flex-shrink-0"
+                whileHover={{ scale: 1.1 }}
                 transition={{ ...SPRING }}
               >
-                <Settings className="w-5 h-5 text-white" />
+                <Image src="/profil.png" alt="Profil" width={56} height={56} className="w-14 h-14 object-contain" />
               </motion.div>
               <div>
                 <AnimatedHeadline text="Profil Saya" className="text-2xl sm:text-3xl font-bold text-gray-900" />

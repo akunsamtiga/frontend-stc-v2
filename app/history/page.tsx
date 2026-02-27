@@ -717,8 +717,8 @@ export default function HistoryPage() {
                           </td>
                           <td className="py-4 px-4 text-center">
                             {order.direction === 'CALL'
-                              ? <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-bold"><Image src="/buy.png" alt="Buy" width={12} height={12} className="w-3 h-3 object-contain" />CALL</span>
-                              : <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-700 rounded text-xs font-bold"><Image src="/sell.png" alt="Sell" width={12} height={12} className="w-3 h-3 object-contain" />PUT</span>}
+                              ? <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-bold"><Image src="/buy.png" alt="Buy" width={16} height={16} className="w-4 h-4 object-contain" />CALL</span>
+                              : <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-red-50 text-red-700 rounded text-xs font-bold"><Image src="/sell.png" alt="Sell" width={16} height={16} className="w-4 h-4 object-contain" />PUT</span>}
                           </td>
                           <td className="py-4 px-4 text-right text-sm font-semibold text-gray-900">{formatCurrency(order.amount)}</td>
                           <td className="py-4 px-4 text-center"><span className="text-sm font-semibold">{order.entry_price.toFixed(3)}</span></td>
