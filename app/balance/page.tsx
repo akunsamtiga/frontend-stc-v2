@@ -585,9 +585,24 @@ export default function BalancePage() {
                   <Link href="/payment" className="btn-ripple flex items-center justify-center gap-1.5 px-3 py-2 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm">
                     Top Up
                   </Link>
-                  <Link href="/withdrawal" className="btn-ripple flex items-center justify-center gap-1.5 px-3 py-2 bg-black/20 hover:bg-black/30 border border-white/20 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm">
-                    Tarik Dana
-                  </Link>
+                  {realBalance >= 100000 ? (
+                    <Link href="/withdrawal" className="btn-ripple flex items-center justify-center gap-1.5 px-3 py-2 bg-black/20 hover:bg-black/30 border border-white/20 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm">
+                      Tarik Dana
+                    </Link>
+                  ) : (
+                    <div className="relative group">
+                      <button
+                        disabled
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 bg-black/10 border border-white/10 text-white/40 rounded-xl text-xs font-bold whitespace-nowrap cursor-not-allowed"
+                      >
+                        Tarik Dana
+                      </button>
+                      <div className="absolute bottom-full right-0 mb-2 w-44 bg-gray-900 text-white text-[10px] rounded-lg px-2.5 py-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                        Minimal saldo Rp 100.000 untuk tarik dana
+                        <div className="absolute top-full right-3 border-4 border-transparent border-t-gray-900" />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="h-1 bg-gradient-to-r from-white/0 via-white/30 to-white/0" />
