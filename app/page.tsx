@@ -1205,8 +1205,8 @@ export default function LandingPage() {
       setHasReferralCode(true)
       console.log('✅ Referral code detected:', refCode)
 
-      // Buka modal register otomatis
-      setShowAuthModal(true)
+      setIsLogin(false)       // ← switch ke form register
+      setShowAuthModal(true)  // ← buka modal
 
       toast.info(`Kode referral: ${refCode}`, {
         description: 'Anda akan mendapatkan bonus saat mendaftar',
