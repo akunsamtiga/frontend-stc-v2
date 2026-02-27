@@ -15,26 +15,6 @@
     letter-spacing: -0.01em;
   }
 
-  input,
-  textarea,
-  select {
-    @apply bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-[#171717] placeholder-gray-400;
-    @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
-    @apply transition-all duration-200;
-  }
-
-  input:hover:not(:disabled),
-  textarea:hover:not(:disabled),
-  select:hover:not(:disabled) {
-    @apply border-gray-300;
-  }
-
-  input:disabled,
-  textarea:disabled,
-  select:disabled {
-    @apply bg-gray-50 text-gray-400 cursor-not-allowed;
-  }
-
   button {
     @apply transition-colors duration-200 font-medium;
   }
@@ -58,7 +38,6 @@
 }
 
 @layer components {
-
   .flat-avatar {
     @apply w-10 h-10 rounded-full flex items-center justify-center;
     @apply bg-blue-500 text-white font-semibold text-sm;
@@ -88,25 +67,13 @@
   }
 
   @keyframes fade-in-up {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   @keyframes slide-in-right {
-    from {
-      opacity: 0;
-      transform: translateX(50px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
+    from { opacity: 0; transform: translateX(50px); }
+    to { opacity: 1; transform: translateX(0); }
   }
 
   @keyframes slide-left {
@@ -115,131 +82,52 @@
   }
 
   @keyframes text-slide-out {
-    0% {
-      transform: translateX(0);
-      opacity: 1;
-    }
-    100% {
-      transform: translateX(-100%);
-      opacity: 0;
-    }
+    0% { transform: translateX(0); opacity: 1; }
+    100% { transform: translateX(-100%); opacity: 0; }
   }
 
   @keyframes text-slide-in {
-    0% {
-      transform: translateX(-100%);
-      opacity: 0;
-    }
-    100% {
-      transform: translateX(0);
-      opacity: 1;
-    }
+    0% { transform: translateX(-100%); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
   }
 
   @keyframes logo-bounce-out {
-    0% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    40% {
-      transform: scale(1.15);
-      opacity: 1;
-    }
-    100% {
-      transform: scale(0);
-      opacity: 0;
-    }
+    0% { transform: scale(1); opacity: 1; }
+    40% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(0); opacity: 0; }
   }
 
   @keyframes logo-bounce-in {
-    0% {
-      transform: scale(0);
-      opacity: 0;
-    }
-    60% {
-      transform: scale(1.25);
-      opacity: 1;
-    }
-    80% {
-      transform: scale(0.95);
-    }
-    100% {
-      transform: scale(1);
-      opacity: 1;
-    }
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.25); opacity: 1; }
+    80% { transform: scale(0.95); }
+    100% { transform: scale(1); opacity: 1; }
   }
-
 
   .animate-gradient {
     background-size: 200% 200%;
     animation: gradient 3s ease infinite;
   }
 
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
-  }
-
-  .animate-pulse-slow {
-    animation: pulse-slow 4s ease-in-out infinite;
-  }
-
-  .animate-fade-in {
-    animation: fade-in 0.3s ease-out;
-  }
-
-  .animate-fade-in-up {
-    animation: fade-in-up 0.6s ease-out;
-  }
-
-  .animate-slide-in-right {
-    animation: slide-in-right 0.8s ease-out;
-  }
-
-  .animate-slide-left {
-    animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .animate-text-slide-out {
-    animation: text-slide-out 1s ease-in-out forwards;
-  }
-
-  .animate-text-slide-in {
-    animation: text-slide-in 1s ease-in-out forwards;
-  }
-
-  .animate-logo-bounce-out {
-    animation: logo-bounce-out 1s ease-in-out forwards;
-  }
-
-  .animate-logo-bounce-in {
-    animation: logo-bounce-in 1s ease-in-out forwards;
-  }
+  .animate-float { animation: float 6s ease-in-out infinite; }
+  .animate-pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }
+  .animate-fade-in { animation: fade-in 0.3s ease-out; }
+  .animate-fade-in-up { animation: fade-in-up 0.6s ease-out; }
+  .animate-slide-in-right { animation: slide-in-right 0.8s ease-out; }
+  .animate-slide-left { animation: slide-left 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+  .animate-text-slide-out { animation: text-slide-out 1s ease-in-out forwards; }
+  .animate-text-slide-in { animation: text-slide-in 1s ease-in-out forwards; }
+  .animate-logo-bounce-out { animation: logo-bounce-out 1s ease-in-out forwards; }
+  .animate-logo-bounce-in { animation: logo-bounce-in 1s ease-in-out forwards; }
 }
 
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { @apply bg-gray-50; }
+::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-gray-400; }
 
-::-webkit-scrollbar-track {
-  @apply bg-gray-50;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400;
-}
-
-::selection {
-  @apply bg-blue-100 text-blue-900;
-}
-
-::-moz-selection {
-  @apply bg-blue-100 text-blue-900;
-}
+::selection { @apply bg-blue-100 text-blue-900; }
+::-moz-selection { @apply bg-blue-100 text-blue-900; }
 
 *:focus-visible {
   outline: 2px solid #0070f3;
@@ -252,32 +140,14 @@ input[type='number']::-webkit-outer-spin-button {
   margin: 0;
 }
 
-input[type='number'] {
-  -moz-appearance: textfield;
-}
+input[type='number'] { -moz-appearance: textfield; }
 
-@media (max-width: 640px) {
-  html {
-    font-size: 14px;
-  }
-}
-
-@media (min-width: 641px) and (max-width: 1024px) {
-  html {
-    font-size: 15px;
-  }
-}
-
-@media (min-width: 1025px) {
-  html {
-    font-size: 16px;
-  }
-}
+@media (max-width: 640px) { html { font-size: 14px; } }
+@media (min-width: 641px) and (max-width: 1024px) { html { font-size: 15px; } }
+@media (min-width: 1025px) { html { font-size: 16px; } }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
