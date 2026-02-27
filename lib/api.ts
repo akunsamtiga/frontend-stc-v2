@@ -400,17 +400,17 @@ class ApiClient {
     return this.client.post('/auth/login', { email, password })
   }
 
-  async googleSignIn(idToken: string, referralCode?: string): Promise<ApiResponse> {
+  async googleSignIn(idToken: string, referralCode?: string, affiliateCode?: string): Promise<ApiResponse> {
     try {
-      const response = await this.client.post('/auth/google', { idToken, referralCode })
+      const response = await this.client.post('/auth/google', { idToken, referralCode, affiliateCode })
       return response
     } catch (error: any) {
       throw error
     }
   }
 
-  async register(email: string, password: string, referralCode?: string): Promise<ApiResponse> {
-    return this.client.post('/auth/register', { email, password, referralCode })
+  async register(email: string, password: string, referralCode?: string, affiliateCode?: string): Promise<ApiResponse> {
+    return this.client.post('/auth/register', { email, password, referralCode, affiliateCode })
   }
 
   async completeTutorial(): Promise<ApiResponse> {

@@ -1166,6 +1166,7 @@ export default function LandingPage() {
 
 
   const [referralCode, setReferralCode] = useState<string>('')
+  const [affiliateCode, setAffiliateCode] = useState<string>('')
   const [hasReferralCode, setHasReferralCode] = useState(false)
 
 
@@ -1203,17 +1204,29 @@ export default function LandingPage() {
     const refCode = urlParams.get('ref')
 
     if (refCode && refCode.trim() !== '') {
-      setReferralCode(refCode.trim())
-      setHasReferralCode(true)
-      console.log('✅ Referral code detected:', refCode)
+      const trimmed = refCode.trim()
 
+      if (trimmed.startsWith('AFF')) {
+        // Affiliate program code — kirim sebagai affiliateCode
+        setAffiliateCode(trimmed)
+        console.log('✅ Affiliate code detected:', trimmed)
+        toast.info(`Kode affiliate: ${trimmed}`, {
+          description: 'Anda akan terdaftar sebagai undangan affiliator',
+          duration: 5000
+        })
+      } else {
+        // Referral code biasa (sistem lama)
+        setReferralCode(trimmed)
+        console.log('✅ Referral code detected:', trimmed)
+        toast.info(`Kode referral: ${trimmed}`, {
+          description: 'Anda akan mendapatkan bonus saat mendaftar',
+          duration: 5000
+        })
+      }
+
+      setHasReferralCode(true)
       setIsLogin(false)
       setShowAuthModal(true)
-
-      toast.info(`Kode referral: ${refCode}`, {
-        description: 'Anda akan mendapatkan bonus saat mendaftar',
-        duration: 5000
-      })
     }
   }, [])
 
@@ -1336,7 +1349,7 @@ export default function LandingPage() {
     try {
       const response = isLogin
         ? await api.login(email, password)
-        : await api.register(email, password, referralCode || undefined)
+        : await api.register(email, password, referralCode || undefined, affiliateCode || undefined)
 
       const userData = response.user || response.data?.user
       const token = response.token || response.data?.token
@@ -1401,8 +1414,8 @@ export default function LandingPage() {
       console.log('✅ ID Token obtained')
 
 
-      console.log('📤 Sending to backend with referral:', referralCode || 'none')
-      const response = await api.googleSignIn(idToken, referralCode || undefined)
+      console.log('📤 Sending to backend with referral:', referralCode || 'none', '| affiliate:', affiliateCode || 'none')
+      const response = await api.googleSignIn(idToken, referralCode || undefined, affiliateCode || undefined)
 
       const userData = response.user || response.data?.user
       const token = response.token || response.data?.token
