@@ -391,7 +391,8 @@ export default function BalancePage() {
         order_id: deposit.order_id, snap_token: deposit.snap_token, snap_redirect_url: deposit.snap_redirect_url,
       }))
 
-      const combinedTransactions = [...balanceTransactions, ...midtransTransactions]
+      // midtrans duluan agar saat dedup, versi dengan order_id/status/payment_type yang menang
+      const combinedTransactions = [...midtransTransactions, ...balanceTransactions]
       const uniqueTransactions = combinedTransactions.filter((tx, index, self) => {
         const isDuplicate = self.findIndex(t => {
           if (t.id === tx.id) return true
