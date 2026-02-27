@@ -593,7 +593,7 @@ export default function BalancePage() {
                     <div className="relative group">
                       <button
                         disabled
-                        className="flex items-center justify-center gap-1.5 px-3 py-2 bg-black/10 border border-white/10 text-white/40 rounded-xl text-xs font-bold whitespace-nowrap cursor-not-allowed"
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 bg-black/20 border border-white/20 text-white/60 rounded-xl text-xs font-bold whitespace-nowrap cursor-not-allowed"
                       >
                         Tarik Dana
                       </button>
