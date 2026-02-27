@@ -2706,13 +2706,33 @@ export default function LandingPage() {
                   placeholder="Contoh: WUTJ8JGX atau AFFAB12CD34"
                   disabled={loading}
                   className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                  maxLength={affiliateCode ? 11 : 8}
+
                 />
                 <p className="mt-1 text-xs text-gray-500">
                   {affiliateCode
-                    ? '🔗 Kode affiliate terdeteksi — Anda akan terdaftar sebagai undangan affiliator'
+                    ? ''
                     : 'Masukkan kode referral dari teman Anda untuk mendapatkan bonus'}
                 </p>
+                {affiliateCode && (
+                  <div className="mt-3 p-4 bg-gradient-to-r from-emerald-500/10 to-emerald-500/10 border border-emerald-500/30 rounded-xl animate-fade-in-up">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                        <UserPlus className="w-5 h-5 text-emerald-400" weight="bold" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-semibold text-emerald-400">Kode Affiliate</span>
+                          <span className="px-2 py-0.5 bg-emerald-500/20 rounded text-xs text-emerald-300">
+                            {affiliateCode}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400">
+                          Anda akan terdaftar sebagai undangan affiliator
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
