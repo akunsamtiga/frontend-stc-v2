@@ -425,7 +425,7 @@ export default function BalancePage() {
     try {
       // ✅ Selalu redirect ke Web B agar Midtrans terbuka di halaman payment khusus
       if (tx.snap_token) {
-        const B_COM_URL = process.env.NEXT_PUBLIC_B_COM_URL || 'https://pintuweb.id'
+        const B_COM_URL = (process.env.NEXT_PUBLIC_B_COM_URL || 'https://pintuweb.id').replace(/\/$/, '')
         const paymentUrl = `${B_COM_URL}/payment?token=${encodeURIComponent(tx.snap_token)}&orderId=${encodeURIComponent(tx.order_id)}`
         window.open(paymentUrl, '_blank', 'noopener,noreferrer')
         toast.info('Halaman pembayaran dibuka di tab baru.')
