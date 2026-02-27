@@ -422,36 +422,39 @@ export default function BalancePage() {
   const handleContinuePayment = async (tx: CombinedTransaction) => {
     if (!tx.order_id) return
     setContinuingPaymentId(tx.id)
+
+    const B_COM_URL = (process.env.NEXT_PUBLIC_B_COM_URL || '').replace(/\/$/, '')
+
     try {
-      // ✅ Selalu redirect ke Web B agar Midtrans terbuka di halaman payment khusus
+      // Token yang ada di DB masih valid — langsung redirect ke Web B
       if (tx.snap_token) {
-        const B_COM_URL = (process.env.NEXT_PUBLIC_B_COM_URL || 'https://pintuweb.id').replace(/\/$/, '')
         const paymentUrl = `${B_COM_URL}/payment?token=${encodeURIComponent(tx.snap_token)}&orderId=${encodeURIComponent(tx.order_id)}`
         window.open(paymentUrl, '_blank', 'noopener,noreferrer')
         toast.info('Halaman pembayaran dibuka di tab baru.')
-        setContinuingPaymentId(null)
         return
       }
 
-      // Fallback: gunakan snap_redirect_url jika snap_token tidak tersedia
+      // Fallback: snap_redirect_url jika snap_token tidak ada
       if (tx.snap_redirect_url) {
         window.open(tx.snap_redirect_url, '_blank', 'noopener,noreferrer')
         toast.info('Halaman pembayaran dibuka di tab baru.')
-        setContinuingPaymentId(null)
         return
       }
 
-      // Kalau keduanya tidak ada, cek status transaksi
+      // Tidak ada token sama sekali — cek status transaksi
       toast.info('Memeriksa status pembayaran...')
-      const statusRes = await api.checkMidtransDepositStatus(tx.order_id!)
+      const statusRes = await api.checkMidtransDepositStatus(tx.order_id)
       const deposit = (statusRes as any)?.data?.deposit || (statusRes as any)?.deposit
       if (deposit?.status === 'success') { toast.success('Pembayaran sudah berhasil! Halaman akan diperbarui.'); loadData() }
       else if (deposit?.status === 'pending') toast.warning('Pembayaran masih tertunda. Silakan hubungi support jika butuh bantuan.')
       else toast.error('Tidak dapat melanjutkan pembayaran. Silakan buat deposit baru.')
+
     } catch (error) {
       console.error('Continue payment error:', error)
       toast.error('Gagal melanjutkan pembayaran')
-    } finally { setContinuingPaymentId(null) }
+    } finally {
+      setContinuingPaymentId(null)
+    }
   }
 
   const handleDemoDeposit = async () => {
@@ -736,7 +739,12 @@ export default function BalancePage() {
                               <div className="text-xs text-gray-500 flex items-center gap-1">
                                 <Clock className="w-3 h-3" />{formatDate(tx.createdAt)}
                               </div>
-                              {tx.payment_type && <div className="text-xs text-purple-600 mt-0.5 font-medium">via {tx.payment_type.replace(/_/g, ' ')}</div>}
+                              {tx.order_id && (
+                                <div className="text-xs text-gray-400 mt-0.5 font-mono">
+                                  ID: {tx.order_id}
+                                </div>
+                              )}
+                              {tx.payment_type && <div className="text-xs text-purple-600 mt-0.5 font-medium">{tx.payment_type.replace(/_/g, ' ')}</div>}
                               {isPending && <div className="text-xs text-amber-600 mt-0.5 font-medium">Klik "Lanjutkan" untuk menyelesaikan pembayaran</div>}
                             </div>
                           </div>
