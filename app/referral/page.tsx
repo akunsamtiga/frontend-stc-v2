@@ -361,7 +361,7 @@ export default function ReferralPage() {
   const handleRefresh = useCallback(() => fetchAll(true), [fetchAll])
 
   const referralLink = typeof window !== 'undefined' && referralCode
-    ? `${window.location.origin}/register?ref=${referralCode}`
+    ? `${window.location.origin}/?ref=${referralCode}`
     : ''
 
   const copyCode = useCallback(() => {
