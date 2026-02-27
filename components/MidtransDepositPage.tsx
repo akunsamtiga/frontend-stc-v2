@@ -85,7 +85,7 @@ class PaymentAPI {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Gagal membuat transaksi');
+      throw new Error(error.message || 'Gagal membuat transaksi, silahkan lengkapi terlebih dahulu profil Anda dengan data yang valid.');
     }
     return response.json();
   }
