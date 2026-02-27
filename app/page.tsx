@@ -35,6 +35,7 @@ import {
   CaretRight,
   ShieldCheckered,
   Eye,
+  EyeSlash,
 } from "phosphor-react";
 import {
   subscribeToCryptoPrices,
@@ -1130,6 +1131,7 @@ export default function LandingPage() {
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [activeTestimonial, setActiveTestimonial] = useState(0)
   const [activeFeature, setActiveFeature] = useState(0)
@@ -1193,9 +1195,9 @@ export default function LandingPage() {
   }, [showAuthModal])
 
 
-  // SESUDAH
   useEffect(() => {
     if (typeof window === 'undefined') return
+
 
     const urlParams = new URLSearchParams(window.location.search)
     const refCode = urlParams.get('ref')
@@ -1205,8 +1207,6 @@ export default function LandingPage() {
       setHasReferralCode(true)
       console.log('✅ Referral code detected:', refCode)
 
-      setIsLogin(false)       // ← switch ke form register
-      setShowAuthModal(true)  // ← buka modal
 
       toast.info(`Kode referral: ${refCode}`, {
         description: 'Anda akan mendapatkan bonus saat mendaftar',
@@ -2625,16 +2625,25 @@ export default function LandingPage() {
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Password
               </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                disabled={loading}
-                className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
-                autoComplete={isLogin ? 'current-password' : 'new-password'}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  disabled={loading}
+                  className="w-full bg-[#0a0e17] border border-gray-800 rounded-lg px-4 py-3 pr-12 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
+                  autoComplete={isLogin ? 'current-password' : 'new-password'}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors"
+                >
+                  {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
 
               {!isLogin && (
                 <div className="mt-6 p-3 bg-transparent rounded-lg">
