@@ -478,10 +478,14 @@ export default function TradingPage() {
       const profile = (profileRes as any)?.data as UserProfile || profileRes as UserProfile
 
       const sortedAssets = [...assetsList].sort((a, b) => {
-        const aIsCryptoCoin = a.name?.toLowerCase() === 'crypto coin' ? 0 : 1
-        const bIsCryptoCoin = b.name?.toLowerCase() === 'crypto coin' ? 0 : 1
-        return aIsCryptoCoin - bIsCryptoCoin
+        const aPriority = a.symbol?.toUpperCase().trim() === 'CRYPTO/IDX' ? 0 : 1
+        const bPriority = b.symbol?.toUpperCase().trim() === 'CRYPTO/IDX' ? 0 : 1
+        return aPriority - bPriority
       })
+
+      const defaultAsset = sortedAssets.find(
+        (a) => a.symbol?.toUpperCase().trim() === 'CRYPTO/IDX'
+      ) ?? sortedAssets[0]
 
       unstable_batchedUpdates(() => {
         setAssets(sortedAssets)
@@ -493,8 +497,8 @@ export default function TradingPage() {
         }
       })
 
-      if (sortedAssets.length > 0 && !selectedAsset) {
-        setSelectedAsset(sortedAssets[0])
+      if (defaultAsset) {
+        setSelectedAsset(defaultAsset)
       }
     } catch (error) {
     }
