@@ -736,7 +736,6 @@ export default function BalancePage() {
                               <div className="text-xs text-gray-500 flex items-center gap-1">
                                 <Clock className="w-3 h-3" />{formatDate(tx.createdAt)}
                               </div>
-                              {tx.description && <div className="text-xs text-gray-400 mt-0.5 truncate">{tx.description}</div>}
                               {tx.payment_type && <div className="text-xs text-purple-600 mt-0.5 font-medium">via {tx.payment_type.replace(/_/g, ' ')}</div>}
                               {isPending && <div className="text-xs text-amber-600 mt-0.5 font-medium">Klik "Lanjutkan" untuk menyelesaikan pembayaran</div>}
                             </div>
