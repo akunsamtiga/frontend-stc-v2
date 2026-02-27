@@ -477,8 +477,14 @@ export default function TradingPage() {
       const allOrders = ordersRes?.data?.orders || ordersRes?.orders || []
       const profile = (profileRes as any)?.data as UserProfile || profileRes as UserProfile
 
+      const sortedAssets = [...assetsList].sort((a, b) => {
+        const aStartsWithC = a.name?.toUpperCase().startsWith('C') ? 0 : 1
+        const bStartsWithC = b.name?.toUpperCase().startsWith('C') ? 0 : 1
+        return aStartsWithC - bStartsWithC
+      })
+
       unstable_batchedUpdates(() => {
-        setAssets(assetsList)
+        setAssets(sortedAssets)
         setRealBalance(balances?.realBalance || 0)
         setDemoBalance(balances?.demoBalance || 0)
         setAllOrders(allOrders)
@@ -487,8 +493,8 @@ export default function TradingPage() {
         }
       })
 
-      if (assetsList.length > 0 && !selectedAsset) {
-        setSelectedAsset(assetsList[0])
+      if (sortedAssets.length > 0 && !selectedAsset) {
+        setSelectedAsset(sortedAssets[0])
       }
     } catch (error) {
     }
