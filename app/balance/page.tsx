@@ -11,8 +11,7 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { getStatusProfitBonus } from '@/lib/status-utils'
 import {
   Wallet, ArrowDownToLine, ArrowUpFromLine, X, Receipt,
-  CreditCard, Loader2, ChevronLeft, ChevronRight, Clock,
-  Play
+  CreditCard, Loader2, ChevronLeft, ChevronRight, Clock
 } from 'lucide-react'
 import { motion, AnimatePresence, useInView, type Variants } from 'framer-motion'
 
@@ -330,22 +329,7 @@ const LoadingSkeleton = () => (
   </>
 )
 
-function loadMidtransSnap(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if ((window as any).snap) { resolve(); return }
-    const existingScript = document.getElementById('midtrans-snap')
-    if (existingScript) { existingScript.addEventListener('load', () => resolve()); return }
-    const script = document.createElement('script')
-    script.id = 'midtrans-snap'
-    script.src = process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === 'true'
-      ? 'https://app.midtrans.com/snap/snap.js'
-      : 'https://app.sandbox.midtrans.com/snap/snap.js'
-    script.setAttribute('data-client-key', process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '')
-    script.onload = () => resolve()
-    script.onerror = () => reject(new Error('Gagal memuat Midtrans'))
-    document.head.appendChild(script)
-  })
-}
+
 
 export default function BalancePage() {
   const router = useRouter()
@@ -439,26 +423,25 @@ export default function BalancePage() {
     if (!tx.order_id) return
     setContinuingPaymentId(tx.id)
     try {
+      // ✅ Selalu redirect ke Web B agar Midtrans terbuka di halaman payment khusus
       if (tx.snap_token) {
-        try {
-          await loadMidtransSnap()
-          const snap = (window as any).snap
-          if (snap) {
-            snap.pay(tx.snap_token, {
-              onSuccess: () => { toast.success('Pembayaran berhasil! Saldo sedang diproses.'); loadData() },
-              onPending: () => toast.info('Pembayaran sedang diproses.'),
-              onError: () => toast.error('Pembayaran gagal. Silakan coba lagi.'),
-              onClose: () => toast.info('Jendela pembayaran ditutup.'),
-            })
-            setContinuingPaymentId(null); return
-          }
-        } catch (err) { console.warn('Snap popup gagal, fallback ke redirect:', err) }
+        const B_COM_URL = process.env.NEXT_PUBLIC_B_COM_URL || 'https://pintuweb.id'
+        const paymentUrl = `${B_COM_URL}/payment?token=${encodeURIComponent(tx.snap_token)}&orderId=${encodeURIComponent(tx.order_id)}`
+        window.open(paymentUrl, '_blank', 'noopener,noreferrer')
+        toast.info('Halaman pembayaran dibuka di tab baru.')
+        setContinuingPaymentId(null)
+        return
       }
+
+      // Fallback: gunakan snap_redirect_url jika snap_token tidak tersedia
       if (tx.snap_redirect_url) {
         window.open(tx.snap_redirect_url, '_blank', 'noopener,noreferrer')
         toast.info('Halaman pembayaran dibuka di tab baru.')
-        setContinuingPaymentId(null); return
+        setContinuingPaymentId(null)
+        return
       }
+
+      // Kalau keduanya tidak ada, cek status transaksi
       toast.info('Memeriksa status pembayaran...')
       const statusRes = await api.checkMidtransDepositStatus(tx.order_id!)
       const deposit = (statusRes as any)?.data?.deposit || (statusRes as any)?.deposit
@@ -767,7 +750,7 @@ export default function BalancePage() {
                             {isPending && tx.source === 'midtrans' && (
                               <button onClick={() => handleContinuePayment(tx)} disabled={isContinuing}
                                 className="btn-ripple flex items-center gap-1 px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white rounded-lg text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap">
-                                {isContinuing ? <><Loader2 className="w-3 h-3 animate-spin" /> Memuat...</> : <><Play className="w-3 h-3" /> Lanjutkan</>}
+                                {isContinuing ? <><Loader2 className="w-3 h-3 animate-spin" /> Memuat...</> : 'Lanjutkan'}
                               </button>
                             )}
                           </div>
