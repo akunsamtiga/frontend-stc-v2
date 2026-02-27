@@ -891,7 +891,7 @@ export default function TradingPage() {
           </div>
 
 
-          <div className="relative">
+          <div className="relative" data-tutorial="asset-selector">
             <div
   className="relative rounded-xl group"
   style={{
@@ -1033,7 +1033,7 @@ export default function TradingPage() {
 
           <div className="flex-1"></div>
 
-          <div className="relative flex items-center gap-1.5">
+          <div className="relative flex items-center gap-1.5" data-tutorial="account-type">
             <BalanceDisplay
               amount={hideBalance ? 0 : currentBalance}
               label={`Akun ${selectedAccountType === 'real' ? 'Real' : 'Demo'}`}
@@ -1459,7 +1459,7 @@ export default function TradingPage() {
         </div>
 
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-          <div className="flex-1 bg-[#0a0e17] relative overflow-hidden">
+          <div className="flex-1 bg-[#0a0e17] relative overflow-hidden" data-tutorial="chart-area">
             {selectedAsset ? (
               <TradingChart
                 activeOrders={activeOrders}
@@ -1480,7 +1480,7 @@ export default function TradingPage() {
 
         <div className="hidden lg:block w-64 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
           <div className="h-full flex flex-col p-4 space-y-4 overflow-hidden">
-            <div className="bg-[#1a1f2e] rounded-xl px-3 py-2">
+            <div className="bg-[#1a1f2e] rounded-xl px-3 py-2" data-tutorial="amount-input">
               <div className="text-[10px] text-gray-500 text-center leading-none">Jumlah</div>
               <div className="flex items-center gap-2">
                 <button
@@ -1530,7 +1530,7 @@ export default function TradingPage() {
               </div>
             </div>
 
-            <div className="bg-[#1a1f2e] rounded-xl px-3 py-2 relative">
+            <div className="bg-[#1a1f2e] rounded-xl px-3 py-2 relative" data-tutorial="duration-selector">
               <div className="text-[10px] text-gray-500 text-center leading-none mb-1">
                 Durasi Waktu
               </div>
@@ -1593,7 +1593,7 @@ export default function TradingPage() {
               </div>
             )}
 
-            <div>
+            <div data-tutorial="trade-buttons">
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => { triggerBtnEffect('CALL'); handlePlaceOrder('CALL') }}
