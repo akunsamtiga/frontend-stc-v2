@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 
-const B_COM_URL = process.env.NEXT_PUBLIC_B_COM_URL || '';
+const B_COM_URL = (process.env.NEXT_PUBLIC_B_COM_URL || '').replace(/\/$/, '');
 import {
   ArrowLeft, CreditCard, Wallet, WarningCircle, CheckCircle,
   Clock, X, SpinnerGap, Tag,
