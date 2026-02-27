@@ -478,9 +478,9 @@ export default function TradingPage() {
       const profile = (profileRes as any)?.data as UserProfile || profileRes as UserProfile
 
       const sortedAssets = [...assetsList].sort((a, b) => {
-        const aStartsWithC = a.name?.toUpperCase().startsWith('C') ? 0 : 1
-        const bStartsWithC = b.name?.toUpperCase().startsWith('C') ? 0 : 1
-        return aStartsWithC - bStartsWithC
+        const aIsCryptoCoin = a.name?.toLowerCase() === 'crypto coin' ? 0 : 1
+        const bIsCryptoCoin = b.name?.toLowerCase() === 'crypto coin' ? 0 : 1
+        return aIsCryptoCoin - bIsCryptoCoin
       })
 
       unstable_batchedUpdates(() => {
