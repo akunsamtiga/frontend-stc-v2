@@ -1193,9 +1193,9 @@ export default function LandingPage() {
   }, [showAuthModal])
 
 
+  // SESUDAH
   useEffect(() => {
     if (typeof window === 'undefined') return
-
 
     const urlParams = new URLSearchParams(window.location.search)
     const refCode = urlParams.get('ref')
@@ -1205,6 +1205,8 @@ export default function LandingPage() {
       setHasReferralCode(true)
       console.log('✅ Referral code detected:', refCode)
 
+      // Buka modal register otomatis
+      setShowAuthModal(true)
 
       toast.info(`Kode referral: ${refCode}`, {
         description: 'Anda akan mendapatkan bonus saat mendaftar',
