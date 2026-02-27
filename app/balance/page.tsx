@@ -693,7 +693,7 @@ export default function BalancePage() {
                             {(() => {
                               const pt = (tx.payment_type || '').toLowerCase()
                               const paymentImg =
-                                pt.includes('dana')    ? '/dana.png' :
+                                pt.includes('dana')    ? '/dana.webp' :
                                 pt.includes('gopay')   ? '/gopay.webp' :
                                 pt.includes('permata') ? '/permata.webp' :
                                 pt.includes('bri')     ? '/bri.webp' :
