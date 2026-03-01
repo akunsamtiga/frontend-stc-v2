@@ -13,6 +13,7 @@ interface BalanceDisplayProps {
   isMobile?: boolean
   hideBalance?: boolean
   onToggleHide?: () => void
+  isLightMode?: boolean
 }
 
 const BalanceDisplay = memo(({
@@ -23,6 +24,7 @@ const BalanceDisplay = memo(({
   isMobile = false,
   hideBalance = false,
   onToggleHide,
+  isLightMode = false,
 }: BalanceDisplayProps) => {
   const { formattedValue, animationClasses } = useAnimatedBalance(amount, 700)
 
@@ -30,13 +32,19 @@ const BalanceDisplay = memo(({
 
   if (isMobile) {
     return (
-      <div className={`
-        flex flex-col items-end py-1 px-2.5 rounded-lg border transition-all duration-300
-        ${isActive
-          ? 'bg-[#232936] border-blue-500/50'
-          : 'bg-[#1a1f2e] border-gray-800/50'
-        }
-      `}>
+      <div
+        className={`
+          flex flex-col items-end py-1 px-2.5 rounded-lg border transition-all duration-300
+          ${isActive
+            ? 'bg-[#232936] border-blue-500/50'
+            : 'bg-[#1a1f2e] border-gray-800/50'
+          }
+        `}
+        style={isLightMode ? {
+          backgroundColor: isActive ? '#e8f0fe' : '#f1f5f9',
+          borderColor: isActive ? 'rgba(59,130,246,0.4)' : 'rgba(0,0,0,0.1)',
+        } : undefined}
+      >
         <div className="flex items-center gap-1">
           {onToggleHide && (
             <button
@@ -47,9 +55,10 @@ const BalanceDisplay = memo(({
             </button>
           )}
           <button onClick={onClick} className="flex items-center gap-1">
-            <span className="text-[12px] text-gray-400">{label}</span>
+            <span className={`text-[12px] ${isLightMode ? 'text-slate-600' : 'text-gray-400'}`}>{label}</span>
             <ChevronDown className={`
-              w-4 h-4 text-gray-400 transition-transform duration-300
+              w-4 h-4 transition-transform duration-300
+              ${isLightMode ? 'text-slate-600' : 'text-gray-400'}
               ${isActive ? 'rotate-180' : ''}
             `} />
           </button>
@@ -58,8 +67,13 @@ const BalanceDisplay = memo(({
         <button onClick={onClick} className={`
           transition-all duration-500 ease-out
           text-sm font-bold leading-tight whitespace-nowrap
-          ${hideBalance ? 'text-white tracking-widest' : animationClasses}
-        `}>
+          ${hideBalance
+            ? (isLightMode ? 'text-slate-800 tracking-widest' : 'text-white tracking-widest')
+            : animationClasses
+          }
+        `}
+          style={isLightMode && !hideBalance && animationClasses === 'text-white' ? { color: '#1e293b' } : undefined}
+        >
           {hideBalance ? maskedValue : formattedValue}
         </button>
       </div>
@@ -68,11 +82,16 @@ const BalanceDisplay = memo(({
 
 
   return (
-    <div className={`
-      flex flex-col items-start gap-0.5
-      hover:scale-105 px-4 py-2.5 rounded-lg transition-all duration-300 cursor-pointer
-      ${isActive ? 'bg-[#232936]' : ''}
-    `}>
+    <div
+      className={`
+        flex flex-col items-start gap-0.5
+        hover:scale-105 px-4 py-2.5 rounded-lg transition-all duration-300 cursor-pointer
+        ${isActive ? 'bg-[#232936]' : ''}
+      `}
+      style={isLightMode ? {
+        backgroundColor: isActive ? '#e8f0fe' : undefined,
+      } : undefined}
+    >
       <div className="flex items-center gap-1.5">
         {onToggleHide && (
           <button
@@ -83,9 +102,10 @@ const BalanceDisplay = memo(({
           </button>
         )}
         <button onClick={onClick} className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-400">{label}</span>
+          <span className={`text-xs ${isLightMode ? 'text-slate-600' : 'text-gray-400'}`}>{label}</span>
           <ChevronDown className={`
-            w-3.5 h-3.5 text-gray-400 transition-transform duration-300
+            w-3.5 h-3.5 transition-transform duration-300
+            ${isLightMode ? 'text-slate-600' : 'text-gray-400'}
             ${isActive ? 'rotate-180' : ''}
           `} />
         </button>
@@ -94,8 +114,13 @@ const BalanceDisplay = memo(({
       <button onClick={onClick} className={`
         transition-all duration-500 ease-out
         text-base font-bold
-        ${hideBalance ? 'text-white tracking-widest' : animationClasses}
-      `}>
+        ${hideBalance
+          ? (isLightMode ? 'text-slate-800 tracking-widest' : 'text-white tracking-widest')
+          : animationClasses
+        }
+      `}
+        style={isLightMode && !hideBalance && animationClasses === 'text-white' ? { color: '#1e293b' } : undefined}
+      >
         {hideBalance ? maskedValue : formattedValue}
       </button>
     </div>

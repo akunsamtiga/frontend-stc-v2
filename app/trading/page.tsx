@@ -321,6 +321,17 @@ export default function TradingPage() {
     })
   }
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null
+    if (!meta) {
+      meta = document.createElement('meta')
+      meta.name = 'theme-color'
+      document.head.appendChild(meta)
+    }
+    meta.content = isLightMode ? '#ffffff' : '#0f1419'
+  }, [isLightMode])
+
   const triggerBtnEffect = (dir: 'CALL' | 'PUT') => {
     setBtnEffect(null)
     requestAnimationFrame(() => {
@@ -925,7 +936,7 @@ export default function TradingPage() {
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowExtraAssetPicker(false)} />
                   <div className="absolute top-full left-0 mt-2 w-64 bg-[#232936] border border-gray-800/50 rounded-lg shadow-2xl z-50 flex flex-col max-h-[380px] animate-dropdown-in" style={isLightMode ? { backgroundColor: '#ffffff', borderColor: 'rgba(0,0,0,0.1)' } : undefined}>
-                    <div className="px-3 py-2 border-b border-gray-800/50 flex-shrink-0">
+                    <div className="px-3 py-2 border-b flex-shrink-0" style={isLightMode ? { borderColor: 'rgba(0,0,0,0.08)' } : { borderColor: 'rgba(55,65,81,0.5)' }}>
                       <div className="flex items-center gap-2 px-2 py-1.5">
                         <Search className="w-3 h-3 text-gray-400 flex-shrink-0" />
                         <input
@@ -934,7 +945,7 @@ export default function TradingPage() {
                           value={extraAssetSearch}
                           onChange={e => setExtraAssetSearch(e.target.value)}
                           placeholder="Cari aset..."
-                          className={`flex-1 bg-transparent text-xs outline-none${isLightMode ? " text-slate-800" : " text-white"}`}
+                          className={`flex-1 bg-transparent text-xs outline-none placeholder:text-gray-400${isLightMode ? ' text-slate-800 placeholder:text-slate-400' : ' text-white'}`}
                         />
                         {extraAssetSearch && (
                           <button onClick={() => setExtraAssetSearch('')} className="text-gray-500 hover:text-gray-300">
@@ -967,16 +978,19 @@ export default function TradingPage() {
                               setExtraAssetSearch('')
                               if (asset.realtimeDbPath) prefetchMultipleTimeframes(asset.realtimeDbPath, ['1m', '5m'])
                             }}
-                            className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 last:border-0"
+                            className={`w-full flex items-center justify-between px-3 py-2.5 transition-colors border-b last:border-0 ${isLightMode ? '' : 'hover:bg-[#2a3142] border-gray-800/30'}`}
+                            style={isLightMode ? { borderColor: 'rgba(0,0,0,0.06)' } : undefined}
+                            onMouseEnter={e => isLightMode && ((e.currentTarget as HTMLElement).style.backgroundColor = '#f1f5f9')}
+                            onMouseLeave={e => isLightMode && ((e.currentTarget as HTMLElement).style.backgroundColor = '')}
                           >
                             <div className="flex items-center gap-2">
                               <AssetIcon asset={asset} size="xs" />
                               <div className="text-left">
-                                <div className="text-xs font-medium">{asset.symbol}</div>
-                                <div className="text-[10px] text-gray-400">{asset.name}</div>
+                                <div className={`text-xs font-medium ${isLightMode ? 'text-slate-800' : ''}`}>{asset.symbol}</div>
+                                <div className={`text-[10px] ${isLightMode ? 'text-slate-500' : 'text-gray-400'}`}>{asset.name}</div>
                               </div>
                             </div>
-                            <span className="text-[10px] font-bold text-emerald-400">+{asset.profitRate}%</span>
+                            <span className="text-[10px] font-bold text-emerald-500">+{asset.profitRate}%</span>
                           </button>
                         ))
                       }
@@ -1049,7 +1063,7 @@ export default function TradingPage() {
                   <div className={`absolute top-full left-0 mt-2 w-72 bg-[#232936] border border-gray-800/50 rounded-lg shadow-2xl z-50 flex flex-col max-h-[420px] ${
                     isAssetMenuClosing ? 'animate-dropdown-out' : 'animate-dropdown-in'
                   }`} style={isLightMode ? { backgroundColor: '#ffffff', borderColor: 'rgba(0,0,0,0.1)' } : undefined}>
-                    <div className="px-3 py-2.5 border-b border-gray-800/50 flex-shrink-0">
+                    <div className="px-3 py-2.5 border-b flex-shrink-0" style={isLightMode ? { borderColor: 'rgba(0,0,0,0.08)' } : { borderColor: 'rgba(55,65,81,0.5)' }}>
                       <div className="flex items-center gap-2 px-2 py-1.5">
                         <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                         <input
@@ -1069,7 +1083,8 @@ export default function TradingPage() {
 
                     {availableAssetTypes.length > 1 && (
                       <div
-                        className="px-3 py-2 border-b border-gray-800/30 flex-shrink-0"
+                        className="px-3 py-2 border-b flex-shrink-0"
+                        style={isLightMode ? { borderColor: 'rgba(0,0,0,0.06)' } : { borderColor: 'rgba(55,65,81,0.3)' }}
                         onClick={(e) => e.stopPropagation()}
                       >
                         <TypeFilterChips
@@ -1108,24 +1123,29 @@ export default function TradingPage() {
                               setSelectedAsset(asset)
                               handleCloseAssetMenu()
                             }}
-                            onMouseEnter={() => {
+                            onMouseEnter={e => {
                               if (asset.realtimeDbPath) {
                                 prefetchMultipleTimeframes(asset.realtimeDbPath, ['1m', '5m'])
                               }
+                              if (isLightMode) (e.currentTarget as HTMLElement).style.backgroundColor = selectedAsset?.id === asset.id ? '#eff6ff' : '#f1f5f9'
                             }}
-                            className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 last:border-0 ${
-                              selectedAsset?.id === asset.id ? 'bg-[#2a3142]' : ''
+                            className={`w-full flex items-center justify-between px-4 py-3 transition-colors border-b last:border-0 ${
+                              isLightMode
+                                ? (selectedAsset?.id === asset.id ? 'bg-blue-50' : '')
+                                : `hover:bg-[#2a3142] border-gray-800/30 ${selectedAsset?.id === asset.id ? 'bg-[#2a3142]' : ''}`
                             }`}
+                            style={isLightMode ? { borderColor: 'rgba(0,0,0,0.06)' } : undefined}
+                            onMouseLeave={e => isLightMode && ((e.currentTarget as HTMLElement).style.backgroundColor = selectedAsset?.id === asset.id ? '#eff6ff' : '')}
                           >
                             <div className="flex items-center gap-3">
                               <AssetIcon asset={asset} size="xs" />
                               <div className="text-left">
-                                <div className="text-sm font-medium">{asset.symbol}</div>
-                                <div className="text-xs text-gray-400">{asset.name}</div>
+                                <div className={`text-sm font-medium ${isLightMode ? 'text-slate-800' : ''}`}>{asset.symbol}</div>
+                                <div className={`text-xs ${isLightMode ? 'text-slate-500' : 'text-gray-400'}`}>{asset.name}</div>
                               </div>
                             </div>
                             <div className="flex items-center gap-1.5">
-                              <div className="text-xs font-bold text-emerald-400">+{asset.profitRate}%</div>
+                              <div className="text-xs font-bold text-emerald-500">+{asset.profitRate}%</div>
                             </div>
                           </button>
                         ))
@@ -1193,6 +1213,7 @@ export default function TradingPage() {
               isMobile={false}
               hideBalance={hideBalance}
               onToggleHide={() => setHideBalance(h => !h)}
+              isLightMode={isLightMode}
             />
 
             {showAccountMenu && (
@@ -1204,12 +1225,15 @@ export default function TradingPage() {
                       setSelectedAccountType('demo')
                       setShowAccountMenu(false)
                     }}
-                    className={`w-full flex flex-col items-start gap-1 px-4 py-3 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 ${
-                      selectedAccountType === 'demo' ? 'bg-[#2a3142]' : ''
+                    className={`w-full flex flex-col items-start gap-1 px-4 py-3 transition-colors border-b ${
+                      isLightMode
+                        ? (selectedAccountType === 'demo' ? 'bg-blue-50' : 'hover:bg-gray-50')
+                        : `hover:bg-[#2a3142] border-gray-800/30 ${selectedAccountType === 'demo' ? 'bg-[#2a3142]' : ''}`
                     }`}
+                    style={isLightMode ? { borderColor: 'rgba(0,0,0,0.08)' } : undefined}
                   >
-                    <span className="text-xs text-white">Akun Demo</span>
-                    <span className="text-base font-bold text-white pl-4">
+                    <span className={`text-xs ${isLightMode ? 'text-slate-600' : 'text-white'}`}>Akun Demo</span>
+                    <span className={`text-base font-bold pl-4 ${isLightMode ? 'text-slate-800' : 'text-white'}`}>
                       {hideBalance ? '••••••' : formatCurrency(demoBalance)}
                     </span>
                   </button>
@@ -1218,12 +1242,14 @@ export default function TradingPage() {
                       setSelectedAccountType('real')
                       setShowAccountMenu(false)
                     }}
-                    className={`w-full flex flex-col items-start gap-1 px-4 py-3 hover:bg-[#2a3142] transition-colors ${
-                      selectedAccountType === 'real' ? 'bg-[#2a3142]' : ''
+                    className={`w-full flex flex-col items-start gap-1 px-4 py-3 transition-colors ${
+                      isLightMode
+                        ? (selectedAccountType === 'real' ? 'bg-blue-50' : 'hover:bg-gray-50')
+                        : `hover:bg-[#2a3142] ${selectedAccountType === 'real' ? 'bg-[#2a3142]' : ''}`
                     }`}
                   >
-                    <span className="text-xs text-white">Akun Real</span>
-                    <span className="text-base font-bold text-white pl-4">
+                    <span className={`text-xs ${isLightMode ? 'text-slate-600' : 'text-white'}`}>Akun Real</span>
+                    <span className={`text-base font-bold pl-4 ${isLightMode ? 'text-slate-800' : 'text-white'}`}>
                       {hideBalance ? '••••••' : formatCurrency(realBalance)}
                     </span>
                   </button>
@@ -1300,6 +1326,12 @@ export default function TradingPage() {
               {userProfile?.user?.status && (
                 <StatusBadge status={userProfile.user.status} size="sm" />
               )}
+              {isProfileIncomplete && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                  <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
+                </span>
+              )}
             </button>
 
             {showUserMenu && (
@@ -1307,7 +1339,7 @@ export default function TradingPage() {
                 <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
                 <div className="absolute top-full right-0 mt-2 w-56 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50" style={isLightMode ? { backgroundColor: '#ffffff', borderColor: 'rgba(0,0,0,0.1)' } : undefined}>
                   <div className="px-4 py-4 border-b border-gray-800/30">
-                    <div className="text-sm font-medium truncate">{user.email}</div>
+                    <div className="text-sm font-medium truncate max-w-[160px]">{user.email.length > 22 ? user.email.slice(0, 22) + '…' : user.email}</div>
                     <div className="text-xs text-gray-400 mt-1">{user.role}</div>
                   </div>
 
@@ -1390,7 +1422,7 @@ export default function TradingPage() {
 
                   <button
                     onClick={() => {
-                      router.push('/history')
+                      setShowHistorySidebar(true)
                       setShowUserMenu(false)
                     }}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#232936] transition-colors text-left"
@@ -1426,7 +1458,7 @@ export default function TradingPage() {
                   >
                     <UserPlus className="w-4 h-4 flex-shrink-0" />
                     <span className="text-sm">Undang Teman</span>
-                    <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide badge-new-shimmer" style={{ color: '#ffffff' }}>
+                    <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold text-white tracking-wide badge-new-shimmer" style={{ color: '#ffffff' }}>
                       NEW
                     </span>
                   </button>
@@ -1454,7 +1486,7 @@ export default function TradingPage() {
                       ) : (
                         <Sun className="w-4 h-4 flex-shrink-0 text-amber-400" />
                       )}
-                      <span className="text-sm">{isLightMode ? 'Mode Gelap' : 'Mode Terang'}</span>
+                      <span className="text-sm">{isLightMode ? 'Mode Terang' : 'Mode Gelap'}</span>
                     </div>
                     {/* Switch */}
                     <div className={`relative w-9 h-5 rounded-full transition-colors duration-300 flex-shrink-0 ${isLightMode ? 'bg-indigo-500' : 'bg-amber-500'}`}>
@@ -1511,6 +1543,7 @@ export default function TradingPage() {
                 isMobile={true}
                 hideBalance={hideBalance}
                 onToggleHide={() => setHideBalance(h => !h)}
+                isLightMode={isLightMode}
               />
 
               {showAccountMenu && (
@@ -1554,7 +1587,7 @@ export default function TradingPage() {
               onClick={() => setShowWalletModal(true)}
               className="w-10 h-10 lg:w-8 lg:h-8 flex items-center justify-center bg-blue-500 rounded-lg transition-colors hover:bg-blue-600"
             >
-              <Wallet className="w-6 h-6 lg:w-4 lg:h-4 text-white" />
+              <Wallet className="w-6 h-6 lg:w-4 lg:h-4 !text-white" />
             </button>
 
             <button
@@ -1578,6 +1611,12 @@ export default function TradingPage() {
               </div>
               {userProfile?.user?.status && (
                 <StatusBadge status={userProfile.user.status} size="sm" />
+              )}
+              {isProfileIncomplete && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                  <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
+                </span>
               )}
             </button>
           </div>
@@ -1662,7 +1701,7 @@ export default function TradingPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => {
-                    const newAmount = Math.max(orderLimits.min, amount - 10000)
+                    const newAmount = Math.max(orderLimits.min, Math.floor(amount / 2))
                     setAmount(newAmount)
                   }}
                   className="hover:bg-[#232936] rounded-lg p-1.5 transition-colors flex-shrink-0"
@@ -1693,7 +1732,7 @@ export default function TradingPage() {
                 />
                 <button
                   onClick={() => {
-                    const newAmount = Math.min(orderLimits.max, amount + 10000)
+                    const newAmount = Math.min(orderLimits.max, amount * 2)
                     setAmount(newAmount)
                   }}
                   className="hover:bg-[#232936] rounded-lg p-1.5 transition-colors flex-shrink-0"
@@ -1842,13 +1881,13 @@ export default function TradingPage() {
               <div className="relative">
                 <div
                   onClick={() => setShowAmountDropdown(!showAmountDropdown)}
-                  className={`w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-3 py-3 text-center text-sm font-bold hover:bg-[#232936] transition-colors flex items-center justify-between cursor-pointer${isLightMode ? ' text-slate-800' : ' text-white'}`}
+                  className={`w-full bg-[#1a1f2e] rounded-xl px-3 py-3 text-center text-sm font-bold hover:bg-[#232936] transition-colors flex items-center justify-between cursor-pointer${isLightMode ? ' text-slate-800' : ' text-white'}`}
                   style={isLightMode ? { backgroundColor: '#cce0ff', border: '1px solid rgba(59,130,246,0.35)' } : undefined}
                 >
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      const newAmount = Math.max(orderLimits.min, amount - 10000)
+                      const newAmount = Math.max(orderLimits.min, Math.floor(amount / 2))
                       setAmount(newAmount)
                     }}
                     className="flex items-center justify-center hover:bg-[#2a3142] rounded p-1 transition-colors"
@@ -1861,7 +1900,7 @@ export default function TradingPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      const newAmount = Math.min(orderLimits.max, amount + 10000)
+                      const newAmount = Math.min(orderLimits.max, amount * 2)
                       setAmount(newAmount)
                     }}
                     className="flex items-center justify-center hover:bg-[#2a3142] rounded p-1 transition-colors"
@@ -1915,7 +1954,7 @@ export default function TradingPage() {
               </label>
               <div
                 onClick={() => setShowDurationDropdown(!showDurationDropdown)}
-                className={`w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-3 py-3 text-center text-sm font-bold cursor-pointer hover:bg-[#232936] transition-colors${isLightMode ? ' text-slate-800' : ' text-white'}`}
+                className={`w-full bg-[#1a1f2e] rounded-xl px-3 py-3 text-center text-sm font-bold cursor-pointer hover:bg-[#232936] transition-colors${isLightMode ? ' text-slate-800' : ' text-white'}`}
                 style={isLightMode ? { backgroundColor: '#cce0ff', border: '1px solid rgba(59,130,246,0.35)' } : undefined}
               >
                 {`${EXTENDED_DURATIONS.find(d => d.value === duration)?.shortLabel} ➜ ${formatExpiryTime(duration)}`}
@@ -2155,7 +2194,7 @@ export default function TradingPage() {
                   )}
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-bold text-sm truncate">{user.email}</h3>
+                  <h3 className="font-bold text-sm truncate max-w-[140px]">{user.email.length > 20 ? user.email.slice(0, 20) + '…' : user.email}</h3>
                   <p className="text-xs text-gray-400">{user.role}</p>
 
                   {isProfileIncomplete && (
@@ -2288,7 +2327,7 @@ export default function TradingPage() {
               >
                 <UserPlus className="w-4 h-4 flex-shrink-0" />
                 <span className="whitespace-nowrap">Undang Teman</span>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide badge-new-shimmer flex-shrink-0" style={{ color: '#ffffff' }}>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold text-white tracking-wide badge-new-shimmer flex-shrink-0" style={{ color: '#ffffff' }}>
                   NEW
                 </span>
               </button>
@@ -2316,7 +2355,7 @@ export default function TradingPage() {
                   ) : (
                     <Sun className="w-4 h-4 flex-shrink-0 text-amber-400" />
                   )}
-                  <span>{isLightMode ? 'Mode Gelap' : 'Mode Terang'}</span>
+                  <span>{isLightMode ? 'Mode Terang' : 'Mode Gelap'}</span>
                 </div>
                 {/* Switch */}
                 <div className={`relative w-9 h-5 rounded-full transition-colors duration-300 flex-shrink-0 ${isLightMode ? 'bg-indigo-500' : 'bg-amber-500'}`}>
@@ -2472,6 +2511,8 @@ export default function TradingPage() {
         /* ── Base text ── */
         .lm { color: #1e293b !important; }
         .lm .text-white        { color: #1e293b !important; }
+        .lm .badge-new-shimmer,
+        .lm .badge-new-shimmer * { color: #ffffff !important; }
         .lm .text-gray-100     { color: #1e293b !important; }
         .lm .text-gray-200     { color: #1e293b !important; }
         .lm .text-gray-300     { color: #374151 !important; }

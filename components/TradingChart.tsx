@@ -13,8 +13,16 @@ import type { OHLCUpdate } from '@/lib/websocket'
 import { BinaryOrder, TIMEFRAMES, Timeframe as TimeframeType } from '@/types'
 import { database, ref, get } from '@/lib/firebase'
 import { formatPriceAuto } from '@/lib/utils'
+
+function formatPrice4(price: number, assetType: string): string {
+  const raw = formatPriceAuto(price, assetType)
+  const parts = raw.split('.')
+  if (parts.length < 2) return raw
+  return parts[0] + '.' + parts[1].slice(0, 4)
+}
 import dynamic from 'next/dynamic'
-import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2, X, Search, Paintbrush } from 'lucide-react'
+import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Clock, BarChart2, X, Search } from 'lucide-react'
+import { PencilSimpleLine, ChartLine } from 'phosphor-react'
 import DrawingTools from '@/components/DrawingTools'
 import AssetIcon from '@/components/common/AssetIcon'
 import OrderPriceTracker from '@/components/OrderPriceTracker'
@@ -95,18 +103,29 @@ const TypeFilterChips = memo(({
   onFilterChange,
   assetCounts,
   availableTypes,
+  isLightMode,
 }: {
   activeFilter: AssetTypeFilter
   onFilterChange: (f: AssetTypeFilter) => void
   assetCounts: Record<string, number>
   availableTypes: AssetTypeFilter[]
+  isLightMode?: boolean
 }) => {
   const types: AssetTypeFilter[] = ['all', ...availableTypes]
-
 
   const midPoint = Math.ceil(types.length / 2)
   const row1 = types.slice(0, midPoint)
   const row2 = types.slice(midPoint)
+
+  // Solid color mapping for light mode active chips
+  const LIGHT_ACTIVE_STYLE: Record<AssetTypeFilter, { bg: string; border: string }> = {
+    all:       { bg: '#475569', border: '#475569' },
+    forex:     { bg: '#3b82f6', border: '#3b82f6' },
+    crypto:    { bg: '#f97316', border: '#f97316' },
+    stock:     { bg: '#10b981', border: '#10b981' },
+    commodity: { bg: '#ca8a04', border: '#ca8a04' },
+    index:     { bg: '#8b5cf6', border: '#8b5cf6' },
+  }
 
   const renderChip = (type: AssetTypeFilter) => {
     const meta = ASSET_TYPE_META[type]
@@ -114,6 +133,32 @@ const TypeFilterChips = memo(({
       ? Object.values(assetCounts).reduce((a, b) => a + b, 0)
       : (assetCounts[type] || 0)
     const isActive = activeFilter === type
+
+    if (isLightMode) {
+      const lm = LIGHT_ACTIVE_STYLE[type]
+      return (
+        <button
+          key={type}
+          onClick={(e) => { e.stopPropagation(); onFilterChange(type) }}
+          style={isActive
+            ? { backgroundColor: lm.bg, borderColor: lm.border, color: '#ffffff' }
+            : { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1', color: '#475569' }
+          }
+          className="flex-1 flex items-center justify-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold border transition-all duration-150"
+        >
+          <span>{meta.label}</span>
+          {count > 0 && (
+            <span style={{
+              fontSize: '9px', padding: '1px 4px', borderRadius: '4px',
+              backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
+              color: isActive ? '#ffffff' : '#64748b',
+            }}>
+              {count}
+            </span>
+          )}
+        </button>
+      )
+    }
 
     return (
       <button
@@ -757,7 +802,8 @@ const PriceDisplay = memo(({
   onClick,
   showMenu,
   assets,
-  onSelectAsset
+  onSelectAsset,
+  isLightMode,
 }: any) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -768,7 +814,7 @@ const PriceDisplay = memo(({
   if (!asset || !price) return null
 
   const hasChange = price.change !== undefined && price.change !== 0
-  const formattedPrice = formatPriceAuto(price.price, asset.type)
+  const formattedPrice = formatPrice4(price.price, asset.type)
 
 
   const assetCountsByType = useMemo(() => {
@@ -900,24 +946,37 @@ const PriceDisplay = memo(({
         </div>
       </div>
 
-      {showMenu && (
+      {showMenu && typeof document !== 'undefined' && createPortal(
         <>
-          {}
+          {/* Backdrop */}
           <div
-            className={`fixed inset-0 z-[62] lg:hidden ${
-              isClosing ? 'animate-fade-out' : 'animate-fade-in'
-            }`}
+            className={`fixed inset-0 lg:hidden ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
+            style={{ zIndex: 9998, backgroundColor: 'rgba(0,0,0,0.45)' }}
             onClick={handleClose}
           />
 
-          {}
-          <div className={`absolute top-full left-0 mt-2 w-72 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl z-[63] lg:hidden flex flex-col max-h-[calc(100vh-120px)] ${
-            isClosing ? 'animate-dropdown-out' : 'animate-dropdown-in'
-          }`}>
-            {}
-            <div className="p-3 border-b border-gray-800/50 sticky top-0 bg-[#0f1419] z-10">
+          {/* Popup panel — portal renders outside chart stacking context */}
+          <div
+            className={`fixed top-[60px] left-4 w-[calc(100vw-32px)] max-w-[320px] rounded-lg shadow-2xl lg:hidden flex flex-col ${
+              isClosing ? 'animate-dropdown-out' : 'animate-dropdown-in'
+            }`}
+            style={{
+              zIndex: 9999,
+              maxHeight: 'calc(100vh - 120px)',
+              backgroundColor: isLightMode ? '#ffffff' : '#0f1419',
+              border: `1px solid ${isLightMode ? 'rgba(0,0,0,0.1)' : 'rgba(55,65,81,0.5)'}`,
+            }}
+          >
+            {/* Search + filter header */}
+            <div
+              className="p-3 sticky top-0 z-10"
+              style={{
+                borderBottom: `1px solid ${isLightMode ? 'rgba(0,0,0,0.08)' : 'rgba(55,65,81,0.5)'}`,
+                backgroundColor: isLightMode ? '#ffffff' : '#0f1419',
+              }}
+            >
               <div className="relative flex items-center gap-2 mb-2 px-2 py-1.5">
-                <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                <Search className={`w-3.5 h-3.5 flex-shrink-0 ${isLightMode ? 'text-slate-400' : 'text-gray-400'}`} />
                 <input
                   ref={searchInputRef}
                   type="text"
@@ -925,7 +984,7 @@ const PriceDisplay = memo(({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Cari aset..."
-                  className="flex-1 bg-[#1a1f2e50] text-xs text-white outline-none border-0 ring-0 hover:ring-1"
+                  className={`flex-1 text-xs outline-none border-0 ring-0 bg-transparent ${isLightMode ? 'text-slate-800 placeholder:text-slate-400' : 'text-white'}`}
                   onClick={(e) => e.stopPropagation()}
                 />
                 {searchQuery && (
@@ -935,14 +994,13 @@ const PriceDisplay = memo(({
                       setSearchQuery('')
                       searchInputRef.current?.focus()
                     }}
-                    className="text-gray-500 hover:text-gray-300 transition-colors"
+                    className={`transition-colors ${isLightMode ? 'text-slate-400 hover:text-slate-600' : 'text-gray-500 hover:text-gray-300'}`}
                   >
                     <X className="w-3 h-3" />
                   </button>
                 )}
               </div>
 
-              {}
               {availableAssetTypes.length > 1 && (
                 <div onClick={(e) => e.stopPropagation()}>
                   <TypeFilterChips
@@ -950,49 +1008,47 @@ const PriceDisplay = memo(({
                     onFilterChange={setAssetTypeFilter}
                     assetCounts={assetCountsByType}
                     availableTypes={availableAssetTypes}
+                    isLightMode={isLightMode}
                   />
                 </div>
               )}
             </div>
 
-            {}
+            {/* Asset list */}
             <div className="overflow-y-auto max-h-[300px]">
               {filteredAssets.length > 0 ? (
                 filteredAssets.map((assetItem: any, index: number) => (
                   <button
                     key={assetItem.id}
-                    onClick={() => {
-                      onSelectAsset(assetItem)
-                    }}
+                    onClick={() => { onSelectAsset(assetItem) }}
                     onMouseEnter={() => {
                       setSelectedIndex(index)
                       if (assetItem.realtimeDbPath) {
-                        prefetchMultipleTimeframes(
-                          assetItem.realtimeDbPath,
-                          ['1m', '5m']
-                        ).catch(err => console.log('Prefetch failed:', err))
+                        prefetchMultipleTimeframes(assetItem.realtimeDbPath, ['1m', '5m'])
+                          .catch(err => console.log('Prefetch failed:', err))
                       }
                     }}
-                    className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#1a1f2e] transition-colors border-b border-gray-800/30 last:border-0 ${
-                      index === selectedIndex ? 'bg-[#1a1f2e] ring-1 ring-blue-500/30' : ''
-                    } ${
-                      assetItem.id === asset?.id ? 'bg-[#1a1f2e]/50' : ''
+                    className={`w-full flex items-center justify-between px-4 py-3 transition-colors border-b last:border-0 ${
+                      isLightMode
+                        ? (index === selectedIndex || assetItem.id === asset?.id ? 'bg-blue-50' : 'hover:bg-gray-50')
+                        : `hover:bg-[#1a1f2e] border-gray-800/30 ${index === selectedIndex ? 'bg-[#1a1f2e] ring-1 ring-blue-500/30' : ''} ${assetItem.id === asset?.id ? 'bg-[#1a1f2e]/50' : ''}`
                     }`}
+                    style={isLightMode ? { borderColor: 'rgba(0,0,0,0.06)' } : undefined}
                   >
                     <div className="flex items-center gap-3">
                       <AssetIcon asset={assetItem} size="xs" />
                       <div className="text-left">
-                        <div className="text-sm font-medium">{assetItem.symbol}</div>
-                        <div className="text-xs text-gray-400">{assetItem.name}</div>
+                        <div className={`text-sm font-medium ${isLightMode ? 'text-slate-800' : ''}`}>{assetItem.symbol}</div>
+                        <div className={`text-xs ${isLightMode ? 'text-slate-500' : 'text-gray-400'}`}>{assetItem.name}</div>
                       </div>
                     </div>
-                    <div className="text-xs font-bold text-emerald-400">+{assetItem.profitRate}%</div>
+                    <div className="text-xs font-bold text-emerald-500">+{assetItem.profitRate}%</div>
                   </button>
                 ))
               ) : (
                 <div className="px-4 py-8 text-center">
                   <div className="text-2xl mb-2 opacity-50">🔍</div>
-                  <p className="text-xs text-gray-500">
+                  <p className={`text-xs ${isLightMode ? 'text-slate-400' : 'text-gray-500'}`}>
                     {searchQuery
                       ? 'Aset tidak ditemukan'
                       : `Tidak ada ${ASSET_TYPE_META[assetTypeFilter]?.label || ''} tersedia`
@@ -1010,7 +1066,8 @@ const PriceDisplay = memo(({
               )}
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   )
@@ -1126,6 +1183,8 @@ const MobileControls = memo(({
   onFitContent,
   onRefresh,
   onOpenIndicators,
+  onToggleDrawing,
+  drawingEnabled,
   nowSeconds,
   isLightMode,
 }: any) => {
@@ -1164,10 +1223,20 @@ const MobileControls = memo(({
     return `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`
   }
 
-  const pillBg      = isLightMode ? 'bg-white/90 backdrop-blur-sm border border-gray-200 shadow-sm' : 'bg-gray-900/80 backdrop-blur-sm border border-gray-700/50'
+  // Light mode uses inline styles with !important via a <style> tag to avoid Tailwind conflicts
+  const pillStyle = isLightMode
+    ? { backgroundColor: 'rgba(255,255,255,0.95)', border: '1.5px solid #94a3b8', boxShadow: '0 1px 4px rgba(0,0,0,0.12)', backdropFilter: 'blur(4px)' }
+    : undefined
+  const pillClass = isLightMode
+    ? 'bg-white/95 backdrop-blur-sm shadow-sm'
+    : 'bg-gray-900/80 backdrop-blur-sm border border-gray-700/50'
+
   const btnInactive = isLightMode ? 'text-slate-600 hover:text-slate-900 hover:bg-gray-100' : 'text-gray-300 hover:bg-gray-800/80'
   const btnActive   = 'bg-blue-500 !text-white shadow-sm'
-  const dropdownBg  = isLightMode ? 'bg-white border border-gray-200 shadow-lg' : 'bg-[#0f1419] border border-gray-800/50 shadow-2xl'
+  const dropdownStyle = isLightMode
+    ? { backgroundColor: '#ffffff', border: '1.5px solid #94a3b8', boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }
+    : undefined
+  const dropdownClass = isLightMode ? 'bg-white shadow-lg' : 'bg-[#0f1419] border border-gray-800/50 shadow-2xl'
   const dropdownItem = (active: boolean) => active
     ? btnActive
     : isLightMode ? 'bg-gray-100 text-slate-700 hover:bg-gray-200' : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#232936]'
@@ -1179,18 +1248,19 @@ const MobileControls = memo(({
         <button
           onClick={() => { setShowTimeframeMenu(!showTimeframeMenu); setShowChartTypeMenu(false) }}
           disabled={isLoading}
-          className={`h-10 px-3 rounded-full hover:brightness-95 transition-all disabled:opacity-50 flex items-center gap-1.5 ${pillBg}`}
+          style={pillStyle}
+          className={`h-10 px-3 rounded-full hover:brightness-95 transition-all disabled:opacity-50 flex items-center gap-1.5 ${pillClass}`}
           title="Timeframe"
         >
           <Clock className={`w-4 h-4 ${isLightMode ? 'text-blue-500' : 'text-blue-400'}`} />
           <span className={`text-sm font-bold ${isLightMode ? 'text-slate-800' : 'text-white'}`}>{timeframe}</span>
-          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showTimeframeMenu ? 'rotate-180' : ''} ${isLightMode ? 'text-slate-400' : 'text-gray-400'}`} />
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showTimeframeMenu ? 'rotate-180' : ''} ${isLightMode ? 'text-slate-500' : 'text-gray-400'}`} />
         </button>
 
         {showTimeframeMenu && (
-          <div className={`absolute bottom-full left-0 mb-1 rounded-lg overflow-hidden min-w-[160px] animate-scale-in ${dropdownBg}`}>
+          <div style={dropdownStyle} className={`absolute bottom-full left-0 mb-1 rounded-lg overflow-hidden min-w-[160px] animate-scale-in ${dropdownClass}`}>
             <div className="p-2">
-              <div className={`text-[10px] font-semibold mb-1.5 px-1 ${isLightMode ? 'text-slate-400' : 'text-gray-400'}`}>SELECT TIMEFRAME</div>
+              <div className={`text-[10px] font-semibold mb-1.5 px-1 ${isLightMode ? 'text-slate-500' : 'text-gray-400'}`}>SELECT TIMEFRAME</div>
               <div className="grid grid-cols-2 gap-1">
                 {timeframes.map((tf) => (
                   <button
@@ -1213,19 +1283,20 @@ const MobileControls = memo(({
         <button
           onClick={() => { setShowChartTypeMenu(!showChartTypeMenu); setShowTimeframeMenu(false) }}
           disabled={isLoading}
-          className={`h-10 w-10 rounded-full hover:brightness-95 transition-all disabled:opacity-50 flex items-center justify-center ${pillBg}`}
+          style={pillStyle}
+          className={`h-10 w-10 rounded-full hover:brightness-95 transition-all disabled:opacity-50 flex items-center justify-center ${pillClass}`}
           title={chartType === 'candle' ? 'Candlestick Chart' : 'Line Chart'}
         >
           {chartType === 'candle'
-            ? <BarChart2 className={`w-4 h-4 ${isLightMode ? 'text-slate-600' : 'text-gray-300'}`} />
-            : <Activity  className={`w-4 h-4 ${isLightMode ? 'text-slate-600' : 'text-gray-300'}`} />
+            ? <BarChart2 className={`w-4 h-4 ${isLightMode ? 'text-slate-700' : 'text-gray-300'}`} />
+            : <Activity  className={`w-4 h-4 ${isLightMode ? 'text-slate-700' : 'text-gray-300'}`} />
           }
         </button>
 
         {showChartTypeMenu && (
-          <div className={`absolute bottom-full left-0 mb-1 rounded-lg overflow-hidden min-w-[140px] animate-scale-in ${dropdownBg}`}>
+          <div style={dropdownStyle} className={`absolute bottom-full left-0 mb-1 rounded-lg overflow-hidden min-w-[140px] animate-scale-in ${dropdownClass}`}>
             <div className="p-2">
-              <div className={`text-[10px] font-semibold mb-1.5 px-1 ${isLightMode ? 'text-slate-400' : 'text-gray-400'}`}>CHART TYPE</div>
+              <div className={`text-[10px] font-semibold mb-1.5 px-1 ${isLightMode ? 'text-slate-500' : 'text-gray-400'}`}>CHART TYPE</div>
               <div className="flex flex-col gap-1">
                 <button
                   onClick={() => { onChartTypeChange('candle'); setShowChartTypeMenu(false) }}
@@ -1253,15 +1324,33 @@ const MobileControls = memo(({
       <button
         onClick={onOpenIndicators}
         disabled={isLoading}
-        className={`h-10 w-10 rounded-full hover:brightness-95 transition-all disabled:opacity-50 flex items-center justify-center ${pillBg}`}
+        style={pillStyle}
+        className={`h-10 w-10 rounded-full hover:brightness-95 transition-all disabled:opacity-50 flex items-center justify-center ${pillClass}`}
         title="Indicators"
       >
-        <Sliders className={`w-4 h-4 ${isLightMode ? 'text-slate-600' : 'text-gray-300'}`} />
+        <ChartLine weight="bold" className={`w-4 h-4 ${isLightMode ? 'text-slate-700' : 'text-gray-300'}`} />
+      </button>
+
+      {/* Drawing tools pill */}
+      <button
+        onClick={onToggleDrawing}
+        disabled={isLoading}
+        style={drawingEnabled
+          ? { backgroundColor: '#3b82f6', border: '1.5px solid #3b82f6', boxShadow: '0 1px 4px rgba(59,130,246,0.4)' }
+          : pillStyle
+        }
+        className={`h-10 w-10 rounded-full hover:brightness-95 transition-all disabled:opacity-50 flex items-center justify-center ${drawingEnabled ? '' : pillClass}`}
+        title="Drawing Tools"
+      >
+        <PencilSimpleLine weight="bold" className={`w-4 h-4 ${drawingEnabled ? 'text-white' : isLightMode ? 'text-slate-700' : 'text-gray-300'}`} />
       </button>
 
       {/* Countdown pill */}
-      <div className={`h-10 px-3 rounded-full flex items-center gap-1 ${pillBg}`}>
-        <span className={`text-sm font-light tabular-nums ${isLightMode ? 'text-slate-700' : 'text-white'}`}>
+      <div
+        style={pillStyle}
+        className={`h-10 px-3 rounded-full flex items-center gap-1 ${pillClass}`}
+      >
+        <span className={`text-sm font-light tabular-nums ${isLightMode ? 'text-slate-800' : 'text-white'}`}>
           {formatCd(countdownSecs)}
         </span>
       </div>
@@ -1375,7 +1464,7 @@ const DesktopControls = memo(({
             className={`p-2 rounded-full transition-colors disabled:opacity-50 ${btnInactive}`}
             title="Indicators"
           >
-            <Sliders className="w-5 h-5" />
+            <ChartLine weight="bold" className="w-5 h-5" />
           </button>
           <button
             onClick={onToggleDrawing}
@@ -1383,7 +1472,7 @@ const DesktopControls = memo(({
             className={`p-2 rounded-full transition-colors disabled:opacity-50 ${drawingEnabled ? btnActive : btnInactive}`}
             title="Drawing Tools"
           >
-            <Paintbrush className="w-5 h-5" />
+            <PencilSimpleLine weight="bold" className="w-5 h-5" />
           </button>
           <button
             onClick={onRefresh}
@@ -2002,8 +2091,8 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
         visible: chartType === 'candle',
         priceFormat: {
           type: 'price',
-          precision: 8,
-          minMove: 0.00000001,
+          precision: 4,
+          minMove: 0.0001,
         },
       })
 
@@ -2013,8 +2102,8 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
         visible: chartType === 'line',
         priceFormat: {
           type: 'price',
-          precision: 8,
-          minMove: 0.00000001,
+          precision: 4,
+          minMove: 0.0001,
         },
       })
 
@@ -3812,6 +3901,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         showMenu={showAssetMenu}
         assets={availableAssets}
         onSelectAsset={handleAssetSelect}
+        isLightMode={isLightMode}
       />
       <RealtimeClock nowMs={nowMs} isLightMode={isLightMode} />
 
@@ -4069,6 +4159,11 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         onFitContent={handleFitContent}
         onRefresh={handleRefresh}
         onOpenIndicators={handleOpenIndicators}
+        onToggleDrawing={() => {
+          if (!showDrawingTools) setShowDrawingTools(true)
+          setDrawingPanelOpen(o => !o)
+        }}
+        drawingEnabled={drawingPanelOpen}
         nowSeconds={nowSeconds}
         isLightMode={isLightMode}
       />
@@ -4085,7 +4180,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          opacity: isLightMode ? 0.35 : 0.2,
+          opacity: 0.35,
           zIndex: 0,
           filter: isLightMode ? 'invert(1)' : 'none',
         }}
