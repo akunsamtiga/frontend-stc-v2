@@ -1814,11 +1814,6 @@ export interface AdminCommissionWithdrawalsResponse {
   limit: number
 }
 
-export interface AssignAffiliatorDto {
-  revenueSharePercentage?: number
-  unlockThreshold?: number
-}
-
 export interface UpdateAffiliatorConfigDto {
   revenueSharePercentage?: number
   unlockThreshold?: number
