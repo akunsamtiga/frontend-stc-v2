@@ -53,7 +53,15 @@ export default function RefPage({ params }: Props) {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isDone, setIsDone] = useState(false)
+  const [inviterName, setInviterName] = useState<string | null>(null)
   const emailRef = useRef<HTMLInputElement>(null)
+
+  // Fetch nama pengundang
+  useEffect(() => {
+    api.getAffiliatorPublicInfo(affiliateCode)
+      .then((res: any) => setInviterName(res.data?.name ?? null))
+      .catch(() => setInviterName(null))
+  }, [affiliateCode])
 
   const strength = getPasswordStrength(form.password)
 
@@ -172,10 +180,10 @@ export default function RefPage({ params }: Props) {
         <div className="mb-5 inline-flex items-center gap-2.5 rounded-2xl border border-emerald-500/20 bg-emerald-500/8 px-4 py-2.5 text-sm text-emerald-300 shadow-lg shadow-emerald-500/5">
           <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400" />
           <span>
-            Diundang via kode&nbsp;
-            <span className="font-mono font-bold text-white tracking-[0.15em]">
-              {affiliateCode}
-            </span>
+            {inviterName
+              ? <>Diundang oleh&nbsp;<span className="font-bold text-white">{inviterName}</span></>
+              : <>Diundang via kode&nbsp;<span className="font-mono font-bold text-white tracking-[0.15em]">{affiliateCode}</span></>
+            }
           </span>
         </div>
 

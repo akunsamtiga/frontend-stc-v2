@@ -249,25 +249,12 @@ function AssignModal({
   const handleAssign = async () => {
     if (!userId.trim()) { toast.error('User ID wajib diisi.'); return }
     if (codeError) { toast.error(codeError); return }
-
-    const parsedRevenue = Number(revenueShare)
-    const parsedThreshold = parseInt(unlockThreshold, 10)
-
-    if (!revenueShare || isNaN(parsedRevenue) || parsedRevenue < 1 || parsedRevenue > 100) {
-      toast.error('Revenue share harus antara 1–100.')
-      return
-    }
-    if (!unlockThreshold || isNaN(parsedThreshold) || parsedThreshold < 1) {
-      toast.error('Unlock threshold harus minimal 1.')
-      return
-    }
-
     setLoading(true)
     try {
       const dto: AssignAffiliatorDto = {
-        revenueSharePercentage: parsedRevenue,
-        unlockThreshold: parsedThreshold,
-        ...(customCode.trim() ? { customCode: customCode.trim() } : {}),
+        revenueSharePercentage: Number(revenueShare),
+        unlockThreshold: Number(unlockThreshold),
+        ...(customCode.trim() ? { customCode: customCode.trim().toUpperCase() } : {}),
       }
       await api.adminAssignAffiliator(userId.trim(), dto)
       toast.success(

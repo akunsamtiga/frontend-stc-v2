@@ -198,6 +198,7 @@ export default function AffiliatePage() {
   const [withdrawLoading, setWithdrawLoading] = useState(false)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [copiedLink, setCopiedLink] = useState(false)
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -253,6 +254,15 @@ export default function AffiliatePage() {
     setCopied(true)
     toast.success('Kode referral disalin!')
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const copyLink = () => {
+    if (!dashboard?.affiliateCode) return
+    const fullLink = `${window.location.origin}/ref/${dashboard.affiliateCode}`
+    navigator.clipboard.writeText(fullLink)
+    setCopiedLink(true)
+    toast.success('Link referral disalin!')
+    setTimeout(() => setCopiedLink(false), 2000)
   }
 
   const handleWithdraw = async () => {
@@ -421,25 +431,54 @@ export default function AffiliatePage() {
 
           {/* Referral code card */}
           <motion.div variants={scaleIn}
-            className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3"
+            className="flex flex-col gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3"
             whileHover={{ borderColor: 'rgb(139,92,246)', boxShadow: '0 0 24px rgba(139,92,246,0.15)', transition: { duration: 0.2 } }}>
-            <div>
-              <p className="text-xs text-gray-400">Kode Referral Anda</p>
-              <p className="text-xl font-bold text-purple-600 tracking-widest">{affiliateCode}</p>
+
+            {/* Row 1: kode + tombol salin kode */}
+            <div className="flex items-center gap-3">
+              <div>
+                <p className="text-xs text-gray-400">Kode Referral Anda</p>
+                <p className="text-xl font-bold text-purple-600 tracking-widest">{affiliateCode}</p>
+              </div>
+              <motion.button onClick={copyCode}
+                className="ml-2 p-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 transition-colors"
+                whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                <AnimatePresence mode="wait">
+                  {copied
+                    ? <motion.span key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                        <CheckCircle className="w-5 h-5" weight="fill" />
+                      </motion.span>
+                    : <motion.span key="copy" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                        <Copy className="w-5 h-5" weight="bold" />
+                      </motion.span>}
+                </AnimatePresence>
+              </motion.button>
             </div>
-            <motion.button onClick={copyCode}
-              className="ml-2 p-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 transition-colors"
-              whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-              <AnimatePresence mode="wait">
-                {copied
-                  ? <motion.span key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                      <CheckCircle className="w-5 h-5" weight="fill" />
-                    </motion.span>
-                  : <motion.span key="copy" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                      <Copy className="w-5 h-5" weight="bold" />
-                    </motion.span>}
-              </AnimatePresence>
-            </motion.button>
+
+            {/* Row 2: link lengkap + tombol salin link */}
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
+              <p className="text-xs text-gray-400 truncate max-w-[180px] sm:max-w-[220px] font-mono select-all flex-1">
+                {typeof window !== 'undefined'
+                  ? `${window.location.origin}/ref/${affiliateCode}`
+                  : `/ref/${affiliateCode}`}
+              </p>
+              <motion.button onClick={copyLink}
+                className="flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 text-xs font-medium transition-colors"
+                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <AnimatePresence mode="wait">
+                  {copiedLink
+                    ? <motion.span key="cl-check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="flex items-center gap-1">
+                        <CheckCircle className="w-3.5 h-3.5" weight="fill" />
+                        Disalin!
+                      </motion.span>
+                    : <motion.span key="cl-copy" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="flex items-center gap-1">
+                        <Copy className="w-3.5 h-3.5" weight="bold" />
+                        Salin Link
+                      </motion.span>}
+                </AnimatePresence>
+              </motion.button>
+            </div>
+
           </motion.div>
         </motion.div>
 

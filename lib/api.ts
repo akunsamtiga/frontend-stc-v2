@@ -1782,6 +1782,12 @@ async bulkUpdateAssetScheduleStatus(ids: string[], isActive: boolean): Promise<A
 
 
 
+  // ── Public (no auth) ──────────────────────────────────────────────────────
+
+  async getAffiliatorPublicInfo(code: string): Promise<ApiResponse<{ name: string }>> {
+    return this.client.get(`/affiliate-program/public/${code.toUpperCase()}`)
+  }
+
   async getMyAffiliatorProgram(): Promise<ApiResponse<AffiliatorDashboard>> {
     const cacheKey = this.getCacheKey('/affiliate-program/my-program')
     const cached = this.getFromCache(cacheKey)
