@@ -45,6 +45,8 @@ import {
   Search,
   CalendarClock,
   UserPlus,
+  Sun,
+  Moon,
 } from 'lucide-react'
 import OrderNotification from '@/components/OrderNotification'
 import { useWebSocket, usePriceSubscription, useOrderSubscription } from '@/components/providers/WebSocketProvider'
@@ -184,7 +186,7 @@ const TypeFilterChips = memo(({
           text-[11px] font-semibold border transition-all duration-150
           ${isActive
             ? `${meta.activeBg} ${meta.activeBorder} ${meta.activeText}`
-            : 'bg-[#1a1f2e] border-gray-700/50 text-gray-400 hover:border-gray-500 hover:text-gray-300'
+            : `bg-[#1a1f2e] border-gray-700/50 text-gray-400 hover:border-gray-500 hover:text-gray-300`
           }
         `}
       >
@@ -281,6 +283,9 @@ export default function TradingPage() {
   const [showAssetMenu, setShowAssetMenu] = useState(false)
   const [isAssetMenuClosing, setIsAssetMenuClosing] = useState(false)
   const [assetSearch, setAssetSearch] = useState('')
+  const [extraAssets, setExtraAssets] = useState<Asset[]>([])
+  const [showExtraAssetPicker, setShowExtraAssetPicker] = useState(false)
+  const [extraAssetSearch, setExtraAssetSearch] = useState('')
 
   const [assetTypeFilter, setAssetTypeFilter] = useState<AssetTypeFilter>('all')
   const [showAccountMenu, setShowAccountMenu] = useState(false)
@@ -299,6 +304,22 @@ export default function TradingPage() {
   const [isBalanceHidden, setIsBalanceHidden] = useState(false)
   const [btnEffect, setBtnEffect] = useState<'CALL' | 'PUT' | null>(null)
   const [hideBalance, setHideBalance] = useState(false)
+  const [isLightMode, setIsLightMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('trading-light-mode') === 'true'
+    }
+    return false
+  })
+
+  const toggleLightMode = () => {
+    setIsLightMode(prev => {
+      const next = !prev
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('trading-light-mode', String(next))
+      }
+      return next
+    })
+  }
 
   const triggerBtnEffect = (dir: 'CALL' | 'PUT') => {
     setBtnEffect(null)
@@ -874,11 +895,11 @@ export default function TradingPage() {
   if (!user) return null
 
   return (
-    <div className="h-screen flex flex-col bg-[#0a0e17] text-white overflow-hidden">
+    <div className={`h-screen flex flex-col overflow-hidden${isLightMode ? ' lm' : ''}`} style={{ background: isLightMode ? '#f1f5f9' : '#0a0e17', color: isLightMode ? '#1e293b' : '#ffffff' }}>
 
-      <div className="h-14 lg:h-16 bg-[#1a1f2e] px-2 lg:px-5 border-b border-gray-800/50 flex items-center justify-between px-2 flex-shrink-0">
-        <div className="hidden lg:flex items-center gap-4 w-full">
-          <div className="flex items-center gap-3">
+      <div className="h-14 lg:h-16 bg-[#1a1f2e] px-2 lg:px-5 border-b border-gray-800/50 flex items-center justify-between px-2 flex-shrink-0" style={isLightMode ? { backgroundColor: '#ffffff', borderBottomColor: 'rgba(0,0,0,0.1)', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' } : undefined}>
+        <div className="hidden lg:flex items-center gap-2 w-full">
+          <div className="flex items-center gap-2" style={{ flexShrink: 0 }}>
             <div className="w-8 h-8 relative rounded-md">
               <Image
                 src="/stc-logo1.png"
@@ -888,148 +909,278 @@ export default function TradingPage() {
               />
             </div>
             <span className="font-bold text-xl">Stouch</span>
-          </div>
 
+            {/* ===== TOMBOL + — tepat di sebelah kanan teks Stouch, SELALU TAMPIL ===== */}
+            <div className="w-3" />{/* spacer */}
+            <div className="relative" style={{ flexShrink: 0 }}>
+              <button
+                onClick={() => { setShowExtraAssetPicker(p => !p); setExtraAssetSearch('') }}
+                className="flex items-center justify-center w-7 h-7 rounded-lg border border-gray-700/50 bg-[#2f3648] text-gray-400 hover:text-emerald-400 hover:border-emerald-700/50 hover:bg-[#3a4360] transition-all active:scale-90"
+                title="Tambah aset"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
 
-          <div className="relative" data-tutorial="asset-selector">
-            <div
-  className="relative rounded-xl group"
-  style={{
-    padding: '2px',
-    background: 'linear-gradient(to right, rgba(52,211,153,0.25) 0%, rgba(52,211,153,0.18) 15%, rgba(52,211,153,0.12) 28%, rgba(52,211,153,0.07) 40%, rgba(52,211,153,0.06) 55%, rgba(52,211,153,0.07) 70%, rgba(52,211,153,0.07) 100%)',
-  }}
->
-  <button
-    onClick={() => {
-      if (showAssetMenu) {
-        handleCloseAssetMenu()
-      } else {
-        setShowAssetMenu(true)
-      }
-    }}
-    className="relative z-10 flex items-center gap-2 px-2 py-2 transition-colors w-full hover:brightness-110"
-    style={{
-      background: 'linear-gradient(to right, rgba(47,54,72,0.95) 0%, rgba(47,54,72,0.75) 28%, rgba(47,54,72,0.35) 52%, rgba(47,54,72,0.12) 72%, rgba(47,54,72,0.12) 100%)',
-      borderRadius: '10px',
-    }}
-  >
-    {selectedAsset ? (
-      <>
-        <span className="transition-transform duration-200 group-hover:scale-110">
-          <AssetIcon asset={selectedAsset} size="xs" />
-        </span>
-        <span className="text-sm font-medium transition-transform duration-200 delay-75 group-hover:scale-105">
-          {selectedAsset.symbol}
-        </span>
-        <span className="text-sm text-emerald-400 ml-2 transition-transform duration-200 delay-75 group-hover:scale-105">
-          {effectiveProfitRate}%
-        </span>
-      </>
-    ) : (
-      <span className="text-sm text-gray-400">Pilih Asset</span>
-    )}
-  </button>
-</div>
-
-            {showAssetMenu && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={handleCloseAssetMenu}
-                />
-                <div className={`absolute top-full left-0 mt-2 w-72 bg-[#232936] border border-gray-800/50 rounded-lg shadow-2xl z-50 flex flex-col max-h-[420px] ${
-                  isAssetMenuClosing ? 'animate-dropdown-out' : 'animate-dropdown-in'
-                }`}>
-
-
-                  <div className="px-3 py-2.5 border-b border-gray-800/50 flex-shrink-0">
-                    <div className="flex items-center gap-2 px-2 py-1.5">
-                      <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                      <input
-                        type="text"
-                        value={assetSearch}
-                        onChange={(e) => setAssetSearch(e.target.value)}
-                        placeholder="Cari aset..."
-                        className="flex-1 bg-[#1a1f2e] text-xs text-white outline-none border-0 hover:border-1 ring-0 hover:ring-1"
-                      />
-                      {assetSearch && (
-                        <button onClick={() => setAssetSearch('')} className="text-gray-500 hover:text-gray-300 transition-colors">
-                          <X className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-
-                  {availableAssetTypes.length > 1 && (
-                    <div
-                      className="px-3 py-2 border-b border-gray-800/30 flex-shrink-0"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <TypeFilterChips
-                        activeFilter={assetTypeFilter}
-                        onFilterChange={setAssetTypeFilter}
-                        assetCounts={assetCountsByType}
-                        availableTypes={availableAssetTypes}
-                      />
-                    </div>
-                  )}
-
-
-                  <div className="overflow-y-auto">
-                    {filteredAssets.length === 0 ? (
-                      <div className="px-4 py-8 text-center">
-                        <div className="text-2xl mb-2 opacity-50">🔍</div>
-                        <p className="text-xs text-gray-500">
-                          {assetSearch
-                            ? 'Aset tidak ditemukan'
-                            : `Tidak ada ${ASSET_TYPE_META[assetTypeFilter]?.label || ''} tersedia`
-                          }
-                        </p>
-                        {assetTypeFilter !== 'all' && !assetSearch && (
-                          <button
-                            onClick={() => setAssetTypeFilter('all')}
-                            className="mt-2 text-[11px] text-blue-400 hover:text-blue-300 underline"
-                          >
-                            Tampilkan semua
+              {showExtraAssetPicker && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowExtraAssetPicker(false)} />
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-[#232936] border border-gray-800/50 rounded-lg shadow-2xl z-50 flex flex-col max-h-[380px] animate-dropdown-in" style={isLightMode ? { backgroundColor: '#ffffff', borderColor: 'rgba(0,0,0,0.1)' } : undefined}>
+                    <div className="px-3 py-2 border-b border-gray-800/50 flex-shrink-0">
+                      <div className="flex items-center gap-2 px-2 py-1.5">
+                        <Search className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                        <input
+                          autoFocus
+                          type="text"
+                          value={extraAssetSearch}
+                          onChange={e => setExtraAssetSearch(e.target.value)}
+                          placeholder="Cari aset..."
+                          className={`flex-1 bg-transparent text-xs outline-none${isLightMode ? " text-slate-800" : " text-white"}`}
+                        />
+                        {extraAssetSearch && (
+                          <button onClick={() => setExtraAssetSearch('')} className="text-gray-500 hover:text-gray-300">
+                            <X className="w-3 h-3" />
                           </button>
                         )}
                       </div>
-                    ) : (
-                      filteredAssets.map((asset) => (
-                        <button
-                          key={asset.id}
-                          onClick={() => {
-                            setSelectedAsset(asset)
-                            handleCloseAssetMenu()
-                          }}
-                          onMouseEnter={() => {
-                            if (asset.realtimeDbPath) {
-                              prefetchMultipleTimeframes(asset.realtimeDbPath, ['1m', '5m'])
-                            }
-                          }}
-                          className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 last:border-0 ${
-                            selectedAsset?.id === asset.id ? 'bg-[#2a3142]' : ''
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <AssetIcon asset={asset} size="xs" />
-                            <div className="text-left">
-                              <div className="text-sm font-medium">{asset.symbol}</div>
-                              <div className="text-xs text-gray-400">{asset.name}</div>
+                    </div>
+                    <div className="overflow-y-auto">
+                      {assets
+                        .filter(a =>
+                          !extraAssets.some(e => e.id === a.id) &&
+                          a.id !== selectedAsset?.id &&
+                          (!extraAssetSearch.trim() ||
+                            a.symbol.toLowerCase().includes(extraAssetSearch.toLowerCase()) ||
+                            a.name.toLowerCase().includes(extraAssetSearch.toLowerCase()))
+                        )
+                        .map(asset => (
+                          <button
+                            key={asset.id}
+                            onClick={() => {
+                              if (selectedAsset) {
+                                setExtraAssets(prev =>
+                                  prev.some(e => e.id === selectedAsset.id) ? prev : [...prev, selectedAsset]
+                                )
+                              }
+                              setExtraAssets(prev => prev.filter(e => e.id !== asset.id))
+                              setSelectedAsset(asset)
+                              setShowExtraAssetPicker(false)
+                              setExtraAssetSearch('')
+                              if (asset.realtimeDbPath) prefetchMultipleTimeframes(asset.realtimeDbPath, ['1m', '5m'])
+                            }}
+                            className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 last:border-0"
+                          >
+                            <div className="flex items-center gap-2">
+                              <AssetIcon asset={asset} size="xs" />
+                              <div className="text-left">
+                                <div className="text-xs font-medium">{asset.symbol}</div>
+                                <div className="text-[10px] text-gray-400">{asset.name}</div>
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <div className="text-xs font-bold text-emerald-400">+{asset.profitRate}%</div>
-                          </div>
-                        </button>
-                      ))
-                    )}
+                            <span className="text-[10px] font-bold text-emerald-400">+{asset.profitRate}%</span>
+                          </button>
+                        ))
+                      }
+                    </div>
                   </div>
-                </div>
-              </>
-            )}
+                </>
+              )}
+            </div>
           </div>
+
+          {/* ===== ASSET TABS: selected + chips dalam satu container rapat ===== */}
+          <div className="flex items-center gap-1.5" style={{ minWidth: 0, flexShrink: 1 }}>
+
+            {/* Grup 1: aset utama — TIDAK BISA HILANG */}
+            <div className="flex items-center gap-1.5" style={{ flexShrink: 0 }}>
+
+            {/* Aset utama */}
+            <div className="relative" style={{ flexShrink: 0 }} data-tutorial="asset-selector">
+              <div
+                className="relative rounded-xl group"
+                style={isLightMode ? {
+                  padding: '2px',
+                  background: 'linear-gradient(to right, rgba(16,185,129,0.4) 0%, rgba(16,185,129,0.25) 30%, rgba(16,185,129,0.12) 60%, rgba(16,185,129,0.06) 100%)',
+                } : {
+                  padding: '2px',
+                  background: 'linear-gradient(to right, rgba(52,211,153,0.25) 0%, rgba(52,211,153,0.18) 15%, rgba(52,211,153,0.12) 28%, rgba(52,211,153,0.07) 40%, rgba(52,211,153,0.06) 55%, rgba(52,211,153,0.07) 70%, rgba(52,211,153,0.07) 100%)',
+                }}
+              >
+                <button
+                  onClick={() => {
+                    if (showAssetMenu) {
+                      handleCloseAssetMenu()
+                    } else {
+                      setShowAssetMenu(true)
+                    }
+                  }}
+                  className="relative z-10 flex items-center gap-2 px-2 py-2 transition-colors w-full hover:brightness-110"
+                  style={isLightMode ? {
+                    background: 'linear-gradient(to right, rgba(226,232,240,0.98) 0%, rgba(226,232,240,0.85) 28%, rgba(226,232,240,0.5) 52%, rgba(226,232,240,0.2) 72%, rgba(226,232,240,0.1) 100%)',
+                    borderRadius: '10px',
+                  } : {
+                    background: 'linear-gradient(to right, rgba(47,54,72,0.95) 0%, rgba(47,54,72,0.75) 28%, rgba(47,54,72,0.35) 52%, rgba(47,54,72,0.12) 72%, rgba(47,54,72,0.12) 100%)',
+                    borderRadius: '10px',
+                  }}
+                >
+                  {selectedAsset ? (
+                    <>
+                      <span className="transition-transform duration-200 group-hover:scale-110">
+                        <AssetIcon asset={selectedAsset} size="xs" />
+                      </span>
+                      <span className="text-sm font-medium transition-transform duration-200 delay-75 group-hover:scale-105">
+                        {selectedAsset.symbol}
+                      </span>
+                      <span className="text-sm text-emerald-400 ml-2 transition-transform duration-200 delay-75 group-hover:scale-105">
+                        {effectiveProfitRate}%
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-sm text-gray-400">Pilih Asset</span>
+                  )}
+                </button>
+              </div>
+
+              {showAssetMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={handleCloseAssetMenu}
+                  />
+                  <div className={`absolute top-full left-0 mt-2 w-72 bg-[#232936] border border-gray-800/50 rounded-lg shadow-2xl z-50 flex flex-col max-h-[420px] ${
+                    isAssetMenuClosing ? 'animate-dropdown-out' : 'animate-dropdown-in'
+                  }`} style={isLightMode ? { backgroundColor: '#ffffff', borderColor: 'rgba(0,0,0,0.1)' } : undefined}>
+                    <div className="px-3 py-2.5 border-b border-gray-800/50 flex-shrink-0">
+                      <div className="flex items-center gap-2 px-2 py-1.5">
+                        <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                        <input
+                          type="text"
+                          value={assetSearch}
+                          onChange={(e) => setAssetSearch(e.target.value)}
+                          placeholder="Cari aset..."
+                          className={`flex-1 text-xs outline-none border-0 hover:border-1 ring-0 hover:ring-1${isLightMode ? " bg-transparent text-slate-800" : " bg-[#1a1f2e] text-white"}`}
+                        />
+                        {assetSearch && (
+                          <button onClick={() => setAssetSearch('')} className="text-gray-500 hover:text-gray-300 transition-colors">
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {availableAssetTypes.length > 1 && (
+                      <div
+                        className="px-3 py-2 border-b border-gray-800/30 flex-shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <TypeFilterChips
+                          activeFilter={assetTypeFilter}
+                          onFilterChange={setAssetTypeFilter}
+                          assetCounts={assetCountsByType}
+                          availableTypes={availableAssetTypes}
+                        />
+                      </div>
+                    )}
+
+                    <div className="overflow-y-auto">
+                      {filteredAssets.length === 0 ? (
+                        <div className="px-4 py-8 text-center">
+                          <div className="text-2xl mb-2 opacity-50">🔍</div>
+                          <p className="text-xs text-gray-500">
+                            {assetSearch
+                              ? 'Aset tidak ditemukan'
+                              : `Tidak ada ${ASSET_TYPE_META[assetTypeFilter]?.label || ''} tersedia`
+                            }
+                          </p>
+                          {assetTypeFilter !== 'all' && !assetSearch && (
+                            <button
+                              onClick={() => setAssetTypeFilter('all')}
+                              className="mt-2 text-[11px] text-blue-400 hover:text-blue-300 underline"
+                            >
+                              Tampilkan semua
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        filteredAssets.map((asset) => (
+                          <button
+                            key={asset.id}
+                            onClick={() => {
+                              setSelectedAsset(asset)
+                              handleCloseAssetMenu()
+                            }}
+                            onMouseEnter={() => {
+                              if (asset.realtimeDbPath) {
+                                prefetchMultipleTimeframes(asset.realtimeDbPath, ['1m', '5m'])
+                              }
+                            }}
+                            className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#2a3142] transition-colors border-b border-gray-800/30 last:border-0 ${
+                              selectedAsset?.id === asset.id ? 'bg-[#2a3142]' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <AssetIcon asset={asset} size="xs" />
+                              <div className="text-left">
+                                <div className="text-sm font-medium">{asset.symbol}</div>
+                                <div className="text-xs text-gray-400">{asset.name}</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <div className="text-xs font-bold text-emerald-400">+{asset.profitRate}%</div>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>{/* end grup 1: protected */}
+
+          {/* Grup 2: Chips — bisa menyusut, icon saja saat ruang sempit */}
+          {extraAssets.filter(a => a.id !== selectedAsset?.id).length > 0 && (
+            <div
+              className="flex items-center gap-1"
+              style={{ overflow: 'hidden', minWidth: 0, flexShrink: 1, flexGrow: 0 }}
+            >
+              {extraAssets.filter(a => a.id !== selectedAsset?.id).map((asset) => (
+                <button
+                  key={asset.id}
+                  onClick={() => {
+                    if (selectedAsset) {
+                      setExtraAssets(prev =>
+                        prev.some(e => e.id === selectedAsset.id)
+                          ? prev.filter(e => e.id !== asset.id)
+                          : prev.map(e => e.id === asset.id ? selectedAsset : e)
+                      )
+                    }
+                    setSelectedAsset(asset)
+                    if (asset.realtimeDbPath) prefetchMultipleTimeframes(asset.realtimeDbPath, ['1m', '5m'])
+                  }}
+                  className="flex items-center gap-1 rounded-lg px-2 py-1.5 group border transition-colors bg-[#2f3648] border-gray-700/50 hover:bg-[#3a4360] hover:border-gray-600"
+                  style={{ flexShrink: 0 }}
+                >
+                  {/* Icon selalu tampil */}
+                  <span style={{ flexShrink: 0 }}>
+                    <AssetIcon asset={asset} size="xs" />
+                  </span>
+                  {/* Teks hilang otomatis saat ruang sempit */}
+                  <span className="text-xs font-medium ml-1 whitespace-nowrap" style={{ overflow: 'hidden', maxWidth: '5rem', display: 'block' }}>
+                    {asset.symbol}
+                  </span>
+                  <span
+                    onClick={(e) => { e.stopPropagation(); setExtraAssets(prev => prev.filter(e => e.id !== asset.id)) }}
+                    className="ml-1 text-red-400 transition-all duration-150 overflow-hidden cursor-pointer w-0 opacity-0 group-hover:w-3 group-hover:opacity-100"
+                    style={{ flexShrink: 0 }}
+                  >
+                    <X className="w-3 h-3" />
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          </div>{/* end outer asset tabs wrapper */}
 
           <div className="flex-1"></div>
 
@@ -1047,7 +1198,7 @@ export default function TradingPage() {
             {showAccountMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowAccountMenu(false)} />
-                <div className="absolute top-full right-0 mt-2 w-52 bg-[#232936] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden">
+                <div className="absolute top-full right-0 mt-2 w-52 bg-[#232936] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden" style={isLightMode ? { backgroundColor: '#ffffff', borderColor: 'rgba(0,0,0,0.1)' } : undefined}>
                   <button
                     onClick={() => {
                       setSelectedAccountType('demo')
@@ -1081,18 +1232,22 @@ export default function TradingPage() {
             )}
           </div>
 
-          <div className="relative rounded-lg p-px overflow-hidden group">
+          <div className={`relative rounded-lg overflow-hidden group ${isLightMode ? 'p-[2px]' : 'p-px'}`}>
   <div
     className="absolute inset-[-100%]"
     style={{
-      background: 'conic-gradient(from 0deg, transparent 0%, transparent 35%, rgba(255,255,255,0.15) 42%, rgba(255,255,255,0.9) 50%, rgba(255,255,255,0.15) 58%, transparent 65%, transparent 85%, rgba(255,255,255,0.08) 92%, rgba(255,255,255,0.4) 100%)',
+      background: isLightMode
+        ? 'conic-gradient(from 0deg, transparent 0%, transparent 30%, rgba(0,80,200,0.5) 40%, rgba(0,100,255,1) 50%, rgba(0,80,200,0.5) 60%, transparent 70%, transparent 82%, rgba(0,60,180,0.4) 90%, rgba(0,100,255,0.85) 100%)'
+        : 'conic-gradient(from 0deg, transparent 0%, transparent 35%, rgba(255,255,255,0.15) 42%, rgba(255,255,255,0.9) 50%, rgba(255,255,255,0.15) 58%, transparent 65%, transparent 85%, rgba(255,255,255,0.08) 92%, rgba(255,255,255,0.4) 100%)',
       animation: 'spin-variable 4s ease-in-out infinite',
     }}
   />
   <div
     className="absolute inset-[-100%] blur-sm"
     style={{
-      background: 'conic-gradient(from 0deg, transparent 0%, transparent 38%, rgba(147,210,255,0.4) 50%, transparent 62%, transparent 100%)',
+      background: isLightMode
+        ? 'conic-gradient(from 0deg, transparent 0%, transparent 35%, rgba(0,60,200,0.9) 48%, rgba(30,100,255,1) 50%, rgba(0,60,200,0.9) 52%, transparent 62%, transparent 100%)'
+        : 'conic-gradient(from 0deg, transparent 0%, transparent 38%, rgba(147,210,255,0.4) 50%, transparent 62%, transparent 100%)',
       animation: 'spin-variable 4s ease-in-out infinite',
     }}
   />
@@ -1103,13 +1258,14 @@ export default function TradingPage() {
     onClick={() => router.push('/balance')}
     className="relative z-10 flex items-center gap-2 px-4 py-2.5 bg-[#0C8DF8] rounded-lg group-hover:brightness-110 transition-all duration-300"
   >
-    <Wallet className="w-4 h-4 text-white transition-transform duration-200 group-hover:scale-110" />
-    <span className="text-sm font-medium text-white">Top Up</span>
+    <Wallet className="w-4 h-4 !text-white transition-transform duration-200 group-hover:scale-110" />
+    <span className="text-sm font-medium !text-white">Top Up</span>
   </button>
 </div>
           <button
             onClick={() => setShowHistorySidebar(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-[#2f3648] hover:bg-[#3a4360] rounded-lg transition-colors border border-gray-800/50"
+            style={isLightMode ? { backgroundColor: '#f0f5ff', borderColor: 'rgba(59,130,246,0.2)', color: '#1e293b' } : undefined}
           >
             <div className="relative">
               <CalendarClock className="w-4 h-4" />
@@ -1137,7 +1293,7 @@ export default function TradingPage() {
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
-                    <span className="text-sm font-bold">{user.email[0].toUpperCase()}</span>
+                    <span className="text-sm font-bold !text-white">{user.email[0].toUpperCase()}</span>
                   </div>
                 )}
               </div>
@@ -1149,7 +1305,7 @@ export default function TradingPage() {
             {showUserMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
-                <div className="absolute top-full right-0 mt-2 w-56 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50">
+                <div className="absolute top-full right-0 mt-2 w-56 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50" style={isLightMode ? { backgroundColor: '#ffffff', borderColor: 'rgba(0,0,0,0.1)' } : undefined}>
                   <div className="px-4 py-4 border-b border-gray-800/30">
                     <div className="text-sm font-medium truncate">{user.email}</div>
                     <div className="text-xs text-gray-400 mt-1">{user.role}</div>
@@ -1169,7 +1325,7 @@ export default function TradingPage() {
                     }
                     const badgeImg = STATUS_BADGE_IMAGES[statusInfo.current]
                     return (
-                      <div className="px-3 py-2.5 mb-1 bg-[#0f1419] rounded-lg border border-gray-800/60">
+                      <div className="px-3 py-2.5 mb-1 bg-[#0f1419] rounded-lg border border-gray-800/60" style={isLightMode ? { backgroundColor: '#f1f5f9', borderColor: 'rgba(0,0,0,0.1)' } : undefined}>
 
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-1.5">
@@ -1266,10 +1422,11 @@ export default function TradingPage() {
                       setShowUserMenu(false)
                     }}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-yellow-500/10 transition-colors text-left text-yellow-400"
+                    style={isLightMode ? { color: '#92400e' } : undefined}
                   >
                     <UserPlus className="w-4 h-4 flex-shrink-0" />
                     <span className="text-sm">Undang Teman</span>
-                    <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold text-white tracking-wide badge-new-shimmer">
+                    <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide badge-new-shimmer" style={{ color: '#ffffff' }}>
                       NEW
                     </span>
                   </button>
@@ -1286,6 +1443,24 @@ export default function TradingPage() {
                     <Info className="w-4 h-4 flex-shrink-0" />
                     <span className="text-sm">Tutorial</span>
                   </button>
+
+                  <button
+                    onClick={toggleLightMode}
+                    className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-500/10 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      {isLightMode ? (
+                        <Moon className="w-4 h-4 flex-shrink-0 text-indigo-400" />
+                      ) : (
+                        <Sun className="w-4 h-4 flex-shrink-0 text-amber-400" />
+                      )}
+                      <span className="text-sm">{isLightMode ? 'Mode Gelap' : 'Mode Terang'}</span>
+                    </div>
+                    {/* Switch */}
+                    <div className={`relative w-9 h-5 rounded-full transition-colors duration-300 flex-shrink-0 ${isLightMode ? 'bg-indigo-500' : 'bg-amber-500'}`}>
+                      <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-300 ${isLightMode ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                    </div>
+                  </button>
                   </div>
 
                   <div className="p-2 border-t border-gray-800/30">
@@ -1295,6 +1470,7 @@ export default function TradingPage() {
                         handleLogout()
                       }}
                       className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-rose-500/10 transition-colors text-left text-rose-400"
+                      style={isLightMode ? { color: '#be123c' } : undefined}
                     >
                       <LogOut className="w-4 h-4 flex-shrink-0" />
                       <span className="text-sm">Keluar</span>
@@ -1340,7 +1516,7 @@ export default function TradingPage() {
               {showAccountMenu && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowAccountMenu(false)} />
-                  <div className="absolute top-full right-0 mt-1 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden">
+                  <div className="absolute top-full right-0 mt-1 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden" style={isLightMode ? { backgroundColor: '#ffffff', borderColor: 'rgba(0,0,0,0.1)' } : undefined}>
                     <button
                       onClick={() => {
                         setSelectedAccountType('demo')
@@ -1396,7 +1572,7 @@ export default function TradingPage() {
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
-                    <span className="text-sm font-bold">{user.email[0].toUpperCase()}</span>
+                    <span className="text-sm font-bold !text-white">{user.email[0].toUpperCase()}</span>
                   </div>
                 )}
               </div>
@@ -1418,7 +1594,7 @@ export default function TradingPage() {
 
       <div className="flex-1 flex overflow-hidden min-h-0">
 
-        <div className="hidden lg:block w-16 bg-[#0f1419] border-r border-gray-800/50 flex-shrink-0">
+        <div className="hidden lg:block w-16 bg-[#0f1419] border-r border-gray-800/50 flex-shrink-0" style={isLightMode ? { backgroundColor: '#f1f5f9', borderRightColor: 'rgba(0,0,0,0.1)' } : undefined}>
           <div className="h-full flex flex-col items-center py-4 gap-2">
             <button
               onClick={() => router.push('/calendar')}
@@ -1466,6 +1642,7 @@ export default function TradingPage() {
                 currentPrice={currentPrice?.price}
                 assets={assets}
                 onAssetSelect={setSelectedAsset}
+                isLightMode={isLightMode}
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
@@ -1478,9 +1655,9 @@ export default function TradingPage() {
         </div>
 
 
-        <div className="hidden lg:block w-64 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0">
+        <div className="hidden lg:block w-64 bg-[#0f1419] border-l border-gray-800/50 flex-shrink-0" style={isLightMode ? { backgroundColor: '#ffffff', borderLeftColor: 'rgba(0,0,0,0.1)' } : undefined}>
           <div className="h-full flex flex-col p-4 space-y-4 overflow-hidden">
-            <div className="bg-[#1a1f2e] rounded-xl px-3 py-2" data-tutorial="amount-input">
+            <div className="bg-[#1a1f2e] rounded-xl px-3 py-2" data-tutorial="amount-input" style={isLightMode ? { backgroundColor: '#cce0ff', border: '1px solid rgba(59,130,246,0.35)' } : undefined}>
               <div className="text-[10px] text-gray-500 text-center leading-none">Jumlah</div>
               <div className="flex items-center gap-2">
                 <button
@@ -1509,7 +1686,7 @@ export default function TradingPage() {
                       setAmount(limits.max)
                     }
                   }}
-                  className="flex-1 min-w-0 bg-transparent border-0 text-center text-base text-white focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className={`flex-1 min-w-0 bg-transparent border-0 text-center text-base focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none${isLightMode ? ' text-slate-800' : ' text-white'}`}
                   min={orderLimits.min}
                   max={orderLimits.max}
                   step="1000"
@@ -1530,13 +1707,13 @@ export default function TradingPage() {
               </div>
             </div>
 
-            <div className="bg-[#1a1f2e] rounded-xl px-3 py-2 relative" data-tutorial="duration-selector">
+            <div className="bg-[#1a1f2e] rounded-xl px-3 py-2 relative" data-tutorial="duration-selector" style={isLightMode ? { backgroundColor: '#cce0ff', border: '1px solid rgba(59,130,246,0.35)' } : undefined}>
               <div className="text-[10px] text-gray-500 text-center leading-none mb-1">
                 Durasi Waktu
               </div>
               <div
                 onClick={() => setShowDesktopDurationDropdown(!showDesktopDurationDropdown)}
-                className="w-full bg-transparent text-center text-base text-white cursor-pointer hover:text-blue-400 transition-colors py-1"
+                className={`w-full bg-transparent text-center text-base cursor-pointer hover:text-blue-400 transition-colors py-1${isLightMode ? ' text-slate-800' : ' text-white'}`}
               >
                 {`${EXTENDED_DURATIONS.find(d => d.value === duration)?.label} ➜ ${formatExpiryTime(duration)}`}
               </div>
@@ -1547,7 +1724,7 @@ export default function TradingPage() {
                     className="fixed inset-0 z-40"
                     onClick={() => setShowDesktopDurationDropdown(false)}
                   />
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#232936] border border-gray-700/50 rounded-lg shadow-2xl z-50 overflow-hidden max-h-[280px] overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#232936] border border-gray-700/50 rounded-lg shadow-2xl z-50 overflow-hidden max-h-[280px] overflow-y-auto" style={isLightMode ? { backgroundColor: '#ffffff', borderColor: 'rgba(0,0,0,0.1)' } : undefined}>
                     {EXTENDED_DURATIONS.map((d) => {
                       const isSelected = duration === d.value
 
@@ -1582,7 +1759,7 @@ export default function TradingPage() {
             </div>
 
             {selectedAsset && (
-              <div className="bg-gradient-to-r from-emerald-500/10 to-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-3">
+              <div className={`rounded-full px-3 py-3 border ${isLightMode ? "bg-emerald-50 border-emerald-300" : "bg-gradient-to-r from-emerald-500/10 to-emerald-500/10 border-emerald-500/20"}`}>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-gray-400">Pendapatan</span>
                   <div className="flex items-center gap-2">
@@ -1618,7 +1795,7 @@ export default function TradingPage() {
                     animation:'tradeBtnShine 0.55s ease-out forwards',
                     pointerEvents:'none'
                   }} />}
-                  <ArrowUp className="w-6 h-6 relative z-10" style={btnEffect === 'CALL' ? {
+                  <ArrowUp className="w-6 h-6 relative z-10 !text-white" style={btnEffect === 'CALL' ? {
                     animation:'tradeBtnIconBounce 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards'
                   } : undefined} />
                 </button>
@@ -1646,7 +1823,7 @@ export default function TradingPage() {
                     animation:'tradeBtnShine 0.55s ease-out forwards',
                     pointerEvents:'none'
                   }} />}
-                  <ArrowDown className="w-6 h-6 relative z-10" style={btnEffect === 'PUT' ? {
+                  <ArrowDown className="w-6 h-6 relative z-10 !text-white" style={btnEffect === 'PUT' ? {
                     animation:'tradeBtnIconBounce 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards'
                   } : undefined} />
                 </button>
@@ -1657,7 +1834,7 @@ export default function TradingPage() {
       </div>
 
 
-      <div className="lg:hidden bg-[#0f1419] border-t border-gray-800/50 p-4">
+      <div className="lg:hidden bg-[#0f1419] border-t border-gray-800/50 p-4" style={isLightMode ? { backgroundColor: '#ffffff', borderTopColor: 'rgba(0,0,0,0.1)' } : undefined}>
         <div className="space-y-1">
           <div className="grid grid-cols-2 gap-4">
             <div className="relative">
@@ -1665,7 +1842,8 @@ export default function TradingPage() {
               <div className="relative">
                 <div
                   onClick={() => setShowAmountDropdown(!showAmountDropdown)}
-                  className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-3 py-3 text-center text-sm font-bold text-white hover:bg-[#232936] transition-colors flex items-center justify-between cursor-pointer"
+                  className={`w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-3 py-3 text-center text-sm font-bold hover:bg-[#232936] transition-colors flex items-center justify-between cursor-pointer${isLightMode ? ' text-slate-800' : ' text-white'}`}
+                  style={isLightMode ? { backgroundColor: '#cce0ff', border: '1px solid rgba(59,130,246,0.35)' } : undefined}
                 >
                   <button
                     onClick={(e) => {
@@ -1675,7 +1853,7 @@ export default function TradingPage() {
                     }}
                     className="flex items-center justify-center hover:bg-[#2a3142] rounded p-1 transition-colors"
                   >
-                    <Minus className="w-4 h-4 text-gray-300" />
+                    <Minus className={`w-4 h-4 ${isLightMode ? "text-slate-600" : "text-gray-300"}`} />
                   </button>
 
                   <span className="flex-1">{formatCurrency(amount)}</span>
@@ -1688,7 +1866,7 @@ export default function TradingPage() {
                     }}
                     className="flex items-center justify-center hover:bg-[#2a3142] rounded p-1 transition-colors"
                   >
-                    <Plus className="w-4 h-4 text-gray-300" />
+                    <Plus className={`w-4 h-4 ${isLightMode ? "text-slate-600" : "text-gray-300"}`} />
                   </button>
                 </div>
               </div>
@@ -1699,7 +1877,7 @@ export default function TradingPage() {
                     className="fixed inset-0 z-40"
                     onClick={() => setShowAmountDropdown(false)}
                   />
-                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden max-h-[280px] overflow-y-auto">
+                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden max-h-[280px] overflow-y-auto" style={isLightMode ? { backgroundColor: '#ffffff', borderColor: 'rgba(0,0,0,0.1)' } : undefined}>
                     {presetAmounts.map((preset) => {
                       const isSelected = amount === preset
                       const isAffordable = preset <= currentBalance
@@ -1737,7 +1915,8 @@ export default function TradingPage() {
               </label>
               <div
                 onClick={() => setShowDurationDropdown(!showDurationDropdown)}
-                className="w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-3 py-3 text-center text-sm font-bold text-white cursor-pointer hover:bg-[#232936] transition-colors"
+                className={`w-full bg-[#1a1f2e] border border-gray-800/50 rounded-xl px-3 py-3 text-center text-sm font-bold cursor-pointer hover:bg-[#232936] transition-colors${isLightMode ? ' text-slate-800' : ' text-white'}`}
+                style={isLightMode ? { backgroundColor: '#cce0ff', border: '1px solid rgba(59,130,246,0.35)' } : undefined}
               >
                 {`${EXTENDED_DURATIONS.find(d => d.value === duration)?.shortLabel} ➜ ${formatExpiryTime(duration)}`}
               </div>
@@ -1748,7 +1927,7 @@ export default function TradingPage() {
                     className="fixed inset-0 z-40"
                     onClick={() => setShowDurationDropdown(false)}
                   />
-                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden max-h-[280px] overflow-y-auto">
+                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden max-h-[280px] overflow-y-auto" style={isLightMode ? { backgroundColor: '#ffffff', borderColor: 'rgba(0,0,0,0.1)' } : undefined}>
                     {EXTENDED_DURATIONS.map((d) => {
                       const isSelected = duration === d.value
 
@@ -1785,7 +1964,7 @@ export default function TradingPage() {
 
           {selectedAsset && (
             <div className="flex justify-center py-2">
-              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500/10 to-emerald-500/10 border border-emerald-500/20 rounded-full px-5 py-2.5">
+              <div className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 border ${isLightMode ? "bg-emerald-50 border-emerald-300" : "bg-gradient-to-r from-emerald-500/10 to-emerald-500/10 border-emerald-500/20"}`}>
                 <span className="text-xs text-gray-400">Pendapatan</span>
                 <span className="text-xs text-emerald-400">+{effectiveProfitRate}%</span>
                 <span className="text-sm font-bold text-emerald-400">
@@ -1819,10 +1998,10 @@ export default function TradingPage() {
                 animation:'tradeBtnShine 0.55s ease-out forwards',
                 pointerEvents:'none', zIndex:1
               }} />}
-              <ArrowUp className="w-5 h-5 relative z-10" style={btnEffect === 'CALL' ? {
+              <ArrowUp className="w-5 h-5 relative z-10 !text-white" style={btnEffect === 'CALL' ? {
                 animation:'tradeBtnIconBounce 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards'
               } : undefined} />
-              <span className="relative z-10">BUY</span>
+              <span className="relative z-10 !text-white">BUY</span>
             </button>
             <button
               onClick={() => { triggerBtnEffect('PUT'); handlePlaceOrder('PUT') }}
@@ -1847,10 +2026,10 @@ export default function TradingPage() {
                 animation:'tradeBtnShine 0.55s ease-out forwards',
                 pointerEvents:'none', zIndex:1
               }} />}
-              <ArrowDown className="w-5 h-5 relative z-10" style={btnEffect === 'PUT' ? {
+              <ArrowDown className="w-5 h-5 relative z-10 !text-white" style={btnEffect === 'PUT' ? {
                 animation:'tradeBtnIconBounce 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards'
               } : undefined} />
-              <span className="relative z-10">SELL</span>
+              <span className="relative z-10 !text-white">SELL</span>
             </button>
           </div>
         </div>
@@ -1860,14 +2039,14 @@ export default function TradingPage() {
       {showWalletModal && (
         <>
           <div
-            className={`fixed inset-0 bg-black/70 z-50 backdrop-blur-sm ${
+            className={`fixed inset-0 z-50 backdrop-blur-sm ${
               isWalletModalClosing ? 'animate-fade-out' : 'animate-fade-in'
-            }`}
+            } ${isLightMode ? 'bg-black/40' : 'bg-black/70'}`}
             onClick={handleCloseWalletModal}
           />
           <div className={`fixed bottom-0 left-0 right-0 bg-[#0f1419] rounded-t-3xl z-50 border-t border-gray-800/50 shadow-2xl ${
             isWalletModalClosing ? 'animate-slide-down' : 'animate-slide-up'
-          }`}>
+          }`} style={isLightMode ? { backgroundColor: '#ffffff', borderTopColor: 'rgba(0,0,0,0.1)' } : undefined}>
             <div className="p-6">
 
               <div className="w-12 h-1.5 bg-gray-700/50 rounded-full mx-auto mb-6"></div>
@@ -1887,13 +2066,13 @@ export default function TradingPage() {
               </div>
 
 
-              <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/20 rounded-2xl p-4 mb-3 shadow-lg">
+              <div className={`rounded-2xl p-4 mb-3 shadow-lg border ${isLightMode ? 'bg-emerald-50 border-emerald-200' : 'bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20'}`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center">
                       <Wallet className="w-4 h-4 text-emerald-400" />
                     </div>
-                    <span className="text-sm font-medium text-gray-300">Real Account</span>
+                    <span className={`text-sm font-medium ${isLightMode ? "text-slate-700" : "text-gray-300"}`}>Real Account</span>
                   </div>
                   <div className="text-right">
                     <div className="text-lg font-bold text-emerald-400">{hideBalance ? '••••••' : formatCurrency(realBalance)}</div>
@@ -1922,13 +2101,13 @@ export default function TradingPage() {
               </div>
 
 
-              <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-2xl p-4 shadow-lg">
+              <div className={`rounded-2xl p-4 shadow-lg border ${isLightMode ? 'bg-blue-50 border-blue-200' : 'bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20'}`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
                       <Zap className="w-4 h-4 text-blue-400" />
                     </div>
-                    <span className="text-sm font-medium text-gray-300">Demo Account</span>
+                    <span className={`text-sm font-medium ${isLightMode ? "text-slate-700" : "text-gray-300"}`}>Demo Account</span>
                   </div>
                   <div className="text-right">
                     <div className="text-lg font-bold text-blue-400">{hideBalance ? '••••••' : formatCurrency(demoBalance)}</div>
@@ -1952,12 +2131,12 @@ export default function TradingPage() {
 
       {showMobileMenu && (
         <>
-          <div className={`fixed inset-0 bg-black/80 z-50 ${
+          <div className={`fixed inset-0 z-50 ${
             isMobileMenuClosing ? 'animate-fade-out' : 'animate-fade-in'
-          }`} onClick={handleCloseMobileMenu} />
+          } ${isLightMode ? 'bg-black/40' : 'bg-black/80'}`} onClick={handleCloseMobileMenu} />
           <div className={`fixed top-0 right-0 bottom-0 w-64 bg-[#0f1419] border-l border-gray-800/50 z-50 p-4 ${
             isMobileMenuClosing ? 'animate-slide-right-out' : 'animate-slide-left'
-          }`}>
+          }`} style={isLightMode ? { backgroundColor: '#f8fafc', borderLeftColor: 'rgba(0,0,0,0.1)' } : undefined}>
             <div className="mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full overflow-hidden border-2 border-blue-500/30 flex-shrink-0">
@@ -1971,7 +2150,7 @@ export default function TradingPage() {
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center">
-                      <span className="text-sm font-bold">{user.email[0].toUpperCase()}</span>
+                      <span className="text-sm font-bold !text-white">{user.email[0].toUpperCase()}</span>
                     </div>
                   )}
                 </div>
@@ -2105,10 +2284,11 @@ export default function TradingPage() {
                   setTimeout(() => router.push('/referral'), 300)
                 }}
                 className="w-full flex items-center gap-3.5 px-4 py-3.5 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 rounded-xl transition-colors text-yellow-400"
+                style={isLightMode ? { color: '#92400e' } : undefined}
               >
                 <UserPlus className="w-4 h-4 flex-shrink-0" />
                 <span className="whitespace-nowrap">Undang Teman</span>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold text-white tracking-wide badge-new-shimmer flex-shrink-0">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide badge-new-shimmer flex-shrink-0" style={{ color: '#ffffff' }}>
                   NEW
                 </span>
               </button>
@@ -2127,12 +2307,31 @@ export default function TradingPage() {
               </button>
 
               <button
+                onClick={toggleLightMode}
+                className="w-full flex items-center justify-between gap-3 px-4 py-3.5 bg-gray-500/10 hover:bg-gray-500/20 rounded-xl transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  {isLightMode ? (
+                    <Moon className="w-4 h-4 flex-shrink-0 text-indigo-400" />
+                  ) : (
+                    <Sun className="w-4 h-4 flex-shrink-0 text-amber-400" />
+                  )}
+                  <span>{isLightMode ? 'Mode Gelap' : 'Mode Terang'}</span>
+                </div>
+                {/* Switch */}
+                <div className={`relative w-9 h-5 rounded-full transition-colors duration-300 flex-shrink-0 ${isLightMode ? 'bg-indigo-500' : 'bg-amber-500'}`}>
+                  <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-300 ${isLightMode ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                </div>
+              </button>
+
+              <button
                 onClick={() => {
                   handleCloseMobileMenu()
                   setTimeout(() => handleLogout(), 300)
                   handleLogout()
                 }}
                 className="w-full flex items-center gap-3.5 px-4 py-3.5 bg-rose-500/10 hover:bg-rose-500/20 rounded-xl transition-colors text-rose-400"
+                style={isLightMode ? { color: '#be123c' } : undefined}
               >
                 <LogOut className="w-4 h-4 flex-shrink-0" />
                 <span>Keluar</span>
@@ -2145,12 +2344,12 @@ export default function TradingPage() {
 
       {showLeftSidebar && (
         <>
-          <div className={`fixed inset-0 bg-black/80 z-50 ${
+          <div className={`fixed inset-0 z-50 ${
             isLeftSidebarClosing ? 'animate-fade-out' : 'animate-fade-in'
-          }`} onClick={handleCloseLeftSidebar} />
+          } ${isLightMode ? 'bg-black/40' : 'bg-black/80'}`} onClick={handleCloseLeftSidebar} />
           <div className={`fixed top-0 left-0 bottom-0 min-w-max bg-[#0f1419] border-r border-gray-800/50 z-50 p-4 flex flex-col ${
             isLeftSidebarClosing ? 'animate-slide-left-out' : 'animate-slide-right'
-          }`}>
+          }`} style={isLightMode ? { backgroundColor: '#f8fafc', borderRightColor: 'rgba(0,0,0,0.1)' } : undefined}>
             <div className="mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 relative">
@@ -2266,6 +2465,160 @@ export default function TradingPage() {
       />
 
       <style>{`
+        /* ===== LIGHT MODE ===== */
+        /* Most colors are handled via inline styles on the root div.
+           CSS classes below handle elements that are harder to override inline. */
+
+        /* ── Base text ── */
+        .lm { color: #1e293b !important; }
+        .lm .text-white        { color: #1e293b !important; }
+        .lm .text-gray-100     { color: #1e293b !important; }
+        .lm .text-gray-200     { color: #1e293b !important; }
+        .lm .text-gray-300     { color: #374151 !important; }
+        .lm .text-gray-400     { color: #4b5563 !important; }
+        .lm .text-gray-500     { color: #6b7280 !important; }
+        .lm .text-gray-600     { color: #4b5563 !important; }
+        .lm .text-gray-700     { color: #374151 !important; }
+
+        /* ── Hover text ── */
+        .lm .hover\\:text-white:hover      { color: #0f172a !important; }
+        .lm .hover\\:text-gray-300:hover   { color: #0f172a !important; }
+        .lm .hover\\:text-gray-100:hover   { color: #0f172a !important; }
+
+        /* ── Dark panel backgrounds → light ── */
+        .lm .bg-\\[\\#0a0e17\\]   { background-color: #f1f5f9 !important; }
+        .lm .bg-\\[\\#0f1419\\]   { background-color: #f8fafc !important; }
+        .lm .bg-\\[\\#0C8DF8\\]   { background-color: #0C8DF8 !important; }
+        .lm .bg-\\[\\#1a1f2e\\]   { background-color: #ffffff !important; }
+        .lm .bg-\\[\\#232936\\]   { background-color: #f1f5f9 !important; }
+        .lm .bg-\\[\\#2a3142\\]   { background-color: #e8edf5 !important; }
+        .lm .bg-\\[\\#2f3648\\]   { background-color: #e2e8f0 !important; }
+        .lm .bg-\\[\\#3a4360\\]   { background-color: #d1d9e6 !important; }
+
+        /* ── Hover backgrounds ── */
+        .lm .hover\\:bg-\\[\\#1a1f2e\\]:hover  { background-color: #f1f5f9 !important; }
+        .lm .hover\\:bg-\\[\\#232936\\]:hover   { background-color: #e8edf5 !important; }
+        .lm .hover\\:bg-\\[\\#2a3142\\]:hover   { background-color: #dde4ef !important; }
+        .lm .hover\\:bg-\\[\\#3a4360\\]:hover   { background-color: #c8d3e3 !important; }
+
+        /* ── Borders ── */
+        .lm .border-gray-800\\/60  { border-color: rgba(0,0,0,0.12) !important; }
+        .lm .border-gray-800\\/50  { border-color: rgba(0,0,0,0.1)  !important; }
+        .lm .border-gray-800\\/30  { border-color: rgba(0,0,0,0.08) !important; }
+        .lm .border-gray-700\\/50  { border-color: rgba(0,0,0,0.12) !important; }
+        .lm .border-gray-800      { border-color: rgba(0,0,0,0.15) !important; }
+        .lm .border-white\\/10    { border-color: rgba(0,0,0,0.1)  !important; }
+
+        /* ── Inputs ── */
+        .lm input        { color: #1e293b !important; }
+        .lm input::placeholder { color: #9ca3af !important; }
+
+        /* ── White/opacity overlays → subtle light shadows ── */
+        .lm .bg-white\\/5   { background-color: rgba(0,0,0,0.03) !important; }
+        .lm .bg-white\\/10  { background-color: rgba(0,0,0,0.05) !important; }
+        .lm .bg-black\\/30  { background-color: rgba(0,0,0,0.04) !important; }
+
+        /* ── Progress bars ── */
+        .lm .bg-gray-700\\/60  { background-color: rgba(0,0,0,0.1) !important; }
+        .lm .bg-gray-700\\/50  { background-color: rgba(0,0,0,0.1) !important; }
+
+        /* ── Scrollbar ── */
+        .lm ::-webkit-scrollbar-track { background: rgba(0,0,0,0.04) !important; }
+        .lm ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18) !important; }
+        .lm ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.28) !important; }
+
+        /* ── Shadows ── */
+        .lm .shadow-2xl { box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06) !important; }
+
+        /* ── Backdrop blur panels (dropdowns / modals) — NOT dark overlays ── */
+        .lm .backdrop-blur-md  { background-color: rgba(255,255,255,0.95) !important; }
+        .lm .backdrop-blur-sm  { background-color: rgba(255,255,255,0.85) !important; }
+        .lm .backdrop-blur-3xl { background-color: rgba(255,255,255,0.92) !important; }
+        /* Overlays with explicit bg-black must keep their color */
+        .lm [class*="bg-black\\/"].backdrop-blur-sm { background-color: rgba(0,0,0,0.4) !important; }
+
+        /* ── Asset type filter chips (inactive state) ── */
+        .lm button.bg-\\[\\#1a1f2e\\] {
+          background-color: #f1f5f9 !important;
+          border-color: rgba(0,0,0,0.12) !important;
+          color: #4b5563 !important;
+        }
+
+        /* ── Active chip text colors: light → dark for light bg ── */
+        .lm .text-blue-300     { color: #1d4ed8 !important; }
+        .lm .text-emerald-300  { color: #047857 !important; }
+        .lm .text-orange-300   { color: #c2410c !important; }
+        .lm .text-yellow-300   { color: #92400e !important; }
+        .lm .text-purple-300   { color: #6d28d9 !important; }
+
+        /* ── Active chip bg colors: keep but more opaque on light bg ── */
+        .lm .bg-blue-500\\/30     { background-color: #dbeafe !important; }
+        .lm .bg-orange-500\\/30   { background-color: #ffedd5 !important; }
+        .lm .bg-emerald-500\\/30  { background-color: #d1fae5 !important; }
+        .lm .bg-yellow-500\\/30   { background-color: #fef9c3 !important; }
+        .lm .bg-purple-500\\/30   { background-color: #ede9fe !important; }
+        .lm .bg-slate-600        { background-color: #475569 !important; }
+
+        /* ── Active chip borders: keep colored ── */
+        .lm .border-blue-400   { border-color: #3b82f6 !important; }
+        .lm .border-emerald-400 { border-color: #10b981 !important; }
+        .lm .border-orange-400  { border-color: #f97316 !important; }
+        .lm .border-yellow-400  { border-color: #f59e0b !important; }
+        .lm .border-purple-400  { border-color: #a78bfa !important; }
+
+        /* ── History / Riwayat button in header ── */
+        .lm .bg-\\[\\#2f3648\\].border-gray-800\\/50 {
+          background-color: #e2e8f0 !important;
+          border-color: rgba(0,0,0,0.1) !important;
+          color: #1e293b !important;
+        }
+
+        /* ── Footer links in left sidebar ── */
+        .lm a.text-gray-500 { color: #6b7280 !important; }
+        .lm a.hover\\:text-gray-300:hover { color: #111827 !important; }
+
+        /* ── Mobile amount/duration display ── */
+        .lm .bg-\\[\\#1a1f2e\\].border-gray-800\\/50 {
+          background-color: #ffffff !important;
+          border-color: rgba(0,0,0,0.12) !important;
+        }
+
+        /* ── Pendapatan / payout row ── */
+        .lm .bg-gradient-to-r.from-emerald-500\\/10 {
+          background: #ecfdf5 !important;
+          border-color: #6ee7b7 !important;
+        }
+
+        /* ── Status progress card in user dropdown ── */
+        .lm .bg-\\[\\#0f1419\\].rounded-lg {
+          background-color: #f1f5f9 !important;
+          border-color: rgba(0,0,0,0.1) !important;
+        }
+
+        /* ── Extra asset tab chips ── */
+        .lm .bg-\\[\\#2f3648\\].border-gray-700\\/50 {
+          background-color: #e8edf5 !important;
+          border-color: rgba(0,0,0,0.12) !important;
+        }
+
+        /* ── Dropdown item text that stays too light ── */
+        .lm button.text-white { color: #1e293b !important; }
+        .lm .hover\\:bg-\\[\\#2a3142\\] button { color: #1e293b !important; }
+
+        /* ── Amount/Duration preset items unaffordable state ── */
+        .lm .text-gray-600.opacity-50 { color: #9ca3af !important; }
+
+        /* ── Top Up button: protect white text & icon inside blue bg ── */
+        .lm .bg-\\[\\#0C8DF8\\] .\\!text-white,
+        .lm .bg-\\[\\#0C8DF8\\] span,
+        .lm .bg-\\[\\#0C8DF8\\] svg {
+          color: #ffffff !important;
+          stroke: #ffffff !important;
+        }
+
+        /* ── Wallet modal labels ── */
+        .lm .text-gray-300.font-medium { color: #374151 !important; }
+
         @keyframes dropdown-in {
           from { opacity: 0; transform: translateY(-8px) scale(0.96); }
           to { opacity: 1; transform: translateY(0) scale(1); }

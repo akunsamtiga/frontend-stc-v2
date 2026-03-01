@@ -14,7 +14,8 @@ import { BinaryOrder, TIMEFRAMES, Timeframe as TimeframeType } from '@/types'
 import { database, ref, get } from '@/lib/firebase'
 import { formatPriceAuto } from '@/lib/utils'
 import dynamic from 'next/dynamic'
-import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2, X, Search } from 'lucide-react'
+import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Sliders, Clock, BarChart2, X, Search, Paintbrush } from 'lucide-react'
+import DrawingTools from '@/components/DrawingTools'
 import AssetIcon from '@/components/common/AssetIcon'
 import OrderPriceTracker from '@/components/OrderPriceTracker'
 import CandleCountdown from '@/components/CandleCountdown'
@@ -163,6 +164,7 @@ interface TradingChartProps {
   currentPrice?: number
   assets?: any[]
   onAssetSelect?: (asset: any) => void
+  isLightMode?: boolean
 }
 
 interface IndicatorConfig {
@@ -235,41 +237,54 @@ interface AnimatedCandle extends CandleData {
   isAnimating: boolean
 }
 
-const ChartSkeleton = memo(({ timeframe, assetSymbol }: { timeframe: Timeframe; assetSymbol: string }) => {
+const ChartSkeleton = memo(({ timeframe, assetSymbol, isLightMode }: { timeframe: Timeframe; assetSymbol: string; isLightMode?: boolean }) => {
+  const bg        = isLightMode ? '#f0f5ff' : '#0a0e17'
+  const pulse     = isLightMode ? 'rgba(59,130,246,0.12)' : 'rgba(255,255,255,0.07)'
+  const pulseDim  = isLightMode ? 'rgba(59,130,246,0.07)' : 'rgba(255,255,255,0.04)'
+  const border    = isLightMode ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.05)'
+  const gridLine  = isLightMode ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)'
+  const shimmer   = isLightMode ? 'rgba(59,130,246,0.08)' : 'rgba(255,255,255,0.05)'
+  const textMain  = isLightMode ? '#475569' : '#d1d5db'
+  const textSub   = isLightMode ? '#94a3b8' : '#6b7280'
+  const spinOuter = isLightMode ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.08)'
+
   return (
-    <div className="absolute inset-0 bg-[#0a0e17] z-30 flex flex-col">
-      <div className="flex items-center justify-between p-4 border-b border-gray-800/30">
+    <div className="absolute inset-0 z-30 flex flex-col" style={{ background: bg }}>
+      <div className="flex items-center justify-between p-4" style={{ borderBottom: `1px solid ${border}` }}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gray-800 animate-pulse" />
+          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: pulse }} />
           <div className="space-y-2">
-            <div className="h-4 w-24 bg-gray-800 rounded animate-pulse" />
-            <div className="h-3 w-16 bg-gray-800/50 rounded animate-pulse" />
+            <div className="h-4 w-24 rounded animate-pulse" style={{ background: pulse }} />
+            <div className="h-3 w-16 rounded animate-pulse" style={{ background: pulseDim }} />
           </div>
         </div>
-        <div className="h-6 w-32 bg-gray-800 rounded animate-pulse" />
+        <div className="h-6 w-32 rounded animate-pulse" style={{ background: pulse }} />
       </div>
 
       <div className="flex-1 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 opacity-100">
           <div className="h-full w-full" style={{
             backgroundImage: `
-              linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px)
+              linear-gradient(to right, ${gridLine} 1px, transparent 1px),
+              linear-gradient(to bottom, ${gridLine} 1px, transparent 1px)
             `,
             backgroundSize: '40px 40px'
           }} />
         </div>
 
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" />
+        <div className="absolute inset-0 animate-shimmer" style={{
+          background: `linear-gradient(to right, transparent, ${shimmer}, transparent)`
+        }} />
 
         <div className="absolute inset-0 flex items-end justify-center pb-20 px-10 gap-1">
           {Array.from({ length: 20 }).map((_, i) => (
             <div
               key={i}
-              className="bg-gray-800/60 rounded-sm animate-pulse"
+              className="rounded-sm animate-pulse"
               style={{
                 width: '8px',
                 height: `${Math.random() * 60 + 20}%`,
+                background: pulse,
                 animationDelay: `${i * 0.05}s`
               }}
             />
@@ -278,16 +293,16 @@ const ChartSkeleton = memo(({ timeframe, assetSymbol }: { timeframe: Timeframe; 
 
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <div className="relative">
-            <div className="w-16 h-16 border-4 border-gray-800 rounded-full" />
+            <div className="w-16 h-16 border-4 rounded-full" style={{ borderColor: spinOuter }} />
             <div className="absolute inset-0 w-16 h-16 border-4 border-blue-500/30 rounded-full border-t-blue-500 animate-spin" />
             <div className="absolute inset-0 m-auto w-8 h-8 bg-blue-500/20 rounded-full animate-ping" />
           </div>
 
           <div className="mt-6 text-center space-y-2">
-            <p className="text-sm font-medium text-gray-300">
+            <p className="text-sm font-medium" style={{ color: textMain }}>
               Loading {timeframe} Chart
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs" style={{ color: textSub }}>
               {assetSymbol}
             </p>
             <div className="flex items-center justify-center gap-1 mt-2">
@@ -698,7 +713,7 @@ async function checkSimulatorStatus(assetPath: string): Promise<{
   }
 }
 
-const RealtimeClock = memo(({ nowMs }: { nowMs: number }) => {
+const RealtimeClock = memo(({ nowMs, isLightMode }: { nowMs: number; isLightMode?: boolean }) => {
   const time = new Date(nowMs)
 
   const timeStr = time.toLocaleTimeString('id-ID', {
@@ -718,10 +733,16 @@ const RealtimeClock = memo(({ nowMs }: { nowMs: number }) => {
   const dateStr = `${day} ${month} ${year}`
 
   return (
-    <div className="absolute top-16 left-2 z-10 bg-black/20 backdrop-blur-sm rounded-full px-3 py-1.5 border border-white/10">
+    <div
+      className="absolute top-16 left-2 z-10 rounded-full px-3 py-1.5"
+      style={isLightMode
+        ? { background: 'rgba(255,255,255,0.92)', border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }
+        : { background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(4px)' }
+      }
+    >
       <div className="flex items-center gap-2">
-        <div className="text-xs font-light text-white">
-          {timeStr} <span className="text-gray-300"> | </span> {dateStr}
+        <div style={{ fontSize: '0.75rem', fontWeight: 300, color: isLightMode ? '#1e293b' : '#ffffff' }}>
+          {timeStr} <span style={{ color: isLightMode ? '#94a3b8' : '#d1d5db' }}> | </span> {dateStr}
         </div>
       </div>
     </div>
@@ -1106,6 +1127,7 @@ const MobileControls = memo(({
   onRefresh,
   onOpenIndicators,
   nowSeconds,
+  isLightMode,
 }: any) => {
   const [showTimeframeMenu, setShowTimeframeMenu] = useState(false)
   const [showChartTypeMenu, setShowChartTypeMenu] = useState(false)
@@ -1142,42 +1164,40 @@ const MobileControls = memo(({
     return `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`
   }
 
+  const pillBg      = isLightMode ? 'bg-white/90 backdrop-blur-sm border border-gray-200 shadow-sm' : 'bg-gray-900/80 backdrop-blur-sm border border-gray-700/50'
+  const btnInactive = isLightMode ? 'text-slate-600 hover:text-slate-900 hover:bg-gray-100' : 'text-gray-300 hover:bg-gray-800/80'
+  const btnActive   = 'bg-blue-500 !text-white shadow-sm'
+  const dropdownBg  = isLightMode ? 'bg-white border border-gray-200 shadow-lg' : 'bg-[#0f1419] border border-gray-800/50 shadow-2xl'
+  const dropdownItem = (active: boolean) => active
+    ? btnActive
+    : isLightMode ? 'bg-gray-100 text-slate-700 hover:bg-gray-200' : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#232936]'
+
   return (
     <div className="lg:hidden absolute bottom-10 left-2 z-10 flex items-center gap-2">
-      {}
+      {/* Timeframe pill */}
       <div className="relative" ref={timeframeRef}>
         <button
-          onClick={() => {
-            setShowTimeframeMenu(!showTimeframeMenu)
-            setShowChartTypeMenu(false)
-          }}
+          onClick={() => { setShowTimeframeMenu(!showTimeframeMenu); setShowChartTypeMenu(false) }}
           disabled={isLoading}
-          className="h-10 px-3 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-full hover:bg-gray-800/80 transition-all disabled:opacity-50 flex items-center gap-1.5"
+          className={`h-10 px-3 rounded-full hover:brightness-95 transition-all disabled:opacity-50 flex items-center gap-1.5 ${pillBg}`}
           title="Timeframe"
         >
-          <Clock className="w-4 h-4 text-blue-400" />
-          <span className="text-sm font-bold text-white">{timeframe}</span>
-          <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showTimeframeMenu ? 'rotate-180' : ''}`} />
+          <Clock className={`w-4 h-4 ${isLightMode ? 'text-blue-500' : 'text-blue-400'}`} />
+          <span className={`text-sm font-bold ${isLightMode ? 'text-slate-800' : 'text-white'}`}>{timeframe}</span>
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showTimeframeMenu ? 'rotate-180' : ''} ${isLightMode ? 'text-slate-400' : 'text-gray-400'}`} />
         </button>
 
         {showTimeframeMenu && (
-          <div className="absolute bottom-full left-0 mb-1 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl overflow-hidden min-w-[160px] animate-scale-in">
+          <div className={`absolute bottom-full left-0 mb-1 rounded-lg overflow-hidden min-w-[160px] animate-scale-in ${dropdownBg}`}>
             <div className="p-2">
-              <div className="text-[10px] font-semibold text-gray-400 mb-1.5 px-1">SELECT TIMEFRAME</div>
+              <div className={`text-[10px] font-semibold mb-1.5 px-1 ${isLightMode ? 'text-slate-400' : 'text-gray-400'}`}>SELECT TIMEFRAME</div>
               <div className="grid grid-cols-2 gap-1">
                 {timeframes.map((tf) => (
                   <button
                     key={tf}
-                    onClick={() => {
-                      onTimeframeChange(tf)
-                      setShowTimeframeMenu(false)
-                    }}
+                    onClick={() => { onTimeframeChange(tf); setShowTimeframeMenu(false) }}
                     disabled={isLoading}
-                    className={`px-2 py-1.5 text-xs font-bold rounded transition-all ${
-                      timeframe === tf
-                        ? 'bg-blue-500 text-white shadow-sm'
-                        : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#232936]'
-                    } disabled:opacity-50`}
+                    className={`px-2 py-1.5 text-xs font-bold rounded transition-all disabled:opacity-50 ${dropdownItem(timeframe === tf)}`}
                   >
                     {tf}
                   </button>
@@ -1188,55 +1208,37 @@ const MobileControls = memo(({
         )}
       </div>
 
-      {}
+      {/* Chart type pill */}
       <div className="relative" ref={chartTypeRef}>
         <button
-          onClick={() => {
-            setShowChartTypeMenu(!showChartTypeMenu)
-            setShowTimeframeMenu(false)
-          }}
+          onClick={() => { setShowChartTypeMenu(!showChartTypeMenu); setShowTimeframeMenu(false) }}
           disabled={isLoading}
-          className="h-10 w-10 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-full hover:bg-gray-800/80 transition-all disabled:opacity-50 flex items-center justify-center"
+          className={`h-10 w-10 rounded-full hover:brightness-95 transition-all disabled:opacity-50 flex items-center justify-center ${pillBg}`}
           title={chartType === 'candle' ? 'Candlestick Chart' : 'Line Chart'}
         >
-          {chartType === 'candle' ? (
-            <BarChart2 className="w-4 h-4 text-gray-300" />
-          ) : (
-            <Activity className="w-4 h-4 text-gray-300" />
-          )}
+          {chartType === 'candle'
+            ? <BarChart2 className={`w-4 h-4 ${isLightMode ? 'text-slate-600' : 'text-gray-300'}`} />
+            : <Activity  className={`w-4 h-4 ${isLightMode ? 'text-slate-600' : 'text-gray-300'}`} />
+          }
         </button>
 
         {showChartTypeMenu && (
-          <div className="absolute bottom-full left-0 mb-1 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl overflow-hidden min-w-[140px] animate-scale-in">
+          <div className={`absolute bottom-full left-0 mb-1 rounded-lg overflow-hidden min-w-[140px] animate-scale-in ${dropdownBg}`}>
             <div className="p-2">
-              <div className="text-[10px] font-semibold text-gray-400 mb-1.5 px-1">CHART TYPE</div>
+              <div className={`text-[10px] font-semibold mb-1.5 px-1 ${isLightMode ? 'text-slate-400' : 'text-gray-400'}`}>CHART TYPE</div>
               <div className="flex flex-col gap-1">
                 <button
-                  onClick={() => {
-                    onChartTypeChange('candle')
-                    setShowChartTypeMenu(false)
-                  }}
+                  onClick={() => { onChartTypeChange('candle'); setShowChartTypeMenu(false) }}
                   disabled={isLoading}
-                  className={`px-3 py-2 text-xs font-semibold rounded transition-all flex items-center gap-2 ${
-                    chartType === 'candle'
-                      ? 'bg-blue-500 text-white shadow-sm'
-                      : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#232936]'
-                  }`}
+                  className={`px-3 py-2 text-xs font-semibold rounded transition-all flex items-center gap-2 ${dropdownItem(chartType === 'candle')}`}
                 >
                   <BarChart2 className="w-3.5 h-3.5" />
                   Candlestick
                 </button>
                 <button
-                  onClick={() => {
-                    onChartTypeChange('line')
-                    setShowChartTypeMenu(false)
-                  }}
+                  onClick={() => { onChartTypeChange('line'); setShowChartTypeMenu(false) }}
                   disabled={isLoading}
-                  className={`px-3 py-2 text-xs font-semibold rounded transition-all flex items-center gap-2 ${
-                    chartType === 'line'
-                      ? 'bg-blue-500 text-white shadow-sm'
-                      : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#232936]'
-                  }`}
+                  className={`px-3 py-2 text-xs font-semibold rounded transition-all flex items-center gap-2 ${dropdownItem(chartType === 'line')}`}
                 >
                   <Activity className="w-3.5 h-3.5" />
                   Line
@@ -1247,19 +1249,19 @@ const MobileControls = memo(({
         )}
       </div>
 
-      {}
+      {/* Indicators pill */}
       <button
         onClick={onOpenIndicators}
         disabled={isLoading}
-        className="h-10 w-10 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-full hover:bg-gray-800/80 transition-all disabled:opacity-50 flex items-center justify-center"
+        className={`h-10 w-10 rounded-full hover:brightness-95 transition-all disabled:opacity-50 flex items-center justify-center ${pillBg}`}
         title="Indicators"
       >
-        <Sliders className="w-4 h-4 text-gray-300" />
+        <Sliders className={`w-4 h-4 ${isLightMode ? 'text-slate-600' : 'text-gray-300'}`} />
       </button>
 
-      {}
-      <div className="h-10 px-3 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-full flex items-center gap-1">
-        <span className="text-sm font-light text-white tabular-nums">
+      {/* Countdown pill */}
+      <div className={`h-10 px-3 rounded-full flex items-center gap-1 ${pillBg}`}>
+        <span className={`text-sm font-light tabular-nums ${isLightMode ? 'text-slate-700' : 'text-white'}`}>
           {formatCd(countdownSecs)}
         </span>
       </div>
@@ -1279,7 +1281,10 @@ const DesktopControls = memo(({
   onRefresh,
   onToggleFullscreen,
   onOpenIndicators,
-  isFullscreen
+  onToggleDrawing,
+  drawingEnabled,
+  isFullscreen,
+  isLightMode,
 }: any) => {
   const [showTimeframeMenu, setShowTimeframeMenu] = useState(false)
   const timeframeRef = useRef<HTMLDivElement>(null)
@@ -1299,24 +1304,41 @@ const DesktopControls = memo(({
     }
   }, [showTimeframeMenu])
 
+  const toolbarBg    = isLightMode ? 'bg-white/90 backdrop-blur-md border border-gray-200 shadow-sm' : 'bg-black/20 backdrop-blur-md border border-white/10'
+  const btnInactive  = isLightMode ? 'text-slate-600 hover:text-slate-900 hover:bg-gray-100' : 'text-gray-300 hover:text-white hover:bg-white/10'
+  const btnActive    = 'bg-blue-500 !text-white shadow-sm'
+  const dropdownBg   = isLightMode ? 'bg-white border border-gray-200 shadow-lg' : 'bg-[#0f1419] border border-gray-800/50 shadow-2xl'
+  const dropdownItem = (active: boolean) => active
+    ? btnActive
+    : isLightMode ? 'text-slate-700 hover:bg-gray-100' : 'text-gray-300 hover:bg-[#1a1f2e]'
+
   return (
     <div className="hidden lg:block absolute top-2 right-24 z-10">
       <div className="flex items-center gap-2">
+        {/* Timeframe */}
         <div className="relative" ref={timeframeRef}>
-          <button onClick={() => setShowTimeframeMenu(!showTimeframeMenu)} disabled={isLoading} className="p-2.5 bg-black/20 backdrop-blur-md border border-white/10 rounded-full hover:bg-black/30 transition-all flex items-center gap-1.5 disabled:opacity-50" title="Timeframe">
-            <Clock className="w-5 h-5 text-gray-300" />
-            <span className="text-base font-bold text-white">{timeframe}</span>
-            <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showTimeframeMenu ? 'rotate-180' : ''}`} />
+          <button
+            onClick={() => setShowTimeframeMenu(!showTimeframeMenu)}
+            disabled={isLoading}
+            className={`p-2.5 rounded-full hover:brightness-95 transition-all flex items-center gap-1.5 disabled:opacity-50 ${toolbarBg}`}
+            title="Timeframe"
+          >
+            <Clock className={`w-5 h-5 ${isLightMode ? 'text-blue-500' : 'text-gray-300'}`} />
+            <span className={`text-base font-bold ${isLightMode ? 'text-slate-800' : 'text-white'}`}>{timeframe}</span>
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showTimeframeMenu ? 'rotate-180' : ''} ${isLightMode ? 'text-slate-400' : 'text-gray-400'}`} />
           </button>
 
           {showTimeframeMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowTimeframeMenu(false)} />
-              <div className="absolute top-full right-0 mt-1 bg-[#0f1419] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden min-w-[120px]">
+              <div className={`absolute top-full right-0 mt-1 rounded-lg z-50 overflow-hidden min-w-[120px] ${dropdownBg}`}>
                 {timeframes.map((tf) => (
-                  <button key={tf} onClick={() => { onTimeframeChange(tf); setShowTimeframeMenu(false) }} disabled={isLoading} className={`w-full px-4 py-2.5 text-left text-sm font-bold transition-all flex items-center gap-2 ${
-                    timeframe === tf ? 'bg-blue-500 text-white shadow-sm' : 'text-gray-300 hover:bg-[#1a1f2e]'
-                  } disabled:opacity-50`}>
+                  <button
+                    key={tf}
+                    onClick={() => { onTimeframeChange(tf); setShowTimeframeMenu(false) }}
+                    disabled={isLoading}
+                    className={`w-full px-4 py-2.5 text-left text-sm font-bold transition-all flex items-center gap-2 disabled:opacity-50 ${dropdownItem(timeframe === tf)}`}
+                  >
                     {tf}
                   </button>
                 ))}
@@ -1325,27 +1347,57 @@ const DesktopControls = memo(({
           )}
         </div>
 
-        <div className="flex items-center gap-1 bg-black/20 backdrop-blur-md border border-white/10 rounded-full p-1">
-          <button onClick={() => onChartTypeChange('candle')} disabled={isLoading} className={`p-2 rounded-full transition-all ${
-            chartType === 'candle' ? 'bg-blue-500/80 text-white shadow-sm' : 'text-gray-300 hover:text-white hover:bg-white/10'
-          }`} title="Candlestick">
+        {/* Chart type */}
+        <div className={`flex items-center gap-1 rounded-full p-1 ${toolbarBg}`}>
+          <button
+            onClick={() => onChartTypeChange('candle')}
+            disabled={isLoading}
+            className={`p-2 rounded-full transition-all ${chartType === 'candle' ? btnActive : btnInactive}`}
+            title="Candlestick"
+          >
             <BarChart2 className="w-5 h-5" />
           </button>
-          <button onClick={() => onChartTypeChange('line')} disabled={isLoading} className={`p-2 rounded-full transition-all ${
-            chartType === 'line' ? 'bg-blue-500/80 text-white shadow-sm' : 'text-gray-300 hover:text-white hover:bg-white/10'
-          }`} title="Line">
+          <button
+            onClick={() => onChartTypeChange('line')}
+            disabled={isLoading}
+            className={`p-2 rounded-full transition-all ${chartType === 'line' ? btnActive : btnInactive}`}
+            title="Line"
+          >
             <Activity className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="flex items-center gap-1 bg-black/20 backdrop-blur-md border border-white/10 rounded-full p-1">
-          <button onClick={onOpenIndicators} disabled={isLoading} className="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors disabled:opacity-50" title="Indicators">
+        {/* Tools */}
+        <div className={`flex items-center gap-1 rounded-full p-1 ${toolbarBg}`}>
+          <button
+            onClick={onOpenIndicators}
+            disabled={isLoading}
+            className={`p-2 rounded-full transition-colors disabled:opacity-50 ${btnInactive}`}
+            title="Indicators"
+          >
             <Sliders className="w-5 h-5" />
           </button>
-          <button onClick={onRefresh} disabled={isLoading} className="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors disabled:opacity-50" title="Refresh">
+          <button
+            onClick={onToggleDrawing}
+            disabled={isLoading}
+            className={`p-2 rounded-full transition-colors disabled:opacity-50 ${drawingEnabled ? btnActive : btnInactive}`}
+            title="Drawing Tools"
+          >
+            <Paintbrush className="w-5 h-5" />
+          </button>
+          <button
+            onClick={onRefresh}
+            disabled={isLoading}
+            className={`p-2 rounded-full transition-colors disabled:opacity-50 ${btnInactive}`}
+            title="Refresh"
+          >
             <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
-          <button onClick={onToggleFullscreen} className="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors" title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
+          <button
+            onClick={onToggleFullscreen}
+            className={`p-2 rounded-full transition-colors ${btnInactive}`}
+            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+          >
             {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
           </button>
         </div>
@@ -1356,7 +1408,7 @@ const DesktopControls = memo(({
 
 DesktopControls.displayName = 'DesktopControls'
 
-const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAssetSelect }: TradingChartProps) => {
+const TradingChart = memo(({ activeOrders = [], currentPrice, assets = [], onAssetSelect, isLightMode = false }: TradingChartProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const fullscreenContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -1546,6 +1598,53 @@ const elderRayBullRef = useRef<ISeriesApi<"Histogram"> | null>(null)
 const elderRayBearRef = useRef<ISeriesApi<"Histogram"> | null>(null)
 const elderRayContainerRef = useRef<HTMLDivElement>(null)
 
+  // ===== LIGHT MODE THEME EFFECT =====
+  useEffect(() => {
+    const darkTheme = {
+      layout: { background: { type: ColorType.Solid, color: 'rgba(10, 14, 23, 0)' }, textColor: '#9ca3af' },
+      grid: {
+        vertLines: { color: 'rgba(255, 255, 255, 0.12)' },
+        horzLines: { color: 'rgba(255, 255, 255, 0.12)' },
+      },
+      rightPriceScale: { borderColor: 'rgba(255, 255, 255, 0.1)' },
+      timeScale: { borderColor: 'rgba(255, 255, 255, 0.1)' },
+    }
+    const lightTheme = {
+      layout: { background: { type: ColorType.Solid, color: 'rgba(248, 250, 252, 0)' }, textColor: '#374151' },
+      grid: {
+        vertLines: { color: 'rgba(0, 0, 0, 0.07)' },
+        horzLines: { color: 'rgba(0, 0, 0, 0.07)' },
+      },
+      rightPriceScale: { borderColor: 'rgba(0, 0, 0, 0.15)' },
+      timeScale: { borderColor: 'rgba(0, 0, 0, 0.15)' },
+    }
+    const theme = isLightMode ? lightTheme : darkTheme
+    const subGridTheme = isLightMode
+      ? { ...lightTheme, grid: { vertLines: { color: 'rgba(0,0,0,0.04)' }, horzLines: { color: 'rgba(0,0,0,0.04)' } } }
+      : { ...darkTheme, grid: { vertLines: { color: 'rgba(255,255,255,0.05)' }, horzLines: { color: 'rgba(255,255,255,0.05)' } } }
+
+    const allCharts = [
+      chartRef.current,
+      rsiChartRef.current,
+      macdChartRef.current,
+      stochasticChartRef.current,
+      atrChartRef.current,
+      adxChartRef.current,
+      cciChartRef.current,
+      williamsRChartRef.current,
+      mfiChartRef.current,
+      aroonChartRef.current,
+      trixChartRef.current,
+      obvChartRef.current,
+      elderRayChartRef.current,
+    ]
+    allCharts.forEach((c, i) => {
+      if (c) {
+        try { c.applyOptions(i === 0 ? theme : subGridTheme) } catch (_) {}
+      }
+    })
+  }, [isLightMode])
+
   const isMountedRef = useRef(false)
   const cleanupFunctionsRef = useRef<Array<() => void>>([])
   const currentBarRef = useRef<CandleData | null>(null)
@@ -1577,6 +1676,8 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
   const [prefetchedAssets, setPrefetchedAssets] = useState<Set<string>>(new Set())
   const [currentChartData, setCurrentChartData] = useState<any[]>([])
   const [isMobile, setIsMobile] = useState(false)
+  const [showDrawingTools, setShowDrawingTools] = useState(false)
+  const [drawingPanelOpen, setDrawingPanelOpen] = useState(false)
   const [showReferralModal, setShowReferralModal] = useState(false)
   const [referralCopied, setReferralCopied] = useState(false)
   const [referralCode, setReferralCode] = useState<string | null>(null)
@@ -1849,7 +1950,7 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
       const chart = createChart(container, {
         width,
         height,
-        layout: { background: { type: ColorType.Solid, color: '#0a0e17' }, textColor: '#9ca3af' },
+        layout: { background: { type: ColorType.Solid, color: 'rgba(10, 14, 23, 0)' }, textColor: '#9ca3af' },
         grid: {
           vertLines: { color: 'rgba(255, 255, 255, 0.12)', style: 0, visible: true },
           horzLines: { color: 'rgba(255, 255, 255, 0.12)', style: 0, visible: true }
@@ -1987,11 +2088,17 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
         isMountedRef.current = false
         setIsInitialized(false)
 
-        if (smaSeriesRef.current) chart.removeSeries(smaSeriesRef.current)
-        if (emaSeriesRef.current) chart.removeSeries(emaSeriesRef.current)
-        if (bollingerUpperRef.current) chart.removeSeries(bollingerUpperRef.current)
-        if (bollingerMiddleRef.current) chart.removeSeries(bollingerMiddleRef.current)
-        if (bollingerLowerRef.current) chart.removeSeries(bollingerLowerRef.current)
+        // Null out refs BEFORE chart.remove() agar DrawingTools tidak
+        // memanggil method pada series/chart yang sudah di-dispose → "Object is disposed"
+        candleSeriesRef.current = null
+        lineSeriesRef.current = null
+        chartRef.current = null
+
+        if (smaSeriesRef.current) { try { chart.removeSeries(smaSeriesRef.current) } catch (_) {} smaSeriesRef.current = null }
+        if (emaSeriesRef.current) { try { chart.removeSeries(emaSeriesRef.current) } catch (_) {} emaSeriesRef.current = null }
+        if (bollingerUpperRef.current) { try { chart.removeSeries(bollingerUpperRef.current) } catch (_) {} bollingerUpperRef.current = null }
+        if (bollingerMiddleRef.current) { try { chart.removeSeries(bollingerMiddleRef.current) } catch (_) {} bollingerMiddleRef.current = null }
+        if (bollingerLowerRef.current) { try { chart.removeSeries(bollingerLowerRef.current) } catch (_) {} bollingerLowerRef.current = null }
 
         try {
           candleAnimatorRef.current?.stop()
@@ -2057,7 +2164,7 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
     }
 
     const chartOptions = {
-      layout: { background: { type: ColorType.Solid, color: '#0a0e17' }, textColor: '#9ca3af' },
+      layout: { background: { type: ColorType.Solid, color: 'rgba(10, 14, 23, 0)' }, textColor: '#9ca3af' },
       grid: {
         vertLines: { color: 'rgba(255, 255, 255, 0.05)', style: 0, visible: true },
         horzLines: { color: 'rgba(255, 255, 255, 0.05)', style: 0, visible: true }
@@ -3646,7 +3753,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
 
   if (!selectedAsset) {
     return (
-      <div className="h-full flex items-center justify-center bg-[#0a0e17]">
+      <div className="h-full flex items-center justify-center" style={{ background: isLightMode ? '#fafcff' : '#0a0e17' }}>
         <div className="text-center text-gray-500">
           <Activity className="w-16 h-16 mx-auto mb-3 opacity-20" />
           <p className="text-sm">Select an asset to view chart</p>
@@ -3696,7 +3803,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
 
   return (
     <>
-    <div ref={fullscreenContainerRef} className={`relative h-full flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-[#0a0e17]' : ''}`} style={showReferralModal ? { filter: 'blur(5px)', transition: 'filter 0.25s ease' } : { filter: 'none', transition: 'filter 0.25s ease' }}>
+    <div ref={fullscreenContainerRef} className={`relative h-full flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : ''}`} style={{ ...(showReferralModal ? { filter: 'blur(5px)', transition: 'filter 0.25s ease' } : { filter: 'none', transition: 'filter 0.25s ease' }), background: isLightMode ? '#fafcff' : (isFullscreen ? '#0a0e17' : undefined) }}>
       <div className="relative" style={{ height: mainChartHeight }}>
         <PriceDisplay
         asset={selectedAsset}
@@ -3706,7 +3813,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         assets={availableAssets}
         onSelectAsset={handleAssetSelect}
       />
-      <RealtimeClock nowMs={nowMs} />
+      <RealtimeClock nowMs={nowMs} isLightMode={isLightMode} />
 
       {}
       <div className="absolute top-24 left-1 z-10">
@@ -3944,7 +4051,13 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         onRefresh={handleRefresh}
         onToggleFullscreen={toggleFullscreen}
         onOpenIndicators={handleOpenIndicators}
+        onToggleDrawing={() => {
+          if (!showDrawingTools) setShowDrawingTools(true) // mount sekali, jangan unmount agar drawings tidak hilang
+          setDrawingPanelOpen(o => !o)
+        }}
+        drawingEnabled={drawingPanelOpen}
         isFullscreen={isFullscreen}
+        isLightMode={isLightMode}
       />
 
       <MobileControls
@@ -3957,13 +4070,37 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         onRefresh={handleRefresh}
         onOpenIndicators={handleOpenIndicators}
         nowSeconds={nowSeconds}
+        isLightMode={isLightMode}
       />
 
       <SimulatorStatus status={simulatorStatus} onRetry={checkSimulator} />
 
       <OHLCDisplay data={ohlcData} visible={showOhlc} />
 
-      <div ref={chartContainerRef} className="absolute inset-0 bg-[#0a0e17]" />
+      {/* Background map image — 20% opacity, responsive per device */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage: isMobile ? 'url(/petawhitehp.png)' : 'url(/petawhitepc.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          opacity: isLightMode ? 0.35 : 0.2,
+          zIndex: 0,
+          filter: isLightMode ? 'invert(1)' : 'none',
+        }}
+      />
+
+      <div ref={chartContainerRef} className="absolute inset-0" style={{ background: isLightMode ? 'rgba(248,251,255,0.90)' : 'rgba(10, 14, 23, 0.85)', zIndex: 1 }} />
+
+      <DrawingTools
+        chartRef={chartRef}
+        seriesRef={candleSeriesRef}
+        containerRef={chartContainerRef}
+        enabled={drawingPanelOpen}
+        panelOpen={drawingPanelOpen}
+        onPanelClose={() => setDrawingPanelOpen(false)}
+      />
 
       {activeOrders && activeOrders.length > 0 && currentPriceData.price > 0 && (
         <OrderPriceTracker
@@ -3983,97 +4120,98 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         <ChartSkeleton
           timeframe={timeframe}
           assetSymbol={selectedAsset?.symbol || ''}
+          isLightMode={isLightMode}
         />
       )}
 
       {}
       <div className="hidden lg:block absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
-        <CandleCountdown timeframe={timeframe} nowSeconds={nowSeconds} />
+        <CandleCountdown timeframe={timeframe} nowSeconds={nowSeconds} isLightMode={isLightMode} />
       </div>
     </div>
 
     {}
     {indicatorConfig.rsi?.enabled && (
-      <div className="border-t border-gray-800/30">
-        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">RSI ({indicatorConfig.rsi.period})</div>
-        <div ref={rsiContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      <div className="border-t border-gray-800/30" style={{ borderColor: isLightMode ? 'rgba(0,0,0,0.1)' : undefined }}>
+        <div className="px-2 py-1 text-xs font-medium" style={{ background: isLightMode ? '#fafcff' : '#0f1419', color: isLightMode ? '#64748b' : '#9ca3af' }}>RSI ({indicatorConfig.rsi.period})</div>
+        <div ref={rsiContainerRef} className="relative h-[120px]" style={{ background: isLightMode ? '#fafcff' : '#0a0e17' }} />
       </div>
     )}
 
     {indicatorConfig.macd?.enabled && (
-      <div className="border-t border-gray-800/30">
-        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">MACD ({indicatorConfig.macd.fastPeriod},{indicatorConfig.macd.slowPeriod},{indicatorConfig.macd.signalPeriod})</div>
-        <div ref={macdContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      <div className="border-t border-gray-800/30" style={{ borderColor: isLightMode ? 'rgba(0,0,0,0.1)' : undefined }}>
+        <div className="px-2 py-1 text-xs font-medium" style={{ background: isLightMode ? '#fafcff' : '#0f1419', color: isLightMode ? '#64748b' : '#9ca3af' }}>MACD ({indicatorConfig.macd.fastPeriod},{indicatorConfig.macd.slowPeriod},{indicatorConfig.macd.signalPeriod})</div>
+        <div ref={macdContainerRef} className="relative h-[120px]" style={{ background: isLightMode ? '#fafcff' : '#0a0e17' }} />
       </div>
     )}
 
     {indicatorConfig.stochastic?.enabled && (
-      <div className="border-t border-gray-800/30">
-        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">Stochastic ({indicatorConfig.stochastic.kPeriod},{indicatorConfig.stochastic.dPeriod})</div>
-        <div ref={stochasticContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      <div className="border-t border-gray-800/30" style={{ borderColor: isLightMode ? 'rgba(0,0,0,0.1)' : undefined }}>
+        <div className="px-2 py-1 text-xs font-medium" style={{ background: isLightMode ? '#fafcff' : '#0f1419', color: isLightMode ? '#64748b' : '#9ca3af' }}>Stochastic ({indicatorConfig.stochastic.kPeriod},{indicatorConfig.stochastic.dPeriod})</div>
+        <div ref={stochasticContainerRef} className="relative h-[120px]" style={{ background: isLightMode ? '#fafcff' : '#0a0e17' }} />
       </div>
     )}
 
     {indicatorConfig.atr?.enabled && (
-      <div className="border-t border-gray-800/30">
-        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">ATR ({indicatorConfig.atr.period})</div>
-        <div ref={atrContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      <div className="border-t border-gray-800/30" style={{ borderColor: isLightMode ? 'rgba(0,0,0,0.1)' : undefined }}>
+        <div className="px-2 py-1 text-xs font-medium" style={{ background: isLightMode ? '#fafcff' : '#0f1419', color: isLightMode ? '#64748b' : '#9ca3af' }}>ATR ({indicatorConfig.atr.period})</div>
+        <div ref={atrContainerRef} className="relative h-[120px]" style={{ background: isLightMode ? '#fafcff' : '#0a0e17' }} />
       </div>
     )}
 
     {indicatorConfig.adx?.enabled && (
-      <div className="border-t border-gray-800/30">
-        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">ADX ({indicatorConfig.adx.period})</div>
-        <div ref={adxContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      <div className="border-t border-gray-800/30" style={{ borderColor: isLightMode ? 'rgba(0,0,0,0.1)' : undefined }}>
+        <div className="px-2 py-1 text-xs font-medium" style={{ background: isLightMode ? '#fafcff' : '#0f1419', color: isLightMode ? '#64748b' : '#9ca3af' }}>ADX ({indicatorConfig.adx.period})</div>
+        <div ref={adxContainerRef} className="relative h-[120px]" style={{ background: isLightMode ? '#fafcff' : '#0a0e17' }} />
       </div>
     )}
 
     {indicatorConfig.cci?.enabled && (
-      <div className="border-t border-gray-800/30">
-        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">CCI ({indicatorConfig.cci.period})</div>
-        <div ref={cciContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      <div className="border-t border-gray-800/30" style={{ borderColor: isLightMode ? 'rgba(0,0,0,0.1)' : undefined }}>
+        <div className="px-2 py-1 text-xs font-medium" style={{ background: isLightMode ? '#fafcff' : '#0f1419', color: isLightMode ? '#64748b' : '#9ca3af' }}>CCI ({indicatorConfig.cci.period})</div>
+        <div ref={cciContainerRef} className="relative h-[120px]" style={{ background: isLightMode ? '#fafcff' : '#0a0e17' }} />
       </div>
     )}
 
     {indicatorConfig.williamsR?.enabled && (
-      <div className="border-t border-gray-800/30">
-        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">Williams %R ({indicatorConfig.williamsR.period})</div>
-        <div ref={williamsRContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      <div className="border-t border-gray-800/30" style={{ borderColor: isLightMode ? 'rgba(0,0,0,0.1)' : undefined }}>
+        <div className="px-2 py-1 text-xs font-medium" style={{ background: isLightMode ? '#fafcff' : '#0f1419', color: isLightMode ? '#64748b' : '#9ca3af' }}>Williams %R ({indicatorConfig.williamsR.period})</div>
+        <div ref={williamsRContainerRef} className="relative h-[120px]" style={{ background: isLightMode ? '#fafcff' : '#0a0e17' }} />
       </div>
     )}
 
     {indicatorConfig.mfi?.enabled && (
-      <div className="border-t border-gray-800/30">
-        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">MFI ({indicatorConfig.mfi.period})</div>
-        <div ref={mfiContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      <div className="border-t border-gray-800/30" style={{ borderColor: isLightMode ? 'rgba(0,0,0,0.1)' : undefined }}>
+        <div className="px-2 py-1 text-xs font-medium" style={{ background: isLightMode ? '#fafcff' : '#0f1419', color: isLightMode ? '#64748b' : '#9ca3af' }}>MFI ({indicatorConfig.mfi.period})</div>
+        <div ref={mfiContainerRef} className="relative h-[120px]" style={{ background: isLightMode ? '#fafcff' : '#0a0e17' }} />
       </div>
     )}
 
     {indicatorConfig.aroon?.enabled && (
-      <div className="border-t border-gray-800/30">
-        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">Aroon ({indicatorConfig.aroon.period})</div>
-        <div ref={aroonContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      <div className="border-t border-gray-800/30" style={{ borderColor: isLightMode ? 'rgba(0,0,0,0.1)' : undefined }}>
+        <div className="px-2 py-1 text-xs font-medium" style={{ background: isLightMode ? '#fafcff' : '#0f1419', color: isLightMode ? '#64748b' : '#9ca3af' }}>Aroon ({indicatorConfig.aroon.period})</div>
+        <div ref={aroonContainerRef} className="relative h-[120px]" style={{ background: isLightMode ? '#fafcff' : '#0a0e17' }} />
       </div>
     )}
 
     {indicatorConfig.trix?.enabled && (
-      <div className="border-t border-gray-800/30">
-        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">TRIX ({indicatorConfig.trix.period})</div>
-        <div ref={trixContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      <div className="border-t border-gray-800/30" style={{ borderColor: isLightMode ? 'rgba(0,0,0,0.1)' : undefined }}>
+        <div className="px-2 py-1 text-xs font-medium" style={{ background: isLightMode ? '#fafcff' : '#0f1419', color: isLightMode ? '#64748b' : '#9ca3af' }}>TRIX ({indicatorConfig.trix.period})</div>
+        <div ref={trixContainerRef} className="relative h-[120px]" style={{ background: isLightMode ? '#fafcff' : '#0a0e17' }} />
       </div>
     )}
 
     {indicatorConfig.obv?.enabled && (
-      <div className="border-t border-gray-800/30">
-        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">OBV</div>
-        <div ref={obvContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      <div className="border-t border-gray-800/30" style={{ borderColor: isLightMode ? 'rgba(0,0,0,0.1)' : undefined }}>
+        <div className="px-2 py-1 text-xs font-medium" style={{ background: isLightMode ? '#fafcff' : '#0f1419', color: isLightMode ? '#64748b' : '#9ca3af' }}>OBV</div>
+        <div ref={obvContainerRef} className="relative h-[120px]" style={{ background: isLightMode ? '#fafcff' : '#0a0e17' }} />
       </div>
     )}
 
     {indicatorConfig.elderRay?.enabled && (
-      <div className="border-t border-gray-800/30">
-        <div className="px-2 py-1 text-xs font-medium text-gray-400 bg-[#0f1419]">Elder Ray ({indicatorConfig.elderRay.period})</div>
-        <div ref={elderRayContainerRef} className="relative h-[120px] bg-[#0a0e17]" />
+      <div className="border-t border-gray-800/30" style={{ borderColor: isLightMode ? 'rgba(0,0,0,0.1)' : undefined }}>
+        <div className="px-2 py-1 text-xs font-medium" style={{ background: isLightMode ? '#fafcff' : '#0f1419', color: isLightMode ? '#64748b' : '#9ca3af' }}>Elder Ray ({indicatorConfig.elderRay.period})</div>
+        <div ref={elderRayContainerRef} className="relative h-[120px]" style={{ background: isLightMode ? '#fafcff' : '#0a0e17' }} />
       </div>
     )}
 

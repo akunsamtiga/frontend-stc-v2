@@ -17,8 +17,8 @@ const TIMEFRAME_SECONDS: Record<string, number> = {
 
 interface CandleCountdownProps {
   timeframe: string
-
   nowSeconds: number
+  isLightMode?: boolean
 }
 
 function formatCountdown(secs: number, timeframe: string): string {
@@ -28,12 +28,39 @@ function formatCountdown(secs: number, timeframe: string): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-const CandleCountdown = memo(({ timeframe, nowSeconds }: CandleCountdownProps) => {
+const CandleCountdown = memo(({ timeframe, nowSeconds, isLightMode = false }: CandleCountdownProps) => {
   const intervalSeconds = TIMEFRAME_SECONDS[timeframe] ?? 60
   const remaining = intervalSeconds - (nowSeconds % intervalSeconds)
 
   const isUrgent = remaining <= 5
   const isCritical = remaining <= 2
+
+  let containerClass = ''
+  let textClass = ''
+
+  if (isLightMode) {
+    if (isCritical) {
+      containerClass = 'bg-red-100 border-red-400/70'
+      textClass = 'text-red-700'
+    } else if (isUrgent) {
+      containerClass = 'bg-amber-100 border-amber-400/70'
+      textClass = 'text-amber-700'
+    } else {
+      containerClass = 'bg-white/80 border-slate-300'
+      textClass = 'text-slate-700'
+    }
+  } else {
+    if (isCritical) {
+      containerClass = 'bg-red-500/20 border-red-500/50'
+      textClass = 'text-red-400'
+    } else if (isUrgent) {
+      containerClass = 'bg-yellow-500/20 border-yellow-500/50'
+      textClass = 'text-yellow-400'
+    } else {
+      containerClass = 'bg-black/30 border-white/10'
+      textClass = 'text-gray-300'
+    }
+  }
 
   return (
     <div
@@ -42,12 +69,7 @@ const CandleCountdown = memo(({ timeframe, nowSeconds }: CandleCountdownProps) =
         px-2.5 py-1.5 rounded-lg
         backdrop-blur-sm border
         transition-colors duration-300
-        ${isCritical
-          ? 'bg-red-500/20 border-red-500/50 text-red-400'
-          : isUrgent
-            ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400'
-            : 'bg-black/30 border-white/10 text-gray-300'
-        }
+        ${containerClass} ${textClass}
       `}
     >
       <Timer className="w-3.5 h-3.5 flex-shrink-0" />
