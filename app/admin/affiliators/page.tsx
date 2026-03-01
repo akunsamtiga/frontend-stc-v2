@@ -24,6 +24,8 @@ import {
   ToggleLeft,
   X,
   PencilSimple,
+  Link,
+  Shuffle,
 } from 'phosphor-react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
@@ -213,7 +215,12 @@ function withdrawStatusMeta(status: string) {
   }
 }
 
-// ── Modal: Assign Affiliator ─────────────────────────────────
+// ── Modal: Assign Affiliator ──────────────────────────────────
+//
+// PERUBAHAN: Tambah field "Kode Kustom" (opsional).
+// Jika diisi → dikirim sebagai `customCode` ke backend.
+// Jika kosong → backend auto-generate kode AFF+8char.
+// Preview link langsung muncul saat admin ketik kode.
 
 function AssignModal({
   onClose,
@@ -223,20 +230,38 @@ function AssignModal({
   onSuccess: () => void
 }) {
   const [userId, setUserId] = useState('')
+  const [customCode, setCustomCode] = useState('')
   const [revenueShare, setRevenueShare] = useState('50')
   const [unlockThreshold, setUnlockThreshold] = useState('5')
   const [loading, setLoading] = useState(false)
 
+  // Validasi format kode: hanya alfanumerik, tanda hubung, underscore
+  const codeError = customCode && !/^[A-Za-z0-9_-]+$/.test(customCode)
+    ? 'Hanya huruf, angka, - dan _'
+    : customCode && (customCode.length < 3 || customCode.length > 20)
+    ? 'Panjang 3–20 karakter'
+    : ''
+
+  // Normalize ke huruf besar untuk preview
+  const previewCode = customCode.trim().toUpperCase()
+  const shareLink = previewCode ? `stouch.id/ref/${previewCode}` : ''
+
   const handleAssign = async () => {
     if (!userId.trim()) { toast.error('User ID wajib diisi.'); return }
+    if (codeError) { toast.error(codeError); return }
     setLoading(true)
     try {
       const dto: AssignAffiliatorDto = {
         revenueSharePercentage: Number(revenueShare),
         unlockThreshold: Number(unlockThreshold),
+        ...(customCode.trim() ? { customCode: customCode.trim() } : {}),
       }
       await api.adminAssignAffiliator(userId.trim(), dto)
-      toast.success('User berhasil dijadikan affiliator!')
+      toast.success(
+        customCode.trim()
+          ? `Affiliator berhasil! Kode: ${previewCode}`
+          : 'User berhasil dijadikan affiliator!'
+      )
       onSuccess()
       onClose()
     } catch {
@@ -257,6 +282,7 @@ function AssignModal({
           transition={{ ...SPRING }}
         >
           <div className="p-6">
+            {/* Header */}
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
@@ -270,6 +296,7 @@ function AssignModal({
             </div>
 
             <div className="space-y-4">
+              {/* User ID */}
               <div>
                 <label className="block text-sm text-slate-400 mb-1.5">User ID</label>
                 <input
@@ -280,6 +307,62 @@ function AssignModal({
                 />
               </div>
 
+              {/* Kode kustom — BARU */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-1.5 flex items-center gap-1.5">
+                  <Link className="w-3.5 h-3.5" weight="bold" />
+                  Kode Affiliate Kustom
+                  <span className="text-slate-600 font-normal">(opsional)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    value={customCode}
+                    onChange={(e) => setCustomCode(e.target.value)}
+                    placeholder="Contoh: JOHNDOE atau BRAND2025"
+                    maxLength={20}
+                    className={`w-full glass-input rounded-xl px-4 py-2.5 pr-10 text-white placeholder:text-slate-600 
+                      focus:outline-none text-sm font-mono uppercase tracking-wider transition-all
+                      ${codeError
+                        ? 'border-red-500/50 focus:border-red-500/60'
+                        : customCode && !codeError
+                        ? 'border-emerald-500/40 focus:border-emerald-500/60'
+                        : 'focus:border-purple-500/50'
+                      }`}
+                  />
+                  {/* Character counter */}
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-600 tabular-nums">
+                    {customCode.length}/20
+                  </span>
+                </div>
+
+                {/* Error */}
+                {codeError && (
+                  <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
+                    <Warning className="w-3 h-3" weight="fill" />
+                    {codeError}
+                  </p>
+                )}
+
+                {/* Auto-generate note */}
+                {!customCode && (
+                  <p className="text-xs text-slate-600 mt-1.5 flex items-center gap-1">
+                    <Shuffle className="w-3 h-3" weight="bold" />
+                    Biarkan kosong untuk generate otomatis (AFF + 8 karakter)
+                  </p>
+                )}
+
+                {/* Link preview */}
+                {previewCode && !codeError && (
+                  <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/8 border border-emerald-500/20">
+                    <Link className="w-3.5 h-3.5 text-emerald-400 shrink-0" weight="bold" />
+                    <span className="text-xs text-emerald-300 font-mono tracking-wide truncate">
+                      {shareLink}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Revenue share + unlock threshold */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm text-slate-400 mb-1.5">Revenue Share (%)</label>
@@ -305,10 +388,12 @@ function AssignModal({
                 </div>
               </div>
 
+              {/* Info box */}
               <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-3 text-xs text-purple-300/80">
                 Affiliator mendapat <strong>{revenueShare}%</strong> dari kerugian trading invitee (real account) setelah <strong>{unlockThreshold}</strong> invitee deposit.
               </div>
 
+              {/* Actions */}
               <div className="flex gap-3 mt-2">
                 <button
                   onClick={onClose}
@@ -318,7 +403,7 @@ function AssignModal({
                 </button>
                 <button
                   onClick={handleAssign}
-                  disabled={loading}
+                  disabled={loading || !!codeError}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white rounded-xl font-semibold text-sm transition-all shadow-lg shadow-purple-500/20"
                 >
                   {loading ? <ArrowsClockwise className="w-4 h-4 animate-spin" weight="bold" /> : <Plus className="w-4 h-4" weight="bold" />}
@@ -833,6 +918,17 @@ export default function AdminAffiliatorsPage() {
                           <span>{aff.revenueSharePercentage}% share</span>
                           <span className="mx-1">·</span>
                           <span>Threshold: {aff.unlockThreshold}</span>
+                          {/* Share link chip */}
+                          <span className="mx-1">·</span>
+                          <a
+                            href={`https://stouch.id/ref/${aff.affiliateCode}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-emerald-400/70 hover:text-emerald-400 transition-colors"
+                          >
+                            <Link className="w-3 h-3" weight="bold" />
+                            /ref/{aff.affiliateCode}
+                          </a>
                         </div>
 
                         {/* Mini stats */}

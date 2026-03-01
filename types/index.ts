@@ -1842,3 +1842,9 @@ export interface RSSNewsItem {
   featured: boolean
   source: string
 }
+
+export interface AssignAffiliatorDto {
+  revenueSharePercentage?: number
+  unlockThreshold?: number
+  customCode?: string  // ← tambahkan ini
+}
