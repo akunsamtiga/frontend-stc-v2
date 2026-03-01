@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { use, useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -12,7 +12,7 @@ import { api } from '@/lib/api'
 import { showError, showSuccess } from '@/lib/toast-manager'
 
 interface Props {
-  params: { code: string }
+  params: Promise<{ code: string }>
 }
 
 interface FormState {
@@ -43,9 +43,10 @@ const STRENGTH_COLOR = ['', '#ef4444', '#f59e0b', '#3b82f6', '#22c55e']
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function RefPage({ params }: Props) {
+  const { code } = use(params)  // ← React.use() untuk client component
   const router = useRouter()
   const { setAuth, isAuthenticated } = useAuthStore()
-  const affiliateCode = params.code.toUpperCase()
+  const affiliateCode = code.toUpperCase()
 
   const [form, setForm] = useState<FormState>({ email: '', password: '', referralCode: '' })
   const [errors, setErrors] = useState<FieldErrors>({})
