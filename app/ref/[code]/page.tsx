@@ -18,7 +18,6 @@ interface Props {
 interface FormState {
   email: string
   password: string
-  referralCode: string
 }
 
 interface FieldErrors {
@@ -48,7 +47,7 @@ export default function RefPage({ params }: Props) {
   const { setAuth, isAuthenticated } = useAuthStore()
   const affiliateCode = code.toUpperCase()
 
-  const [form, setForm] = useState<FormState>({ email: '', password: '', referralCode: '' })
+  const [form, setForm] = useState<FormState>({ email: '', password: '' })
   const [errors, setErrors] = useState<FieldErrors>({})
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -110,7 +109,7 @@ export default function RefPage({ params }: Props) {
       const res = await api.register(
         form.email.trim().toLowerCase(),
         form.password,
-        form.referralCode.trim() || undefined,
+        undefined,
         affiliateCode,
       )
       const { user, token } = res.data
@@ -309,26 +308,6 @@ export default function RefPage({ params }: Props) {
                   {errors.password}
                 </p>
               )}
-            </div>
-
-            {/* Referral code (opsional, dari teman) */}
-            <div className="space-y-2">
-              <label className="block text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-                Kode Referral Teman{' '}
-                <span className="normal-case font-normal text-slate-700">(opsional)</span>
-              </label>
-              <input
-                type="text"
-                name="referralCode"
-                value={form.referralCode}
-                onChange={handleChange}
-                placeholder="Contoh: REF123ABC"
-                disabled={isLoading}
-                className="w-full rounded-xl border border-white/[0.08] hover:border-white/[0.14] bg-[#131e30] px-4 py-3
-                  text-sm text-white placeholder-slate-600 outline-none transition-all duration-200
-                  focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50
-                  disabled:opacity-50 disabled:cursor-not-allowed"
-              />
             </div>
 
             {/* Affiliate code — locked */}
