@@ -255,7 +255,7 @@ const features = [
   },
   {
     icon: Shield,
-    title: 'Keamanan Maksimal',
+    title: 'Keamanan Tinggi',
     description: 'Enkripsi tingkat tinggi melindungi dana Anda',
     gradient: 'from-sky-500/20 to-cyan-500/20',
     color: 'text-sky-400',
@@ -1768,7 +1768,7 @@ export default function LandingPage() {
                         <div className="flex-1">
                           <h3 className="text-xl font-bold mb-2">Daftar & Verifikasi</h3>
                           <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                            Buat akun dalam 2 menit. Verifikasi identitas untuk keamanan maksimal dan mulai dengan akun demo gratis.
+                            Buat akun dalam 2 menit. Verifikasi identitas untuk keamanan tinggi dan mulai dengan akun demo gratis.
                           </p>
                           <div className="flex flex-wrap gap-2">
                             <span className="px-3 py-1 bg-violet-500/10 border border-violet-500/20 rounded-full text-xs text-violet-400">Registrasi cepat</span>
@@ -2083,7 +2083,7 @@ export default function LandingPage() {
     <div className="mt-12 text-center relative z-10">
       <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full">
         <span className="text-xs text-gray-400 font-light">
-          Seluruh transaksi Anda kini diproteksi maksimal dengan teknologi enkripsi SSL 256-bit
+          Seluruh transaksi Anda kini diproteksi tinggi dengan teknologi enkripsi SSL 256-bit
         </span>
       </div>
     </div>

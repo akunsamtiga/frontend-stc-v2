@@ -8,7 +8,7 @@ import { api } from '@/lib/api'
 import Navbar from '@/components/Navbar'
 import { Balance as BalanceType, AccountType, UserProfile } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { getStatusProfitBonus } from '@/lib/status-utils'
+import { getStatusProfitBonus, getStatusGradient } from '@/lib/status-utils'
 import {
   Wallet, ArrowDownToLine, ArrowUpFromLine, X, Receipt,
   CreditCard, Loader2, ChevronLeft, ChevronRight, Clock
@@ -516,9 +516,7 @@ export default function BalancePage() {
             {statusInfo && (
               <motion.div variants={scaleIn}
                 className={`flex items-center gap-2 px-4 py-3 rounded-xl text-white shadow-xl border border-white/30 ${
-                  statusInfo.current === 'standard' ? 'bg-gradient-to-r from-gray-400 to-gray-600' :
-                  statusInfo.current === 'gold' ? 'bg-gradient-to-r from-yellow-400 to-orange-600' :
-                  'bg-gradient-to-r from-purple-400 to-pink-600'
+                  `bg-gradient-to-r ${getStatusGradient(statusInfo.current)}`
                 }`}
                 whileHover={{ scale: 1.04, boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
                 <Image src={STATUS_BADGE_IMG[statusInfo.current] ?? '/std.png'} alt={statusInfo.current} width={44} height={44} className="w-10 h-10 object-contain drop-shadow-lg" />

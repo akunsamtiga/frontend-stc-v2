@@ -507,6 +507,8 @@ export interface AuthResponse {
 
 export interface UpdateProfileRequest {
   fullName?: string
+  // ✅ FIX: phoneNumber dikembalikan — nomor disimpan dengan phoneVerified: false.
+  // User tetap perlu verifikasi OTP via POST /user/verify-phone untuk verified status.
   phoneNumber?: string
   dateOfBirth?: string
   gender?: 'male' | 'female' | 'other'

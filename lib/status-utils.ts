@@ -13,27 +13,27 @@ export function getStatusLabel(status: UserStatus): string {
 
 export function getStatusColor(status: UserStatus): string {
   const colors = {
-    standard: 'gray',
+    standard: 'amber',
     gold: 'yellow',
-    vip: 'purple'
+    vip: 'slate'
   }
   return colors[status]
 }
 
 export function getStatusGradient(status: UserStatus): string {
   const gradients = {
-    standard: 'from-gray-400 to-gray-600',
-    gold: 'from-yellow-400 to-orange-600',
-    vip: 'from-purple-400 to-pink-600'
+    standard: 'from-amber-700 to-stone-600',
+    gold: 'from-yellow-400 to-amber-500',
+    vip: 'from-slate-400 to-slate-700'
   }
   return gradients[status]
 }
 
 export function getStatusBgClass(status: UserStatus): string {
   const classes = {
-    standard: 'bg-gray-100 text-gray-700 border-gray-200',
-    gold: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    vip: 'bg-purple-100 text-purple-700 border-purple-200'
+    standard: 'bg-amber-50 text-amber-900 border-amber-200',
+    gold: 'bg-yellow-50 text-yellow-900 border-yellow-300',
+    vip: 'bg-slate-50 text-slate-900 border-slate-300'
   }
   return classes[status]
 }
@@ -149,9 +149,9 @@ export function formatDepositRequirement(amount: number): string {
 
 export function getStatusProgressColor(status: UserStatus): string {
   const colors = {
-    standard: '#6B7280',
-    gold: '#F59E0B',
-    vip: '#8B5CF6'
+    standard: '#92400E', // amber-800  — matches progressBar from-amber-700
+    gold: '#F59E0B',     // amber-400  — matches progressBar from-yellow-300/to-amber-400
+    vip: '#64748B'       // slate-500  — matches progressBar from-slate-300/to-gray-400
   }
   return colors[status]
 }

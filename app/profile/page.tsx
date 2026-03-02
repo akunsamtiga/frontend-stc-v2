@@ -11,15 +11,17 @@ import {
   User, Mail, Shield, Calendar, Bell, Save, LogOut,
   CheckCircle2, Settings, Award, Crown, TrendingUp, Copy, Check,
   MapPin, CreditCard, FileText, Camera, Phone, Edit2,
-  ChevronRight, AlertCircle, Home, Building, Globe, Loader2, ShieldCheck,
+  ChevronRight, ChevronDown, AlertCircle, Home, Building, Globe, Loader2, ShieldCheck,
   UserCheck, Briefcase, X, Menu, Info, CheckSquare, Square,
   UserPlus2,
-  User2
+  User2,
+  Search
 } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
 import type { UserProfile, UserProfileInfo, UpdateProfileRequest, ChangePasswordRequest } from '@/types'
 import { STATUS_CONFIG, calculateProfileCompletion } from '@/types'
 import { getStatusGradient, formatStatusInfo, calculateStatusProgress, formatDepositRequirement } from '@/lib/status-utils'
+import { PROVINCES, CITIES } from '@/lib/indonesia-regions'
 import { auth } from '@/lib/firebase-auth'
 import { signInWithPhoneNumber, RecaptchaVerifier, ConfirmationResult } from 'firebase/auth'
 
@@ -215,22 +217,187 @@ const LoadingSkeleton = () => (
 const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 const validatePhone = (phone: string) => /^\+?[\d\s-()]{10,}$/.test(phone)
 
-const PhoneInput = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let phone = e.target.value.replace(/\D/g, '')
-    if (phone.startsWith('0')) phone = '+62' + phone.slice(1)
-    if (!phone.startsWith('+') && phone) phone = '+' + phone
-    onChange(phone)
+const COUNTRY_CODES = [
+  { code: '+62', iso: 'id', name: 'Indonesia' },
+  { code: '+60', iso: 'my', name: 'Malaysia' },
+  { code: '+65', iso: 'sg', name: 'Singapura' },
+  { code: '+63', iso: 'ph', name: 'Filipina' },
+  { code: '+66', iso: 'th', name: 'Thailand' },
+  { code: '+84', iso: 'vn', name: 'Vietnam' },
+  { code: '+855', iso: 'kh', name: 'Kamboja' },
+  { code: '+856', iso: 'la', name: 'Laos' },
+  { code: '+95', iso: 'mm', name: 'Myanmar' },
+  { code: '+673', iso: 'bn', name: 'Brunei' },
+  { code: '+61', iso: 'au', name: 'Australia' },
+  { code: '+64', iso: 'nz', name: 'Selandia Baru' },
+  { code: '+81', iso: 'jp', name: 'Jepang' },
+  { code: '+82', iso: 'kr', name: 'Korea Selatan' },
+  { code: '+86', iso: 'cn', name: 'China' },
+  { code: '+852', iso: 'hk', name: 'Hong Kong' },
+  { code: '+853', iso: 'mo', name: 'Makau' },
+  { code: '+886', iso: 'tw', name: 'Taiwan' },
+  { code: '+91', iso: 'in', name: 'India' },
+  { code: '+92', iso: 'pk', name: 'Pakistan' },
+  { code: '+880', iso: 'bd', name: 'Bangladesh' },
+  { code: '+94', iso: 'lk', name: 'Sri Lanka' },
+  { code: '+971', iso: 'ae', name: 'UAE' },
+  { code: '+966', iso: 'sa', name: 'Arab Saudi' },
+  { code: '+974', iso: 'qa', name: 'Qatar' },
+  { code: '+965', iso: 'kw', name: 'Kuwait' },
+  { code: '+968', iso: 'om', name: 'Oman' },
+  { code: '+973', iso: 'bh', name: 'Bahrain' },
+  { code: '+44', iso: 'gb', name: 'Inggris' },
+  { code: '+1', iso: 'us', name: 'Amerika Serikat' },
+  { code: '+49', iso: 'de', name: 'Jerman' },
+  { code: '+33', iso: 'fr', name: 'Prancis' },
+  { code: '+31', iso: 'nl', name: 'Belanda' },
+  { code: '+39', iso: 'it', name: 'Italia' },
+  { code: '+34', iso: 'es', name: 'Spanyol' },
+  { code: '+7', iso: 'ru', name: 'Rusia' },
+  { code: '+55', iso: 'br', name: 'Brasil' },
+  { code: '+27', iso: 'za', name: 'Afrika Selatan' },
+  { code: '+20', iso: 'eg', name: 'Mesir' },
+  { code: '+234', iso: 'ng', name: 'Nigeria' },
+]
+
+function parsePhoneValue(full: string): { dialCode: string; local: string } {
+  for (const c of COUNTRY_CODES) {
+    if (full.startsWith(c.code)) {
+      return { dialCode: c.code, local: full.slice(c.code.length).replace(/^0+/, '') }
+    }
   }
+  return { dialCode: '+62', local: full.replace(/^\+?62/, '').replace(/^0+/, '') }
+}
+
+const PhoneInput = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => {
+  const parsed = parsePhoneValue(value || '')
+  const [dialCode, setDialCode] = React.useState(parsed.dialCode)
+  const [localNumber, setLocalNumber] = React.useState(parsed.local)
+  const [dropdownOpen, setDropdownOpen] = React.useState(false)
+  const [search, setSearch] = React.useState('')
+  const dropdownRef = React.useRef<HTMLDivElement>(null)
+  const searchRef = React.useRef<HTMLInputElement>(null)
+
+  React.useEffect(() => {
+    const p = parsePhoneValue(value || '')
+    setDialCode(p.dialCode)
+    setLocalNumber(p.local)
+  }, [])
+
+  React.useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false)
+        setSearch('')
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  function handleDialSelect(code: string) {
+    setDialCode(code)
+    setDropdownOpen(false)
+    setSearch('')
+    onChange(code + localNumber)
+  }
+
+  function handleLocalChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.value.replace(/\D/g, '').replace(/^0+/, '')
+    setLocalNumber(raw)
+    onChange(dialCode + raw)
+  }
+
+  const filtered = COUNTRY_CODES.filter(c =>
+    search.trim() === '' ||
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.code.includes(search)
+  )
+
+  const selected = COUNTRY_CODES.find(c => c.code === dialCode) ?? COUNTRY_CODES[0]
+
   return (
-    <div className="relative">
-      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+    <div className="flex gap-2">
+      {/* Dial code picker */}
+      <div ref={dropdownRef} className="relative flex-shrink-0">
+        <button
+          type="button"
+          onClick={() => { setDropdownOpen(o => !o); setTimeout(() => searchRef.current?.focus(), 50) }}
+          className={`h-full flex items-center gap-1.5 px-3 py-3 bg-gray-100 border rounded-xl text-sm font-medium transition-all outline-none whitespace-nowrap
+            ${dropdownOpen ? 'border-sky-500 ring-2 ring-sky-500/20' : 'border-gray-300 hover:border-sky-400'}
+          `}
+        >
+          <img
+              src={`https://flagcdn.com/w20/${selected.iso}.png`}
+              alt={selected.name}
+              className="w-5 h-3.5 object-cover rounded-sm flex-shrink-0"
+            />
+          <span className="text-gray-700">{selected.code}</span>
+          <motion.div animate={{ rotate: dropdownOpen ? 180 : 0 }} transition={{ duration: 0.15 }}>
+            <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+          </motion.div>
+        </button>
+        <AnimatePresence>
+          {dropdownOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.98 }}
+              transition={{ duration: 0.12 }}
+              className="absolute z-50 top-full mt-1.5 left-0 w-64 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden"
+            >
+              <div className="p-2 border-b border-gray-100">
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                  <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                  <input
+                    ref={searchRef}
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="Cari negara..."
+                    className="flex-1 bg-transparent text-sm outline-none text-gray-700 placeholder-gray-400"
+                  />
+                  {search && (
+                    <button onClick={() => setSearch('')} className="text-gray-400 hover:text-gray-600">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="max-h-52 overflow-y-auto overscroll-contain">
+                {filtered.length === 0 ? (
+                  <div className="px-4 py-6 text-center text-sm text-gray-400">Tidak ditemukan</div>
+                ) : filtered.map(c => (
+                  <button
+                    key={c.code + c.name}
+                    type="button"
+                    onClick={() => handleDialSelect(c.code)}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:bg-sky-50
+                      ${c.code === dialCode ? 'bg-sky-50 text-sky-700 font-semibold' : 'text-gray-700'}
+                    `}
+                  >
+                    <img
+                      src={`https://flagcdn.com/w20/${c.iso}.png`}
+                      alt={c.name}
+                      className="w-5 h-3.5 object-cover rounded-sm flex-shrink-0"
+                    />
+                    <span className="flex-1 truncate">{c.name}</span>
+                    <span className="text-xs text-gray-400 flex-shrink-0">{c.code}</span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Local number input */}
       <input
         type="tel"
-        value={value}
-        onChange={handleChange}
-        className="w-full pl-10 pr-4 py-3 bg-gray-100 border border-gray-300 rounded-xl focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-colors text-sm"
-        placeholder="+62..."
+        inputMode="numeric"
+        value={localNumber}
+        onChange={handleLocalChange}
+        className="flex-1 min-w-0 px-3 py-3 bg-gray-100 border border-gray-300 rounded-xl focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition-colors text-sm"
+        placeholder="81234567890"
       />
     </div>
   )
@@ -352,6 +519,31 @@ export default function ProfilePage() {
     postalCode: '',
     country: 'Indonesia'
   })
+  const [provinceDropdownOpen, setProvinceDropdownOpen] = useState(false)
+  const [cityDropdownOpen, setCityDropdownOpen] = useState(false)
+  const [provinceSearch, setProvinceSearch] = useState('')
+  const [citySearch, setCitySearch] = useState('')
+  const provinceDropdownRef = useRef<HTMLDivElement>(null)
+  const cityDropdownRef = useRef<HTMLDivElement>(null)
+
+  const selectedProvinceObj = useMemo(() =>
+    PROVINCES.find(p => p.name === addressData.province) ?? null,
+    [addressData.province]
+  )
+  const filteredProvinces = useMemo(() =>
+    provinceSearch.trim()
+      ? PROVINCES.filter(p => p.name.toLowerCase().includes(provinceSearch.toLowerCase()))
+      : PROVINCES,
+    [provinceSearch]
+  )
+  const filteredCities = useMemo(() => {
+    if (!selectedProvinceObj) return []
+    const cities = CITIES.filter(c => c.provinceId === selectedProvinceObj.id)
+    return citySearch.trim()
+      ? cities.filter(c => c.name.toLowerCase().includes(citySearch.toLowerCase()))
+      : cities
+  }, [selectedProvinceObj, citySearch])
+
   const [identityData, setIdentityData] = useState({
     type: 'ktp' as 'ktp' | 'passport' | 'sim',
     number: '',
@@ -392,6 +584,21 @@ export default function ProfilePage() {
     }
     loadProfile()
   }, [user, router])
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (provinceDropdownRef.current && !provinceDropdownRef.current.contains(e.target as Node)) {
+        setProvinceDropdownOpen(false)
+        setProvinceSearch('')
+      }
+      if (cityDropdownRef.current && !cityDropdownRef.current.contains(e.target as Node)) {
+        setCityDropdownOpen(false)
+        setCitySearch('')
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const loadProfile = async () => {
     try {
@@ -679,9 +886,8 @@ export default function ProfilePage() {
   const handleUpdatePersonal = async () => {
     const isValid = validateForm({
       fullName: personalData.fullName,
-      phoneNumber: personalData.phoneNumber,
       dateOfBirth: personalData.dateOfBirth
-    }, ['fullName', 'phoneNumber', 'dateOfBirth'])
+    }, ['fullName', 'dateOfBirth'])
     if (!isValid) {
       toast.error('Please fix the errors before saving', {
         style: { background: '#ef4444', color: '#fff' }
@@ -692,6 +898,9 @@ export default function ProfilePage() {
     try {
       await api.updateProfile({
         fullName: personalData.fullName || undefined,
+        // ✅ FIX: sertakan phoneNumber agar tersimpan ke database.
+        // Nomor disimpan dengan phoneVerified: false — user tetap perlu
+        // verifikasi OTP via tombol "Ubah" untuk mendapat status verified.
         phoneNumber: personalData.phoneNumber || undefined,
         dateOfBirth: personalData.dateOfBirth || undefined,
         gender: personalData.gender || undefined,
@@ -1121,7 +1330,7 @@ export default function ProfilePage() {
 
                     <div className="flex items-end gap-3 -mt-8 mb-3">
                       <motion.div className="relative flex-shrink-0" whileHover={{ scale: 1.05 }}>
-                        <div className="w-16 h-16 rounded-2xl shadow-lg overflow-hidden border-2 border-white">
+                        <label className="block w-16 h-16 rounded-2xl shadow-lg overflow-hidden border-2 border-white cursor-pointer group">
                           {profileInfo?.avatar?.url ? (
                             <img
                               src={profileInfo.avatar.url}
@@ -1141,7 +1350,15 @@ export default function ProfilePage() {
                           >
                             {(user.email)[0].toUpperCase()}
                           </div>
-                        </div>
+                          {/* hover overlay */}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center">
+                            <Camera className="w-5 h-5 text-white drop-shadow" />
+                          </div>
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                            if (e.target.files?.[0]) handleUploadAvatar(e.target.files[0])
+                          }} />
+                        </label>
+                        {/* tombol kamera kecil tetap ada */}
                         <label className="absolute -bottom-1 -right-1 w-6 h-6 bg-sky-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-sky-600 transition-all shadow border-2 border-white group">
                           <Camera className="w-3 h-3 text-white group-hover:scale-110 transition-transform" />
                           <input type="file" accept="image/*" className="hidden" onChange={(e) => {
@@ -1167,18 +1384,18 @@ export default function ProfilePage() {
                       )}
                     </div>
                     <div className="flex items-start justify-between gap-2">
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                          <h2 className="text-base font-bold text-gray-900 leading-tight truncate">
+                          <h2 className="text-base font-bold text-gray-900 leading-tight truncate max-w-full">
                             {profileInfo?.personal?.fullName || user?.email}
                           </h2>
                           {profileInfo?.verification?.identityVerified && (
                             <ShieldCheck className="w-4 h-4 text-sky-500 flex-shrink-0" />
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 break-all">{user?.email}</p>
+                        <p className="text-xs text-gray-500 truncate max-w-full">{user?.email}</p>
                         {statusInfo && (
-                          <p className="text-xs text-emerald-600 font-medium mt-1">Bonus Profit: {statusInfo.profitBonus}</p>
+                          <p className="text-xs text-emerald-600 font-medium mt-1 truncate">Bonus Profit: {statusInfo.profitBonus}</p>
                         )}
                       </div>
                       {/* Mobile/tablet: status pojok kanan */}
@@ -1242,7 +1459,7 @@ export default function ProfilePage() {
                   variants={fadeInUp}
                 >
                   <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-sky-500" />
+                    <img src="/shield.png" alt="shield" className="w-6 h-6 object-contain" />
                     Status Verifikasi
                   </h3>
                   <div className="space-y-2">
@@ -1278,7 +1495,7 @@ export default function ProfilePage() {
                   variants={fadeInUp}
                 >
                   <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-                    <CreditCard className="w-4 h-4 text-sky-500" />
+                    <Image src="/dompet.png" alt="Saldo" width={24} height={24} className="w-6 h-6 object-contain" />
                     <h3 className="text-sm font-bold text-gray-900">Saldo Akun</h3>
                   </div>
                   <div className="grid grid-cols-2 divide-x divide-gray-100">
@@ -1286,33 +1503,35 @@ export default function ProfilePage() {
                       {
                         label: 'Saldo Riil',
                         value: `Rp ${(profile?.balances?.real ?? 0).toLocaleString('id-ID')}`,
-                        icon: CreditCard,
                         desc: 'Dana aktif trading',
                         color: 'text-emerald-600',
-                        bg: 'bg-emerald-50',
+                        gradient: 'from-emerald-50/80 via-white to-white',
+                        dot: 'bg-emerald-400',
                       },
                       {
                         label: 'Saldo Demo',
                         value: `Rp ${(profile?.balances?.demo ?? 0).toLocaleString('id-ID')}`,
-                        icon: TrendingUp,
                         desc: 'Akun latihan',
                         color: 'text-sky-600',
-                        bg: 'bg-sky-50',
+                        gradient: 'from-sky-50/80 via-white to-white',
+                        dot: 'bg-sky-400',
                       },
                     ].map((item, i) => (
                       <motion.div
                         key={item.label}
-                        className="p-4"
+                        className={`p-4 bg-gradient-to-br ${item.gradient} relative overflow-hidden`}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.4 + i * 0.1 }}
                       >
-                        <div className={`w-8 h-8 ${item.bg} rounded-lg flex items-center justify-center mb-2`}>
-                          <item.icon className={`w-4 h-4 ${item.color}`} />
+                        <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-[0.07] -translate-y-6 translate-x-6"
+                          style={{ background: i === 0 ? '#10b981' : '#0ea5e9' }} />
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className={`w-1.5 h-1.5 rounded-full ${item.dot}`} />
+                          <p className="text-xs text-gray-500">{item.label}</p>
                         </div>
-                        <p className="text-xs text-gray-500 mb-0.5">{item.label}</p>
-                        <p className={`text-lg font-bold ${item.color} tabular-nums`}>{item.value}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{item.desc}</p>
+                        <p className={`text-lg font-bold ${item.color} tabular-nums truncate`}>{item.value}</p>
+                        <p className="text-xs text-gray-400 mt-0.5 truncate">{item.desc}</p>
                       </motion.div>
                     ))}
                   </div>
@@ -1324,7 +1543,7 @@ export default function ProfilePage() {
                   variants={fadeInUp}
                 >
                   <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-                    <Briefcase className="w-4 h-4 text-violet-500" />
+                    <img src="/stats.png" alt="stats" className="w-6 h-6 object-contain" />
                     <h3 className="text-sm font-bold text-gray-900">Statistik Trading</h3>
                   </div>
                   <div className="grid grid-cols-3 divide-x divide-gray-100">
@@ -1402,10 +1621,10 @@ export default function ProfilePage() {
                         icon: Globe,
                       },
                     ].map((row) => (
-                      <div key={row.label} className="flex items-center gap-3 px-4 py-3">
+                      <div key={row.label} className="flex items-center gap-3 px-4 py-3 overflow-hidden">
                         <row.icon className="w-4 h-4 text-gray-400 flex-shrink-0" />
                         <span className="text-xs text-gray-500 w-36 flex-shrink-0">{row.label}</span>
-                        <span className="text-sm font-medium text-gray-800 truncate">{row.value}</span>
+                        <span className="text-sm font-medium text-gray-800 truncate min-w-0">{row.value}</span>
                       </div>
                     ))}
                   </div>
@@ -1765,9 +1984,10 @@ export default function ProfilePage() {
                 initial="hidden"
                 animate="visible"
               >
+                {/* Street Address */}
                 <motion.div variants={fadeInUp}>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Street Address <span className="text-red-500">*</span>
+                    Alamat Jalan <span className="text-red-500">*</span>
                   </label>
                   {editingAddress ? (
                     <>
@@ -1780,7 +2000,7 @@ export default function ProfilePage() {
                             ? 'border-red-300 focus:border-red-500'
                             : 'border-gray-300 focus:border-emerald-500'
                           }`}
-                        placeholder="Jl. Merdeka No. 123"
+                        placeholder="Jl. Merdeka No. 123, RT 01/RW 02"
                       />
                       {formErrors.street && touchedFields.street && (
                         <motion.p
@@ -1799,86 +2019,208 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </motion.div>
+
+                {/* Provinsi & Kota row */}
                 <motion.div className="grid grid-cols-1 sm:grid-cols-2 gap-3" variants={fadeInUp}>
+
+                  {/* Provinsi Dropdown */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      City <span className="text-red-500">*</span>
+                      Provinsi <span className="text-red-500">*</span>
                     </label>
                     {editingAddress ? (
-                      <>
-                        <input
-                          type="text"
-                          value={addressData.city}
-                          onChange={(e) => setAddressData({ ...addressData, city: e.target.value })}
-                          onBlur={(e) => handleBlur('city', e.target.value)}
-                          className={`w-full px-3 py-3 bg-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors text-sm ${formErrors.city && touchedFields.city
-                              ? 'border-red-300 focus:border-red-500'
-                              : 'border-gray-300 focus:border-emerald-500'
-                            }`}
-                          placeholder="Jakarta"
-                        />
-                        {formErrors.city && touchedFields.city && (
-                          <motion.p
-                            className="mt-1 text-sm text-red-600 flex items-center gap-1"
-                            initial={{ opacity: 0, y: -5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                          >
-                            <AlertCircle className="w-4 h-4" />
-                            {formErrors.city}
-                          </motion.p>
-                        )}
-                      </>
-                    ) : (
-                      <div className="px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm">
-                        {addressData.city || '-'}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Province <span className="text-red-500">*</span>
-                    </label>
-                    {editingAddress ? (
-                      <>
-                        <input
-                          type="text"
-                          value={addressData.province}
-                          onChange={(e) => setAddressData({ ...addressData, province: e.target.value })}
-                          onBlur={(e) => handleBlur('province', e.target.value)}
-                          className={`w-full px-3 py-3 bg-gray-100 border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors text-sm ${formErrors.province && touchedFields.province
-                              ? 'border-red-300 focus:border-red-500'
-                              : 'border-gray-300 focus:border-emerald-500'
-                            }`}
-                          placeholder="DKI Jakarta"
-                        />
+                      <div ref={provinceDropdownRef} className="relative">
+                        <button
+                          type="button"
+                          onClick={() => { setProvinceDropdownOpen(o => !o); setProvinceSearch('') }}
+                          disabled={savingSection === 'address'}
+                          className={`w-full flex items-center justify-between gap-2 px-3 py-3 bg-gray-100 border rounded-xl text-sm text-left transition-all outline-none
+                            ${provinceDropdownOpen ? 'border-emerald-500 ring-2 ring-emerald-500/20' : ''}
+                            ${formErrors.province && touchedFields.province ? 'border-red-300' : 'border-gray-300 hover:border-emerald-400'}
+                          `}
+                        >
+                          <span className={addressData.province ? 'text-gray-900 font-medium' : 'text-gray-400'}>
+                            {addressData.province || 'Pilih provinsi...'}
+                          </span>
+                          <motion.div animate={{ rotate: provinceDropdownOpen ? 180 : 0 }} transition={{ duration: 0.15 }}>
+                            <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          </motion.div>
+                        </button>
+                        <AnimatePresence>
+                          {provinceDropdownOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                              transition={{ duration: 0.12 }}
+                              className="absolute z-50 top-full mt-1.5 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden"
+                            >
+                              <div className="p-2 border-b border-gray-100">
+                                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                                  <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                                  <input
+                                    autoFocus
+                                    value={provinceSearch}
+                                    onChange={e => setProvinceSearch(e.target.value)}
+                                    placeholder="Cari provinsi..."
+                                    className="flex-1 bg-transparent text-sm outline-none text-gray-700 placeholder-gray-400"
+                                  />
+                                  {provinceSearch && (
+                                    <button onClick={() => setProvinceSearch('')} className="text-gray-400 hover:text-gray-600">
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="max-h-52 overflow-y-auto overscroll-contain">
+                                {filteredProvinces.length === 0 ? (
+                                  <div className="px-4 py-6 text-center text-sm text-gray-400">Tidak ditemukan</div>
+                                ) : filteredProvinces.map(p => (
+                                  <button
+                                    key={p.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setAddressData(prev => ({ ...prev, province: p.name, city: '' }))
+                                      setProvinceDropdownOpen(false)
+                                      setProvinceSearch('')
+                                      handleBlur('province', p.name)
+                                    }}
+                                    className={`w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-emerald-50
+                                      ${p.name === addressData.province ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-700'}
+                                    `}
+                                  >
+                                    {p.name}
+                                  </button>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                         {formErrors.province && touchedFields.province && (
                           <motion.p
                             className="mt-1 text-sm text-red-600 flex items-center gap-1"
-                            initial={{ opacity: 0, y: -5 }}
-                            animate={{ opacity: 1, y: 0 }}
+                            initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
                           >
-                            <AlertCircle className="w-4 h-4" />
-                            {formErrors.province}
+                            <AlertCircle className="w-4 h-4" />{formErrors.province}
                           </motion.p>
                         )}
-                      </>
+                      </div>
                     ) : (
                       <div className="px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm">
                         {addressData.province || '-'}
                       </div>
                     )}
                   </div>
+
+                  {/* Kota / Kabupaten Dropdown */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Kota / Kabupaten <span className="text-red-500">*</span>
+                    </label>
+                    {editingAddress ? (
+                      <div ref={cityDropdownRef} className="relative">
+                        <button
+                          type="button"
+                          onClick={() => { if (selectedProvinceObj) { setCityDropdownOpen(o => !o); setCitySearch('') } }}
+                          disabled={savingSection === 'address' || !selectedProvinceObj}
+                          className={`w-full flex items-center justify-between gap-2 px-3 py-3 bg-gray-100 border rounded-xl text-sm text-left transition-all outline-none
+                            ${!selectedProvinceObj ? 'opacity-50 cursor-not-allowed' : ''}
+                            ${cityDropdownOpen ? 'border-emerald-500 ring-2 ring-emerald-500/20' : ''}
+                            ${formErrors.city && touchedFields.city ? 'border-red-300' : 'border-gray-300 hover:border-emerald-400'}
+                          `}
+                        >
+                          <span className={addressData.city ? 'text-gray-900 font-medium' : 'text-gray-400'}>
+                            {addressData.city || (selectedProvinceObj ? 'Pilih kota/kabupaten...' : 'Pilih provinsi dulu')}
+                          </span>
+                          <motion.div animate={{ rotate: cityDropdownOpen ? 180 : 0 }} transition={{ duration: 0.15 }}>
+                            <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          </motion.div>
+                        </button>
+                        <AnimatePresence>
+                          {cityDropdownOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                              transition={{ duration: 0.12 }}
+                              className="absolute z-50 top-full mt-1.5 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden"
+                            >
+                              <div className="p-2 border-b border-gray-100">
+                                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                                  <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                                  <input
+                                    autoFocus
+                                    value={citySearch}
+                                    onChange={e => setCitySearch(e.target.value)}
+                                    placeholder="Cari kota/kabupaten..."
+                                    className="flex-1 bg-transparent text-sm outline-none text-gray-700 placeholder-gray-400"
+                                  />
+                                  {citySearch && (
+                                    <button onClick={() => setCitySearch('')} className="text-gray-400 hover:text-gray-600">
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="max-h-52 overflow-y-auto overscroll-contain">
+                                {filteredCities.length === 0 ? (
+                                  <div className="px-4 py-6 text-center text-sm text-gray-400">Tidak ditemukan</div>
+                                ) : filteredCities.map(c => (
+                                  <button
+                                    key={c.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setAddressData(prev => ({ ...prev, city: c.name }))
+                                      setCityDropdownOpen(false)
+                                      setCitySearch('')
+                                      handleBlur('city', c.name)
+                                    }}
+                                    className={`w-full flex items-center justify-between gap-2 px-4 py-2.5 text-left text-sm transition-colors hover:bg-emerald-50
+                                      ${c.name === addressData.city ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-700'}
+                                    `}
+                                  >
+                                    <span className="truncate">{c.name}</span>
+                                    <span className={`flex-shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium
+                                      ${c.type === 'kota' ? 'bg-sky-100 text-sky-600' : 'bg-amber-100 text-amber-700'}
+                                    `}>
+                                      {c.type === 'kota' ? 'Kota' : 'Kab.'}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                        {formErrors.city && touchedFields.city && (
+                          <motion.p
+                            className="mt-1 text-sm text-red-600 flex items-center gap-1"
+                            initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
+                          >
+                            <AlertCircle className="w-4 h-4" />{formErrors.city}
+                          </motion.p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm">
+                        {addressData.city || '-'}
+                      </div>
+                    )}
+                  </div>
                 </motion.div>
+
+                {/* Kode Pos & Negara */}
                 <motion.div className="grid grid-cols-1 sm:grid-cols-2 gap-3" variants={fadeInUp}>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Postal Code</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Kode Pos</label>
                     {editingAddress ? (
                       <input
                         type="text"
+                        inputMode="numeric"
                         value={addressData.postalCode}
-                        onChange={(e) => setAddressData({ ...addressData, postalCode: e.target.value })}
+                        onChange={(e) => setAddressData({ ...addressData, postalCode: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                         className="w-full px-3 py-3 bg-gray-100 border border-gray-300 rounded-xl focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors text-sm"
-                        placeholder="12345"
+                        placeholder="60111"
+                        maxLength={10}
                       />
                     ) : (
                       <div className="px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm">
@@ -1887,20 +2229,10 @@ export default function ProfilePage() {
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Country</label>
-                    {editingAddress ? (
-                      <input
-                        type="text"
-                        value={addressData.country}
-                        onChange={(e) => setAddressData({ ...addressData, country: e.target.value })}
-                        className="w-full px-3 py-3 bg-gray-100 border border-gray-300 rounded-xl focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors text-sm"
-                        placeholder="Indonesia"
-                      />
-                    ) : (
-                      <div className="px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm">
-                        {addressData.country || '-'}
-                      </div>
-                    )}
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Negara</label>
+                    <div className="px-3 py-3 bg-gray-100 rounded-xl text-gray-900 font-medium border border-gray-200 text-sm flex items-center gap-2">
+                      <span>🇮🇩</span> Indonesia
+                    </div>
                   </div>
                 </motion.div>
               </motion.div>
@@ -2513,9 +2845,9 @@ export default function ProfilePage() {
                           className="w-10 h-10 object-contain drop-shadow-lg"
                         />
                       </motion.div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-xs font-semibold uppercase tracking-widest text-white/60 mb-1">Status Keanggotaan</p>
-                        <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1">
+                        <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none mb-1 truncate">
                           {STATUS_CONFIG[statusInfo.current].label}
                         </h2>
                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border backdrop-blur-sm ${theme.badge}`}>
@@ -2526,14 +2858,14 @@ export default function ProfilePage() {
 
 
                     <div className="flex items-center gap-4 sm:gap-6 pt-4 sm:pt-0 border-t sm:border-t-0 border-white/10">
-                      <div className="text-center">
+                      <div className="text-center min-w-0">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-white/50 mb-0.5">Total Deposit</p>
-                        <p className="text-base font-bold text-white leading-tight">{formatDepositRequirement(statusInfo.totalDeposit)}</p>
+                        <p className="text-base font-bold text-white leading-tight truncate">{formatDepositRequirement(statusInfo.totalDeposit)}</p>
                       </div>
                       <div className="w-px h-8 bg-white/15 hidden sm:block" />
-                      <div className="text-center">
+                      <div className="text-center min-w-0">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-white/50 mb-0.5">Bonus Profit</p>
-                        <p className="text-base font-bold text-white leading-tight">+{String(statusInfo.profitBonus).replace(/[^0-9.]/g, '')}%</p>
+                        <p className="text-base font-bold text-white leading-tight truncate">+{String(statusInfo.profitBonus).replace(/[^0-9.]/g, '')}%</p>
                       </div>
                     </div>
                   </div>
@@ -2558,7 +2890,7 @@ export default function ProfilePage() {
                           transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }}
                         />
                       </div>
-                      <p className="text-[11px] text-white/50 mt-1.5">
+                      <p className="text-[11px] text-white/50 mt-1.5 truncate">
                         Butuh {formatDepositRequirement(progress.depositNeeded ?? 0)} lagi untuk naik tier
                       </p>
                     </div>
@@ -2691,10 +3023,10 @@ export default function ProfilePage() {
                               className={`w-7 h-7 object-contain ${!isUnlocked ? 'opacity-50 grayscale' : ''}`}
                             />
                           </div>
-                          <p className={`text-sm font-black mb-0.5 ${isCurrent ? cardTheme.cardAccentText : isUnlocked ? cardTheme.cardAccentText : 'text-gray-400'}`}>
+                          <p className={`text-sm font-black mb-0.5 truncate ${isCurrent ? cardTheme.cardAccentText : isUnlocked ? cardTheme.cardAccentText : 'text-gray-400'}`}>
                             {config.label}
                           </p>
-                          <p className={`text-xs font-semibold mb-3 ${isCurrent ? cardTheme.cardSubText : isUnlocked ? cardTheme.cardSubText : 'text-gray-300'}`}>
+                          <p className={`text-xs font-semibold mb-3 truncate ${isCurrent ? cardTheme.cardSubText : isUnlocked ? cardTheme.cardSubText : 'text-gray-300'}`}>
                             {config.profitBonus > 0 ? `+${config.profitBonus}% profit bonus` : 'Tanpa bonus'}
                           </p>
 
@@ -2720,9 +3052,9 @@ export default function ProfilePage() {
                           </ul>
 
 
-                          <div className={`mt-3 pt-3 border-t border-gray-100 flex items-center justify-between`}>
-                            <span className="text-[10px] text-gray-400">Min. Deposit</span>
-                            <span className={`text-[11px] font-bold ${isCurrent ? cardTheme.cardAccentText : isUnlocked ? cardTheme.cardSubText : 'text-gray-400'}`}>
+                          <div className={`mt-3 pt-3 border-t border-gray-100 flex items-center justify-between gap-2`}>
+                            <span className="text-[10px] text-gray-400 flex-shrink-0">Min. Deposit</span>
+                            <span className={`text-[11px] font-bold truncate ${isCurrent ? cardTheme.cardAccentText : isUnlocked ? cardTheme.cardSubText : 'text-gray-400'}`}>
                               {status === 'standard' ? 'Gratis' : formatDepositRequirement(config.minDeposit)}
                             </span>
                           </div>
