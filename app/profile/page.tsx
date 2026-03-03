@@ -501,6 +501,8 @@ export default function ProfilePage() {
   const [ktpBackFile, setKtpBackFile] = useState<File | null>(null)
   const [ktpFrontPreview, setKtpFrontPreview] = useState<string | null>(null)
   const [ktpBackPreview, setKtpBackPreview] = useState<string | null>(null)
+  const [selfieFile, setSelfieFile] = useState<File | null>(null)
+  const [selfiePreview, setSelfiePreview] = useState<string | null>(null)
   const [editingPersonal, setEditingPersonal] = useState(false)
   const [editingAddress, setEditingAddress] = useState(false)
   const [editingIdentity, setEditingIdentity] = useState(false)
@@ -519,12 +521,10 @@ export default function ProfilePage() {
     postalCode: '',
     country: 'Indonesia'
   })
-  const [provinceDropdownOpen, setProvinceDropdownOpen] = useState(false)
-  const [cityDropdownOpen, setCityDropdownOpen] = useState(false)
+  const [provinceModalOpen, setProvinceModalOpen] = useState(false)
+  const [cityModalOpen, setCityModalOpen] = useState(false)
   const [provinceSearch, setProvinceSearch] = useState('')
   const [citySearch, setCitySearch] = useState('')
-  const provinceDropdownRef = useRef<HTMLDivElement>(null)
-  const cityDropdownRef = useRef<HTMLDivElement>(null)
 
   const selectedProvinceObj = useMemo(() =>
     PROVINCES.find(p => p.name === addressData.province) ?? null,
@@ -585,20 +585,7 @@ export default function ProfilePage() {
     loadProfile()
   }, [user, router])
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (provinceDropdownRef.current && !provinceDropdownRef.current.contains(e.target as Node)) {
-        setProvinceDropdownOpen(false)
-        setProvinceSearch('')
-      }
-      if (cityDropdownRef.current && !cityDropdownRef.current.contains(e.target as Node)) {
-        setCityDropdownOpen(false)
-        setCitySearch('')
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+
 
   const loadProfile = async () => {
     try {
@@ -884,6 +871,8 @@ export default function ProfilePage() {
   }
 
   const handleUpdatePersonal = async () => {
+    // ✅ FIX: phoneNumber dihapus dari validasi & payload updateProfile.
+    // Phone hanya bisa diubah lewat OTP flow (tombol "Ubah" di field nomor telepon).
     const isValid = validateForm({
       fullName: personalData.fullName,
       dateOfBirth: personalData.dateOfBirth
@@ -898,10 +887,7 @@ export default function ProfilePage() {
     try {
       await api.updateProfile({
         fullName: personalData.fullName || undefined,
-        // ✅ FIX: sertakan phoneNumber agar tersimpan ke database.
-        // Nomor disimpan dengan phoneVerified: false — user tetap perlu
-        // verifikasi OTP via tombol "Ubah" untuk mendapat status verified.
-        phoneNumber: personalData.phoneNumber || undefined,
+        // phoneNumber intentionally excluded — use OTP verify-phone flow
         dateOfBirth: personalData.dateOfBirth || undefined,
         gender: personalData.gender || undefined,
         nationality: personalData.nationality || undefined
@@ -1918,12 +1904,12 @@ export default function ProfilePage() {
           )}
           {activeTab === 'address' && (
             <motion.div
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden profile-card"
+              className="bg-white rounded-xl border border-gray-200 profile-card"
               initial="hidden"
               animate="visible"
               variants={scaleIn}
             >
-              <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-white">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-white rounded-t-xl">
                 <div>
                   <h3 className="text-base font-bold text-gray-900 mb-1">Address Information</h3>
                   <p className="text-xs text-gray-500">Your residential address</p>
@@ -2023,84 +2009,28 @@ export default function ProfilePage() {
                 {/* Provinsi & Kota row */}
                 <motion.div className="grid grid-cols-1 sm:grid-cols-2 gap-3" variants={fadeInUp}>
 
-                  {/* Provinsi Dropdown */}
+                  {/* Provinsi — trigger modal */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Provinsi <span className="text-red-500">*</span>
                     </label>
                     {editingAddress ? (
-                      <div ref={provinceDropdownRef} className="relative">
+                      <div>
                         <button
                           type="button"
-                          onClick={() => { setProvinceDropdownOpen(o => !o); setProvinceSearch('') }}
+                          onClick={() => { setProvinceModalOpen(true); setProvinceSearch('') }}
                           disabled={savingSection === 'address'}
                           className={`w-full flex items-center justify-between gap-2 px-3 py-3 bg-gray-100 border rounded-xl text-sm text-left transition-all outline-none
-                            ${provinceDropdownOpen ? 'border-emerald-500 ring-2 ring-emerald-500/20' : ''}
                             ${formErrors.province && touchedFields.province ? 'border-red-300' : 'border-gray-300 hover:border-emerald-400'}
                           `}
                         >
                           <span className={addressData.province ? 'text-gray-900 font-medium' : 'text-gray-400'}>
                             {addressData.province || 'Pilih provinsi...'}
                           </span>
-                          <motion.div animate={{ rotate: provinceDropdownOpen ? 180 : 0 }} transition={{ duration: 0.15 }}>
-                            <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                          </motion.div>
+                          <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
                         </button>
-                        <AnimatePresence>
-                          {provinceDropdownOpen && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -6, scale: 0.98 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                              transition={{ duration: 0.12 }}
-                              className="absolute z-50 top-full mt-1.5 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden"
-                            >
-                              <div className="p-2 border-b border-gray-100">
-                                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                                  <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                                  <input
-                                    autoFocus
-                                    value={provinceSearch}
-                                    onChange={e => setProvinceSearch(e.target.value)}
-                                    placeholder="Cari provinsi..."
-                                    className="flex-1 bg-transparent text-sm outline-none text-gray-700 placeholder-gray-400"
-                                  />
-                                  {provinceSearch && (
-                                    <button onClick={() => setProvinceSearch('')} className="text-gray-400 hover:text-gray-600">
-                                      <X className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="max-h-52 overflow-y-auto overscroll-contain">
-                                {filteredProvinces.length === 0 ? (
-                                  <div className="px-4 py-6 text-center text-sm text-gray-400">Tidak ditemukan</div>
-                                ) : filteredProvinces.map(p => (
-                                  <button
-                                    key={p.id}
-                                    type="button"
-                                    onClick={() => {
-                                      setAddressData(prev => ({ ...prev, province: p.name, city: '' }))
-                                      setProvinceDropdownOpen(false)
-                                      setProvinceSearch('')
-                                      handleBlur('province', p.name)
-                                    }}
-                                    className={`w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-emerald-50
-                                      ${p.name === addressData.province ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-700'}
-                                    `}
-                                  >
-                                    {p.name}
-                                  </button>
-                                ))}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
                         {formErrors.province && touchedFields.province && (
-                          <motion.p
-                            className="mt-1 text-sm text-red-600 flex items-center gap-1"
-                            initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
-                          >
+                          <motion.p className="mt-1 text-sm text-red-600 flex items-center gap-1" initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}>
                             <AlertCircle className="w-4 h-4" />{formErrors.province}
                           </motion.p>
                         )}
@@ -2112,90 +2042,29 @@ export default function ProfilePage() {
                     )}
                   </div>
 
-                  {/* Kota / Kabupaten Dropdown */}
+                  {/* Kota — trigger modal */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Kota / Kabupaten <span className="text-red-500">*</span>
                     </label>
                     {editingAddress ? (
-                      <div ref={cityDropdownRef} className="relative">
+                      <div>
                         <button
                           type="button"
-                          onClick={() => { if (selectedProvinceObj) { setCityDropdownOpen(o => !o); setCitySearch('') } }}
+                          onClick={() => { if (selectedProvinceObj) { setCityModalOpen(true); setCitySearch('') } }}
                           disabled={savingSection === 'address' || !selectedProvinceObj}
                           className={`w-full flex items-center justify-between gap-2 px-3 py-3 bg-gray-100 border rounded-xl text-sm text-left transition-all outline-none
                             ${!selectedProvinceObj ? 'opacity-50 cursor-not-allowed' : ''}
-                            ${cityDropdownOpen ? 'border-emerald-500 ring-2 ring-emerald-500/20' : ''}
                             ${formErrors.city && touchedFields.city ? 'border-red-300' : 'border-gray-300 hover:border-emerald-400'}
                           `}
                         >
                           <span className={addressData.city ? 'text-gray-900 font-medium' : 'text-gray-400'}>
                             {addressData.city || (selectedProvinceObj ? 'Pilih kota/kabupaten...' : 'Pilih provinsi dulu')}
                           </span>
-                          <motion.div animate={{ rotate: cityDropdownOpen ? 180 : 0 }} transition={{ duration: 0.15 }}>
-                            <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                          </motion.div>
+                          <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
                         </button>
-                        <AnimatePresence>
-                          {cityDropdownOpen && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -6, scale: 0.98 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                              transition={{ duration: 0.12 }}
-                              className="absolute z-50 top-full mt-1.5 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden"
-                            >
-                              <div className="p-2 border-b border-gray-100">
-                                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                                  <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                                  <input
-                                    autoFocus
-                                    value={citySearch}
-                                    onChange={e => setCitySearch(e.target.value)}
-                                    placeholder="Cari kota/kabupaten..."
-                                    className="flex-1 bg-transparent text-sm outline-none text-gray-700 placeholder-gray-400"
-                                  />
-                                  {citySearch && (
-                                    <button onClick={() => setCitySearch('')} className="text-gray-400 hover:text-gray-600">
-                                      <X className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="max-h-52 overflow-y-auto overscroll-contain">
-                                {filteredCities.length === 0 ? (
-                                  <div className="px-4 py-6 text-center text-sm text-gray-400">Tidak ditemukan</div>
-                                ) : filteredCities.map(c => (
-                                  <button
-                                    key={c.id}
-                                    type="button"
-                                    onClick={() => {
-                                      setAddressData(prev => ({ ...prev, city: c.name }))
-                                      setCityDropdownOpen(false)
-                                      setCitySearch('')
-                                      handleBlur('city', c.name)
-                                    }}
-                                    className={`w-full flex items-center justify-between gap-2 px-4 py-2.5 text-left text-sm transition-colors hover:bg-emerald-50
-                                      ${c.name === addressData.city ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-700'}
-                                    `}
-                                  >
-                                    <span className="truncate">{c.name}</span>
-                                    <span className={`flex-shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium
-                                      ${c.type === 'kota' ? 'bg-sky-100 text-sky-600' : 'bg-amber-100 text-amber-700'}
-                                    `}>
-                                      {c.type === 'kota' ? 'Kota' : 'Kab.'}
-                                    </span>
-                                  </button>
-                                ))}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
                         {formErrors.city && touchedFields.city && (
-                          <motion.p
-                            className="mt-1 text-sm text-red-600 flex items-center gap-1"
-                            initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
-                          >
+                          <motion.p className="mt-1 text-sm text-red-600 flex items-center gap-1" initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}>
                             <AlertCircle className="w-4 h-4" />{formErrors.city}
                           </motion.p>
                         )}
@@ -2279,6 +2148,8 @@ export default function ProfilePage() {
                           setKtpBackFile(null)
                           setKtpFrontPreview(null)
                           setKtpBackPreview(null)
+                          setSelfieFile(null)
+                          setSelfiePreview(null)
                           loadProfile()
                         }}
                         disabled={updating}
@@ -2289,13 +2160,25 @@ export default function ProfilePage() {
                         Cancel
                       </motion.button>
                       <motion.button
-                        onClick={() => {
+                        onClick={async () => {
+                          // Upload semua sekaligus saat Done diklik
+                          let success = true
                           if (identityData.number !== profileInfo?.identity?.number) {
                             handleUpdateIdentity()
                           }
-                          setEditingIdentity(false)
+                          if (ktpFrontFile) {
+                            success = await uploadKTP(ktpFrontFile, ktpBackFile)
+                          }
+                          if (success && selfieFile) {
+                            success = await uploadSelfie(selfieFile)
+                          }
+                          if (success) {
+                            setEditingIdentity(false)
+                            setSelfieFile(null)
+                            setSelfiePreview(null)
+                          }
                         }}
-                        disabled={updating || (!ktpFrontFile && !profileInfo?.identity?.photoFront)}
+                        disabled={updating || (!ktpFrontFile && !selfieFile && !profileInfo?.identity?.photoFront && identityData.number === profileInfo?.identity?.number)}
                         className="flex items-center gap-1.5 px-3 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm text-xs font-medium"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
@@ -2305,7 +2188,7 @@ export default function ProfilePage() {
                         ) : (
                           <Save className="w-3.5 h-3.5" />
                         )}
-                        <span>Done</span>
+                        <span>{updating ? 'Uploading...' : 'Done'}</span>
                       </motion.button>
                     </motion.div>
                   )}
@@ -2468,32 +2351,16 @@ export default function ProfilePage() {
                     </div>
                   </div>
                   {editingIdentity && (ktpFrontFile || ktpBackFile) && (
-                    <motion.button
-                      onClick={async () => {
-                        if (ktpFrontFile) {
-                          const success = await uploadKTP(ktpFrontFile, ktpBackFile)
-                          if (success) {
-                            setEditingIdentity(false)
-                          }
-                        }
-                      }}
-                      disabled={updating || !ktpFrontFile}
-                      className="w-full py-2.5 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm font-medium shadow-sm"
-                      initial={{ opacity: 0, y: 10 }}
+                    <motion.div
+                      className="flex items-center gap-2 px-3 py-2.5 bg-violet-50 border border-violet-200 rounded-lg"
+                      initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
                     >
-                      {updating ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          <Camera className="w-4 h-4" />
-                          Upload {ktpBackFile ? 'Both Photos' : 'Front Photo'}
-                        </>
-                      )}
-                    </motion.button>
+                      <Camera className="w-4 h-4 text-violet-500 flex-shrink-0" />
+                      <p className="text-xs text-violet-700 font-medium">
+                        {ktpFrontFile && ktpBackFile ? 'Foto depan & belakang siap diupload' : ktpFrontFile ? 'Foto depan siap diupload' : 'Foto belakang siap diupload'} — klik <strong>Done</strong> untuk menyimpan
+                      </p>
+                    </motion.div>
                   )}
                 </motion.div>
                 <motion.div variants={fadeInUp} className="space-y-3 pt-4 border-t border-gray-100">
@@ -2518,32 +2385,66 @@ export default function ProfilePage() {
                         />
                       </div>
                     ) : editingIdentity ? (
-                      <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-violet-400 hover:bg-gray-50 transition-colors bg-gray-100 max-w-[200px]">
-                        {profileInfo?.selfie ? (
-                          <>
-                            <CheckCircle2 className="w-10 h-10 text-emerald-500 mb-2" />
-                            <span className="text-xs text-emerald-600 font-medium text-center px-4">Selfie already uploaded</span>
-                            <span className="text-[10px] text-gray-400 mt-1">Click to change</span>
-                          </>
+                      <div className="space-y-2 max-w-[200px]">
+                        {/* Preview selfie kalau sudah dipilih */}
+                        {selfiePreview ? (
+                          <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-violet-400">
+                            <img src={selfiePreview} alt="Selfie preview" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/30 flex items-end justify-center pb-2">
+                              <span className="text-[10px] text-white font-medium bg-black/50 px-2 py-0.5 rounded-full">Preview</span>
+                            </div>
+                          </div>
+                        ) : profileInfo?.selfie && !selfieFile ? (
+                          <div className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
+                            <img src={profileInfo.selfie.url} alt="Selfie" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/20 flex items-end justify-center pb-2">
+                              <span className="text-[10px] text-white font-medium bg-black/50 px-2 py-0.5 rounded-full">Sudah ada</span>
+                            </div>
+                          </div>
                         ) : (
-                          <>
-                            <UserCheck className="w-10 h-10 text-gray-400 mb-2" />
-                            <span className="text-xs text-gray-600 font-medium">Tap to upload selfie</span>
-                            <span className="text-[10px] text-gray-400 mt-0.5">Max 1MB</span>
-                          </>
+                          <div className="flex flex-col items-center justify-center aspect-square border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 text-gray-400">
+                            <UserCheck className="w-10 h-10 mb-2 opacity-50" />
+                            <span className="text-xs text-gray-500">Belum ada selfie</span>
+                          </div>
                         )}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={async (e) => {
-                            if (e.target.files?.[0]) {
-                              await uploadSelfie(e.target.files[0])
-                            }
-                          }}
-                          disabled={updating}
-                        />
-                      </label>
+                        {/* Tombol pilih file */}
+                        <label className="flex items-center justify-center gap-1.5 w-full py-2 border border-violet-300 text-violet-700 rounded-lg cursor-pointer hover:bg-violet-50 transition-colors text-xs font-medium">
+                          <Camera className="w-3.5 h-3.5" />
+                          {selfiePreview ? 'Ganti Selfie' : profileInfo?.selfie ? 'Ganti Selfie' : 'Pilih Selfie'}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (!file) return
+                              if (!file.type.startsWith('image/')) {
+                                toast.error('File harus berupa gambar')
+                                return
+                              }
+                              if (file.size > 1 * 1024 * 1024) {
+                                toast.error('Ukuran selfie maksimal 1MB')
+                                return
+                              }
+                              setSelfieFile(file)
+                              const reader = new FileReader()
+                              reader.onloadend = () => setSelfiePreview(reader.result as string)
+                              reader.readAsDataURL(file)
+                            }}
+                            disabled={updating}
+                          />
+                        </label>
+                        {selfieFile && (
+                          <motion.div
+                            className="flex items-center gap-1.5 px-2.5 py-2 bg-violet-50 border border-violet-200 rounded-lg"
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5 text-violet-500 flex-shrink-0" />
+                            <p className="text-[10px] text-violet-700 font-medium leading-tight">Selfie siap — klik <strong>Done</strong> untuk menyimpan</p>
+                          </motion.div>
+                        )}
+                      </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center aspect-square border border-gray-200 rounded-lg bg-gray-100 text-gray-400 max-w-[200px]">
                         <UserCheck className="w-10 h-10 mb-2 opacity-50" />
@@ -3292,6 +3193,239 @@ export default function ProfilePage() {
 
 
       <div id="recaptcha-container" ref={recaptchaContainerRef} />
+
+      {/* ── Modal Pilih Provinsi ─────────────────────────────────── */}
+      <AnimatePresence>
+        {provinceModalOpen && (
+          <motion.div
+            className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {/* Backdrop */}
+            <motion.div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => { setProvinceModalOpen(false); setProvinceSearch('') }}
+            />
+
+            {/* Panel */}
+            <motion.div
+              className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+              style={{ maxHeight: '85vh' }}
+              initial={{ y: 60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            >
+              {/* Handle bar (mobile) */}
+              <div className="flex justify-center pt-3 pb-1 sm:hidden">
+                <div className="w-10 h-1 bg-gray-300 rounded-full" />
+              </div>
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <MapPin className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 leading-none">Pilih</p>
+                    <h3 className="text-base font-bold text-gray-900 leading-tight">Provinsi</h3>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setProvinceModalOpen(false); setProvinceSearch('') }}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                >
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
+
+              {/* Search */}
+              <div className="px-4 py-3 border-b border-gray-100">
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+                  <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  <input
+                    autoFocus
+                    value={provinceSearch}
+                    onChange={e => setProvinceSearch(e.target.value)}
+                    placeholder="Cari provinsi..."
+                    className="flex-1 bg-transparent text-sm outline-none text-gray-700 placeholder-gray-400"
+                  />
+                  {provinceSearch && (
+                    <button onClick={() => setProvinceSearch('')} className="text-gray-400 hover:text-gray-600">
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* List */}
+              <div className="overflow-y-auto flex-1 overscroll-contain">
+                {filteredProvinces.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                    <Search className="w-8 h-8 mb-2 opacity-40" />
+                    <p className="text-sm">Provinsi tidak ditemukan</p>
+                  </div>
+                ) : (
+                  <div className="py-1">
+                    {filteredProvinces.map(p => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          setAddressData(prev => ({ ...prev, province: p.name, city: '' }))
+                          setProvinceModalOpen(false)
+                          setProvinceSearch('')
+                          handleBlur('province', p.name)
+                        }}
+                        className={`w-full flex items-center justify-between gap-3 px-5 py-3.5 text-left text-sm transition-colors
+                          ${p.name === addressData.province
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : 'text-gray-700 hover:bg-gray-50'
+                          }
+                        `}
+                      >
+                        <span className="font-medium">{p.name}</span>
+                        {p.name === addressData.province && (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Modal Pilih Kota / Kabupaten ─────────────────────────── */}
+      <AnimatePresence>
+        {cityModalOpen && (
+          <motion.div
+            className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {/* Backdrop */}
+            <motion.div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => { setCityModalOpen(false); setCitySearch('') }}
+            />
+
+            {/* Panel */}
+            <motion.div
+              className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+              style={{ maxHeight: '85vh' }}
+              initial={{ y: 60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            >
+              {/* Handle bar (mobile) */}
+              <div className="flex justify-center pt-3 pb-1 sm:hidden">
+                <div className="w-10 h-1 bg-gray-300 rounded-full" />
+              </div>
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <Building className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 leading-none">{addressData.province}</p>
+                    <h3 className="text-base font-bold text-gray-900 leading-tight">Kota / Kabupaten</h3>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setCityModalOpen(false); setCitySearch('') }}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                >
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
+
+              {/* Search */}
+              <div className="px-4 py-3 border-b border-gray-100">
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+                  <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  <input
+                    autoFocus
+                    value={citySearch}
+                    onChange={e => setCitySearch(e.target.value)}
+                    placeholder="Cari kota atau kabupaten..."
+                    className="flex-1 bg-transparent text-sm outline-none text-gray-700 placeholder-gray-400"
+                  />
+                  {citySearch && (
+                    <button onClick={() => setCitySearch('')} className="text-gray-400 hover:text-gray-600">
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Jumlah hasil */}
+              {citySearch && (
+                <div className="px-5 py-2 bg-gray-50 border-b border-gray-100">
+                  <p className="text-xs text-gray-400">
+                    {filteredCities.length} hasil ditemukan
+                  </p>
+                </div>
+              )}
+
+              {/* List */}
+              <div className="overflow-y-auto flex-1 overscroll-contain">
+                {filteredCities.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                    <Search className="w-8 h-8 mb-2 opacity-40" />
+                    <p className="text-sm">Kota/kabupaten tidak ditemukan</p>
+                  </div>
+                ) : (
+                  <div className="py-1">
+                    {filteredCities.map(c => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setAddressData(prev => ({ ...prev, city: c.name }))
+                          setCityModalOpen(false)
+                          setCitySearch('')
+                          handleBlur('city', c.name)
+                        }}
+                        className={`w-full flex items-center justify-between gap-3 px-5 py-3.5 text-left text-sm transition-colors
+                          ${c.name === addressData.city
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : 'text-gray-700 hover:bg-gray-50'
+                          }
+                        `}
+                      >
+                        <span className="font-medium">{c.name}</span>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium
+                            ${c.type === 'kota' ? 'bg-sky-100 text-sky-600' : 'bg-amber-100 text-amber-700'}
+                          `}>
+                            {c.type === 'kota' ? 'Kota' : 'Kab.'}
+                          </span>
+                          {c.name === addressData.city && (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
     </>
   )
