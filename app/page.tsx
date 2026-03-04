@@ -2481,7 +2481,7 @@ export default function LandingPage() {
 
         <div className="gsap-cta-btn flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
           <button
-            onClick={() => window.open('https://wa.me/6281339908765', '_blank')}
+            onClick={() => window.open('https://wa.me/6285959860015', '_blank')}
             className="group px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-br from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 rounded-xl font-semibold text-white transition-all shadow-lg shadow-emerald-900/40"
           >
             <span className="flex items-center justify-center gap-2">
