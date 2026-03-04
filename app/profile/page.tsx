@@ -15,7 +15,10 @@ import {
   UserCheck, Briefcase, X, Menu, Info, CheckSquare, Square,
   UserPlus2,
   User2,
-  Search
+  Search,
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
 import type { UserProfile, UserProfileInfo, UpdateProfileRequest, ChangePasswordRequest } from '@/types'
@@ -564,6 +567,21 @@ export default function ProfilePage() {
     timezone: 'Asia/Jakarta'
   })
   const [showLogoutModal, setShowLogoutModal] = useState(false)
+
+  // ── Ganti Password ──────────────────────────────────────────────
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  })
+  const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>({})
+  const [savingPassword, setSavingPassword] = useState(false)
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  })
+
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({})
 
@@ -1243,6 +1261,52 @@ export default function ProfilePage() {
     }
   }
 
+  const handleChangePassword = async () => {
+    const errors: Record<string, string> = {}
+
+    if (!passwordData.currentPassword) {
+      errors.currentPassword = 'Password lama wajib diisi'
+    }
+
+    if (!passwordData.newPassword) {
+      errors.newPassword = 'Password baru wajib diisi'
+    } else if (passwordData.newPassword.length < 8) {
+      errors.newPassword = 'Password minimal 8 karakter'
+    } else if (!/(?=.*[A-Z])(?=.*[a-z])(?=.*[\d\W])/.test(passwordData.newPassword)) {
+      errors.newPassword = 'Harus mengandung huruf besar, kecil, dan angka/simbol'
+    }
+
+    if (!passwordData.confirmPassword) {
+      errors.confirmPassword = 'Konfirmasi password wajib diisi'
+    } else if (passwordData.newPassword !== passwordData.confirmPassword) {
+      errors.confirmPassword = 'Password tidak cocok'
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setPasswordErrors(errors)
+      return
+    }
+
+    setSavingPassword(true)
+    try {
+      await api.changePassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword,
+      })
+      toast.success('Password berhasil diubah!', {
+        style: { background: '#10b981', color: '#fff' }
+      })
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+      setPasswordErrors({})
+    } catch (error: any) {
+      const msg = error?.response?.data?.error || error?.message || 'Gagal mengubah password'
+      toast.error(msg, { style: { background: '#ef4444', color: '#fff' } })
+    } finally {
+      setSavingPassword(false)
+    }
+  }
+
   const handleLogout = () => {
     setShowLogoutModal(true)
   }
@@ -1270,6 +1334,7 @@ export default function ProfilePage() {
     { id: 'identity', label: 'Identitas', icon: FileText },
     { id: 'bank', label: 'Bank', icon: CreditCard },
     { id: 'status', label: 'Status', icon: Award },
+    { id: 'password', label: 'Ganti Password', icon: Lock },
   ]
 
   const renderTabContent = () => {
@@ -2983,6 +3048,193 @@ export default function ProfilePage() {
               </motion.div>
             )
           })()}
+          {activeTab === 'password' && (
+            <motion.div
+              className="bg-white rounded-xl border border-gray-200 overflow-hidden profile-card"
+              initial="hidden"
+              animate="visible"
+              variants={scaleIn}
+            >
+              {/* Header */}
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-orange-50 to-white">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                    <Lock className="w-5 h-5 text-orange-500" />
+                    Ganti Password
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Perbarui password akun Anda secara berkala untuk keamanan</p>
+                </div>
+              </div>
+
+              <motion.div
+                className="p-6 space-y-5 max-w-md"
+                variants={staggerContainer}
+                initial="hidden"
+                animate="visible"
+              >
+                {/* Info Banner */}
+                <motion.div
+                  variants={fadeInUp}
+                  className="flex items-start gap-3 p-3.5 bg-orange-50 border border-orange-100 rounded-xl"
+                >
+                  <ShieldCheck className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-orange-800 leading-relaxed">
+                    Password harus minimal <strong>8 karakter</strong>, mengandung huruf besar, huruf kecil, serta angka atau simbol.
+                  </p>
+                </motion.div>
+
+                {/* Password Lama */}
+                <motion.div variants={fadeInUp}>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Password Lama <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPasswords.current ? 'text' : 'password'}
+                      value={passwordData.currentPassword}
+                      onChange={(e) => {
+                        setPasswordData({ ...passwordData, currentPassword: e.target.value })
+                        if (passwordErrors.currentPassword) setPasswordErrors({ ...passwordErrors, currentPassword: '' })
+                      }}
+                      className={`w-full px-3 py-3 pr-11 bg-gray-100 border rounded-xl focus:outline-none focus:ring-2 transition-colors text-sm ${
+                        passwordErrors.currentPassword
+                          ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20'
+                          : 'border-gray-300 focus:border-orange-400 focus:ring-orange-400/20'
+                      }`}
+                      placeholder="Masukkan password lama"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords(p => ({ ...p, current: !p.current }))}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      {showPasswords.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {passwordErrors.currentPassword && (
+                    <motion.p className="mt-1.5 text-xs text-red-600 flex items-center gap-1" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}>
+                      <AlertCircle className="w-3.5 h-3.5" />{passwordErrors.currentPassword}
+                    </motion.p>
+                  )}
+                </motion.div>
+
+                {/* Divider */}
+                <motion.div variants={fadeInUp} className="border-t border-gray-100" />
+
+                {/* Password Baru */}
+                <motion.div variants={fadeInUp}>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Password Baru <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPasswords.new ? 'text' : 'password'}
+                      value={passwordData.newPassword}
+                      onChange={(e) => {
+                        setPasswordData({ ...passwordData, newPassword: e.target.value })
+                        if (passwordErrors.newPassword) setPasswordErrors({ ...passwordErrors, newPassword: '' })
+                      }}
+                      className={`w-full px-3 py-3 pr-11 bg-gray-100 border rounded-xl focus:outline-none focus:ring-2 transition-colors text-sm ${
+                        passwordErrors.newPassword
+                          ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20'
+                          : 'border-gray-300 focus:border-orange-400 focus:ring-orange-400/20'
+                      }`}
+                      placeholder="Masukkan password baru"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords(p => ({ ...p, new: !p.new }))}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {passwordErrors.newPassword && (
+                    <motion.p className="mt-1.5 text-xs text-red-600 flex items-center gap-1" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}>
+                      <AlertCircle className="w-3.5 h-3.5" />{passwordErrors.newPassword}
+                    </motion.p>
+                  )}
+                  {/* Password strength indicator */}
+                  {passwordData.newPassword && (
+                    <motion.div className="mt-2 space-y-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                      {[
+                        { label: 'Min. 8 karakter', ok: passwordData.newPassword.length >= 8 },
+                        { label: 'Huruf besar (A-Z)', ok: /[A-Z]/.test(passwordData.newPassword) },
+                        { label: 'Huruf kecil (a-z)', ok: /[a-z]/.test(passwordData.newPassword) },
+                        { label: 'Angka atau simbol', ok: /[\d\W]/.test(passwordData.newPassword) },
+                      ].map(rule => (
+                        <div key={rule.label} className="flex items-center gap-1.5">
+                          <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${rule.ok ? 'bg-emerald-500' : 'bg-gray-200'}`}>
+                            {rule.ok && <Check className="w-2.5 h-2.5 text-white" />}
+                          </div>
+                          <span className={`text-xs transition-colors ${rule.ok ? 'text-emerald-600 font-medium' : 'text-gray-400'}`}>{rule.label}</span>
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+                </motion.div>
+
+                {/* Konfirmasi Password Baru */}
+                <motion.div variants={fadeInUp}>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Konfirmasi Password Baru <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPasswords.confirm ? 'text' : 'password'}
+                      value={passwordData.confirmPassword}
+                      onChange={(e) => {
+                        setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+                        if (passwordErrors.confirmPassword) setPasswordErrors({ ...passwordErrors, confirmPassword: '' })
+                      }}
+                      className={`w-full px-3 py-3 pr-11 bg-gray-100 border rounded-xl focus:outline-none focus:ring-2 transition-colors text-sm ${
+                        passwordErrors.confirmPassword
+                          ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20'
+                          : passwordData.confirmPassword && passwordData.newPassword === passwordData.confirmPassword
+                            ? 'border-emerald-400 focus:border-emerald-500 focus:ring-emerald-500/20'
+                            : 'border-gray-300 focus:border-orange-400 focus:ring-orange-400/20'
+                      }`}
+                      placeholder="Ulangi password baru"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords(p => ({ ...p, confirm: !p.confirm }))}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {passwordErrors.confirmPassword && (
+                    <motion.p className="mt-1.5 text-xs text-red-600 flex items-center gap-1" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}>
+                      <AlertCircle className="w-3.5 h-3.5" />{passwordErrors.confirmPassword}
+                    </motion.p>
+                  )}
+                  {passwordData.confirmPassword && !passwordErrors.confirmPassword && passwordData.newPassword === passwordData.confirmPassword && (
+                    <motion.p className="mt-1.5 text-xs text-emerald-600 flex items-center gap-1" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}>
+                      <CheckCircle2 className="w-3.5 h-3.5" />Password cocok
+                    </motion.p>
+                  )}
+                </motion.div>
+
+                {/* Tombol Simpan */}
+                <motion.div variants={fadeInUp} className="pt-2">
+                  <motion.button
+                    onClick={handleChangePassword}
+                    disabled={savingPassword}
+                    className="flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all disabled:opacity-50 shadow-md font-semibold text-sm"
+                    whileHover={{ scale: 1.02, boxShadow: '0 5px 15px rgba(249, 115, 22, 0.35)' }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {savingPassword ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" />Menyimpan...</>
+                    ) : (
+                      <><Lock className="w-4 h-4" />Simpan Password Baru</>
+                    )}
+                  </motion.button>
+                </motion.div>
+              </motion.div>
+            </motion.div>
+          )}
         </motion.div>
       </AnimatePresence>
     )
