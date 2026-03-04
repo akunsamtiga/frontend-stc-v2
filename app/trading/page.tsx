@@ -1295,7 +1295,7 @@ export default function TradingPage() {
           >
             <div className="relative">
               <CalendarClock className="w-4 h-4" />
-              <span className={`absolute -top-1.5 -right-1.5 flex h-2.5 w-2.5 transition-opacity duration-300 ${activeOrders.length > 0 ? 'opacity-100' : 'opacity-0'}`}>
+              <span className={`absolute -top-1.5 -right-1.5 flex h-2 w-2 transition-opacity duration-300 ${activeOrders.length > 0 ? 'opacity-100' : 'opacity-0'}`}>
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                 <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
               </span>
@@ -1327,7 +1327,7 @@ export default function TradingPage() {
                 <StatusBadge status={userProfile.user.status} size="sm" />
               )}
               {isProfileIncomplete && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+                <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                   <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
                 </span>
@@ -1429,7 +1429,7 @@ export default function TradingPage() {
                   >
                     <div className="relative flex-shrink-0">
                       <CalendarClock className="w-4 h-4" />
-                      <span className={`absolute -top-1.5 -right-1.5 flex h-2.5 w-2.5 transition-opacity duration-300 ${activeOrders.length > 0 ? 'opacity-100' : 'opacity-0'}`}>
+                      <span className={`absolute -top-1.5 -right-1.5 flex h-2 w-2 transition-opacity duration-300 ${activeOrders.length > 0 ? 'opacity-100' : 'opacity-0'}`}>
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                         <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
                       </span>
@@ -1613,7 +1613,7 @@ export default function TradingPage() {
                 <StatusBadge status={userProfile.user.status} size="sm" />
               )}
               {isProfileIncomplete && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+                <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                   <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
                 </span>
@@ -2280,7 +2280,7 @@ export default function TradingPage() {
                 <div className="relative flex-shrink-0">
                   <Settings className="w-4 h-4" />
                   {isProfileIncomplete && (
-                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                    <span className="absolute -top-1 -right-1 flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                       <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
                     </span>
@@ -2309,7 +2309,7 @@ export default function TradingPage() {
               >
                 <div className="relative flex-shrink-0">
                   <CalendarClock className="w-4 h-4" />
-                  <span className={`absolute -top-1.5 -right-1.5 flex h-2.5 w-2.5 transition-opacity duration-300 ${activeOrders.length > 0 ? 'opacity-100' : 'opacity-0'}`}>
+                  <span className={`absolute -top-1.5 -right-1.5 flex h-2 w-2 transition-opacity duration-300 ${activeOrders.length > 0 ? 'opacity-100' : 'opacity-0'}`}>
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                     <span className="relative inline-flex h-full w-full rounded-full bg-red-500" />
                   </span>
