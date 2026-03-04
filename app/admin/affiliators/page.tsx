@@ -389,8 +389,9 @@ function AssignModal({
               </div>
 
               {/* Info box */}
-              <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-3 text-xs text-purple-300/80">
-                Affiliator mendapat <strong>{revenueShare}%</strong> dari kerugian trading invitee (real account) setelah <strong>{unlockThreshold}</strong> invitee deposit.
+              <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-3 text-xs text-purple-300/80 space-y-1">
+                <p>Affiliator mendapat <strong>{revenueShare}%</strong> dari setiap kerugian trading invitee (real account) — komisi <strong>langsung masuk</strong> dari invitee pertama.</p>
+                <p className="text-slate-500">Komisi baru bisa <strong className="text-purple-300">ditarik</strong> setelah minimal <strong>{unlockThreshold}</strong> invitee melakukan deposit.</p>
               </div>
 
               {/* Actions */}
@@ -510,6 +511,11 @@ function EditConfigModal({
                   {isActive ? <ToggleRight className="w-4 h-4" weight="fill" /> : <ToggleLeft className="w-4 h-4" weight="fill" />}
                   {isActive ? 'Aktif' : 'Nonaktif'}
                 </button>
+              </div>
+
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-3 text-xs text-blue-300/80 space-y-1">
+                <p>Komisi <strong>{revenueShare}%</strong> dari loss invitee masuk <strong>langsung</strong> dari invitee pertama.</p>
+                <p className="text-slate-500">Penarikan baru bisa dilakukan setelah <strong>{unlockThreshold}</strong> invitee deposit terpenuhi.</p>
               </div>
 
               <div className="flex gap-3">
@@ -907,7 +913,7 @@ export default function AdminAffiliatorsPage() {
                           </span>
                           {aff.isCommissionUnlocked && (
                             <span className="text-xs px-2 py-0.5 rounded-full border font-medium bg-purple-500/15 text-purple-400 border-purple-500/30">
-                              Unlock ✓
+                              Bisa Tarik ✓
                             </span>
                           )}
                         </div>
@@ -936,7 +942,17 @@ export default function AdminAffiliatorsPage() {
                           <div>
                             <span className="text-slate-500">Undangan: </span>
                             <span className="text-white font-medium">{aff.totalInvited}</span>
-                            <span className="text-green-400"> ({aff.depositedInvites} deposit)</span>
+                            <span className="text-green-400"> ({aff.totalInvitedDeposited} deposit)</span>
+                            {aff.pendingInvites > 0 && (
+                              <span className="text-yellow-400"> · {aff.pendingInvites} belum deposit</span>
+                            )}
+                          </div>
+                          <div>
+                            <span className="text-slate-500">Syarat cairkan: </span>
+                            <span className={`font-medium ${aff.unlockProgress.isUnlocked ? 'text-green-400' : 'text-yellow-400'}`}>
+                              {aff.unlockProgress.current}/{aff.unlockProgress.required}
+                              {aff.unlockProgress.isUnlocked ? ' ✓' : ''}
+                            </span>
                           </div>
                           <div>
                             <span className="text-slate-500">Total Komisi: </span>

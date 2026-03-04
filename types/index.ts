@@ -1669,9 +1669,15 @@ export interface AffiliatorProgram {
   revenueSharePercentage: number
   unlockThreshold: number
   commissionBalance: number
+  /** @deprecated Always 0 in new logic — commissions are never locked */
   lockedCommissionBalance: number
+  /** true when totalInvitedDeposited >= unlockThreshold (withdrawal gate only) */
   isCommissionUnlocked: boolean
   isActive: boolean
+  totalInvited: number
+  totalInvitedDeposited: number
+  totalCommissionEarned: number
+  totalCommissionWithdrawn: number
   assignedBy: string
   assignedAt: string
   createdAt: string
@@ -1680,12 +1686,13 @@ export interface AffiliatorProgram {
 
 export interface AffiliatorDashboard {
   affiliateCode: string
+  shareLink: string
   isCommissionUnlocked: boolean
   revenueSharePercentage: number
   balances: {
     commissionBalance: number
-    lockedCommissionBalance: number
-    isLocked: boolean
+    /** true when depositedInvites >= unlockThreshold — user may withdraw */
+    isWithdrawable: boolean
   }
   unlockProgress: {
     current: number
@@ -1697,12 +1704,16 @@ export interface AffiliatorDashboard {
   stats: {
     totalInvited: number
     depositedInvites: number
-    pendingInvites: number
+    /** Registered but haven't deposited yet */
+    registeredNoDeposit: number
     totalCommissionEarned: number
     totalCommissionWithdrawn: number
+    /** Current withdrawable commission balance */
+    commissionPending: number
   }
 }
 
+/** Legacy — kept for backward compat. Use AffiliatorInviteDetailed for the new invites endpoint. */
 export interface AffiliatorInvite {
   id: string
   affiliatorId: string
@@ -1710,10 +1721,64 @@ export interface AffiliatorInvite {
   inviteeEmail: string
   hasDeposited: boolean
   firstDepositAt?: string
+  firstDepositAmount?: number
   isCountedForUnlock: boolean
   createdAt: string
 }
 
+/** Detailed invitee row returned by GET /affiliate-program/my-invites (depositedUsers) */
+export interface AffiliatorInviteDetailed {
+  id: string
+  inviteeId: string
+  inviteeEmail: string       // masked
+  hasDeposited: true
+  isCountedForUnlock: boolean
+  firstDepositAt?: string
+  firstDepositAmount?: number
+  registeredAt: string
+  balance: {
+    totalDeposit: number
+    totalWithdrawal: number
+    currentRealBalance: number
+    currentDemoBalance: number
+  }
+  trading: {
+    totalRealOrders: number
+    totalDemoOrders: number
+    totalOrders: number
+    win: number
+    lose: number
+    winAmount: number
+    loseAmount: number
+    winRate: number          // 0–100
+  }
+}
+
+/** Pending invitee row returned by GET /affiliate-program/my-invites (pendingUsers) */
+export interface AffiliatorInvitePending {
+  id: string
+  inviteeEmail: string       // masked
+  registeredAt: string
+  hasDeposited: false
+}
+
+/** Full response shape of GET /affiliate-program/my-invites */
+export interface AffiliatorInvitesDetailedResponse {
+  summary: {
+    totalInvited: number
+    depositedInvites: number
+    registeredNoDeposit: number
+    unlockProgress: {
+      current: number
+      required: number
+      isUnlocked: boolean
+    }
+  }
+  depositedUsers: AffiliatorInviteDetailed[]
+  pendingUsers: AffiliatorInvitePending[]
+}
+
+/** @deprecated Use AffiliatorInvitesDetailedResponse */
 export interface AffiliatorInvitesSummary {
   invites: AffiliatorInvite[]
   total: number
@@ -1734,11 +1799,17 @@ export interface CommissionLog {
 
 export interface CommissionDetails {
   commissionBalance: number
-  lockedCommissionBalance: number
-  isCommissionUnlocked: boolean
+  /** true when depositedInvites >= unlockThreshold */
+  isWithdrawable: boolean
   totalEarned: number
   totalWithdrawn: number
   revenueSharePercentage: number
+  unlockStatus: {
+    depositedInvites: number
+    required: number
+    isUnlocked: boolean
+    message: string
+  }
   commissionLogs: CommissionLog[]
 }
 
@@ -1764,7 +1835,8 @@ export interface CommissionWithdrawal {
 
 export interface CommissionWithdrawalHistory {
   commissionBalance: number
-  isCommissionUnlocked: boolean
+  /** true when depositedInvites >= unlockThreshold */
+  isWithdrawable: boolean
   totalWithdrawn: number
   withdrawals: CommissionWithdrawal[]
 }
@@ -1779,14 +1851,21 @@ export interface AffiliatorListItem {
   userId: string
   userEmail: string
   affiliateCode: string
+  shareLink: string
   revenueSharePercentage: number
   unlockThreshold: number
   commissionBalance: number
   isCommissionUnlocked: boolean
   isActive: boolean
   totalInvited: number
-  depositedInvites: number
+  totalInvitedDeposited: number
+  pendingInvites: number
   totalCommissionEarned: number
+  unlockProgress: {
+    current: number
+    required: number
+    isUnlocked: boolean
+  }
   assignedAt: string
 }
 

@@ -2660,28 +2660,77 @@ export default function LandingPage() {
                 </button>
               </div>
 
-              {!isLogin && (
-                <div className="mt-6 p-3 bg-transparent rounded-lg">
-                  <p className="text-xs text-sky-400 font-medium mb-1">Password harus memiliki:</p>
-                  <ul className="text-xs text-gray-400 space-y-1">
-                    <li className={password.length >= 8 ? 'text-emerald-400' : ''}>
-                      • Minimal 8 karakter
-                    </li>
-                    <li className={/[A-Z]/.test(password) ? 'text-emerald-400' : ''}>
-                      • Minimal 1 huruf besar (A-Z)
-                    </li>
-                    <li className={/[a-z]/.test(password) ? 'text-emerald-400' : ''}>
-                      • Minimal 1 huruf kecil (a-z)
-                    </li>
-                    <li className={/[\d\W]/.test(password) ? 'text-emerald-400' : ''}>
-                      • Minimal 1 angka atau karakter khusus
-                    </li>
-                  </ul>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Contoh: <span className="text-emerald-400">SecurePass123!</span>
-                  </p>
-                </div>
-              )}
+              {!isLogin && password.length > 0 && (() => {
+                const criteria = [
+                  { label: '8+ karakter',    met: password.length >= 8 },
+                  { label: 'Huruf besar',    met: /[A-Z]/.test(password) },
+                  { label: 'Huruf kecil',    met: /[a-z]/.test(password) },
+                  { label: 'Angka / simbol', met: /[\d\W]/.test(password) },
+                ]
+                const score = criteria.filter(c => c.met).length
+                const strengthLabel  = score === 0 ? '' : score === 1 ? 'Lemah' : score === 2 ? 'Cukup' : score === 3 ? 'Bagus' : 'Kuat'
+                const strengthColor  = score <= 1 ? '#ef4444' : score === 2 ? '#f59e0b' : score === 3 ? '#eab308' : '#10b981'
+                const barColors = (i: number) => {
+                  if (i >= score) return 'rgba(255,255,255,0.07)'
+                  if (score <= 1) return '#ef4444'
+                  if (score === 2) return i === 0 ? '#ef4444' : '#f59e0b'
+                  if (score === 3) return i === 0 ? '#ef4444' : i === 1 ? '#f59e0b' : '#eab308'
+                  return '#10b981'
+                }
+                return (
+                  <div className="mt-3 space-y-3">
+                    {/* Strength bar */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[10px] font-semibold tracking-widest uppercase text-gray-500">Kekuatan Password</span>
+                        {strengthLabel && (
+                          <span className="text-[11px] font-bold transition-all duration-300" style={{ color: strengthColor }}>
+                            {strengthLabel}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-1.5">
+                        {[0,1,2,3].map(i => (
+                          <div
+                            key={i}
+                            className="h-1.5 flex-1 rounded-full transition-all duration-500"
+                            style={{ background: barColors(i), boxShadow: i < score ? `0 0 6px ${barColors(i)}80` : 'none' }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    {/* Criteria chips */}
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {criteria.map((c) => (
+                        <div
+                          key={c.label}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-300"
+                          style={{
+                            background: c.met ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.03)',
+                            border: `1px solid ${c.met ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                          }}
+                        >
+                          <span
+                            className="flex-shrink-0 w-3.5 h-3.5 rounded-full flex items-center justify-center transition-all duration-300"
+                            style={{ background: c.met ? '#10b981' : 'rgba(255,255,255,0.1)' }}
+                          >
+                            {c.met
+                              ? <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              : <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><path d="M1.5 1.5L4.5 4.5M4.5 1.5L1.5 4.5" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" strokeLinecap="round"/></svg>
+                            }
+                          </span>
+                          <span
+                            className="text-[10px] font-medium transition-colors duration-300"
+                            style={{ color: c.met ? '#34d399' : 'rgba(255,255,255,0.35)' }}
+                          >
+                            {c.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
 
             {}

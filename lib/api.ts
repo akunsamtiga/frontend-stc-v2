@@ -3,7 +3,8 @@ import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
 import type {
   AffiliatorDashboard,
-  AffiliatorInvitesSummary,
+  AffiliatorInvitesDetailedResponse,
+  AffiliatorInvitesSummary,   // kept for legacy compat
   CommissionDetails,
   CommissionWithdrawalHistory,
   RequestCommissionWithdrawalDto,
@@ -1801,7 +1802,7 @@ async bulkUpdateAssetScheduleStatus(ids: string[], isActive: boolean): Promise<A
     })
   }
 
-  async getMyAffiliatorInvites(): Promise<ApiResponse<AffiliatorInvitesSummary>> {
+  async getMyAffiliatorInvites(): Promise<ApiResponse<AffiliatorInvitesDetailedResponse>> {
     const cacheKey = this.getCacheKey('/affiliate-program/my-invites')
     const cached = this.getFromCache(cacheKey)
     if (cached) return cached
