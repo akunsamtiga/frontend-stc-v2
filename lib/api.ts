@@ -414,6 +414,14 @@ class ApiClient {
     return this.client.post('/auth/register', { email, password, referralCode, affiliateCode })
   }
 
+  async verifyEmail(token: string): Promise<ApiResponse> {
+    return this.client.get(`/auth/verify-email?token=${encodeURIComponent(token)}`)
+  }
+
+  async resendVerificationEmail(): Promise<ApiResponse> {
+    return this.client.post('/auth/resend-verification')
+  }
+
   async completeTutorial(): Promise<ApiResponse> {
     try {
       const result = await this.client.post('/user/complete-tutorial')
