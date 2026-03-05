@@ -29,7 +29,7 @@ import { auth } from '@/lib/firebase-auth'
 import { signInWithPhoneNumber, RecaptchaVerifier, ConfirmationResult } from 'firebase/auth'
 
 // ── Email Verification Banner ─────────────────────────────────────────────────
-function EmailVerificationBanner({ onResent }: { onResent?: () => void }) {
+function EmailVerificationBanner({ onResent, compact = false }: { onResent?: () => void; compact?: boolean }) {
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [cooldown, setCooldown] = useState(0)
@@ -48,7 +48,7 @@ function EmailVerificationBanner({ onResent }: { onResent?: () => void }) {
       await api.resendVerificationEmail()
       setSent(true)
       setCooldown(60)
-      toast.success('Email verifikasi telah dikirim ulang. Periksa inbox Anda.')
+      toast.success('Email verifikasi telah dikirim. Periksa inbox Anda.')
       onResent?.()
     } catch (err: any) {
       const msg = err?.response?.data?.error || err?.message || 'Gagal mengirim ulang'
@@ -59,6 +59,26 @@ function EmailVerificationBanner({ onResent }: { onResent?: () => void }) {
     }
   }
 
+  // ── Compact mode: hanya tombol (untuk top banner) ──────────────────────────
+  if (compact) {
+    return (
+      <button
+        onClick={handleResend}
+        disabled={sending || cooldown > 0}
+        className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
+      >
+        {sending ? (
+          <><Loader2 className="w-3.5 h-3.5 animate-spin" />Mengirim...</>
+        ) : sent && cooldown > 0 ? (
+          <><CheckCircle2 className="w-3.5 h-3.5" />Terkirim ({cooldown}d)</>
+        ) : (
+          <><Mail className="w-3.5 h-3.5" />{sent ? 'Kirim Ulang' : 'Kirim Verifikasi'}</>
+        )}
+      </button>
+    )
+  }
+
+  // ── Full mode: card di dalam Status Verifikasi ─────────────────────────────
   return (
     <motion.div
       className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl"
@@ -77,13 +97,11 @@ function EmailVerificationBanner({ onResent }: { onResent?: () => void }) {
           </p>
         </div>
       </div>
-
       {error && (
         <p className="text-xs text-red-600 mb-2 flex items-center gap-1">
           <AlertCircle className="w-3 h-3 flex-shrink-0" />{error}
         </p>
       )}
-
       <button
         onClick={handleResend}
         disabled={sending || cooldown > 0}
@@ -1602,10 +1620,14 @@ export default function ProfilePage() {
                           <item.icon className={`w-4 h-4 ${item.verified ? 'text-emerald-500' : 'text-gray-300'}`} />
                           <span className="text-sm text-gray-700">{item.label}</span>
                         </div>
-                        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${item.verified ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
-                          {item.verified ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
-                          {item.verified ? 'Terverifikasi' : 'Belum'}
-                        </span>
+                        {item.label === 'Email' && !item.verified ? (
+                          <EmailVerificationBanner onResent={loadProfile} compact />
+                        ) : (
+                          <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${item.verified ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
+                            {item.verified ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                            {item.verified ? 'Terverifikasi' : 'Belum'}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -3376,6 +3398,27 @@ export default function ProfilePage() {
             </div>
           </motion.div>
         </motion.div>
+        {/* ── Top banner: muncul di semua tab jika email belum verified ── */}
+        {profileInfo && !profileInfo.verification?.emailVerified && (
+          <motion.div
+            className="mb-4 flex items-start gap-3 p-4 bg-amber-50 border border-amber-300 rounded-xl shadow-sm"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+          >
+            <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+              <Mail className="w-5 h-5 text-amber-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-amber-900">Verifikasi email Anda</p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                Akun Anda belum aktif penuh. Klik tombol di bawah untuk mengirim ulang link verifikasi ke <span className="font-semibold">{user.email}</span>.
+              </p>
+            </div>
+            <EmailVerificationBanner onResent={loadProfile} compact />
+          </motion.div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           <motion.div
             className="col-span-1 md:hidden"
