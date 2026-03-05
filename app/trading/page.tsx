@@ -1876,7 +1876,7 @@ export default function TradingPage() {
       <div className="lg:hidden bg-[#0f1419] border-t border-gray-800/50 p-4" style={isLightMode ? { backgroundColor: '#ffffff', borderTopColor: 'rgba(0,0,0,0.1)' } : undefined}>
         <div className="space-y-1">
           <div className="grid grid-cols-2 gap-4">
-            <div className="relative">
+            <div className="relative" data-tutorial="amount-input">
               <label className="text-xs text-gray-400 text-center mb-2 block font-medium">Jumlah</label>
               <div className="relative">
                 <div
@@ -1953,6 +1953,7 @@ export default function TradingPage() {
                 Durasi Waktu
               </label>
               <div
+                data-tutorial="duration-selector"
                 onClick={() => setShowDurationDropdown(!showDurationDropdown)}
                 className={`w-full bg-[#1a1f2e] rounded-xl px-3 py-3 text-center text-sm font-bold cursor-pointer hover:bg-[#232936] transition-colors${isLightMode ? ' text-slate-800' : ' text-white'}`}
                 style={isLightMode ? { backgroundColor: '#cce0ff', border: '1px solid rgba(59,130,246,0.35)' } : undefined}
@@ -2013,7 +2014,7 @@ export default function TradingPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4 pt-2">
+          <div className="grid grid-cols-2 gap-4 pt-2" data-tutorial="trade-buttons">
             <button
               onClick={() => { triggerBtnEffect('CALL'); handlePlaceOrder('CALL') }}
               disabled={loading || !selectedAsset}

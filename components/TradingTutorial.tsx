@@ -488,7 +488,10 @@ export default function TradingTutorial({ onComplete, onSkip, isLightMode = fals
   const [idx, setIdx]         = useState(0)
   const [fading, setFading]   = useState(false)
   const [rect, setRect]       = useState<Rect | null>(null)
-  const [vp, setVp]           = useState({ w: 1440, h: 900 })
+  const [vp, setVp]           = useState(() => ({
+    w: typeof window !== 'undefined' ? window.innerWidth  : 1440,
+    h: typeof window !== 'undefined' ? window.innerHeight : 900,
+  }))
   const [mounted, setMounted] = useState(false)
   const rafRef                = useRef<number | null>(null)
 
@@ -496,25 +499,41 @@ export default function TradingTutorial({ onComplete, onSkip, isLightMode = fals
   const isLast = idx === STEPS.length - 1
   const pad    = step.padding ?? 8
 
-  // Mount guard for createPortal
-  useEffect(() => {
-    setMounted(true)
-    return () => setMounted(false)
-  }, [])
-
-  // Measure the highlighted element
+  // Measure the highlighted element — pick the VISIBLE one
+  // (on mobile, desktop-only elements have zero dimensions, so we skip them)
   const measure = useCallback(() => {
     if (typeof window === 'undefined') return
     setVp({ w: window.innerWidth, h: window.innerHeight })
-    const el = document.querySelector(`[data-tutorial="${step.target}"]`)
-    if (!el) { setRect(null); return }
-    const r = el.getBoundingClientRect()
+
+    const els = Array.from(
+      document.querySelectorAll(`[data-tutorial="${step.target}"]`)
+    )
+
+    // Find first element that is actually visible (non-zero size & in viewport)
+    const visibleEl = els.find(el => {
+      const r = el.getBoundingClientRect()
+      return r.width > 0 && r.height > 0
+    })
+
+    if (!visibleEl) { setRect(null); return }
+
+    const r = visibleEl.getBoundingClientRect()
     setRect({ top: r.top, left: r.left, width: r.width, height: r.height })
   }, [step.target])
 
-  // Re-measure after step changes — longer delay on mobile so DOM settles
+  // Mount guard for createPortal + immediate first measure
   useEffect(() => {
-    const delay = vp.w < 640 ? 150 : 80
+    setMounted(true)
+    // Fire immediately, then retry for safety
+    measure()
+    const t = setTimeout(measure, 100)
+    return () => { setMounted(false); clearTimeout(t) }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-measure after step changes
+  useEffect(() => {
+    setRect(null) // clear stale rect immediately
+    const delay = vp.w < 640 ? 120 : 80
     const t = setTimeout(measure, delay)
     return () => clearTimeout(t)
   }, [measure, vp.w])
@@ -534,12 +553,18 @@ export default function TradingTutorial({ onComplete, onSkip, isLightMode = fals
     }
   }, [measure])
 
-  // Scroll target into view — use 'center' on mobile for better visibility
+  // Scroll target into view — find visible element first
   useEffect(() => {
-    const el = document.querySelector(`[data-tutorial="${step.target}"]`) as HTMLElement | null
-    if (el) {
+    const els = Array.from(
+      document.querySelectorAll(`[data-tutorial="${step.target}"]`)
+    ) as HTMLElement[]
+    const visibleEl = els.find(el => {
+      const r = el.getBoundingClientRect()
+      return r.width > 0 && r.height > 0
+    }) ?? els[0]
+    if (visibleEl) {
       const block = vp.w < 640 ? 'center' : 'nearest'
-      el.scrollIntoView({ behavior: 'smooth', block })
+      visibleEl.scrollIntoView({ behavior: 'smooth', block })
     }
   }, [step.target, vp.w])
 
@@ -596,7 +621,6 @@ export default function TradingTutorial({ onComplete, onSkip, isLightMode = fals
         pointerEvents: 'none', overflow: 'visible',
       }}>
         <defs>
-          {/* Mask: white everywhere EXCEPT the spotlight hole (black = transparent) */}
           <mask id="stc-spotlight-mask">
             <rect width={vp.w} height={vp.h} fill="white" />
             {rect && (
@@ -609,10 +633,10 @@ export default function TradingTutorial({ onComplete, onSkip, isLightMode = fals
           </mask>
         </defs>
 
-        {/* Dark overlay (with cutout hole applied by mask) */}
+        {/* Dark overlay — always shown, cutout appears once rect is ready */}
         <rect width={vp.w} height={vp.h} fill={isLightMode ? 'rgba(15,23,42,0.55)' : 'rgba(0,0,0,0.72)'} mask="url(#stc-spotlight-mask)" />
 
-        {/* Soft glow behind the spotlight border */}
+        {/* Soft glow */}
         {rect && (
           <rect
             x={sX - 4} y={sY - 4} width={sW + 8} height={sH + 8}
@@ -625,7 +649,7 @@ export default function TradingTutorial({ onComplete, onSkip, isLightMode = fals
           />
         )}
 
-        {/* Animated dashed border around spotlight */}
+        {/* Animated dashed border */}
         {rect && (
           <rect
             x={sX} y={sY} width={sW} height={sH} rx={sR}
@@ -640,17 +664,32 @@ export default function TradingTutorial({ onComplete, onSkip, isLightMode = fals
         )}
       </svg>
 
-      {/* ── Backdrop: click outside spotlight → skip ──────────────────────── */}
-      {rect && (
-        <div
-          style={{ position: 'fixed', inset: 0, zIndex: 9991, cursor: 'default' }}
-          onClick={(e) => {
-            const { clientX: x, clientY: y } = e
-            // Only skip if click is outside the spotlight hole
-            const inside = x >= sX && x <= sX + sW && y >= sY && y <= sY + sH
-            if (!inside) onSkip()
-          }}
-        />
+      {/* ── Backdrop: always active so user can skip while loading too ──────── */}
+      <div
+        style={{ position: 'fixed', inset: 0, zIndex: 9991, cursor: 'default' }}
+        onClick={(e) => {
+          if (!rect) { onSkip(); return }
+          const { clientX: x, clientY: y } = e
+          const inside = x >= sX && x <= sX + sW && y >= sY && y <= sY + sH
+          if (!inside) onSkip()
+        }}
+      />
+
+      {/* ── Loading state — spinner while rect is being measured ───────────── */}
+      {!rect && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9993,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: 12, pointerEvents: 'none',
+        }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: '50%',
+            border: '3px solid rgba(59,130,246,0.2)',
+            borderTopColor: '#3b82f6',
+            animation: 'stc-spin 0.7s linear infinite',
+          }} />
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Memuat tutorial...</span>
+        </div>
       )}
 
       {/* ── Pulse ring around the spotlight ───────────────────────────────── */}
@@ -722,6 +761,9 @@ export default function TradingTutorial({ onComplete, onSkip, isLightMode = fals
           0%   { box-shadow: 0 0 0 0    rgba(99,160,255,0.55); }
           70%  { box-shadow: 0 0 0 12px rgba(99,160,255,0); }
           100% { box-shadow: 0 0 0 0    rgba(99,160,255,0); }
+        }
+        @keyframes stc-spin {
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </>,
