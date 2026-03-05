@@ -1791,22 +1791,6 @@ export default function LandingPage() {
                     </div>
                   </div>
 
-                  <motion.div
-                    className="w-[calc(50%-3rem)] ml-auto"
-                    initial={{ opacity: 0, x: 50 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true, margin: '-60px' }}
-                    transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
-                  >
-                    <motion.div
-                      className="relative rounded-2xl overflow-hidden border border-violet-500/25"
-                      style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}
-                      whileHover={{ scale: 1.04, y: -6 }}
-                      transition={{ duration: 0.25, ease: 'easeOut' }}
-                    >
-                      <Image src="/1.png" alt="Daftar & Verifikasi" width={480} height={220} className="w-full h-48 object-cover block" />
-                    </motion.div>
-                  </motion.div>
                 </div>
 
                 {}
@@ -1848,22 +1832,6 @@ export default function LandingPage() {
                     </div>
                   </div>
 
-                  <motion.div
-                    className="w-[calc(50%-3rem)] mr-auto"
-                    initial={{ opacity: 0, x: -50 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true, margin: '-60px' }}
-                    transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
-                  >
-                    <motion.div
-                      className="relative rounded-2xl overflow-hidden border border-pink-500/25"
-                      style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}
-                      whileHover={{ scale: 1.04, y: -6 }}
-                      transition={{ duration: 0.25, ease: 'easeOut' }}
-                    >
-                      <Image src="/2.png" alt="Deposit & Pilih Strategi" width={480} height={220} className="w-full h-48 object-cover block" />
-                    </motion.div>
-                  </motion.div>
                 </div>
 
                 {}
@@ -1905,22 +1873,6 @@ export default function LandingPage() {
                     </div>
                   </div>
 
-                  <motion.div
-                    className="w-[calc(50%-3rem)] ml-auto"
-                    initial={{ opacity: 0, x: 50 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true, margin: '-60px' }}
-                    transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
-                  >
-                    <motion.div
-                      className="relative rounded-2xl overflow-hidden border border-sky-500/25"
-                      style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}
-                      whileHover={{ scale: 1.04, y: -6 }}
-                      transition={{ duration: 0.25, ease: 'easeOut' }}
-                    >
-                      <Image src="/3.png" alt="Trading & Hasilkan Profit" width={480} height={220} className="w-full h-48 object-cover block" />
-                    </motion.div>
-                  </motion.div>
                 </div>
               </div>
             </div>
@@ -1976,23 +1928,28 @@ export default function LandingPage() {
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="glass-card rounded-2xl overflow-hidden">
-                      {}
-                      <motion.div
-                        className="relative overflow-hidden"
-                        whileTap={{ scale: 0.99 }}
+                    <div className="glass-card rounded-2xl overflow-hidden relative">
+                      {/* Image anchored to far right, contained, bigger for step 1 */}
+                      <div
+                        className="absolute inset-y-0 pointer-events-none"
+                        style={{ right: '-5%', width: step.num === 1 ? '75%' : '85%' }}
                       >
                         <Image
                           src={step.img}
                           alt={step.title}
-                          width={640}
-                          height={180}
-                          className="w-full h-36 object-cover block"
+                          fill
+                          className="object-contain opacity-10"
+                          style={{
+                            objectPosition: '100% center',
+                            transform: step.num === 1 ? 'scale(1.5) translateX(28%)' : 'scale(1.4) translateX(12%)',
+                            transformOrigin: 'right center',
+                          }}
                         />
-                      </motion.div>
-
-                      {}
-                      <div className="p-4">
+                      </div>
+                      {/* Horizontal gradient: dark left → transparent right */}
+                      <div className="absolute inset-0 z-10" style={{ background: 'linear-gradient(to right, rgba(10,14,23,0.75) 0%, rgba(10,14,23,0.6) 30%, rgba(10,14,23,0.4) 55%, transparent 100%)' }} />
+                      {/* Content on top */}
+                      <div className="relative z-10 p-4">
                         <div className="flex items-center gap-3 mb-2">
                           <div className={`w-9 h-9 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-lg flex items-center justify-center flex-shrink-0`}>
                             <step.icon className={`w-4 h-4 text-${step.color}-400`} weight="bold" />
