@@ -1757,9 +1757,12 @@ export default function LandingPage() {
                   <div className="w-[calc(50%-3rem)] mr-auto">
                     <motion.div
                       className="glass-card step-card-inner rounded-2xl p-8 hover:border-violet-500/40"
+                      initial={{ opacity: 0, x: -40 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true, margin: '-60px' }}
+                      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
                       whileHover={{ scale: 1.025, y: -4 }}
                       whileTap={{ scale: 0.975 }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
                     >
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 bg-violet-500/10 border border-violet-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -1787,6 +1790,23 @@ export default function LandingPage() {
                       </div>
                     </div>
                   </div>
+
+                  <motion.div
+                    className="w-[calc(50%-3rem)] ml-auto"
+                    initial={{ opacity: 0, x: 50 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true, margin: '-60px' }}
+                    transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+                  >
+                    <motion.div
+                      className="relative rounded-2xl overflow-hidden border border-violet-500/25"
+                      style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}
+                      whileHover={{ scale: 1.04, y: -6 }}
+                      transition={{ duration: 0.25, ease: 'easeOut' }}
+                    >
+                      <Image src="/1.png" alt="Daftar & Verifikasi" width={480} height={220} className="w-full h-48 object-cover block" />
+                    </motion.div>
+                  </motion.div>
                 </div>
 
                 {}
@@ -1794,9 +1814,12 @@ export default function LandingPage() {
                   <div className="w-[calc(50%-3rem)] ml-auto">
                     <motion.div
                       className="glass-card step-card-inner rounded-2xl p-8 hover:border-pink-500/40"
+                      initial={{ opacity: 0, x: 40 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true, margin: '-60px' }}
+                      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
                       whileHover={{ scale: 1.025, y: -4 }}
                       whileTap={{ scale: 0.975 }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
                     >
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 bg-pink-500/10 border border-pink-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -1824,6 +1847,23 @@ export default function LandingPage() {
                       </div>
                     </div>
                   </div>
+
+                  <motion.div
+                    className="w-[calc(50%-3rem)] mr-auto"
+                    initial={{ opacity: 0, x: -50 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true, margin: '-60px' }}
+                    transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+                  >
+                    <motion.div
+                      className="relative rounded-2xl overflow-hidden border border-pink-500/25"
+                      style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}
+                      whileHover={{ scale: 1.04, y: -6 }}
+                      transition={{ duration: 0.25, ease: 'easeOut' }}
+                    >
+                      <Image src="/2.png" alt="Deposit & Pilih Strategi" width={480} height={220} className="w-full h-48 object-cover block" />
+                    </motion.div>
+                  </motion.div>
                 </div>
 
                 {}
@@ -1831,9 +1871,12 @@ export default function LandingPage() {
                   <div className="w-[calc(50%-3rem)] mr-auto">
                     <motion.div
                       className="glass-card step-card-inner rounded-2xl p-8 hover:border-sky-500/40"
+                      initial={{ opacity: 0, x: -40 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true, margin: '-60px' }}
+                      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
                       whileHover={{ scale: 1.025, y: -4 }}
                       whileTap={{ scale: 0.975 }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
                     >
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 bg-sky-500/10 border border-sky-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -1861,37 +1904,117 @@ export default function LandingPage() {
                       </div>
                     </div>
                   </div>
+
+                  <motion.div
+                    className="w-[calc(50%-3rem)] ml-auto"
+                    initial={{ opacity: 0, x: 50 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true, margin: '-60px' }}
+                    transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+                  >
+                    <motion.div
+                      className="relative rounded-2xl overflow-hidden border border-sky-500/25"
+                      style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}
+                      whileHover={{ scale: 1.04, y: -6 }}
+                      transition={{ duration: 0.25, ease: 'easeOut' }}
+                    >
+                      <Image src="/3.png" alt="Trading & Hasilkan Profit" width={480} height={220} className="w-full h-48 object-cover block" />
+                    </motion.div>
+                  </motion.div>
                 </div>
               </div>
             </div>
           </div>
 
           {}
-          <div className="lg:hidden space-y-6">
+          <div className="lg:hidden space-y-8">
             {[
-              { icon: Users, title: 'Daftar & Verifikasi', desc: 'Buat akun dalam 2 menit dengan verifikasi aman', color: 'violet', num: 1 },
-              { icon: CurrencyDollar, title: 'Deposit & Pilih Strategi', desc: 'Deposit minimal Rp 100K dan pilih strategi auto trading', color: 'pink', num: 2 },
-              { icon: TrendUp, title: 'Trading & Profit', desc: 'Sistem trading otomatis 24/7 dengan profit hingga 95%', color: 'sky', num: 3 }
+              {
+                icon: Users,
+                title: 'Daftar & Verifikasi',
+                desc: 'Buat akun dalam 2 menit. Verifikasi identitas untuk keamanan tinggi dan mulai dengan akun demo gratis.',
+                color: 'violet',
+                num: 1,
+                img: '/1.png',
+                tags: ['Registrasi cepat', 'Demo Rp10.000.000'],
+              },
+              {
+                icon: CurrencyDollar,
+                title: 'Deposit & Pilih Strategi',
+                desc: 'Deposit mulai dari Rp 50.000 didukung berbagai metode pembayaran. Pilih strategi trading sesuai profil risiko Anda.',
+                color: 'pink',
+                num: 2,
+                img: '/2.png',
+                tags: ['Minimal deposit rendah', 'Alat lengkap'],
+              },
+              {
+                icon: TrendUp,
+                title: 'Trading & Hasilkan Profit',
+                desc: 'Pasar trading buka 24/7. Pantau profit real-time dan tarik keuntungan kapan saja.',
+                color: 'sky',
+                num: 3,
+                img: '/3.png',
+                tags: ['Trading 24/7', 'Profit sampai 100%'],
+              },
             ].map((step, i) => (
-              <div key={i} className="flex gap-4 relative">
-                {i < 2 && <div className="absolute left-7 top-16 w-px h-6 bg-gray-800"></div>}
-
-                <div className="flex-shrink-0">
-                  <div className={`w-14 h-14 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-full flex items-center justify-center`}>
-                    <span className={`text-lg font-bold text-${step.color}-400`}>{step.num}</span>
-                  </div>
-                </div>
-
-                <div className="flex-1 bg-[#0a0e17] border border-gray-800/50 rounded-xl p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className={`w-10 h-10 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-lg flex items-center justify-center`}>
-                      <step.icon className={`w-5 h-5 text-${step.color}-400`} weight="bold" />
+              <motion.div
+                key={i}
+                className="relative"
+                initial={{ opacity: 0, y: 32 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-50px' }}
+                transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1], delay: i * 0.1 }}
+              >
+                {i < 2 && (
+                  <div className="absolute left-7 -bottom-8 w-px h-8 timeline-line opacity-60" />
+                )}
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0">
+                    <div className={`w-14 h-14 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-full flex items-center justify-center step-ring-${step.color}`}>
+                      <span className={`text-lg font-bold text-${step.color}-400`}>{step.num}</span>
                     </div>
-                    <h3 className="font-bold">{step.title}</h3>
                   </div>
-                  <p className="text-sm text-gray-400 leading-relaxed">{step.desc}</p>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="glass-card rounded-2xl overflow-hidden">
+                      {}
+                      <motion.div
+                        className="relative overflow-hidden"
+                        whileTap={{ scale: 0.99 }}
+                      >
+                        <Image
+                          src={step.img}
+                          alt={step.title}
+                          width={640}
+                          height={180}
+                          className="w-full h-36 object-cover block"
+                        />
+                      </motion.div>
+
+                      {}
+                      <div className="p-4">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className={`w-9 h-9 bg-${step.color}-500/10 border border-${step.color}-500/30 rounded-lg flex items-center justify-center flex-shrink-0`}>
+                            <step.icon className={`w-4 h-4 text-${step.color}-400`} weight="bold" />
+                          </div>
+                          <h3 className="font-bold text-base">{step.title}</h3>
+                        </div>
+                        <p className="text-sm text-gray-400 leading-relaxed mb-3">{step.desc}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {step.tags.map((tag, t) => (
+                            <span
+                              key={t}
+                              className={`px-3 py-1 bg-${step.color}-500/10 border border-${step.color}-500/20 rounded-full text-xs text-${step.color}-400`}
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -2255,7 +2378,7 @@ export default function LandingPage() {
     {}
     <div className="gsap-affiliate-header gsap-section-header text-center mb-16">
       <div className="gsap-aff-badge inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6">
-        <span className="text-sm font-medium text-emerald-400">Program Affiliate</span>
+        <span className="text-sm font-medium text-emerald-400">Program Referral</span>
       </div>
       <h2 className="gsap-aff-title text-4xl sm:text-5xl font-bold mb-6 tracking-tight">
         Undang Teman,<br />Dapatkan Hingga <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-emerald-400">Rp 400.000</span>
@@ -2467,8 +2590,7 @@ export default function LandingPage() {
 
       <div className="relative z-10 p-6 sm:p-8 sm:p-12 text-center">
         <div className="gsap-cta-badge inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-4 sm:mb-6">
-          <Medal className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" weight="bold" />
-          <span className="text-xs sm:text-sm font-medium text-emerald-400">Program Partner</span>
+          <span className="text-xs sm:text-sm font-medium text-emerald-400">Program Affiliator</span>
         </div>
 
         <h3 className="gsap-cta-title text-xl sm:text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">
