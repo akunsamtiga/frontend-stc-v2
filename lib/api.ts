@@ -9,6 +9,7 @@ import type {
   CommissionWithdrawalHistory,
   RequestCommissionWithdrawalDto,
   AdminAffiliatorsResponse,
+  AdminAffiliatorDetail,
   AdminCommissionWithdrawalsResponse,
   AssignAffiliatorDto,
   UpdateAffiliatorConfigDto,
@@ -1877,8 +1878,7 @@ async bulkUpdateAssetScheduleStatus(ids: string[], isActive: boolean): Promise<A
     page?: number
     limit?: number
     isActive?: boolean
-  }): Promise<ApiResponse<AdminAffiliatorsResponse>> {
-    const query = new URLSearchParams()
+  }): Promise<ApiResponse<AdminAffiliatorsResponse>> {    const query = new URLSearchParams()
     if (params?.page)    query.append('page', String(params.page))
     if (params?.limit)   query.append('limit', String(params.limit))
     if (params?.isActive !== undefined) query.append('isActive', String(params.isActive))
@@ -1892,7 +1892,7 @@ async bulkUpdateAssetScheduleStatus(ids: string[], isActive: boolean): Promise<A
     })
   }
 
-  async adminGetAffiliatorDetail(userId: string): Promise<ApiResponse> {
+  async adminGetAffiliatorDetail(userId: string): Promise<ApiResponse<AdminAffiliatorDetail>> {
     const cacheKey = this.getCacheKey(`/admin/affiliate-program/affiliators/${userId}`)
     const cached = this.getFromCache(cacheKey)
     if (cached) return cached
@@ -1925,7 +1925,8 @@ async bulkUpdateAssetScheduleStatus(ids: string[], isActive: boolean): Promise<A
 
   async adminUpdateAffiliatorConfig(programId: string, dto: UpdateAffiliatorConfigDto): Promise<ApiResponse> {
     try {
-      const result = await this.client.put(`/admin/affiliate-program/affiliators/${programId}/config`, dto)
+      // ✅ FIX: URL diperbaiki — sesuai route backend PUT /admin/affiliate-program/programs/:programId
+      const result = await this.client.put(`/admin/affiliate-program/programs/${programId}`, dto)
       this.invalidateCache('/admin/affiliate-program/affiliators')
       return result
     } catch (error) {
@@ -1937,8 +1938,7 @@ async bulkUpdateAssetScheduleStatus(ids: string[], isActive: boolean): Promise<A
     page?: number
     limit?: number
     status?: string
-  }): Promise<ApiResponse<AdminCommissionWithdrawalsResponse>> {
-    const query = new URLSearchParams()
+  }): Promise<ApiResponse<AdminCommissionWithdrawalsResponse>> {    const query = new URLSearchParams()
     if (params?.page)   query.append('page', String(params.page))
     if (params?.limit)  query.append('limit', String(params.limit))
     if (params?.status) query.append('status', params.status)

@@ -51,6 +51,7 @@ import type {
   RequestCommissionWithdrawalDto,
   CommissionDetails,
 } from '@/types'
+import { buildShareLink } from '@/types'
 
 // ── Global Styles ─────────────────────────────────────────────
 
@@ -521,7 +522,7 @@ export default function AffiliatePage() {
 
   const copyLink = () => {
     if (!dashboard?.affiliateCode) return
-    const fullLink = `${window.location.origin}/ref/${dashboard.affiliateCode}`
+    const fullLink = buildShareLink(dashboard.affiliateCode)
     navigator.clipboard.writeText(fullLink)
     setCopiedLink(true)
     toast.success('Link referral disalin!')
@@ -670,7 +671,7 @@ export default function AffiliatePage() {
               </div>
               <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
                 <p className="text-xs text-gray-400 truncate max-w-[180px] sm:max-w-[220px] font-mono select-all flex-1">
-                  {typeof window !== 'undefined' ? `${window.location.origin}/ref/${affiliateCode}` : `/ref/${affiliateCode}`}
+                  {buildShareLink(affiliateCode)}
                 </p>
                 <motion.button onClick={copyLink}
                   className="flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 text-xs font-medium transition-colors"
@@ -718,7 +719,7 @@ export default function AffiliatePage() {
                   variants={stagger(0.1)} initial="hidden" animate="visible">
                   <StatCard label="Total Undangan"      numValue={stats.totalInvited}            icon={Users}         color="blue" />
                   <StatCard label="Sudah Deposit"       numValue={stats.depositedInvites}         icon={CheckCircle}   color="green" />
-                  <StatCard label="Belum Deposit"       numValue={stats.registeredNoDeposit}      icon={Clock}         color="yellow" />
+                  <StatCard label="Belum Deposit"       numValue={stats.pendingInvites}      icon={Clock}         color="yellow" />
                   <StatCard label="Total Komisi Masuk"  value={formatRupiah(stats.totalCommissionEarned)}   icon={CurrencyDollar} color="purple" isText />
                 </motion.div>
 
@@ -727,7 +728,7 @@ export default function AffiliatePage() {
                   variants={stagger(0.1)} initial="hidden" animate="visible">
                   <StatCard label="Sudah Dicairkan"     value={formatRupiah(stats.totalCommissionWithdrawn)} icon={ArrowLineUp}    color="orange" isText />
                   <StatCard label="Saldo Komisi"        value={formatRupiah(balances.commissionBalance)}     icon={Wallet}         color="purple" isText />
-                  <StatCard label="Revenue Share"       value={`${revenueSharePercentage}%`}                 icon={ChartBar}       color="blue" isText />
+                  <StatCard label="Revenue Share (Snapshot)"  value={`${revenueSharePercentage}%`}                 icon={ChartBar}       color="blue" isText />
                 </motion.div>
 
                 {/* Balance + unlock progress */}
@@ -828,10 +829,10 @@ export default function AffiliatePage() {
                       </div>
 
                       {/* Pending invites note */}
-                      {stats.registeredNoDeposit > 0 && (
+                      {stats.pendingInvites > 0 && (
                         <div className="mt-3 flex items-center gap-2 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
                           <Clock className="w-3.5 h-3.5 text-yellow-500 flex-shrink-0" weight="fill" />
-                          <span>{stats.registeredNoDeposit} undangan terdaftar tapi belum deposit</span>
+                          <span>{stats.pendingInvites} undangan terdaftar tapi belum deposit</span>
                         </div>
                       )}
                     </motion.div>
@@ -1010,14 +1011,14 @@ export default function AffiliatePage() {
                 {commissionDetails && (
                   <motion.div
                     className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-sm ${
-                      commissionDetails.isWithdrawable
+                      commissionDetails.isCommissionUnlocked
                         ? 'bg-green-50 border-green-200 text-green-800'
                         : 'bg-blue-50 border-blue-200 text-blue-800'}`}
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
-                    {commissionDetails.isWithdrawable
+                    {commissionDetails.isCommissionUnlocked
                       ? <LockOpen className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" weight="duotone" />
                       : <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" weight="duotone" />}
-                    <p className="text-xs leading-relaxed">{commissionDetails.unlockStatus?.message}</p>
+                    <p className="text-xs leading-relaxed">{commissionDetails.isCommissionUnlocked ? "Komisi siap dicairkan. Saldo bisa ditarik kapan saja." : dashboard?.unlockProgress?.message ?? `Komisi terkumpul, tapi belum bisa dicairkan. Tunggu hingga syarat depositor terpenuhi.`}</p>
                   </motion.div>
                 )}
 

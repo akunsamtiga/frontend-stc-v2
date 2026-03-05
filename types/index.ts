@@ -1686,13 +1686,17 @@ export interface AffiliatorProgram {
 
 export interface AffiliatorDashboard {
   affiliateCode: string
-  shareLink: string
+  /** @deprecated Backend tidak mengembalikan shareLink. Gunakan buildShareLink(affiliateCode) */
+  shareLink?: string
   isCommissionUnlocked: boolean
+  /** @deprecated Snapshot saja — rate aktual dihitung dinamis oleh backend */
   revenueSharePercentage: number
   balances: {
     commissionBalance: number
-    /** true when depositedInvites >= unlockThreshold — user may withdraw */
-    isWithdrawable: boolean
+    /** Always 0 in new system */
+    lockedCommissionBalance: number
+    /** true = commission terkunci (unlock threshold belum terpenuhi) */
+    isLocked: boolean
   }
   unlockProgress: {
     current: number
@@ -1704,13 +1708,20 @@ export interface AffiliatorDashboard {
   stats: {
     totalInvited: number
     depositedInvites: number
-    /** Registered but haven't deposited yet */
-    registeredNoDeposit: number
+    /** Sudah daftar tapi belum deposit */
+    pendingInvites: number
     totalCommissionEarned: number
     totalCommissionWithdrawn: number
-    /** Current withdrawable commission balance */
-    commissionPending: number
   }
+}
+
+/**
+ * Generate share/referral link dari affiliateCode.
+ * Gunakan ini karena backend tidak lagi mengembalikan shareLink di response.
+ */
+export function buildShareLink(affiliateCode: string, baseUrl?: string): string {
+  const origin = baseUrl || (typeof window !== 'undefined' ? window.location.origin : '')
+  return `${origin}/ref/${affiliateCode}`
 }
 
 /** Legacy — kept for backward compat. Use AffiliatorInviteDetailed for the new invites endpoint. */
@@ -1790,6 +1801,7 @@ export interface CommissionLog {
   id: string
   affiliatorId: string
   inviteeId: string
+  orderId: string
   orderAmount: number
   lossAmount: number
   commissionPercentage: number
@@ -1799,17 +1811,14 @@ export interface CommissionLog {
 
 export interface CommissionDetails {
   commissionBalance: number
-  /** true when depositedInvites >= unlockThreshold */
-  isWithdrawable: boolean
+  /** Always 0 in new system */
+  lockedCommissionBalance: number
+  /** true ketika depositedInvites >= unlockThreshold */
+  isCommissionUnlocked: boolean
   totalEarned: number
   totalWithdrawn: number
+  /** @deprecated Snapshot saja — rate aktual dihitung dinamis */
   revenueSharePercentage: number
-  unlockStatus: {
-    depositedInvites: number
-    required: number
-    isUnlocked: boolean
-    message: string
-  }
   commissionLogs: CommissionLog[]
 }
 
@@ -1835,8 +1844,8 @@ export interface CommissionWithdrawal {
 
 export interface CommissionWithdrawalHistory {
   commissionBalance: number
-  /** true when depositedInvites >= unlockThreshold */
-  isWithdrawable: boolean
+  /** true ketika depositedInvites >= unlockThreshold */
+  isCommissionUnlocked: boolean
   totalWithdrawn: number
   withdrawals: CommissionWithdrawal[]
 }
@@ -1851,48 +1860,76 @@ export interface AffiliatorListItem {
   userId: string
   userEmail: string
   affiliateCode: string
-  shareLink: string
+  isActive: boolean
+  /** @deprecated Snapshot saja — rate aktual dihitung dinamis */
   revenueSharePercentage: number
   unlockThreshold: number
   commissionBalance: number
   isCommissionUnlocked: boolean
-  isActive: boolean
   totalInvited: number
+  /** Jumlah invitee yang sudah deposit */
   totalInvitedDeposited: number
-  pendingInvites: number
   totalCommissionEarned: number
-  unlockProgress: {
-    current: number
-    required: number
-    isUnlocked: boolean
+  totalCommissionWithdrawn: number
+  createdAt: string
+}
+
+/** Detail lengkap satu affiliator — response GET /admin/affiliate-program/affiliators/:userId */
+export interface AdminAffiliatorDetail {
+  program: AffiliatorProgram
+  stats: {
+    totalInvited: number
+    depositedInvites: number
+    pendingInvites: number
+    totalCommissionEarned: number
+    totalCommissionWithdrawn: number
+    commissionBalance: number
   }
-  assignedAt: string
+  recentCommissions: CommissionLog[]
+  recentWithdrawals: CommissionWithdrawal[]
 }
 
 export interface AdminAffiliatorsResponse {
   affiliators: AffiliatorListItem[]
-  total: number
-  page: number
-  limit: number
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+  summary: {
+    totalAffiliators: number
+    activeAffiliators: number
+    unlockedPrograms: number
+    totalCommissionPaid: number
+  }
 }
 
 export interface AdminCommissionWithdrawal extends CommissionWithdrawal {
   affiliatorEmail: string
   userEmail: string
+  /** Saldo komisi affiliator saat request dibuat (untuk audit trail) */
+  commissionBalanceAtRequest: number
+  reviewedBy?: string
 }
 
 export interface AdminCommissionWithdrawalsResponse {
   withdrawals: AdminCommissionWithdrawal[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
   summary: {
     total: number
     pending: number
     approved: number
     rejected: number
     completed: number
-    totalAmount: number
+    totalAmountPending: number
+    totalAmountCompleted: number
   }
-  page: number
-  limit: number
 }
 
 export interface UpdateAffiliatorConfigDto {
@@ -1920,7 +1957,81 @@ export interface RSSNewsItem {
 }
 
 export interface AssignAffiliatorDto {
+  /**
+   * Kode affiliate kustom (opsional). 3–20 karakter, hanya huruf/angka/dash/underscore.
+   * Jika tidak diisi, kode digenerate otomatis (format: AFF + 8 chars).
+   */
+  customCode?: string
+  /**
+   * @deprecated Tidak digunakan dalam sistem komisi dinamis.
+   * Komisi dihitung otomatis: 80% flat (2 bln pertama) → tier 50–80% (setelah itu).
+   */
   revenueSharePercentage?: number
+  /** Default: 5. Jumlah undangan yang harus deposit sebelum withdrawal terbuka. */
   unlockThreshold?: number
-  customCode?: string  // ← tambahkan ini
+}
+
+// ── Konstanta affiliate ───────────────────────────────────────────────────────
+
+export const COMMISSION_WITHDRAWAL_CONFIG = {
+  MIN_AMOUNT: 50_000,
+} as const
+
+/**
+ * Sistem komisi DINAMIS (backend v3.3+)
+ * FASE 1 — < 2 bulan sejak assignedAt: flat 80%
+ * FASE 2 — ≥ 2 bulan: tier berdasarkan jumlah user aktif (order real 30 hari):
+ *   0–49 aktif → 50% | 50–69 → 60% | 70–100 → 70% | 101+ → 80%
+ */
+export const AFFILIATE_COMMISSION_TIERS = {
+  NEW_AFFILIATE_MONTHS: 2,
+  NEW_AFFILIATE_RATE: 80,
+  TIERS: [
+    { minActive: 100, rate: 80 },
+    { minActive: 70,  rate: 70 },
+    { minActive: 50,  rate: 60 },
+    { minActive: 0,   rate: 50 },
+  ],
+  ACTIVE_USER_WINDOW_DAYS: 30,
+} as const
+
+// ── Helper functions ──────────────────────────────────────────────────────────
+
+/**
+ * Hitung persentase unlock progress.
+ */
+export function calcUnlockProgress(current: number, required: number): number {
+  if (required <= 0) return 100
+  return Math.min(100, Math.round((current / required) * 100))
+}
+
+/**
+ * Cek apakah affiliator masih di fase baru (< 2 bulan sejak assignedAt).
+ */
+export function isNewAffiliatorPhase(assignedAt: string): boolean {
+  const monthsElapsed =
+    (Date.now() - new Date(assignedAt).getTime()) / (1000 * 60 * 60 * 24 * 30)
+  return monthsElapsed < AFFILIATE_COMMISSION_TIERS.NEW_AFFILIATE_MONTHS
+}
+
+/**
+ * Format status commission withdrawal ke label + styling.
+ */
+export function formatCommissionWithdrawalStatus(status: CommissionWithdrawalStatus): {
+  label: string
+  bgClass: string
+  canCancel: boolean
+} {
+  switch (status) {
+    case 'pending':
+      return { label: 'Menunggu', bgClass: 'bg-yellow-100 text-yellow-800 border-yellow-200', canCancel: true }
+    case 'approved':
+      return { label: 'Disetujui', bgClass: 'bg-blue-100 text-blue-800 border-blue-200', canCancel: false }
+    case 'completed':
+      return { label: 'Selesai', bgClass: 'bg-green-100 text-green-800 border-green-200', canCancel: false }
+    case 'rejected':
+      return { label: 'Ditolak', bgClass: 'bg-red-100 text-red-800 border-red-200', canCancel: false }
+    default:
+      return { label: status, bgClass: 'bg-gray-100 text-gray-800 border-gray-200', canCancel: false }
+  }
 }

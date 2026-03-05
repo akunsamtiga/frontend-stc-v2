@@ -252,7 +252,6 @@ function AssignModal({
     setLoading(true)
     try {
       const dto: AssignAffiliatorDto = {
-        revenueSharePercentage: Number(revenueShare),
         unlockThreshold: Number(unlockThreshold),
         ...(customCode.trim() ? { customCode: customCode.trim().toUpperCase() } : {}),
       }
@@ -362,36 +361,25 @@ function AssignModal({
                 )}
               </div>
 
-              {/* Revenue share + unlock threshold */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1.5">Revenue Share (%)</label>
-                  <input
-                    type="number"
-                    value={revenueShare}
-                    onChange={(e) => setRevenueShare(e.target.value)}
-                    min={1} max={100}
-                    className="w-full glass-input rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500/50 text-sm transition-all"
-                  />
-                  <p className="text-xs text-slate-600 mt-1">Default: 50%</p>
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1.5">Unlock Threshold</label>
-                  <input
-                    type="number"
-                    value={unlockThreshold}
-                    onChange={(e) => setUnlockThreshold(e.target.value)}
-                    min={1}
-                    className="w-full glass-input rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500/50 text-sm transition-all"
-                  />
-                  <p className="text-xs text-slate-600 mt-1">Min. depositor</p>
-                </div>
+              {/* Unlock threshold — revenueSharePercentage dihapus karena @deprecated (sistem dinamis) */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-1.5">Unlock Threshold</label>
+                <input
+                  type="number"
+                  value={unlockThreshold}
+                  onChange={(e) => setUnlockThreshold(e.target.value)}
+                  min={1}
+                  className="w-full glass-input rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500/50 text-sm transition-all"
+                />
+                <p className="text-xs text-slate-600 mt-1">Min. depositor sebelum withdraw terbuka. Default: 5</p>
               </div>
 
               {/* Info box */}
               <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-3 text-xs text-purple-300/80 space-y-1">
-                <p>Affiliator mendapat <strong>{revenueShare}%</strong> dari setiap kerugian trading invitee (real account) — komisi <strong>langsung masuk</strong> dari invitee pertama.</p>
-                <p className="text-slate-500">Komisi baru bisa <strong className="text-purple-300">ditarik</strong> setelah minimal <strong>{unlockThreshold}</strong> invitee melakukan deposit.</p>
+                <p>Komisi affiliator dihitung <strong>dinamis</strong> oleh backend:</p>
+                <p className="text-slate-400">• <strong className="text-purple-300">2 bulan pertama</strong>: flat <strong className="text-purple-300">80%</strong> dari setiap kerugian invitee (real account) — berlaku dari invitee pertama.</p>
+                <p className="text-slate-400">• <strong className="text-purple-300">Setelah 2 bulan</strong>: tier berdasarkan jumlah user aktif (30 hari) — 50% / 60% / 70% / 80%.</p>
+                <p className="text-slate-500">Penarikan baru bisa dilakukan setelah minimal <strong>{unlockThreshold}</strong> invitee deposit terpenuhi.</p>
               </div>
 
               {/* Actions */}
@@ -514,7 +502,7 @@ function EditConfigModal({
               </div>
 
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-3 text-xs text-blue-300/80 space-y-1">
-                <p>Komisi <strong>{revenueShare}%</strong> dari loss invitee masuk <strong>langsung</strong> dari invitee pertama.</p>
+                <p>Komisi dihitung <strong>dinamis</strong> — <strong>80% flat</strong> selama 2 bulan pertama, lalu tier <strong>50–80%</strong> berdasarkan jumlah user aktif 30 hari.</p>
                 <p className="text-slate-500">Penarikan baru bisa dilakukan setelah <strong>{unlockThreshold}</strong> invitee deposit terpenuhi.</p>
               </div>
 
@@ -921,7 +909,7 @@ export default function AdminAffiliatorsPage() {
                         <div className="flex items-center gap-1 text-xs text-slate-500 mb-2">
                           <span className="font-mono text-purple-300/80 tracking-wider">{aff.affiliateCode}</span>
                           <span className="mx-1">·</span>
-                          <span>{aff.revenueSharePercentage}% share</span>
+                          <span>{aff.revenueSharePercentage}% share <span className="text-slate-600">(snapshot)</span></span>
                           <span className="mx-1">·</span>
                           <span>Threshold: {aff.unlockThreshold}</span>
                           {/* Share link chip */}
@@ -943,15 +931,11 @@ export default function AdminAffiliatorsPage() {
                             <span className="text-slate-500">Undangan: </span>
                             <span className="text-white font-medium">{aff.totalInvited}</span>
                             <span className="text-green-400"> ({aff.totalInvitedDeposited} deposit)</span>
-                            {aff.pendingInvites > 0 && (
-                              <span className="text-yellow-400"> · {aff.pendingInvites} belum deposit</span>
-                            )}
                           </div>
                           <div>
-                            <span className="text-slate-500">Syarat cairkan: </span>
-                            <span className={`font-medium ${aff.unlockProgress.isUnlocked ? 'text-green-400' : 'text-yellow-400'}`}>
-                              {aff.unlockProgress.current}/{aff.unlockProgress.required}
-                              {aff.unlockProgress.isUnlocked ? ' ✓' : ''}
+                            <span className="text-slate-500">Unlock: </span>
+                            <span className={`font-medium ${aff.isCommissionUnlocked ? 'text-green-400' : 'text-yellow-400'}`}>
+                              {aff.isCommissionUnlocked ? 'Terpenuhi ✓' : `${aff.totalInvitedDeposited}/${aff.unlockThreshold}`}
                             </span>
                           </div>
                           <div>
@@ -1015,7 +999,10 @@ export default function AdminAffiliatorsPage() {
                   </div>
                 ))}
                 <div className="px-4 py-1.5 rounded-xl border text-sm font-medium bg-purple-500/10 text-purple-400 border-purple-500/30">
-                  Total: <span className="font-bold">{formatRupiah(withdrawSummary.totalAmount ?? 0)}</span>
+                  Pending: <span className="font-bold">{formatRupiah(withdrawSummary.totalAmountPending ?? 0)}</span>
+                </div>
+                <div className="px-4 py-1.5 rounded-xl border text-sm font-medium bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                  Selesai: <span className="font-bold">{formatRupiah(withdrawSummary.totalAmountCompleted ?? 0)}</span>
                 </div>
               </div>
             )}
