@@ -35,6 +35,7 @@ interface Rect { top: number; left: number; width: number; height: number }
 export interface TradingTutorialProps {
   onComplete: () => void
   onSkip: () => void
+  isLightMode?: boolean
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -200,18 +201,26 @@ const STEPS: Step[] = [
 
 const TW_DESKTOP = 320   // tooltip width desktop
 const TW_TABLET  = 280   // tooltip width tablet
-const TW_MOBILE  = 240   // tooltip width mobile
-const TH = 295    // tooltip height estimate
-const GAP = 16    // gap between spotlight edge and tooltip
+const GAP = 12    // gap between spotlight edge and tooltip
 
 function getTooltipWidth(vpW: number) {
   if (vpW >= 1024) return TW_DESKTOP
   if (vpW >= 640)  return TW_TABLET
-  return TW_MOBILE
+  // Mobile: full width minus horizontal margin (16px each side)
+  return Math.min(260, vpW - 32)
+}
+
+function getTooltipHeight(vpW: number) {
+  if (vpW >= 1024) return 295
+  if (vpW >= 640)  return 260
+  return 210  // Mobile has fewer tips & smaller text
 }
 
 function calcPos(rect: Rect, pad: number, preferred: Step['placement'], vpW: number, vpH: number) {
   const TW = getTooltipWidth(vpW)
+  const TH = getTooltipHeight(vpW)
+  const isMobile = vpW < 640
+
   const sT = rect.top  - pad
   const sB = rect.top  + rect.height + pad
   const sL = rect.left - pad
@@ -219,9 +228,23 @@ function calcPos(rect: Rect, pad: number, preferred: Step['placement'], vpW: num
   const cx = rect.left + rect.width  / 2
   const cy = rect.top  + rect.height / 2
 
-  const clL = (x: number) => Math.min(Math.max(x, 10), vpW - TW - 10)
-  const clT = (y: number) => Math.min(Math.max(y, 10), vpH - TH - 10)
+  // Clamp helpers — tighter margins on mobile
+  const margin = isMobile ? 8 : 10
+  const clL = (x: number) => Math.min(Math.max(x, margin), vpW - TW - margin)
+  const clT = (y: number) => Math.min(Math.max(y, margin), vpH - TH - margin)
 
+  // ── Mobile: only top / bottom, centered horizontally ──────────────────
+  if (isMobile) {
+    const centeredL = clL(cx - TW / 2)
+    // Prefer below
+    if (sB + TH + GAP <= vpH) return { t: sB + GAP, l: centeredL, p: 'bottom' as const }
+    // Try above
+    if (sT - TH - GAP >= 0)  return { t: sT - TH - GAP, l: centeredL, p: 'top' as const }
+    // Last resort: force above (clamp so it stays on screen)
+    return { t: clT(sT - TH - GAP), l: centeredL, p: 'top' as const }
+  }
+
+  // ── Tablet / Desktop: try preferred order ─────────────────────────────
   const order = [preferred, 'bottom', 'top', 'right', 'left'] as Step['placement'][]
   const seen  = new Set<string>()
 
@@ -234,7 +257,7 @@ function calcPos(rect: Rect, pad: number, preferred: Step['placement'], vpW: num
     if (p === 'left'   && sL - TW - GAP >= 0)   return { t: clT(cy - TH/2), l: sL - TW - GAP,    p: 'left'   as const }
   }
 
-  // last resort: bottom-center clamped
+  // last resort: below-center clamped
   return { t: clT(sB + GAP), l: clL(cx - TW / 2), p: 'bottom' as const }
 }
 
@@ -242,23 +265,21 @@ function calcPos(rect: Rect, pad: number, preferred: Step['placement'], vpW: num
 // Arrow pointing from tooltip toward the spotlight
 // ─────────────────────────────────────────────────────────────────────────────
 
-function Arrow({ p }: { p: 'top' | 'bottom' | 'left' | 'right' }) {
-  const solid = '1px solid rgba(55,85,155,0.4)'
+function Arrow({ p, isLightMode }: { p: 'top' | 'bottom' | 'left' | 'right'; isLightMode?: boolean }) {
+  const solidColor = isLightMode ? 'rgba(59,130,246,0.30)' : 'rgba(55,85,155,0.4)'
+  const bgColor    = isLightMode ? '#f8fafc'               : '#141c2e'
+  const solid = `1px solid ${solidColor}`
   const none  = '1px solid transparent'
   const base: React.CSSProperties = {
     position: 'absolute', width: 12, height: 12,
-    background: '#141c2e', transform: 'rotate(45deg)',
+    background: bgColor, transform: 'rotate(45deg)',
     borderTop: solid, borderRight: solid, borderBottom: solid, borderLeft: solid,
     zIndex: 0,
   }
   const variants: Record<string, React.CSSProperties> = {
-    // tooltip is BELOW the element → arrow points UP from top of tooltip
     bottom: { top: -7,    left: '50%', marginLeft: -6, borderBottom: none, borderRight: none },
-    // tooltip is ABOVE the element → arrow points DOWN from bottom of tooltip
     top:    { bottom: -7, left: '50%', marginLeft: -6, borderTop: none,    borderLeft: none  },
-    // tooltip is to the RIGHT → arrow points LEFT from left of tooltip
     right:  { left: -7,   top: '50%',  marginTop: -6,  borderBottom: none, borderLeft: none  },
-    // tooltip is to the LEFT → arrow points RIGHT from right of tooltip
     left:   { right: -7,  top: '50%',  marginTop: -6,  borderTop: none,    borderRight: none },
   }
   return <div style={{ ...base, ...variants[p] }} />
@@ -271,10 +292,11 @@ function Arrow({ p }: { p: 'top' | 'bottom' | 'left' | 'right' }) {
 interface CardProps {
   step: Step; idx: number; total: number
   isLast: boolean; fading: boolean; vpW: number
+  isLightMode?: boolean
   onNext(): void; onPrev(): void; onSkip(): void; onDot(i: number): void
 }
 
-function Card({ step, idx, total, isLast, fading, vpW, onNext, onPrev, onSkip, onDot }: CardProps) {
+function Card({ step, idx, total, isLast, fading, vpW, isLightMode, onNext, onPrev, onSkip, onDot }: CardProps) {
   const Icon = step.icon
 
   // Pick responsive content based on viewport width
@@ -298,12 +320,40 @@ function Card({ step, idx, total, isLast, fading, vpW, onNext, onPrev, onSkip, o
   const fs = isMobile ? 10.5 : isTablet ? 11 : 11.5
   const titleFs = isMobile ? 12 : isTablet ? 12.5 : 13
 
+  // ── Light / Dark token maps ───────────────────────────────────────────
+  const lm = isLightMode
+  const card = {
+    bg:          lm ? 'linear-gradient(155deg,#ffffff 0%,#f8fafc 100%)' : 'linear-gradient(155deg,#161f32 0%,#0d1321 100%)',
+    border:      lm ? 'rgba(59,130,246,0.30)'                           : 'rgba(55,85,155,0.45)',
+    shadow:      lm ? '0 24px 60px rgba(0,0,0,0.14), 0 0 0 0.5px rgba(0,0,0,0.06)' : '0 24px 60px rgba(0,0,0,0.8), 0 0 0 0.5px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.05)',
+    dotInactive: lm ? 'rgba(0,0,0,0.12)'                                : 'rgba(255,255,255,0.1)',
+    dotDone:     lm ? 'rgba(59,130,246,0.4)'                            : 'rgba(59,130,246,0.5)',
+    counter:     lm ? '#94a3b8'                                         : '#364558',
+    iconBg:      lm ? 'rgba(59,130,246,0.10)'                           : 'rgba(37,99,235,0.14)',
+    iconBorder:  lm ? 'rgba(59,130,246,0.28)'                           : 'rgba(59,130,246,0.24)',
+    iconColor:   '#3b82f6',
+    label:       lm ? '#3b82f6'                                         : '#2d5fa8',
+    title:       lm ? '#0f172a'                                         : '#eef2ff',
+    closeBg:     lm ? 'transparent'                                      : 'transparent',
+    closeColor:  lm ? '#94a3b8'                                         : '#2f3e55',
+    desc:        lm ? '#475569'                                         : '#7d90a8',
+    tipBg:       lm ? 'rgba(59,130,246,0.08)'                           : 'rgba(37,99,235,0.13)',
+    tipBorder:   lm ? 'rgba(59,130,246,0.22)'                           : 'rgba(59,130,246,0.22)',
+    tipText:     lm ? '#334155'                                         : '#a8bcd0',
+    prevBg:      lm ? 'rgba(0,0,0,0.05)'                               : 'rgba(255,255,255,0.05)',
+    prevBorder:  lm ? 'rgba(0,0,0,0.12)'                               : 'rgba(255,255,255,0.09)',
+    prevColor:   lm ? '#64748b'                                         : '#6b7fa0',
+    prevBgHover: lm ? 'rgba(0,0,0,0.10)'                               : 'rgba(255,255,255,0.1)',
+    skipColor:   lm ? '#cbd5e1'                                         : '#253040',
+    skipHover:   lm ? '#94a3b8'                                         : '#5a7090',
+  }
+
   return (
     <div style={{
       width: TW, borderRadius: 14, overflow: 'hidden',
-      background: 'linear-gradient(155deg,#161f32 0%,#0d1321 100%)',
-      border: '1px solid rgba(55,85,155,0.45)',
-      boxShadow: '0 24px 60px rgba(0,0,0,0.8), 0 0 0 0.5px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.05)',
+      background: card.bg,
+      border: `1px solid ${card.border}`,
+      boxShadow: card.shadow,
       opacity: fading ? 0 : 1,
       transform: fading ? 'translateY(8px) scale(0.97)' : 'translateY(0) scale(1)',
       transition: 'opacity 0.18s ease, transform 0.2s cubic-bezier(0.22,1,0.36,1)',
@@ -318,11 +368,11 @@ function Card({ step, idx, total, isLast, fading, vpW, onNext, onPrev, onSkip, o
             height: 4, width: i === idx ? 24 : 7, borderRadius: 99,
             border: 'none', cursor: 'pointer', padding: 0, transition: 'all 0.25s',
             background: i < idx
-              ? 'rgba(59,130,246,0.5)'
-              : i === idx ? '#3b82f6' : 'rgba(255,255,255,0.1)',
+              ? card.dotDone
+              : i === idx ? '#3b82f6' : card.dotInactive,
           }} />
         ))}
-        <span style={{ marginLeft: 'auto', fontSize: 9.5, color: '#364558', fontVariantNumeric: 'tabular-nums' }}>
+        <span style={{ marginLeft: 'auto', fontSize: 9.5, color: card.counter, fontVariantNumeric: 'tabular-nums' }}>
           {idx + 1}/{total}
         </span>
       </div>
@@ -334,32 +384,32 @@ function Card({ step, idx, total, isLast, fading, vpW, onNext, onPrev, onSkip, o
             <div style={{
               width: 32, height: 32, borderRadius: 9, flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'rgba(37,99,235,0.14)', border: '1px solid rgba(59,130,246,0.24)',
+              background: card.iconBg, border: `1px solid ${card.iconBorder}`,
             }}>
-              <Icon style={{ width: 15, height: 15, color: '#60a5fa' }} />
+              <Icon style={{ width: 15, height: 15, color: card.iconColor }} />
             </div>
           )}
           <div style={{ flex: 1 }}>
-            <p style={{ margin: '0 0 1px', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#2d5fa8' }}>
+            <p style={{ margin: '0 0 1px', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: card.label }}>
               Langkah {idx + 1} dari {total}
             </p>
-            <h3 style={{ margin: 0, fontSize: titleFs, fontWeight: 700, color: '#eef2ff', lineHeight: 1.3 }}>
+            <h3 style={{ margin: 0, fontSize: titleFs, fontWeight: 700, color: card.title, lineHeight: 1.3 }}>
               {step.title}
             </h3>
           </div>
           <button onClick={onSkip} style={{
-            width: 22, height: 22, border: 'none', cursor: 'pointer', flexShrink: 0,
+            width: 22, height: 22, border: lm ? '1px solid rgba(0,0,0,0.10)' : 'none', cursor: 'pointer', flexShrink: 0,
             borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'transparent', color: '#2f3e55', transition: 'all 0.15s',
+            background: lm ? 'rgba(0,0,0,0.04)' : 'transparent', color: card.closeColor, transition: 'all 0.15s',
           }}
-          onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = 'rgba(255,255,255,0.08)'; el.style.color = '#6b7fa0' }}
-          onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; el.style.color = '#2f3e55' }}>
+          onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = lm ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'; el.style.color = lm ? '#64748b' : '#6b7fa0' }}
+          onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = lm ? 'rgba(0,0,0,0.04)' : 'transparent'; el.style.color = card.closeColor }}>
             <X style={{ width: 11, height: 11 }} />
           </button>
         </div>
 
         {/* Description */}
-        <p style={{ margin: '0 0 9px', fontSize: fs, color: '#7d90a8', lineHeight: 1.65 }}>
+        <p style={{ margin: '0 0 9px', fontSize: fs, color: card.desc, lineHeight: 1.65 }}>
           {desc}
         </p>
 
@@ -370,11 +420,11 @@ function Card({ step, idx, total, isLast, fading, vpW, onNext, onPrev, onSkip, o
               <div style={{
                 width: 15, height: 15, borderRadius: 4, flexShrink: 0, marginTop: 1,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'rgba(37,99,235,0.13)', border: '1px solid rgba(59,130,246,0.22)',
+                background: card.tipBg, border: `1px solid ${card.tipBorder}`,
               }}>
                 <Check style={{ width: 8, height: 8, color: '#60a5fa' }} />
               </div>
-              <span style={{ fontSize: fs - 0.5, color: '#a8bcd0', lineHeight: 1.55 }}>{tip}</span>
+              <span style={{ fontSize: fs - 0.5, color: card.tipText, lineHeight: 1.55 }}>{tip}</span>
             </div>
           ))}
         </div>
@@ -385,12 +435,12 @@ function Card({ step, idx, total, isLast, fading, vpW, onNext, onPrev, onSkip, o
             <button onClick={onPrev} style={{
               display: 'flex', alignItems: 'center', gap: 5,
               padding: '7px 12px', borderRadius: 8,
-              border: '1px solid rgba(255,255,255,0.09)',
-              background: 'rgba(255,255,255,0.05)',
-              color: '#6b7fa0', fontSize: fs, fontWeight: 500, cursor: 'pointer', transition: 'background 0.15s',
+              border: `1px solid ${card.prevBorder}`,
+              background: card.prevBg,
+              color: card.prevColor, fontSize: fs, fontWeight: 500, cursor: 'pointer', transition: 'background 0.15s',
             }}
-            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.1)'}
-            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'}>
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = card.prevBgHover}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = card.prevBg}>
               <ArrowLeft style={{ width: 11, height: 11 }} />
               Kembali
             </button>
@@ -418,10 +468,10 @@ function Card({ step, idx, total, isLast, fading, vpW, onNext, onPrev, onSkip, o
         {!isLast && (
           <button onClick={onSkip} style={{
             width: '100%', marginTop: 9, background: 'none', border: 'none',
-            fontSize: 10, color: '#253040', cursor: 'pointer', transition: 'color 0.15s',
+            fontSize: 10, color: card.skipColor, cursor: 'pointer', transition: 'color 0.15s',
           }}
-          onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#5a7090'}
-          onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#253040'}>
+          onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = card.skipHover}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = card.skipColor}>
             Lewati tutorial
           </button>
         )}
@@ -434,7 +484,7 @@ function Card({ step, idx, total, isLast, fading, vpW, onNext, onPrev, onSkip, o
 // Main Component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function TradingTutorial({ onComplete, onSkip }: TradingTutorialProps) {
+export default function TradingTutorial({ onComplete, onSkip, isLightMode = false }: TradingTutorialProps) {
   const [idx, setIdx]         = useState(0)
   const [fading, setFading]   = useState(false)
   const [rect, setRect]       = useState<Rect | null>(null)
@@ -462,11 +512,12 @@ export default function TradingTutorial({ onComplete, onSkip }: TradingTutorialP
     setRect({ top: r.top, left: r.left, width: r.width, height: r.height })
   }, [step.target])
 
-  // Re-measure after step changes (80ms delay so DOM settles)
+  // Re-measure after step changes — longer delay on mobile so DOM settles
   useEffect(() => {
-    const t = setTimeout(measure, 80)
+    const delay = vp.w < 640 ? 150 : 80
+    const t = setTimeout(measure, delay)
     return () => clearTimeout(t)
-  }, [measure])
+  }, [measure, vp.w])
 
   // Re-measure on resize/scroll
   useEffect(() => {
@@ -483,11 +534,14 @@ export default function TradingTutorial({ onComplete, onSkip }: TradingTutorialP
     }
   }, [measure])
 
-  // Scroll target into view
+  // Scroll target into view — use 'center' on mobile for better visibility
   useEffect(() => {
     const el = document.querySelector(`[data-tutorial="${step.target}"]`) as HTMLElement | null
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  }, [step.target])
+    if (el) {
+      const block = vp.w < 640 ? 'center' : 'nearest'
+      el.scrollIntoView({ behavior: 'smooth', block })
+    }
+  }, [step.target, vp.w])
 
   // Navigate with fade
   const goTo = useCallback((next: number) => {
@@ -526,9 +580,10 @@ export default function TradingTutorial({ onComplete, onSkip }: TradingTutorialP
   const sW = rect ? rect.width  + pad * 2 : 0
   const sH = rect ? rect.height + pad * 2 : 0
   const sR = 10  // border-radius of the spotlight hole
+  const TH = getTooltipHeight(vp.w)
 
   const cardProps: CardProps = {
-    step, idx, total: STEPS.length, isLast, fading, vpW: vp.w,
+    step, idx, total: STEPS.length, isLast, fading, vpW: vp.w, isLightMode,
     onNext: handleNext, onPrev: handlePrev, onSkip, onDot: handleDot,
   }
 
@@ -555,7 +610,7 @@ export default function TradingTutorial({ onComplete, onSkip }: TradingTutorialP
         </defs>
 
         {/* Dark overlay (with cutout hole applied by mask) */}
-        <rect width={vp.w} height={vp.h} fill="rgba(0,0,0,0.72)" mask="url(#stc-spotlight-mask)" />
+        <rect width={vp.w} height={vp.h} fill={isLightMode ? 'rgba(15,23,42,0.55)' : 'rgba(0,0,0,0.72)'} mask="url(#stc-spotlight-mask)" />
 
         {/* Soft glow behind the spotlight border */}
         {rect && (
@@ -637,27 +692,29 @@ export default function TradingTutorial({ onComplete, onSkip }: TradingTutorialP
           top: pos.t, left: pos.l,
         }}>
           <Card {...cardProps} />
-          <Arrow p={pos.p} />
+          <Arrow p={pos.p} isLightMode={isLightMode} />
         </div>
       )}
 
-      {/* ── Keyboard shortcut hint ─────────────────────────────────────────── */}
-      <div style={{
-        position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)',
-        zIndex: 9995, pointerEvents: 'none',
-        display: 'flex', gap: 14, alignItems: 'center',
-        opacity: fading ? 0 : 0.38, transition: 'opacity 0.3s',
-      }}>
-        {[['←', 'Kembali'], ['→', 'Lanjut'], ['Esc', 'Skip']].map(([key, label]) => (
-          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#7a8ca4' }}>
-            <kbd style={{
-              padding: '2px 5px', borderRadius: 4, fontSize: 9, fontFamily: 'monospace',
-              background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#7a8ca4',
-            }}>{key}</kbd>
-            {label}
-          </div>
-        ))}
-      </div>
+      {/* ── Keyboard shortcut hint (desktop/tablet only) ───────────────────── */}
+      {vp.w >= 640 && (
+        <div style={{
+          position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 9995, pointerEvents: 'none',
+          display: 'flex', gap: 14, alignItems: 'center',
+          opacity: fading ? 0 : 0.38, transition: 'opacity 0.3s',
+        }}>
+          {[['←', 'Kembali'], ['→', 'Lanjut'], ['Esc', 'Skip']].map(([key, label]) => (
+            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#7a8ca4' }}>
+              <kbd style={{
+                padding: '2px 5px', borderRadius: 4, fontSize: 9, fontFamily: 'monospace',
+                background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#7a8ca4',
+              }}>{key}</kbd>
+              {label}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ── CSS animations ─────────────────────────────────────────────────── */}
       <style>{`
