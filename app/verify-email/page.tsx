@@ -188,7 +188,7 @@ function VerifyEmailContent() {
             {/* Success / already_verified → ke dashboard */}
             {(status === 'success' || status === 'already_verified') && (
               <motion.button
-                onClick={() => router.push(isAuthenticated ? '/dashboard' : '/login')}
+                onClick={() => router.push(isAuthenticated ? '/trading' : '/login')}
                 className={`w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl text-white font-semibold text-sm bg-gradient-to-r ${current.accent} shadow-md hover:opacity-90 transition-opacity`}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
