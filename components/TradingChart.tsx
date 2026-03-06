@@ -4221,7 +4221,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       )}
 
       {}
-      <div className="hidden lg:block absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
+      <div className="hidden lg:block absolute bottom-10 left-1/2 -translate-x-1/2 z-10">
         <CandleCountdown timeframe={timeframe} nowSeconds={nowSeconds} isLightMode={isLightMode} />
       </div>
     </div>

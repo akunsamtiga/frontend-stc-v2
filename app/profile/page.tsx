@@ -1663,7 +1663,7 @@ export default function ProfilePage() {
                       {
                         label: 'Saldo Demo',
                         value: `Rp ${(profile?.balances?.demo ?? 0).toLocaleString('id-ID')}`,
-                        desc: 'Akun latihan',
+                        desc: 'Akun Demo',
                         color: 'text-sky-600',
                         gradient: 'from-sky-50/80 via-white to-white',
                         dot: 'bg-sky-400',

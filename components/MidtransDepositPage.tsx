@@ -250,12 +250,9 @@ const MidtransPaymentPage: React.FC = () => {
   const [lastBalanceCheck, setLastBalanceCheck] = useState<number>(0);
 
   const quickAmounts = [
-    { value: 100000, label: '100K' },
-    { value: 200000, label: '200K' },
-    { value: 500000, label: '500K' },
-    { value: 1000000, label: '1000K' },
-    { value: 4000000, label: '4000K' },
-    { value: 8000000, label: '8000K' }
+    { value: 100000, label: '100 Ribu' },
+    { value: 1000000, label: '1 Juta' },
+    { value: 10000000, label: '10 Juta' }
   ];
 
   const paymentMethods = [
@@ -440,7 +437,7 @@ const MidtransPaymentPage: React.FC = () => {
   const handleSubmit = async () => {
     const depositAmount = parseInt(amount);
     if (isNaN(depositAmount) || depositAmount < 100000) { setError('Minimal pembayaran adalah Rp 100.000'); return; }
-    if (depositAmount > 10000000) { setError('Maksimal pembayaran adalah Rp 10.000.000'); return; }
+    if (depositAmount > 20000000) { setError('Maksimal pembayaran adalah Rp 20.000.000'); return; }
 
     setLoading(true);
     setError('');
@@ -717,7 +714,7 @@ const MidtransPaymentPage: React.FC = () => {
                       ))}
                     </motion.div>
 
-                    <p className="text-xs text-gray-500 text-center">Minimal: Rp 100.000 • Maksimal: Rp 10.000.000</p>
+                    <p className="text-xs text-gray-500 text-center">Minimal: Rp 100.000 • Maksimal: Rp 20.000.000</p>
 
                     <AnimatePresence>
                       {error && (

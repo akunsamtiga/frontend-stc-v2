@@ -84,10 +84,10 @@ const CONTACT_METHODS = [
     border:    '#bfdbfe',
     title:     'Email Support',
     desc:      'Kirim pertanyaan detail via email — kami akan membalas sesegera mungkin',
-    contact:   'sanzystoreid@gmail.com',
-    availability:'Respon dalam 2 jam',
+    contact:   'support@stouch.id',
+    availability:'Respon dalam 6 jam',
     action:    'Send Email',
-    href:      'mailto:sanzystoreid@gmail.com',
+    href:      'mailto:support@stouch.id',
     badge:     null,
   },
   {
@@ -101,13 +101,13 @@ const CONTACT_METHODS = [
     contact:   '+62 813-3990-8765',
     availability:'24/7 Tersedia',
     action:    'Chat on WhatsApp',
-    href:      'https://wa.me/6281339908765',
+    href:      'https://wa.me/6285959860015',
     badge:     'Tercepat',
   },
 ]
 
 const STATS = [
-  { label:'Waktu Respons Email',    value:'< 2 Jam',  color:'#2563eb' },
+  { label:'Waktu Respons Email',    value:'< 6 Jam',  color:'#2563eb' },
   { label:'Waktu Respons WhatsApp', value:'Instan',   color:'#059669' },
   { label:'Jam Operasional',        value:'24/7',     color:'#7c3aed' },
   { label:'Kepuasan Pengguna',      value:'98%',      color:'#d97706' },
@@ -121,7 +121,7 @@ const PERKS = [
 ]
 
 const FAQ = [
-  { q:'Berapa lama waktu respons support?',         a:'Untuk WhatsApp biasanya direspons dalam hitungan menit. Email biasanya direspons dalam 2 jam di jam kerja.' },
+  { q:'Berapa lama waktu respons support?',         a:'Untuk WhatsApp biasanya direspons dalam hitungan menit. Email biasanya direspons dalam 6 jam di jam kerja.' },
   { q:'Masalah apa saja yang bisa dibantu?',        a:'Kami membantu semua masalah terkait akun: deposit, withdrawal, verifikasi, masalah teknis platform, dan pertanyaan umum trading.' },
   { q:'Apakah support tersedia di hari libur?',     a:'Ya. WhatsApp kami aktif 24/7 termasuk hari libur nasional. Email mungkin sedikit lebih lama saat hari libur.' },
   { q:'Bagaimana jika masalah tidak segera teratasi?', a:'Kami akan terus mem-follow up hingga masalah Anda benar-benar terselesaikan. Tidak ada ticket yang dibiarkan terbuka tanpa resolusi.' },
@@ -301,7 +301,7 @@ export default function SupportPage() {
                     whileTap={{ scale:0.97 }}>
                     <Phone className="w-3.5 h-3.5"/> WhatsApp
                   </motion.a>
-                  <motion.a href="mailto:sanzystoreid@gmail.com"
+                  <motion.a href="mailto:support@stouch.id"
                     className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-gray-700"
                     style={{ border:'1px solid #f0f0f0', background:'#fff' }}
                     whileHover={{ scale:1.03, boxShadow:'0 4px 12px rgba(0,0,0,0.08)' }}
@@ -331,7 +331,7 @@ export default function SupportPage() {
                 className="bg-white rounded-2xl p-5"
                 style={{ border:'1px solid #f0f0f0' }}
                 whileHover={{ y:-4, boxShadow:'0 12px 32px rgba(0,0,0,0.08)', transition:{ duration:0.2 } }}>
-                <motion.p className="text-2xl font-black text-gray-100 mb-3"
+                <motion.p className="text-2xl font-black text-emerald-500 mb-3"
                   style={{ letterSpacing:'-0.04em' }}
                   initial={{ opacity:0, x:-10 }} whileInView={{ opacity:1, x:0 }}
                   viewport={{ once:true }} transition={{ duration:0.4, delay:i*0.1+0.2 }}>
