@@ -111,8 +111,8 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
     dailyVolatilityMax: asset?.simulatorSettings?.dailyVolatilityMax || 0.005,
     secondVolatilityMin: asset?.simulatorSettings?.secondVolatilityMin || 0.00001,
     secondVolatilityMax: asset?.simulatorSettings?.secondVolatilityMax || 0.00008,
-    minPrice: asset?.simulatorSettings?.minPrice || 0,
-    maxPrice: asset?.simulatorSettings?.maxPrice || 0,
+    minPrice: asset?.simulatorSettings?.minPrice ?? 0,
+    maxPrice: asset?.simulatorSettings?.maxPrice ?? 0,
     decimalPlaces: asset?.decimalPlaces || 5,
 
     minOrderAmount: asset?.tradingSettings?.minOrderAmount || 1000,
@@ -569,7 +569,13 @@ export default function AssetFormModal({ mode, asset, onClose, onSuccess }: Asse
         }
 
       } else {
-        await api.updateAsset(asset!.id, payload)
+        // [FIX] UpdateAssetDto menggunakan OmitType(['symbol', 'icon']) sebagai base,
+        // kemudian menambah icon kembali secara eksplisit.
+        // Artinya 'symbol' TIDAK boleh ada di payload update.
+        // Backend pakai forbidNonWhitelisted: true → kirim 'symbol' = 400 error.
+        const { symbol: _symbol, ...updatePayload } = payload
+        await api.updateAsset(asset!.id, updatePayload)
+
         toast.success(`✅ ${payload.symbol} updated successfully!`, {
           description: 'Asset changes have been saved',
           duration: 3000,
