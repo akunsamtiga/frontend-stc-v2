@@ -911,6 +911,7 @@ const PriceDisplay = memo(({
       {}
       <div className="lg:hidden flex items-center">
         <button
+          data-tutorial="asset-selector"
           onClick={onClick}
           className="bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-3 py-2 hover:bg-black/50 transition-all flex items-center gap-2"
         >

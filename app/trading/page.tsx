@@ -1532,27 +1532,7 @@ export default function TradingPage() {
               />
             </div>
 
-            {/* Asset chip mobile — target tutorial step 1 */}
-            {selectedAsset && (
-              <button
-                data-tutorial="asset-selector"
-                onClick={() => setShowAssetMenu(true)}
-                className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-gray-700/50 transition-colors active:scale-95"
-                style={isLightMode
-                  ? { backgroundColor: '#e2e8f0', borderColor: 'rgba(0,0,0,0.12)' }
-                  : { backgroundColor: '#1a1f2e' }
-                }
-              >
-                <AssetIcon asset={selectedAsset} size="xs" />
-                <span className={`text-xs font-semibold${isLightMode ? ' text-slate-800' : ' text-white'}`}>
-                  {selectedAsset.symbol}
-                </span>
-                <span className="text-xs font-bold text-emerald-400">
-                  {effectiveProfitRate}%
-                </span>
-                <ChevronDown className="w-3 h-3 text-gray-400" />
-              </button>
-            )}
+
           </div>
 
           <div className="flex items-center gap-3">
