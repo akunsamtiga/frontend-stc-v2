@@ -220,8 +220,8 @@ const CATEGORIES: Category[] = [
         articles: [
           { title: 'Apa itu binary option trading?', content: 'Binary option adalah instrumen trading di mana kamu memprediksi apakah harga suatu aset akan naik (CALL) atau turun (PUT) dalam jangka waktu tertentu. Jika prediksimu benar, kamu mendapatkan profit sesuai profit rate yang berlaku (hingga 95% untuk VIP).' },
           { title: 'Aset apa saja yang tersedia di Stouch?', content: 'Stouch menyediakan: (1) Forex — EUR/USD, GBP/USD, USD/JPY. (2) Cryptocurrency — BTC/USD, ETH/USD, dan lebih dari 20 koin lainnya. (3) Komoditas — Emas, Minyak, Perak. (4) Indeks Saham — S&P 500, NASDAQ, Dow Jones.' },
-          { title: 'Berapa durasi trading yang tersedia?', content: 'Tersedia durasi: 1 detik, 1 menit, 2 menit, 3 menit, 5 menit, 10 menit, 15 menit, 30 menit, 45 menit, hingga 1 jam.' },
-          { title: 'Berapa batas minimum dan maksimum trade?', content: 'Minimum trade: Rp 1.000 per transaksi. Maksimum trade umumnya hingga Rp 1.000.000 per transaksi. Untuk akun demo, kamu dapat berlatih dengan modal virtual tanpa batasan.' },
+          { title: 'Berapa durasi trading yang tersedia?', content: 'Tersedia durasi: 1 detik, 1 menit, 2 menit, 3 menit, 4 menit, 5 menit, 15 menit, 30 menit, 45 menit, hingga 1 jam.' },
+          { title: 'Berapa batas minimum dan maksimum trade?', content: 'Minimum dan maksimum trade ditentukan per aset. Umumnya minimum Rp 1.000 dan maksimum Rp 1.000.000 per transaksi. Untuk akun demo, kamu dapat berlatih dengan modal virtual tanpa mempengaruhi saldo real.' },
         ],
       },
       {
@@ -256,9 +256,9 @@ const CATEGORIES: Category[] = [
         title: 'Proses Penarikan',
         articles: [
           { title: 'Bagaimana cara melakukan penarikan?', content: 'Buka menu Keuangan → Tarik Dana. Pilih rekening bank yang sudah terverifikasi, masukkan jumlah, lalu klik "Ajukan Penarikan". Penarikan hanya dapat dilakukan ke rekening atas nama yang sama dengan akun Stouch.' },
-          { title: 'Berapa batas minimum dan maksimum penarikan?', content: 'Minimum penarikan: Rp 50.000. Batas harian: Standard Rp 5 jt, Gold Rp 20 jt, VIP tidak terbatas.' },
+          { title: 'Berapa batas minimum dan maksimum penarikan?', content: 'Minimum penarikan: Rp 100.000. Batas harian: Standard Rp 5 jt, Gold Rp 20 jt, VIP tidak terbatas.' },
           { title: 'Berapa lama proses penarikan?', content: 'Standard: 1–3 hari kerja. Gold: kurang dari 12 jam. VIP: kurang dari 1 jam (ekspres).' },
-          { title: 'Syarat apa yang dibutuhkan untuk penarikan?', content: 'Syarat: (1) Verifikasi identitas (KYC) selesai. (2) Foto selfie terverifikasi. (3) Rekening bank terdaftar dan diverifikasi. (4) Tidak ada order trading yang sedang aktif.' },
+          { title: 'Syarat apa yang dibutuhkan untuk penarikan?', content: 'Syarat: (1) Verifikasi identitas (KTP) selesai dan disetujui. (2) Foto selfie terverifikasi. (3) Rekening bank sudah terdaftar di profil. (4) Hanya boleh ada 1 request penarikan pending dalam satu waktu — ajukan yang baru setelah request sebelumnya selesai diproses.' },
         ],
       },
     ],

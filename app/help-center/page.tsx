@@ -95,7 +95,7 @@ function HelpCenterJsonLd() {
             name: 'Berapa lama proses penarikan dana di Stouch?',
             acceptedAnswer: {
               '@type': 'Answer',
-              text: 'Waktu penarikan bergantung pada tier: Standard 1-3 hari kerja, Gold kurang dari 12 jam, VIP kurang dari 1 jam (ekspres).',
+              text: 'Penarikan diproses oleh tim admin dalam 1–3 hari kerja. Minimum penarikan Rp 100.000. Syarat: KTP terverifikasi, selfie terverifikasi, dan rekening bank terdaftar.',
             },
           },
           {
@@ -135,7 +135,7 @@ function HelpCenterJsonLd() {
             name: 'Berapa minimum trade di Stouch?',
             acceptedAnswer: {
               '@type': 'Answer',
-              text: 'Minimum trade di Stouch.id adalah Rp 1.000 per transaksi. Tersedia berbagai durasi trade dari 1 detik hingga 1 jam.',
+              text: 'Minimum trade di Stouch.id ditentukan per aset, umumnya Rp 1.000 per transaksi. Tersedia berbagai durasi trade: 1 detik, 1 menit, 2 menit, 3 menit, 4 menit, 5 menit, 15 menit, 30 menit, 45 menit, hingga 1 jam.',
             },
           },
         ],

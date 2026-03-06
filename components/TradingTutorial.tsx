@@ -211,15 +211,16 @@ function getTooltipWidth(vpW: number) {
 }
 
 function getTooltipHeight(vpW: number) {
-  if (vpW >= 1024) return 295
-  if (vpW >= 640)  return 260
-  return 210  // Mobile has fewer tips & smaller text
+  if (vpW >= 1024) return 350
+  if (vpW >= 640)  return 310
+  return 265  // Increased buffer — actual card is always taller than naive estimate
 }
 
 function calcPos(rect: Rect, pad: number, preferred: Step['placement'], vpW: number, vpH: number) {
   const TW = getTooltipWidth(vpW)
   const TH = getTooltipHeight(vpW)
-  const isMobile = vpW < 640
+  // Treat tablet (640–1023) same as mobile: no left/right, only top/bottom
+  const isSmall = vpW < 1024
 
   const sT = rect.top  - pad
   const sB = rect.top  + rect.height + pad
@@ -228,33 +229,52 @@ function calcPos(rect: Rect, pad: number, preferred: Step['placement'], vpW: num
   const cx = rect.left + rect.width  / 2
   const cy = rect.top  + rect.height / 2
 
-  // Clamp helpers — tighter margins on mobile
-  const margin = isMobile ? 8 : 10
+  // Safe margins — keep tooltip off screen edges
+  const margin = isSmall ? 10 : 10
   const clL = (x: number) => Math.min(Math.max(x, margin), vpW - TW - margin)
   const clT = (y: number) => Math.min(Math.max(y, margin), vpH - TH - margin)
+  const centeredL = clL(cx - TW / 2)
 
-  // ── Mobile: only top / bottom, centered horizontally ──────────────────
-  if (isMobile) {
-    const centeredL = clL(cx - TW / 2)
-    // Prefer below
-    if (sB + TH + GAP <= vpH) return { t: sB + GAP, l: centeredL, p: 'bottom' as const }
-    // Try above
-    if (sT - TH - GAP >= 0)  return { t: sT - TH - GAP, l: centeredL, p: 'top' as const }
-    // Last resort: force above (clamp so it stays on screen)
-    return { t: clT(sT - TH - GAP), l: centeredL, p: 'top' as const }
+  // ── Large element fills most of viewport (e.g. chart-area) ───────────
+  // → center tooltip in screen so it doesn't stack on top of spotlight
+  if (rect.height > vpH * 0.38 || rect.width > vpW * 0.85) {
+    return {
+      t: clT(vpH / 2 - TH / 2),
+      l: clL(vpW / 2 - TW / 2),
+      p: 'bottom' as const,
+    }
   }
 
-  // ── Tablet / Desktop: try preferred order ─────────────────────────────
+  // ── Mobile + Tablet: top / bottom only, centered ──────────────────────
+  if (isSmall) {
+    const elementMidY = rect.top + rect.height / 2
+
+    if (elementMidY <= vpH / 2) {
+      // Element in top half → prefer below
+      const tBelow = sB + GAP
+      if (tBelow + TH <= vpH - margin) return { t: tBelow, l: centeredL, p: 'bottom' as const }
+      // No room below → force above (clamped)
+      return { t: clT(sT - TH - GAP), l: centeredL, p: 'top' as const }
+    } else {
+      // Element in bottom half → prefer above
+      const tAbove = sT - TH - GAP
+      if (tAbove >= margin) return { t: tAbove, l: centeredL, p: 'top' as const }
+      // No room above → force below (clamped)
+      return { t: clT(sB + GAP), l: centeredL, p: 'bottom' as const }
+    }
+  }
+
+  // ── Desktop: try preferred placement order ────────────────────────────
   const order = [preferred, 'bottom', 'top', 'right', 'left'] as Step['placement'][]
   const seen  = new Set<string>()
 
   for (const p of order) {
     if (seen.has(p)) continue
     seen.add(p)
-    if (p === 'bottom' && sB + TH + GAP <= vpH) return { t: sB + GAP,      l: clL(cx - TW / 2), p: 'bottom' as const }
-    if (p === 'top'    && sT - TH - GAP >= 0)   return { t: sT - TH - GAP, l: clL(cx - TW / 2), p: 'top'    as const }
-    if (p === 'right'  && sR + TW + GAP <= vpW) return { t: clT(cy - TH/2), l: sR + GAP,         p: 'right'  as const }
-    if (p === 'left'   && sL - TW - GAP >= 0)   return { t: clT(cy - TH/2), l: sL - TW - GAP,    p: 'left'   as const }
+    if (p === 'bottom' && sB + TH + GAP <= vpH - margin) return { t: sB + GAP,      l: clL(cx - TW / 2), p: 'bottom' as const }
+    if (p === 'top'    && sT - TH - GAP >= margin)       return { t: sT - TH - GAP, l: clL(cx - TW / 2), p: 'top'    as const }
+    if (p === 'right'  && sR + TW + GAP <= vpW - margin) return { t: clT(cy - TH/2), l: sR + GAP,         p: 'right'  as const }
+    if (p === 'left'   && sL - TW - GAP >= margin)       return { t: clT(cy - TH/2), l: sL - TW - GAP,    p: 'left'   as const }
   }
 
   // last resort: below-center clamped
@@ -350,7 +370,10 @@ function Card({ step, idx, total, isLast, fading, vpW, isLightMode, onNext, onPr
 
   return (
     <div style={{
-      width: TW, borderRadius: 14, overflow: 'hidden',
+      width: TW,
+      maxHeight: '82vh',
+      overflowY: 'auto',
+      borderRadius: 14, overflow: 'hidden',
       background: card.bg,
       border: `1px solid ${card.border}`,
       boxShadow: card.shadow,
@@ -530,13 +553,12 @@ export default function TradingTutorial({ onComplete, onSkip, isLightMode = fals
     return () => { setMounted(false); clearTimeout(t) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Re-measure after step changes
+  // Re-measure after step changes — 3 passes to catch any layout settling
   useEffect(() => {
     setRect(null) // clear stale rect immediately
-    const delay = vp.w < 640 ? 120 : 80
-    const t = setTimeout(measure, delay)
-    return () => clearTimeout(t)
-  }, [measure, vp.w])
+    const timers = [50, 200, 450].map(d => setTimeout(measure, d))
+    return () => timers.forEach(clearTimeout)
+  }, [measure])
 
   // Re-measure on resize/scroll
   useEffect(() => {
@@ -563,8 +585,9 @@ export default function TradingTutorial({ onComplete, onSkip, isLightMode = fals
       return r.width > 0 && r.height > 0
     }) ?? els[0]
     if (visibleEl) {
-      const block = vp.w < 640 ? 'center' : 'nearest'
-      visibleEl.scrollIntoView({ behavior: 'smooth', block })
+      // Use 'instant' so scroll completes synchronously before measure fires
+      const block = vp.w < 1024 ? 'center' : 'nearest'
+      visibleEl.scrollIntoView({ behavior: 'instant' as ScrollBehavior, block })
     }
   }, [step.target, vp.w])
 
