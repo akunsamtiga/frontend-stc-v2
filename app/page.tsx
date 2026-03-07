@@ -1799,7 +1799,7 @@ export default function LandingPage() {
                 <CharReveal text="Semua investasi dikelola dengan" delaySeconds={1.6} />
               </span>
               <span className="block text-xl whitespace-nowrap font-light">
-                <CharReveal text="mudah dan aman dalam satu platform." delaySeconds={1.6} />
+                <CharReveal text="mudah dan aman dalam satu platform." delaySeconds={3.6} />
               </span>
             </h2>
             <motion.button
