@@ -31,9 +31,11 @@ import {
   CaretDown,
   CaretUp,
   Info,
+  MagnifyingGlass,
 } from 'phosphor-react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
+import { useAuthStore } from '@/store/auth'
 import Navbar from '@/components/Navbar'
 import {
   motion,
@@ -199,6 +201,28 @@ function StatCard({ label, value, numValue, prefix, suffix, icon: Icon, color, i
 
 // ── Invitee Expandable Row ──────────────────────────────────────
 
+function CopyIdButton({ id }: { id: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation()
+        navigator.clipboard.writeText(id).then(() => {
+          setCopied(true)
+          setTimeout(() => setCopied(false), 1500)
+        })
+      }}
+      className="flex-shrink-0 p-0.5 rounded hover:bg-purple-100 transition-colors"
+      title="Salin ID"
+    >
+      {copied
+        ? <CheckCircle className="w-3 h-3 text-green-500" weight="fill" />
+        : <Copy className="w-3 h-3 text-gray-400 hover:text-purple-500" weight="bold" />
+      }
+    </button>
+  )
+}
+
 function InviteeRow({ inv, index }: { inv: AffiliatorInviteDetailed; index: number }) {
   const [expanded, setExpanded] = useState(false)
 
@@ -215,13 +239,19 @@ function InviteeRow({ inv, index }: { inv: AffiliatorInviteDetailed; index: numb
         transition={{ ...SPRING, delay: index * 0.04 }}
         onClick={() => setExpanded(v => !v)}
       >
-        {/* Email */}
+        {/* ID + Email */}
         <td className="px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
               <UserCircle className="w-4 h-4 text-purple-500" weight="fill" />
             </div>
-            <span className="font-mono text-xs text-gray-700">{inv.inviteeEmail}</span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1 mb-0.5">
+                <span className="font-mono text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">#{inv.inviteeId}</span>
+                <CopyIdButton id={inv.inviteeId} />
+              </div>
+              <span className="font-mono text-xs text-gray-500 truncate block max-w-[160px]">{inv.inviteeEmail}</span>
+            </div>
           </div>
         </td>
 
@@ -446,6 +476,7 @@ function InviteeRow({ inv, index }: { inv: AffiliatorInviteDetailed; index: numb
 
 export default function AffiliatePage() {
   const router = useRouter()
+  const { user } = useAuthStore()
   const [activeTab, setActiveTab] = useState<'dashboard' | 'invites' | 'commissions' | 'withdrawals'>('dashboard')
   const [dashboard, setDashboard] = useState<AffiliatorDashboard | null>(null)
   const [inviteData, setInviteData] = useState<AffiliatorInvitesDetailedResponse | null>(null)
@@ -462,8 +493,11 @@ export default function AffiliatePage() {
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
+  const [copiedOwnId, setCopiedOwnId] = useState(false)
   // Invites tab filter
   const [inviteTab, setInviteTab] = useState<'deposited' | 'pending'>('deposited')
+  // Search
+  const [searchQuery, setSearchQuery] = useState('')
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -518,6 +552,14 @@ export default function AffiliatePage() {
     setCopied(true)
     toast.success('Kode referral disalin!')
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const copyOwnId = () => {
+    if (!user?.id) return
+    navigator.clipboard.writeText(user.id)
+    setCopiedOwnId(true)
+    toast.success('ID Anda disalin!')
+    setTimeout(() => setCopiedOwnId(false), 2000)
   }
 
   const copyLink = () => {
@@ -623,6 +665,18 @@ export default function AffiliatePage() {
 
   const canWithdraw = isCommissionUnlocked && balances.commissionBalance >= 50000
 
+  // ── Filtered invites (search) ────────────────────────────
+  const filteredDeposited = (inviteData?.depositedUsers ?? []).filter(inv => {
+    if (!searchQuery.trim()) return true
+    const q = searchQuery.toLowerCase()
+    return inv.inviteeEmail.toLowerCase().includes(q) || inv.inviteeId.toLowerCase().includes(q)
+  })
+  const filteredPending = (inviteData?.pendingUsers ?? []).filter(inv => {
+    if (!searchQuery.trim()) return true
+    const q = searchQuery.toLowerCase()
+    return inv.inviteeEmail.toLowerCase().includes(q)
+  })
+
   const tabs = [
     { key: 'dashboard',   label: 'Dashboard',                              icon: ChartBar },
     { key: 'invites',     label: `Undangan (${stats.totalInvited})`,        icon: Users },
@@ -650,10 +704,36 @@ export default function AffiliatePage() {
               </motion.p>
             </motion.div>
 
-            {/* Referral code card */}
-            <motion.div variants={scaleIn}
-              className="flex flex-col gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3"
-              whileHover={{ borderColor: 'rgb(139,92,246)', boxShadow: '0 0 24px rgba(139,92,246,0.15)', transition: { duration: 0.2 } }}>
+            {/* Referral code card + Own ID */}
+            <motion.div variants={scaleIn} className="flex flex-col gap-2">
+              {/* Own ID chip */}
+              {user?.id && (
+                <motion.div
+                  className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2"
+                  whileHover={{ borderColor: 'rgb(139,92,246)', boxShadow: '0 0 16px rgba(139,92,246,0.1)', transition: { duration: 0.2 } }}
+                >
+                  <div className="flex-1">
+                    <p className="text-[10px] text-gray-400 mb-0.5">ID Affiliator Anda</p>
+                    <p className="text-sm font-bold font-mono text-purple-700">#{user.id}</p>
+                  </div>
+                  <motion.button
+                    onClick={copyOwnId}
+                    className="p-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 transition-colors"
+                    whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                    title="Salin ID Anda"
+                  >
+                    <AnimatePresence mode="wait">
+                      {copiedOwnId
+                        ? <motion.span key="id-check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}><CheckCircle className="w-4 h-4" weight="fill" /></motion.span>
+                        : <motion.span key="id-copy" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}><Copy className="w-4 h-4" weight="bold" /></motion.span>}
+                    </AnimatePresence>
+                  </motion.button>
+                </motion.div>
+              )}
+
+              <motion.div
+                className="flex flex-col gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3"
+                whileHover={{ borderColor: 'rgb(139,92,246)', boxShadow: '0 0 24px rgba(139,92,246,0.15)', transition: { duration: 0.2 } }}>
               <div className="flex items-center gap-3">
                 <div>
                   <p className="text-xs text-gray-400">Kode Referral Anda</p>
@@ -683,6 +763,7 @@ export default function AffiliatePage() {
                   </AnimatePresence>
                 </motion.button>
               </div>
+            </motion.div>
             </motion.div>
           </motion.div>
 
@@ -864,6 +945,32 @@ export default function AffiliatePage() {
                   ))}
                 </motion.div>
 
+                {/* Search bar */}
+                <div className="relative mb-4">
+                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                    <MagnifyingGlass className="w-4 h-4 text-gray-400" weight="bold" />
+                  </div>
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cari berdasarkan email atau ID pengguna..."
+                    className="w-full pl-9 pr-10 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all placeholder-gray-400"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-4 h-4" weight="bold" />
+                    </button>
+                  )}
+                </div>
+                {searchQuery && (
+                  <p className="text-xs text-gray-400 mb-3">
+                    Menampilkan {inviteTab === 'deposited' ? filteredDeposited.length : filteredPending.length} hasil untuk &quot;{searchQuery}&quot;
+                  </p>
+                )}
+
                 {/* Sub-tabs: Deposited / Belum Deposit */}
                 <div className="flex gap-1 bg-gray-100 border border-gray-200 rounded-xl p-1 mb-4 w-fit">
                   {([
@@ -895,10 +1002,10 @@ export default function AffiliatePage() {
                     {inviteTab === 'deposited' && (
                       <motion.div key="deposited-tab" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }} transition={{ ...SPRING }}>
-                        {!inviteData || inviteData.depositedUsers.length === 0 ? (
+                        {!inviteData || filteredDeposited.length === 0 ? (
                           <motion.div className="text-center py-16" variants={scaleIn} initial="hidden" animate="visible">
                             <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" weight="duotone" />
-                            <p className="text-gray-500">Belum ada undangan yang deposit.</p>
+                            <p className="text-gray-500">{searchQuery ? 'Tidak ada hasil yang cocok.' : 'Belum ada undangan yang deposit.'}</p>
                           </motion.div>
                         ) : (
                           <>
@@ -912,7 +1019,7 @@ export default function AffiliatePage() {
                                 <table className="w-full text-sm">
                                   <thead>
                                     <tr className="border-b border-gray-200 bg-gray-50/80 text-xs text-gray-400">
-                                      <th className="text-left px-4 py-3">Email</th>
+                                      <th className="text-left px-4 py-3">ID · Email</th>
                                       <th className="text-left px-4 py-3">Deposit</th>
                                       <th className="text-right px-4 py-3">Total Dep.</th>
                                       <th className="text-right px-4 py-3">Saldo Real</th>
@@ -922,7 +1029,7 @@ export default function AffiliatePage() {
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {inviteData.depositedUsers.map((inv, i) => (
+                                    {filteredDeposited.map((inv, i) => (
                                       <InviteeRow key={inv.id} inv={inv} index={i} />
                                     ))}
                                   </tbody>
@@ -938,10 +1045,10 @@ export default function AffiliatePage() {
                     {inviteTab === 'pending' && (
                       <motion.div key="pending-tab" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }} transition={{ ...SPRING }}>
-                        {!inviteData || inviteData.pendingUsers.length === 0 ? (
+                        {!inviteData || filteredPending.length === 0 ? (
                           <motion.div className="text-center py-16" variants={scaleIn} initial="hidden" animate="visible">
                             <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-3" weight="duotone" />
-                            <p className="text-gray-500">Semua undangan sudah deposit!</p>
+                            <p className="text-gray-500">{searchQuery ? 'Tidak ada hasil yang cocok.' : 'Semua undangan sudah deposit!'}</p>
                           </motion.div>
                         ) : (
                           <motion.div className="bg-white border border-gray-200 shadow-sm rounded-xl overflow-hidden"
@@ -956,7 +1063,7 @@ export default function AffiliatePage() {
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {inviteData.pendingUsers.map((inv, i) => (
+                                  {filteredPending.map((inv, i) => (
                                     <motion.tr key={inv.id}
                                       className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/50'}`}
                                       initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}

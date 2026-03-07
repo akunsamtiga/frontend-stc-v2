@@ -900,6 +900,17 @@ export default function TradingPage() {
       )
     }
 
+    // Urutkan: CRYPTO/IDX pertama, lalu semua crypto, lalu sisanya
+    result = [...result].sort((a, b) => {
+      const aIsMain = a.symbol?.toUpperCase().trim() === 'CRYPTO/IDX' ? 0 : 1
+      const bIsMain = b.symbol?.toUpperCase().trim() === 'CRYPTO/IDX' ? 0 : 1
+      if (aIsMain !== bIsMain) return aIsMain - bIsMain
+
+      const aIsCrypto = a.type === 'crypto' ? 0 : 1
+      const bIsCrypto = b.type === 'crypto' ? 0 : 1
+      return aIsCrypto - bIsCrypto
+    })
+
     return result
   }, [assets, assetSearch, assetTypeFilter])
 

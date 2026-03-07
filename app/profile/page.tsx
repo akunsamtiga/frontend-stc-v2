@@ -277,7 +277,6 @@ const LoadingSkeleton = () => (
     `}</style>
 
     <div className="min-h-screen bg-pattern-grid">
-      <Navbar />
       <div className="max-w-5xl mx-auto px-4 py-6">
         <motion.div
           className="mb-6"
@@ -659,6 +658,15 @@ export default function ProfilePage() {
     timezone: 'Asia/Jakarta'
   })
   const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const [copiedUserId, setCopiedUserId] = useState(false)
+
+  const handleCopyUserId = () => {
+    if (!user?.id) return
+    navigator.clipboard.writeText(user.id).then(() => {
+      setCopiedUserId(true)
+      setTimeout(() => setCopiedUserId(false), 2000)
+    })
+  }
 
   // ── Ganti Password ──────────────────────────────────────────────
   const [passwordData, setPasswordData] = useState({
@@ -1413,8 +1421,17 @@ export default function ProfilePage() {
   }
 
   if (!user) return null
+
+  // Navbar harus selalu ada di satu tempat — tidak boleh ada dua instance.
+  // Sebelumnya LoadingSkeleton punya Navbar sendiri → saat switch ke main view,
+  // Navbar unmount+remount → affiliator check hilang sebelum state ke-set.
   if (initialLoading) {
-    return <LoadingSkeleton />
+    return (
+      <>
+        <Navbar />
+        <LoadingSkeleton />
+      </>
+    )
   }
 
   const statusInfo = profile?.statusInfo
@@ -1749,6 +1766,27 @@ export default function ProfilePage() {
                     <h3 className="text-sm font-bold text-gray-900">Informasi Akun</h3>
                   </div>
                   <div className="divide-y divide-gray-100">
+                    {/* User ID row with copy button */}
+                    <div className="flex items-center gap-3 px-4 py-3 overflow-hidden">
+                      <Shield className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <span className="text-xs text-gray-500 w-36 flex-shrink-0">ID Pengguna</span>
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="text-sm font-mono font-semibold text-sky-600 truncate">{user?.id || '—'}</span>
+                        {user?.id && (
+                          <motion.button
+                            onClick={handleCopyUserId}
+                            className="flex-shrink-0 p-1 rounded-md hover:bg-gray-100 transition-colors"
+                            whileTap={{ scale: 0.85 }}
+                            title="Salin ID"
+                          >
+                            {copiedUserId
+                              ? <Check className="w-3.5 h-3.5 text-emerald-500" />
+                              : <Copy className="w-3.5 h-3.5 text-gray-400" />
+                            }
+                          </motion.button>
+                        )}
+                      </div>
+                    </div>
                     {[
                       {
                         label: 'Nama Lengkap',
@@ -3343,6 +3381,7 @@ export default function ProfilePage() {
 
   return (
     <>
+    <Navbar />
     <style jsx global>{`
       .bg-pattern-grid {
         background-color: #f5f6f8;
@@ -3371,7 +3410,6 @@ export default function ProfilePage() {
       .btn-press:active { transform: scale(0.97); }
     `}</style>
     <div className="min-h-screen bg-pattern-grid relative">
-      <Navbar />
       <Toaster position="top-right" expand={true} />
       <div className="max-w-5xl mx-auto px-4 py-6 relative z-10">
         <motion.div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
@@ -3495,6 +3533,17 @@ export default function ProfilePage() {
                     {profileInfo?.personal?.fullName || user.email.split('@')[0]}
                   </p>
                   <p className="text-[10px] text-gray-400 truncate">{user.email}</p>
+                  <button
+                    onClick={handleCopyUserId}
+                    className="flex items-center gap-1 mt-0.5 group"
+                    title="Salin ID"
+                  >
+                    <span className="text-[10px] font-mono text-sky-500 truncate">#{user.id}</span>
+                    {copiedUserId
+                      ? <Check className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+                      : <Copy className="w-3 h-3 text-gray-300 group-hover:text-sky-400 transition-colors flex-shrink-0" />
+                    }
+                  </button>
                 </div>
               </div>
               <motion.div

@@ -36,6 +36,9 @@ import {
   ShieldCheckered,
   Eye,
   EyeSlash,
+  SquaresFour,
+  ChartLineUp,
+  LockSimple,
 } from "phosphor-react";
 import {
   subscribeToCryptoPrices,
@@ -141,6 +144,53 @@ function Reveal({ children, className = '', delay = 0, direction = 'up' }: Revea
     >
       {children}
     </motion.div>
+  )
+}
+
+const charContainer = {
+  hidden: {},
+  visible: (delay = 0) => ({
+    transition: { staggerChildren: 0.08, delayChildren: delay },
+  }),
+}
+const charItem = {
+  hidden: { opacity: 0, y: 10, filter: 'blur(10px)' },
+  visible: {
+    opacity: 1, y: 0, filter: 'blur(0px)',
+    transition: { duration: 1.0, ease: [0.16, 1, 0.3, 1] },
+  },
+}
+
+interface CharRevealProps {
+  text: string
+  className?: string
+  delaySeconds?: number
+  as?: 'span' | 'div'
+}
+function CharReveal({ text, className = '', delaySeconds = 0, as: Tag = 'span' }: CharRevealProps) {
+  const [started, setStarted] = React.useState(false)
+  React.useEffect(() => {
+    const t = setTimeout(() => setStarted(true), delaySeconds * 1000)
+    return () => clearTimeout(t)
+  }, [delaySeconds])
+  return (
+    <motion.span
+      className={`inline-block ${className}`}
+      variants={charContainer}
+      initial="hidden"
+      animate={started ? 'visible' : 'hidden'}
+      custom={0}
+    >
+      {text.split('').map((char, i) => (
+        <motion.span
+          key={i}
+          variants={charItem}
+          style={{ display: 'inline-block', whiteSpace: char === ' ' ? 'pre' : undefined }}
+        >
+          {char === ' ' ? '\u00A0' : char}
+        </motion.span>
+      ))}
+    </motion.span>
   )
 }
 
@@ -746,7 +796,7 @@ const LiveCryptoChart = () => {
               <div className="flex items-center gap-1.5 flex-1 min-w-0">
                 <CryptoIcon symbol={trade.asset.split('/')[0]} size={22} className="flex-shrink-0" />
                 <div className="min-w-0">
-                  <div className="text-xs font-medium text-gray-200 truncate">{trade.user}</div>
+                  <div className="text-xs font-medium text-gray-200 truncate">{maskUsername(trade.user)}</div>
                   <div className="flex items-center gap-1">
                     <span className="text-[10px] text-gray-400">{trade.asset}</span>
                     {trade.direction && (
@@ -941,6 +991,82 @@ export default function LandingPage() {
         gsap.set('.gsap-navbar', { opacity: 0, y: -40 })
         gsap.to('.gsap-navbar', { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', delay: 0.02 })
 
+        // ── Section 1 image blur-in ───────────────────────────
+        const s1Imgs = gsap.utils.toArray<HTMLElement>('.gsap-s1-img')
+        if (s1Imgs.length) {
+          gsap.set(s1Imgs, { opacity: 0, scale: 1.12, filter: 'blur(36px)' })
+          gsap.to(s1Imgs, {
+            opacity: 0.8,
+            scale: 1,
+            filter: 'blur(0px)',
+            duration: 3.0,
+            ease: 'power4.out',
+            delay: 0.05,
+          })
+        }
+
+        // ── Section 1 text: berurutan satu per satu ──────────
+        const s1Els = gsap.utils.toArray<HTMLElement>('.gsap-s1')
+        if (s1Els.length) {
+          gsap.set(s1Els, { opacity: 0, filter: 'blur(16px)', y: 24 })
+          gsap.to(s1Els, {
+            opacity: 1,
+            filter: 'blur(0px)',
+            y: 0,
+            duration: 1.0,
+            ease: 'expo.out',
+            stagger: { each: 0.55, from: 'start' },
+            delay: 0.6,
+          })
+        }
+
+        // ── Section 2 image + text blur-in (ScrollTrigger) ──
+        const s2Imgs = gsap.utils.toArray<HTMLElement>('.gsap-s2-img')
+        if (s2Imgs.length) {
+          gsap.set(s2Imgs, { opacity: 0, scale: 1.1, filter: 'blur(30px)' })
+          gsap.to(s2Imgs, {
+            opacity: 0.85,
+            scale: 1,
+            filter: 'blur(0px)',
+            duration: 2.5,
+            ease: 'power4.out',
+            scrollTrigger: { trigger: '.gsap-s2-section', start: 'top 85%', once: true },
+          })
+        }
+        const s2Els = gsap.utils.toArray<HTMLElement>('.gsap-s2')
+        if (s2Els.length) {
+          gsap.set(s2Els, { opacity: 0, y: 30, filter: 'blur(12px)' })
+          gsap.to(s2Els, {
+            opacity: 1,
+            y: 0,
+            filter: 'blur(0px)',
+            duration: 1.2,
+            ease: 'expo.out',
+            stagger: { each: 0.5, from: 'start' },
+            scrollTrigger: { trigger: '.gsap-s2-section', start: 'top 75%', once: true },
+          })
+        }
+
+        // ── Section 3 image + text blur-in (ScrollTrigger) ──
+        const s3Imgs = gsap.utils.toArray<HTMLElement>('.gsap-s3-img')
+        if (s3Imgs.length) {
+          gsap.set(s3Imgs, { opacity: 0, scale: 1.1, filter: 'blur(30px)' })
+          gsap.to(s3Imgs, {
+            opacity: 0.85, scale: 1, filter: 'blur(0px)',
+            duration: 2.5, ease: 'power4.out',
+            scrollTrigger: { trigger: '.gsap-s3-section', start: 'top 85%', once: true },
+          })
+        }
+        const s3Els = gsap.utils.toArray<HTMLElement>('.gsap-s3')
+        if (s3Els.length) {
+          gsap.set(s3Els, { opacity: 0, y: 30, filter: 'blur(12px)' })
+          gsap.to(s3Els, {
+            opacity: 1, y: 0, filter: 'blur(0px)',
+            duration: 1.2, ease: 'expo.out',
+            scrollTrigger: { trigger: '.gsap-s3-section', start: 'top 75%', once: true },
+          })
+        }
+
 
 
 
@@ -1119,6 +1245,39 @@ export default function LandingPage() {
             gsap.set(statsItems, { opacity: 0, y: 20 })
             gsap.to(statsItems, { opacity: 1, y: 0, stagger: 0.12, duration: 0.5, ease: 'power2.out', scrollTrigger: { trigger: ctaEl, start: 'top 92%', once: true }, delay: 1.0 })
           }
+        }
+
+        // ── Section 1 scroll-driven cinematic animation ──────
+        const s1Section = document.querySelector<HTMLElement>('.s1-section')
+        if (s1Section) {
+          const t1    = s1Section.querySelector<HTMLElement>('.s1-title-1')
+          const t2    = s1Section.querySelector<HTMLElement>('.s1-title-2')
+          const btn   = s1Section.querySelector<HTMLElement>('.s1-btn')
+          const boxes = Array.from(s1Section.querySelectorAll<HTMLElement>('.s1-box-1,.s1-box-2,.s1-box-3,.s1-box-4'))
+
+          if (t1)  gsap.set(t1,  { opacity: 0, x: -80, skewX: -8 })
+          if (t2)  gsap.set(t2,  { opacity: 0, x:  80, skewX:  8 })
+          if (btn) gsap.set(btn, { opacity: 0, scale: 0.7, y: 20 })
+          boxes.forEach((b, i) => {
+            gsap.set(b, { opacity: 0, y: i % 2 === 0 ? 40 : -40, rotateZ: i % 2 === 0 ? -6 : 6, scale: 0.85 })
+          })
+
+          const tl = gsap.timeline({
+            scrollTrigger: {
+              trigger: s1Section,
+              start: 'top 85%',
+              end: 'center 40%',
+              scrub: 1.4,
+            },
+          })
+
+          tl.to(t1,  { opacity: 1, x: 0, skewX: 0, duration: 1,   ease: 'power3.out' }, 0)
+            .to(t2,  { opacity: 1, x: 0, skewX: 0, duration: 1,   ease: 'power3.out' }, 0.25)
+            .to(btn, { opacity: 1, scale: 1, y: 0,  duration: 0.7, ease: 'back.out(2)' }, 0.55)
+            .to(boxes[0], { opacity: 1, y: 0, rotateZ: 0, scale: 1, duration: 0.6, ease: 'back.out(1.6)' }, 0.70)
+            .to(boxes[1], { opacity: 1, y: 0, rotateZ: 0, scale: 1, duration: 0.6, ease: 'back.out(1.6)' }, 0.82)
+            .to(boxes[2], { opacity: 1, y: 0, rotateZ: 0, scale: 1, duration: 0.6, ease: 'back.out(1.6)' }, 0.94)
+            .to(boxes[3], { opacity: 1, y: 0, rotateZ: 0, scale: 1, duration: 0.6, ease: 'back.out(1.6)' }, 1.06)
         }
 
       })
@@ -1479,7 +1638,7 @@ export default function LandingPage() {
       </div>
 
       {}
-      <nav className="gsap-navbar fixed top-0 left-0 right-0 z-50 bg-[#1a1f2e]/55 backdrop-blur-xl border-b border-gray-700/50">
+      <nav className="gsap-navbar fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-xl">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-20">
 
@@ -1563,13 +1722,40 @@ export default function LandingPage() {
             </div>
 
             {}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {/* Tombol Masuk dengan shimmer topup style — hidden di mobile */}
+              <div className="relative rounded-lg overflow-hidden group p-px hidden md:block">
+                {/* Layer 1: conic shimmer utama */}
+                <div
+                  className="absolute inset-[-100%]"
+                  style={{
+                    background: 'conic-gradient(from 0deg, transparent 0%, transparent 35%, rgba(255,255,255,0.15) 42%, rgba(255,255,255,0.9) 50%, rgba(255,255,255,0.15) 58%, transparent 65%, transparent 85%, rgba(255,255,255,0.08) 92%, rgba(255,255,255,0.4) 100%)',
+                    animation: 'spin-variable 4s ease-in-out infinite',
+                  }}
+                />
+                {/* Layer 2: glow blur */}
+                <div
+                  className="absolute inset-[-100%] blur-sm"
+                  style={{
+                    background: 'conic-gradient(from 0deg, transparent 0%, transparent 38%, rgba(16,185,129,0.4) 50%, transparent 62%, transparent 100%)',
+                    animation: 'spin-variable 4s ease-in-out infinite',
+                  }}
+                />
+                {/* Bg dasar */}
+                <div className="absolute inset-[1px] rounded-lg bg-[#111318]" />
+                <div className="absolute inset-[1px] rounded-lg bg-white/0 group-hover:bg-white/5 transition-colors duration-300" />
+                <button
+                  onClick={() => { setIsLogin(true); setShowAuthModal(true) }}
+                  className="relative z-10 flex items-center gap-2 px-5 py-2.5 bg-transparent rounded-[6px] text-sm font-semibold text-white transition-all duration-300"
+                >
+                  Masuk
+                </button>
+              </div>
+
+              {/* Tombol Daftar — style asli */}
               <button
-                onClick={() => {
-                  setIsLogin(false)
-                  setShowAuthModal(true)
-                }}
-                className="flex items-center gap-2 px-6 py-2.5 bg-[#2d3748] hover:bg-[#3d4758] rounded-lg text-sm font-semibold text-white shadow-lg transition-colors border border-gray-600"
+                onClick={() => { setIsLogin(false); setShowAuthModal(true) }}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#111318] hover:bg-[#1a1f28] rounded-lg text-sm font-semibold text-white shadow-lg transition-colors border border-gray-700/60"
               >
                 <UserPlus className="w-4 h-4" weight="bold" />
                 Daftar
@@ -1580,17 +1766,196 @@ export default function LandingPage() {
         </div>
       </nav>
 
+      {/* ── Section 1 ─────────────────────────────────────── */}
+      <section className="relative min-h-screen flex items-center bg-black overflow-hidden md:pt-0 md:mt-20">
+
+        {/* Gambar mobile: best1.jpg (1:1), desktop: best1pc.jpeg */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <img
+            src="/best1.jpg"
+            alt="Stouch background"
+            className="gsap-s1-img block md:hidden w-full h-full"
+            style={{ opacity: 0, objectFit: 'cover', objectPosition: '50% 20%' }}
+          />
+          <img
+            src="/best1pc.jpeg"
+            alt="Stouch background"
+            className="gsap-s1-img hidden md:block w-full h-full" style={{ opacity: 0, objectFit: "cover" }}
+          />
+        </div>
+
+        {/* Gradasi hitam atas */}
+        <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black to-transparent pointer-events-none z-10" />
+        {/* Gradasi hitam bawah */}
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black to-transparent pointer-events-none z-10" />
+
+        {/* Content */}
+        <div className="relative z-10 w-full h-full min-h-screen">
+
+          {/* Mobile: center */}
+          <div className="flex flex-col items-center justify-center text-center h-full min-h-screen px-6 gap-10 md:hidden">
+            <h2 className="gsap-s1 text-4xl font-extrabold text-white" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.5)', opacity: 0 }}>
+              <span className="inline-block px-3 py-1 rounded-lg mb-1 backdrop-blur-xl" style={{ background: 'linear-gradient(to right, rgba(0, 0, 0, 0.28), rgba(241, 241, 241, 0))' }}>
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-emerald-200">Stouch</span>
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-200 to-emerald-400">.id</span>
+              </span>
+              <span className="block text-xl whitespace-nowrap font-light">
+                <CharReveal text="Membuat investasi menjadi jelas" delaySeconds={1.6} />
+              </span>
+            </h2>
+            <motion.button
+              onClick={() => { setIsLogin(false); setShowAuthModal(true) }}
+              whileHover={{ scale: 1.04, y: -1 }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+              className="gsap-s1 btn-glow inline-flex items-center justify-center w-48 py-3.5 bg-gradient-to-r from-emerald-800 to-emerald-500 hover:from-emerald-700 hover:to-emerald-400 rounded-xl text-base font-normal text-white shadow-lg shadow-emerald-900/40" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)', opacity: 0 }}
+            >
+              Daftar Sekarang
+            </motion.button>
+            <div className="gsap-s1 flex flex-row gap-2 flex-wrap justify-center" style={{ opacity: 0 }}>
+              {[
+                { label: 'Antarmuka intuitif',      icon: <SquaresFour className="w-3 h-3 text-white flex-shrink-0" weight="fill" /> },
+                { label: '140+ aset',               icon: <ChartLineUp className="w-3 h-3 text-white flex-shrink-0" weight="bold" /> },
+                { label: 'Transaksi aman',          icon: <LockSimple className="w-3 h-3 text-white flex-shrink-0" weight="bold" /> },
+                { label: 'Berlisensi & diregulasi', icon: <Medal className="w-3 h-3 text-white flex-shrink-0" weight="fill" /> },
+              ].map((item) => (
+                <div key={item.label} className="flex flex-row items-center gap-1 bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 backdrop-blur-sm whitespace-nowrap">
+                  {item.icon}
+                  <span className="text-[10px] font-light text-white">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Desktop: center */}
+          <div className="hidden md:flex flex-col items-center justify-center text-center h-full min-h-screen px-16 gap-10">
+            <h2 className="gsap-s1 text-5xl font-bold text-white" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.5)', opacity: 0 }}>
+              <span className="inline-block px-3 py-1 rounded-lg mb-1 backdrop-blur-xl" style={{ background: 'linear-gradient(to right, rgb(0, 0, 0), rgba(255, 255, 255, 0))' }}>
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-emerald-200">Stouch</span>
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-200 to-emerald-400">.id</span>
+              </span>
+              <span className="block font-light">
+                <CharReveal text="Membuat investasi menjadi jelas" delaySeconds={1.6} />
+              </span>
+            </h2>
+            <motion.button
+              onClick={() => { setIsLogin(false); setShowAuthModal(true) }}
+              whileHover={{ scale: 1.04, y: -1 }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+              className="gsap-s1 btn-glow inline-flex items-center justify-center w-52 py-3.5 bg-gradient-to-r from-emerald-800 to-emerald-500 hover:from-emerald-700 hover:to-emerald-400 rounded-xl text-base font-normal text-white shadow-lg shadow-emerald-900/40" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)', opacity: 0 }}
+            >
+              Daftar Sekarang
+            </motion.button>
+            <div className="gsap-s1 flex flex-row gap-2 flex-wrap justify-center" style={{ opacity: 0 }}>
+              {[
+                { label: 'Antarmuka intuitif',      icon: <SquaresFour className="w-3 h-3 text-white flex-shrink-0" weight="fill" /> },
+                { label: '140+ aset',               icon: <ChartLineUp className="w-3 h-3 text-white flex-shrink-0" weight="bold" /> },
+                { label: 'Transaksi aman',          icon: <LockSimple className="w-3 h-3 text-white flex-shrink-0" weight="bold" /> },
+                { label: 'Berlisensi & diregulasi', icon: <Medal className="w-3 h-3 text-white flex-shrink-0" weight="fill" /> },
+              ].map((item) => (
+                <div key={item.label} className="flex flex-row items-center gap-1 bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 backdrop-blur-sm hover:bg-black/60 hover:border-emerald-500/30 transition-colors whitespace-nowrap">
+                  {item.icon}
+                  <span className="text-[10px] font-light text-white">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ── Section Placeholder 2 ─────────────────────────── */}
+      <section className="gsap-s2-section relative min-h-[70vh] md:min-h-screen flex items-center justify-center bg-black overflow-hidden">
+
+        {/* Gambar mobile: best2.jpeg, desktop: best2pc.jpeg */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <img
+            src="/best2.jpeg"
+            alt="Stouch background section 2"
+            className="gsap-s2-img block md:hidden w-full h-full"
+            style={{ opacity: 0, objectFit: 'cover', objectPosition: '50% 30%' }}
+          />
+          <img
+            src="/best2pc.jpeg"
+            alt="Stouch background section 2"
+            className="gsap-s2-img hidden md:block w-full h-full" style={{ opacity: 0, objectFit: "cover" }}
+          />
+        </div>
+
+        {/* Gradasi hitam atas */}
+        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black to-transparent pointer-events-none z-10" />
+        {/* Gradasi hitam bawah */}
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black to-transparent pointer-events-none z-10" />
+
+        {/* Konten section 2 */}
+        <div className="relative z-20 flex flex-col items-center justify-start w-full h-full min-h-[70vh] md:min-h-screen pt-24 md:pt-36 px-6 text-center">
+          {/* Angka super besar */}
+          <div
+            className="gsap-s2 text-[clamp(3.5rem,13vw,10rem)] font-black leading-none tracking-tighter text-white"
+            style={{ opacity: 0, textShadow: '0 4px 40px rgba(0,0,0,0.6)' }}
+          >
+            1.000.000
+          </div>
+
+          {/* Teks di bawah */}
+          <div
+            className="gsap-s2 mt-4 md:mt-16 text-base sm:text-xl font-light tracking-widest uppercase text-white"
+            style={{ opacity: 0, textShadow: '0 2px 20px rgba(0,0,0,0.9), 0 1px 8px rgba(0,0,0,0.8)' }}
+          >
+            pengguna dari 15+ negara memakai kami
+          </div>
+        </div>
+      </section>
+
+      {/* ── Section Placeholder 3 ─────────────────────────── */}
+      <section className="gsap-s3-section relative min-h-[70vh] md:min-h-screen flex items-center justify-center bg-black overflow-hidden pb-8 md:pb-32">
+
+        {/* Gambar mobile: best3.jpeg, desktop: best3pc.jpeg */}
+        <div className="absolute inset-0">
+          <img
+            src="/best3.jpeg"
+            alt="Stouch background section 3"
+            className="gsap-s3-img block md:hidden w-full h-full"
+            style={{ opacity: 0, objectFit: 'cover', objectPosition: '50% 30%' }}
+          />
+          <img
+            src="/best3pc.jpeg"
+            alt="Stouch background section 3"
+            className="gsap-s3-img hidden md:block w-full h-full"
+            style={{ opacity: 0, objectFit: 'cover', objectPosition: '50% 50%' }}
+          />
+        </div>
+
+        {/* Gradasi hitam atas */}
+        <div className="absolute inset-x-0 top-0 h-96 bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none z-10" />
+        {/* Gradasi bawah sync ke hero section (hitam) */}
+        <div className="absolute inset-x-0 bottom-0 h-64 pointer-events-none z-10"
+          style={{ background: 'linear-gradient(to top, #000 0%, rgba(0,0,0,0.85) 40%, transparent 100%)' }}
+        />
+
+        {/* Konten section 3 */}
+        <div className="relative z-20 flex flex-col items-center justify-start w-full h-full min-h-[70vh] md:min-h-screen pt-12 px-6 text-center">
+          <div
+            className="gsap-s3 text-2xl sm:text-4xl md:text-5xl font-bold text-white leading-tight"
+            style={{ opacity: 0, textShadow: '0 2px 24px rgba(0,0,0,0.8), 0 1px 8px rgba(0,0,0,0.6)' }}
+          >
+            Berbagai pilihan metode pembayaran
+          </div>
+        </div>
+      </section>
+
       {}
-      <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32 overflow-hidden">
+      <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-32 overflow-hidden" style={{ background: '#000' }}>
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-[#121824] via-[#0d1320] to-[#080c16]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black via-[#0d1320] to-[#080c16]" />
           {}
           <RandomGrid seed={11} opacity={0.07} />
           {}
-          <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px]" />
-          <div className="absolute top-1/3 -left-24 w-[380px] h-[380px] bg-teal-500/8 rounded-full blur-[90px]" />
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-1/3 -left-24 w-[380px] h-[380px] bg-teal-500/8 rounded-full blur-[90px]" />
           <div className="absolute bottom-0 right-0 w-[420px] h-[420px] bg-blue-600/8 rounded-full blur-[110px]" />
-          <div className="absolute top-1/2 right-1/4 w-[260px] h-[260px] bg-sky-500/7 rounded-full blur-[80px]" />
+          <div className="absolute bottom-1/2 right-1/4 w-[260px] h-[260px] bg-sky-500/7 rounded-full blur-[80px]" />
         </div>
 
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
@@ -1622,32 +1987,16 @@ export default function LandingPage() {
 
               <div className="gsap-hero-buttons flex flex-row gap-3 sm:gap-4">
                 <motion.button
-                  onClick={() => {
-                    setIsLogin(true)
-                    setShowAuthModal(true)
-                  }}
-                  whileHover={{ scale: 1.04, y: -1 }}
-                  whileTap={{ scale: 0.96 }}
-                  transition={{ duration: 0.18, ease: 'easeOut' }}
                   className="btn-glow group flex-none px-4 sm:px-8 py-3 sm:py-4 bg-gradient-to-br from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 rounded-xl text-sm sm:text-lg font-semibold text-white shadow-lg shadow-emerald-900/40"
-                >
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="hidden sm:inline">Masuk untuk Trading</span>
-                    <span className="sm:hidden">Login Sekarang</span>
-                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" weight="bold" />
-                  </span>
-                </motion.button>
-
-                <motion.button
-                  className="btn-glow group flex-none px-4 sm:px-8 py-3 sm:py-4 bg-[#1a2035] hover:bg-[#1e2840] border border-emerald-500/20 hover:border-emerald-500/40 rounded-xl text-sm sm:text-lg font-semibold"
                   onClick={() => setShowDemoTutorial(true)}
                   whileHover={{ scale: 1.04, y: -1 }}
                   whileTap={{ scale: 0.96 }}
                   transition={{ duration: 0.18, ease: 'easeOut' }}
                 >
                   <span className="flex items-center justify-center gap-2">
-                    <span className="hidden sm:inline">Lihat Demo</span>
-                    <span className="sm:hidden">Demo</span>
+                    <span className="hidden sm:inline">Coba Demo Gratis</span>
+                    <span className="sm:hidden">Demo Gratis</span>
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" weight="bold" />
                   </span>
                 </motion.button>
               </div>
@@ -2995,6 +3344,8 @@ export default function LandingPage() {
 )}
 
       <style jsx>{`
+      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&display=swap');
+
       /* ══════════════════════════════════════════════════════
          PREMIUM CSS — Stouch.id Landing Page
       ══════════════════════════════════════════════════════ */
@@ -3057,6 +3408,15 @@ export default function LandingPage() {
          blurred elements causing GPU layer thrashing. */
 
       /* ── Modal/slide animations ────────────────────────── */
+      @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      @keyframes spin-variable {
+        0%   { transform: rotate(0deg); }
+        30%  { transform: rotate(60deg); }
+        55%  { transform: rotate(110deg); }
+        65%  { transform: rotate(250deg); }
+        80%  { transform: rotate(300deg); }
+        100% { transform: rotate(360deg); }
+      }
       @keyframes slide-left    { from { transform: translateX(100%); } to { transform: translateX(0); } }
       @keyframes slide-right   { from { transform: translateX(0); }    to { transform: translateX(100%); } }
       @keyframes fade-in       { from { opacity: 0; }  to { opacity: 1; } }

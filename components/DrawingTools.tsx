@@ -81,6 +81,20 @@ export interface Drawing {
   zIndex?: number
 }
 
+export interface DrawingActions {
+  undo: () => void
+  redo: () => void
+  deleteSelected: () => void
+  clearAll: () => void
+}
+
+export interface DrawingBarState {
+  canUndo: boolean
+  canRedo: boolean
+  hasSelected: boolean
+  drawingsCount: number
+}
+
 interface DrawingToolsProps {
   chartRef: React.MutableRefObject<IChartApi | null>
   seriesRef: React.MutableRefObject<ISeriesApi<any> | null>
@@ -90,6 +104,8 @@ interface DrawingToolsProps {
   onPanelClose?: () => void
   onDrawingsChange?: (drawings: Drawing[]) => void
   initialDrawings?: Drawing[]
+  actionsRef?: React.MutableRefObject<DrawingActions | null>
+  onStateChange?: (state: DrawingBarState) => void
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -1110,6 +1126,8 @@ const DrawingTools = memo(({
   onPanelClose,
   onDrawingsChange,
   initialDrawings = [],
+  actionsRef,
+  onStateChange,
 }: DrawingToolsProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [activeTool, setActiveTool] = useState<DrawingToolType>('cursor')
@@ -1136,7 +1154,7 @@ const DrawingTools = memo(({
     }
   }, [panelOpen])
 
-  // ── Disable chart interaction when in drawing mode ──
+  // ── Disable chart scroll/scale only when actively drawing (not in cursor mode) ──
   useEffect(() => {
     if (!chartRef.current) return
     const isDrawingMode = activeTool !== 'cursor'
@@ -1145,10 +1163,33 @@ const DrawingTools = memo(({
       handleScale: !isDrawingMode,
     })
     return () => {
-      // Re-enable on unmount
       try { chartRef.current?.applyOptions({ handleScroll: true, handleScale: true }) } catch {}
     }
   }, [activeTool, chartRef])
+
+  // ── Forward a mouse event directly to the chart's internal canvas ──
+  // lightweight-charts attaches listeners to its own <canvas> child, not the container div.
+  // Dispatching to the container with bubbles:true goes UP the DOM, not down to children.
+  // We must target the chart canvas directly.
+  const forwardToChart = useCallback((e: React.MouseEvent<HTMLCanvasElement>, type: string) => {
+    const container = containerRef.current
+    if (!container) return
+    // Find the chart's own canvas (first canvas inside container that is NOT our drawing canvas)
+    const ourCanvas = canvasRef.current
+    const chartCanvas = Array.from(container.querySelectorAll('canvas')).find(c => c !== ourCanvas) as HTMLCanvasElement | null
+    const target = chartCanvas ?? container
+    target.dispatchEvent(new MouseEvent(type, {
+      bubbles: true, cancelable: true,
+      clientX: e.clientX, clientY: e.clientY,
+      button: e.button, buttons: e.buttons,
+      ctrlKey: e.ctrlKey, shiftKey: e.shiftKey,
+      altKey: e.altKey, metaKey: e.metaKey,
+      movementX: e.movementX, movementY: e.movementY,
+    }))
+  }, [containerRef])
+
+  // Track whether the cursor is hovering over a drawing (for cursor style)
+  const [isHoveringDrawing, setIsHoveringDrawing] = useState(false)
   const [showTextModal, setShowTextModal] = useState(false)
   const [pendingTextPoint, setPendingTextPoint] = useState<DrawingPoint | null>(null)
   const [isDrawing, setIsDrawing] = useState(false)
@@ -1273,7 +1314,7 @@ const DrawingTools = memo(({
 
   // ── Mouse events ──
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!enabled || e.button !== 0) return
+    if (e.button !== 0) return
     e.stopPropagation()
     e.preventDefault()
     const pos = getCanvasPos(e)
@@ -1281,7 +1322,7 @@ const DrawingTools = memo(({
     if (!pt) return
 
     if (activeTool === 'cursor') {
-      // Check hit
+      // Check hit against all drawings
       for (let i = drawings.length - 1; i >= 0; i--) {
         const d = drawings[i]
         const pxPoints = d.points.map(p => pointToPixel(p)).filter(Boolean) as Array<{ x: number; y: number }>
@@ -1289,10 +1330,18 @@ const DrawingTools = memo(({
           setSelectedId(d.id)
           setIsDragging(true)
           setDragOffset({ dx: pos.x, dy: pos.y })
-          return
+          return  // consumed — do NOT forward to chart
         }
       }
+      // No drawing hit — deselect and let chart handle panning
       setSelectedId(null)
+      forwardToChart(e, 'mousedown')
+      return
+    }
+
+    if (!enabled) {
+      // Non-cursor tools are blocked when drawing is disabled
+      forwardToChart(e, 'mousedown')
       return
     }
 
@@ -1394,7 +1443,6 @@ const DrawingTools = memo(({
       const dy = pos.y - dragOffset.dy
       setDrawings(prev => prev.map(d => {
         if (d.id !== selectedId) return d
-        // Convert pixel delta to price/time delta
         const newPoints = d.points.map(p => {
           const pp = pointToPixel(p)
           if (!pp) return p
@@ -1404,6 +1452,18 @@ const DrawingTools = memo(({
         return { ...d, points: newPoints }
       }))
       setDragOffset({ dx: pos.x, dy: pos.y })
+      return
+    }
+
+    // In cursor mode (not dragging): update hover state and forward to chart
+    if (activeTool === 'cursor') {
+      const hovering = drawings.some(d => {
+        const pxPoints = d.points.map(p => pointToPixel(p)).filter(Boolean) as Array<{ x: number; y: number }>
+        return hitTest(d, pos.x, pos.y, pxPoints)
+      })
+      setIsHoveringDrawing(hovering)
+      // Forward to chart so crosshair / price label still updates
+      forwardToChart(e, 'mousemove')
       return
     }
 
@@ -1428,8 +1488,8 @@ const DrawingTools = memo(({
     }
   }, [
     isDragging, selectedId, dragOffset,
-    isDrawing, activeTool, activeDrawingId,
-    getCanvasPos, pixelToPoint, pointToPixel
+    isDrawing, activeTool, activeDrawingId, drawings,
+    getCanvasPos, pixelToPoint, pointToPixel, forwardToChart
   ])
 
   const handleMouseUp = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -1444,7 +1504,11 @@ const DrawingTools = memo(({
       setActiveDrawingId(null)
       pushHistory(drawings)
     }
-  }, [isDragging, activeTool, isDrawing, drawings, pushHistory])
+    // In cursor mode always forward mouseup so chart releases its pan state
+    if (activeTool === 'cursor') {
+      forwardToChart(e, 'mouseup')
+    }
+  }, [isDragging, activeTool, isDrawing, drawings, pushHistory, forwardToChart])
 
   const handleDblClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     e.stopPropagation()
@@ -1479,6 +1543,20 @@ const DrawingTools = memo(({
     setDrawingsAndHistory([])
     setSelectedId(null)
   }, [setDrawingsAndHistory])
+
+  // ── Sync imperative actions ref and notify parent of state changes ──
+  useEffect(() => {
+    if (actionsRef) {
+      actionsRef.current = { undo, redo, deleteSelected, clearAll }
+    }
+    onStateChange?.({
+      canUndo: historyIdx > 0,
+      canRedo: historyIdx < history.length - 1,
+      hasSelected: !!selectedId,
+      drawingsCount: drawings.length,
+    })
+  }, [actionsRef, onStateChange, undo, redo, deleteSelected, clearAll,
+      historyIdx, history.length, selectedId, drawings.length])
 
   const toggleSelectedVisibility = useCallback(() => {
     if (!selectedId) return
@@ -1529,15 +1607,25 @@ const DrawingTools = memo(({
 
   return (
     <>
-      {/* Canvas overlay — only capture events when a drawing tool is active */}
+      {/* Canvas overlay:
+          - drawing tool active (not cursor) → intercept all events
+          - cursor mode + drawings exist → intercept so drawings can be selected/dragged
+          - cursor mode + no drawings    → transparent, chart works normally
+          - drawing panel closed + no active tool → transparent */}
       <canvas
         ref={canvasRef}
         className="absolute inset-0 z-[2]"
         style={{
-          cursor: activeTool !== 'cursor' ? 'crosshair' : 'default',
-          // Only block chart events when a draw tool is selected.
-          // Cursor mode = transparent so chart panning/clicking works normally.
-          pointerEvents: (enabled && activeTool !== 'cursor') ? 'auto' : 'none',
+          cursor: activeTool !== 'cursor'
+            ? 'crosshair'
+            : isDragging
+              ? 'grabbing'
+              : isHoveringDrawing
+                ? 'pointer'
+                : 'default',
+          // Only intercept events when the drawing panel is open.
+          // When panel is closed, canvas is transparent so chart works normally.
+          pointerEvents: (enabled && !!panelOpen) ? 'auto' : 'none',
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}

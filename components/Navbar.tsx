@@ -78,14 +78,18 @@ export default function Navbar() {
     }
 
     if (_cache.affiliatorChecked !== user.id) {
-      _cache.affiliatorChecked = user.id
+      // PENTING: jangan set affiliatorChecked dulu sebelum async selesai.
+      // Kalau di-set duluan, Navbar baru yang mount setelah loading akan lihat
+      // "sudah dicek" padahal hasilnya belum masuk ke state-nya → tombol tidak muncul.
       ;(async () => {
         try {
           await api.getMyAffiliatorProgram()
           _cache.isAffiliator = true
+          _cache.affiliatorChecked = user.id  // tandai setelah berhasil
           setIsAffiliator(true)
         } catch {
           _cache.isAffiliator = false
+          _cache.affiliatorChecked = user.id  // tandai setelah gagal juga
           setIsAffiliator(false)
         }
       })()

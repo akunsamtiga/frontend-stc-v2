@@ -24,6 +24,7 @@ import dynamic from 'next/dynamic'
 import { Maximize2, Minimize2, RefreshCw, Activity, ChevronDown, Server, Clock, BarChart2, X, Search } from 'lucide-react'
 import { PencilSimpleLine, ChartLine } from 'phosphor-react'
 import DrawingTools from '@/components/DrawingTools'
+import type { DrawingActions, DrawingBarState } from '@/components/DrawingTools'
 import AssetIcon from '@/components/common/AssetIcon'
 import OrderPriceTracker from '@/components/OrderPriceTracker'
 import CandleCountdown from '@/components/CandleCountdown'
@@ -849,6 +850,16 @@ const PriceDisplay = memo(({
         assetItem.name?.toLowerCase().includes(query)
       )
     }
+
+    // Urutkan: CRYPTO/IDX pertama, lalu semua crypto, lalu sisanya
+    result = [...result].sort((a: any, b: any) => {
+      const aIsMain = a.symbol?.toUpperCase().trim() === 'CRYPTO/IDX' ? 0 : 1
+      const bIsMain = b.symbol?.toUpperCase().trim() === 'CRYPTO/IDX' ? 0 : 1
+      if (aIsMain !== bIsMain) return aIsMain - bIsMain
+      const aIsCrypto = a.type === 'crypto' ? 0 : 1
+      const bIsCrypto = b.type === 'crypto' ? 0 : 1
+      return aIsCrypto - bIsCrypto
+    })
 
     return result
   }, [assets, searchQuery, assetTypeFilter])
@@ -1768,6 +1779,11 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [showDrawingTools, setShowDrawingTools] = useState(false)
   const [drawingPanelOpen, setDrawingPanelOpen] = useState(false)
+  const drawingActionsRef = useRef<DrawingActions | null>(null)
+  const [drawingBarState, setDrawingBarState] = useState<DrawingBarState>({
+    canUndo: false, canRedo: false, hasSelected: false, drawingsCount: 0
+  })
+  const [drawingBarVisible, setDrawingBarVisible] = useState(false)
   const [showReferralModal, setShowReferralModal] = useState(false)
   const [referralCopied, setReferralCopied] = useState(false)
   const [referralCode, setReferralCode] = useState<string | null>(null)
@@ -2032,11 +2048,29 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
     if (!container) return
 
     const { width, height } = container.getBoundingClientRect()
-    if (width === 0 || height === 0) return
+    if (width === 0 || height === 0) {
+      // Mobile: container belum punya dimensi saat mount — tunggu ResizeObserver
+      const ro = new ResizeObserver(() => {
+        if (isMountedRef.current) { ro.disconnect(); return }
+        const el = chartContainerRef.current
+        if (!el) { ro.disconnect(); return }
+        const { width: w, height: h } = el.getBoundingClientRect()
+        if (w === 0 || h === 0) return
+        isMountedRef.current = true
+        ro.disconnect()
+        runChartInit(el)
+      })
+      ro.observe(container)
+      return () => ro.disconnect()
+    }
 
     isMountedRef.current = true
+    runChartInit(container)
+
+    function runChartInit(container: HTMLDivElement) {
 
     try {
+      const { width, height } = container.getBoundingClientRect()
       const chart = createChart(container, {
         width,
         height,
@@ -2160,6 +2194,9 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
       )
 
       setIsInitialized(true)
+      // Reset previousAssetIdRef agar useEffect loadData re-trigger
+      // untuk asset yang sudah dipilih sebelum chart selesai diinit (common di mobile)
+      previousAssetIdRef.current = null
 
       const handleResize = () => {
         if (container && chart) {
@@ -2201,6 +2238,7 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
       console.error('Chart init error:', err)
       isMountedRef.current = false
     }
+    } // end runChartInit
   }, [chartType, addCleanup, cleanupAll, setChart, setSeries])
 
 
@@ -3545,6 +3583,8 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
 
   useEffect(() => {
     if (!selectedAsset || !isInitialized || !candleSeriesRef.current || !lineSeriesRef.current) {
+      // Mobile: jika ada asset yang dipilih tapi chart belum init (isInitialized=false),
+      // simpan assetId yang "pending" agar di-load saat isInitialized jadi true
       return
     }
 
@@ -4143,8 +4183,10 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         onToggleFullscreen={toggleFullscreen}
         onOpenIndicators={handleOpenIndicators}
         onToggleDrawing={() => {
-          if (!showDrawingTools) setShowDrawingTools(true) // mount sekali, jangan unmount agar drawings tidak hilang
-          setDrawingPanelOpen(o => !o)
+          if (!showDrawingTools) setShowDrawingTools(true)
+          const next = !drawingPanelOpen
+          setDrawingPanelOpen(next)
+          if (next) setDrawingBarVisible(true)
         }}
         drawingEnabled={drawingPanelOpen}
         isFullscreen={isFullscreen}
@@ -4162,7 +4204,9 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         onOpenIndicators={handleOpenIndicators}
         onToggleDrawing={() => {
           if (!showDrawingTools) setShowDrawingTools(true)
-          setDrawingPanelOpen(o => !o)
+          const next = !drawingPanelOpen
+          setDrawingPanelOpen(next)
+          if (next) setDrawingBarVisible(true)
         }}
         drawingEnabled={drawingPanelOpen}
         nowSeconds={nowSeconds}
@@ -4193,9 +4237,11 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
         chartRef={chartRef}
         seriesRef={candleSeriesRef}
         containerRef={chartContainerRef}
-        enabled={drawingPanelOpen}
+        enabled={showDrawingTools}
         panelOpen={drawingPanelOpen}
         onPanelClose={() => setDrawingPanelOpen(false)}
+        actionsRef={drawingActionsRef}
+        onStateChange={setDrawingBarState}
       />
 
       {activeOrders && activeOrders.length > 0 && currentPriceData.price > 0 && (
@@ -4224,6 +4270,77 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       <div className="hidden lg:block absolute bottom-10 left-1/2 -translate-x-1/2 z-10">
         <CandleCountdown timeframe={timeframe} nowSeconds={nowSeconds} isLightMode={isLightMode} />
       </div>
+
+      {/* Desktop Drawing Action Bar — 1 row compact, visible while drawing mode active */}
+      {showDrawingTools && drawingBarVisible && (
+        <div
+          className="hidden lg:flex absolute bottom-10 left-1/2 -translate-x-1/2 z-20 items-center rounded-xl border shadow-2xl select-none whitespace-nowrap overflow-hidden"
+          style={{
+            background: isLightMode ? 'rgba(241,245,249,0.97)' : 'rgba(15,20,25,0.96)',
+            borderColor: isLightMode ? 'rgba(53, 72, 85, 0.1)' : 'rgba(121, 163, 229, 0.34)',
+            backdropFilter: 'blur(12px)',
+          }}
+          onMouseDown={e => e.stopPropagation()}
+        >
+          {/* helper */}
+          {(() => {
+            const sep = <div className="w-px self-stretch my-1.5" style={{ background: isLightMode ? '#e2e8f0' : 'rgba(255,255,255,0.1)' }} />
+            const btn = (
+              title: string,
+              onClick: () => void,
+              icon: React.ReactNode,
+              label: string,
+              disabled = false,
+              danger = false,
+              badge?: number
+            ) => (
+              <button
+                title={title}
+                disabled={disabled}
+                onClick={onClick}
+                className="flex items-center gap-1 px-2.5 py-2 text-xs font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                style={{ color: danger && !disabled ? '#f87171' : isLightMode ? '#374151' : '#d1d5db', background: 'transparent' }}
+                onMouseEnter={e => {
+                  if (!disabled) {
+                    (e.currentTarget as HTMLButtonElement).style.background = danger ? 'rgba(239,68,68,0.1)' : isLightMode ? '#e2e8f0' : 'rgba(255,255,255,0.07)'
+                  }
+                }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+              >
+                {icon}
+                <span>{label}</span>
+                {badge !== undefined && badge > 0 && (
+                  <span className="ml-0.5 px-1 py-0.5 rounded-full text-[9px] font-bold"
+                    style={{ background: isLightMode ? '#e2e8f0' : 'rgba(255,255,255,0.1)', color: isLightMode ? '#64748b' : '#9ca3af' }}>
+                    {badge}
+                  </span>
+                )}
+              </button>
+            )
+            return <>
+              {btn('Undo (Ctrl+Z)', () => drawingActionsRef.current?.undo(),
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>,
+                'Undo', !drawingBarState.canUndo)}
+              {sep}
+              {btn('Redo (Ctrl+Y)', () => drawingActionsRef.current?.redo(),
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg>,
+                'Redo', !drawingBarState.canRedo)}
+              {sep}
+              {btn('Hapus yang dipilih (Del)', () => drawingActionsRef.current?.deleteSelected(),
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>,
+                'Hapus', !drawingBarState.hasSelected, true)}
+              {sep}
+              {btn('Hapus semua drawing', () => drawingActionsRef.current?.clearAll(),
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>,
+                'Hapus Semua', drawingBarState.drawingsCount === 0, false, drawingBarState.drawingsCount || undefined)}
+              {sep}
+              {btn('Tutup mode drawing', () => { setDrawingPanelOpen(false); setDrawingBarVisible(false) },
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+                'Tutup')}
+            </>
+          })()}
+        </div>
+      )}
     </div>
 
     {}
