@@ -1795,11 +1795,7 @@ export default function LandingPage() {
           {/* Mobile: center */}
           <div className="flex flex-col items-center justify-center text-center h-full min-h-screen px-6 gap-10 md:hidden">
             <h2 className="gsap-s1 text-4xl font-extrabold text-white" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.5)', opacity: 0 }}>
-              <span className="inline-block px-3 py-1 rounded-lg mb-1 backdrop-blur-xl" style={{ background: 'linear-gradient(to right, rgba(0, 0, 0, 0.28), rgba(241, 241, 241, 0))' }}>
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-emerald-200">Stouch</span>
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-200 to-emerald-400">.id</span>
-              </span>
-              <span className="block text-xl whitespace-nowrap font-light">
+              <span className="block text-xl whitespace-nowrap font-bold">
                 <CharReveal text="Membuat investasi menjadi jelas" delaySeconds={1.6} />
               </span>
             </h2>
