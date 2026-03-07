@@ -1796,7 +1796,10 @@ export default function LandingPage() {
           <div className="flex flex-col items-center justify-center text-center h-full min-h-screen px-6 gap-10 md:hidden">
             <h2 className="gsap-s1 text-4xl font-extrabold text-white" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.5)', opacity: 0 }}>
               <span className="block text-xl whitespace-nowrap font-bold">
-                <CharReveal text="Membuat investasi menjadi jelas" delaySeconds={1.6} />
+                <CharReveal text="Semua investasi dikelola dengan" delaySeconds={1.6} />
+              </span>
+              <span className="block text-xl whitespace-nowrap font-light">
+                <CharReveal text="mudah dan aman dalam satu platform." delaySeconds={1.6} />
               </span>
             </h2>
             <motion.button
