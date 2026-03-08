@@ -59,22 +59,34 @@ function EmailVerificationBanner({ onResent, compact = false }: { onResent?: () 
     }
   }
 
-  // ── Compact mode: hanya tombol (untuk top banner) ──────────────────────────
+  // ── Compact mode: tombol + hint setelah terkirim ──────────────────────────
   if (compact) {
     return (
-      <button
-        onClick={handleResend}
-        disabled={sending || cooldown > 0}
-        className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
-      >
-        {sending ? (
-          <><Loader2 className="w-3.5 h-3.5 animate-spin" />Mengirim...</>
-        ) : sent && cooldown > 0 ? (
-          <><CheckCircle2 className="w-3.5 h-3.5" />Terkirim ({cooldown}d)</>
-        ) : (
-          <><Mail className="w-3.5 h-3.5" />{sent ? 'Kirim Ulang' : 'Kirim Verifikasi'}</>
+      <div className="flex flex-col items-end gap-1">
+        <button
+          onClick={handleResend}
+          disabled={sending || cooldown > 0}
+          className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
+        >
+          {sending ? (
+            <><Loader2 className="w-3.5 h-3.5 animate-spin" />Mengirim...</>
+          ) : sent && cooldown > 0 ? (
+            <><CheckCircle2 className="w-3.5 h-3.5" />Terkirim ({cooldown}d)</>
+          ) : (
+            <><Mail className="w-3.5 h-3.5" />{sent ? 'Kirim Ulang' : 'Kirim Verifikasi'}</>
+          )}
+        </button>
+        {sent && (
+          <p className="text-[10px] text-amber-600 leading-tight text-right">
+            Cek inbox / folder spam
+          </p>
         )}
-      </button>
+        {error && (
+          <p className="text-[10px] text-red-500 leading-tight text-right flex items-center gap-0.5">
+            <AlertCircle className="w-3 h-3 flex-shrink-0" />{error}
+          </p>
+        )}
+      </div>
     )
   }
 
@@ -1649,10 +1661,6 @@ export default function ProfilePage() {
                     ))}
                   </div>
 
-                  {/* ── Banner resend email jika belum terverifikasi ── */}
-                  {!profileInfo?.verification?.emailVerified && (
-                    <EmailVerificationBanner onResent={loadProfile} />
-                  )}
                 </motion.div>
               </div>
 

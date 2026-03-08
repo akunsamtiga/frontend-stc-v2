@@ -1803,13 +1803,13 @@ export default function LandingPage() {
               </span>
             </h2>
             <motion.button
-              onClick={() => { setIsLogin(false); setShowAuthModal(true) }}
+              onClick={() => { setIsLogin(true); setShowAuthModal(true) }}
               whileHover={{ scale: 1.04, y: -1 }}
               whileTap={{ scale: 0.96 }}
               transition={{ duration: 0.18, ease: 'easeOut' }}
               className="gsap-s1 btn-glow inline-flex items-center justify-center w-48 py-3.5 bg-gradient-to-r from-emerald-800 to-emerald-500 hover:from-emerald-700 hover:to-emerald-400 rounded-xl text-base font-normal text-white shadow-lg shadow-emerald-900/40" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)', opacity: 0 }}
             >
-              Daftar Sekarang
+              Login Sekarang
             </motion.button>
             <div className="gsap-s1 flex flex-row gap-2 flex-wrap justify-center" style={{ opacity: 0 }}>
               {[
@@ -1838,13 +1838,13 @@ export default function LandingPage() {
               </span>
             </h2>
             <motion.button
-              onClick={() => { setIsLogin(false); setShowAuthModal(true) }}
+              onClick={() => { setIsLogin(true); setShowAuthModal(true) }}
               whileHover={{ scale: 1.04, y: -1 }}
               whileTap={{ scale: 0.96 }}
               transition={{ duration: 0.18, ease: 'easeOut' }}
               className="gsap-s1 btn-glow inline-flex items-center justify-center w-52 py-3.5 bg-gradient-to-r from-emerald-800 to-emerald-500 hover:from-emerald-700 hover:to-emerald-400 rounded-xl text-base font-normal text-white shadow-lg shadow-emerald-900/40" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)', opacity: 0 }}
             >
-              Daftar Sekarang
+              Login Sekarang
             </motion.button>
             <div className="gsap-s1 flex flex-row gap-2 flex-wrap justify-center" style={{ opacity: 0 }}>
               {[

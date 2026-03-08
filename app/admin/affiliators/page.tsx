@@ -233,6 +233,7 @@ function AssignModal({
   const [customCode, setCustomCode] = useState('')
   const [revenueShare, setRevenueShare] = useState('50')
   const [unlockThreshold, setUnlockThreshold] = useState('5')
+  const [initialRealBalance, setInitialRealBalance] = useState('')
   const [loading, setLoading] = useState(false)
 
   // Validasi format kode: hanya alfanumerik, tanda hubung, underscore
@@ -254,12 +255,16 @@ function AssignModal({
       const dto: AssignAffiliatorDto = {
         unlockThreshold: Number(unlockThreshold),
         ...(customCode.trim() ? { customCode: customCode.trim().toUpperCase() } : {}),
+        ...(initialRealBalance && Number(initialRealBalance) > 0 ? { initialRealBalance: Number(initialRealBalance) } : {}),
       }
       await api.adminAssignAffiliator(userId.trim(), dto)
+      const balanceInfo = initialRealBalance && Number(initialRealBalance) > 0
+        ? ` + saldo awal ${formatRupiah(Number(initialRealBalance))}`
+        : ''
       toast.success(
         customCode.trim()
-          ? `Affiliator berhasil! Kode: ${previewCode}`
-          : 'User berhasil dijadikan affiliator!'
+          ? `Affiliator berhasil! Kode: ${previewCode}${balanceInfo}`
+          : `User berhasil dijadikan affiliator!${balanceInfo}`
       )
       onSuccess()
       onClose()
@@ -372,6 +377,39 @@ function AssignModal({
                   className="w-full glass-input rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500/50 text-sm transition-all"
                 />
                 <p className="text-xs text-slate-600 mt-1">Min. depositor sebelum withdraw terbuka. Default: 5</p>
+              </div>
+
+              {/* Saldo awal real — BARU */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-1.5 flex items-center gap-1.5">
+                  <CurrencyDollar className="w-3.5 h-3.5" weight="bold" />
+                  Saldo Awal Real Account
+                  <span className="text-slate-600 font-normal">(opsional)</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-medium">Rp</span>
+                  <input
+                    type="number"
+                    value={initialRealBalance}
+                    onChange={(e) => setInitialRealBalance(e.target.value)}
+                    placeholder="0"
+                    min={1}
+                    className={`w-full glass-input rounded-xl pl-9 pr-4 py-2.5 text-white placeholder:text-slate-600
+                      focus:outline-none text-sm transition-all
+                      ${initialRealBalance && Number(initialRealBalance) > 0
+                        ? 'border-emerald-500/40 focus:border-emerald-500/60'
+                        : 'focus:border-purple-500/50'
+                      }`}
+                  />
+                </div>
+                {initialRealBalance && Number(initialRealBalance) > 0 ? (
+                  <p className="text-xs text-emerald-400 mt-1.5 flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3" weight="fill" />
+                    Akan ditambahkan {formatRupiah(Number(initialRealBalance))} ke akun real saat assign
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-600 mt-1">Biarkan kosong jika tidak ingin memberi saldo awal</p>
+                )}
               </div>
 
               {/* Info box */}
