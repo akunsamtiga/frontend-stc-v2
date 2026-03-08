@@ -280,12 +280,12 @@ function AssignModal({
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <motion.div
-          className="w-full max-w-md glass-modal rounded-2xl shadow-2xl"
+          className="w-full max-w-md glass-modal rounded-2xl shadow-2xl max-h-[90vh] flex flex-col"
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ ...SPRING }}
         >
-          <div className="p-6">
+          <div className="p-6 overflow-y-auto">
             {/* Header */}
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -484,12 +484,12 @@ function EditConfigModal({
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <motion.div
-          className="w-full max-w-md glass-modal rounded-2xl shadow-2xl"
+          className="w-full max-w-md glass-modal rounded-2xl shadow-2xl max-h-[90vh] flex flex-col"
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ ...SPRING }}
         >
-          <div className="p-6">
+          <div className="p-6 overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
@@ -610,12 +610,12 @@ function ApproveWithdrawModal({
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <motion.div
-          className="w-full max-w-md glass-modal rounded-2xl shadow-2xl"
+          className="w-full max-w-md glass-modal rounded-2xl shadow-2xl max-h-[90vh] flex flex-col"
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ ...SPRING }}
         >
-          <div className="p-6">
+          <div className="p-6 overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-white">Review Penarikan Komisi</h3>
               <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg glass-sub hover:border-white/20 text-slate-400 hover:text-white transition-all"><X className="w-4 h-4" weight="bold" /></button>
