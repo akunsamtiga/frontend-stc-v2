@@ -697,8 +697,7 @@ export default function AffiliatePage() {
             initial="hidden" animate="visible" variants={stagger(0.1)}>
             <motion.div variants={fadeLeft}>
               <AnimatedHeadline text="Program Affiliator"
-                className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2"
-                style={{ letterSpacing: '-0.03em' }} />
+                className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2"/>
               <motion.p className="text-gray-500 text-sm mt-1" variants={fadeUp}>
                 Undang pengguna baru dan dapatkan komisi dari trading mereka.
               </motion.p>
