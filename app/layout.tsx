@@ -12,6 +12,9 @@ const SITE_NAME = 'Stouch.id'
 const SITE_DESCRIPTION =
   'Platform trading binary option terpercaya di Indonesia. Profit hingga 100%, penarikan kilat, bonus VIP, dan keamanan tinggi. Powered by Stockity.'
 
+const OG_IMAGE = '/og-image.png'
+const LOGO_IMAGE = '/stc-logo1.png'
+
 export const metadata: Metadata = {
 
   title: {
@@ -19,13 +22,13 @@ export const metadata: Metadata = {
     template: `%s | ${SITE_NAME}`,
   },
 
-
   description: SITE_DESCRIPTION,
   keywords: [
     'binary option indonesia',
     'platform trading terpercaya',
     'trading binary',
     'Stouch',
+    'Stouch.id',
     'Stockity',
     'binary option profit tinggi',
     'trading online indonesia',
@@ -44,13 +47,11 @@ export const metadata: Metadata = {
   applicationName: SITE_NAME,
   generator: 'Next.js',
 
-
   metadataBase: new URL(SITE_URL),
   alternates: {
     canonical: '/',
     languages: { 'id-ID': '/' },
   },
-
 
   openGraph: {
     type: 'website',
@@ -61,25 +62,35 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     images: [
       {
-        url: '/og-image.png',
+        url: OG_IMAGE,
         width: 1200,
         height: 630,
-        alt: 'Stouch.id — Platform Trading Binary Option',
+        alt: 'Stouch.id — Platform Trading Binary Option Terpercaya di Indonesia',
+        type: 'image/png',
+      },
+      {
+        url: LOGO_IMAGE,
+        width: 512,
+        height: 512,
+        alt: 'Logo Stouch.id — Platform Trading Binary Option',
         type: 'image/png',
       },
     ],
   },
 
-
   twitter: {
     card: 'summary_large_image',
     title: `${SITE_NAME} — Platform Trading Binary Option Terpercaya`,
     description: SITE_DESCRIPTION,
-    images: ['/og-image.png'],
+    images: [
+      {
+        url: OG_IMAGE,
+        alt: 'Stouch.id — Platform Trading Binary Option Terpercaya di Indonesia',
+      },
+    ],
     creator: '@stockity_id',
     site: '@stockity_id',
   },
-
 
   icons: {
     icon: [
@@ -93,9 +104,7 @@ export const metadata: Metadata = {
     ],
   },
 
-
   manifest: '/manifest.json',
-
 
   appleWebApp: {
     capable: true,
@@ -103,7 +112,6 @@ export const metadata: Metadata = {
     title: SITE_NAME,
     startupImage: '/apple-splash.png',
   },
-
 
   robots: {
     index: true,
@@ -117,12 +125,6 @@ export const metadata: Metadata = {
     },
   },
 
-
-  verification: {
-    google: 'GANTI_DENGAN_GOOGLE_VERIFICATION_CODE',
-
-
-  },
 }
 
 export const viewport: Viewport = {
@@ -139,12 +141,46 @@ function OrganizationJsonLd() {
     '@id': `${SITE_URL}/#organization`,
     name: 'Stouch.id',
     url: SITE_URL,
+
     logo: {
       '@type': 'ImageObject',
-      url: `${SITE_URL}/stc-logo1.png`,
+      '@id': `${SITE_URL}/#logo`,
+      url: `${SITE_URL}${LOGO_IMAGE}`,
+      contentUrl: `${SITE_URL}${LOGO_IMAGE}`,
       width: 512,
       height: 512,
+      name: 'Logo Stouch.id',
+      caption: 'Stouch.id — Platform Trading Binary Option Indonesia',
+      inLanguage: 'id-ID',
     },
+
+    image: [
+      {
+        '@type': 'ImageObject',
+        '@id': `${SITE_URL}/#primary-image`,
+        url: `${SITE_URL}${OG_IMAGE}`,
+        contentUrl: `${SITE_URL}${OG_IMAGE}`,
+        width: 1200,
+        height: 630,
+        name: 'Stouch.id Platform Trading Binary Option Terpercaya Indonesia',
+        caption: 'Platform trading binary option terpercaya di Indonesia dengan profit hingga 100%',
+        description: SITE_DESCRIPTION,
+        inLanguage: 'id-ID',
+        representativeOfPage: true,
+      },
+      {
+        '@type': 'ImageObject',
+        '@id': `${SITE_URL}/#logo`,
+        url: `${SITE_URL}${LOGO_IMAGE}`,
+        contentUrl: `${SITE_URL}${LOGO_IMAGE}`,
+        width: 512,
+        height: 512,
+        name: 'Logo Stouch.id',
+        caption: 'Logo resmi Stouch.id',
+        inLanguage: 'id-ID',
+      },
+    ],
+
     description: SITE_DESCRIPTION,
     sameAs: [
       'https://www.facebook.com/profile.php?id=61576277923484',
@@ -186,6 +222,9 @@ function WebSiteJsonLd() {
     description: SITE_DESCRIPTION,
     publisher: { '@id': `${SITE_URL}/#organization` },
     inLanguage: 'id-ID',
+    primaryImageOfPage: {
+      '@id': `${SITE_URL}/#primary-image`,
+    },
     potentialAction: {
       '@type': 'SearchAction',
       target: {
@@ -208,26 +247,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="id" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <head>
-        {}
         <link rel="icon" href="/stc.ico" sizes="any" />
 
-        {}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
-        {}
         <meta name="mobile-web-app-capable" content="yes" />
 
-        {}
         <meta name="msapplication-TileColor" content="#0f1419" />
         <meta name="msapplication-navbutton-color" content="#0f1419" />
         <meta name="msapplication-TileImage" content="/icon-192.png" />
 
-        {}
         <link rel="preconnect" href="https://storage.googleapis.com" />
         <link rel="dns-prefetch" href="https://storage.googleapis.com" />
 
-        {}
         <OrganizationJsonLd />
         <WebSiteJsonLd />
       </head>

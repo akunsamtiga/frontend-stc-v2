@@ -1649,14 +1649,10 @@ export default function ProfilePage() {
                           <item.icon className={`w-4 h-4 ${item.verified ? 'text-emerald-500' : 'text-gray-300'}`} />
                           <span className="text-sm text-gray-700">{item.label}</span>
                         </div>
-                        {item.label === 'Email' && !item.verified ? (
-                          <EmailVerificationBanner onResent={loadProfile} compact />
-                        ) : (
-                          <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${item.verified ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
-                            {item.verified ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
-                            {item.verified ? 'Terverifikasi' : 'Belum'}
-                          </span>
-                        )}
+                        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${item.verified ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
+                          {item.verified ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                          {item.verified ? 'Terverifikasi' : 'Belum'}
+                        </span>
                       </div>
                     ))}
                   </div>

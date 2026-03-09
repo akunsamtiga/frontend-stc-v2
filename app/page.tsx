@@ -1796,10 +1796,10 @@ export default function LandingPage() {
           <div className="flex flex-col items-center justify-center text-center h-full min-h-screen px-6 gap-10 md:hidden">
             <h2 className="gsap-s1 text-4xl font-extrabold text-white" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.5)', opacity: 0 }}>
               <span className="block text-xl whitespace-nowrap font-bold">
-                <CharReveal text="Semua investasi dikelola dengan" delaySeconds={1.6} />
+                <CharReveal text="Semua investasi dikelola dengan" delaySeconds={1} />
               </span>
               <span className="block text-xl whitespace-nowrap font-light">
-                <CharReveal text="mudah dan aman dalam satu platform." delaySeconds={3.6} />
+                <CharReveal text="mudah dan aman dalam satu platform." delaySeconds={2} />
               </span>
             </h2>
             <motion.button
@@ -1814,9 +1814,9 @@ export default function LandingPage() {
             <div className="gsap-s1 flex flex-row gap-2 flex-wrap justify-center" style={{ opacity: 0 }}>
               {[
                 { label: 'Antarmuka intuitif',      icon: <SquaresFour className="w-3 h-3 text-white flex-shrink-0" weight="fill" /> },
-                { label: '140+ aset',               icon: <ChartLineUp className="w-3 h-3 text-white flex-shrink-0" weight="bold" /> },
-                { label: 'Transaksi aman',          icon: <LockSimple className="w-3 h-3 text-white flex-shrink-0" weight="bold" /> },
-                { label: 'Berlisensi & diregulasi', icon: <Medal className="w-3 h-3 text-white flex-shrink-0" weight="fill" /> },
+                { label: '20+ aset',               icon: <ChartLineUp className="w-3 h-3 text-white flex-shrink-0" weight="bold" /> },
+                { label: 'Terenkripsi',          icon: <LockSimple className="w-3 h-3 text-white flex-shrink-0" weight="bold" /> },
+                { label: 'Berlisensi', icon: <Medal className="w-3 h-3 text-white flex-shrink-0" weight="fill" /> },
               ].map((item) => (
                 <div key={item.label} className="flex flex-row items-center gap-1 bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 backdrop-blur-sm whitespace-nowrap">
                   {item.icon}
@@ -1849,9 +1849,9 @@ export default function LandingPage() {
             <div className="gsap-s1 flex flex-row gap-2 flex-wrap justify-center" style={{ opacity: 0 }}>
               {[
                 { label: 'Antarmuka intuitif',      icon: <SquaresFour className="w-3 h-3 text-white flex-shrink-0" weight="fill" /> },
-                { label: '140+ aset',               icon: <ChartLineUp className="w-3 h-3 text-white flex-shrink-0" weight="bold" /> },
-                { label: 'Transaksi aman',          icon: <LockSimple className="w-3 h-3 text-white flex-shrink-0" weight="bold" /> },
-                { label: 'Berlisensi & diregulasi', icon: <Medal className="w-3 h-3 text-white flex-shrink-0" weight="fill" /> },
+                { label: '20+ aset',               icon: <ChartLineUp className="w-3 h-3 text-white flex-shrink-0" weight="bold" /> },
+                { label: 'Terenkripsi',          icon: <LockSimple className="w-3 h-3 text-white flex-shrink-0" weight="bold" /> },
+                { label: 'Berlisensi', icon: <Medal className="w-3 h-3 text-white flex-shrink-0" weight="fill" /> },
               ].map((item) => (
                 <div key={item.label} className="flex flex-row items-center gap-1 bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 backdrop-blur-sm hover:bg-black/60 hover:border-emerald-500/30 transition-colors whitespace-nowrap">
                   {item.icon}
