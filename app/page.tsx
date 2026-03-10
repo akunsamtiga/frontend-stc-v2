@@ -1830,8 +1830,8 @@ export default function LandingPage() {
           <div className="hidden md:flex flex-col items-center justify-center text-center h-full min-h-screen px-16 gap-10">
             <h2 className="gsap-s1 text-5xl font-bold text-white" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.5)', opacity: 0 }}>
               <span className="inline-block px-3 py-1 rounded-lg mb-1 backdrop-blur-xl" style={{ background: 'linear-gradient(to right, rgb(0, 0, 0), rgba(255, 255, 255, 0))' }}>
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-emerald-200">Stouch</span>
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-200 to-emerald-400">.id</span>
+                <span className="shimmer-title-stouch">Stouch</span>
+                <span className="shimmer-title-id">.id</span>
               </span>
               <span className="block font-light">
                 <CharReveal text="Membuat investasi menjadi jelas" delaySeconds={1.6} />
@@ -3631,6 +3631,47 @@ export default function LandingPage() {
 
       /* ── Framer Motion will-change hint ─────────────────── */
       [data-motion-component] { will-change: transform, opacity; }
+
+      /* ── Stouch.id title shimmer ─────────────────────────── */
+      @keyframes title-shimmer {
+        0%   { background-position: 150% center; }
+        100% { background-position: -150% center; }
+      }
+      .shimmer-title-stouch {
+        background: linear-gradient(90deg,
+          #e2fdf0 0%,
+          #ffffff 15%,
+          #ffffff 35%,
+          #f0fff8 42%,
+          #ccfce7 47%,
+          #ffffff 52%,
+          #ffffff 70%,
+          #e2fdf0 100%
+        );
+        background-size: 250% auto;
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: title-shimmer 6s ease-in-out infinite;
+      }
+      .shimmer-title-id {
+        background: linear-gradient(90deg,
+          #34d399 0%,
+          #6ee7b7 15%,
+          #a7f3d0 30%,
+          #ecfdf5 42%,
+          #ffffff 47%,
+          #ecfdf5 52%,
+          #6ee7b7 70%,
+          #34d399 100%
+        );
+        background-size: 250% auto;
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: title-shimmer 6s ease-in-out infinite;
+        animation-delay: 0.7s;
+      }
 
       /* Fade top/bottom edges for marquee */
       .marquee-fade {
