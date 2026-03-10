@@ -277,6 +277,12 @@ export default function TradingPage() {
   const balanceRef = useRef({ real: 0, demo: 0 })
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isPlacingRef = useRef(false)
+  const tradeAudioRef = useRef<HTMLAudioElement | null>(null)
+
+  useEffect(() => {
+    tradeAudioRef.current = new Audio('/sounds/trade.mp3')
+    tradeAudioRef.current.preload = 'auto'
+  }, [])
 
   const bannerShownRef = useRef(false)
 
@@ -715,6 +721,12 @@ export default function TradingPage() {
 
     if (isPlacingRef.current) return
     isPlacingRef.current = true
+
+    // Play trade sound
+    if (tradeAudioRef.current) {
+      tradeAudioRef.current.currentTime = 0
+      tradeAudioRef.current.play().catch(() => {})
+    }
 
 
     const limits = getOrderLimits(selectedAsset)
