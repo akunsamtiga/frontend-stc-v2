@@ -4,77 +4,86 @@
 import { memo } from 'react'
 import { Timer } from 'lucide-react'
 
-const TIMEFRAME_SECONDS: Record<string, number> = {
-  '1s': 1,
-  '1m': 60,
-  '5m': 300,
-  '15m': 900,
-  '30m': 1800,
-  '1h': 3600,
-  '4h': 14400,
-  '1d': 86400,
-}
-
 interface CandleCountdownProps {
   timeframe: string
   nowSeconds: number
   isLightMode?: boolean
 }
 
-function formatCountdown(secs: number, timeframe: string): string {
-  if (timeframe === '1s') return `00:${String(secs).padStart(2, '0')}`
-  const m = Math.floor(secs / 60)
-  const s = secs % 60
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-}
-
+/**
+ * Countdown per-30-detik:
+ * - 30 detik pertama tiap menit (detik 0–29) → hijau
+ * - 30 detik kedua tiap menit (detik 30–59) → merah
+ * Countdown selalu menghitung mundur 30 → 1 kemudian reset.
+ */
 const CandleCountdown = memo(({ timeframe, nowSeconds, isLightMode = false }: CandleCountdownProps) => {
-  const intervalSeconds = TIMEFRAME_SECONDS[timeframe] ?? 60
-  const remaining = intervalSeconds - (nowSeconds % intervalSeconds)
+  const countdown = 30 - (nowSeconds % 30)       // 30 → 1
+  const isFirstHalf = (nowSeconds % 60) < 30     // true = fase hijau, false = fase merah
 
-  const isUrgent = remaining <= 5
-  const isCritical = remaining <= 2
+  const isCritical = countdown <= 3
+  const isUrgent   = countdown <= 8
 
+  // Warna berdasarkan fase (hijau / merah), bukan hanya urgensi
   let containerClass = ''
-  let textClass = ''
+  let textColor = ''
+  let dotColor = ''
 
   if (isLightMode) {
-    if (isCritical) {
-      containerClass = 'bg-red-100 border-red-400/70'
-      textClass = 'text-red-700'
-    } else if (isUrgent) {
-      containerClass = 'bg-amber-100 border-amber-400/70'
-      textClass = 'text-amber-700'
+    if (isFirstHalf) {
+      containerClass = isCritical
+        ? 'bg-emerald-100 border-emerald-500/70'
+        : 'bg-emerald-50 border-emerald-400/60'
+      textColor  = isCritical ? '#059669' : '#10b981'
+      dotColor   = '#10b981'
     } else {
-      containerClass = 'bg-white/80 border-slate-300'
-      textClass = 'text-slate-700'
+      containerClass = isCritical
+        ? 'bg-red-100 border-red-500/70'
+        : 'bg-rose-50 border-rose-400/60'
+      textColor  = isCritical ? '#dc2626' : '#ef4444'
+      dotColor   = '#ef4444'
     }
   } else {
-    if (isCritical) {
-      containerClass = 'bg-red-500/20 border-red-500/50'
-      textClass = 'text-red-400'
-    } else if (isUrgent) {
-      containerClass = 'bg-yellow-500/20 border-yellow-500/50'
-      textClass = 'text-yellow-400'
+    if (isFirstHalf) {
+      containerClass = isCritical
+        ? 'bg-emerald-500/25 border-emerald-400/70'
+        : 'bg-emerald-500/15 border-emerald-500/40'
+      textColor  = isCritical ? '#34d399' : '#6ee7b7'
+      dotColor   = '#10b981'
     } else {
-      containerClass = 'bg-black/30 border-white/10'
-      textClass = 'text-gray-300'
+      containerClass = isCritical
+        ? 'bg-red-500/25 border-red-400/70'
+        : 'bg-red-500/15 border-red-500/40'
+      textColor  = isCritical ? '#f87171' : '#fca5a5'
+      dotColor   = '#ef4444'
     }
   }
 
   return (
     <div
       className={`
-        flex items-center gap-1.5
-        px-2.5 py-1.5 rounded-lg
+        flex items-center gap-2
+        px-3 py-1.5 rounded-lg
         backdrop-blur-sm border
         transition-colors duration-300
-        ${containerClass} ${textClass}
+        ${containerClass}
       `}
     >
-      <Timer className="w-3.5 h-3.5 flex-shrink-0" />
-      <span className="text-xs font-bold tabular-nums">
-        {formatCountdown(remaining, timeframe)}
+      {/* Dot indikator fase */}
+      <div
+        className="w-2 h-2 rounded-full flex-shrink-0"
+        style={{
+          backgroundColor: dotColor,
+          boxShadow: isCritical ? `0 0 6px ${dotColor}` : 'none',
+        }}
+      />
+
+      <Timer className="w-3.5 h-3.5 flex-shrink-0" style={{ color: textColor }} />
+
+      <span
+        className={`text-xs font-bold tabular-nums ${isCritical ? 'animate-pulse' : ''}`}
+        style={{ color: textColor }}
+      >
+        {`00:${String(countdown).padStart(2, '0')}`}
       </span>
     </div>
   )

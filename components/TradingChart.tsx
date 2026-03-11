@@ -1223,16 +1223,12 @@ const MobileControls = memo(({
   }, [])
 
 
-  const TIMEFRAME_SECONDS_MAP: Record<string, number> = {
-    '1s': 1, '1m': 60, '5m': 300, '15m': 900,
-    '30m': 1800, '1h': 3600, '4h': 14400, '1d': 86400,
-  }
-  const intervalSecs = TIMEFRAME_SECONDS_MAP[timeframe] ?? 60
-  const countdownSecs = intervalSecs - (nowSeconds % intervalSecs)
+  // Countdown: 30-detik interval — hijau di 30s pertama tiap menit, merah di 30s kedua
+  const countdownSecs = 30 - (nowSeconds % 30)
+  const isFirstHalf30 = (nowSeconds % 60) < 30
 
   const formatCd = (secs: number) => {
-    if (timeframe === '1s') return `00:${String(secs).padStart(2, '0')}`
-    return `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`
+    return `00:${String(secs).padStart(2, '0')}`
   }
 
   // Light mode uses inline styles with !important via a <style> tag to avoid Tailwind conflicts
@@ -1357,12 +1353,30 @@ const MobileControls = memo(({
         <PencilSimpleLine weight="bold" className={`w-4 h-4 ${drawingEnabled ? 'text-white' : isLightMode ? 'text-slate-700' : 'text-gray-300'}`} />
       </button>
 
-      {/* Countdown pill */}
+      {/* Countdown pill — hijau 30s pertama, merah 30s kedua */}
       <div
-        style={pillStyle}
-        className={`h-10 px-3 rounded-full flex items-center gap-1 ${pillClass}`}
+        style={isLightMode
+          ? {
+              backgroundColor: isFirstHalf30 ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+              border: `1.5px solid ${isFirstHalf30 ? '#10b981' : '#ef4444'}`,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
+              backdropFilter: 'blur(4px)',
+            }
+          : {
+              backgroundColor: isFirstHalf30 ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
+              border: `1px solid ${isFirstHalf30 ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)'}`,
+            }
+        }
+        className="h-10 px-3 rounded-full flex items-center gap-1.5 backdrop-blur-sm"
       >
-        <span className={`text-sm font-light tabular-nums ${isLightMode ? 'text-slate-800' : 'text-white'}`}>
+        <div
+          className="w-1.5 h-1.5 rounded-full"
+          style={{ backgroundColor: isFirstHalf30 ? '#10b981' : '#ef4444' }}
+        />
+        <span
+          className="text-sm font-bold tabular-nums"
+          style={{ color: isFirstHalf30 ? (isLightMode ? '#059669' : '#34d399') : (isLightMode ? '#dc2626' : '#f87171') }}
+        >
           {formatCd(countdownSecs)}
         </span>
       </div>
@@ -1752,11 +1766,13 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
   const lastUpdateTimeRef = useRef<number>(0)
   const previousAssetIdRef = useRef<string | null>(null)
   const previousTimeframeRef = useRef<Timeframe>('1m')
+  const previousAccountTypeRef = useRef<string>('demo')
 
   const loadingManagerRef = useRef(new LoadingStateManager())
 
   const { selectedAsset } = useTradingStore()
   const { setSelectedAsset } = useTradingActions()
+  const selectedAccountType = useTradingStore(state => state.selectedAccountType)
   const storeAssets = useTradingStore(state => state.assets)
   const availableAssets = assets.length > 0 ? assets : storeAssets || []
 
@@ -3590,14 +3606,16 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
 
     const isAssetChange = previousAssetIdRef.current !== selectedAsset.id
     const isTimeframeChange = previousTimeframeRef.current !== timeframe
+    const isAccountTypeChange = previousAccountTypeRef.current !== selectedAccountType
 
-    if (isAssetChange || isTimeframeChange) {
+    if (isAssetChange || isTimeframeChange || isAccountTypeChange) {
       setIsLoading(true)
       previousAssetIdRef.current = selectedAsset.id
       previousTimeframeRef.current = timeframe
+      previousAccountTypeRef.current = selectedAccountType
 
 
-      if (isAssetChange) {
+      if (isAssetChange || isAccountTypeChange) {
         setCurrentChartData([])
         candleSeriesRef.current.setData([])
         lineSeriesRef.current.setData([])
@@ -3613,6 +3631,10 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
           const cacheKey = `${selectedAsset.id}-${tf}`
           GLOBAL_DATA_CACHE.delete(cacheKey)
         })
+
+        if (isAccountTypeChange) {
+          console.log(`🔄 Account switched to: ${selectedAccountType} — refreshing chart data`)
+        }
       }
 
       if (isTimeframeChange) {
@@ -3725,7 +3747,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
 
         const cachedData = getCachedData(selectedAsset.id, timeframe)
 
-        if (cachedData && cachedData.length > 0 && !isAssetChange) {
+        if (cachedData && cachedData.length > 0 && !isAssetChange && !isAccountTypeChange) {
           processAndDisplayData(cachedData)
           setIsLoading(false)
 
@@ -3771,7 +3793,7 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       isCancelled = true
       isLoadingDataRef.current = false
     }
-  }, [selectedAsset?.id, timeframe, isInitialized, checkSimulator])
+  }, [selectedAsset?.id, timeframe, isInitialized, checkSimulator, selectedAccountType])
 
   useEffect(() => {
     if (isLoading) {
