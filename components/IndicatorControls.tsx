@@ -39,6 +39,7 @@ export interface IndicatorConfig {
   vwap?: { enabled: boolean; color: string }
   parabolicSar?: { enabled: boolean; accelerationFactor: number; maxAF: number }
   supertrend?: { enabled: boolean; period: number; multiplier: number }
+  fractalChaosBands?: { enabled: boolean; period: number; colorUpper: string; colorLower: string }
 
 
   rsi?: { enabled: boolean; period: number; overbought: number; oversold: number }
@@ -218,7 +219,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 : 'text-gray-400 hover:text-white'
             }`}
           >
-            Overlay (10)
+            Overlay (11)
             {activeTab === 'overlay' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400" />
             )}
@@ -584,6 +585,49 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                   </div>
                 </div>
               </IndicatorRow>
+
+              {/* Fractal Chaos Bands */}
+              <IndicatorRow
+                icon={Waves}
+                name="Fractal Chaos Bands"
+                indicator="fractalChaosBands"
+                description="Williams Fractal upper/lower bands"
+                tags={["fractal", "chaos", "bands", "williams"]}
+              >
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Period (bars kanan & kiri)</label>
+                    <input
+                      type="number"
+                      value={config.fractalChaosBands?.period ?? 2}
+                      onChange={(e) => updateConfig('fractalChaosBands', { period: parseInt(e.target.value) })}
+                      className="w-full bg-[#0f1419] border border-gray-800/50 rounded px-3 py-2 text-sm"
+                      min="1"
+                      max="10"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1 block">Warna Upper</label>
+                      <input
+                        type="color"
+                        value={config.fractalChaosBands?.colorUpper ?? '#f97316'}
+                        onChange={(e) => updateConfig('fractalChaosBands', { colorUpper: e.target.value })}
+                        className="w-full h-10 bg-[#0f1419] border border-gray-800/50 rounded cursor-pointer"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1 block">Warna Lower</label>
+                      <input
+                        type="color"
+                        value={config.fractalChaosBands?.colorLower ?? '#06b6d4'}
+                        onChange={(e) => updateConfig('fractalChaosBands', { colorLower: e.target.value })}
+                        className="w-full h-10 bg-[#0f1419] border border-gray-800/50 rounded cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </IndicatorRow>
             </div>
           ) : (
             <div>
@@ -912,6 +956,7 @@ const IndicatorControls = memo(({ isOpen, onClose, config, onChange }: Indicator
                 vwap: { enabled: false, color: '#ec4899' },
                 parabolicSar: { enabled: false, accelerationFactor: 0.02, maxAF: 0.2 },
                 supertrend: { enabled: false, period: 10, multiplier: 3 },
+                fractalChaosBands: { enabled: false, period: 2, colorUpper: '#f97316', colorLower: '#06b6d4' },
                 rsi: { enabled: false, period: 14, overbought: 70, oversold: 30 },
                 macd: { enabled: false, fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
                 stochastic: { enabled: false, kPeriod: 14, dPeriod: 3, overbought: 80, oversold: 20 },

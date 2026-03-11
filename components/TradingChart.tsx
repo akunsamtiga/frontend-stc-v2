@@ -49,6 +49,7 @@ import {
   calculateSupertrend,
   calculateTRIX,
   calculateElderRay,
+  calculateFractalChaosBands,
   CandleData as IndicatorCandleData
 } from '@/lib/indicators'
 
@@ -225,6 +226,7 @@ interface IndicatorConfig {
   vwap?: { enabled: boolean; color: string }
   parabolicSar?: { enabled: boolean; accelerationFactor: number; maxAF: number }
   supertrend?: { enabled: boolean; period: number; multiplier: number }
+  fractalChaosBands?: { enabled: boolean; period: number; colorUpper: string; colorLower: string }
 
 
   rsi?: { enabled: boolean; period: number; overbought: number; oversold: number }
@@ -252,6 +254,7 @@ const DEFAULT_INDICATOR_CONFIG: IndicatorConfig = {
   vwap: { enabled: false, color: '#06b6d4' },
   parabolicSar: { enabled: false, accelerationFactor: 0.02, maxAF: 0.2 },
   supertrend: { enabled: false, period: 10, multiplier: 3 },
+  fractalChaosBands: { enabled: false, period: 2, colorUpper: '#f97316', colorLower: '#06b6d4' },
   rsi: { enabled: false, period: 14, overbought: 70, oversold: 30 },
   macd: { enabled: false, fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
   stochastic: { enabled: false, kPeriod: 14, dPeriod: 3, overbought: 80, oversold: 20 },
@@ -1675,6 +1678,9 @@ const vwapSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
 const parabolicSarSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
 const supertrendSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
 
+const fractalChaosUpperRef = useRef<ISeriesApi<"Line"> | null>(null)
+const fractalChaosLowerRef = useRef<ISeriesApi<"Line"> | null>(null)
+
 const adxChartRef = useRef<IChartApi | null>(null)
 const adxSeriesRef = useRef<ISeriesApi<"Line"> | null>(null)
 const adxContainerRef = useRef<HTMLDivElement>(null)
@@ -2238,6 +2244,8 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
         if (bollingerUpperRef.current) { try { chart.removeSeries(bollingerUpperRef.current) } catch (_) {} bollingerUpperRef.current = null }
         if (bollingerMiddleRef.current) { try { chart.removeSeries(bollingerMiddleRef.current) } catch (_) {} bollingerMiddleRef.current = null }
         if (bollingerLowerRef.current) { try { chart.removeSeries(bollingerLowerRef.current) } catch (_) {} bollingerLowerRef.current = null }
+        if (fractalChaosUpperRef.current) { try { chart.removeSeries(fractalChaosUpperRef.current) } catch (_) {} fractalChaosUpperRef.current = null }
+        if (fractalChaosLowerRef.current) { try { chart.removeSeries(fractalChaosLowerRef.current) } catch (_) {} fractalChaosLowerRef.current = null }
 
         try {
           candleAnimatorRef.current?.stop()
@@ -2272,36 +2280,56 @@ const elderRayContainerRef = useRef<HTMLDivElement>(null)
       indicatorConfig.elderRay?.enabled
 
     if (!hasOscillators) {
-
-      if (rsiChartRef.current) {
-        rsiChartRef.current.remove()
-        rsiChartRef.current = null
-        rsiSeriesRef.current = null
-        rsiOverboughtRef.current = null
-        rsiOversoldRef.current = null
-      }
-      if (macdChartRef.current) {
-        macdChartRef.current.remove()
-        macdChartRef.current = null
-        macdLineRef.current = null
-        macdSignalRef.current = null
-        macdHistogramRef.current = null
-      }
-      if (stochasticChartRef.current) {
-        stochasticChartRef.current.remove()
-        stochasticChartRef.current = null
-        stochasticKRef.current = null
-        stochasticDRef.current = null
-        stochasticOverboughtRef.current = null
-        stochasticOversoldRef.current = null
-      }
-      if (atrChartRef.current) {
-        atrChartRef.current.remove()
-        atrChartRef.current = null
-        atrSeriesRef.current = null
-      }
+      // Cleanup ALL oscillator charts when none are enabled
+      const allOscillatorCharts: Array<[React.MutableRefObject<IChartApi | null>, React.MutableRefObject<any>[] ]> = [
+        [rsiChartRef, [rsiSeriesRef, rsiOverboughtRef, rsiOversoldRef]],
+        [macdChartRef, [macdLineRef, macdSignalRef, macdHistogramRef]],
+        [stochasticChartRef, [stochasticKRef, stochasticDRef, stochasticOverboughtRef, stochasticOversoldRef]],
+        [atrChartRef, [atrSeriesRef]],
+        [adxChartRef, [adxSeriesRef]],
+        [cciChartRef, [cciSeriesRef]],
+        [williamsRChartRef, [williamsRSeriesRef]],
+        [mfiChartRef, [mfiSeriesRef]],
+        [aroonChartRef, [aroonUpRef, aroonDownRef]],
+        [trixChartRef, [trixSeriesRef]],
+        [obvChartRef, [obvSeriesRef]],
+        [elderRayChartRef, [elderRayBullRef, elderRayBearRef]],
+      ]
+      allOscillatorCharts.forEach(([chartRef, seriesRefs]) => {
+        if (chartRef.current) {
+          try { chartRef.current.remove() } catch (_) {}
+          chartRef.current = null
+          seriesRefs.forEach(r => { r.current = null })
+        }
+      })
       return
     }
+
+    // ─── Helper: cleanup individual oscillator when it is disabled ───
+    const cleanupIfDisabled = (
+      enabled: boolean | undefined,
+      chartRef: React.MutableRefObject<IChartApi | null>,
+      seriesRefs: React.MutableRefObject<any>[]
+    ) => {
+      if (!enabled && chartRef.current) {
+        try { chartRef.current.remove() } catch (_) {}
+        chartRef.current = null
+        seriesRefs.forEach(r => { r.current = null })
+      }
+    }
+
+    cleanupIfDisabled(indicatorConfig.rsi?.enabled,       rsiChartRef,       [rsiSeriesRef, rsiOverboughtRef, rsiOversoldRef])
+    cleanupIfDisabled(indicatorConfig.macd?.enabled,      macdChartRef,      [macdLineRef, macdSignalRef, macdHistogramRef])
+    cleanupIfDisabled(indicatorConfig.stochastic?.enabled,stochasticChartRef,[stochasticKRef, stochasticDRef, stochasticOverboughtRef, stochasticOversoldRef])
+    cleanupIfDisabled(indicatorConfig.atr?.enabled,       atrChartRef,       [atrSeriesRef])
+    cleanupIfDisabled(indicatorConfig.adx?.enabled,       adxChartRef,       [adxSeriesRef])
+    cleanupIfDisabled(indicatorConfig.cci?.enabled,       cciChartRef,       [cciSeriesRef])
+    cleanupIfDisabled(indicatorConfig.williamsR?.enabled,  williamsRChartRef, [williamsRSeriesRef])
+    cleanupIfDisabled(indicatorConfig.mfi?.enabled,       mfiChartRef,       [mfiSeriesRef])
+    cleanupIfDisabled(indicatorConfig.aroon?.enabled,     aroonChartRef,     [aroonUpRef, aroonDownRef])
+    cleanupIfDisabled(indicatorConfig.trix?.enabled,      trixChartRef,      [trixSeriesRef])
+    cleanupIfDisabled(indicatorConfig.obv?.enabled,       obvChartRef,       [obvSeriesRef])
+    cleanupIfDisabled(indicatorConfig.elderRay?.enabled,  elderRayChartRef,  [elderRayBullRef, elderRayBearRef])
 
     const chartOptions = {
       layout: { background: { type: ColorType.Solid, color: 'rgba(10, 14, 23, 0)' }, textColor: '#9ca3af' },
@@ -3350,6 +3378,47 @@ if (indicatorConfig.elderRay?.enabled && elderRayContainerRef.current && !elderR
       supertrendSeriesRef.current.applyOptions({ visible: true })
     } else if (supertrendSeriesRef.current) {
       supertrendSeriesRef.current.applyOptions({ visible: false })
+    }
+
+    // ─── Fractal Chaos Bands ───
+    if (indicatorConfig.fractalChaosBands?.enabled) {
+      if (!fractalChaosUpperRef.current) {
+        fractalChaosUpperRef.current = chart.addLineSeries({
+          color: indicatorConfig.fractalChaosBands.colorUpper ?? '#f97316',
+          lineWidth: 2,
+          priceLineVisible: false,
+          lastValueVisible: false,
+        })
+      }
+      if (!fractalChaosLowerRef.current) {
+        fractalChaosLowerRef.current = chart.addLineSeries({
+          color: indicatorConfig.fractalChaosBands.colorLower ?? '#06b6d4',
+          lineWidth: 2,
+          priceLineVisible: false,
+          lastValueVisible: false,
+        })
+      }
+
+      const fcbIndicatorData: IndicatorCandleData[] = currentChartData.map(d => ({
+        time: d.time,
+        open: d.open,
+        high: d.high,
+        low: d.low,
+        close: d.close,
+        volume: d.volume,
+      }))
+
+      const fcbData = calculateFractalChaosBands(fcbIndicatorData, indicatorConfig.fractalChaosBands.period ?? 2)
+      const upperData = fcbData.map(d => ({ time: d.time as UTCTimestamp, value: d.upper }))
+      const lowerData = fcbData.map(d => ({ time: d.time as UTCTimestamp, value: d.lower }))
+
+      fractalChaosUpperRef.current.setData(upperData)
+      fractalChaosLowerRef.current.setData(lowerData)
+      fractalChaosUpperRef.current.applyOptions({ visible: true, color: indicatorConfig.fractalChaosBands.colorUpper ?? '#f97316' })
+      fractalChaosLowerRef.current.applyOptions({ visible: true, color: indicatorConfig.fractalChaosBands.colorLower ?? '#06b6d4' })
+    } else {
+      if (fractalChaosUpperRef.current) fractalChaosUpperRef.current.applyOptions({ visible: false })
+      if (fractalChaosLowerRef.current) fractalChaosLowerRef.current.applyOptions({ visible: false })
     }
 
   }, [indicatorConfig, currentChartData])

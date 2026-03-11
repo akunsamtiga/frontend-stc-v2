@@ -1049,6 +1049,63 @@ export function calculateVolumeProfile(
   }))
 }
 
+export interface FractalChaosBand {
+  time: number
+  upper: number
+  lower: number
+}
+
+/**
+ * Fractal Chaos Bands (Bill Williams)
+ * - UP fractal: bar[i].high adalah tertinggi di antara [i-period .. i .. i+period]
+ * - DOWN fractal: bar[i].low adalah terendah di antara [i-period .. i .. i+period]
+ * - Upper band mengikuti fractal high terakhir yang sudah dikonfirmasi
+ * - Lower band mengikuti fractal low terakhir yang sudah dikonfirmasi
+ * period = 2 → 5-bar fractal (standar Bill Williams)
+ */
+export function calculateFractalChaosBands(
+  data: CandleData[],
+  period: number = 2
+): FractalChaosBand[] {
+  const result: FractalChaosBand[] = []
+
+  if (data.length < period * 2 + 1) return result
+
+  let lastUpper = data[0].high
+  let lastLower = data[0].low
+
+  for (let i = 0; i < data.length; i++) {
+    // Fractal dikonfirmasi saat kita sudah melihat `period` bar ke kanan
+    const fi = i - period
+    if (fi >= period) {
+      let isUpFractal = true
+      let isDownFractal = true
+
+      for (let j = 1; j <= period; j++) {
+        if (data[fi].high <= data[fi - j].high || data[fi].high <= data[fi + j].high) {
+          isUpFractal = false
+        }
+        if (data[fi].low >= data[fi - j].low || data[fi].low >= data[fi + j].low) {
+          isDownFractal = false
+        }
+      }
+
+      if (isUpFractal) lastUpper = data[fi].high
+      if (isDownFractal) lastLower = data[fi].low
+    }
+
+    if (i >= period) {
+      result.push({
+        time: data[i].time,
+        upper: lastUpper,
+        lower: lastLower
+      })
+    }
+  }
+
+  return result
+}
+
 export const indicators = {
   calculateSMA,
   calculateEMA,
@@ -1074,5 +1131,6 @@ export const indicators = {
   calculateFibonacciRetracement,
   calculatePivotPoints,
   calculateElderRay,
-  calculateVolumeProfile
+  calculateVolumeProfile,
+  calculateFractalChaosBands
 }
