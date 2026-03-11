@@ -505,6 +505,7 @@ function EditConfigModal({
   const [revenueShare, setRevenueShare] = useState(String(affiliator.revenueSharePercentage))
   const [unlockThreshold, setUnlockThreshold] = useState(String(affiliator.unlockThreshold))
   const [isActive, setIsActive] = useState(affiliator.isActive)
+  const [enableAutotrade, setEnableAutotrade] = useState(affiliator.autotradeEnabled ?? false)
   const [loading, setLoading] = useState(false)
 
   const handleSave = async () => {
@@ -514,6 +515,7 @@ function EditConfigModal({
         revenueSharePercentage: Number(revenueShare),
         unlockThreshold: Number(unlockThreshold),
         isActive,
+        enableAutotrade,
       }
       await api.adminUpdateAffiliatorConfig(affiliator.id, dto)
       toast.success('Konfigurasi affiliator diperbarui.')
@@ -584,6 +586,45 @@ function EditConfigModal({
                   {isActive ? 'Aktif' : 'Nonaktif'}
                 </button>
               </div>
+
+              {/* ── Autotrade Toggle (FIX: was missing) ── */}
+              <div
+                onClick={() => setEnableAutotrade(!enableAutotrade)}
+                className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all border ${
+                  enableAutotrade
+                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                    : 'glass-sub border-white/10'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                    enableAutotrade ? 'bg-emerald-500/20' : 'bg-white/[0.06]'
+                  }`}>
+                    <span className="text-base">{enableAutotrade ? '🤖' : '🤖'}</span>
+                  </div>
+                  <div>
+                    <p className={`text-sm font-semibold transition-colors ${enableAutotrade ? 'text-emerald-300' : 'text-slate-300'}`}>
+                      Fitur Autotrade
+                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Affiliator dapat mengelola whitelist bot autotrade
+                    </p>
+                  </div>
+                </div>
+                <div className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${
+                  enableAutotrade ? 'bg-emerald-500' : 'bg-white/10'
+                }`}>
+                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${
+                    enableAutotrade ? 'left-5' : 'left-0.5'
+                  }`} />
+                </div>
+              </div>
+
+              {enableAutotrade && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-xs text-amber-300/80">
+                  ⚠️ Setiap penarikan komisi affiliator ini akan dikenakan <strong className="text-amber-300">fee 5%</strong> sebagai biaya layanan autotrade.
+                </div>
+              )}
 
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-3 text-xs text-blue-300/80 space-y-1">
                 <p>Komisi dihitung <strong>dinamis</strong> — <strong>80% flat</strong> selama 2 bulan pertama, lalu tier <strong>50–80%</strong> berdasarkan jumlah user aktif 30 hari.</p>

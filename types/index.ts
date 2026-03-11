@@ -1872,6 +1872,10 @@ export interface AffiliatorListItem {
   totalCommissionEarned: number
   totalCommissionWithdrawn: number
   createdAt: string
+  /** Apakah fitur autotrade aktif untuk affiliator ini */
+  autotradeEnabled: boolean
+  /** Fee penarikan komisi jika autotrade aktif (default 5%) */
+  autotradeWithdrawalFee: number
 }
 
 /** Detail lengkap satu affiliator — response GET /admin/affiliate-program/affiliators/:userId */
@@ -1936,6 +1940,8 @@ export interface UpdateAffiliatorConfigDto {
   revenueSharePercentage?: number
   unlockThreshold?: number
   isActive?: boolean
+  /** Toggle fitur autotrade — true = aktif (fee 5% on withdrawal), false = nonaktif */
+  enableAutotrade?: boolean
 }
 
 export interface ApproveCommissionWithdrawalDto {
