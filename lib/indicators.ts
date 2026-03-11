@@ -355,71 +355,85 @@ export interface ADXData {
 export function calculateADX(data: CandleData[], period: number = 14): ADXData[] {
   const result: ADXData[] = []
 
-  if (data.length < period + 1) return result
+  // Need at least 2*period+1 bars: period for initial Wilder + period for ADX smooth
+  if (data.length < period * 2 + 1) return result
 
-  const trueRanges: number[] = []
-  const plusDM: number[] = []
-  const minusDM: number[] = []
-
+  // ── Step 1: Raw TR, +DM, -DM arrays (length = data.length - 1)
+  // trArr[k] represents data[k+1] transition
+  const trArr: number[] = []
+  const plusDMArr: number[] = []
+  const minusDMArr: number[] = []
 
   for (let i = 1; i < data.length; i++) {
     const high = data[i].high
     const low = data[i].low
+    const prevClose = data[i - 1].close
     const prevHigh = data[i - 1].high
     const prevLow = data[i - 1].low
-    const prevClose = data[i - 1].close
 
-    const tr = Math.max(
-      high - low,
-      Math.abs(high - prevClose),
-      Math.abs(low - prevClose)
-    )
-    trueRanges.push(tr)
+    trArr.push(Math.max(high - low, Math.abs(high - prevClose), Math.abs(low - prevClose)))
 
     const upMove = high - prevHigh
     const downMove = prevLow - low
-
-    plusDM.push(upMove > downMove && upMove > 0 ? upMove : 0)
-    minusDM.push(downMove > upMove && downMove > 0 ? downMove : 0)
+    plusDMArr.push(upMove > downMove && upMove > 0 ? upMove : 0)
+    minusDMArr.push(downMove > upMove && downMove > 0 ? downMove : 0)
   }
 
+  // ── Step 2: Wilder-smooth TR/+DM/-DM and collect per-bar DX & DI
+  // Initial sum covers trArr[0..period-1] → corresponds to data[period]
+  let smoothTR = trArr.slice(0, period).reduce((s, v) => s + v, 0)
+  let smoothPlus = plusDMArr.slice(0, period).reduce((s, v) => s + v, 0)
+  let smoothMinus = minusDMArr.slice(0, period).reduce((s, v) => s + v, 0)
 
-  let smoothedTR = trueRanges.slice(0, period).reduce((sum, val) => sum + val, 0)
-  let smoothedPlusDM = plusDM.slice(0, period).reduce((sum, val) => sum + val, 0)
-  let smoothedMinusDM = minusDM.slice(0, period).reduce((sum, val) => sum + val, 0)
+  // dxArr[j] and diArr[j] correspond to data[period + j]
+  const dxArr: number[] = []
+  const diArr: Array<{ plusDI: number; minusDI: number }> = []
 
-  const dxValues: number[] = []
+  // First DX point (j=0) → data[period]
+  const pdi0 = smoothTR > 0 ? (smoothPlus / smoothTR) * 100 : 0
+  const mdi0 = smoothTR > 0 ? (smoothMinus / smoothTR) * 100 : 0
+  dxArr.push((pdi0 + mdi0) > 0 ? (Math.abs(pdi0 - mdi0) / (pdi0 + mdi0)) * 100 : 0)
+  diArr.push({ plusDI: pdi0, minusDI: mdi0 })
 
-  for (let i = period; i < data.length; i++) {
-    smoothedTR = smoothedTR - (smoothedTR / period) + trueRanges[i - 1]
-    smoothedPlusDM = smoothedPlusDM - (smoothedPlusDM / period) + plusDM[i - 1]
-    smoothedMinusDM = smoothedMinusDM - (smoothedMinusDM / period) + minusDM[i - 1]
+  // Subsequent DX points: j = 1 → trArr[period], data[period + j]
+  for (let k = period; k < trArr.length; k++) {
+    smoothTR = smoothTR - smoothTR / period + trArr[k]
+    smoothPlus = smoothPlus - smoothPlus / period + plusDMArr[k]
+    smoothMinus = smoothMinus - smoothMinus / period + minusDMArr[k]
 
-    const plusDI = (smoothedPlusDM / smoothedTR) * 100
-    const minusDI = (smoothedMinusDM / smoothedTR) * 100
-
-    const dx = Math.abs(plusDI - minusDI) / (plusDI + minusDI) * 100
-    dxValues.push(dx)
+    const pdi = smoothTR > 0 ? (smoothPlus / smoothTR) * 100 : 0
+    const mdi = smoothTR > 0 ? (smoothMinus / smoothTR) * 100 : 0
+    dxArr.push((pdi + mdi) > 0 ? (Math.abs(pdi - mdi) / (pdi + mdi)) * 100 : 0)
+    diArr.push({ plusDI: pdi, minusDI: mdi })
   }
+  // dxArr[j] → data[period + j],  j = 0..dxArr.length-1
 
+  // ── Step 3: Smooth DX → ADX using first `period` DX values
+  if (dxArr.length < period) return result
 
-  if (dxValues.length >= period) {
-    let adx = dxValues.slice(0, period).reduce((sum, val) => sum + val, 0) / period
+  let adx = dxArr.slice(0, period).reduce((s, v) => s + v, 0) / period
 
+  // First ADX point: j = period-1  → data[period + period - 1] = data[2*period - 1]
+  const firstIdx = 2 * period - 1
+  if (firstIdx < data.length) {
     result.push({
-      time: data[period * 2].time,
+      time: data[firstIdx].time,
       adx,
-      plusDI: (smoothedPlusDM / smoothedTR) * 100,
-      minusDI: (smoothedMinusDM / smoothedTR) * 100
+      plusDI: diArr[period - 1].plusDI,
+      minusDI: diArr[period - 1].minusDI,
     })
+  }
 
-    for (let i = period; i < dxValues.length; i++) {
-      adx = ((adx * (period - 1)) + dxValues[i]) / period
+  // Subsequent ADX: j from period → data[period + j]
+  for (let j = period; j < dxArr.length; j++) {
+    adx = (adx * (period - 1) + dxArr[j]) / period
+    const dataIdx = period + j
+    if (dataIdx < data.length) {
       result.push({
-        time: data[period + i + 1].time,
+        time: data[dataIdx].time,
         adx,
-        plusDI: (smoothedPlusDM / smoothedTR) * 100,
-        minusDI: (smoothedMinusDM / smoothedTR) * 100
+        plusDI: diArr[j].plusDI,
+        minusDI: diArr[j].minusDI,
       })
     }
   }
