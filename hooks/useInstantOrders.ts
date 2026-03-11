@@ -406,7 +406,11 @@ export function useAggressiveResultPolling(
           const timeUntilExpiry = exitTime - now
 
 
-          return timeUntilExpiry <= 10000 && timeUntilExpiry > -5000
+        // ✅ FIX #3: Perlebar window dari -5000 → -30000 (30 detik setelah expire).
+        // Bug sebelumnya: kalau backend sedang macet memproses batch sebelumnya,
+        // order bisa terlambat 6–10 detik. Dengan window hanya -5s, polling agresif
+        // sudah berhenti sebelum hasil dari backend datang → order terlihat 00:00 terus.
+        return timeUntilExpiry <= 10000 && timeUntilExpiry > -30000
         })
 
         if (ordersToCheck.length === 0) {
