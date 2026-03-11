@@ -234,6 +234,7 @@ function AssignModal({
   const [revenueShare, setRevenueShare] = useState('50')
   const [unlockThreshold, setUnlockThreshold] = useState('5')
   const [initialRealBalance, setInitialRealBalance] = useState('')
+  const [enableAutotrade, setEnableAutotrade] = useState(false)
   const [loading, setLoading] = useState(false)
 
   // Validasi format kode: hanya alfanumerik, tanda hubung, underscore
@@ -256,6 +257,7 @@ function AssignModal({
         unlockThreshold: Number(unlockThreshold),
         ...(customCode.trim() ? { customCode: customCode.trim().toUpperCase() } : {}),
         ...(initialRealBalance && Number(initialRealBalance) > 0 ? { initialRealBalance: Number(initialRealBalance) } : {}),
+        ...(enableAutotrade ? { enableAutotrade: true } : {}),
       }
       await api.adminAssignAffiliator(userId.trim(), dto)
       const balanceInfo = initialRealBalance && Number(initialRealBalance) > 0
@@ -409,6 +411,50 @@ function AssignModal({
                   </p>
                 ) : (
                   <p className="text-xs text-slate-600 mt-1">Biarkan kosong jika tidak ingin memberi saldo awal</p>
+                )}
+              </div>
+
+              {/* Autotrade Toggle */}
+              <div
+                className={`rounded-xl px-4 py-3 border transition-all cursor-pointer select-none
+                  ${enableAutotrade
+                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                    : 'bg-white/[0.03] border-white/[0.08] hover:border-white/[0.14]'
+                  }`}
+                onClick={() => setEnableAutotrade(v => !v)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors
+                      ${enableAutotrade ? 'bg-emerald-500/20' : 'bg-white/[0.06]'}`}>
+                      {enableAutotrade
+                        ? <ToggleRight className="w-4 h-4 text-emerald-400" weight="fill" />
+                        : <ToggleLeft className="w-4 h-4 text-slate-500" weight="fill" />
+                      }
+                    </div>
+                    <div>
+                      <p className={`text-sm font-semibold transition-colors ${enableAutotrade ? 'text-emerald-300' : 'text-slate-300'}`}>
+                        Aktifkan Fitur Autotrade
+                      </p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Affiliator dapat mengelola whitelist bot autotrade
+                      </p>
+                    </div>
+                  </div>
+                  {/* Toggle pill */}
+                  <div className={`w-10 h-5 rounded-full transition-colors relative flex-shrink-0
+                    ${enableAutotrade ? 'bg-emerald-500' : 'bg-white/10'}`}>
+                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all
+                      ${enableAutotrade ? 'left-5' : 'left-0.5'}`} />
+                  </div>
+                </div>
+                {enableAutotrade && (
+                  <div className="mt-2.5 pt-2.5 border-t border-emerald-500/20 flex items-start gap-1.5">
+                    <Warning className="w-3 h-3 text-amber-400 mt-0.5 flex-shrink-0" weight="fill" />
+                    <p className="text-xs text-amber-300/80">
+                      Setiap penarikan komisi affiliator ini akan dikenakan <strong className="text-amber-300">fee 5%</strong> sebagai biaya layanan autotrade.
+                    </p>
+                  </div>
                 )}
               </div>
 

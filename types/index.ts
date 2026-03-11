@@ -1969,6 +1969,12 @@ export interface AssignAffiliatorDto {
   revenueSharePercentage?: number
   /** Default: 5. Jumlah undangan yang harus deposit sebelum withdrawal terbuka. */
   unlockThreshold?: number
+  /**
+   * Aktifkan fitur autotrade untuk affiliator ini.
+   * Jika true → autotradeEnabled = true, autotradeWithdrawalFee = 5 (%).
+   * Jika false → matikan autotrade.
+   */
+  enableAutotrade?: boolean
 }
 
 // ── Konstanta affiliate ───────────────────────────────────────────────────────
