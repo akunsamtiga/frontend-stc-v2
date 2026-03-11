@@ -1190,6 +1190,8 @@ const DrawingTools = memo(({
 
   // Track whether the cursor is hovering over a drawing (for cursor style)
   const [isHoveringDrawing, setIsHoveringDrawing] = useState(false)
+  // Position (in canvas CSS px) where a drawing was last clicked — used to anchor floating toolbar
+  const [selectedPos, setSelectedPos] = useState<{ x: number; y: number } | null>(null)
   const [showTextModal, setShowTextModal] = useState(false)
   const [pendingTextPoint, setPendingTextPoint] = useState<DrawingPoint | null>(null)
   const [isDrawing, setIsDrawing] = useState(false)
@@ -1328,6 +1330,7 @@ const DrawingTools = memo(({
         const pxPoints = d.points.map(p => pointToPixel(p)).filter(Boolean) as Array<{ x: number; y: number }>
         if (hitTest(d, pos.x, pos.y, pxPoints)) {
           setSelectedId(d.id)
+          setSelectedPos({ x: pos.x, y: pos.y })
           setIsDragging(true)
           setDragOffset({ dx: pos.x, dy: pos.y })
           return  // consumed — do NOT forward to chart
@@ -1335,6 +1338,7 @@ const DrawingTools = memo(({
       }
       // No drawing hit — deselect and let chart handle panning
       setSelectedId(null)
+      setSelectedPos(null)
       forwardToChart(e, 'mousedown')
       return
     }
@@ -1439,6 +1443,8 @@ const DrawingTools = memo(({
 
     // Drag selected drawing
     if (isDragging && selectedId && dragOffset) {
+      // Hide floating toolbar while dragging
+      if (selectedPos) setSelectedPos(null)
       const dx = pos.x - dragOffset.dx
       const dy = pos.y - dragOffset.dy
       setDrawings(prev => prev.map(d => {
@@ -1487,7 +1493,7 @@ const DrawingTools = memo(({
       }))
     }
   }, [
-    isDragging, selectedId, dragOffset,
+    isDragging, selectedId, dragOffset, selectedPos,
     isDrawing, activeTool, activeDrawingId, drawings,
     getCanvasPos, pixelToPoint, pointToPixel, forwardToChart
   ])
@@ -1537,11 +1543,13 @@ const DrawingTools = memo(({
     const newDrawings = drawings.filter(d => d.id !== selectedId)
     setDrawingsAndHistory(newDrawings)
     setSelectedId(null)
+    setSelectedPos(null)
   }, [selectedId, drawings, setDrawingsAndHistory])
 
   const clearAll = useCallback(() => {
     setDrawingsAndHistory([])
     setSelectedId(null)
+    setSelectedPos(null)
   }, [setDrawingsAndHistory])
 
   // ── Sync imperative actions ref and notify parent of state changes ──
@@ -1623,9 +1631,14 @@ const DrawingTools = memo(({
               : isHoveringDrawing
                 ? 'pointer'
                 : 'default',
-          // Only intercept events when the drawing panel is open.
-          // When panel is closed, canvas is transparent so chart works normally.
-          pointerEvents: (enabled && !!panelOpen) ? 'auto' : 'none',
+          // Intercept events when:
+          // - drawing panel is open (drawing mode), OR
+          // - drawings exist (so user can still select/delete them after panel closes), OR
+          // - a non-cursor tool is active
+          // Otherwise transparent so chart works normally.
+          pointerEvents: (
+            enabled && (!!panelOpen || drawings.length > 0 || activeTool !== 'cursor')
+          ) ? 'auto' : 'none',
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -1633,7 +1646,87 @@ const DrawingTools = memo(({
         onDoubleClick={handleDblClick}
       />
 
-      {/* Text modal */}
+      {/* ── Floating mini-toolbar — appears at click position when a drawing is selected ── */}
+      {selectedId && selectedPos && !showToolbar && (() => {
+        const sd = drawings.find(d => d.id === selectedId)
+        if (!sd) return null
+        const canvas = canvasRef.current
+        const rect = canvas?.getBoundingClientRect()
+        if (!rect) return null
+
+        // Position the toolbar above/below the click point, clamped inside canvas
+        const TOOLBAR_W = 260
+        const TOOLBAR_H = 44
+        const GAP = 12
+        let left = rect.left + selectedPos.x - TOOLBAR_W / 2
+        let top  = rect.top  + selectedPos.y - TOOLBAR_H - GAP
+
+        // Clamp horizontally
+        left = Math.max(rect.left + 4, Math.min(left, rect.right - TOOLBAR_W - 4))
+        // If too close to top, show below instead
+        if (top < rect.top + 8) top = rect.top + selectedPos.y + GAP
+
+        return (
+          <div
+            key={selectedId}
+            className="fixed z-[60] flex items-center gap-0.5 bg-[#1a1f2e] border border-gray-700/60 rounded-xl shadow-2xl px-2 py-1.5 backdrop-blur-sm"
+            style={{ left, top, minWidth: TOOLBAR_W }}
+            onMouseDown={e => e.stopPropagation()}
+          >
+            {/* Drawing type label */}
+            <span className="text-[10px] text-gray-500 font-medium px-1 mr-1 truncate max-w-[64px]">
+              {TOOL_GROUPS.flatMap(g => g.tools).find(t => t.id === sd.type)?.label ?? sd.type}
+            </span>
+
+            <div className="w-px h-5 bg-gray-700/60 mx-0.5" />
+
+            {/* Undo */}
+            <button title="Undo (Ctrl+Z)" onClick={undo} disabled={historyIdx <= 0}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-30 transition-colors">
+              <Undo2 className="w-3.5 h-3.5" />
+            </button>
+            {/* Redo */}
+            <button title="Redo (Ctrl+Y)" onClick={redo} disabled={historyIdx >= history.length - 1}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-30 transition-colors">
+              <Redo2 className="w-3.5 h-3.5" />
+            </button>
+
+            <div className="w-px h-5 bg-gray-700/60 mx-0.5" />
+
+            {/* Hide/Show */}
+            <button title={sd.hidden ? 'Tampilkan' : 'Sembunyikan'} onClick={toggleSelectedVisibility}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+              {sd.hidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+            </button>
+            {/* Lock/Unlock */}
+            <button title={sd.locked ? 'Buka Kunci' : 'Kunci'} onClick={toggleSelectedLock}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+              {sd.locked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+            </button>
+            {/* Duplicate */}
+            <button title="Duplikat" onClick={duplicateSelected}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+              <Copy className="w-3.5 h-3.5" />
+            </button>
+
+            <div className="w-px h-5 bg-gray-700/60 mx-0.5" />
+
+            {/* Delete */}
+            <button title="Hapus (Del)" onClick={deleteSelected}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Dismiss */}
+            <button title="Tutup" onClick={() => { setSelectedId(null); setSelectedPos(null) }}
+              className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/5 transition-colors ml-0.5">
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        )
+      })()}
+
+
       {showTextModal && (
         <TextInputModal
           onConfirm={handleTextConfirm}
