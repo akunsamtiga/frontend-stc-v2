@@ -26,7 +26,6 @@ const CandleCountdown = memo(({ timeframe, nowSeconds, isLightMode = false }: Ca
   // Warna berdasarkan fase (hijau / merah), bukan hanya urgensi
   let containerClass = ''
   let textColor = ''
-  let dotColor = ''
 
   if (isLightMode) {
     if (isFirstHalf) {
@@ -34,13 +33,11 @@ const CandleCountdown = memo(({ timeframe, nowSeconds, isLightMode = false }: Ca
         ? 'bg-emerald-100 border-emerald-500/70'
         : 'bg-emerald-50 border-emerald-400/60'
       textColor  = isCritical ? '#059669' : '#10b981'
-      dotColor   = '#10b981'
     } else {
       containerClass = isCritical
         ? 'bg-red-100 border-red-500/70'
         : 'bg-rose-50 border-rose-400/60'
       textColor  = isCritical ? '#dc2626' : '#ef4444'
-      dotColor   = '#ef4444'
     }
   } else {
     if (isFirstHalf) {
@@ -48,13 +45,11 @@ const CandleCountdown = memo(({ timeframe, nowSeconds, isLightMode = false }: Ca
         ? 'bg-emerald-500/25 border-emerald-400/70'
         : 'bg-emerald-500/15 border-emerald-500/40'
       textColor  = isCritical ? '#34d399' : '#6ee7b7'
-      dotColor   = '#10b981'
     } else {
       containerClass = isCritical
         ? 'bg-red-500/25 border-red-400/70'
         : 'bg-red-500/15 border-red-500/40'
       textColor  = isCritical ? '#f87171' : '#fca5a5'
-      dotColor   = '#ef4444'
     }
   }
 
@@ -68,19 +63,10 @@ const CandleCountdown = memo(({ timeframe, nowSeconds, isLightMode = false }: Ca
         ${containerClass}
       `}
     >
-      {/* Dot indikator fase */}
-      <div
-        className="w-2 h-2 rounded-full flex-shrink-0"
-        style={{
-          backgroundColor: dotColor,
-          boxShadow: isCritical ? `0 0 6px ${dotColor}` : 'none',
-        }}
-      />
-
       <Timer className="w-3.5 h-3.5 flex-shrink-0" style={{ color: textColor }} />
 
       <span
-        className={`text-xs font-bold tabular-nums ${isCritical ? 'animate-pulse' : ''}`}
+        className="text-xs font-bold tabular-nums"
         style={{ color: textColor }}
       >
         {`00:${String(countdown).padStart(2, '0')}`}

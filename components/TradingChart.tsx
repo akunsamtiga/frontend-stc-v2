@@ -1369,10 +1369,6 @@ const MobileControls = memo(({
         }
         className="h-10 px-3 rounded-full flex items-center gap-1.5 backdrop-blur-sm"
       >
-        <div
-          className="w-1.5 h-1.5 rounded-full"
-          style={{ backgroundColor: isFirstHalf30 ? '#10b981' : '#ef4444' }}
-        />
         <span
           className="text-sm font-bold tabular-nums"
           style={{ color: isFirstHalf30 ? (isLightMode ? '#059669' : '#34d399') : (isLightMode ? '#dc2626' : '#f87171') }}
