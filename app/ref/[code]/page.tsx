@@ -4,7 +4,7 @@ import { use, useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  Eye, EyeOff, Lock, CheckCircle2, ArrowRight,
+  Eye, EyeOff, CheckCircle2, ArrowRight,
   Loader2, ShieldCheck, UserPlus,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
@@ -308,29 +308,6 @@ export default function RefPage({ params }: Props) {
                   {errors.password}
                 </p>
               )}
-            </div>
-
-            {/* Affiliate code — locked */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-                <Lock className="w-3 h-3" />
-                Kode Affiliate
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={affiliateCode}
-                  readOnly
-                  tabIndex={-1}
-                  className="w-full rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 pr-11
-                    font-mono text-sm font-bold text-emerald-300 tracking-[0.2em]
-                    outline-none cursor-not-allowed select-none"
-                />
-                <Lock className="absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-500/40" />
-              </div>
-              <p className="text-[11px] text-slate-600">
-                Kode ini sudah terhubung otomatis dari link undangan kamu.
-              </p>
             </div>
 
             {/* Submit */}
