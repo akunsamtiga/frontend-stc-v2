@@ -341,7 +341,7 @@ export default function RefPage({ params }: Props) {
           <div className="px-8 pb-7">
             <p className="text-center text-[11px] text-slate-700 leading-relaxed">
               Dengan mendaftar kamu menyetujui{' '}
-              <Link href="/terms" className="text-slate-500 hover:text-white transition-colors underline underline-offset-2">
+              <Link href="/agreement" className="text-slate-500 hover:text-white transition-colors underline underline-offset-2">
                 Syarat & Ketentuan
               </Link>{' '}
               dan{' '}
