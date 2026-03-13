@@ -269,6 +269,7 @@ export default function TradingPage() {
   const [realBalance, setRealBalance] = useState(0)
   const [demoBalance, setDemoBalance] = useState(0)
   const [amount, setAmount] = useState(10000)
+  const [amountInput, setAmountInput] = useState('10000')
   const [duration, setDuration] = useState(1)
   const [loading, setLoading] = useState(false)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
@@ -874,10 +875,12 @@ export default function TradingPage() {
 
     if (amount < limits.min) {
       setAmount(limits.min)
+      setAmountInput(String(limits.min))
     }
 
     else if (amount > limits.max) {
       setAmount(limits.max)
+      setAmountInput(String(limits.max))
     }
   }, [selectedAsset?.id, amount])
 
@@ -1728,6 +1731,7 @@ export default function TradingPage() {
                   onClick={() => {
                     const newAmount = Math.max(orderLimits.min, Math.floor(amount / 2))
                     setAmount(newAmount)
+                    setAmountInput(String(newAmount))
                   }}
                   className="hover:bg-[#232936] rounded-lg p-1.5 transition-colors flex-shrink-0"
                 >
@@ -1735,30 +1739,36 @@ export default function TradingPage() {
                 </button>
 
                 <input
-                  type="number"
-                  value={amount}
+                  type="text"
+                  inputMode="numeric"
+                  value={amountInput}
                   onChange={(e) => {
-                    const newAmount = Number(e.target.value)
-                    const limits = getOrderLimits(selectedAsset)
-
-
-                    if (newAmount >= limits.min && newAmount <= limits.max) {
-                      setAmount(newAmount)
-                    } else if (newAmount < limits.min) {
-                      setAmount(limits.min)
-                    } else if (newAmount > limits.max) {
-                      setAmount(limits.max)
+                    const raw = e.target.value.replace(/[^0-9]/g, '')
+                    setAmountInput(raw)
+                    const num = Number(raw)
+                    if (raw !== '' && !isNaN(num)) {
+                      const limits = getOrderLimits(selectedAsset)
+                      if (num >= limits.min && num <= limits.max) {
+                        setAmount(num)
+                      }
                     }
                   }}
-                  className={`flex-1 min-w-0 bg-transparent border-0 text-center text-base focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none${isLightMode ? ' text-slate-800' : ' text-white'}`}
-                  min={orderLimits.min}
-                  max={orderLimits.max}
-                  step="1000"
+                  onBlur={() => {
+                    const num = Number(amountInput)
+                    const limits = getOrderLimits(selectedAsset)
+                    const clamped = isNaN(num) || amountInput === ''
+                      ? limits.min
+                      : Math.min(limits.max, Math.max(limits.min, num))
+                    setAmount(clamped)
+                    setAmountInput(String(clamped))
+                  }}
+                  className={`flex-1 min-w-0 bg-transparent border-0 text-center text-base focus:outline-none focus:ring-0${isLightMode ? ' text-slate-800' : ' text-white'}`}
                 />
                 <button
                   onClick={() => {
                     const newAmount = Math.min(orderLimits.max, amount * 2)
                     setAmount(newAmount)
+                    setAmountInput(String(newAmount))
                   }}
                   className="hover:bg-[#232936] rounded-lg p-1.5 transition-colors flex-shrink-0"
                 >
@@ -1903,93 +1913,59 @@ export default function TradingPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="relative" data-tutorial="amount-input">
               <label className="text-xs text-gray-400 text-center mb-2 block font-medium">Jumlah</label>
-              <div className="relative">
-                <div
-                  onClick={() => setShowAmountDropdown(!showAmountDropdown)}
-                  className={`w-full bg-[#1a1f2e] rounded-xl px-3 py-3 text-center text-sm font-bold hover:bg-[#232936] transition-colors flex items-center justify-between cursor-pointer${isLightMode ? ' text-slate-800' : ' text-white'}`}
-                  style={isLightMode ? { backgroundColor: '#cce0ff', border: '1px solid rgba(59,130,246,0.35)' } : undefined}
+              <div
+                className={`w-full bg-[#1a1f2e] rounded-xl px-3 py-3 flex items-center justify-between${isLightMode ? ' text-slate-800' : ' text-white'}`}
+                style={isLightMode ? { backgroundColor: '#cce0ff', border: '1px solid rgba(59,130,246,0.35)' } : undefined}
+              >
+                <button
+                  onClick={() => {
+                    const newAmount = Math.max(orderLimits.min, amount - 10000)
+                    setAmount(newAmount)
+                    setAmountInput(String(newAmount))
+                  }}
+                  className="flex items-center justify-center hover:bg-[#2a3142] rounded p-1 transition-colors"
                 >
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      const newAmount = Math.max(orderLimits.min, Math.floor(amount / 2))
-                      setAmount(newAmount)
-                    }}
-                    className="flex items-center justify-center hover:bg-[#2a3142] rounded p-1 transition-colors"
-                  >
-                    <Minus className={`w-4 h-4 ${isLightMode ? "text-slate-600" : "text-gray-300"}`} />
-                  </button>
+                  <Minus className={`w-4 h-4 ${isLightMode ? "text-slate-600" : "text-gray-300"}`} />
+                </button>
 
-                  <input
-                    type="number"
-                    value={amount}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => {
-                      const newAmount = Number(e.target.value)
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={amountInput}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^0-9]/g, '')
+                    setAmountInput(raw)
+                    const num = Number(raw)
+                    if (raw !== '' && !isNaN(num)) {
                       const limits = getOrderLimits(selectedAsset)
-                      if (newAmount >= limits.min && newAmount <= limits.max) {
-                        setAmount(newAmount)
-                      } else if (newAmount < limits.min) {
-                        setAmount(limits.min)
-                      } else if (newAmount > limits.max) {
-                        setAmount(limits.max)
+                      if (num >= limits.min && num <= limits.max) {
+                        setAmount(num)
                       }
-                    }}
-                    className={`flex-1 min-w-0 bg-transparent border-0 text-center text-sm font-bold focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none${isLightMode ? ' text-slate-800' : ' text-white'}`}
-                    min={orderLimits.min}
-                    max={orderLimits.max}
-                    step="1000"
-                  />
+                    }
+                  }}
+                  onBlur={() => {
+                    const num = Number(amountInput)
+                    const limits = getOrderLimits(selectedAsset)
+                    const clamped = isNaN(num) || amountInput === ''
+                      ? limits.min
+                      : Math.min(limits.max, Math.max(limits.min, num))
+                    setAmount(clamped)
+                    setAmountInput(String(clamped))
+                  }}
+                  className={`flex-1 min-w-0 bg-transparent border-0 text-center text-sm font-bold focus:outline-none focus:ring-0${isLightMode ? ' text-slate-800' : ' text-white'}`}
+                />
 
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      const newAmount = Math.min(orderLimits.max, amount * 2)
-                      setAmount(newAmount)
-                    }}
-                    className="flex items-center justify-center hover:bg-[#2a3142] rounded p-1 transition-colors"
-                  >
-                    <Plus className={`w-4 h-4 ${isLightMode ? "text-slate-600" : "text-gray-300"}`} />
-                  </button>
-                </div>
+                <button
+                  onClick={() => {
+                    const newAmount = Math.min(orderLimits.max, amount + 10000)
+                    setAmount(newAmount)
+                    setAmountInput(String(newAmount))
+                  }}
+                  className="flex items-center justify-center hover:bg-[#2a3142] rounded p-1 transition-colors"
+                >
+                  <Plus className={`w-4 h-4 ${isLightMode ? "text-slate-600" : "text-gray-300"}`} />
+                </button>
               </div>
-
-              {showAmountDropdown && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowAmountDropdown(false)}
-                  />
-                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#1a1f2e] border border-gray-800/50 rounded-lg shadow-2xl z-50 overflow-hidden max-h-[280px] overflow-y-auto" style={isLightMode ? { backgroundColor: '#ffffff', borderColor: 'rgba(0,0,0,0.1)' } : undefined}>
-                    {presetAmounts.map((preset) => {
-                      const isSelected = amount === preset
-                      const isAffordable = preset <= currentBalance
-
-                      return (
-                        <button
-                          key={preset}
-                          onClick={() => {
-                            setAmount(preset)
-                            setShowAmountDropdown(false)
-                          }}
-                          disabled={!isAffordable}
-                          className={`
-                            w-full px-4 py-3 text-sm font-medium transition-colors border-b border-gray-800/30 last:border-0
-                            ${isSelected
-                              ? 'bg-blue-500/20 text-blue-400'
-                              : isAffordable
-                                ? 'text-white hover:bg-[#232936]'
-                                : 'text-gray-600 opacity-50 cursor-not-allowed'
-                            }
-                          `}
-                        >
-                          {formatCurrency(preset)}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </>
-              )}
             </div>
 
             <div className="relative">
