@@ -11,19 +11,96 @@ import { toast } from 'sonner'
 
 // ── Apple Light system tokens ─────────────────────────────────────────────────
 const SYS = {
-  blue:     '#007aff',
-  green:    '#34c759',
-  bg:       '#f2f2f7',
-  card:     '#ffffff',
-  label:    '#000000',
-  label2:   'rgba(60,60,67,0.60)',
-  label3:   'rgba(60,60,67,0.30)',
-  sep:      'rgba(60,60,67,0.20)',
-  fill:     'rgba(120,120,128,0.16)',
-  fill2:    'rgba(120,120,128,0.08)',
-  red:      '#ff3b30',
-  shadow:   '0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06)',
+  blue:   '#007aff',
+  green:  '#34c759',
+  bg:     '#f2f2f7',
+  card:   '#ffffff',
+  label:  '#000000',
+  label2: 'rgba(60,60,67,0.60)',
+  label3: 'rgba(60,60,67,0.30)',
+  sep:    'rgba(60,60,67,0.20)',
+  fill:   'rgba(120,120,128,0.16)',
+  fill2:  'rgba(120,120,128,0.08)',
+  red:    '#ff3b30',
 }
+
+// ── Scoped CSS — resets all globals.css conflicts inside .raf-page ───────────
+const SCOPED_CSS = `
+  /* Page bg — overrides body { bg-white } from globals */
+  .raf-page {
+    background: #f2f2f7 !important;
+    color: #000000 !important;
+    min-height: 100vh;
+  }
+
+  /* Inputs — overrides globals input { bg-white border border-gray-200 rounded-lg px-4 py-2.5 ... } */
+  .raf-page input {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    color: #000000 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    ring: none !important;
+    transition: none !important;
+  }
+  .raf-page input:hover:not(:disabled) {
+    border: none !important;
+  }
+  .raf-page input:disabled {
+    background: transparent !important;
+    color: rgba(60,60,67,0.30) !important;
+    cursor: not-allowed;
+  }
+  .raf-page input::placeholder {
+    color: rgba(60,60,67,0.28) !important;
+  }
+  .raf-page input:focus {
+    outline: none !important;
+    ring: none !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Buttons — overrides globals button { transition-colors font-medium } and button:disabled { opacity-50 } */
+  .raf-page button {
+    font-family: inherit !important;
+    letter-spacing: inherit !important;
+  }
+  .raf-page button:disabled {
+    opacity: 1 !important;
+    cursor: not-allowed;
+  }
+
+  /* Headings — overrides h1,h2... { font-bold; letter-spacing: -0.02em } */
+  .raf-page h1 {
+    letter-spacing: -0.04em !important;
+    font-weight: 700 !important;
+  }
+  .raf-page h2 {
+    letter-spacing: -0.025em !important;
+    font-weight: 600 !important;
+  }
+
+  /* Paragraphs — overrides p { leading-relaxed } */
+  .raf-page p {
+    line-height: inherit !important;
+  }
+
+  /* Global * { border-gray-200 } bleeds border-color onto everything */
+  .raf-page * {
+    border-color: rgba(60,60,67,0.20) !important;
+  }
+
+  /* Scrollbar — light themed */
+  .raf-page ::-webkit-scrollbar-track {
+    background: #f2f2f7 !important;
+  }
+  .raf-page ::-webkit-scrollbar-thumb {
+    background: rgba(60,60,67,0.20) !important;
+  }
+`
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 const IconCheck = ({ size = 20, color = 'currentColor' }) => (
@@ -58,7 +135,7 @@ const IconMail = () => (
   </svg>
 )
 
-// ── Success modal — iOS light bottom sheet ────────────────────────────────────
+// ── Success modal ─────────────────────────────────────────────────────────────
 function SuccessModal({ onClose }: { onClose: () => void }) {
   return (
     <AnimatePresence>
@@ -80,7 +157,7 @@ function SuccessModal({ onClose }: { onClose: () => void }) {
             background: SYS.card,
             borderRadius: '28px 28px 0 0',
             paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 24px)',
-            boxShadow: '0 -2px 40px rgba(0,0,0,0.10)',
+            boxShadow: '0 -1px 0 rgba(60,60,67,0.12), 0 -8px 40px rgba(0,0,0,0.08)',
           }}
           initial={{ y: '100%' }}
           animate={{ y: 0, transition: { type: 'spring', stiffness: 72, damping: 18 } }}
@@ -89,19 +166,15 @@ function SuccessModal({ onClose }: { onClose: () => void }) {
         >
           {/* Drag handle */}
           <div className="flex justify-center pt-3 pb-1">
-            <div className="w-10 h-[5px] rounded-full" style={{ background: SYS.fill }} />
+            <div style={{ width: 40, height: 5, borderRadius: 99, background: SYS.fill }} />
           </div>
 
-          <div className="px-5 pt-3 pb-2 mx-auto w-full" style={{ maxWidth: 480 }}>
+          <div className="mx-auto w-full" style={{ maxWidth: 480, padding: '12px 20px 8px' }}>
 
             {/* Icon */}
             <motion.div
               className="mx-auto mb-5 flex items-center justify-center"
-              style={{
-                width: 68, height: 68, borderRadius: '50%',
-                background: 'rgba(52,199,89,0.12)',
-                flexShrink: 0,
-              }}
+              style={{ width: 68, height: 68, borderRadius: '50%', background: 'rgba(52,199,89,0.12)', flexShrink: 0 }}
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 130, damping: 14, delay: 0.08 }}
@@ -115,10 +188,10 @@ function SuccessModal({ onClose }: { onClose: () => void }) {
               </motion.div>
             </motion.div>
 
-            {/* Heading */}
+            {/* Title */}
             <motion.h2
-              className="text-center font-semibold mb-2"
-              style={{ color: SYS.label, letterSpacing: '-0.025em', fontSize: 'clamp(18px, 5vw, 22px)' }}
+              className="text-center"
+              style={{ color: SYS.label, fontSize: 'clamp(18px,5vw,22px)', fontWeight: 600, letterSpacing: '-0.025em', marginBottom: 8 }}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.16 }}
@@ -127,8 +200,8 @@ function SuccessModal({ onClose }: { onClose: () => void }) {
             </motion.h2>
 
             <motion.p
-              className="text-center leading-relaxed mb-5"
-              style={{ color: SYS.label2, fontSize: 'clamp(13px, 3.5vw, 15px)' }}
+              className="text-center"
+              style={{ color: SYS.label2, fontSize: 'clamp(13px,3.5vw,15px)', lineHeight: 1.55, marginBottom: 20 }}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.21 }}
@@ -138,10 +211,9 @@ function SuccessModal({ onClose }: { onClose: () => void }) {
               dan dapatkan komisi dari setiap trader yang kamu ajak?
             </motion.p>
 
-            {/* Benefit rows */}
+            {/* Benefits */}
             <motion.div
-              className="rounded-2xl overflow-hidden mb-4"
-              style={{ background: SYS.bg }}
+              style={{ background: SYS.bg, borderRadius: 16, overflow: 'hidden', marginBottom: 16 }}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.26 }}
@@ -153,23 +225,23 @@ function SuccessModal({ onClose }: { onClose: () => void }) {
               ].map((item, i, arr) => (
                 <div
                   key={item}
-                  className="flex items-center gap-3 px-4 py-3"
-                  style={{ borderBottom: i < arr.length - 1 ? `0.5px solid ${SYS.sep}` : 'none' }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '12px 16px',
+                    borderBottom: i < arr.length - 1 ? `0.5px solid ${SYS.sep}` : 'none',
+                  }}
                 >
-                  <div
-                    className="flex items-center justify-center flex-shrink-0"
-                    style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(52,199,89,0.15)' }}
-                  >
+                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(52,199,89,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <IconCheck size={11} color={SYS.green} />
                   </div>
-                  <span style={{ color: SYS.label2, fontSize: 'clamp(12px, 3.5vw, 14px)' }}>{item}</span>
+                  <span style={{ color: SYS.label2, fontSize: 'clamp(12px,3.5vw,14px)' }}>{item}</span>
                 </div>
               ))}
             </motion.div>
 
-            {/* Actions */}
+            {/* CTAs */}
             <motion.div
-              className="flex flex-col gap-2"
+              style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.31 }}
@@ -178,12 +250,12 @@ function SuccessModal({ onClose }: { onClose: () => void }) {
                 href="https://wa.me/6285701866916?text=Halo%20Stouch%2C%20saya%20baru%20saja%20membuat%20akun%20dan%20ingin%20mengajukan%20permohonan%20sebagai%20affiliator."
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full rounded-2xl font-semibold transition-opacity active:opacity-70"
                 style={{
-                  background: SYS.green,
-                  color: '#fff',
-                  padding: '14px 16px',
-                  fontSize: 'clamp(14px, 4vw, 15px)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  background: SYS.green, color: '#fff',
+                  padding: '14px 16px', borderRadius: 16,
+                  fontSize: 'clamp(14px,4vw,15px)', fontWeight: 600,
+                  textDecoration: 'none',
                 }}
               >
                 <IconWhatsapp />
@@ -192,32 +264,31 @@ function SuccessModal({ onClose }: { onClose: () => void }) {
 
               <a
                 href="mailto:support@stouch.id?subject=Permohonan%20Affiliator&body=Halo%20Stouch%2C%20saya%20baru%20saja%20membuat%20akun%20dan%20ingin%20mengajukan%20permohonan%20sebagai%20affiliator."
-                className="flex items-center justify-center gap-2 w-full rounded-2xl font-medium transition-opacity active:opacity-70"
                 style={{
-                  background: SYS.fill,
-                  color: SYS.label,
-                  padding: '14px 16px',
-                  fontSize: 'clamp(14px, 4vw, 15px)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  background: SYS.fill, color: SYS.label,
+                  padding: '14px 16px', borderRadius: 16,
+                  fontSize: 'clamp(14px,4vw,15px)', fontWeight: 500,
+                  textDecoration: 'none',
                 }}
               >
                 <IconMail />
                 Kirim via Email
               </a>
 
-              <div className="flex items-center gap-3 my-1">
-                <div className="flex-1 h-px" style={{ background: SYS.sep }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0' }}>
+                <div style={{ flex: 1, height: 0.5, background: SYS.sep }} />
                 <span style={{ color: SYS.label3, fontSize: 12 }}>atau</span>
-                <div className="flex-1 h-px" style={{ background: SYS.sep }} />
+                <div style={{ flex: 1, height: 0.5, background: SYS.sep }} />
               </div>
 
               <button
                 onClick={onClose}
-                className="w-full rounded-2xl font-medium transition-opacity active:opacity-70"
                 style={{
-                  background: SYS.fill2,
-                  color: SYS.label2,
-                  padding: '14px 16px',
-                  fontSize: 'clamp(14px, 4vw, 15px)',
+                  width: '100%', background: SYS.fill2, color: SYS.label2,
+                  padding: '14px 16px', borderRadius: 16,
+                  fontSize: 'clamp(14px,4vw,15px)', fontWeight: 500,
+                  border: 'none', cursor: 'pointer',
                 }}
               >
                 Lanjut ke akun
@@ -226,16 +297,12 @@ function SuccessModal({ onClose }: { onClose: () => void }) {
 
             {/* Guide */}
             <motion.div
-              className="mt-5 flex items-center justify-center"
+              style={{ marginTop: 20, display: 'flex', justifyContent: 'center' }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              <Link
-                href="/panduan-affiliator"
-                style={{ color: SYS.blue, fontSize: 12 }}
-                className="transition-opacity active:opacity-60"
-              >
+              <Link href="/panduan-affiliator" style={{ color: SYS.blue, fontSize: 12, textDecoration: 'none' }}>
                 Panduan program affiliator
               </Link>
             </motion.div>
@@ -307,81 +374,63 @@ export default function Page() {
 
   if (hydrated && user && !success) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: SYS.bg }}>
-        <div className="w-5 h-5 rounded-full border-2 border-black/10 border-t-black/40 animate-spin" />
+      <div className="raf-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <style dangerouslySetInnerHTML={{ __html: SCOPED_CSS }} />
+        <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid rgba(0,0,0,0.1)', borderTopColor: 'rgba(0,0,0,0.4)', animation: 'spin 0.8s linear infinite' }} />
       </div>
     )
   }
 
   return (
     <div
-      className="min-h-screen w-full flex flex-col items-center justify-center"
+      className="raf-page"
       style={{
-        background: SYS.bg,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
         padding: 'max(env(safe-area-inset-top, 0px), 32px) 20px max(env(safe-area-inset-bottom, 0px), 40px)',
       }}
     >
+      {/* Scoped style overrides */}
+      <style dangerouslySetInnerHTML={{ __html: SCOPED_CSS }} />
+
       {/* Wordmark */}
       <motion.div
-        className="mb-8"
+        style={{ marginBottom: 32 }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4 }}
       >
-        <span style={{
-          color: SYS.label3,
-          fontSize: 11,
-          letterSpacing: '0.2em',
-          textTransform: 'uppercase',
-          fontWeight: 600,
-        }}>
+        <span style={{ color: SYS.label3, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 600 }}>
           Stouch.id
         </span>
       </motion.div>
 
-      {/* Content */}
+      {/* Card area */}
       <motion.div
-        className="w-full"
-        style={{ maxWidth: 420 }}
+        style={{ width: '100%', maxWidth: 420 }}
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.06 }}
       >
         {/* Heading */}
-        <div className="text-center mb-7">
-          <h1 style={{
-            color: SYS.label,
-            fontSize: 'clamp(28px, 8vw, 36px)',
-            fontWeight: 700,
-            letterSpacing: '-0.04em',
-            lineHeight: 1.1,
-          }}>
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <h1 style={{ color: SYS.label, fontSize: 'clamp(28px,8vw,36px)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.1, margin: 0 }}>
             Buat Akun
           </h1>
-          <p className="mt-2" style={{ color: SYS.label2, fontSize: 'clamp(14px, 4vw, 16px)' }}>
+          <p style={{ color: SYS.label2, fontSize: 'clamp(14px,4vw,16px)', marginTop: 8, lineHeight: 1.4 }}>
             Bergabung dan mulai trading hari ini
           </p>
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* Input card */}
-          <div
-            className="rounded-2xl overflow-hidden mb-3"
-            style={{ background: SYS.card, boxShadow: SYS.shadow }}
-          >
+          {/* Input group card */}
+          <div style={{ background: SYS.card, borderRadius: 18, overflow: 'hidden', marginBottom: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.05)' }}>
+
             {/* Email */}
-            <div className="px-4" style={{ borderBottom: `0.5px solid ${SYS.sep}` }}>
-              <label
-                className="block"
-                style={{
-                  color: SYS.label3,
-                  fontSize: 11,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  paddingTop: 12,
-                  paddingBottom: 4,
-                }}
-              >
+            <div style={{ padding: '12px 16px 0', borderBottom: `0.5px solid ${SYS.sep}` }}>
+              <label style={{ display: 'block', color: SYS.label3, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4, fontWeight: 500 }}>
                 Email
               </label>
               <input
@@ -392,32 +441,16 @@ export default function Page() {
                 required
                 disabled={loading}
                 autoComplete="email"
-                className="w-full bg-transparent focus:outline-none"
-                style={{
-                  color: SYS.label,
-                  fontSize: 'clamp(15px, 4vw, 17px)',
-                  caretColor: SYS.blue,
-                  paddingBottom: 14,
-                }}
+                style={{ display: 'block', width: '100%', paddingBottom: 14, fontSize: 'clamp(15px,4vw,17px)', color: SYS.label, caretColor: SYS.blue }}
               />
             </div>
 
             {/* Password */}
-            <div className="px-4">
-              <label
-                className="block"
-                style={{
-                  color: SYS.label3,
-                  fontSize: 11,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  paddingTop: 12,
-                  paddingBottom: 4,
-                }}
-              >
+            <div style={{ padding: '12px 16px 0' }}>
+              <label style={{ display: 'block', color: SYS.label3, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4, fontWeight: 500 }}>
                 Password
               </label>
-              <div className="flex items-center" style={{ paddingBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', paddingBottom: 14 }}>
                 <input
                   type={showPw ? 'text' : 'password'}
                   value={password}
@@ -426,18 +459,12 @@ export default function Page() {
                   required
                   disabled={loading}
                   autoComplete="new-password"
-                  className="flex-1 min-w-0 bg-transparent focus:outline-none"
-                  style={{
-                    color: SYS.label,
-                    fontSize: 'clamp(15px, 4vw, 17px)',
-                    caretColor: SYS.blue,
-                  }}
+                  style={{ flex: 1, minWidth: 0, fontSize: 'clamp(15px,4vw,17px)', color: SYS.label, caretColor: SYS.blue }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw(p => !p)}
-                  className="flex-shrink-0 ml-3 transition-opacity active:opacity-40"
-                  style={{ color: SYS.label3 }}
+                  style={{ flexShrink: 0, marginLeft: 12, color: SYS.label3, background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                 >
                   <IconEye off={showPw} />
                 </button>
@@ -449,37 +476,32 @@ export default function Page() {
           <AnimatePresence>
             {password.length > 0 && (
               <motion.div
-                className="mb-4 px-1"
+                style={{ marginBottom: 16, padding: '0 4px' }}
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2 }}
               >
-                <div className="flex gap-1.5 mb-2">
+                <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
                   {[0,1,2,3].map(i => (
                     <motion.div
                       key={i}
-                      className="flex-1 rounded-full"
-                      style={{ height: 3 }}
+                      style={{ flex: 1, height: 3, borderRadius: 99 }}
                       animate={{ background: i < score ? strengthColor : SYS.fill }}
                       transition={{ duration: 0.3 }}
                     />
                   ))}
                 </div>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex flex-wrap gap-x-3 gap-y-1">
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 12px' }}>
                     {criteria.map(c => (
-                      <span
-                        key={c.label}
-                        className="transition-colors duration-300"
-                        style={{ color: c.met ? SYS.green : SYS.label3, fontSize: 11 }}
-                      >
+                      <span key={c.label} style={{ color: c.met ? SYS.green : SYS.label3, fontSize: 11, transition: 'color 0.3s' }}>
                         {c.met ? '✓ ' : '· '}{c.label}
                       </span>
                     ))}
                   </div>
                   {score > 0 && (
-                    <span className="flex-shrink-0 font-semibold" style={{ color: strengthColor, fontSize: 11 }}>
+                    <span style={{ color: strengthColor, fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
                       {strengthLabel}
                     </span>
                   )}
@@ -489,36 +511,32 @@ export default function Page() {
           </AnimatePresence>
 
           {/* Terms */}
-          <div className="mb-6">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <div className="flex-shrink-0" style={{ marginTop: 2 }}>
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
+              <div style={{ flexShrink: 0, marginTop: 2 }}>
                 <input
                   type="checkbox"
                   checked={agreed}
                   onChange={e => { setAgreed(e.target.checked); if (e.target.checked) setTermWarn(false) }}
-                  className="sr-only"
+                  style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
                 />
-                <div
-                  className="flex items-center justify-center transition-all duration-200"
-                  style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: '50%',
-                    background: agreed ? SYS.blue : SYS.fill,
-                    outline: termWarn && !agreed ? `1.5px solid ${SYS.red}` : 'none',
-                    outlineOffset: 1,
-                  }}
-                >
+                <div style={{
+                  width: 22, height: 22, borderRadius: '50%',
+                  background: agreed ? SYS.blue : SYS.fill,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  outline: termWarn && !agreed ? `1.5px solid ${SYS.red}` : 'none',
+                  outlineOffset: 1,
+                  transition: 'background 0.2s',
+                }}>
                   {agreed && <IconCheck size={12} color="#fff" />}
                 </div>
               </div>
-              <span className="leading-relaxed" style={{ color: SYS.label2, fontSize: 'clamp(12px, 3.5vw, 14px)' }}>
+              <span style={{ color: SYS.label2, fontSize: 'clamp(12px,3.5vw,14px)', lineHeight: 1.55 }}>
                 Saya menyetujui{' '}
-                <a href="/agreement" onClick={e => e.stopPropagation()} style={{ color: SYS.blue }}>
+                <a href="/agreement" onClick={e => e.stopPropagation()} style={{ color: SYS.blue, textDecoration: 'none' }}>
                   Syarat &amp; Ketentuan
-                </a>{' '}
-                dan{' '}
-                <a href="/privacy" onClick={e => e.stopPropagation()} style={{ color: SYS.blue }}>
+                </a>{' '}dan{' '}
+                <a href="/privacy" onClick={e => e.stopPropagation()} style={{ color: SYS.blue, textDecoration: 'none' }}>
                   Kebijakan Privasi
                 </a>
               </span>
@@ -526,8 +544,7 @@ export default function Page() {
             <AnimatePresence>
               {termWarn && !agreed && (
                 <motion.p
-                  className="mt-2"
-                  style={{ color: SYS.red, fontSize: 12, paddingLeft: 34 }}
+                  style={{ color: SYS.red, fontSize: 12, paddingLeft: 34, marginTop: 6, lineHeight: 1.4 }}
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
@@ -542,29 +559,38 @@ export default function Page() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-2xl font-semibold transition-opacity active:opacity-80 disabled:opacity-40"
             style={{
+              width: '100%',
               background: SYS.blue,
               color: '#fff',
               padding: '16px 20px',
-              fontSize: 'clamp(15px, 4vw, 17px)',
+              borderRadius: 16,
+              fontSize: 'clamp(15px,4vw,17px)',
+              fontWeight: 600,
               letterSpacing: '-0.01em',
-              boxShadow: '0 4px 16px rgba(0,122,255,0.28)',
+              border: 'none',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.55 : 1,
+              boxShadow: loading ? 'none' : '0 4px 16px rgba(0,122,255,0.28)',
+              transition: 'opacity 0.15s, box-shadow 0.15s',
             }}
           >
             {loading ? (
-              <span className="flex items-center justify-center gap-2.5">
-                <span className="inline-block w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                <span style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', display: 'inline-block', animation: 'raf-spin 0.8s linear infinite' }} />
                 Memproses...
               </span>
             ) : 'Buat Akun'}
           </button>
+
+          {/* Inline spinner keyframes */}
+          <style dangerouslySetInnerHTML={{ __html: `@keyframes raf-spin { to { transform: rotate(360deg); } }` }} />
         </form>
 
         {/* Benefits */}
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+        <div style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '8px 20px' }}>
           {['Demo Rp 10 juta', 'Profit 95%', 'Withdrawal cepat'].map(t => (
-            <div key={t} className="flex items-center gap-1.5">
+            <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <IconCheck size={12} color={SYS.green} />
               <span style={{ color: SYS.label3, fontSize: 12 }}>{t}</span>
             </div>
@@ -572,8 +598,8 @@ export default function Page() {
         </div>
 
         {/* Guide */}
-        <div className="mt-4 flex items-center justify-center">
-          <Link href="/panduan-affiliator" style={{ color: SYS.label3, fontSize: 12 }}>
+        <div style={{ marginTop: 12, textAlign: 'center' }}>
+          <Link href="/panduan-affiliator" style={{ color: SYS.label3, fontSize: 12, textDecoration: 'none' }}>
             Panduan program affiliator
           </Link>
         </div>
@@ -581,14 +607,13 @@ export default function Page() {
 
       {/* Sign in */}
       <motion.p
-        className="mt-8"
-        style={{ color: SYS.label3, fontSize: 'clamp(12px, 3.5vw, 14px)' }}
+        style={{ marginTop: 32, color: SYS.label3, fontSize: 'clamp(12px,3.5vw,14px)', lineHeight: 1.4 }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.35 }}
       >
         Sudah punya akun?{' '}
-        <Link href="/" className="font-medium" style={{ color: SYS.blue }}>
+        <Link href="/" style={{ color: SYS.blue, fontWeight: 500, textDecoration: 'none' }}>
           Masuk
         </Link>
       </motion.p>
