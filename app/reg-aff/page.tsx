@@ -8,278 +8,215 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore, useAuthHydration } from '@/store/auth'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
-import {
-  Eye,
-  EyeSlash,
-  UserPlus,
-  X,
-  WhatsappLogo,
-  EnvelopeSimple,
-  CheckCircle,
-  BookOpen,
-  Star,
-  ArrowRight,
-  Confetti,
-} from 'phosphor-react'
 
-// ── Motion variants ───────────────────────────────────────────────────────────
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
+// ── Apple system tokens ───────────────────────────────────────────────────────
+const SYS = {
+  blue:      '#0a84ff',
+  green:     '#30d158',
+  bg:        '#000000',
+  card:      '#1c1c1e',
+  label:     '#ffffff',
+  label2:    'rgba(235,235,245,0.60)',
+  label3:    'rgba(235,235,245,0.30)',
+  sep:       'rgba(84,84,88,0.55)',
+  fill:      'rgba(118,118,128,0.20)',
+  fill2:     'rgba(118,118,128,0.12)',
+  red:       '#ff453a',
 }
 
-const backdropVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1 },
-  exit: { opacity: 0, transition: { duration: 0.25 } },
-}
+// ── Minimal inline icons ──────────────────────────────────────────────────────
+const IconCheck = ({ size = 20, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path d="M5 12.5L9.5 17L19 7" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
 
-const modalVariants = {
-  hidden: { opacity: 0, scale: 0.88, y: 30 },
-  visible: {
-    opacity: 1, scale: 1, y: 0,
-    transition: { type: 'spring', stiffness: 90, damping: 18 },
-  },
-  exit: { opacity: 0, scale: 0.94, y: 16, transition: { duration: 0.2 } },
-}
+const IconEye = ({ off = false, size = 18 }) => off ? (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+) : (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
+  </svg>
+)
 
-const stagger = (i: number) => ({
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-  transition: { delay: 0.18 + i * 0.07, duration: 0.4, ease: [0.16, 1, 0.3, 1] },
-})
+const IconWhatsapp = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.553 4.116 1.522 5.847L.057 23.009a.75.75 0 00.933.934l5.162-1.466A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.796 9.796 0 01-4.988-1.365l-.358-.213-3.714 1.055 1.056-3.713-.214-.358A9.817 9.817 0 012.182 12C2.182 6.568 6.568 2.182 12 2.182c5.432 0 9.818 4.386 9.818 9.818 0 5.432-4.386 9.818-9.818 9.818z" />
+  </svg>
+)
 
-// ── Success Modal ─────────────────────────────────────────────────────────────
+const IconMail = ({ size = 17 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <rect x="2" y="4" width="20" height="16" rx="3" stroke="currentColor" strokeWidth="1.8" />
+    <path d="M2 8l10 6 10-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+)
 
+const IconBook = ({ size = 13 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+)
+
+// ── Success modal — iOS bottom sheet ─────────────────────────────────────────
 function SuccessModal({ onClose }: { onClose: () => void }) {
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:px-4"
-        variants={backdropVariants}
-        initial="hidden"
-        animate="visible"
-        exit="exit"
-        style={{ background: 'rgba(0,0,0,0.80)', backdropFilter: 'blur(8px)' }}
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0, transition: { duration: 0.22 } }}
+        style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}
         onClick={onClose}
       >
         <motion.div
-          className="relative w-full sm:max-w-md overflow-hidden"
+          className="relative w-full sm:max-w-[360px] sm:rounded-3xl overflow-hidden"
           style={{
-            background: 'linear-gradient(160deg, #0c1628 0%, #111827 50%, #0c1628 100%)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 40px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04) inset',
-            borderRadius: '24px 24px 0 0',
+            background: SYS.card,
+            borderRadius: '28px 28px 0 0',
+            paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 20px)',
           }}
-          variants={modalVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
+          initial={{ y: '100%' }}
+          animate={{ y: 0, transition: { type: 'spring', stiffness: 70, damping: 18 } }}
+          exit={{ y: '100%', transition: { type: 'spring', stiffness: 110, damping: 24 } }}
           onClick={e => e.stopPropagation()}
         >
-          {/* Decorative top glow bar */}
-          <div
-            className="absolute top-0 left-0 right-0 h-px"
-            style={{
-              background: 'linear-gradient(90deg, transparent 0%, rgba(16,185,129,0.6) 30%, rgba(56,189,248,0.6) 70%, transparent 100%)',
-            }}
-          />
-
-          {/* Background sparkles */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[
-              { top: '12%', left: '8%', size: 3, delay: 0.3 },
-              { top: '20%', right: '10%', size: 2, delay: 0.5 },
-              { top: '60%', left: '5%', size: 2, delay: 0.7 },
-              { top: '75%', right: '8%', size: 3, delay: 0.4 },
-              { top: '40%', left: '92%', size: 2, delay: 0.6 },
-            ].map((s, i) => (
-              <motion.div
-                key={i}
-                className="absolute rounded-full"
-                style={{
-                  width: s.size, height: s.size,
-                  top: s.top, left: (s as any).left, right: (s as any).right,
-                  background: i % 2 === 0 ? '#34d399' : '#38bdf8',
-                }}
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: [0, 1, 0.5, 1, 0], scale: [0, 1, 0.8, 1, 0] }}
-                transition={{ delay: s.delay, duration: 2.5, repeat: Infinity, repeatDelay: 1.5 }}
-              />
-            ))}
+          {/* Drag handle */}
+          <div className="flex justify-center pt-3.5 pb-2">
+            <div className="w-10 h-[5px] rounded-full" style={{ background: SYS.fill }} />
           </div>
 
-          <div className="relative p-7 pb-8">
-            {/* Close */}
-            <button
-              onClick={onClose}
-              className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:text-gray-300 hover:bg-white/5 transition-all"
-            >
-              <X size={16} weight="bold" />
-            </button>
+          <div className="px-6 pt-3 pb-2">
 
-            {/* Icon cluster */}
+            {/* Icon */}
             <motion.div
-              className="mx-auto mb-5 relative w-20 h-20"
-              initial={{ scale: 0, rotate: -30 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: 'spring', stiffness: 130, damping: 14, delay: 0.1 }}
+              className="mx-auto mb-5 w-[68px] h-[68px] rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(48,209,88,0.14)' }}
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 130, damping: 14, delay: 0.08 }}
             >
-              {/* Outer ring */}
-              <div
-                className="absolute inset-0 rounded-full"
-                style={{
-                  background: 'rgba(16,185,129,0.06)',
-                  border: '1px solid rgba(16,185,129,0.15)',
-                }}
-              />
-              {/* Inner glow */}
-              <div
-                className="absolute inset-2.5 rounded-full flex items-center justify-center"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.08))',
-                  border: '1px solid rgba(16,185,129,0.3)',
-                  boxShadow: '0 0 20px rgba(16,185,129,0.2)',
-                }}
-              >
-                <CheckCircle size={30} weight="fill" className="text-emerald-400" />
-              </div>
-              {/* Confetti mini icon */}
               <motion.div
-                className="absolute -top-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center"
-                style={{
-                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                  boxShadow: '0 4px 12px rgba(245,158,11,0.4)',
-                }}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 150, damping: 12, delay: 0.35 }}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 180, damping: 13, delay: 0.2 }}
               >
-                <Star size={13} weight="fill" className="text-white" />
+                <IconCheck size={32} color={SYS.green} />
               </motion.div>
             </motion.div>
 
-            {/* Title */}
-            <motion.div className="text-center mb-1" {...stagger(0)}>
-              <h2
-                className="text-2xl font-bold text-white"
-                style={{ letterSpacing: '-0.03em' }}
-              >
-                Selamat Bergabung! 🎉
-              </h2>
-            </motion.div>
-
-            {/* Subtitle */}
-            <motion.p
-              className="text-sm text-gray-400 text-center mb-6 leading-relaxed"
-              {...stagger(1)}
+            {/* Heading */}
+            <motion.h2
+              className="text-center text-[20px] font-semibold mb-1.5"
+              style={{ color: SYS.label, letterSpacing: '-0.03em' }}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.16 }}
             >
-              Akun Stouch kamu berhasil dibuat. Jadilah bagian dari program{' '}
-              <span className="text-emerald-400 font-semibold">Affiliator Stouch</span>{' '}
-              dan raih penghasilan tambahan bersama kami.
+              Akun berhasil dibuat
+            </motion.h2>
+
+            <motion.p
+              className="text-center text-[14px] leading-relaxed mb-6"
+              style={{ color: SYS.label2 }}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.21 }}
+            >
+              Ingin bergabung sebagai{' '}
+              <span style={{ color: SYS.label, fontWeight: 500 }}>affiliator Stouch</span>{' '}
+              dan dapatkan komisi dari setiap trader yang kamu ajak?
             </motion.p>
 
-            {/* Info card */}
+            {/* Benefit rows */}
             <motion.div
-              className="rounded-2xl p-4 mb-5"
-              style={{
-                background: 'rgba(16,185,129,0.06)',
-                border: '1px solid rgba(16,185,129,0.14)',
-              }}
-              {...stagger(2)}
+              className="rounded-2xl overflow-hidden mb-5"
+              style={{ background: SYS.fill2 }}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.26 }}
             >
-              <p className="text-[11px] font-semibold text-emerald-400 uppercase tracking-widest mb-3">
-                Keuntungan Jadi Affiliator
-              </p>
-              <div className="space-y-2">
-                {[
-                  'Komisi hingga 40% dari setiap transaksi undangan',
-                  'Dashboard real-time untuk pantau performa',
-                  'Penarikan komisi kapan saja tanpa batas minimum',
-                ].map((item, i) => (
-                  <div key={i} className="flex items-start gap-2.5">
-                    <div
-                      className="flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center mt-0.5"
-                      style={{ background: 'rgba(16,185,129,0.2)' }}
-                    >
-                      <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                        <path d="M1.5 4L3 5.5L6.5 2" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </div>
-                    <span className="text-xs text-gray-300 leading-relaxed">{item}</span>
+              {[
+                'Komisi hingga 40% per transaksi',
+                'Dashboard real-time & laporan lengkap',
+                'Cairkan komisi kapan saja',
+              ].map((item, i, arr) => (
+                <div
+                  key={item}
+                  className="flex items-center gap-3 px-4 py-3"
+                  style={{ borderBottom: i < arr.length - 1 ? `0.5px solid ${SYS.sep}` : 'none' }}
+                >
+                  <div
+                    className="flex-shrink-0 w-[20px] h-[20px] rounded-full flex items-center justify-center"
+                    style={{ background: 'rgba(48,209,88,0.16)' }}
+                  >
+                    <IconCheck size={11} color={SYS.green} />
                   </div>
-                ))}
-              </div>
+                  <span className="text-[13px]" style={{ color: SYS.label2 }}>{item}</span>
+                </div>
+              ))}
             </motion.div>
 
-            {/* CTA buttons */}
-            <motion.div className="flex flex-col gap-2.5" {...stagger(3)}>
-              {/* WhatsApp — primary */}
+            {/* Actions */}
+            <motion.div
+              className="flex flex-col gap-2.5"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.31 }}
+            >
               <a
                 href="https://wa.me/6285701866916?text=Halo%20Stouch%2C%20saya%20baru%20saja%20membuat%20akun%20dan%20ingin%20mengajukan%20permohonan%20sebagai%20affiliator."
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex items-center justify-center gap-2.5 w-full px-5 py-3.5 rounded-xl font-semibold text-sm overflow-hidden transition-all"
-                style={{
-                  background: 'linear-gradient(135deg, #16a34a, #15803d)',
-                  boxShadow: '0 8px 24px rgba(22,163,74,0.35)',
-                  color: '#ffffff',
-                }}
+                className="flex items-center justify-center gap-2.5 w-full py-[14px] rounded-[16px] text-[15px] font-semibold transition-opacity active:opacity-70"
+                style={{ background: SYS.green, color: '#000' }}
               >
-                <div
-                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ background: 'rgba(255,255,255,0.07)' }}
-                />
-                <WhatsappLogo size={18} weight="fill" />
-                Daftar Jadi Affiliator via WhatsApp
-                <ArrowRight size={15} weight="bold" className="ml-auto opacity-60 group-hover:translate-x-0.5 transition-transform" />
+                <IconWhatsapp size={18} />
+                Daftar via WhatsApp
               </a>
 
-              {/* Email — secondary */}
               <a
                 href="mailto:support@stouch.id?subject=Permohonan%20Affiliator&body=Halo%20Stouch%2C%20saya%20baru%20saja%20membuat%20akun%20dan%20ingin%20mengajukan%20permohonan%20sebagai%20affiliator."
-                className="group flex items-center justify-center gap-2.5 w-full px-5 py-3 rounded-xl font-medium text-sm transition-all"
-                style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.09)',
-                  color: '#94a3b8',
-                }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)'
-                  ;(e.currentTarget as HTMLElement).style.color = '#cbd5e1'
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)'
-                  ;(e.currentTarget as HTMLElement).style.color = '#94a3b8'
-                }}
+                className="flex items-center justify-center gap-2.5 w-full py-[14px] rounded-[16px] text-[15px] font-medium transition-opacity active:opacity-70"
+                style={{ background: SYS.fill, color: SYS.label }}
               >
-                <EnvelopeSimple size={16} weight="bold" />
+                <IconMail size={17} />
                 Kirim via Email
               </a>
 
-              {/* Skip */}
+              {/* Hairline divider */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px" style={{ background: SYS.sep }} />
+                <span className="text-[12px]" style={{ color: SYS.label3 }}>atau</span>
+                <div className="flex-1 h-px" style={{ background: SYS.sep }} />
+              </div>
+
               <button
                 onClick={onClose}
-                className="flex items-center justify-center gap-1.5 text-xs text-gray-600 hover:text-gray-400 transition-colors mt-0.5 py-1"
+                className="w-full py-[14px] rounded-[16px] text-[15px] font-medium transition-opacity active:opacity-70"
+                style={{ background: SYS.fill2, color: SYS.label2 }}
               >
-                Lewati, lanjut ke akun saya
-                <ArrowRight size={12} />
+                Lanjut ke akun
               </button>
             </motion.div>
 
-            {/* Bottom guide link */}
+            {/* Guide link */}
             <motion.div
-              className="mt-5 pt-4 flex items-center justify-center gap-1.5"
-              style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
-              {...stagger(4)}
+              className="mt-5 flex items-center justify-center gap-1.5"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
             >
-              <BookOpen size={12} className="text-gray-600" />
-              <Link
-                href="/panduan-affiliator"
-                className="text-[11px] text-gray-600 hover:text-sky-400 transition-colors"
-              >
-                Baca panduan program affiliator selengkapnya
+              <span style={{ color: SYS.label3 }}><IconBook /></span>
+              <Link href="/panduan-affiliator" className="text-[12px] transition-opacity active:opacity-60" style={{ color: SYS.blue }}>
+                Panduan program affiliator
               </Link>
             </motion.div>
           </div>
@@ -289,365 +226,302 @@ function SuccessModal({ onClose }: { onClose: () => void }) {
   )
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
-
+// ── Main page ─────────────────────────────────────────────────────────────────
 export default function Page() {
-  const router = useRouter()
+  const router   = useRouter()
   const { setAuth } = useAuthStore()
   const hydrated = useAuthHydration()
-  const user = useAuthStore(s => s.user)
+  const user     = useAuthStore(s => s.user)
 
-  const [email, setEmail] = useState('')
+  const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [affiliateCode, setAffiliateCode] = useState('')
-  const [referralCode, setReferralCode] = useState('')
-  const [agreedToTerms, setAgreedToTerms] = useState(false)
-  const [showTermsWarning, setShowTermsWarning] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [showPw,   setShowPw]   = useState(false)
+  const [affCode,  setAffCode]  = useState('')
+  const [refCode,  setRefCode]  = useState('')
+  const [agreed,   setAgreed]   = useState(false)
+  const [termWarn, setTermWarn] = useState(false)
+  const [loading,  setLoading]  = useState(false)
+  const [success,  setSuccess]  = useState(false)
 
-  // If already logged in, go to trading
   useEffect(() => {
     if (hydrated && user) router.push('/trading')
   }, [user, hydrated, router])
 
-  // Read ?ref= from URL silently (no UI field shown)
+  // Silently capture ?ref= from URL
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const ref = params.get('ref')?.trim()
-    if (ref) {
-      if (ref.startsWith('AFF')) setAffiliateCode(ref)
-      else setReferralCode(ref)
-    }
+    const p = new URLSearchParams(window.location.search)
+    const ref = p.get('ref')?.trim()
+    if (!ref) return
+    if (ref.startsWith('AFF')) setAffCode(ref)
+    else setRefCode(ref)
   }, [])
 
   // Password strength
   const criteria = [
-    { label: '8+ karakter', met: password.length >= 8 },
-    { label: 'Huruf besar', met: /[A-Z]/.test(password) },
-    { label: 'Huruf kecil', met: /[a-z]/.test(password) },
+    { label: '8+ karakter',    met: password.length >= 8 },
+    { label: 'Huruf besar',    met: /[A-Z]/.test(password) },
+    { label: 'Huruf kecil',    met: /[a-z]/.test(password) },
     { label: 'Angka / simbol', met: /[\d\W]/.test(password) },
   ]
-  const score = criteria.filter(c => c.met).length
-  const strengthLabel = score === 0 ? '' : score === 1 ? 'Lemah' : score === 2 ? 'Cukup' : score === 3 ? 'Bagus' : 'Kuat'
-  const strengthColor = score <= 1 ? '#ef4444' : score === 2 ? '#f59e0b' : score === 3 ? '#eab308' : '#10b981'
-  const barColor = (i: number) => {
-    if (i >= score) return 'rgba(255,255,255,0.07)'
-    if (score <= 1) return '#ef4444'
-    if (score === 2) return i === 0 ? '#ef4444' : '#f59e0b'
-    if (score === 3) return i === 0 ? '#ef4444' : i === 1 ? '#f59e0b' : '#eab308'
-    return '#10b981'
-  }
+  const score  = criteria.filter(c => c.met).length
+  const strengthLabel = ['', 'Lemah', 'Cukup', 'Bagus', 'Kuat'][score]
+  const strengthColor = [SYS.fill, SYS.red, '#ff9f0a', '#ffd60a', SYS.green][score]
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!agreedToTerms) { setShowTermsWarning(true); return }
-    setShowTermsWarning(false)
+    if (!agreed) { setTermWarn(true); return }
+    setTermWarn(false)
     setLoading(true)
     try {
-      const response = await api.register(
-        email,
-        password,
-        referralCode || undefined,
-        affiliateCode || undefined,
-      )
-      const userData = response.user || response.data?.user
-      const token = response.token || response.data?.token
+      const res      = await api.register(email, password, refCode || undefined, affCode || undefined)
+      const userData = res.user || res.data?.user
+      const token    = res.token || res.data?.token
       if (!userData || !token) { toast.error('Respon tidak valid dari server'); return }
       setAuth(userData, token)
       api.setToken(token)
-      setShowSuccessModal(true)
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.error ||
-        error.response?.data?.message ||
-        error.message ||
-        'Pendaftaran gagal',
-      )
+      setSuccess(true)
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || err.response?.data?.message || err.message || 'Pendaftaran gagal')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleModalClose = () => {
-    setShowSuccessModal(false)
-    router.push('/trading')
-  }
-
-  if (hydrated && user && !showSuccessModal) {
+  if (hydrated && user && !success) {
     return (
-      <div className="min-h-screen bg-[#0a0e17] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: SYS.bg }}>
+        <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
       </div>
     )
   }
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4 py-12"
-      style={{ background: 'linear-gradient(135deg, #060b14 0%, #0a0e17 60%, #080d1a 100%)' }}
+      className="min-h-screen flex flex-col items-center justify-center px-5"
+      style={{ background: SYS.bg }}
     >
-      {/* Subtle radial glow */}
-      <div
-        className="pointer-events-none fixed inset-0"
-        style={{
-          background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(56,189,248,0.05) 0%, transparent 70%)',
-        }}
-      />
+      {/* Wordmark */}
+      <motion.div
+        className="mb-10"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <span
+          className="text-[11px] font-semibold"
+          style={{ color: SYS.label3, letterSpacing: '0.2em', textTransform: 'uppercase' }}
+        >
+          Stouch.id
+        </span>
+      </motion.div>
 
       <motion.div
-        className="relative w-full max-w-md"
-        variants={fadeUp}
-        initial="hidden"
-        animate="visible"
+        className="w-full max-w-[360px]"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.06 }}
       >
-        {/* Card */}
-        <div
-          className="rounded-2xl p-8"
-          style={{
-            background: 'rgba(15,23,42,0.95)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.5)',
-          }}
-        >
-          {/* Header */}
-          <div className="mb-7 text-center">
-            <motion.div
-              className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-4"
-              style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 120, damping: 14, delay: 0.1 }}
-            >
-              <UserPlus size={22} weight="bold" className="text-emerald-400" />
-            </motion.div>
-            <h1
-              className="text-2xl font-bold text-white mb-1.5"
-              style={{ letterSpacing: '-0.03em' }}
-            >
-              Buat Akun
-            </h1>
-            <p className="text-sm text-gray-400">
-              Bergabunglah dengan ribuan trader sukses di Stouch
-            </p>
-          </div>
+        {/* Heading */}
+        <div className="text-center mb-8">
+          <h1
+            className="text-[34px] font-bold mb-2"
+            style={{ color: SYS.label, letterSpacing: '-0.04em' }}
+          >
+            Buat Akun
+          </h1>
+          <p className="text-[15px]" style={{ color: SYS.label2 }}>
+            Bergabung dan mulai trading hari ini
+          </p>
+        </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Alamat Email
+        {/* Grouped inputs — Apple Settings style */}
+        <form onSubmit={handleSubmit}>
+          <div className="rounded-2xl overflow-hidden mb-3" style={{ background: SYS.card }}>
+            {/* Email row */}
+            <div className="flex items-center px-4 py-0" style={{ minHeight: 52 }}>
+              <label className="text-[15px] w-24 flex-shrink-0" style={{ color: SYS.label }}>
+                Email
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="anda@example.com"
+                placeholder="nama@example.com"
                 required
                 disabled={loading}
-                className="w-full bg-[#0a0e17] border border-gray-800 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
                 autoComplete="email"
+                className="flex-1 bg-transparent text-[15px] text-right focus:outline-none"
+                style={{ color: SYS.label, caretColor: SYS.blue }}
               />
             </div>
-
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+            <div className="ml-4" style={{ height: '0.5px', background: SYS.sep }} />
+            {/* Password row */}
+            <div className="flex items-center px-4 py-0" style={{ minHeight: 52 }}>
+              <label className="text-[15px] w-24 flex-shrink-0" style={{ color: SYS.label }}>
                 Password
               </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  disabled={loading}
-                  className="w-full bg-[#0a0e17] border border-gray-800 rounded-xl px-4 py-3 pr-12 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
-                  autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(p => !p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
-                >
-                  {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
+              <input
+                type={showPw ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                disabled={loading}
+                autoComplete="new-password"
+                className="flex-1 bg-transparent text-[15px] text-right focus:outline-none"
+                style={{ color: SYS.label, caretColor: SYS.blue }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw(p => !p)}
+                className="ml-2 flex-shrink-0 transition-opacity active:opacity-40"
+                style={{ color: SYS.label3 }}
+              >
+                <IconEye off={showPw} size={17} />
+              </button>
+            </div>
+          </div>
 
-              {/* Password strength */}
-              {password.length > 0 && (
-                <motion.div
-                  className="mt-3 space-y-3"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  transition={{ duration: 0.25 }}
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] font-semibold tracking-widest uppercase text-gray-500">
-                        Kekuatan Password
-                      </span>
-                      {strengthLabel && (
-                        <span className="text-[11px] font-bold" style={{ color: strengthColor }}>
-                          {strengthLabel}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex gap-1.5">
-                      {[0, 1, 2, 3].map(i => (
-                        <div
-                          key={i}
-                          className="h-1.5 flex-1 rounded-full transition-all duration-500"
-                          style={{ background: barColor(i) }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
+          {/* Password strength */}
+          <AnimatePresence>
+            {password.length > 0 && (
+              <motion.div
+                className="mb-4 px-1"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.22 }}
+              >
+                {/* Bar */}
+                <div className="flex gap-1 mb-2">
+                  {[0,1,2,3].map(i => (
+                    <motion.div
+                      key={i}
+                      className="h-[3px] flex-1 rounded-full"
+                      animate={{ background: i < score ? strengthColor : SYS.fill }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  ))}
+                </div>
+                {/* Criteria + label */}
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap gap-x-4 gap-y-0.5">
                     {criteria.map(c => (
-                      <div
+                      <span
                         key={c.label}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-300"
-                        style={{
-                          background: c.met ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.03)',
-                          border: `1px solid ${c.met ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.06)'}`,
-                        }}
+                        className="text-[11px] transition-colors duration-300"
+                        style={{ color: c.met ? SYS.green : SYS.label3 }}
                       >
-                        <span
-                          className="flex-shrink-0 w-3.5 h-3.5 rounded-full flex items-center justify-center"
-                          style={{ background: c.met ? '#10b981' : 'rgba(255,255,255,0.1)' }}
-                        >
-                          {c.met
-                            ? <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                            : <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><path d="M1.5 1.5L4.5 4.5M4.5 1.5L1.5 4.5" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" strokeLinecap="round" /></svg>
-                          }
-                        </span>
-                        <span
-                          className="text-[10px] font-medium"
-                          style={{ color: c.met ? '#34d399' : 'rgba(255,255,255,0.35)' }}
-                        >
-                          {c.label}
-                        </span>
-                      </div>
+                        {c.met ? '✓ ' : '· '}{c.label}
+                      </span>
                     ))}
                   </div>
-                </motion.div>
-              )}
-            </div>
-
-            {/* Terms */}
-            <label className="flex items-start gap-3 cursor-pointer group">
-              <div className="relative flex-shrink-0 mt-0.5">
-                <input
-                  type="checkbox"
-                  checked={agreedToTerms}
-                  onChange={e => { setAgreedToTerms(e.target.checked); if (e.target.checked) setShowTermsWarning(false) }}
-                  className="sr-only"
-                />
-                <div className={`w-5 h-5 rounded border-2 transition-all flex items-center justify-center ${
-                  agreedToTerms
-                    ? 'bg-emerald-500 border-emerald-500'
-                    : showTermsWarning
-                      ? 'border-red-500 bg-transparent'
-                      : 'border-gray-600 bg-transparent group-hover:border-gray-400'
-                }`}>
-                  {agreedToTerms && (
-                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
+                  {score > 0 && (
+                    <span
+                      className="text-[11px] font-semibold flex-shrink-0 ml-3"
+                      style={{ color: strengthColor }}
+                    >
+                      {strengthLabel}
+                    </span>
                   )}
                 </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Terms */}
+          <div className="mb-6 px-1">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <div className="flex-shrink-0 mt-0.5">
+                <input type="checkbox" checked={agreed} onChange={e => { setAgreed(e.target.checked); if (e.target.checked) setTermWarn(false) }} className="sr-only" />
+                <div
+                  className="w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200"
+                  style={{
+                    background: agreed ? SYS.blue : SYS.fill,
+                    outline: termWarn && !agreed ? `1.5px solid ${SYS.red}` : 'none',
+                  }}
+                >
+                  {agreed && <IconCheck size={11} color="#fff" />}
+                </div>
               </div>
-              <span className="text-xs text-gray-400 leading-relaxed">
-                Dengan melanjutkan, Anda menyetujui{' '}
-                <a href="/agreement" onClick={e => e.stopPropagation()} className="text-sky-400 hover:text-sky-300 underline">
+              <span className="text-[13px] leading-relaxed" style={{ color: SYS.label2 }}>
+                Saya menyetujui{' '}
+                <a href="/agreement" onClick={e => e.stopPropagation()} style={{ color: SYS.blue }}>
                   Syarat &amp; Ketentuan
-                </a>{' '}
-                dan{' '}
-                <a href="/privacy" onClick={e => e.stopPropagation()} className="text-sky-400 hover:text-sky-300 underline">
+                </a>{' '}dan{' '}
+                <a href="/privacy" onClick={e => e.stopPropagation()} style={{ color: SYS.blue }}>
                   Kebijakan Privasi
-                </a>{' '}
-                kami
+                </a>
               </span>
             </label>
-
-            {showTermsWarning && (
-              <p className="text-xs text-red-400 flex items-center gap-1.5 -mt-2">
-                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                Harap centang persetujuan Syarat &amp; Ketentuan terlebih dahulu
-              </p>
-            )}
-
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full px-6 py-3.5 rounded-xl text-base font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{
-                background: loading ? '#1e293b' : 'linear-gradient(135deg, #0ea5e9, #2563eb)',
-                boxShadow: loading ? 'none' : '0 8px 24px rgba(14,165,233,0.25)',
-              }}
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                  Memproses...
-                </span>
-              ) : (
-                'Buat Akun'
+            <AnimatePresence>
+              {termWarn && !agreed && (
+                <motion.p
+                  className="mt-2 ml-8 text-[12px]"
+                  style={{ color: SYS.red }}
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                >
+                  Harap setujui syarat dan ketentuan untuk melanjutkan
+                </motion.p>
               )}
-            </button>
-          </form>
-
-          {/* Benefits strip */}
-          <div className="mt-6 grid grid-cols-2 gap-2">
-            {[
-              'Akun demo Rp 10.000.000',
-              'Profit hingga 95%',
-              'Penarikan cepat',
-              'Support 24/7',
-            ].map(text => (
-              <div key={text} className="flex items-center gap-2 text-xs text-gray-500">
-                <svg className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                </svg>
-                {text}
-              </div>
-            ))}
+            </AnimatePresence>
           </div>
 
-          {/* Panduan link */}
-          <div
-            className="mt-6 pt-5 text-center"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-4 rounded-2xl text-[15px] font-semibold transition-opacity active:opacity-75 disabled:opacity-40"
+            style={{ background: SYS.blue, color: '#fff', letterSpacing: '-0.01em' }}
           >
-            <Link
-              href="/panduan-affiliator"
-              className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-sky-400 transition-colors"
-            >
-              <BookOpen size={13} />
-              panduan program affiliator
-            </Link>
-          </div>
+            {loading ? (
+              <span className="flex items-center justify-center gap-2.5">
+                <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin inline-block" />
+                Memproses...
+              </span>
+            ) : 'Buat Akun'}
+          </button>
+        </form>
+
+        {/* Benefits */}
+        <div className="mt-6 flex items-center justify-center gap-6">
+          {['Demo Rp 10 juta', 'Profit 95%', 'Withdrawal cepat'].map(t => (
+            <div key={t} className="flex items-center gap-1.5">
+              <IconCheck size={11} color={SYS.green} />
+              <span className="text-[12px]" style={{ color: SYS.label3 }}>{t}</span>
+            </div>
+          ))}
         </div>
 
-        {/* Sudah punya akun */}
-        <p className="mt-5 text-center text-xs text-gray-600">
-          Sudah punya akun?{' '}
-          <Link href="/" className="text-sky-400 hover:text-sky-300 transition-colors font-medium">
-            Masuk di sini
+        {/* Guide */}
+        <div className="mt-4 flex items-center justify-center gap-1.5">
+          <span style={{ color: SYS.label3 }}><IconBook /></span>
+          <Link href="/panduan-affiliator" className="text-[12px]" style={{ color: SYS.label3 }}>
+            Panduan program affiliator
           </Link>
-        </p>
+        </div>
       </motion.div>
 
-      {/* Success Modal */}
-      {showSuccessModal && <SuccessModal onClose={handleModalClose} />}
+      {/* Sign in */}
+      <motion.p
+        className="mt-10 text-[13px]"
+        style={{ color: SYS.label3 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.35 }}
+      >
+        Sudah punya akun?{' '}
+        <Link href="/" className="font-medium" style={{ color: SYS.blue }}>
+          Masuk
+        </Link>
+      </motion.p>
+
+      {/* Success sheet */}
+      {success && (
+        <SuccessModal onClose={() => { setSuccess(false); router.push('/trading') }} />
+      )}
     </div>
   )
 }
