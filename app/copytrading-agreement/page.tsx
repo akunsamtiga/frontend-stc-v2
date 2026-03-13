@@ -7,9 +7,9 @@ import CopyTradingPageClient from './PageClient'
 const BASE_URL = 'https://stouch.id'
 
 export const metadata: Metadata = {
-  title: 'Perjanjian Copy Trading — Stouch.id',
+  title: 'Perjanjian Copy Trading - Stouch',
   description:
-    'Perjanjian Copy Trading Stouch.id: aturan menyalin perdagangan trader lain, komisi, hak kewajiban, dan pengungkapan risiko. Berlaku mulai 6 November 2025.',
+    'Perjanjian Copy Trading Stouch: aturan menyalin perdagangan trader lain, komisi, hak kewajiban, dan pengungkapan risiko. Berlaku mulai 6 November 2025.',
   keywords: [
     'copy trading agreement Stouch',
     'perjanjian copy trading Indonesia',
@@ -22,10 +22,10 @@ export const metadata: Metadata = {
     languages: { 'id-ID': `${BASE_URL}/copytrading-agreement` },
   },
   openGraph: {
-    title: 'Perjanjian Copy Trading | Stouch.id',
-    description: 'Aturan lengkap layanan Copy Trading Stouch.id. Berlaku mulai 6 November 2025.',
+    title: 'Perjanjian Copy Trading | Stouch',
+    description: 'Aturan lengkap layanan Copy Trading Stouch. Berlaku mulai 6 November 2025.',
     url: `${BASE_URL}/copytrading-agreement`,
-    images: [{ url: `${BASE_URL}/og-image.png`, width: 1200, height: 630, alt: 'Perjanjian Copy Trading Stouch.id' }],
+    images: [{ url: `${BASE_URL}/og-image.png`, width: 1200, height: 630, alt: 'Perjanjian Copy Trading Stouch' }],
   },
 }
 
@@ -39,8 +39,8 @@ function CopyTradingJsonLd() {
         '@type': 'WebPage',
         '@id': `${BASE_URL}/copytrading-agreement/#webpage`,
         url: `${BASE_URL}/copytrading-agreement`,
-        name: 'Perjanjian Copy Trading — Stouch.id',
-        description: 'Perjanjian Copy Trading resmi Stouch.id, berlaku mulai 6 November 2025.',
+        name: 'Perjanjian Copy Trading - Stouch',
+        description: 'Perjanjian Copy Trading resmi Stouch, berlaku mulai 6 November 2025.',
         inLanguage: 'id-ID',
         isPartOf: { '@id': `${BASE_URL}/#website` },
         breadcrumb: { '@id': `${BASE_URL}/copytrading-agreement/#breadcrumb` },

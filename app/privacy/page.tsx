@@ -5,12 +5,12 @@ import PrivacyPageClient from './PageClient'
 const BASE_URL = 'https://stouch.id'
 
 export const metadata: Metadata = {
-  title: 'Kebijakan Privasi — Stouch.id',
+  title: 'Kebijakan Privasi - Stouch',
   description:
-    'Kebijakan Privasi Stouch.id: cara kami mengumpulkan, menggunakan, mengungkapkan, dan melindungi informasi pribadi Anda saat menggunakan platform perdagangan Stouch. Berlaku mulai 15 Januari 2026.',
+    'Kebijakan Privasi Stouch: cara kami mengumpulkan, menggunakan, mengungkapkan, dan melindungi informasi pribadi Anda saat menggunakan platform perdagangan Stouch. Berlaku mulai 15 Januari 2026.',
   keywords: [
     'kebijakan privasi Stouch',
-    'privacy policy Stouch.id',
+    'privacy policy Stouch',
     'perlindungan data Stouch',
     'data pribadi platform trading',
     'Verte Securities privasi',
@@ -20,10 +20,10 @@ export const metadata: Metadata = {
     languages: { 'id-ID': `${BASE_URL}/privacy` },
   },
   openGraph: {
-    title: 'Kebijakan Privasi | Stouch.id',
-    description: 'Aturan lengkap perlindungan data pribadi pengguna Stouch.id. Berlaku mulai 15 Januari 2026.',
+    title: 'Kebijakan Privasi | Stouch',
+    description: 'Aturan lengkap perlindungan data pribadi pengguna Stouch. Berlaku mulai 15 Januari 2026.',
     url: `${BASE_URL}/privacy`,
-    images: [{ url: `${BASE_URL}/og-image.png`, width: 1200, height: 630, alt: 'Kebijakan Privasi Stouch.id' }],
+    images: [{ url: `${BASE_URL}/og-image.png`, width: 1200, height: 630, alt: 'Kebijakan Privasi Stouch' }],
   },
 }
 
@@ -35,8 +35,8 @@ function PrivacyJsonLd() {
         '@type': 'WebPage',
         '@id': `${BASE_URL}/privacy/#webpage`,
         url: `${BASE_URL}/privacy`,
-        name: 'Kebijakan Privasi — Stouch.id',
-        description: 'Kebijakan Privasi resmi Stouch.id, berlaku mulai 15 Januari 2026.',
+        name: 'Kebijakan Privasi - Stouch',
+        description: 'Kebijakan Privasi resmi Stouch, berlaku mulai 15 Januari 2026.',
         inLanguage: 'id-ID',
         isPartOf: { '@id': `${BASE_URL}/#website` },
         breadcrumb: { '@id': `${BASE_URL}/privacy/#breadcrumb` },

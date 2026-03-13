@@ -5,9 +5,9 @@ import HelpCenterPageClient from './PageClient'
 const BASE_URL = 'https://stouch.id'
 
 export const metadata: Metadata = {
-  title: 'Pusat Bantuan — FAQ & Panduan Trading Stouch.id',
+  title: 'Pusat Bantuan - FAQ & Panduan Trading Stouch',
   description:
-    'Temukan jawaban atas pertanyaanmu di Pusat Bantuan Stouch.id. Panduan lengkap tentang akun, verifikasi, deposit, penarikan, trading binary option, bonus VIP, dan lainnya.',
+    'Temukan jawaban atas pertanyaanmu di Pusat Bantuan Stouch. Panduan lengkap tentang akun, verifikasi, deposit, penarikan, trading binary option, bonus VIP, dan lainnya.',
   keywords: [
     'bantuan trading Stouch',
     'FAQ binary option Indonesia',
@@ -23,23 +23,23 @@ export const metadata: Metadata = {
     languages: { 'id-ID': `${BASE_URL}/help-center` },
   },
   openGraph: {
-    title: 'Pusat Bantuan | Stouch.id',
+    title: 'Pusat Bantuan | Stouch',
     description:
-      'Panduan lengkap dan FAQ untuk trader Stouch.id. Cari jawaban tentang akun, deposit, penarikan, trading, dan benefit VIP.',
+      'Panduan lengkap dan FAQ untuk trader Stouch. Cari jawaban tentang akun, deposit, penarikan, trading, dan benefit VIP.',
     url: `${BASE_URL}/help-center`,
     images: [
       {
         url: `${BASE_URL}/og-help.png`,
         width: 1200,
         height: 630,
-        alt: 'Pusat Bantuan Stouch.id — FAQ & Panduan Trading',
+        alt: 'Pusat Bantuan Stouch - FAQ & Panduan Trading',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Pusat Bantuan | Stouch.id',
-    description: 'FAQ & panduan lengkap untuk trader Stouch.id.',
+    title: 'Pusat Bantuan | Stouch',
+    description: 'FAQ & panduan lengkap untuk trader Stouch.',
     images: [`${BASE_URL}/og-help.png`],
   },
 }
@@ -52,8 +52,8 @@ function HelpCenterJsonLd() {
         '@type': 'WebPage',
         '@id': `${BASE_URL}/help-center/#webpage`,
         url: `${BASE_URL}/help-center`,
-        name: 'Pusat Bantuan — Stouch.id',
-        description: 'FAQ dan panduan lengkap untuk pengguna platform trading Stouch.id.',
+        name: 'Pusat Bantuan - Stouch',
+        description: 'FAQ dan panduan lengkap untuk pengguna platform trading Stouch.',
         inLanguage: 'id-ID',
         isPartOf: { '@id': `${BASE_URL}/#website` },
         breadcrumb: { '@id': `${BASE_URL}/help-center/#breadcrumb` },
@@ -79,7 +79,7 @@ function HelpCenterJsonLd() {
             name: 'Bagaimana cara mendaftar di Stouch?',
             acceptedAnswer: {
               '@type': 'Answer',
-              text: 'Kunjungi Stouch.id dan klik "Daftar". Isi email aktif dan buat password yang kuat (minimal 8 karakter). Konfirmasi email dan akun siap digunakan.',
+              text: 'Kunjungi Stouch dan klik "Daftar". Isi email aktif dan buat password yang kuat (minimal 8 karakter). Konfirmasi email dan akun siap digunakan.',
             },
           },
           {
@@ -87,7 +87,7 @@ function HelpCenterJsonLd() {
             name: 'Berapa minimum deposit di Stouch?',
             acceptedAnswer: {
               '@type': 'Answer',
-              text: 'Minimum deposit di Stouch.id adalah Rp 10.000. Tersedia via transfer bank (BCA, Mandiri, BRI, BNI), e-wallet (GoPay, OVO, Dana, ShopeePay), dan virtual account.',
+              text: 'Minimum deposit di Stouch adalah Rp 10.000. Tersedia via transfer bank (BCA, Mandiri, BRI, BNI), e-wallet (GoPay, OVO, Dana, ShopeePay), dan virtual account.',
             },
           },
           {
@@ -119,7 +119,7 @@ function HelpCenterJsonLd() {
             name: 'Apakah Stouch aman dan terpercaya?',
             acceptedAnswer: {
               '@type': 'Answer',
-              text: 'Ya, Stouch.id dioperasikan oleh Verte Securities Limited yang berlisensi di Vanuatu dan bermitra dengan Trusted by Traders (TBT), badan regulator independen. Dana tersimpan aman dengan enkripsi SSL 256-bit.',
+              text: 'Ya, Stouch dioperasikan oleh Verte Securities Limited yang berlisensi di Vanuatu dan bermitra dengan Trusted by Traders (TBT), badan regulator independen. Dana tersimpan aman dengan enkripsi SSL 256-bit.',
             },
           },
           {
@@ -135,7 +135,7 @@ function HelpCenterJsonLd() {
             name: 'Berapa minimum trade di Stouch?',
             acceptedAnswer: {
               '@type': 'Answer',
-              text: 'Minimum trade di Stouch.id ditentukan per aset, umumnya Rp 1.000 per transaksi. Tersedia berbagai durasi trade: 1 detik, 1 menit, 2 menit, 3 menit, 4 menit, 5 menit, 15 menit, 30 menit, 45 menit, hingga 1 jam.',
+              text: 'Minimum trade di Stouch ditentukan per aset, umumnya Rp 1.000 per transaksi. Tersedia berbagai durasi trade: 1 detik, 1 menit, 2 menit, 3 menit, 4 menit, 5 menit, 15 menit, 30 menit, 45 menit, hingga 1 jam.',
             },
           },
         ],

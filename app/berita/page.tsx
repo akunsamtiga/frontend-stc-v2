@@ -1,4 +1,4 @@
-// app/news/page.tsx  —  Server Component
+// app/news/page.tsx  -  Server Component
 import { NewsClient } from './NewsClient'
 import type { RSSNewsItem } from '@/types/index'
 

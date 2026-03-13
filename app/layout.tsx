@@ -8,7 +8,7 @@ import ClientProviders from '@/components/ClientProviders'
 import './globals.css'
 
 const SITE_URL = 'https://stouch.id'
-const SITE_NAME = 'Stouch.id'
+const SITE_NAME = 'Stouch'
 const SITE_DESCRIPTION =
   'Platform trading binary option terpercaya di Indonesia. Profit hingga 100%, penarikan kilat, bonus VIP, dan keamanan tinggi. Powered by Stockity.'
 
@@ -40,8 +40,8 @@ export const metadata: Metadata = {
     'copy trading indonesia',
     'broker binary option',
   ],
-  authors: [{ name: 'Stouch.id', url: SITE_URL }],
-  creator: 'Stouch.id',
+  authors: [{ name: 'Stouch', url: SITE_URL }],
+  creator: 'Stouch',
   publisher: 'Verte Securities Limited',
   category: 'finance',
   applicationName: SITE_NAME,
@@ -49,8 +49,6 @@ export const metadata: Metadata = {
 
   metadataBase: new URL(SITE_URL),
   alternates: {
-    // ✅ FIX: Harus absolut, bukan relatif '/'
-    // Canonical relatif '/' menyebabkan Google tidak bisa menentukan URL kanonik
     canonical: SITE_URL,
     languages: { 'id-ID': SITE_URL },
   },
@@ -60,21 +58,21 @@ export const metadata: Metadata = {
     locale: 'id_ID',
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — Platform Trading Binary Option Terpercaya`,
+    title: `${SITE_NAME} - Platform Trading Binary Option Terpercaya di Indonesia`,
     description: SITE_DESCRIPTION,
     images: [
       {
         url: OG_IMAGE,
         width: 1200,
         height: 630,
-        alt: 'Stouch.id — Platform Trading Binary Option Terpercaya di Indonesia',
+        alt: 'Stouch - Platform Trading Binary Option Terpercaya di Indonesia',
         type: 'image/png',
       },
       {
         url: LOGO_IMAGE,
         width: 512,
         height: 512,
-        alt: 'Logo Stouch.id — Platform Trading Binary Option',
+        alt: 'Logo Stouch -Platform Trading Binary Option',
         type: 'image/png',
       },
     ],
@@ -82,12 +80,12 @@ export const metadata: Metadata = {
 
   twitter: {
     card: 'summary_large_image',
-    title: `${SITE_NAME} — Platform Trading Binary Option Terpercaya`,
+    title: `${SITE_NAME} - Platform Trading Binary Option Terpercaya di Indonesia`,
     description: SITE_DESCRIPTION,
     images: [
       {
         url: OG_IMAGE,
-        alt: 'Stouch.id — Platform Trading Binary Option Terpercaya di Indonesia',
+        alt: 'Stouch - Platform Trading Binary Option Terpercaya di Indonesia',
       },
     ],
     creator: '@stockity_id',
@@ -141,7 +139,7 @@ function OrganizationJsonLd() {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     '@id': `${SITE_URL}/#organization`,
-    name: 'Stouch.id',
+    name: 'Stouch',
     url: SITE_URL,
 
     logo: {
@@ -151,8 +149,8 @@ function OrganizationJsonLd() {
       contentUrl: `${SITE_URL}${LOGO_IMAGE}`,
       width: 512,
       height: 512,
-      name: 'Logo Stouch.id',
-      caption: 'Stouch.id — Platform Trading Binary Option Indonesia',
+      name: 'Logo Stouch',
+      caption: 'Stouch - Platform Trading Binary Option Indonesia',
       inLanguage: 'id-ID',
     },
 
@@ -164,7 +162,7 @@ function OrganizationJsonLd() {
         contentUrl: `${SITE_URL}${OG_IMAGE}`,
         width: 1200,
         height: 630,
-        name: 'Stouch.id Platform Trading Binary Option Terpercaya Indonesia',
+        name: 'Stouch - Platform Trading Binary Option Terpercaya Indonesia',
         caption: 'Platform trading binary option terpercaya di Indonesia dengan profit hingga 100%',
         description: SITE_DESCRIPTION,
         inLanguage: 'id-ID',
@@ -177,8 +175,8 @@ function OrganizationJsonLd() {
         contentUrl: `${SITE_URL}${LOGO_IMAGE}`,
         width: 512,
         height: 512,
-        name: 'Logo Stouch.id',
-        caption: 'Logo resmi Stouch.id',
+        name: 'Logo Stouch',
+        caption: 'Logo resmi Stouch',
         inLanguage: 'id-ID',
       },
     ],

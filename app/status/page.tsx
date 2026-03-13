@@ -5,9 +5,9 @@ import StatusPageClient from './PageClient'
 const BASE_URL = 'https://stouch.id'
 
 export const metadata: Metadata = {
-  title: 'Status & Tier VIP Gold — Bonus Profit & Penarikan Ekspres',
+  title: 'Status & Tier VIP Gold - Bonus Profit & Penarikan Ekspres',
   description:
-    'Tingkatkan status akun tradingmu di Stouch.id. Standard, Gold (+5% profit), dan VIP (+10% profit, penarikan < 1 jam, dedicated manager). Naik tier otomatis berdasarkan deposit akumulatif.',
+    'Tingkatkan status akun tradingmu di Stouch. Standard, Gold (+5% profit), dan VIP (+10% profit, penarikan < 1 jam, dedicated manager). Naik tier otomatis berdasarkan deposit akumulatif.',
   keywords: [
     'status VIP trading',
     'tier Gold binary option',
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     languages: { 'id-ID': `${BASE_URL}/status` },
   },
   openGraph: {
-    title: 'Status & Tier VIP Gold | Stouch.id',
+    title: 'Status & Tier VIP Gold | Stouch',
     description:
       'Naik tier otomatis dan nikmati bonus profit hingga +10%, penarikan < 1 jam, dan dedicated account manager. Standard → Gold → VIP.',
     url: `${BASE_URL}/status`,
@@ -32,13 +32,13 @@ export const metadata: Metadata = {
         url: `${BASE_URL}/og-status.png`,
         width: 1200,
         height: 630,
-        alt: 'Program Tier Stouch.id — Standard, Gold, VIP',
+        alt: 'Program Tier Stouch - Standard, Gold, VIP',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Status & Tier VIP Gold | Stouch.id',
+    title: 'Status & Tier VIP Gold | Stouch',
     description: 'Bonus profit +10%, penarikan ekspres, dedicated manager. Naik tier otomatis.',
     images: [`${BASE_URL}/og-status.png`],
   },
@@ -52,9 +52,9 @@ function StatusJsonLd() {
         '@type': 'WebPage',
         '@id': `${BASE_URL}/status/#webpage`,
         url: `${BASE_URL}/status`,
-        name: 'Status & Tier — Stouch.id',
+        name: 'Status & Tier - Stouch',
         description:
-          'Program tier eksklusif Stouch.id: Standard, Gold, dan VIP dengan benefit berbeda di setiap level.',
+          'Program tier eksklusif Stouch: Standard, Gold, dan VIP dengan benefit berbeda di setiap level.',
         inLanguage: 'id-ID',
         isPartOf: { '@id': `${BASE_URL}/#website` },
         breadcrumb: { '@id': `${BASE_URL}/status/#breadcrumb` },

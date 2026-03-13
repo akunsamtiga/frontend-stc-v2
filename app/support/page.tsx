@@ -83,7 +83,7 @@ const CONTACT_METHODS = [
     light:     '#eff6ff',
     border:    '#bfdbfe',
     title:     'Email Support',
-    desc:      'Kirim pertanyaan detail via email — kami akan membalas sesegera mungkin',
+    desc:      'Kirim pertanyaan detail via email - kami akan membalas sesegera mungkin',
     contact:   'support@stouch.id',
     availability:'Respon dalam 6 jam',
     action:    'Send Email',
@@ -212,7 +212,7 @@ export default function SupportPage() {
           <Reveal delay={0.3}>
             <p className="text-sm sm:text-base text-gray-500 max-w-2xl mx-auto leading-relaxed">
               Tim support kami tersedia 24/7 untuk menjawab pertanyaan dan membantu
-              menyelesaikan setiap masalah — dari deposit hingga pertanyaan teknis trading.
+              menyelesaikan setiap masalah - dari deposit hingga pertanyaan teknis trading.
             </p>
           </Reveal>
         </div>

@@ -7,9 +7,9 @@ import AgreementPageClient from './PageClient'
 const BASE_URL = 'https://stouch.id'
 
 export const metadata: Metadata = {
-  title: 'Perjanjian Klien — Syarat & Ketentuan Stouch.id',
+  title: 'Perjanjian Klien - Syarat & Ketentuan Stouch',
   description:
-    'Baca Perjanjian Klien lengkap Stouch.id (berlaku 15 Januari 2026). Mencakup definisi, pendaftaran, mekanisme trading FTT & CFD, bonus, penarikan, penyelesaian sengketa, dan ketentuan hukum Vanuatu.',
+    'Baca Perjanjian Klien lengkap Stouch (berlaku 15 Januari 2026). Mencakup definisi, pendaftaran, mekanisme trading FTT & CFD, bonus, penarikan, penyelesaian sengketa, dan ketentuan hukum Vanuatu.',
   keywords: [
     'perjanjian klien Stouch',
     'syarat ketentuan trading binary',
@@ -23,10 +23,10 @@ export const metadata: Metadata = {
     languages: { 'id-ID': `${BASE_URL}/agreement` },
   },
   openGraph: {
-    title: 'Perjanjian Klien | Stouch.id',
-    description: 'Syarat dan ketentuan resmi platform trading Stouch.id. Berlaku mulai 15 Januari 2026.',
+    title: 'Perjanjian Klien | Stouch',
+    description: 'Syarat dan ketentuan resmi platform trading Stouch. Berlaku mulai 15 Januari 2026.',
     url: `${BASE_URL}/agreement`,
-    images: [{ url: `${BASE_URL}/og-image.png`, width: 1200, height: 630, alt: 'Perjanjian Klien Stouch.id' }],
+    images: [{ url: `${BASE_URL}/og-image.png`, width: 1200, height: 630, alt: 'Perjanjian Klien Stouch' }],
   },
 }
 
@@ -40,8 +40,8 @@ function AgreementJsonLd() {
         '@type': 'WebPage',
         '@id': `${BASE_URL}/agreement/#webpage`,
         url: `${BASE_URL}/agreement`,
-        name: 'Perjanjian Klien — Stouch.id',
-        description: 'Perjanjian Klien resmi Stouch.id, berlaku mulai 15 Januari 2026.',
+        name: 'Perjanjian Klien - Stouch',
+        description: 'Perjanjian Klien resmi Stouch, berlaku mulai 15 Januari 2026.',
         inLanguage: 'id-ID',
         isPartOf: { '@id': `${BASE_URL}/#website` },
         breadcrumb: { '@id': `${BASE_URL}/agreement/#breadcrumb` },
