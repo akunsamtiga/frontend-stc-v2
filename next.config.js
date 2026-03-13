@@ -2,7 +2,20 @@
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
-  
+
+  // ✅ REDIRECTS — www → non-www (permanent 301)
+  // Tanpa ini, Googlebot crawl www.stouch.id → redirect → "Page with redirect" error
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.stouch.id' }],
+        destination: 'https://stouch.id/:path*',
+        permanent: true,
+      },
+    ]
+  },
+
   // ✅ REWRITES - Path matching 1:1 dengan backend
   async rewrites() {
     return [
@@ -12,10 +25,9 @@ const nextConfig = {
       },
     ]
   },
-  
-  // ✅ UPDATED: Image optimization with Google support
-  images: {
 
+  // ✅ Image optimization with Google support
+  images: {
     remotePatterns: [
       {
         protocol: 'https',
@@ -47,24 +59,24 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60,
   },
-  
+
   // Experimental features
   experimental: {
     optimizePackageImports: ['lucide-react', 'date-fns'],
   },
-  
+
   // Compiler optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {
       exclude: ['error', 'warn'],
     } : false,
   },
-  
+
   // Production optimizations
   compress: true,
   poweredByHeader: false,
   generateEtags: true,
-  
+
   // Webpack optimizations
   webpack: (config, { isServer }) => {
     if (!isServer) {
@@ -104,7 +116,7 @@ const nextConfig = {
     }
     return config
   },
-  
+
   // Headers
   async headers() {
     return [

@@ -98,10 +98,10 @@ const CONTACT_METHODS = [
     border:    '#a7f3d0',
     title:     'WhatsApp',
     desc:      'Chat langsung dengan tim support kami via WhatsApp kapan saja',
-    contact:   '+62 813-3990-8765',
+    contact:   '+62 857-0186-6916',
     availability:'24/7 Tersedia',
     action:    'Chat on WhatsApp',
-    href:      'https://wa.me/6285959860015',
+    href:      'https://wa.me/6285701866916',
     badge:     'Tercepat',
   },
 ]
@@ -294,7 +294,7 @@ export default function SupportPage() {
                   </p>
                 </div>
                 <div className="flex gap-2.5 flex-shrink-0 w-full sm:w-auto">
-                  <motion.a href="https://wa.me/6281339908765"
+                  <motion.a href="https://wa.me/6285701866916"
                     className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white"
                     style={{ background:'linear-gradient(135deg, #059669, #047857)' }}
                     whileHover={{ scale:1.03, boxShadow:'0 8px 20px rgba(5,150,105,0.3)' }}

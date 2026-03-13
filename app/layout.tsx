@@ -49,8 +49,10 @@ export const metadata: Metadata = {
 
   metadataBase: new URL(SITE_URL),
   alternates: {
-    canonical: '/',
-    languages: { 'id-ID': '/' },
+    // ✅ FIX: Harus absolut, bukan relatif '/'
+    // Canonical relatif '/' menyebabkan Google tidak bisa menentukan URL kanonik
+    canonical: SITE_URL,
+    languages: { 'id-ID': SITE_URL },
   },
 
   openGraph: {
