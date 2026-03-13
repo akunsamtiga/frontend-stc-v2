@@ -1920,7 +1920,26 @@ export default function TradingPage() {
                     <Minus className={`w-4 h-4 ${isLightMode ? "text-slate-600" : "text-gray-300"}`} />
                   </button>
 
-                  <span className="flex-1">{formatCurrency(amount)}</span>
+                  <input
+                    type="number"
+                    value={amount}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      const newAmount = Number(e.target.value)
+                      const limits = getOrderLimits(selectedAsset)
+                      if (newAmount >= limits.min && newAmount <= limits.max) {
+                        setAmount(newAmount)
+                      } else if (newAmount < limits.min) {
+                        setAmount(limits.min)
+                      } else if (newAmount > limits.max) {
+                        setAmount(limits.max)
+                      }
+                    }}
+                    className={`flex-1 min-w-0 bg-transparent border-0 text-center text-sm font-bold focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none${isLightMode ? ' text-slate-800' : ' text-white'}`}
+                    min={orderLimits.min}
+                    max={orderLimits.max}
+                    step="1000"
+                  />
 
                   <button
                     onClick={(e) => {
