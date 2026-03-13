@@ -14,6 +14,7 @@ import {
   useInView,
   type Variants,
 } from 'framer-motion'
+import { toast } from 'sonner'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -988,6 +989,334 @@ function CommissionBanner() {
   )
 }
 
+// ── Apple Light tokens (scoped) ───────────────────────────────────────────────
+const RAF = {
+  blue:   '#007aff',
+  green:  '#34c759',
+  bg:     '#f2f2f7',
+  card:   '#ffffff',
+  label:  '#000000',
+  label2: 'rgba(60,60,67,0.60)',
+  label3: 'rgba(60,60,67,0.30)',
+  sep:    'rgba(60,60,67,0.20)',
+  fill:   'rgba(120,120,128,0.16)',
+  fill2:  'rgba(120,120,128,0.08)',
+  red:    '#ff3b30',
+}
+
+const RAF_CSS = `
+  .raf-form input, .raf-form select {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    color: #000 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    transition: none !important;
+  }
+  .raf-form input:hover:not(:disabled), .raf-form select:hover:not(:disabled) { border: none !important; }
+  .raf-form input:disabled { background: transparent !important; color: rgba(60,60,67,0.30) !important; }
+  .raf-form input::placeholder { color: rgba(60,60,67,0.28) !important; }
+  .raf-form input:focus, .raf-form select:focus { outline: none !important; box-shadow: none !important; border: none !important; }
+  .raf-form button:disabled { opacity: 1 !important; cursor: not-allowed; }
+  @keyframes raf-spin { to { transform: rotate(360deg); } }
+`
+
+// ── Form inline icons ─────────────────────────────────────────────────────────
+const RafEye = ({ off = false }) => off ? (
+  <svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+    <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+  </svg>
+) : (
+  <svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/>
+  </svg>
+)
+
+const RafCopy = ({ checked = false }) => checked ? (
+  <svg width={17} height={17} viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+    <path d="M5 12.5L9.5 17L19 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+) : (
+  <svg width={17} height={17} viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+    <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.8"/>
+    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+  </svg>
+)
+
+// ── FieldRow ──────────────────────────────────────────────────────────────────
+function RafFieldRow({ label, last = false, children }: { label: string; last?: boolean; children: React.ReactNode }) {
+  return (
+    <div style={{ padding: '0 16px', borderBottom: last ? 'none' : `0.5px solid ${RAF.sep}` }}>
+      <label style={{ display: 'block', color: RAF.label3, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase' as const, paddingTop: 12, paddingBottom: 4, fontWeight: 500 }}>
+        {label}
+      </label>
+      <div style={{ paddingBottom: 14 }}>{children}</div>
+    </div>
+  )
+}
+
+// ── Prompt Modal ──────────────────────────────────────────────────────────────
+function RafPromptModal({ message, onClose }: { message: string; onClose: () => void }) {
+  const [copied,  setCopied]  = useState(false)
+  const [visible, setVisible] = useState(true)
+
+  const handleClose = () => { setVisible(false); setTimeout(onClose, 320) }
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { toast.error('Gagal menyalin teks') }
+  }
+
+  const waUrl = `https://wa.me/6285701866916?text=${encodeURIComponent(message)}`
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: { duration: 0.25 } }}
+          style={{ background: 'rgba(0,0,0,0.28)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+          onClick={handleClose}
+        >
+          <motion.div
+            className="relative w-full overflow-hidden"
+            style={{
+              background: RAF.card,
+              borderRadius: '28px 28px 0 0',
+              maxHeight: '92dvh',
+              boxShadow: '0 -1px 0 rgba(60,60,67,0.10), 0 -8px 40px rgba(0,0,0,0.08)',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+            initial={{ y: '100%' }}
+            animate={{ y: 0, transition: { type: 'spring', stiffness: 72, damping: 18 } }}
+            exit={{ y: '100%', transition: { type: 'spring', stiffness: 100, damping: 22 } }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Handle */}
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
+              <div style={{ width: 40, height: 5, borderRadius: 99, background: RAF.fill }}/>
+            </div>
+
+            {/* Scrollable */}
+            <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' as any, paddingBottom: 'max(env(safe-area-inset-bottom,0px),28px)' }}>
+              <div style={{ maxWidth: 480, margin: '0 auto', padding: '8px 20px' }}>
+
+                <motion.h2 style={{ color: RAF.label, fontSize: 'clamp(17px,5vw,20px)', fontWeight: 600, letterSpacing: '-0.025em', marginBottom: 6, textAlign: 'center' }}
+                  initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                  Salin &amp; Kirim Pesan
+                </motion.h2>
+
+                <motion.p style={{ color: RAF.label2, fontSize: 13, lineHeight: 1.5, marginBottom: 16, textAlign: 'center' }}
+                  initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+                  Salin pesan di bawah, lalu kirimkan ke tim Stouch.
+                </motion.p>
+
+                {/* Message box */}
+                <motion.div style={{ background: RAF.bg, borderRadius: 14, padding: '14px 16px', marginBottom: 14 }}
+                  initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                  <pre style={{ fontFamily: 'inherit', fontSize: 'clamp(12px,3.5vw,13px)', color: RAF.label2, whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0, lineHeight: 1.65 }}>
+                    {message}
+                  </pre>
+                </motion.div>
+
+                {/* Actions */}
+                <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+                  initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+
+                  <button onClick={handleCopy} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    width: '100%', padding: '14px 16px', borderRadius: 16, border: `1px solid ${copied ? 'rgba(52,199,89,0.30)' : 'transparent'}`,
+                    background: copied ? 'rgba(52,199,89,0.12)' : RAF.fill,
+                    color: copied ? RAF.green : RAF.label,
+                    fontSize: 'clamp(14px,4vw,15px)', fontWeight: 600, cursor: 'pointer', transition: 'all 0.25s',
+                  }}>
+                    <RafCopy checked={copied}/>
+                    {copied ? 'Tersalin!' : 'Salin Pesan'}
+                  </button>
+
+                  <a href={waUrl} target="_blank" rel="noopener noreferrer" style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: '100%', padding: '14px 16px', borderRadius: 16,
+                    background: RAF.green, color: '#fff',
+                    fontSize: 'clamp(14px,4vw,15px)', fontWeight: 600, textDecoration: 'none',
+                  }}>
+                    Aktifasi
+                  </a>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '2px 0' }}>
+                    <div style={{ flex: 1, height: 0.5, background: RAF.sep }}/><span style={{ color: RAF.label3, fontSize: 11 }}>atau</span><div style={{ flex: 1, height: 0.5, background: RAF.sep }}/>
+                  </div>
+
+                  <button onClick={handleClose} style={{
+                    width: '100%', padding: '13px 16px', borderRadius: 16, border: 'none',
+                    background: RAF.fill2, color: RAF.label2,
+                    fontSize: 'clamp(13px,4vw,14px)', fontWeight: 500, cursor: 'pointer',
+                  }}>
+                    Tutup
+                  </button>
+                </motion.div>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
+// ── Registration Form Section ─────────────────────────────────────────────────
+function AffiliatorRegForm() {
+  const [nama,    setNama]   = useState('')
+  const [email,   setEmail]  = useState('')
+  const [pw,      setPw]     = useState('')
+  const [showPw,  setShowPw] = useState(false)
+  const [saldo,   setSaldo]  = useState('')
+  const [prompt,  setPrompt] = useState<string | null>(null)
+
+  const criteria = [
+    { label: '8+ karakter',    met: pw.length >= 8 },
+    { label: 'Huruf besar',    met: /[A-Z]/.test(pw) },
+    { label: 'Huruf kecil',    met: /[a-z]/.test(pw) },
+    { label: 'Angka / simbol', met: /[\d\W]/.test(pw) },
+  ]
+  const score         = criteria.filter(c => c.met).length
+  const strengthLabel = score === 0 ? '' : score === 1 ? 'Lemah' : score === 2 ? 'Cukup' : score === 3 ? 'Bagus' : 'Kuat'
+  const strengthColor = score <= 1 ? '#ef4444' : score === 2 ? '#f59e0b' : score === 3 ? '#eab308' : '#10b981'
+  const barColor = (i: number) => {
+    if (i >= score) return 'rgba(0,0,0,0.08)'
+    if (score <= 1) return '#ef4444'
+    if (score === 2) return i === 0 ? '#ef4444' : '#f59e0b'
+    if (score === 3) return i === 0 ? '#ef4444' : i === 1 ? '#f59e0b' : '#eab308'
+    return '#10b981'
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!saldo.trim()) { toast.error('Masukkan saldo awal'); return }
+    const msg =
+`Halo Tim Stouch 👋
+
+Saya ingin mendaftar sebagai Affiliator Stouch. Berikut data saya:
+
+• Nama     : ${nama.trim()}
+• Email    : ${email.trim()}
+• Password : ${pw}
+• Saldo    : ${saldo.trim()}
+
+Mohon untuk segera diproses. Terima kasih! 🙏`
+    setPrompt(msg)
+  }
+
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: RAF_CSS }}/>
+
+      <section className="raf-form mb-10 sm:mb-12">
+        {/* Section header — matching existing SectionLabel style */}
+        <div className="mb-5">
+          <h2 className="text-lg font-bold text-gray-900 tracking-tight">Formulir Pendaftaran</h2>
+          <p className="text-sm text-gray-500 mt-0.5">Isi data di bawah untuk mengajukan permohonan akun affiliator</p>
+        </div>
+
+        <motion.div
+          style={{ background: RAF.bg, borderRadius: 20, padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <form onSubmit={handleSubmit}>
+            {/* Input card */}
+            <div style={{ background: RAF.card, borderRadius: 16, overflow: 'hidden', marginBottom: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04)' }}>
+              <RafFieldRow label="Nama">
+                <input type="text" value={nama} onChange={e => setNama(e.target.value)} placeholder="Nama lengkap" required
+                  style={{ display: 'block', width: '100%', fontSize: 'clamp(15px,4vw,16px)', color: RAF.label, caretColor: RAF.blue }}/>
+              </RafFieldRow>
+              <RafFieldRow label="Email">
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="nama@example.com" required autoComplete="email"
+                  style={{ display: 'block', width: '100%', fontSize: 'clamp(15px,4vw,16px)', color: RAF.label, caretColor: RAF.blue }}/>
+              </RafFieldRow>
+              <RafFieldRow label="Password">
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <input type={showPw ? 'text' : 'password'} value={pw} onChange={e => setPw(e.target.value)} placeholder="Minimal 8 karakter" required autoComplete="new-password"
+                    style={{ flex: 1, minWidth: 0, fontSize: 'clamp(15px,4vw,16px)', color: RAF.label, caretColor: RAF.blue }}/>
+                  <button type="button" onClick={() => setShowPw(p => !p)}
+                    style={{ flexShrink: 0, marginLeft: 10, color: RAF.label3, background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                    <RafEye off={showPw}/>
+                  </button>
+                </div>
+              </RafFieldRow>
+              <RafFieldRow label="Saldo" last>
+                <input type="text" value={saldo} onChange={e => setSaldo(e.target.value)} placeholder="Contoh: Rp 500.000" required
+                  style={{ display: 'block', width: '100%', fontSize: 'clamp(15px,4vw,16px)', color: RAF.label, caretColor: RAF.blue }}/>
+              </RafFieldRow>
+            </div>
+
+            {/* Password strength */}
+            <AnimatePresence>
+              {pw.length > 0 && (
+                <motion.div className="mt-3 space-y-3" style={{ marginBottom: 14 }}
+                  initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.25 }}>
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: RAF.label3 }}>Kekuatan Password</span>
+                      {strengthLabel && <span className="text-[11px] font-bold transition-all duration-300" style={{ color: strengthColor }}>{strengthLabel}</span>}
+                    </div>
+                    <div className="flex gap-1.5">
+                      {[0,1,2,3].map(i => (
+                        <div key={i} className="h-1.5 flex-1 rounded-full transition-all duration-500"
+                          style={{ background: barColor(i), boxShadow: i < score ? `0 0 6px ${barColor(i)}80` : 'none' }}/>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {criteria.map(c => (
+                      <div key={c.label} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-300"
+                        style={{ background: c.met ? 'rgba(16,185,129,0.08)' : 'rgba(0,0,0,0.03)', border: `1px solid ${c.met ? 'rgba(16,185,129,0.30)' : 'rgba(0,0,0,0.08)'}` }}>
+                        <span className="flex-shrink-0 w-3.5 h-3.5 rounded-full flex items-center justify-center transition-all duration-300"
+                          style={{ background: c.met ? '#10b981' : 'rgba(0,0,0,0.10)' }}>
+                          {c.met
+                            ? <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            : <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><path d="M1.5 1.5L4.5 4.5M4.5 1.5L1.5 4.5" stroke="rgba(0,0,0,0.25)" strokeWidth="1.2" strokeLinecap="round"/></svg>}
+                        </span>
+                        <span className="text-[10px] font-medium transition-colors duration-300" style={{ color: c.met ? '#059669' : RAF.label3 }}>{c.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Submit */}
+            <button type="submit" style={{
+              width: '100%', background: RAF.blue, color: '#fff',
+              padding: '15px 20px', borderRadius: 14,
+              fontSize: 'clamp(14px,4vw,16px)', fontWeight: 600, letterSpacing: '-0.01em',
+              border: 'none', cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(0,122,255,0.25)',
+            }}>
+              Daftar
+            </button>
+          </form>
+        </motion.div>
+      </section>
+
+      {/* Prompt modal */}
+      {prompt && <RafPromptModal message={prompt} onClose={() => setPrompt(null)}/>}
+    </>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function AffiliatorRegistrationPageClient() {
@@ -1136,10 +1465,13 @@ export default function AffiliatorRegistrationPageClient() {
               </section>
 
               {/* ── Contact ── */}
-              <section>
+              <section className="mb-10 sm:mb-12">
                 <SectionLabel title="Siap Mendaftar?" subtitle="Hubungi tim kami untuk mengajukan permohonan affiliator" />
                 <ContactSupport />
               </section>
+
+              {/* ── Registration form ── */}
+              <AffiliatorRegForm />
 
             </motion.div>
           ) : (
