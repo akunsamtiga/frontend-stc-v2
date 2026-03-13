@@ -346,6 +346,7 @@ export default function BalancePage() {
   const [initialLoading, setInitialLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [continuingPaymentId, setContinuingPaymentId] = useState<string | null>(null)
+  const [isAffiliator, setIsAffiliator] = useState(false)
   // triggers count-up animation after data loads
   const [countUpStarted, setCountUpStarted] = useState(false)
 
@@ -359,11 +360,12 @@ export default function BalancePage() {
   const loadData = async () => {
     try {
       setInitialLoading(true)
-      const [balancesRes, historyRes, depositHistoryRes, profileRes] = await Promise.all([
+      const [balancesRes, historyRes, depositHistoryRes, profileRes, affiliatorRes] = await Promise.all([
         api.getBothBalances(),
         api.getBalanceHistory(1, 100),
         api.getDepositHistory().catch(err => { console.log('⚠️ Deposit history not available:', err); return null }),
-        api.getProfile()
+        api.getProfile(),
+        api.getMyAffiliatorProgram().catch(() => null)
       ])
 
       const balances = balancesRes?.data || balancesRes
@@ -409,6 +411,11 @@ export default function BalancePage() {
         else if ('user' in profileRes && 'statusInfo' in profileRes) profileData = profileRes as UserProfile
       }
       if (profileData) setProfile(profileData)
+
+      // Cek apakah user adalah affiliator aktif
+      const affiliatorData = (affiliatorRes as any)?.data || (affiliatorRes as any)
+      const hasAffiliatorProgram = !!(affiliatorData?.affiliateCode)
+      setIsAffiliator(hasAffiliatorProgram)
     } catch (error) {
       console.error('Failed to load balance:', error)
       toast.error('Failed to load wallet data')
@@ -583,7 +590,20 @@ export default function BalancePage() {
                   <Link href="/payment" className="btn-ripple flex items-center justify-center gap-1.5 px-3 py-2 bg-white/20 hover:bg-white/30 border border-white/30 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm">
                     Top Up
                   </Link>
-                  {realBalance >= 100000 ? (
+                  {isAffiliator ? (
+                    <div className="relative group">
+                      <button
+                        disabled
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 bg-black/20 border border-white/20 text-white/50 rounded-xl text-xs font-bold whitespace-nowrap cursor-not-allowed"
+                      >
+                        Tarik Dana
+                      </button>
+                      <div className="absolute bottom-full right-0 mb-2 w-52 bg-gray-900 text-white text-[10px] rounded-lg px-2.5 py-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                        Affiliator tidak dapat melakukan penarikan saldo. Gunakan menu penarikan komisi.
+                        <div className="absolute top-full right-3 border-4 border-transparent border-t-gray-900" />
+                      </div>
+                    </div>
+                  ) : realBalance >= 100000 ? (
                     <Link href="/withdrawal" className="btn-ripple flex items-center justify-center gap-1.5 px-3 py-2 bg-black/20 hover:bg-black/30 border border-white/20 text-white rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap backdrop-blur-sm">
                       Tarik Dana
                     </Link>
