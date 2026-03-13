@@ -349,8 +349,15 @@ export default function Page() {
     { label: 'Angka / simbol', met: /[\d\W]/.test(password) },
   ]
   const score         = criteria.filter(c => c.met).length
-  const strengthLabel = ['', 'Lemah', 'Cukup', 'Bagus', 'Kuat'][score]
-  const strengthColor = [SYS.fill, SYS.red, '#ff9500', '#ffcc00', SYS.green][score]
+  const strengthLabel = score === 0 ? '' : score === 1 ? 'Lemah' : score === 2 ? 'Cukup' : score === 3 ? 'Bagus' : 'Kuat'
+  const strengthColor = score <= 1 ? '#ef4444' : score === 2 ? '#f59e0b' : score === 3 ? '#eab308' : '#10b981'
+  const barColor = (i: number) => {
+    if (i >= score) return 'rgba(0,0,0,0.08)'
+    if (score <= 1) return '#ef4444'
+    if (score === 2) return i === 0 ? '#ef4444' : '#f59e0b'
+    if (score === 3) return i === 0 ? '#ef4444' : i === 1 ? '#f59e0b' : '#eab308'
+    return '#10b981'
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -472,39 +479,70 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Password strength */}
+          {/* Password strength — same style as landing */}
           <AnimatePresence>
             {password.length > 0 && (
               <motion.div
-                style={{ marginBottom: 16, padding: '0 4px' }}
+                className="mt-3 space-y-3"
+                style={{ marginBottom: 16 }}
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
+                transition={{ duration: 0.25 }}
               >
-                <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-                  {[0,1,2,3].map(i => (
-                    <motion.div
-                      key={i}
-                      style={{ flex: 1, height: 3, borderRadius: 99 }}
-                      animate={{ background: i < score ? strengthColor : SYS.fill }}
-                      transition={{ duration: 0.3 }}
-                    />
-                  ))}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 12px' }}>
-                    {criteria.map(c => (
-                      <span key={c.label} style={{ color: c.met ? SYS.green : SYS.label3, fontSize: 11, transition: 'color 0.3s' }}>
-                        {c.met ? '✓ ' : '· '}{c.label}
+                {/* Bar */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: SYS.label3 }}>
+                      Kekuatan Password
+                    </span>
+                    {strengthLabel && (
+                      <span className="text-[11px] font-bold transition-all duration-300" style={{ color: strengthColor }}>
+                        {strengthLabel}
                       </span>
+                    )}
+                  </div>
+                  <div className="flex gap-1.5">
+                    {[0,1,2,3].map(i => (
+                      <div
+                        key={i}
+                        className="h-1.5 flex-1 rounded-full transition-all duration-500"
+                        style={{
+                          background: barColor(i),
+                          boxShadow: i < score ? `0 0 6px ${barColor(i)}80` : 'none',
+                        }}
+                      />
                     ))}
                   </div>
-                  {score > 0 && (
-                    <span style={{ color: strengthColor, fontSize: 11, fontWeight: 600, flexShrink: 0 }}>
-                      {strengthLabel}
-                    </span>
-                  )}
+                </div>
+                {/* Criteria chips */}
+                <div className="grid grid-cols-2 gap-1.5">
+                  {criteria.map(c => (
+                    <div
+                      key={c.label}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all duration-300"
+                      style={{
+                        background: c.met ? 'rgba(16,185,129,0.08)' : 'rgba(0,0,0,0.03)',
+                        border: `1px solid ${c.met ? 'rgba(16,185,129,0.30)' : 'rgba(0,0,0,0.08)'}`,
+                      }}
+                    >
+                      <span
+                        className="flex-shrink-0 w-3.5 h-3.5 rounded-full flex items-center justify-center transition-all duration-300"
+                        style={{ background: c.met ? '#10b981' : 'rgba(0,0,0,0.10)' }}
+                      >
+                        {c.met
+                          ? <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          : <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><path d="M1.5 1.5L4.5 4.5M4.5 1.5L1.5 4.5" stroke="rgba(0,0,0,0.25)" strokeWidth="1.2" strokeLinecap="round"/></svg>
+                        }
+                      </span>
+                      <span
+                        className="text-[10px] font-medium transition-colors duration-300"
+                        style={{ color: c.met ? '#059669' : SYS.label3 }}
+                      >
+                        {c.label}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </motion.div>
             )}
@@ -587,18 +625,8 @@ export default function Page() {
           <style dangerouslySetInnerHTML={{ __html: `@keyframes raf-spin { to { transform: rotate(360deg); } }` }} />
         </form>
 
-        {/* Benefits */}
-        <div style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '8px 20px' }}>
-          {['Demo Rp 10 juta', 'Profit 95%', 'Withdrawal cepat'].map(t => (
-            <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <IconCheck size={12} color={SYS.green} />
-              <span style={{ color: SYS.label3, fontSize: 12 }}>{t}</span>
-            </div>
-          ))}
-        </div>
-
         {/* Guide */}
-        <div style={{ marginTop: 12, textAlign: 'center' }}>
+        <div style={{ marginTop: 16, textAlign: 'center' }}>
           <Link href="/panduan-affiliator" style={{ color: SYS.label3, fontSize: 12, textDecoration: 'none' }}>
             Panduan program affiliator
           </Link>
