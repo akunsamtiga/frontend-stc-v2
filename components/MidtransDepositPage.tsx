@@ -85,7 +85,7 @@ class PaymentAPI {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Gagal membuat transaksi, silahkan lengkapi terlebih dahulu profil Anda dengan data yang valid.');
+      throw new Error(error.message || 'Gagal melakukan top-up, minimal lengkapi data pribadi dan alamat terlebih dahulu.');
     }
     return response.json();
   }
