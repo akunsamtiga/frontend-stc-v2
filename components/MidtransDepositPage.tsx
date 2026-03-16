@@ -85,7 +85,8 @@ class PaymentAPI {
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Gagal membuat transaksi, silahkan lengkapi terlebih dahulu profil Anda dengan data yang valid.');
+      // ✅ MODIFIED: Pesan error generic, tidak menyebutkan validasi profil
+      throw new Error(error.message || 'Gagal membuat transaksi. Silakan coba lagi.');
     }
     return response.json();
   }
@@ -460,6 +461,8 @@ const MidtransPaymentPage: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 800));
       window.location.href = redirectUrl;
     } catch (err: any) {
+      // ✅ MODIFIED: Gunakan pesan error dari backend atau pesan generic
+      // Tidak ada validasi profil yang menghalangi deposit
       setError(err.message || 'Pembayaran gagal. Silakan coba lagi.');
       setStep('amount');
     } finally {
