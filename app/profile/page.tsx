@@ -1001,8 +1001,6 @@ export default function ProfilePage() {
   }
 
   const handleUpdatePersonal = async () => {
-    // ✅ FIX: phoneNumber dihapus dari validasi & payload updateProfile.
-    // Phone hanya bisa diubah lewat OTP flow (tombol "Ubah" di field nomor telepon).
     const isValid = validateForm({
       fullName: personalData.fullName,
       dateOfBirth: personalData.dateOfBirth
@@ -1017,7 +1015,10 @@ export default function ProfilePage() {
     try {
       await api.updateProfile({
         fullName: personalData.fullName || undefined,
-        // phoneNumber intentionally excluded — use OTP verify-phone flow
+        // ✅ FIX: phoneNumber disertakan agar tersimpan di DB dengan status
+        // phoneVerified: false. Verifikasi OTP tetap diperlukan untuk
+        // mengubah status menjadi phoneVerified: true.
+        phoneNumber: personalData.phoneNumber || undefined,
         dateOfBirth: personalData.dateOfBirth || undefined,
         gender: personalData.gender || undefined,
         nationality: personalData.nationality || undefined
