@@ -7,14 +7,14 @@ import type { Metadata } from 'next'
 import LandingPageClient from './LandingPageClient'
 
 const SITE_URL = 'https://stouch.id'
-const SITE_NAME = 'Stouch.id'
+const SITE_NAME = 'Stouch'
 const SITE_DESCRIPTION =
   'Platform trading binary option terpercaya di Indonesia. Profit hingga 100%, penarikan kilat, bonus VIP, dan keamanan tinggi. Powered by Stockity.'
 
 // ✅ Metadata khusus untuk halaman / (landing page)
 // Ini override metadata dari layout.tsx untuk halaman ini saja
 export const metadata: Metadata = {
-  title: `${SITE_NAME} — Platform Trading Binary Option Terpercaya`,
+  title: `${SITE_NAME} - Platform Trading Binary Option Terpercaya di Indonesia`,
   description: SITE_DESCRIPTION,
   keywords: [
     'binary option indonesia',
@@ -45,21 +45,21 @@ export const metadata: Metadata = {
     locale: 'id_ID',
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — Platform Trading Binary Option Terpercaya`,
+    title: `${SITE_NAME} - Platform Trading Binary Option Terpercaya di Indonesia`,
     description: SITE_DESCRIPTION,
     images: [
       {
         url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
-        alt: 'Stouch.id — Platform Trading Binary Option Terpercaya di Indonesia',
+        alt: 'Stouch - Platform Trading Binary Option Terpercaya di Indonesia',
         type: 'image/png',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${SITE_NAME} — Platform Trading Binary Option Terpercaya`,
+    title: `${SITE_NAME} - Platform Trading Binary Option Terpercaya di Indonesia`,
     description: SITE_DESCRIPTION,
     images: [`${SITE_URL}/og-image.png`],
     creator: '@stockity_id',
@@ -75,7 +75,7 @@ function LandingPageJsonLd() {
         '@type': 'WebPage',
         '@id': `${SITE_URL}/#webpage`,
         url: SITE_URL,
-        name: `${SITE_NAME} — Platform Trading Binary Option Terpercaya`,
+        name: `${SITE_NAME} - Platform Trading Binary Option Terpercaya di Indonesia`,
         description: SITE_DESCRIPTION,
         inLanguage: 'id-ID',
         isPartOf: { '@id': `${SITE_URL}/#website` },
