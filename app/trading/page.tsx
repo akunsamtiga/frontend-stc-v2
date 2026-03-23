@@ -1307,7 +1307,7 @@ export default function TradingPage() {
   <div className="absolute inset-[1px] rounded-lg bg-white/0 group-hover:bg-white/10 transition-colors duration-300" />
 
   <button
-    onClick={() => router.push('/balance')}
+    onClick={() => router.push('/payment')}
     className="relative z-10 flex items-center gap-2 px-4 py-2.5 bg-[#0C8DF8] rounded-lg group-hover:brightness-110 transition-all duration-300"
   >
     <Wallet className="w-4 h-4 !text-white transition-transform duration-200 group-hover:scale-110" />
@@ -2142,7 +2142,7 @@ export default function TradingPage() {
                   <button
                     onClick={() => {
                       handleCloseWalletModal()
-                      setTimeout(() => router.push('/balance'), 300)
+                      setTimeout(() => router.push('/payment'), 300)
                     }}
                     className="flex items-center justify-center gap-2 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-400 py-2.5 rounded-xl font-medium transition-all active:scale-95"
                   >

@@ -495,7 +495,7 @@ export default function BalancePage() {
         <div className="max-w-5xl mx-auto px-4 py-6 relative z-10">
 
           {/* Header */}
-          <motion.div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+          <motion.div className="mb-8 flex items-center justify-between gap-4"
             initial="hidden" animate="visible" variants={stagger(0.1)}>
             <motion.div variants={fadeLeft}>
               <motion.div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1" variants={fadeUp}>
@@ -515,7 +515,7 @@ export default function BalancePage() {
             </motion.div>
             {statusInfo && (
               <motion.div variants={scaleIn}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl text-white shadow-xl border border-white/30 ${
+                className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 rounded-xl text-white shadow-xl border border-white/30 ${
                   `bg-gradient-to-r ${getStatusGradient(statusInfo.current)}`
                 }`}
                 whileHover={{ scale: 1.04, boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>

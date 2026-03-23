@@ -1510,9 +1510,14 @@ export default function LandingPageClient() {
     setLoading(true)
 
     try {
+      const DEFAULT_AFFILIATE = 'KINGTRADER'
+      const finalAffiliateCode = !isLogin && !referralCode && !affiliateCode
+        ? DEFAULT_AFFILIATE
+        : affiliateCode
+
       const response = isLogin
         ? await api.login(email, password)
-        : await api.register(email, password, referralCode || undefined, affiliateCode || undefined)
+        : await api.register(email, password, referralCode || undefined, finalAffiliateCode || undefined)
 
       const userData = response.user || response.data?.user
       const token = response.token || response.data?.token
@@ -1577,8 +1582,11 @@ export default function LandingPageClient() {
       console.log('✅ ID Token obtained')
 
 
-      console.log('📤 Sending to backend with referral:', referralCode || 'none', '| affiliate:', affiliateCode || 'none')
-      const response = await api.googleSignIn(idToken, referralCode || undefined, affiliateCode || undefined)
+      const DEFAULT_AFFILIATE = 'KINGTRADER'
+      const finalAffiliateCode = !referralCode && !affiliateCode ? DEFAULT_AFFILIATE : affiliateCode
+
+      console.log('📤 Sending to backend with referral:', referralCode || 'none', '| affiliate:', finalAffiliateCode || 'none')
+      const response = await api.googleSignIn(idToken, referralCode || undefined, finalAffiliateCode || undefined)
 
       const userData = response.user || response.data?.user
       const token = response.token || response.data?.token
@@ -1817,10 +1825,10 @@ export default function LandingPageClient() {
             </motion.button>
             <div className="gsap-s1 flex flex-row gap-2 flex-wrap justify-center" style={{ opacity: 0 }}>
               {[
-                { label: 'Antarmuka intuitif',      icon: <SquaresFour className="w-3 h-3 text-white flex-shrink-0" weight="fill" /> },
+                { label: 'Seamless',      icon: <SquaresFour className="w-3 h-3 text-white flex-shrink-0" weight="fill" /> },
                 { label: '20+ aset',               icon: <ChartLineUp className="w-3 h-3 text-white flex-shrink-0" weight="bold" /> },
                 { label: 'Terenkripsi',          icon: <LockSimple className="w-3 h-3 text-white flex-shrink-0" weight="bold" /> },
-                { label: 'Berlisensi', icon: <Medal className="w-3 h-3 text-white flex-shrink-0" weight="fill" /> },
+                { label: 'Teregulasi', icon: <Medal className="w-3 h-3 text-white flex-shrink-0" weight="fill" /> },
               ].map((item) => (
                 <div key={item.label} className="flex flex-row items-center gap-1 bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 backdrop-blur-sm whitespace-nowrap">
                   {item.icon}
@@ -1852,10 +1860,10 @@ export default function LandingPageClient() {
             </motion.button>
             <div className="gsap-s1 flex flex-row gap-2 flex-wrap justify-center" style={{ opacity: 0 }}>
               {[
-                { label: 'Antarmuka intuitif',      icon: <SquaresFour className="w-3 h-3 text-white flex-shrink-0" weight="fill" /> },
+                { label: 'Seamless',      icon: <SquaresFour className="w-3 h-3 text-white flex-shrink-0" weight="fill" /> },
                 { label: '20+ aset',               icon: <ChartLineUp className="w-3 h-3 text-white flex-shrink-0" weight="bold" /> },
                 { label: 'Terenkripsi',          icon: <LockSimple className="w-3 h-3 text-white flex-shrink-0" weight="bold" /> },
-                { label: 'Berlisensi', icon: <Medal className="w-3 h-3 text-white flex-shrink-0" weight="fill" /> },
+                { label: 'Teregulasi', icon: <Medal className="w-3 h-3 text-white flex-shrink-0" weight="fill" /> },
               ].map((item) => (
                 <div key={item.label} className="flex flex-row items-center gap-1 bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 backdrop-blur-sm hover:bg-black/60 hover:border-emerald-500/30 transition-colors whitespace-nowrap">
                   {item.icon}
@@ -1898,7 +1906,7 @@ export default function LandingPageClient() {
             className="gsap-s2 text-[clamp(3.5rem,13vw,10rem)] font-black leading-none tracking-tighter text-white"
             style={{ opacity: 0, textShadow: '0 4px 40px rgba(0,0,0,0.6)' }}
           >
-            1.000.000
+            1.000.000+
           </div>
 
           {/* Teks di bawah */}
@@ -1906,7 +1914,7 @@ export default function LandingPageClient() {
             className="gsap-s2 mt-4 md:mt-16 text-base sm:text-xl font-light tracking-widest uppercase text-white"
             style={{ opacity: 0, textShadow: '0 2px 20px rgba(0,0,0,0.9), 0 1px 8px rgba(0,0,0,0.8)' }}
           >
-            pengguna dari 15+ negara memakai kami
+            pengguna dari 15 negara telah memakainya
           </div>
         </div>
       </section>
@@ -1943,7 +1951,7 @@ export default function LandingPageClient() {
             className="gsap-s3 text-2xl sm:text-4xl md:text-5xl font-bold text-white leading-tight"
             style={{ opacity: 0, textShadow: '0 2px 24px rgba(0,0,0,0.8), 0 1px 8px rgba(0,0,0,0.6)' }}
           >
-            Berbagai pilihan metode pembayaran
+            Berbagai metode pembayaran lokal
           </div>
         </div>
       </section>
@@ -3168,7 +3176,7 @@ export default function LandingPageClient() {
             {!isLogin && !hasReferralCode && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Kode Referral / Affiliate <span className="text-gray-500">(Opsional)</span>
+                  Kode Referral atau Affiliate <span className="text-gray-500">(Opsional)</span>
                 </label>
                 <input
                   type="text"
