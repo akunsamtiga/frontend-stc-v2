@@ -12,63 +12,108 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
       changeFrequency: 'daily',
       priority: 1.0,
-      alternates: { languages: { id: `${BASE_URL}/` } },
+      alternates: {
+        languages: {
+          id: `${BASE_URL}/`,
+          'x-default': `${BASE_URL}/`,
+        },
+      },
     },
     {
       url: `${BASE_URL}/about`,
       lastModified: now,
       changeFrequency: 'weekly',
       priority: 0.8,
-      alternates: { languages: { id: `${BASE_URL}/about` } },
+      alternates: {
+        languages: {
+          id: `${BASE_URL}/about`,
+          'x-default': `${BASE_URL}/about`,
+        },
+      },
     },
     {
       url: `${BASE_URL}/status`,
       lastModified: now,
       changeFrequency: 'weekly',
       priority: 0.8,
-      alternates: { languages: { id: `${BASE_URL}/status` } },
+      alternates: {
+        languages: {
+          id: `${BASE_URL}/status`,
+          'x-default': `${BASE_URL}/status`,
+        },
+      },
     },
     {
       url: `${BASE_URL}/help-center`,
       lastModified: now,
       changeFrequency: 'weekly',
       priority: 0.7,
-      alternates: { languages: { id: `${BASE_URL}/help-center` } },
+      alternates: {
+        languages: {
+          id: `${BASE_URL}/help-center`,
+          'x-default': `${BASE_URL}/help-center`,
+        },
+      },
     },
     {
       url: `${BASE_URL}/berita`,
       lastModified: now,
       changeFrequency: 'weekly',
       priority: 0.7,
-      alternates: { languages: { id: `${BASE_URL}/berita` } },
+      alternates: {
+        languages: {
+          id: `${BASE_URL}/berita`,
+          'x-default': `${BASE_URL}/berita`,
+        },
+      },
     },
     {
       url: `${BASE_URL}/support`,
       lastModified: now,
       changeFrequency: 'weekly',
       priority: 0.7,
-      alternates: { languages: { id: `${BASE_URL}/support` } },
+      alternates: {
+        languages: {
+          id: `${BASE_URL}/support`,
+          'x-default': `${BASE_URL}/support`,
+        },
+      },
     },
     {
       url: `${BASE_URL}/agreement`,
       lastModified: new Date('2022-01-15'),
       changeFrequency: 'monthly',
       priority: 0.5,
-      alternates: { languages: { id: `${BASE_URL}/agreement` } },
+      alternates: {
+        languages: {
+          id: `${BASE_URL}/agreement`,
+          'x-default': `${BASE_URL}/agreement`,
+        },
+      },
     },
     {
       url: `${BASE_URL}/copytrading-agreement`,
       lastModified: new Date('2023-11-06'),
       changeFrequency: 'monthly',
       priority: 0.4,
-      alternates: { languages: { id: `${BASE_URL}/copytrading-agreement` } },
+      alternates: {
+        languages: {
+          id: `${BASE_URL}/copytrading-agreement`,
+          'x-default': `${BASE_URL}/copytrading-agreement`,
+        },
+      },
     },
     {
       url: `${BASE_URL}/privacy`,
       lastModified: new Date('2022-01-15'),
       changeFrequency: 'monthly',
       priority: 0.4,
-      alternates: { languages: { id: `${BASE_URL}/privacy` } },
+      alternates: {
+        languages: {
+          id: `${BASE_URL}/privacy`,
+          'x-default': `${BASE_URL}/privacy`,
+        },
+      },
     },
   ]
 }

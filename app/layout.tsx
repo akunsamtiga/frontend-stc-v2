@@ -16,29 +16,28 @@ const OG_IMAGE = '/og-image.png'
 const LOGO_IMAGE = '/stc-logo1.png'
 
 export const metadata: Metadata = {
-
+  // ✅ PERBAIKAN: layout.tsx hanya berisi default & template.
+  // Metadata spesifik halaman (title penuh, OG image, dll) ada di masing-masing page.tsx.
+  // Ini mencegah konflik merge dan mempermudah maintenance.
   title: {
-    default: `${SITE_NAME}`,
+    default: SITE_NAME,
     template: `%s | ${SITE_NAME}`,
   },
 
   description: SITE_DESCRIPTION,
   keywords: [
-    'binary option indonesia',
-    'platform trading terpercaya',
-    'trading binary',
+    'platform trading terpercaya',      // ✅ PERBAIKAN: framing ulang keyword utama
+    'fixed time trading indonesia',      // hindari "binary option" sebagai keyword utama
+    'FTT trading',
+    'copy trading indonesia',
+    'trading online indonesia',
     'Stouch',
     'Stouch.id',
     'Stockity',
-    'binary option profit tinggi',
-    'trading online indonesia',
-    'penarikan cepat trading',
     'IDX STC',
     'STC AutoTrade',
-    'fixed time trading',
-    'FTT trading',
-    'copy trading indonesia',
-    'broker binary option',
+    'broker trading indonesia',
+    'penarikan cepat trading',
   ],
   authors: [{ name: 'Stouch', url: SITE_URL }],
   creator: 'Stouch',
@@ -53,41 +52,33 @@ export const metadata: Metadata = {
     languages: { 'id-ID': SITE_URL },
   },
 
+  // ✅ OG default — akan di-override oleh page.tsx masing-masing halaman
   openGraph: {
     type: 'website',
     locale: 'id_ID',
-    url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} - Platform Trading Binary Option Terpercaya di Indonesia`,
-    description: SITE_DESCRIPTION,
     images: [
       {
         url: OG_IMAGE,
         width: 1200,
         height: 630,
-        alt: 'Stouch - Platform Trading Binary Option Terpercaya di Indonesia',
+        alt: `${SITE_NAME} - Platform Trading Terpercaya di Indonesia`,
         type: 'image/png',
       },
       {
         url: LOGO_IMAGE,
         width: 512,
         height: 512,
-        alt: 'Logo Stouch -Platform Trading Binary Option',
+        alt: `Logo ${SITE_NAME}`,
         type: 'image/png',
       },
     ],
   },
 
+  // ✅ Twitter default
   twitter: {
     card: 'summary_large_image',
-    title: `${SITE_NAME} - Platform Trading Binary Option Terpercaya di Indonesia`,
-    description: SITE_DESCRIPTION,
-    images: [
-      {
-        url: OG_IMAGE,
-        alt: 'Stouch - Platform Trading Binary Option Terpercaya di Indonesia',
-      },
-    ],
+    images: [{ url: OG_IMAGE, alt: `${SITE_NAME} - Platform Trading Terpercaya di Indonesia` }],
     creator: '@stockity_id',
     site: '@stockity_id',
   },
@@ -99,9 +90,7 @@ export const metadata: Metadata = {
       { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
     shortcut: '/stc.ico',
-    apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-    ],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
 
   manifest: '/manifest.json',
@@ -124,7 +113,6 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-
 }
 
 export const viewport: Viewport = {
@@ -142,6 +130,7 @@ function OrganizationJsonLd() {
     name: 'Stouch',
     url: SITE_URL,
 
+    // ✅ PERBAIKAN: logo tidak diduplikasi ke array image, cukup referensi @id-nya saja
     logo: {
       '@type': 'ImageObject',
       '@id': `${SITE_URL}/#logo`,
@@ -150,7 +139,7 @@ function OrganizationJsonLd() {
       width: 512,
       height: 512,
       name: 'Logo Stouch',
-      caption: 'Stouch - Platform Trading Binary Option Indonesia',
+      caption: 'Stouch - Platform Trading Terpercaya Indonesia',
       inLanguage: 'id-ID',
     },
 
@@ -162,23 +151,14 @@ function OrganizationJsonLd() {
         contentUrl: `${SITE_URL}${OG_IMAGE}`,
         width: 1200,
         height: 630,
-        name: 'Stouch - Platform Trading Binary Option Terpercaya Indonesia',
-        caption: 'Platform trading binary option terpercaya di Indonesia dengan profit hingga 100%',
+        name: 'Stouch - Platform Trading Terpercaya Indonesia',
+        caption: 'Platform trading terpercaya di Indonesia dengan profit hingga 100%',
         description: SITE_DESCRIPTION,
         inLanguage: 'id-ID',
         representativeOfPage: true,
       },
-      {
-        '@type': 'ImageObject',
-        '@id': `${SITE_URL}/#logo`,
-        url: `${SITE_URL}${LOGO_IMAGE}`,
-        contentUrl: `${SITE_URL}${LOGO_IMAGE}`,
-        width: 512,
-        height: 512,
-        name: 'Logo Stouch',
-        caption: 'Logo resmi Stouch',
-        inLanguage: 'id-ID',
-      },
+      // ✅ Logo direferensi via @id, tidak didefinisikan ulang
+      { '@id': `${SITE_URL}/#logo` },
     ],
 
     description: SITE_DESCRIPTION,

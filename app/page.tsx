@@ -1,6 +1,7 @@
 // app/page.tsx — SERVER COMPONENT
 // ✅ PENTING: File ini HARUS server component (tanpa 'use client')
-// Supaya bisa export metadata + canonical URL yang dibaca Google
+// Supaya bisa export metadata + canonical URL yang dibaca Google.
+// Metadata di sini HANYA yang berbeda dari layout.tsx (tidak duplikasi icons, manifest, robots, dll).
 // Komponen client yang berat ada di ./LandingPageClient.tsx
 
 import type { Metadata } from 'next'
@@ -11,57 +12,66 @@ const SITE_NAME = 'Stouch'
 const SITE_DESCRIPTION =
   'Platform trading binary option terpercaya di Indonesia. Profit hingga 100%, penarikan kilat, bonus VIP, dan keamanan tinggi. Powered by Stockity.'
 
-// ✅ Metadata khusus untuk halaman / (landing page)
-// Ini override metadata dari layout.tsx untuk halaman ini saja
+// ✅ PERBAIKAN: page.tsx hanya mendefinisikan metadata yang BERBEDA dari layout.tsx.
+// Layout sudah handle: icons, manifest, appleWebApp, robots, metadataBase, generator, authors.
+// Di sini cukup: title halaman ini, description, canonical, keywords spesifik halaman, OG & Twitter.
 export const metadata: Metadata = {
-  title: `${SITE_NAME} - Platform Trading Binary Option Terpercaya di Indonesia`,
+  title: `${SITE_NAME} - Platform Trading Terpercaya di Indonesia`,
   description: SITE_DESCRIPTION,
   keywords: [
-    'binary option indonesia',
     'platform trading terpercaya',
-    'trading binary',
+    'fixed time trading indonesia',
+    'FTT trading',
+    'copy trading indonesia',
+    'trading online indonesia',
     'Stouch',
     'Stouch.id',
     'Stockity',
-    'binary option profit tinggi',
-    'trading online indonesia',
-    'penarikan cepat trading',
     'IDX STC',
     'STC AutoTrade',
-    'fixed time trading',
-    'FTT trading',
-    'copy trading indonesia',
-    'broker binary option',
-    'deposit binary option',
+    'broker trading indonesia',
+    'penarikan cepat trading',
+    'deposit trading indonesia',
     'profit trading indonesia',
   ],
-  // ✅ Canonical absolut — wajib untuk halaman root
   alternates: {
     canonical: SITE_URL,
-    languages: { 'id-ID': SITE_URL },
+    languages: {
+      'id-ID': SITE_URL,
+      // ✅ PERBAIKAN: tambahkan x-default agar Google tahu ini halaman default
+      'x-default': SITE_URL,
+    },
   },
   openGraph: {
     type: 'website',
     locale: 'id_ID',
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} - Platform Trading Binary Option Terpercaya di Indonesia`,
+    title: `${SITE_NAME} - Platform Trading Terpercaya di Indonesia`,
     description: SITE_DESCRIPTION,
     images: [
       {
         url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
-        alt: 'Stouch - Platform Trading Binary Option Terpercaya di Indonesia',
+        alt: `${SITE_NAME} - Platform Trading Terpercaya di Indonesia`,
+        type: 'image/png',
+      },
+      // ✅ PERBAIKAN: konsisten dengan layout.tsx, tambah logo sebagai fallback
+      {
+        url: `${SITE_URL}/stc-logo1.png`,
+        width: 512,
+        height: 512,
+        alt: `Logo ${SITE_NAME}`,
         type: 'image/png',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${SITE_NAME} - Platform Trading Binary Option Terpercaya di Indonesia`,
+    title: `${SITE_NAME} - Platform Trading Terpercaya di Indonesia`,
     description: SITE_DESCRIPTION,
-    images: [`${SITE_URL}/og-image.png`],
+    images: [{ url: `${SITE_URL}/og-image.png`, alt: `${SITE_NAME} - Platform Trading Terpercaya di Indonesia` }],
     creator: '@stockity_id',
     site: '@stockity_id',
   },
@@ -75,7 +85,7 @@ function LandingPageJsonLd() {
         '@type': 'WebPage',
         '@id': `${SITE_URL}/#webpage`,
         url: SITE_URL,
-        name: `${SITE_NAME} - Platform Trading Binary Option Terpercaya di Indonesia`,
+        name: `${SITE_NAME} - Platform Trading Terpercaya di Indonesia`,
         description: SITE_DESCRIPTION,
         inLanguage: 'id-ID',
         isPartOf: { '@id': `${SITE_URL}/#website` },
