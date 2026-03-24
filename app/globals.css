@@ -8,9 +8,7 @@
   }
 
   body {
-    /* ✅ PERBAIKAN: Hapus bg-white/text-[#171717] yang konflik dengan className="text-white bg-black" di layout.tsx.
-       Warna body dikontrol sepenuhnya oleh Tailwind class di layout.tsx untuk menghindari FOUC & CLS. */
-    @apply antialiased;
+    @apply bg-white text-[#171717] antialiased;
     font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -20,8 +18,7 @@
   input,
   textarea,
   select {
-    /* ✅ PERBAIKAN: Sesuaikan dengan dark theme di layout.tsx */
-    @apply bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500;
+    @apply bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-[#171717] placeholder-gray-400;
     @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
     @apply transition-all duration-200;
   }
@@ -29,13 +26,13 @@
   input:hover:not(:disabled),
   textarea:hover:not(:disabled),
   select:hover:not(:disabled) {
-    @apply border-gray-500;
+    @apply border-gray-300;
   }
 
   input:disabled,
   textarea:disabled,
   select:disabled {
-    @apply bg-gray-800 text-gray-500 cursor-not-allowed;
+    @apply bg-gray-50 text-gray-400 cursor-not-allowed;
   }
 
   button {
@@ -225,25 +222,23 @@
 }
 
 ::-webkit-scrollbar-track {
-  /* ✅ PERBAIKAN: Dark scrollbar track */
-  @apply bg-gray-900;
+  @apply bg-gray-50;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-700 rounded-full;
+  @apply bg-gray-300 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-500;
+  @apply bg-gray-400;
 }
 
 ::selection {
-  /* ✅ PERBAIKAN: Dark-friendly selection color */
-  @apply bg-blue-600 text-white;
+  @apply bg-blue-100 text-blue-900;
 }
 
 ::-moz-selection {
-  @apply bg-blue-600 text-white;
+  @apply bg-blue-100 text-blue-900;
 }
 
 *:focus-visible {
