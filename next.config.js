@@ -3,8 +3,6 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
 
-  // ✅ REDIRECTS — www → non-www (permanent 301)
-  // Tanpa ini, Googlebot crawl www.stouch.id → redirect → "Page with redirect" error
   async redirects() {
     return [
       {
