@@ -171,10 +171,29 @@ interface CharRevealProps {
 }
 function CharReveal({ text, className = '', delaySeconds = 0, as: Tag = 'span' }: CharRevealProps) {
   const [started, setStarted] = React.useState(false)
+  const [isMobileDevice, setIsMobileDevice] = React.useState(false)
+
   React.useEffect(() => {
+    // Check once on mount — skip heavy per-character DOM on mobile
+    setIsMobileDevice(window.innerWidth < 768)
     const t = setTimeout(() => setStarted(true), delaySeconds * 1000)
     return () => clearTimeout(t)
   }, [delaySeconds])
+
+  // Mobile: single word-level fade — fewer DOM nodes, less main thread work
+  if (isMobileDevice) {
+    return (
+      <motion.span
+        className={`inline-block ${className}`}
+        initial={{ opacity: 0, y: 12 }}
+        animate={started ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      >
+        {text}
+      </motion.span>
+    )
+  }
+
   return (
     <motion.span
       className={`inline-block ${className}`}
@@ -246,7 +265,7 @@ interface RandomGridProps {
   className?: string
 }
 
-function RandomGrid({
+const RandomGrid = React.memo(function RandomGrid({
   seed = 42,
   opacity = 0.06,
   lineColor = 'rgba(255,255,255,0.6)',
@@ -286,7 +305,7 @@ function RandomGrid({
       ))}
     </svg>
   )
-}
+})
 
 const BASE_STATS = [
   { label: 'Unduhan', value: '1 jt+', rawValue: 1, suffix: 'jt+', icon: Users },
@@ -462,9 +481,13 @@ const LiveCryptoTicker = () => {
       })
     }
 
-    fetchAndUpdate()
-    const interval = setInterval(fetchAndUpdate, 4000)
-    return () => { active = false; clearInterval(interval) }
+    // Defer polling — let LCP settle first
+    let interval: ReturnType<typeof setInterval> | null = null
+    const startTimer = setTimeout(() => {
+      fetchAndUpdate()
+      interval = setInterval(fetchAndUpdate, 4000)
+    }, 2000)
+    return () => { active = false; clearTimeout(startTimer); if (interval) clearInterval(interval) }
   }, [])
 
   const buyCount = trades.filter(t => t.direction === 'BUY').length
@@ -580,17 +603,20 @@ const FloatingCryptoPriceCard = ({ symbol, delay, style }: FloatingCryptoPriceCa
   const [priceData, setPriceData] = useState<CryptoPriceData | null>(null)
 
   useEffect(() => {
-    const unsubscribe = subscribeToCryptoPrices(
-      [symbol],
-      (prices) => {
-        if (prices[symbol]) {
-          setPriceData(prices[symbol])
-        }
-      },
-      5000
-    )
-
-    return () => unsubscribe()
+    // Defer subscription — floating cards are below LCP
+    const startTimer = setTimeout(() => {
+      const unsubscribe = subscribeToCryptoPrices(
+        [symbol],
+        (prices) => {
+          if (prices[symbol]) {
+            setPriceData(prices[symbol])
+          }
+        },
+        5000
+      )
+      return () => unsubscribe()
+    }, 3000)
+    return () => clearTimeout(startTimer)
   }, [symbol])
 
   if (!priceData) {
@@ -644,23 +670,26 @@ const LiveCryptoChart = () => {
   useEffect(() => {
     setPriceHistory([])
 
-    const unsubscribe = subscribeToCryptoPrices(
-      [selectedCrypto],
-      (newPrices) => {
-        if (newPrices[selectedCrypto]) {
-          const data = newPrices[selectedCrypto]
-          setPriceData(data)
+    let unsubFn: (() => void) | null = null
+    const startTimer = setTimeout(() => {
+      unsubFn = subscribeToCryptoPrices(
+        [selectedCrypto],
+        (newPrices) => {
+          if (newPrices[selectedCrypto]) {
+            const data = newPrices[selectedCrypto]
+            setPriceData(data)
 
-          setPriceHistory(prev => {
-            const newHistory = [...prev, data.price]
-            return newHistory.slice(-30)
-          })
-        }
-      },
-      pollInterval
-    )
+            setPriceHistory(prev => {
+              const newHistory = [...prev, data.price]
+              return newHistory.slice(-30)
+            })
+          }
+        },
+        pollInterval
+      )
+    }, 1500)
 
-    return () => unsubscribe()
+    return () => { clearTimeout(startTimer); if (unsubFn) unsubFn() }
   }, [selectedCrypto])
 
   useEffect(() => {
@@ -682,12 +711,17 @@ const LiveCryptoChart = () => {
       }
     }
 
-    fetchMobileTrades()
-    const interval = setInterval(fetchMobileTrades, 4000)
+    // Defer — let LCP settle first
+    let interval: ReturnType<typeof setInterval> | null = null
+    const startTimer = setTimeout(() => {
+      fetchMobileTrades()
+      interval = setInterval(fetchMobileTrades, 4000)
+    }, 2500)
 
     return () => {
       active = false
-      clearInterval(interval)
+      clearTimeout(startTimer)
+      if (interval) clearInterval(interval)
     }
   }, [])
 
@@ -918,29 +952,35 @@ export default function LandingPageClient() {
 
 
 
-        gsap.utils.toArray<HTMLElement>('.gsap-float-blob').forEach((blob, i) => {
-          const yRange = 18 + i * 8
-          const xRange = 12 + i * 5
-          const dur    = 5 + i * 1.5
-          gsap.to(blob, {
-            y: `+=${yRange}`,
-            x: `+=${xRange}`,
-            duration: dur,
-            ease: 'sine.inOut',
-            repeat: -1,
-            yoyo: true,
-            delay: i * 0.8,
+        // Float blobs — skip on mobile to avoid GPU compositing layers
+        if (!isMobile) {
+          gsap.utils.toArray<HTMLElement>('.gsap-float-blob').forEach((blob, i) => {
+            const yRange = 18 + i * 8
+            const xRange = 12 + i * 5
+            const dur    = 5 + i * 1.5
+            gsap.to(blob, {
+              y: `+=${yRange}`,
+              x: `+=${xRange}`,
+              duration: dur,
+              ease: 'sine.inOut',
+              repeat: -1,
+              yoyo: true,
+              delay: i * 0.8,
+            })
           })
-        })
+        }
 
 
 
 
-        gsap.utils.toArray<HTMLElement>('.gsap-orb').forEach((orb, i) => {
-          const tl = gsap.timeline({ repeat: -1, yoyo: true, delay: i * 1.2 })
-          tl.to(orb, { y: -24, x: 12, scale: 1.08, duration: 3.5 + i, ease: 'sine.inOut' })
-            .to(orb, { y: 12, x: -8, scale: 0.94, duration: 4 + i, ease: 'sine.inOut' })
-        })
+        // Orbs — skip on mobile (GPU-intensive infinite animations)
+        if (!isMobile) {
+          gsap.utils.toArray<HTMLElement>('.gsap-orb').forEach((orb, i) => {
+            const tl = gsap.timeline({ repeat: -1, yoyo: true, delay: i * 1.2 })
+            tl.to(orb, { y: -24, x: 12, scale: 1.08, duration: 3.5 + i, ease: 'sine.inOut' })
+              .to(orb, { y: 12, x: -8, scale: 0.94, duration: 4 + i, ease: 'sine.inOut' })
+          })
+        }
 
 
 
@@ -990,61 +1030,52 @@ export default function LandingPageClient() {
 
 
 
-        gsap.set('.gsap-navbar', { opacity: 0, y: -40 })
-        gsap.to('.gsap-navbar', { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', delay: 0.02 })
+        gsap.set('.gsap-navbar', { opacity: 0 })
+        gsap.to('.gsap-navbar', { opacity: 1, duration: 0.3, ease: 'power2.out' })
 
-        // ── Section 1 image blur-in ───────────────────────────
+        // ── Section 1 image — fast opacity fade (no blur = no GPU layer cost) ─
         const s1Imgs = gsap.utils.toArray<HTMLElement>('.gsap-s1-img')
         if (s1Imgs.length) {
-          gsap.set(s1Imgs, { opacity: 0, scale: 1.12, filter: 'blur(36px)' })
-          gsap.to(s1Imgs, {
-            opacity: 0.8,
-            scale: 1,
-            filter: 'blur(0px)',
-            duration: 3.0,
-            ease: 'power4.out',
-            delay: 0.05,
-          })
+          gsap.fromTo(s1Imgs,
+            { opacity: 0 },
+            { opacity: 0.8, duration: 0.5, ease: 'power2.out' }
+          )
         }
 
         // ── Section 1 text: berurutan satu per satu ──────────
         const s1Els = gsap.utils.toArray<HTMLElement>('.gsap-s1')
         if (s1Els.length) {
-          gsap.set(s1Els, { opacity: 0, filter: 'blur(16px)', y: 24 })
+          gsap.set(s1Els, { opacity: 0, y: 24 })
           gsap.to(s1Els, {
             opacity: 1,
-            filter: 'blur(0px)',
             y: 0,
-            duration: 1.0,
+            duration: 0.7,
             ease: 'expo.out',
-            stagger: { each: 0.55, from: 'start' },
-            delay: 0.6,
+            stagger: { each: 0.35, from: 'start' },
+            delay: 0.4,
           })
         }
 
         // ── Section 2 image + text blur-in (ScrollTrigger) ──
         const s2Imgs = gsap.utils.toArray<HTMLElement>('.gsap-s2-img')
         if (s2Imgs.length) {
-          gsap.set(s2Imgs, { opacity: 0, scale: 1.1, filter: 'blur(30px)' })
+          gsap.set(s2Imgs, { opacity: 0 })
           gsap.to(s2Imgs, {
             opacity: 0.85,
-            scale: 1,
-            filter: 'blur(0px)',
-            duration: 2.5,
-            ease: 'power4.out',
+            duration: 1.0,
+            ease: 'power2.out',
             scrollTrigger: { trigger: '.gsap-s2-section', start: 'top 85%', once: true },
           })
         }
         const s2Els = gsap.utils.toArray<HTMLElement>('.gsap-s2')
         if (s2Els.length) {
-          gsap.set(s2Els, { opacity: 0, y: 30, filter: 'blur(12px)' })
+          gsap.set(s2Els, { opacity: 0, y: 30 })
           gsap.to(s2Els, {
             opacity: 1,
             y: 0,
-            filter: 'blur(0px)',
-            duration: 1.2,
+            duration: 0.8,
             ease: 'expo.out',
-            stagger: { each: 0.5, from: 'start' },
+            stagger: { each: 0.3, from: 'start' },
             scrollTrigger: { trigger: '.gsap-s2-section', start: 'top 75%', once: true },
           })
         }
@@ -1052,19 +1083,20 @@ export default function LandingPageClient() {
         // ── Section 3 image + text blur-in (ScrollTrigger) ──
         const s3Imgs = gsap.utils.toArray<HTMLElement>('.gsap-s3-img')
         if (s3Imgs.length) {
-          gsap.set(s3Imgs, { opacity: 0, scale: 1.1, filter: 'blur(30px)' })
+          gsap.set(s3Imgs, { opacity: 0 })
           gsap.to(s3Imgs, {
-            opacity: 0.85, scale: 1, filter: 'blur(0px)',
-            duration: 2.5, ease: 'power4.out',
+            opacity: 0.85,
+            duration: 1.0,
+            ease: 'power2.out',
             scrollTrigger: { trigger: '.gsap-s3-section', start: 'top 85%', once: true },
           })
         }
         const s3Els = gsap.utils.toArray<HTMLElement>('.gsap-s3')
         if (s3Els.length) {
-          gsap.set(s3Els, { opacity: 0, y: 30, filter: 'blur(12px)' })
+          gsap.set(s3Els, { opacity: 0, y: 30 })
           gsap.to(s3Els, {
-            opacity: 1, y: 0, filter: 'blur(0px)',
-            duration: 1.2, ease: 'expo.out',
+            opacity: 1, y: 0,
+            duration: 0.8, ease: 'expo.out',
             scrollTrigger: { trigger: '.gsap-s3-section', start: 'top 75%', once: true },
           })
         }
@@ -1314,15 +1346,19 @@ export default function LandingPageClient() {
 
   const [stats, setStats] = useState(BASE_STATS)
   useEffect(() => {
-    getMarketStats().then(mktStats => {
-      if (mktStats.totalVolumeUSD > 0) {
-        setStats(prev => prev.map(s =>
-          s.isVolume
-            ? { ...s, value: mktStats.totalVolumeFormatted, rawValue: Math.round(mktStats.totalVolumeUSD / 1_000_000_000) }
-            : s
-        ))
-      }
-    })
+    // Defer non-critical API call — doesn't affect LCP/FID
+    const t = setTimeout(() => {
+      getMarketStats().then(mktStats => {
+        if (mktStats.totalVolumeUSD > 0) {
+          setStats(prev => prev.map(s =>
+            s.isVolume
+              ? { ...s, value: mktStats.totalVolumeFormatted, rawValue: Math.round(mktStats.totalVolumeUSD / 1_000_000_000) }
+              : s
+          ))
+        }
+      })
+    }, 3000)
+    return () => clearTimeout(t)
   }, [])
 
 
@@ -1783,16 +1819,25 @@ export default function LandingPageClient() {
 
         {/* Gambar mobile: best1.jpg (1:1), desktop: best1pc.jpeg */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <img
+          <Image
             src="/best1.jpg"
             alt="Stouch background"
-            className="gsap-s1-img block md:hidden w-full h-full"
-            style={{ opacity: 0, objectFit: 'cover', objectPosition: '50% 20%' }}
+            fill
+            priority
+            fetchPriority="high"
+            sizes="100vw"
+            className="gsap-s1-img block md:hidden"
+            style={{ objectFit: 'cover', objectPosition: '50% 20%' }}
           />
-          <img
+          <Image
             src="/best1pc.jpeg"
             alt="Stouch background"
-            className="gsap-s1-img hidden md:block w-full h-full" style={{ opacity: 0, objectFit: "cover" }}
+            fill
+            priority
+            fetchPriority="high"
+            sizes="100vw"
+            className="gsap-s1-img hidden md:block"
+            style={{ objectFit: 'cover' }}
           />
         </div>
 
@@ -1884,13 +1929,18 @@ export default function LandingPageClient() {
           <img
             src="/best2.jpeg"
             alt="Stouch background section 2"
+            loading="lazy"
+            decoding="async"
             className="gsap-s2-img block md:hidden w-full h-full"
             style={{ opacity: 0, objectFit: 'cover', objectPosition: '50% 30%' }}
           />
           <img
             src="/best2pc.jpeg"
             alt="Stouch background section 2"
-            className="gsap-s2-img hidden md:block w-full h-full" style={{ opacity: 0, objectFit: "cover" }}
+            loading="lazy"
+            decoding="async"
+            className="gsap-s2-img hidden md:block w-full h-full"
+            style={{ opacity: 0, objectFit: "cover" }}
           />
         </div>
 
@@ -1927,12 +1977,16 @@ export default function LandingPageClient() {
           <img
             src="/best3.jpeg"
             alt="Stouch background section 3"
+            loading="lazy"
+            decoding="async"
             className="gsap-s3-img block md:hidden w-full h-full"
             style={{ opacity: 0, objectFit: 'cover', objectPosition: '50% 30%' }}
           />
           <img
             src="/best3pc.jpeg"
             alt="Stouch background section 3"
+            loading="lazy"
+            decoding="async"
             className="gsap-s3-img hidden md:block w-full h-full"
             style={{ opacity: 0, objectFit: 'cover', objectPosition: '50% 50%' }}
           />
@@ -2086,7 +2140,7 @@ export default function LandingPageClient() {
       <div className="section-glow-line" />
 
       {}
-      <section id="how-it-works" className="py-16 sm:py-20 relative overflow-hidden">
+      <section id="how-it-works" className="py-16 sm:py-20 relative overflow-hidden cv-auto">
         {}
         <div className="absolute inset-0 pointer-events-none">
           <RandomGrid seed={27} opacity={0.06} />
@@ -2341,7 +2395,7 @@ export default function LandingPageClient() {
 <div className="section-glow-line" />
 
 {}
-<section id="payment" className="py-16 sm:py-20 relative overflow-visible">
+<section id="payment" className="py-16 sm:py-20 relative overflow-visible cv-auto">
   {}
   <div className="absolute inset-0 pointer-events-none overflow-hidden">
     {}
@@ -3355,8 +3409,6 @@ export default function LandingPageClient() {
 )}
 
       <style jsx>{`
-      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&display=swap');
-
       /* ══════════════════════════════════════════════════════
          PREMIUM CSS — Stouch.id Landing Page
       ══════════════════════════════════════════════════════ */
@@ -3689,6 +3741,30 @@ export default function LandingPageClient() {
       .marquee-fade {
         mask-image: linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%);
         -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%);
+      }
+
+      /* ── content-visibility: skip rendering off-screen sections ── */
+      .cv-auto {
+        content-visibility: auto;
+        contain-intrinsic-size: 0 600px;
+      }
+
+      /* ── Reduce layout shift from hero background ── */
+      .hero-bg-container {
+        contain: layout paint;
+      }
+
+      /* ── Prevent shimmer animation repaints on low-power devices ── */
+      @media (prefers-reduced-motion: reduce) {
+        .shimmer-title-stouch,
+        .shimmer-title-id,
+        .shimmer-date,
+        .cta-glow-ring,
+        .step-ring-violet,
+        .step-ring-pink,
+        .step-ring-sky {
+          animation: none !important;
+        }
       }
     `}</style>
     </div>

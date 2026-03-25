@@ -118,6 +118,23 @@ function LandingPageJsonLd() {
 export default function LandingPage() {
   return (
     <>
+      {/* ✅ Preload LCP images — hero background loaded ASAP */}
+      <link
+        rel="preload"
+        as="image"
+        href="/best1.jpg"
+        media="(max-width: 767px)"
+        // @ts-ignore fetchpriority is valid HTML attribute
+        fetchpriority="high"
+      />
+      <link
+        rel="preload"
+        as="image"
+        href="/best1pc.jpeg"
+        media="(min-width: 768px)"
+        // @ts-ignore
+        fetchpriority="high"
+      />
       <LandingPageJsonLd />
       <LandingPageClient />
     </>
