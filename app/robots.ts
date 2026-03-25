@@ -6,7 +6,6 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: '*',
-        allow: '/',
         disallow: [
           '/dashboard/',
           '/balance/',
@@ -28,6 +27,5 @@ export default function robots(): MetadataRoute.Robots {
       },
     ],
     sitemap: 'https://stouch.id/sitemap.xml',
-    host: 'https://stouch.id',
   }
 }
