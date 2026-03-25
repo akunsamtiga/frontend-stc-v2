@@ -60,6 +60,19 @@ const EnhancedFooter = dynamic(
   { ssr: false }
 )
 
+// ── Mobile-only: lazy-load the heavy chart section so it doesn't block parse ──
+// On mobile the full chart column is hidden (isDesktop gate), but the component
+// still parses and registers subscriptions. Wrap to prevent that.
+const LazyLiveCryptoChart = dynamic(
+  () => Promise.resolve({ default: LiveCryptoChart }),
+  { ssr: false, loading: () => (
+    <div className="bg-[#0d1220] border border-gray-800/50 rounded-3xl p-6 animate-pulse min-h-[320px]">
+      <div className="h-4 bg-gray-700 rounded w-1/3 mb-4"></div>
+      <div className="h-48 bg-gray-800 rounded-xl"></div>
+    </div>
+  )}
+)
+
 const fadeInUp = {
   hidden: { opacity: 0, y: 28 },
   visible: (delay = 0) => ({
@@ -880,6 +893,10 @@ export default function LandingPageClient() {
 
     let ctx: any
     let cleanup: (() => void) | undefined
+
+    // Mobile: delay GSAP load — don't compete with FCP/LCP on slow CPUs
+    const gsapDelay = isMobile ? 2500 : 0
+    const gsapTimer = setTimeout(() => {
     loadGSAP().then(({ gsap, ScrollTrigger }) => {
 
 
@@ -904,23 +921,20 @@ export default function LandingPageClient() {
         const heroTitleEl = document.querySelector<HTMLElement>('.gsap-hero-title-line1')
         const heroAccentEl = document.querySelector<HTMLElement>('.gsap-hero-title-accent')
 
-
         gsap.set('.gsap-hero-badge',   { opacity: 0, y: 16, scale: 0.9 })
         gsap.set('.gsap-hero-desc',    { opacity: 0, y: 30 })
         gsap.set('.gsap-hero-buttons', { opacity: 0 })
         gsap.set('.gsap-hero-stats',   { opacity: 0 })
-        gsap.set('.gsap-hero-chart',   { opacity: 0, x: isMobile ? 40 : 60, scale: 0.94 })
+        // Mobile: no x shift — prevents layout recalc during animation
+        gsap.set('.gsap-hero-chart',   { opacity: 0, x: isMobile ? 0 : 60, scale: isMobile ? 1 : 0.94 })
 
         const heroTl = gsap.timeline({ defaults: { ease: 'expo.out' } })
 
-        if (heroTitleEl && heroAccentEl) {
-
+        if (!isMobile && heroTitleEl && heroAccentEl) {
+          // Desktop only: expensive word-split + rotateX animation
           const titleWords = splitTextToWordSpans(heroTitleEl)
           heroTitleEl.style.opacity = '1'
           heroTitleEl.style.transform = 'none'
-
-
-
 
           gsap.set(heroAccentEl, { opacity: 0, y: 50, scale: 0.75 })
 
@@ -938,15 +952,14 @@ export default function LandingPageClient() {
             .to('.gsap-hero-stats',       { opacity: 1, duration: 0.5 }, 0.9)
             .to('.gsap-hero-chart',       { opacity: 1, x: 0, scale: 1, duration: 1.1, ease: 'power3.out' }, 0.2)
         } else {
-
+          // Mobile & fallback: simple opacity fade — no 3D transforms, no word split
           heroTl
-            .to('.gsap-hero-badge',       { opacity: 1, y: 0, scale: 1, duration: 0.65 }, 0.05)
-            .to('.gsap-hero-title',       { opacity: 1, y: 0, duration: 1.05, ease: 'power4.out' }, 0.2)
-            .to('.gsap-hero-title span',  { opacity: 1, scale: 1, duration: 0.7, ease: 'back.out(2)' }, 0.55)
-            .to('.gsap-hero-desc',        { opacity: 1, y: 0, duration: 0.7 }, 0.5)
-            .to('.gsap-hero-buttons',     { opacity: 1, duration: 0.55, ease: 'power2.out' }, 0.72)
-            .to('.gsap-hero-stats',       { opacity: 1, duration: 0.5 }, 0.88)
-            .to('.gsap-hero-chart',       { opacity: 1, x: 0, scale: 1, duration: 1.1, ease: 'power3.out' }, 0.2)
+            .to('.gsap-hero-badge',       { opacity: 1, y: 0, scale: 1, duration: 0.4 }, 0.05)
+            .to('.gsap-hero-title',       { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 0.15)
+            .to('.gsap-hero-desc',        { opacity: 1, y: 0, duration: 0.4 }, 0.3)
+            .to('.gsap-hero-buttons',     { opacity: 1, duration: 0.35, ease: 'power2.out' }, 0.45)
+            .to('.gsap-hero-stats',       { opacity: 1, duration: 0.3 }, 0.55)
+            .to('.gsap-hero-chart',       { opacity: 1, duration: 0.5, ease: 'power2.out' }, 0.2)
         }
 
 
@@ -985,47 +998,53 @@ export default function LandingPageClient() {
 
 
 
-        gsap.utils.toArray<HTMLElement>('.gsap-counter').forEach(el => {
-          const end    = parseFloat(el.dataset.count || '0')
-          const prefix = el.dataset.prefix || ''
-          const suffix = el.dataset.suffix || ''
-          const isFloat = String(end).includes('.')
-          const obj     = { val: 0 }
+        // Counter animation — skip on mobile (rAF-heavy, stats are hidden on mobile anyway)
+        if (!isMobile) {
+          gsap.utils.toArray<HTMLElement>('.gsap-counter').forEach(el => {
+            const end    = parseFloat(el.dataset.count || '0')
+            const prefix = el.dataset.prefix || ''
+            const suffix = el.dataset.suffix || ''
+            const isFloat = String(end).includes('.')
+            const obj     = { val: 0 }
 
-          ScrollTrigger.create({
-            trigger: el,
-            start: 'top 90%',
-            once: true,
-            onEnter: () => {
-              gsap.to(obj, {
-                val: end,
-                duration: 2,
-                ease: 'power2.out',
-                onUpdate: () => {
-                  const display = isFloat ? obj.val.toFixed(1) : Math.round(obj.val)
-                  el.textContent = `${prefix}${display}${suffix}`
-                },
-              })
-            },
+            ScrollTrigger.create({
+              trigger: el,
+              start: 'top 90%',
+              once: true,
+              onEnter: () => {
+                gsap.to(obj, {
+                  val: end,
+                  duration: 2,
+                  ease: 'power2.out',
+                  onUpdate: () => {
+                    const display = isFloat ? obj.val.toFixed(1) : Math.round(obj.val)
+                    el.textContent = `${prefix}${display}${suffix}`
+                  },
+                })
+              },
+            })
           })
-        })
+        }
 
 
 
 
-        gsap.utils.toArray<HTMLElement>('.gsap-parallax-img').forEach((el, i) => {
-          const depth = i % 2 === 0 ? -40 : 40
-          gsap.to(el, {
-            y: depth,
-            ease: 'none',
-            scrollTrigger: {
-              trigger: el.closest('section') || el,
-              start: 'top bottom',
-              end: 'bottom top',
-              scrub: 1.2,
-            },
+        // Parallax — scrub per scroll event. Skip on mobile (CPU drain).
+        if (!isMobile) {
+          gsap.utils.toArray<HTMLElement>('.gsap-parallax-img').forEach((el, i) => {
+            const depth = i % 2 === 0 ? -40 : 40
+            gsap.to(el, {
+              y: depth,
+              ease: 'none',
+              scrollTrigger: {
+                trigger: el.closest('section') || el,
+                start: 'top bottom',
+                end: 'bottom top',
+                scrub: 1.2,
+              },
+            })
           })
-        })
+        }
 
 
 
@@ -1127,14 +1146,25 @@ export default function LandingPageClient() {
 
 
 
+        // Payment grid — skip rotation on mobile (paint-heavy)
         gsap.utils.toArray<HTMLElement>('.gsap-payment-grid').forEach(grid => {
-          gsap.set(grid.children as unknown as HTMLElement[], { opacity: 0, y: 40, scale: 0.88, rotation: -2 })
-          gsap.to(grid.children as unknown as HTMLElement[], {
-            opacity: 1, y: 0, scale: 1, rotation: 0,
-            stagger: { amount: 0.5, from: 'start' },
-            duration: 0.65, ease: 'back.out(1.6)',
-            scrollTrigger: { trigger: grid, start: 'top 92%', once: true },
-          })
+          if (isMobile) {
+            gsap.set(grid.children as unknown as HTMLElement[], { opacity: 0, y: 20 })
+            gsap.to(grid.children as unknown as HTMLElement[], {
+              opacity: 1, y: 0,
+              stagger: { amount: 0.3, from: 'start' },
+              duration: 0.4, ease: 'power2.out',
+              scrollTrigger: { trigger: grid, start: 'top 95%', once: true },
+            })
+          } else {
+            gsap.set(grid.children as unknown as HTMLElement[], { opacity: 0, y: 40, scale: 0.88, rotation: -2 })
+            gsap.to(grid.children as unknown as HTMLElement[], {
+              opacity: 1, y: 0, scale: 1, rotation: 0,
+              stagger: { amount: 0.5, from: 'start' },
+              duration: 0.65, ease: 'back.out(1.6)',
+              scrollTrigger: { trigger: grid, start: 'top 92%', once: true },
+            })
+          }
         })
 
 
@@ -1143,10 +1173,21 @@ export default function LandingPageClient() {
         gsap.utils.toArray<HTMLElement>('.gsap-partner-row').forEach((row, i) => {
           const isEven = i % 2 === 0
 
+          if (isMobile) {
+            // Mobile: single simple fade for entire row — avoid many tweens per row
+            gsap.set(row, { opacity: 0, y: 20 })
+            gsap.to(row, {
+              opacity: 1, y: 0,
+              duration: 0.6, ease: 'power2.out',
+              scrollTrigger: { trigger: row, start: 'top 90%', once: true },
+              delay: i * 0.1,
+            })
+            return
+          }
 
           const imgWrap = row.querySelector<HTMLElement>('.gsap-partner-img')
           if (imgWrap) {
-            const xOffset = isMobile ? (isEven ? -50 : 50) : (isEven ? -100 : 100)
+            const xOffset = isEven ? -100 : 100
             gsap.set(imgWrap, { opacity: 0, x: xOffset, scale: 0.88, rotation: isEven ? -4 : 4 })
             gsap.to(imgWrap, {
               opacity: 1, x: 0, scale: 1, rotation: 0,
@@ -1154,7 +1195,6 @@ export default function LandingPageClient() {
               scrollTrigger: { trigger: row, start: 'top 88%', once: true },
             })
           }
-
 
           const logoBadge = row.querySelector<HTMLElement>('.gsap-partner-logo')
           if (logoBadge) {
@@ -1167,7 +1207,6 @@ export default function LandingPageClient() {
             })
           }
 
-
           const heading = row.querySelector<HTMLElement>('.gsap-partner-heading')
           if (heading) {
             gsap.set(heading, { opacity: 0, y: 40 })
@@ -1179,7 +1218,6 @@ export default function LandingPageClient() {
             })
           }
 
-
           const desc = row.querySelector<HTMLElement>('.gsap-partner-desc')
           if (desc) {
             gsap.set(desc, { opacity: 0, y: 25 })
@@ -1190,7 +1228,6 @@ export default function LandingPageClient() {
               delay: 0.48,
             })
           }
-
 
           const btn = row.querySelector<HTMLElement>('.gsap-partner-btn')
           if (btn) {
@@ -1221,7 +1258,7 @@ export default function LandingPageClient() {
 
 
         const affiliateCards = gsap.utils.toArray<HTMLElement>('.gsap-affiliate-card')
-        if (affiliateCards.length) {
+        if (affiliateCards.length && !isMobile) {
           gsap.set(affiliateCards, { opacity: 0, y: 60, scale: 0.88 })
           gsap.to(affiliateCards, {
             opacity: 1, y: 0, scale: 1,
@@ -1233,7 +1270,7 @@ export default function LandingPageClient() {
 
 
 
-        gsap.utils.toArray<HTMLElement>('.gsap-affiliate-steps-grid').forEach(grid => {
+        if (!isMobile) gsap.utils.toArray<HTMLElement>('.gsap-affiliate-steps-grid').forEach(grid => {
           const children = Array.from(grid.children) as HTMLElement[]
           children.forEach((child, idx) => {
 
@@ -1251,7 +1288,7 @@ export default function LandingPageClient() {
             if (title) { gsap.set(title, { opacity: 0, y: 10 }); gsap.to(title, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out', scrollTrigger: { trigger: grid, start: 'top 92%', once: true }, delay: idx * 0.13 + 0.3 }) }
             if (desc)  { gsap.set(desc,  { opacity: 0, y: 8 }); gsap.to(desc,  { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out', scrollTrigger: { trigger: grid, start: 'top 92%', once: true }, delay: idx * 0.13 + 0.38 }) }
           })
-        })
+        }) // end if(!isMobile)
 
 
 
@@ -1281,7 +1318,7 @@ export default function LandingPageClient() {
           }
         }
 
-        // ── Section 1 scroll-driven cinematic animation ──────
+        // ── Section 1 scroll-driven animation — skip scrub on mobile (rAF drain) ──
         const s1Section = document.querySelector<HTMLElement>('.s1-section')
         if (s1Section) {
           const t1    = s1Section.querySelector<HTMLElement>('.s1-title-1')
@@ -1289,36 +1326,48 @@ export default function LandingPageClient() {
           const btn   = s1Section.querySelector<HTMLElement>('.s1-btn')
           const boxes = Array.from(s1Section.querySelectorAll<HTMLElement>('.s1-box-1,.s1-box-2,.s1-box-3,.s1-box-4'))
 
-          if (t1)  gsap.set(t1,  { opacity: 0, x: -80, skewX: -8 })
-          if (t2)  gsap.set(t2,  { opacity: 0, x:  80, skewX:  8 })
-          if (btn) gsap.set(btn, { opacity: 0, scale: 0.7, y: 20 })
-          boxes.forEach((b, i) => {
-            gsap.set(b, { opacity: 0, y: i % 2 === 0 ? 40 : -40, rotateZ: i % 2 === 0 ? -6 : 6, scale: 0.85 })
-          })
+          if (isMobile) {
+            // Mobile: simple once-off reveal, no scrub
+            const allEls = [t1, t2, btn, ...boxes].filter(Boolean) as HTMLElement[]
+            gsap.set(allEls, { opacity: 0, y: 20 })
+            gsap.to(allEls, {
+              opacity: 1, y: 0,
+              stagger: 0.1, duration: 0.5, ease: 'power2.out',
+              scrollTrigger: { trigger: s1Section, start: 'top 88%', once: true },
+            })
+          } else {
+            if (t1)  gsap.set(t1,  { opacity: 0, x: -80, skewX: -8 })
+            if (t2)  gsap.set(t2,  { opacity: 0, x:  80, skewX:  8 })
+            if (btn) gsap.set(btn, { opacity: 0, scale: 0.7, y: 20 })
+            boxes.forEach((b, i) => {
+              gsap.set(b, { opacity: 0, y: i % 2 === 0 ? 40 : -40, rotateZ: i % 2 === 0 ? -6 : 6, scale: 0.85 })
+            })
 
-          const tl = gsap.timeline({
-            scrollTrigger: {
-              trigger: s1Section,
-              start: 'top 85%',
-              end: 'center 40%',
-              scrub: 1.4,
-            },
-          })
+            const tl = gsap.timeline({
+              scrollTrigger: {
+                trigger: s1Section,
+                start: 'top 85%',
+                end: 'center 40%',
+                scrub: 1.4,
+              },
+            })
 
-          tl.to(t1,  { opacity: 1, x: 0, skewX: 0, duration: 1,   ease: 'power3.out' }, 0)
-            .to(t2,  { opacity: 1, x: 0, skewX: 0, duration: 1,   ease: 'power3.out' }, 0.25)
-            .to(btn, { opacity: 1, scale: 1, y: 0,  duration: 0.7, ease: 'back.out(2)' }, 0.55)
-            .to(boxes[0], { opacity: 1, y: 0, rotateZ: 0, scale: 1, duration: 0.6, ease: 'back.out(1.6)' }, 0.70)
-            .to(boxes[1], { opacity: 1, y: 0, rotateZ: 0, scale: 1, duration: 0.6, ease: 'back.out(1.6)' }, 0.82)
-            .to(boxes[2], { opacity: 1, y: 0, rotateZ: 0, scale: 1, duration: 0.6, ease: 'back.out(1.6)' }, 0.94)
-            .to(boxes[3], { opacity: 1, y: 0, rotateZ: 0, scale: 1, duration: 0.6, ease: 'back.out(1.6)' }, 1.06)
+            tl.to(t1,  { opacity: 1, x: 0, skewX: 0, duration: 1,   ease: 'power3.out' }, 0)
+              .to(t2,  { opacity: 1, x: 0, skewX: 0, duration: 1,   ease: 'power3.out' }, 0.25)
+              .to(btn, { opacity: 1, scale: 1, y: 0,  duration: 0.7, ease: 'back.out(2)' }, 0.55)
+              .to(boxes[0], { opacity: 1, y: 0, rotateZ: 0, scale: 1, duration: 0.6, ease: 'back.out(1.6)' }, 0.70)
+              .to(boxes[1], { opacity: 1, y: 0, rotateZ: 0, scale: 1, duration: 0.6, ease: 'back.out(1.6)' }, 0.82)
+              .to(boxes[2], { opacity: 1, y: 0, rotateZ: 0, scale: 1, duration: 0.6, ease: 'back.out(1.6)' }, 0.94)
+              .to(boxes[3], { opacity: 1, y: 0, rotateZ: 0, scale: 1, duration: 0.6, ease: 'back.out(1.6)' }, 1.06)
+          }
         }
 
       })
 
       cleanup = () => ctx?.revert()
     })
-    return () => cleanup?.()
+    }, gsapDelay)
+    return () => { clearTimeout(gsapTimer); cleanup?.() }
   }, [])
 
   const [isLogin, setIsLogin] = useState(true)
@@ -1429,6 +1478,13 @@ export default function LandingPageClient() {
 
 
   useEffect(() => {
+    // Mobile: freeze logo at 'stc-hold' — skip constant re-renders during initial load
+    // The logo cycling animation is purely cosmetic and expensive on mobile
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setLogoPhase('stc-hold')
+      return
+    }
+
     const phaseTimings = {
       'stc-logo-in': 800,
       'stc-text-in': 800,
@@ -1464,18 +1520,25 @@ export default function LandingPageClient() {
 
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveTestimonial((prev) => (prev + 1) % 3)
-    }, 5000)
-    return () => clearInterval(interval)
+    // Defer carousel — not needed during initial render
+    const startT = setTimeout(() => {
+      const interval = setInterval(() => {
+        setActiveTestimonial((prev) => (prev + 1) % 3)
+      }, 5000)
+      return () => clearInterval(interval)
+    }, 4000)
+    return () => clearTimeout(startT)
   }, [])
 
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveFeature((prev) => (prev + 1) % features.length)
-    }, 4000)
-    return () => clearInterval(interval)
+    const startT = setTimeout(() => {
+      const interval = setInterval(() => {
+        setActiveFeature((prev) => (prev + 1) % features.length)
+      }, 4000)
+      return () => clearInterval(interval)
+    }, 4500)
+    return () => clearTimeout(startT)
   }, [])
 
 
@@ -2069,12 +2132,9 @@ export default function LandingPageClient() {
               {}
               <div className="gsap-hero-stats hidden sm:grid grid-cols-4 gap-4 pt-8">
                 {stats.map((stat, index) => (
-                  <motion.div
+                  <div
                     key={index}
-                    whileHover={{ scale: 1.05, y: -3 }}
-                    whileTap={{ scale: 0.97 }}
-                    transition={{ duration: 0.18, ease: 'easeOut' }}
-                    className="text-center cursor-default bg-slate-900/80 rounded-xl p-3 border border-emerald-500/10 hover:border-emerald-500/25 transition-colors"
+                    className="text-center cursor-default bg-slate-900/80 rounded-xl p-3 border border-emerald-500/10 hover:border-emerald-500/25 transition-colors hover:scale-105 hover:-translate-y-0.5 transition-transform duration-200"
                   >
                     <stat.icon className="w-6 h-6 text-sky-300 mx-auto mb-2" weight="bold" />
                     <div
@@ -2086,7 +2146,7 @@ export default function LandingPageClient() {
                       {stat.value}
                     </div>
                     <div className="text-xs text-gray-500">{stat.label}</div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -2118,7 +2178,7 @@ export default function LandingPageClient() {
                 />
               )}
 
-              <LiveCryptoChart />
+              <LazyLiveCryptoChart />
             </div>
           </div>
         </div>
@@ -3415,6 +3475,22 @@ export default function LandingPageClient() {
 
       .duration-350 { transition-duration: 350ms; }
 
+      /* ── Force GPU composite ONLY on elements that actually animate ─── */
+      .gsap-hero-chart,
+      .gsap-hero-title-line1,
+      .gsap-hero-title-accent,
+      .animate-marquee-left,
+      .animate-marquee-right {
+        will-change: transform;
+      }
+      /* Remove after animation completes via JS (GSAP does this via clearProps) */
+      @media (max-width: 1023px) {
+        /* Hero chart: visible immediately on mobile — GSAP delayed 2.5s */
+        .gsap-hero-chart { opacity: 1 !important; transform: none !important; }
+        .gsap-hero-desc, .gsap-hero-buttons { opacity: 1 !important; transform: none !important; }
+        .gsap-hero-badge { opacity: 1 !important; transform: none !important; }
+      }
+
       /* ── GSAP safety fallback ──────────────────────────────
          Jika GSAP gagal load / timeout, elemen tetap terlihat
          setelah 2.5 detik via animasi CSS sederhana.          */
@@ -3432,7 +3508,23 @@ export default function LandingPageClient() {
         animation: gsap-fallback-reveal 0s 2.5s forwards;
       }
       @keyframes gsap-fallback-reveal {
-        to { opacity: 1 !important; transform: none !important; }
+        to { opacity: 1 !important; transform: none !important; filter: none !important; }
+      }
+      /* Mobile: shorter fallback delay since GSAP loads at 2.5s */
+      @media (max-width: 1023px) {
+        .gsap-navbar,
+        .gsap-hero-badge,
+        .gsap-hero-desc,
+        .gsap-hero-buttons,
+        .gsap-hero-stats,
+        .gsap-hero-chart,
+        .gsap-section-header,
+        .gsap-step-card,
+        .gsap-partner-row,
+        .gsap-affiliate-card,
+        .gsap-cta-section {
+          animation: gsap-fallback-reveal 0s 1.5s forwards !important;
+        }
       }
 
       /* ── Shimmer emerald-blue premium text ────────────────── */
@@ -3513,8 +3605,30 @@ export default function LandingPageClient() {
         }
         /* Floating blobs — tidak perlu di mobile */
         .gsap-float-blob { animation: none !important; }
+        /* Section 1 elements: skip invisible state on mobile
+           (GSAP loads late, elements would be invisible 2.5s) */
+        .gsap-s1 { opacity: 1 !important; transform: none !important; }
+        .gsap-s1-img { opacity: 0.8 !important; transform: none !important; filter: none !important; }
         /* Orbs — terlalu berat untuk mobile */
         .gsap-orb { animation: none !important; transform: none !important; }
+        /* Navbar blur — paint cost tiap scroll di HP */
+        nav[class*="backdrop-blur"] {
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+          background: rgba(0,0,0,0.92) !important;
+        }
+        /* Step ring pulses — matikan di mobile */
+        .step-ring-violet,
+        .step-ring-pink,
+        .step-ring-sky { animation: none !important; }
+        /* Shimmer title — animasi berat di HP */
+        .shimmer-title-stouch,
+        .shimmer-title-id { animation: none !important; background: #fff; }
+        /* cta-glow — tidak perlu */
+        .cta-glow-ring { animation: none !important; }
+        /* Remove marquee will-change on mobile — compositor thrash */
+        .animate-marquee-left,
+        .animate-marquee-right { will-change: auto; }
       }
 
       /* ── Scrollbar — premium gradient ──────────────────── */
@@ -3693,8 +3807,7 @@ export default function LandingPageClient() {
         will-change: contents;
       }
 
-      /* ── Framer Motion will-change hint ─────────────────── */
-      [data-motion-component] { will-change: transform, opacity; }
+      /* will-change removed — creating GPU layers for every motion div thrashes mobile GPU */
 
       /* ── Stouch.id title shimmer ─────────────────────────── */
       @keyframes title-shimmer {
